@@ -39,7 +39,7 @@ $AIAgent::LastLoggedSecond = -1;
 //-----------------------------------------------------------------------------
 
 // Action definitions: each action specifies the movement inputs to set
-$AIAgent::Actions = new ArrayObject(AIAgentActions);
+$AIAgent::Actions = Array(AIAgentActions);
 
 function AIAgent::initActions() {
 	// Clear existing actions
@@ -136,12 +136,12 @@ function AIAgent::update() {
 	// Log and display when action changes
 	if (%currentSecond != $AIAgent::LastLoggedSecond) {
 		echo("AI Agent [" @ %currentSecond @ "s]: " @ %actionName);
-		centerprint("AI: " @ %actionName, 1);
+		// centerprint("AI: " @ %actionName, 1);  // Disabled - causes error with fake clients
 		$AIAgent::LastLoggedSecond = %currentSecond;
 	}
 
 	// Schedule next update
-	$AIAgent::UpdateSchedule = schedule($AIAgent::UpdateInterval, 0, AIAgent::update);
+	$AIAgent::UpdateSchedule = schedule($AIAgent::UpdateInterval, 0, "AIAgent::update");
 }
 
 //-----------------------------------------------------------------------------
@@ -167,7 +167,7 @@ function AIAgent::start() {
 	echo("Testing " @ AIAgentActions.count() @ " actions in sequence");
 	echo("To stop: AIAgent::stop()");
 
-	centerprint("AI AGENT STARTED", 2);
+	// centerprint("AI AGENT STARTED", 2);  // Disabled - causes error with fake clients
 
 	// Start the update loop
 	AIAgent::update();
@@ -204,7 +204,7 @@ function AIAgent::autoStart() {
 	}
 
 	// Wait for game to fully initialize
-	schedule(500, 0, AIAgent::start);
+	schedule(500, 0, "AIAgent::start");
 }
 
 //-----------------------------------------------------------------------------

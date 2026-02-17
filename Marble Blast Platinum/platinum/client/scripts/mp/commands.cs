@@ -29,6 +29,7 @@
 function clientCmdStartTimer() {
 	PlayGui.startTimer();
 	PlayGui.refreshRed();
+	AIRecorder::onTimerStart();  // Start recording when GO! appears
 }
 
 function clientCmdStopTimer() {

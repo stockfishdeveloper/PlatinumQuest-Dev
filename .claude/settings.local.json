@@ -6,7 +6,9 @@
       "Bash(./marbleblast.exe -console -exec \"echo\\(''Test load''\\);\")",
       "Bash(\"./compile.bat\")",
       "Bash(tee:*)",
-      "Bash(python3 -m json.tool:*)"
+      "Bash(python3 -m json.tool:*)",
+      "Bash(python3:*)",
+      "Bash(awk:*)"
     ]
   }
 }

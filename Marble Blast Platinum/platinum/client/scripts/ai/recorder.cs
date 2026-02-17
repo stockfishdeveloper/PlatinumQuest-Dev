@@ -140,13 +140,19 @@ function AIRecorder::update() {
     if (isObject($AIRecorder::File)) {
         $AIRecorder::File.writeLine(%json);
         $AIRecorder::FrameCount++;
+
+        // Flush to disk every 1 second (20 frames at 20 Hz)
+        if ($AIRecorder::FrameCount % 20 == 0) {
+            $AIRecorder::File.close();
+            $AIRecorder::File.openForAppend($AIRecorder::CurrentFilename);
+        }
     }
 
     // Clean up observation object
     %obs.delete();
 
     // Schedule next update
-    $AIRecorder::UpdateSchedule = schedule($AIRecorder::UpdateInterval, 0, AIRecorder::update);
+    $AIRecorder::UpdateSchedule = schedule($AIRecorder::UpdateInterval, 0, "AIRecorder::update");
 }
 
 //-----------------------------------------------------------------------------
@@ -229,19 +235,38 @@ function AIRecorder::onGameStart() {
     if (!$AIRecorder::AutoStart)
         return;
 
-    // Generate unique filename for this match
-    %mapName = fileBase($Client::MissionFile);
-    %timestamp = getRealTime(); // Use real time for unique filenames
-    %filename = $AIRecorder::OutputDir @ "/" @ %mapName @ "_" @ %timestamp @ ".jsonl";
+    // Stop any existing recording first
+    if ($AIRecorder::Recording) {
+        echo("AI Recorder: Stopping previous recording before starting new one");
+        AIRecorder::stop(true); // Silent stop
+    }
 
-    echo("AI Recorder: Auto-starting for match on" SPC %mapName);
-    AIRecorder::start(%filename);
+    // Generate unique filename for this match but DON'T start yet
+    // Wait for clientCmdStartTimer (when "GO!" appears)
+    %mapName = fileBase($Client::MissionFile);
+    %timestamp = getRealTime();
+    $AIRecorder::PendingFilename = $AIRecorder::OutputDir @ "/" @ %mapName @ "_" @ %timestamp @ ".jsonl";
+    $AIRecorder::ReadyToStart = true;
+
+    echo("AI Recorder: Ready to record" SPC %mapName @ ", waiting for GO!");
+}
+
+function AIRecorder::onTimerStart() {
+    // Called when "GO!" appears and timer starts
+    if (!$AIRecorder::AutoStart || !$AIRecorder::ReadyToStart)
+        return;
+
+    $AIRecorder::ReadyToStart = false;
+
+    echo("AI Recorder: Starting recording after GO!");
+    AIRecorder::start($AIRecorder::PendingFilename);
 }
 
 function AIRecorder::onGameEnd() {
     if ($AIRecorder::Recording) {
         AIRecorder::stop(true); // Silent stop
     }
+    $AIRecorder::ReadyToStart = false;
 }
 
 //-----------------------------------------------------------------------------

@@ -55,22 +55,23 @@ function AIObserver::collectState() {
 function AIObserver::collectSelfState(%obs) {
     // Position (3)
     %pos = $MP::MyMarble.getPosition();
-    %obs.selfPosX = getWord(%pos, 0);
-    %obs.selfPosY = getWord(%pos, 1);
-    %obs.selfPosZ = getWord(%pos, 2);
+    %obs.selfPosX = getWord(%pos, 0) + 0;  // +0 converts empty string to 0
+    %obs.selfPosY = getWord(%pos, 1) + 0;
+    %obs.selfPosZ = getWord(%pos, 2) + 0;
 
     // Velocity (3)
     %vel = $MP::MyMarble.getVelocity();
-    %obs.selfVelX = getWord(%vel, 0);
-    %obs.selfVelY = getWord(%vel, 1);
-    %obs.selfVelZ = getWord(%vel, 2);
+    %obs.selfVelX = getWord(%vel, 0) + 0;
+    %obs.selfVelY = getWord(%vel, 1) + 0;
+    %obs.selfVelZ = getWord(%vel, 2) + 0;
 
-    // Camera angles (2)
-    %obs.cameraYaw = getMarbleCamYaw();
-    %obs.cameraPitch = getMarbleCamPitch();
+    // Camera angles (2) - use globals if functions don't exist
+    %obs.cameraYaw = ($cameraYaw $= "") ? 0 : $cameraYaw;
+    %obs.cameraPitch = ($cameraPitch $= "") ? 0 : $cameraPitch;
 
     // Collision radius (1)
-    %obs.collisionRadius = $MP::MyMarble.getScale();
+    %scale = $MP::MyMarble.getScale();
+    %obs.collisionRadius = (%scale $= "") ? 0.2 : %scale;
 
     // Powerup state (3)
     %obs.powerupId = $MP::MyMarble.getPowerUp();
@@ -79,10 +80,10 @@ function AIObserver::collectSelfState(%obs) {
 
     // Mega marble state (2)
     %obs.megaMarbleActive = $MP::MyMarble.isMegaMarble() ? 1 : 0;
-    %obs.megaMarbleTimeRemaining = AIObserver::getMegaMarbleTimeRemaining();
+    %obs.megaMarbleTimeRemaining = AIObserver::getMegaMarbleTimeRemaining() + 0;
 
     // Powerup timer (2)
-    %obs.powerupTimerRemaining = AIObserver::getPowerupTimerRemaining();
+    %obs.powerupTimerRemaining = AIObserver::getPowerupTimerRemaining() + 0;
 }
 
 //-----------------------------------------------------------------------------
@@ -97,19 +98,55 @@ function AIObserver::collectGems(%obs) {
 
     // Collect all gems from ItemArray
     %gemCount = 0;
-    %gems = new ArrayObject();
+
+    // Instead of creating array, use direct storage in observation
+    // This avoids creating/deleting temporary array objects every frame
+
+    // Try ItemArray first, fallback to ServerConnection if empty
+    %count = 0;
+    %useServerConnection = false;
 
     if (isObject(ItemArray)) {
-        %count = ItemArray.count();
-        for (%i = 0; %i < %count; %i++) {
+        %count = ItemArray.getSize();  // Use getSize() not count()
+    }
+
+    // If ItemArray is empty, use ServerConnection directly
+    if (%count == 0 && isObject(ServerConnection)) {
+        %count = ServerConnection.getCount();
+        %useServerConnection = true;
+    }
+
+    // Debug: Log gem collection attempt (only first time)
+    if (!$AIObserver::LoggedGemCollection) {
+        echo("AIObserver: Found" SPC %count SPC "objects" SPC (%useServerConnection ? "(from ServerConnection)" : "(from ItemArray)"));
+        $AIObserver::LoggedGemCollection = true;
+    }
+
+    for (%i = 0; %i < %count; %i++) {
+        if (%useServerConnection) {
+            %obj = ServerConnection.getObject(%i);
+        } else {
             %itemData = ItemArray.getEntryByIndex(%i);
             %objId = getField(%itemData, 0);
             %obj = nameToID(%objId);
+        }
 
-            if (%obj != -1 && !%obj.isHidden()) {
-                // Check if it's a gem (not a powerup)
+        if (isObject(%obj) && !%obj.isHidden()) {
+                // Get item type from datablock - accept all items for now
                 %datablock = %obj.getDatablock();
-                if (%datablock.className $= "ItemData") {
+
+                // Skip if this is clearly a powerup (has specific powerup datablocks)
+                %dbName = %datablock.getName();
+                %isPowerup = (stristr(%dbName, "SuperSpeed") >= 0) ||
+                             (stristr(%dbName, "SuperJump") >= 0) ||
+                             (stristr(%dbName, "Shock") >= 0) ||
+                             (stristr(%dbName, "Helicopter") >= 0) ||
+                             (stristr(%dbName, "Gravity") >= 0) ||
+                             (stristr(%dbName, "MegaMarble") >= 0) ||
+                             (stristr(%dbName, "Blast") >= 0) ||
+                             (stristr(%dbName, "TimeTravel") >= 0);
+
+                if (!%isPowerup) {
                     %pos = %obj.getPosition();
                     %gemX = getWord(%pos, 0);
                     %gemY = getWord(%pos, 1);
@@ -126,30 +163,40 @@ function AIObserver::collectGems(%obs) {
                     // Gem value
                     %value = AIObserver::getGemValue(%obj);
 
-                    // Store gem data: x, y, z, value, distance
-                    %gemData = %relX TAB %relY TAB %relZ TAB %value TAB %dist;
-                    %gems.push_back(%gemData);
+                    // Store gem data directly in observation
+                    %obs.gemTemp[%gemCount, "x"] = %relX;
+                    %obs.gemTemp[%gemCount, "y"] = %relY;
+                    %obs.gemTemp[%gemCount, "z"] = %relZ;
+                    %obs.gemTemp[%gemCount, "value"] = %value;
+                    %obs.gemTemp[%gemCount, "distance"] = %dist;
 
                     %gemCount++;
                     if (%gemCount >= $AIObserver::MaxGems)
                         break;
                 }
             }
-        }
+    }  // End of item loop
+
+    // Debug: Log gem count (only once every 100 frames)
+    if (!$AIObserver::FrameCount)
+        $AIObserver::FrameCount = 0;
+
+    $AIObserver::FrameCount++;
+    if ($AIObserver::FrameCount % 100 == 0) {
+        echo("AIObserver: Found" SPC %gemCount SPC "gems this frame");
     }
 
-    // Sort gems by distance (nearest first)
-    AIObserver::sortGemsByDistance(%gems);
+    // Sort gems by distance (nearest first) - using bubble sort on temp storage
+    AIObserver::sortGemsInObs(%obs, %gemCount);
 
-    // Store gems in observation (pad to 50 with sentinel values)
+    // Copy sorted gems to final storage and pad remaining slots
     for (%i = 0; %i < $AIObserver::MaxGems; %i++) {
-        if (%i < %gems.count()) {
-            %gemData = %gems.getEntry(%i);
-            %obs.gem[%i, "x"] = getField(%gemData, 0);
-            %obs.gem[%i, "y"] = getField(%gemData, 1);
-            %obs.gem[%i, "z"] = getField(%gemData, 2);
-            %obs.gem[%i, "value"] = getField(%gemData, 3);
-            %obs.gem[%i, "distance"] = getField(%gemData, 4);
+        if (%i < %gemCount) {
+            %obs.gem[%i, "x"] = %obs.gemTemp[%i, "x"];
+            %obs.gem[%i, "y"] = %obs.gemTemp[%i, "y"];
+            %obs.gem[%i, "z"] = %obs.gemTemp[%i, "z"];
+            %obs.gem[%i, "value"] = %obs.gemTemp[%i, "value"];
+            %obs.gem[%i, "distance"] = %obs.gemTemp[%i, "distance"];
         } else {
             // Padding with sentinel values
             %obs.gem[%i, "x"] = -999;
@@ -161,7 +208,6 @@ function AIObserver::collectGems(%obs) {
     }
 
     %obs.gemCount = %gemCount;
-    %gems.delete();
 }
 
 //-----------------------------------------------------------------------------
@@ -318,19 +364,32 @@ function AIObserver::getBestOpponentScore() {
     return %bestScore;
 }
 
-function AIObserver::sortGemsByDistance(%gems) {
-    // Simple bubble sort by distance (field index 4)
-    %count = %gems.count();
+function AIObserver::sortGemsInObs(%obs, %count) {
+    // Simple bubble sort by distance on gemTemp storage
     for (%i = 0; %i < %count - 1; %i++) {
         for (%j = 0; %j < %count - %i - 1; %j++) {
-            %dist1 = getField(%gems.getEntry(%j), 4);
-            %dist2 = getField(%gems.getEntry(%j + 1), 4);
+            %dist1 = %obs.gemTemp[%j, "distance"];
+            %dist2 = %obs.gemTemp[%j + 1, "distance"];
 
             if (%dist1 > %dist2) {
-                // Swap
-                %temp = %gems.getEntry(%j);
-                %gems.setEntry(%j, %gems.getEntry(%j + 1));
-                %gems.setEntry(%j + 1, %temp);
+                // Swap all gem fields
+                %tempX = %obs.gemTemp[%j, "x"];
+                %tempY = %obs.gemTemp[%j, "y"];
+                %tempZ = %obs.gemTemp[%j, "z"];
+                %tempVal = %obs.gemTemp[%j, "value"];
+                %tempDist = %obs.gemTemp[%j, "distance"];
+
+                %obs.gemTemp[%j, "x"] = %obs.gemTemp[%j + 1, "x"];
+                %obs.gemTemp[%j, "y"] = %obs.gemTemp[%j + 1, "y"];
+                %obs.gemTemp[%j, "z"] = %obs.gemTemp[%j + 1, "z"];
+                %obs.gemTemp[%j, "value"] = %obs.gemTemp[%j + 1, "value"];
+                %obs.gemTemp[%j, "distance"] = %obs.gemTemp[%j + 1, "distance"];
+
+                %obs.gemTemp[%j + 1, "x"] = %tempX;
+                %obs.gemTemp[%j + 1, "y"] = %tempY;
+                %obs.gemTemp[%j + 1, "z"] = %tempZ;
+                %obs.gemTemp[%j + 1, "value"] = %tempVal;
+                %obs.gemTemp[%j + 1, "distance"] = %tempDist;
             }
         }
     }
@@ -344,7 +403,7 @@ function AIObserver::serializeToJSON(%obs) {
     if (!isObject(%obs))
         return "";
 
-    %json = "{\"state\":[";
+    %json = "[";
 
     // Self state (14 values)
     %json = %json @ %obs.selfPosX @ "," @ %obs.selfPosY @ "," @ %obs.selfPosZ @ ",";
@@ -380,7 +439,7 @@ function AIObserver::serializeToJSON(%obs) {
     %json = %json @ "," @ %obs.opponentBestScore;
     %json = %json @ "," @ %obs.gemsRemaining;
 
-    %json = %json @ "]}";
+    %json = %json @ "]";
 
     return %json;
 }
