@@ -37,6 +37,10 @@ $pref::Player::Name = "Platinum Player";
 $pref::Player::defaultFov = 90;
 $pref::Player::zoomSpeed = 0;
 $pref::Thousandths = 1;
+
+// DEV BUILD: Enable this to bypass online integrity checks for local testing
+// WARNING: Only use for local/LAN servers - do NOT connect to official servers!
+$pref::DevMode = true;
 $pref::alwaysShowSpeedometer = 0;
 $pref::powerupsAlwaysOnRadar = 0;
 $pref::powerupTimers = 1;

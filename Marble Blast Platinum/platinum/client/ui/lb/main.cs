@@ -53,6 +53,13 @@ function initLeaderboards() {
 	%letters = "a"@"b"@"c"@"d"@"e"@"f"@"g"@"h"@"i"@"j"@"k"@"l"@"m"@"n"@"o"@"p"@"q"@"r"@"s"@"t"@"u"@"v"@"w"@"x"@"y"@"z"@"A"@"B"@"C"@"D"@"E"@"F"@"G"@"H"@"I"@"J"@"K"@"L"@"M"@"N"@"O"@"P"@"Q"@"R"@"S"@"T"@"U"@"V"@"W"@"X"@"Y"@"Z"@"1"@"2"@"3"@"4"@"5"@"6"@"7"@"8"@"9"@"0"@"."@"-"@"\'"@"\""@"["@"]"@","@"("@")"@"!"@"$"@"&"@"^"@"#"@"@"@"+"@"="@"-"@"_"@";";
 	%crcdata = call("q"@"u"@"e"@"r"@"y"@"S"@"H"@"A");
 
+	// DEV BUILD: Bypass integrity check for local testing
+	// WARNING: Do NOT use this to connect to official servers - it's against the rules!
+	if ($pref::DevMode || $pref::BypassIntegrityCheck) {
+		echo("DEV MODE: Bypassing integrity check");
+		%crcdata = "0" TAB "c"@"r"@"c"@"G"@"o"@"o"@"d";
+	}
+
 	if (getField(%crcdata, 0) != 0 || getField(%crcdata, 1) !$= ("c"@"r"@"c"@"G"@"o"@"o"@"d")) {
 		//Blow up here
 		exec("./LBErrorHandlerDlg.gui");

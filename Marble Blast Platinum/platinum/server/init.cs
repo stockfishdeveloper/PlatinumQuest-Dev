@@ -76,6 +76,7 @@ function initServer() {
 	exec("./scripts/game.cs");
 	exec("./scripts/settings.cs");
 	exec("./scripts/rtaspeedrun.cs");
+	exec("./scripts/aiBot.cs"); // AI Bot for autonomous movement testing
 }
 
 

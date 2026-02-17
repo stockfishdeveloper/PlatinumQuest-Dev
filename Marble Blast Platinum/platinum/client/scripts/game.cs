@@ -61,6 +61,12 @@ function clientCmdGameStart() {
 
 	updateGameDiscordStatus();
 	$Client::GameRunning = true;
+
+	// Auto-start AI bot if enabled
+	autoStartAIBot();
+
+	// Auto-start AI recorder if enabled
+	AIRecorder::onGameStart();
 }
 
 // Called when you respawn
@@ -433,6 +439,14 @@ function clientCmdGameEnd() {
 	if ($Client::PlayingDemo || $playingDemo) {
 		return;
 	}
+
+	// Stop AI bot when game ends
+	if ($AI::Enabled) {
+		stopAIBot(true); // Silent stop
+	}
+
+	// Stop AI recorder when game ends
+	AIRecorder::onGameEnd();
 
 	if ($Record::Recording) {
 		//Give 3 sec at the end screen before we finish the rec

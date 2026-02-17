@@ -181,6 +181,9 @@ function initClient() {
 	exec("./scripts/replay.cs");
 	exec("./scripts/controllerUI.cs");
 	exec("./scripts/texturePack.cs");
+	exec("./scripts/aiBot.cs"); // AI Bot for autonomous movement testing
+	exec("./scripts/ai/observer.cs"); // AI state observer for ML training
+	exec("./scripts/ai/recorder.cs"); // AI gameplay recorder for behavioral cloning
 
 	// Default player key bindings
 	exec("./scripts/default.bind.cs");
