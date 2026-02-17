@@ -17,7 +17,7 @@
 //-----------------------------------------------------------------------------
 
 // Auto-start when game begins
-$AIAgent::AutoStart = true;
+$AIAgent::AutoStart = false;  // Disabled - we're collecting human training data
 
 // Action cycle time (milliseconds)
 $AIAgent::ActionDuration = 1000; // 1 second per action

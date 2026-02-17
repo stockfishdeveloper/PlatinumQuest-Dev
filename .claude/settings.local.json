@@ -8,7 +8,8 @@
       "Bash(tee:*)",
       "Bash(python3 -m json.tool:*)",
       "Bash(python3:*)",
-      "Bash(awk:*)"
+      "Bash(awk:*)",
+      "Bash(python analyze_game.py:*)"
     ]
   }
 }

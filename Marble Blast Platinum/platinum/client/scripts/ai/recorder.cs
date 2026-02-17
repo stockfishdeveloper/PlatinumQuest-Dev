@@ -18,7 +18,7 @@
 //-----------------------------------------------------------------------------
 
 // Auto-start recording when match begins
-$AIRecorder::AutoStart = true;
+$AIRecorder::AutoStart = false;  // Disabled - not collecting human gameplay data currently
 
 // Recording frequency (milliseconds between captures)
 $AIRecorder::UpdateInterval = 50; // 20 Hz
