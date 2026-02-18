@@ -9,7 +9,9 @@
       "Bash(python3 -m json.tool:*)",
       "Bash(python3:*)",
       "Bash(awk:*)",
-      "Bash(python analyze_game.py:*)"
+      "Bash(python analyze_game.py:*)",
+      "Bash(git check-ignore:*)",
+      "Bash(grep:*)"
     ]
   }
 }
