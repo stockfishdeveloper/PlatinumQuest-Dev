@@ -1,9 +1,9 @@
-#!/bin/bash 
+#!/bin/bash
 
 # Check if we use windows. This should get both MinGW (uname MINGW32_NT-6.1)
 # and Cygwin (uname CYGWIN_NT-6.1)
 WINDOWS=$(uname -s | grep "_NT")
-if [ $WINDOWS ]
+if [ $WINDOWS ] || [ -f "./marbleblast.exe" ]
 then
 	./marbleblast.exe -compileall
 else

@@ -12,7 +12,19 @@
       "Bash(python analyze_game.py:*)",
       "Bash(git check-ignore:*)",
       "Bash(grep:*)",
-      "Bash(python -c:*)"
+      "Bash(python -c:*)",
+      "Bash(xxd:*)",
+      "Bash(powershell -Command \"\n$bytes = [System.IO.File]::ReadAllBytes\\(''c:/Users/doug/OneDrive/Documents/GitHub/PlatinumQuest-Dev/Marble Blast Platinum/recompile.sh''\\)\n$hex = \\($bytes | ForEach-Object { $_.ToString\\(''X2''\\) }\\) -join '' ''\nWrite-Output $hex.Substring\\(0, [Math]::Min\\(200, $hex.Length\\)\\)\n\")",
+      "Bash(bash recompile.sh)",
+      "Bash(powershell -Command \"Select-String ''Syntax error'' ''c:/Users/doug/OneDrive/Documents/GitHub/PlatinumQuest-Dev/Marble Blast Platinum/console.log'' | Select-Object -First 20\")",
+      "Bash(powershell -NoProfile -Command \"\n$path = ''c:/Users/doug/OneDrive/Documents/GitHub/PlatinumQuest-Dev/Marble Blast Platinum/recompile.sh''\n$content = [System.IO.File]::ReadAllText\\($path\\)\n$lf = $content -replace ''\\\\r\\\\n'', ''\\\\n''\n[System.IO.File]::WriteAllText\\($path, $lf, [System.Text.Encoding]::UTF8\\)\nWrite-Host ''Done''\n\")",
+      "Bash(where:*)",
+      "Bash(\"C:/Program Files/Git/usr/bin/dos2unix.exe\" \"c:/Users/doug/OneDrive/Documents/GitHub/PlatinumQuest-Dev/Marble Blast Platinum/recompile.sh\")",
+      "Bash(powershell -NoProfile -ExecutionPolicy Bypass -File:*)",
+      "Bash(cmd /c \"bash -c \"\"uname -s\"\"\")",
+      "Bash(cmd /c \"bash --version\")",
+      "Bash(cmd /c:*)",
+      "Bash(powershell -NoProfile -ExecutionPolicy Bypass -Command \"\n$path = ''c:\\\\Users\\\\doug\\\\OneDrive\\\\Documents\\\\GitHub\\\\PlatinumQuest-Dev\\\\Marble Blast Platinum\\\\recompile.sh''\n$bytes = [System.IO.File]::ReadAllBytes\\($path\\)\n$text = [System.Text.Encoding]::UTF8.GetString\\($bytes\\)\n$fixed = $text.Replace\\([char]13 + [char]10, [char]10\\)\n[System.IO.File]::WriteAllBytes\\($path, [System.Text.Encoding]::UTF8.GetBytes\\($fixed\\)\\)\nWrite-Host ''Done''\n\")"
     ]
   }
 }
