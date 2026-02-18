@@ -184,6 +184,8 @@ function initClient() {
 	exec("./scripts/aiBot.cs"); // AI Bot for autonomous movement testing
 	exec("./scripts/ai/observer.cs"); // AI state observer for ML training
 	exec("./scripts/ai/recorder.cs"); // AI gameplay recorder for behavioral cloning
+	exec("./scripts/ai/socketBridge.cs"); // TCP bridge for Python ML server
+	exec("./scripts/ai/mlAgent.cs"); // ML agent controller for RL training
 
 	// Default player key bindings
 	exec("./scripts/default.bind.cs");

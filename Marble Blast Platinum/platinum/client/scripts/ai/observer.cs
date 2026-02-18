@@ -2,10 +2,10 @@
 // AI Observer - Game State Collection System
 //
 // Collects all relevant game state for ML model training and inference.
-// Returns 284-dimensional observation vector:
-//   - Self state: 14 dims
+// Returns 286-dimensional observation vector:
+//   - Self state: 13 dims (pos, vel, camera, radius, powerup state)
 //   - Gems (50 slots): 250 dims (5 per gem: x, y, z, value, distance)
-//   - Opponents (3 slots): 15 dims (5 per opponent: x, y, z, vel_x, vel_y)
+//   - Opponents (3 slots): 18 dims (6 per opponent: x, y, z, vel_x, vel_y, is_mega)
 //   - Game state: 5 dims
 //
 // Usage:
@@ -69,9 +69,9 @@ function AIObserver::collectSelfState(%obs) {
     %obs.cameraYaw = ($cameraYaw $= "") ? 0 : $cameraYaw;
     %obs.cameraPitch = ($cameraPitch $= "") ? 0 : $cameraPitch;
 
-    // Collision radius (1)
+    // Collision radius (1) - just get X component of scale vector
     %scale = $MP::MyMarble.getScale();
-    %obs.collisionRadius = (%scale $= "") ? 0.2 : %scale;
+    %obs.collisionRadius = (%scale $= "") ? 0.2 : getWord(%scale, 0);
 
     // Powerup state (3)
     %obs.powerupId = $MP::MyMarble.getPowerUp();
@@ -399,45 +399,54 @@ function AIObserver::sortGemsInObs(%obs, %count) {
 // JSON Serialization
 //-----------------------------------------------------------------------------
 
+function AIObserver::safeNum(%val) {
+    // Ensure numeric value - if empty string or undefined, return 0
+    if (%val $= "")
+        return 0;
+    return %val;
+}
+
 function AIObserver::serializeToJSON(%obs) {
     if (!isObject(%obs))
         return "";
 
     %json = "[";
 
-    // Self state (14 values)
-    %json = %json @ %obs.selfPosX @ "," @ %obs.selfPosY @ "," @ %obs.selfPosZ @ ",";
-    %json = %json @ %obs.selfVelX @ "," @ %obs.selfVelY @ "," @ %obs.selfVelZ @ ",";
-    %json = %json @ %obs.cameraYaw @ "," @ %obs.cameraPitch @ ",";
-    %json = %json @ %obs.collisionRadius @ ",";
-    %json = %json @ %obs.powerupId @ ",";
-    %json = %json @ %obs.megaMarbleActive @ "," @ %obs.megaMarbleTimeRemaining @ ",";
-    %json = %json @ %obs.powerupTimerRemaining;
+    // Helper to ensure numeric value (replace empty string with 0)
+    // Self state (13 values)
+    %json = %json @ AIObserver::safeNum(%obs.selfPosX) @ "," @ AIObserver::safeNum(%obs.selfPosY) @ "," @ AIObserver::safeNum(%obs.selfPosZ) @ ",";
+    %json = %json @ AIObserver::safeNum(%obs.selfVelX) @ "," @ AIObserver::safeNum(%obs.selfVelY) @ "," @ AIObserver::safeNum(%obs.selfVelZ) @ ",";
+    %json = %json @ AIObserver::safeNum(%obs.cameraYaw) @ "," @ AIObserver::safeNum(%obs.cameraPitch) @ ",";
+    %json = %json @ AIObserver::safeNum(%obs.collisionRadius) @ ",";
+    %json = %json @ AIObserver::safeNum(%obs.powerupId) @ ",";
+    %json = %json @ AIObserver::safeNum(%obs.megaMarbleActive) @ "," @ AIObserver::safeNum(%obs.megaMarbleTimeRemaining) @ ",";
+    %json = %json @ AIObserver::safeNum(%obs.powerupTimerRemaining);
 
     // Gems (250 values: 50 × 5)
     for (%i = 0; %i < $AIObserver::MaxGems; %i++) {
-        %json = %json @ "," @ %obs.gem[%i, "x"];
-        %json = %json @ "," @ %obs.gem[%i, "y"];
-        %json = %json @ "," @ %obs.gem[%i, "z"];
-        %json = %json @ "," @ %obs.gem[%i, "value"];
-        %json = %json @ "," @ %obs.gem[%i, "distance"];
+        %json = %json @ "," @ AIObserver::safeNum(%obs.gem[%i, "x"]);
+        %json = %json @ "," @ AIObserver::safeNum(%obs.gem[%i, "y"]);
+        %json = %json @ "," @ AIObserver::safeNum(%obs.gem[%i, "z"]);
+        %json = %json @ "," @ AIObserver::safeNum(%obs.gem[%i, "value"]);
+        %json = %json @ "," @ AIObserver::safeNum(%obs.gem[%i, "distance"]);
     }
 
-    // Opponents (15 values: 3 × 5)
+    // Opponents (18 values: 3 × 6 - added isMega field)
     for (%i = 0; %i < $AIObserver::MaxOpponents; %i++) {
-        %json = %json @ "," @ %obs.opp[%i, "x"];
-        %json = %json @ "," @ %obs.opp[%i, "y"];
-        %json = %json @ "," @ %obs.opp[%i, "z"];
-        %json = %json @ "," @ %obs.opp[%i, "velX"];
-        %json = %json @ "," @ %obs.opp[%i, "velY"];
+        %json = %json @ "," @ AIObserver::safeNum(%obs.opp[%i, "x"]);
+        %json = %json @ "," @ AIObserver::safeNum(%obs.opp[%i, "y"]);
+        %json = %json @ "," @ AIObserver::safeNum(%obs.opp[%i, "z"]);
+        %json = %json @ "," @ AIObserver::safeNum(%obs.opp[%i, "velX"]);
+        %json = %json @ "," @ AIObserver::safeNum(%obs.opp[%i, "velY"]);
+        %json = %json @ "," @ AIObserver::safeNum(%obs.opp[%i, "isMega"]);
     }
 
     // Game state (5 values)
-    %json = %json @ "," @ %obs.timeElapsed;
-    %json = %json @ "," @ %obs.timeRemaining;
-    %json = %json @ "," @ %obs.myGemScore;
-    %json = %json @ "," @ %obs.opponentBestScore;
-    %json = %json @ "," @ %obs.gemsRemaining;
+    %json = %json @ "," @ AIObserver::safeNum(%obs.timeElapsed);
+    %json = %json @ "," @ AIObserver::safeNum(%obs.timeRemaining);
+    %json = %json @ "," @ AIObserver::safeNum(%obs.myGemScore);
+    %json = %json @ "," @ AIObserver::safeNum(%obs.opponentBestScore);
+    %json = %json @ "," @ AIObserver::safeNum(%obs.gemsRemaining);
 
     %json = %json @ "]";
 

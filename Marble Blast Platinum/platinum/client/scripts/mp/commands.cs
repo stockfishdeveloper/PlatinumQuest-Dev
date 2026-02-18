@@ -30,6 +30,7 @@ function clientCmdStartTimer() {
 	PlayGui.startTimer();
 	PlayGui.refreshRed();
 	AIRecorder::onTimerStart();  // Start recording when GO! appears
+	MLAgent::onTimerStart();     // Start ML agent when GO! appears
 }
 
 function clientCmdStopTimer() {

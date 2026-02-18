@@ -72,6 +72,21 @@ function AIAgent::clearInputs() {
 	$mvTriggerCount2 = 0; // Use powerup
 }
 
+// Set binary actions directly (for ML agent)
+// Takes 6 binary values: forward, backward, left, right, jump, powerup
+function AIAgent::setBinaryActions(%forward, %backward, %left, %right, %jump, %powerup) {
+	// Clear all inputs first
+	AIAgent::clearInputs();
+
+	// Set binary inputs (convert to 0 or 1)
+	$mvForwardAction = %forward ? 1.0 : 0;
+	$mvBackwardAction = %backward ? 1.0 : 0;
+	$mvLeftAction = %left ? 1.0 : 0;
+	$mvRightAction = %right ? 1.0 : 0;
+	$mvTriggerCount0 = %jump ? 1 : 0;      // Jump
+	$mvTriggerCount2 = %powerup ? 1 : 0;   // Use powerup
+}
+
 // Apply a specific action by index
 function AIAgent::applyAction(%actionIndex) {
 	// Get action data
