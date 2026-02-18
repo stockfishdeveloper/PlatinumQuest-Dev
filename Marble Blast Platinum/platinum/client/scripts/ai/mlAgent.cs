@@ -7,6 +7,7 @@
 $MLAgent::Enabled = false;
 $MLAgent::UpdateInterval = 16; // 60 Hz (16ms) - matches game physics tick rate
 $MLAgent::AutoStart = true;  // Auto-start when Hunt mode begins
+$MLAgent::TrainingSpeed = 3.0;  // Game speed multiplier (1.0 = normal, 3.0 = 3x speed, etc.)
 
 // Reward tracking
 $MLAgent::LastGemScore = 0;
@@ -43,8 +44,8 @@ function MLAgent::startLoop() {
     $MLAgent::EpisodeStartTime = getRealTime();
 
     // Speed up game simulation for faster training
-    setTimeScale(3.0);
-    echo("MLAgent: Set game speed to 3x for faster training");
+    setTimeScale($MLAgent::TrainingSpeed);
+    echo("MLAgent: Set game speed to " @ $MLAgent::TrainingSpeed @ "x for faster training");
 
     // Initialize reward tracking
     $MLAgent::LastGemScore = PlayGui.gemCount;
@@ -87,8 +88,8 @@ function MLAgent::update() {
     }
 
     // Enforce time scale every update (game code may reset it)
-    if (getTimeScale() != 3.0) {
-        setTimeScale(3.0);
+    if (getTimeScale() != $MLAgent::TrainingSpeed) {
+        setTimeScale($MLAgent::TrainingSpeed);
     }
 
     // Check if we're in a valid game state
@@ -277,8 +278,8 @@ function MLAgent::triggerQuickRespawn() {
 
 function MLAgent::restoreTimeScale() {
     if ($MLAgent::Enabled) {
-        setTimeScale(3.0);
-        echo("MLAgent: Restored game speed to 3x after respawn");
+        setTimeScale($MLAgent::TrainingSpeed);
+        echo("MLAgent: Restored game speed to " @ $MLAgent::TrainingSpeed @ "x after respawn");
     }
 }
 

@@ -301,16 +301,6 @@ class PPOServer:
         self.trainer = PPOTrainer(self.model)
         self.buffer = RolloutBuffer()
 
-        # Load existing model if provided
-        if model_path and os.path.exists(model_path):
-            self.log(f"Loading model from {model_path}")
-            checkpoint = torch.load(model_path, weights_only=True)
-            self.model.load_state_dict(checkpoint['model_state_dict'])
-            self.trainer.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-            self.log("Model loaded successfully!")
-
-        self.model.train()
-
         # Training config
         self.rollout_size = 256  # Steps before each PPO update (~4 seconds at 60 Hz)
         self.n_epochs = 4
@@ -319,13 +309,30 @@ class PPOServer:
         self.lam = 0.95
         self.save_interval = 10  # Save every N updates
 
-        # Statistics
+        # Statistics (initialize before loading checkpoint)
         self.total_steps = 0
         self.total_updates = 0
         self.total_episodes = 0
         self.episode_rewards = deque(maxlen=100)
         self.current_episode_reward = 0
         self.best_avg_reward = -float('inf')
+
+        # Load existing model if provided
+        if model_path and os.path.exists(model_path):
+            self.log(f"Loading model from {model_path}")
+            checkpoint = torch.load(model_path, weights_only=True)
+            self.model.load_state_dict(checkpoint['model_state_dict'])
+            self.trainer.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+
+            # Restore training progress
+            self.total_steps = checkpoint.get('total_steps', 0)
+            self.total_updates = checkpoint.get('total_updates', 0)
+            self.total_episodes = checkpoint.get('total_episodes', 0)
+
+            self.log(f"Model loaded successfully!")
+            self.log(f"Resuming from: {self.total_steps} steps, {self.total_updates} updates, {self.total_episodes} episodes")
+
+        self.model.train()
 
         # Action tracking (for debugging)
         self.action_counts = np.zeros(6)  # Count how often each action is chosen
@@ -451,16 +458,27 @@ class PPOServer:
             self.episode_action_counts += action
             self.recent_actions.append(action.tolist())
 
-            # Track reward distribution
+            # Track and log reward distribution
             if reward > 0.1:
                 self.positive_rewards += 1
+                # Log significant rewards (gem collection, distance improvements)
+                if reward > 10:  # Gem collected (base reward is 100 per gem)
+                    self.log(f"[GEM COLLECTED] Step {self.total_steps}: reward={reward:.2f} | Episode total: {self.current_episode_reward:.2f}")
+                elif reward > 1:
+                    self.log(f"[GOOD PROGRESS] Step {self.total_steps}: reward={reward:.2f} | Episode total: {self.current_episode_reward:.2f}")
             elif reward < -0.1:
                 self.negative_rewards += 1
-                # Log OOB penalties specifically
-                if reward < -40:  # OOB penalty is -50 plus time penalty
-                    self.log(f"[OOB PENALTY RECEIVED] Step {self.total_steps}: reward={reward:.2f} | Action taken: {action.tolist()}")
+                # Log penalties
+                if reward < -40:  # OOB penalty is -50 plus time/distance penalties
+                    self.log(f"[OOB PENALTY] Step {self.total_steps}: reward={reward:.2f} | Episode total: {self.current_episode_reward:.2f}")
+                elif reward < -5:
+                    self.log(f"[LARGE PENALTY] Step {self.total_steps}: reward={reward:.2f} | Episode total: {self.current_episode_reward:.2f}")
             else:
                 self.zero_rewards += 1
+
+            # Log every reward for detailed debugging (every 50 steps to avoid spam)
+            if self.total_steps % 50 == 0:
+                self.log(f"[STEP {self.total_steps}] Reward: {reward:.3f} | Episode Total: {self.current_episode_reward:.2f} | Value Est: {value:.3f}")
 
             # Store experience
             self.buffer.add(obs_array, action, reward, value, log_prob, done)
@@ -477,12 +495,19 @@ class PPOServer:
                 episode_steps = np.sum(self.episode_action_counts) / 6.0
                 action_pcts = (self.episode_action_counts / max(episode_steps, 1)) * 100
 
-                self.log(f"\n--- Episode {self.total_episodes} Complete ---")
+                # Classify episode outcome
+                outcome = "SUCCESS" if self.current_episode_reward > 50 else "FAIL" if self.current_episode_reward < -30 else "NEUTRAL"
+
+                self.log(f"\n{'=' * 60}")
+                self.log(f"Episode {self.total_episodes} Complete [{outcome}]")
+                self.log(f"{'=' * 60}")
                 self.log(f"  Episode Reward: {self.current_episode_reward:.2f}")
+                self.log(f"  Episode Steps: {int(episode_steps)}")
                 self.log(f"  Avg Reward (last 100): {avg_reward:.2f}")
                 self.log(f"  Total Steps: {self.total_steps}")
                 self.log(f"  Buffer Size: {len(self.buffer)}")
                 self.log(f"  Action Usage: F:{action_pcts[0]:.0f}% B:{action_pcts[1]:.0f}% L:{action_pcts[2]:.0f}% R:{action_pcts[3]:.0f}% J:{action_pcts[4]:.0f}% P:{action_pcts[5]:.0f}%")
+                self.log(f"{'=' * 60}\n")
 
                 self.current_episode_reward = 0
                 self.episode_action_counts = np.zeros(6)
@@ -565,7 +590,23 @@ class PPOServer:
             if avg_reward > self.best_avg_reward and len(self.episode_rewards) >= 10:
                 self.best_avg_reward = avg_reward
                 self.save_model('models/checkpoints/best.pth')
-                self.log(f"  New best model! Avg reward: {avg_reward:.2f}")
+                self.log(f"  ⭐ New best model! Avg reward: {avg_reward:.2f}")
+
+            # Print training summary every 10 updates
+            self.log(f"\n{'#' * 60}")
+            self.log(f"TRAINING SUMMARY - Update {self.total_updates}")
+            self.log(f"{'#' * 60}")
+            self.log(f"  Total Steps:     {self.total_steps:,}")
+            self.log(f"  Total Episodes:  {self.total_episodes}")
+            self.log(f"  Avg Reward:      {avg_reward:.2f}")
+            self.log(f"  Best Avg Reward: {self.best_avg_reward:.2f}")
+            if len(self.episode_rewards) >= 2:
+                recent_10 = list(self.episode_rewards)[-10:]
+                self.log(f"  Last 10 Episode Rewards: {[f'{r:.1f}' for r in recent_10]}")
+            self.log(f"  Entropy:         {stats['entropy']:.4f}")
+            self.log(f"  Policy Loss:     {stats['policy_loss']:.6f}")
+            self.log(f"  Value Loss:      {stats['value_loss']:.6f}")
+            self.log(f"{'#' * 60}\n")
 
         # Log to file
         self.log_stats(stats, avg_reward)
@@ -610,7 +651,6 @@ def main():
     parser = argparse.ArgumentParser(description='PlatinumQuest PPO Training Server')
     parser.add_argument('--host', default='127.0.0.1', help='Server host')
     parser.add_argument('--port', type=int, default=8888, help='Server port')
-    parser.add_argument('--load', help='Path to pre-trained model checkpoint')
     parser.add_argument('--rollout-size', type=int, default=512, help='Steps per PPO update')
     parser.add_argument('--lr', type=float, default=3e-4, help='Learning rate')
     parser.add_argument('--batch-size', type=int, default=64, help='Mini-batch size')
@@ -618,7 +658,28 @@ def main():
 
     args = parser.parse_args()
 
-    server = PPOServer(host=args.host, port=args.port, model_path=args.load)
+    # Auto-resume from latest checkpoint if it exists
+    # Check for update_N.pth files and find the highest N
+    import glob
+    checkpoint_dir = 'models/checkpoints'
+    update_files = glob.glob(f'{checkpoint_dir}/update_*.pth')
+
+    model_path = None
+    if update_files:
+        # Find the checkpoint with the highest update number
+        latest_file = max(update_files, key=lambda f: int(f.split('_')[-1].split('.')[0]))
+        model_path = latest_file
+        print(f"Resuming training from {latest_file}")
+    elif os.path.exists(f'{checkpoint_dir}/best.pth'):
+        model_path = f'{checkpoint_dir}/best.pth'
+        print(f"Resuming training from best.pth")
+    elif os.path.exists(f'{checkpoint_dir}/final.pth'):
+        model_path = f'{checkpoint_dir}/final.pth'
+        print(f"Resuming training from final.pth")
+    else:
+        print("Starting fresh training (no checkpoint found)")
+
+    server = PPOServer(host=args.host, port=args.port, model_path=model_path)
     server.rollout_size = args.rollout_size
     server.batch_size = args.batch_size
     server.n_epochs = args.epochs
