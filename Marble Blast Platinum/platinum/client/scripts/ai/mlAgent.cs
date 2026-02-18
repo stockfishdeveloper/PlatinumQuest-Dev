@@ -13,6 +13,7 @@ $MLAgent::LastGemScore = 0;
 $MLAgent::LastNearestGemDist = 999;
 $MLAgent::EpisodeReward = 0;
 $MLAgent::WasOOB = false;
+$MLAgent::EpisodeShouldEnd = false;  // Persistent flag for early termination
 
 function MLAgent::start() {
     if ($MLAgent::Enabled) {
@@ -46,6 +47,7 @@ function MLAgent::startLoop() {
     $MLAgent::LastNearestGemDist = 999;
     $MLAgent::EpisodeReward = 0;
     $MLAgent::WasOOB = false;
+    $MLAgent::EpisodeShouldEnd = false;
 
     MLAgent::update();
 }
@@ -144,22 +146,27 @@ function MLAgent::computeReward(%obs) {
     }
     $MLAgent::LastGemScore = %currentGemScore;
 
-    // 2. Distance shaping: tiny reward for getting closer to nearest gem
+    // DEBUG: Log if WasOOB flag is set
+    if ($MLAgent::WasOOB) {
+        echo("MLAgent: [DEBUG] WasOOB flag is TRUE before checking in reward computation");
+    }
+
+    // 2. Distance shaping: reward for getting closer to nearest gem
     %nearestDist = %obs.gem[0, "distance"];
     if (%nearestDist > 0 && %nearestDist < 900) { // Not a sentinel value
         %distDelta = $MLAgent::LastNearestGemDist - %nearestDist;
-        %reward += %distDelta * 0.01; // Very small shaping reward
+        %reward += %distDelta * 0.1; // Reward for approaching gems (10x stronger)
         $MLAgent::LastNearestGemDist = %nearestDist;
     }
 
     // 3. Time penalty: -0.1 per step (encourages speed)
     %reward -= 0.1;
 
-    // 4. OOB penalty: -5 for going out of bounds
+    // 4. OOB penalty: -50 for going out of bounds (SEVERE PUNISHMENT)
     if ($MLAgent::WasOOB) {
-        %reward -= 5;
+        %reward -= 50;
         $MLAgent::WasOOB = false;
-        echo("MLAgent: OOB penalty! -5 reward");
+        echo("MLAgent: [REWARD] OOB penalty applied! -50 (step " @ $MLAgent::StepCount @ ", total episode reward now: " @ ($MLAgent::EpisodeReward + %reward) @ ")");
     }
 
     return %reward;
@@ -171,14 +178,21 @@ function MLAgent::computeReward(%obs) {
 
 function MLAgent::checkDone() {
     // Episode ends when:
-    // 1. Time runs out (Hunt mode timer hits 0)
+
+    // 1. Out of bounds (early termination to prevent wasting training time)
+    if ($MLAgent::EpisodeShouldEnd) {
+        echo("MLAgent: Episode ending early due to OOB");
+        return 1;
+    }
+
+    // 2. Time runs out (Hunt mode: currentTime counts UP from 0)
     if (isObject(MissionInfo) && MissionInfo.time > 0) {
-        if (PlayGui.currentTime <= 0 && $MLAgent::StepCount > 20) {
+        if (PlayGui.currentTime >= MissionInfo.time && $MLAgent::StepCount > 20) {
             return 1;
         }
     }
 
-    // 2. All gems collected (rare but possible)
+    // 3. All gems collected (rare but possible)
     if (PlayGui.gemCount >= PlayGui.maxGems && PlayGui.maxGems > 0) {
         return 1;
     }
@@ -198,6 +212,7 @@ function MLAgent::resetEpisode() {
     $MLAgent::LastNearestGemDist = 999;
     $MLAgent::EpisodeReward = 0;
     $MLAgent::WasOOB = false;
+    $MLAgent::EpisodeShouldEnd = false;  // Reset early termination flag
 }
 
 //------------------------------------------------------------------------------
@@ -223,7 +238,9 @@ function MLAgent::executeAction(%actionStr) {
 
 function MLAgent::onOOB() {
     if ($MLAgent::Enabled) {
+        echo("MLAgent: [OOB EVENT] Marble went out of bounds at step " @ $MLAgent::StepCount);
         $MLAgent::WasOOB = true;
+        $MLAgent::EpisodeShouldEnd = true;  // Mark episode for early termination
         // Reset nearest gem tracking since position changed
         $MLAgent::LastNearestGemDist = 999;
 
@@ -250,6 +267,12 @@ function MLAgent::onGameStart() {
     // Called when entering a Hunt mode game
     if (!$MLAgent::AutoStart || !mp() || !$Game::isMode["hunt"])
         return;
+
+    // Enable quick respawn for training (faster OOB recovery)
+    $MPPref::AllowQuickRespawn = true;
+    $MP::AllowQuickRespawn = true;
+    $MPPref::Server::CompetitiveMode = false;
+    echo("MLAgent: Enabled quick respawn for training");
 
     echo("MLAgent: Game started, waiting for GO! signal...");
     $MLAgent::ReadyToStart = true;
@@ -307,14 +330,28 @@ function clientCmdGameStart() {
     MLAgent::onGameStart();
 }
 
-// Hook into OOB callback
-function clientCbOnOutOfBounds() {
-    Parent::clientCbOnOutOfBounds();
-    MLAgent::onOOB();
+// Hook into setMessage to detect OOB (more reliable than callback system)
+function clientCmdSetMessage(%message, %timeout) {
+    // Check if this is an out of bounds message
+    if (%message $= "outOfBounds") {
+        echo("MLAgent: [DEBUG] OOB message detected!");
+        MLAgent::onOOB();
+    }
+
+    // Call original function
+    PlayGui.setMessage(%message, %timeout);
 }
 
 // Hook into game end
 function clientCmdGameEnd() {
     Parent::clientCmdGameEnd();
     MLAgent::onGameEnd();
+}
+
+// Test function to manually trigger OOB (for debugging)
+function testOOB() {
+    echo("=== MANUAL OOB TEST ===");
+    echo("Calling MLAgent::onOOB() directly...");
+    MLAgent::onOOB();
+    echo("Test complete.");
 }

@@ -30,6 +30,28 @@ import signal
 import sys
 import os
 from collections import deque
+from datetime import datetime
+
+# ============================================================================
+# Logging Helper
+# ============================================================================
+
+class DualLogger:
+    """Prints to both console and file."""
+    def __init__(self, log_file):
+        self.log_file = log_file
+        self.file = open(log_file, 'w', buffering=1)  # Line buffered
+
+    def print(self, *args, **kwargs):
+        """Print to both console and file."""
+        message = ' '.join(map(str, args))
+        print(message, **kwargs)  # To console
+        timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        self.file.write(f"[{timestamp}] {message}\n")
+        self.file.flush()
+
+    def close(self):
+        self.file.close()
 
 # ============================================================================
 # Neural Network (Actor-Critic)
@@ -268,6 +290,12 @@ class PPOServer:
         self.port = port
         self.running = True
 
+        # Setup dual logging (console + file)
+        os.makedirs('logs', exist_ok=True)
+        log_filename = f"logs/training_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
+        self.logger = DualLogger(log_filename)
+        self.log = self.logger.print  # Shortcut
+
         # Model and trainer
         self.model = ActorCritic(obs_dim=286, action_dim=6)
         self.trainer = PPOTrainer(self.model)
@@ -275,16 +303,16 @@ class PPOServer:
 
         # Load existing model if provided
         if model_path and os.path.exists(model_path):
-            print(f"Loading model from {model_path}")
+            self.log(f"Loading model from {model_path}")
             checkpoint = torch.load(model_path, weights_only=True)
             self.model.load_state_dict(checkpoint['model_state_dict'])
             self.trainer.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-            print("Model loaded successfully!")
+            self.log("Model loaded successfully!")
 
         self.model.train()
 
         # Training config
-        self.rollout_size = 2048  # Steps before each PPO update
+        self.rollout_size = 512  # Steps before each PPO update (~25 seconds)
         self.n_epochs = 4
         self.batch_size = 64
         self.gamma = 0.99
@@ -299,6 +327,18 @@ class PPOServer:
         self.current_episode_reward = 0
         self.best_avg_reward = -float('inf')
 
+        # Action tracking (for debugging)
+        self.action_counts = np.zeros(6)  # Count how often each action is chosen
+        self.episode_action_counts = np.zeros(6)  # Reset per episode
+
+        # Reward tracking (for debugging)
+        self.positive_rewards = 0
+        self.negative_rewards = 0
+        self.zero_rewards = 0
+
+        # Recent actions (for debugging repetition)
+        self.recent_actions = deque(maxlen=10)
+
         # Socket setup
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -311,37 +351,38 @@ class PPOServer:
 
     def run(self):
         """Main server loop."""
-        print(f"=" * 60)
-        print(f"PPO Training Server")
-        print(f"=" * 60)
-        print(f"Listening on {self.host}:{self.port}")
-        print(f"Rollout size: {self.rollout_size} steps")
-        print(f"PPO epochs: {self.n_epochs}")
-        print(f"Batch size: {self.batch_size}")
-        print(f"Press Ctrl+C to stop")
-        print(f"=" * 60)
-        print(f"Waiting for game to connect...")
+        self.log(f"=" * 60)
+        self.log(f"PPO Training Server")
+        self.log(f"=" * 60)
+        self.log(f"Listening on {self.host}:{self.port}")
+        self.log(f"Rollout size: {self.rollout_size} steps")
+        self.log(f"PPO epochs: {self.n_epochs}")
+        self.log(f"Batch size: {self.batch_size}")
+        self.log(f"Press Ctrl+C to stop")
+        self.log(f"=" * 60)
+        self.log(f"Waiting for game to connect...")
 
         self.socket.listen(1)
 
         while self.running:
             try:
                 conn, addr = self.socket.accept()
-                print(f"\nGame connected from {addr}")
+                self.log(f"\nGame connected from {addr}")
                 self.handle_client(conn)
             except socket.timeout:
                 continue
             except KeyboardInterrupt:
-                print("\nShutting down...")
+                self.log("\nShutting down...")
                 self.running = False
                 break
             except Exception as e:
                 if self.running:
-                    print(f"Error: {e}")
+                    self.log(f"Error: {e}")
 
         self.save_model('models/checkpoints/final.pth')
         self.socket.close()
-        print("Server stopped. Final model saved.")
+        self.log("Server stopped. Final model saved.")
+        self.logger.close()
 
     def handle_client(self, conn):
         """Handle communication with the game."""
@@ -371,7 +412,7 @@ class PPOServer:
                     conn.sendall(action_str.encode('utf-8'))
 
         except Exception as e:
-            print(f"Client error: {e}")
+            self.log(f"Client error: {e}")
             import traceback
             traceback.print_exc()
         finally:
@@ -385,7 +426,7 @@ class PPOServer:
 
             if len(parts) != 3:
                 if self.total_steps < 3:
-                    print(f"Malformed message (expected 3 parts, got {len(parts)}): {message[:100]}")
+                    self.log(f"Malformed message (expected 3 parts, got {len(parts)}): {message[:100]}")
                 return [0, 0, 0, 0, 0, 0]
 
             obs_json, reward_str, done_str = parts
@@ -397,13 +438,29 @@ class PPOServer:
 
             # Debug first message
             if self.total_steps == 0:
-                print(f"First observation: {len(obs)} dims")
-                print(f"First reward: {reward}")
-                print(f"First done: {done}")
+                self.log(f"First observation: {len(obs)} dims")
+                self.log(f"First reward: {reward}")
+                self.log(f"First done: {done}")
 
             # Get action from model
             obs_array = np.array(obs, dtype=np.float32)
             action, log_prob, value = self.model.get_action(obs_array)
+
+            # Track action usage
+            self.action_counts += action
+            self.episode_action_counts += action
+            self.recent_actions.append(action.tolist())
+
+            # Track reward distribution
+            if reward > 0.1:
+                self.positive_rewards += 1
+            elif reward < -0.1:
+                self.negative_rewards += 1
+                # Log OOB penalties specifically
+                if reward < -40:  # OOB penalty is -50 plus time penalty
+                    self.log(f"[OOB PENALTY RECEIVED] Step {self.total_steps}: reward={reward:.2f} | Action taken: {action.tolist()}")
+            else:
+                self.zero_rewards += 1
 
             # Store experience
             self.buffer.add(obs_array, action, reward, value, log_prob, done)
@@ -416,13 +473,19 @@ class PPOServer:
                 self.episode_rewards.append(self.current_episode_reward)
                 avg_reward = np.mean(self.episode_rewards) if self.episode_rewards else 0
 
-                print(f"\n--- Episode {self.total_episodes} Complete ---")
-                print(f"  Episode Reward: {self.current_episode_reward:.2f}")
-                print(f"  Avg Reward (last 100): {avg_reward:.2f}")
-                print(f"  Total Steps: {self.total_steps}")
-                print(f"  Buffer Size: {len(self.buffer)}")
+                # Calculate action percentages for this episode
+                episode_steps = np.sum(self.episode_action_counts) / 6.0
+                action_pcts = (self.episode_action_counts / max(episode_steps, 1)) * 100
+
+                self.log(f"\n--- Episode {self.total_episodes} Complete ---")
+                self.log(f"  Episode Reward: {self.current_episode_reward:.2f}")
+                self.log(f"  Avg Reward (last 100): {avg_reward:.2f}")
+                self.log(f"  Total Steps: {self.total_steps}")
+                self.log(f"  Buffer Size: {len(self.buffer)}")
+                self.log(f"  Action Usage: F:{action_pcts[0]:.0f}% B:{action_pcts[1]:.0f}% L:{action_pcts[2]:.0f}% R:{action_pcts[3]:.0f}% J:{action_pcts[4]:.0f}% P:{action_pcts[5]:.0f}%")
 
                 self.current_episode_reward = 0
+                self.episode_action_counts = np.zeros(6)
 
             # PPO update when buffer is full
             if len(self.buffer) >= self.rollout_size:
@@ -432,17 +495,17 @@ class PPOServer:
 
         except Exception as e:
             if self.total_steps < 5:
-                print(f"Error processing message: {e}")
-                print(f"Message (first 200 chars): {message[:200]}")
+                self.log(f"Error processing message: {e}")
+                self.log(f"Message (first 200 chars): {message[:200]}")
                 import traceback
                 traceback.print_exc()
             return [0, 0, 0, 0, 0, 0]
 
     def run_ppo_update(self):
         """Run PPO training update."""
-        print(f"\n{'=' * 40}")
-        print(f"PPO Update #{self.total_updates + 1}")
-        print(f"{'=' * 40}")
+        self.log(f"\n{'=' * 40}")
+        self.log(f"PPO Update #{self.total_updates + 1}")
+        self.log(f"{'=' * 40}")
 
         self.model.train()
 
@@ -460,14 +523,38 @@ class PPOServer:
 
         avg_reward = np.mean(self.episode_rewards) if self.episode_rewards else 0
 
-        print(f"  Policy Loss:  {stats['policy_loss']:.6f}")
-        print(f"  Value Loss:   {stats['value_loss']:.6f}")
-        print(f"  Entropy:      {stats['entropy']:.6f}")
-        print(f"  Avg Reward:   {avg_reward:.2f}")
-        print(f"  Update Time:  {elapsed:.2f}s")
-        print(f"  Total Steps:  {self.total_steps}")
-        print(f"  Episodes:     {self.total_episodes}")
-        print(f"{'=' * 40}\n")
+        # Calculate overall action usage percentages
+        total_action_uses = np.sum(self.action_counts)
+        action_pcts = (self.action_counts / max(total_action_uses, 1)) * 100
+
+        # Calculate reward distribution
+        total_reward_steps = self.positive_rewards + self.negative_rewards + self.zero_rewards
+        pos_pct = (self.positive_rewards / max(total_reward_steps, 1)) * 100
+        neg_pct = (self.negative_rewards / max(total_reward_steps, 1)) * 100
+        zero_pct = (self.zero_rewards / max(total_reward_steps, 1)) * 100
+
+        self.log(f"  Policy Loss:  {stats['policy_loss']:.6f}")
+        self.log(f"  Value Loss:   {stats['value_loss']:.6f}")
+        self.log(f"  Entropy:      {stats['entropy']:.6f}")
+        self.log(f"  Avg Reward:   {avg_reward:.2f}")
+        self.log(f"  Update Time:  {elapsed:.2f}s")
+        self.log(f"  Total Steps:  {self.total_steps}")
+        self.log(f"  Episodes:     {self.total_episodes}")
+        self.log(f"  Reward Distribution: +{pos_pct:.1f}%  -{neg_pct:.1f}%  0:{zero_pct:.1f}%")
+        self.log(f"  Overall Action Usage:")
+        self.log(f"    Forward: {action_pcts[0]:.1f}%  Backward: {action_pcts[1]:.1f}%")
+        self.log(f"    Left:    {action_pcts[2]:.1f}%  Right:    {action_pcts[3]:.1f}%")
+        self.log(f"    Jump:    {action_pcts[4]:.1f}%  Powerup:  {action_pcts[5]:.1f}%")
+
+        # Check for repetitive behavior
+        if len(self.recent_actions) >= 10:
+            action_strings = [''.join(map(str, a)) for a in self.recent_actions]
+            unique_actions = len(set(action_strings))
+            self.log(f"  Action Diversity (last 10): {unique_actions}/10 unique")
+            if unique_actions <= 2:
+                self.log(f"  WARNING: Highly repetitive! Recent: {action_strings[-5:]}")
+
+        self.log(f"{'=' * 40}\n")
 
         # Save checkpoint periodically
         if self.total_updates % self.save_interval == 0:
@@ -478,7 +565,7 @@ class PPOServer:
             if avg_reward > self.best_avg_reward and len(self.episode_rewards) >= 10:
                 self.best_avg_reward = avg_reward
                 self.save_model('models/checkpoints/best.pth')
-                print(f"  New best model! Avg reward: {avg_reward:.2f}")
+                self.log(f"  New best model! Avg reward: {avg_reward:.2f}")
 
         # Log to file
         self.log_stats(stats, avg_reward)
@@ -496,7 +583,7 @@ class PPOServer:
             'total_episodes': self.total_episodes,
             'best_avg_reward': self.best_avg_reward,
         }, path)
-        print(f"  Model saved to {path}")
+        self.log(f"  Model saved to {path}")
 
     def log_stats(self, stats, avg_reward):
         """Log training statistics to CSV."""
@@ -524,7 +611,7 @@ def main():
     parser.add_argument('--host', default='127.0.0.1', help='Server host')
     parser.add_argument('--port', type=int, default=8888, help='Server port')
     parser.add_argument('--load', help='Path to pre-trained model checkpoint')
-    parser.add_argument('--rollout-size', type=int, default=2048, help='Steps per PPO update')
+    parser.add_argument('--rollout-size', type=int, default=512, help='Steps per PPO update')
     parser.add_argument('--lr', type=float, default=3e-4, help='Learning rate')
     parser.add_argument('--batch-size', type=int, default=64, help='Mini-batch size')
     parser.add_argument('--epochs', type=int, default=4, help='PPO epochs per update')
@@ -539,7 +626,7 @@ def main():
 
     # Signal handler
     def signal_handler(sig, frame):
-        print('\nReceived interrupt, saving and shutting down...')
+        server.log('\nReceived interrupt, saving and shutting down...')
         server.running = False
 
     signal.signal(signal.SIGINT, signal_handler)
@@ -547,10 +634,11 @@ def main():
     try:
         server.run()
     except KeyboardInterrupt:
-        print("\nShutting down...")
+        server.log("\nShutting down...")
     finally:
         server.save_model('models/checkpoints/final.pth')
         server.socket.close()
+        server.logger.close()
 
 
 if __name__ == '__main__':
