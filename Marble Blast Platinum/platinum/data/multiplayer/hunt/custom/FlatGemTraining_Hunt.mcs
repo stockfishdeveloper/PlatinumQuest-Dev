@@ -109,11 +109,10 @@ function MP_PQ_FlatGemTrainingHunt_LoadMission() {
    };
 
    // InBounds trigger - marble goes OOB when it LEAVES this volume
-   // BIGGER BOUNDS - marble only OOB when really far from platform
    new Trigger(Bounds) {
-      position = "-50 -50 -50";
+      position = "-200 200 -10";
       rotation = "1 0 0 0";
-      scale = "100 100 1000";
+      scale = "400 400 50";
       dataBlock = "InBoundsTrigger";
       polyhedron = "0.0000000 0.0000000 0.0000000 1.0000000 0.0000000 0.0000000 0.0000000 -1.0000000 0.0000000 0.0000000 0.0000000 1.0000000";
    };
