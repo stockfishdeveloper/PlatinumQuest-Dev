@@ -5,7 +5,7 @@
 //------------------------------------------------------------------------------
 
 $MLAgent::Enabled = false;
-$MLAgent::UpdateInterval = 50; // 20 Hz (50ms)
+$MLAgent::UpdateInterval = 16; // 60 Hz (16ms) - matches game physics tick rate
 $MLAgent::AutoStart = true;  // Auto-start when Hunt mode begins
 
 // Reward tracking
@@ -42,6 +42,10 @@ function MLAgent::startLoop() {
     $MLAgent::StepCount = 0;
     $MLAgent::EpisodeStartTime = getRealTime();
 
+    // Speed up game simulation for faster training
+    setTimeScale(3.0);
+    echo("MLAgent: Set game speed to 3x for faster training");
+
     // Initialize reward tracking
     $MLAgent::LastGemScore = PlayGui.gemCount;
     $MLAgent::LastNearestGemDist = 999;
@@ -69,6 +73,10 @@ function MLAgent::stop() {
     // Clear inputs
     AIAgent::clearInputs();
 
+    // Reset game speed to normal
+    setTimeScale(1.0);
+    echo("MLAgent: Reset game speed to normal");
+
     // Disconnect from server
     AIBridge::disconnect();
 }
@@ -76,6 +84,11 @@ function MLAgent::stop() {
 function MLAgent::update() {
     if (!$MLAgent::Enabled) {
         return;
+    }
+
+    // Enforce time scale every update (game code may reset it)
+    if (getTimeScale() != 3.0) {
+        setTimeScale(3.0);
     }
 
     // Check if we're in a valid game state
@@ -244,18 +257,28 @@ function MLAgent::onOOB() {
         // Reset nearest gem tracking since position changed
         $MLAgent::LastNearestGemDist = 999;
 
-        // Schedule quick respawn after OOB message appears (500ms delay)
-        // This mimics the player clicking left mouse to respawn faster
-        schedule(500, 0, "MLAgent::triggerQuickRespawn");
+        // Respawn INSTANTLY - no delay needed, message is already on screen
+        // This mimics the player clicking left mouse immediately to respawn faster
+        MLAgent::triggerQuickRespawn();
     }
 }
 
 function MLAgent::triggerQuickRespawn() {
     // Send quick respawn command to server (same as left-click after OOB)
-    // Waits 500ms after OOB to ensure "Out of Bounds" message has appeared
-    // This avoids accidentally using powerups
+    // Called immediately when OOB message appears
     if ($MLAgent::Enabled && isObject($MP::MyMarble)) {
         commandToServer('QuickRespawn');
+
+        // Restore time scale after respawn (respawn resets it)
+        // Small delay to let respawn complete
+        schedule(50, 0, "MLAgent::restoreTimeScale");
+    }
+}
+
+function MLAgent::restoreTimeScale() {
+    if ($MLAgent::Enabled) {
+        setTimeScale(3.0);
+        echo("MLAgent: Restored game speed to 3x after respawn");
     }
 }
 
@@ -273,6 +296,10 @@ function MLAgent::onGameStart() {
     $MP::AllowQuickRespawn = true;
     $MPPref::Server::CompetitiveMode = false;
     echo("MLAgent: Enabled quick respawn for training");
+
+    // Optimize graphics for training speed
+    $pref::Video::disableVerticalSync = true;  // Unlock framerate
+    echo("MLAgent: Disabled VSync for faster training");
 
     echo("MLAgent: Game started, waiting for GO! signal...");
     $MLAgent::ReadyToStart = true;

@@ -312,7 +312,7 @@ class PPOServer:
         self.model.train()
 
         # Training config
-        self.rollout_size = 512  # Steps before each PPO update (~25 seconds)
+        self.rollout_size = 256  # Steps before each PPO update (~4 seconds at 60 Hz)
         self.n_epochs = 4
         self.batch_size = 64
         self.gamma = 0.99
