@@ -1,0 +1,235 @@
+//--- INFO BEGIN ---
+//Mission information for the level select. Generated from the MissionInfo object except with extra goodies.
+function MP_PQ_FlatGemTrainingHunt_GetMissionInfo() {
+	return new ScriptObject() {
+		name = "Flat Gem Training";
+		type = "Custom";
+		level = "9999";
+		desc = "Simple flat training arena for reinforcement learning";
+		artist = "AI Training";
+		music = "Astrolabe.ogg";
+		game = "Ultra";
+		gameMode = "Hunt";
+		blast = "0";
+		Time = "60000";
+		maxGemsPerSpawn = "8";
+		radiusFromGem = "50";
+		CustomRadarRule = $Radar::Flags::Gems | $Radar::Flags::EndPad;
+		alarmStartTime = "15";
+		easterEgg = "0";
+		gems = "8";
+		gems1 = "5";
+		gems2 = "2";
+		gems5 = "1";
+		gems10 = "0";
+		interior0 = $usermods @ "/data/interiors_mbg/addon/smallplatform.dif";
+		interiors = "1";
+		maxScore = "12";
+		platinumScore0 = "6";
+		platinumScore1 = "10";
+		score0 = "4";
+		score1 = "8";
+		ultimateScore0 = "10";
+		ultimateScore1 = "12";
+	};
+}
+//--- INFO END ---
+//--- UNLOCK BEGIN ---
+//In the event that you want this mission to be locked by a function, here's
+// where you should put that. Just uncomment this function and fill it out:
+//function unlock_MissionNameHere(%mission) { //%mission is the MissionInfo
+//	return true; //True if the mission is unlocked
+//}
+//--- UNLOCK END ---
+//Don't continue loading if this just wants the mission info
+if ($loadingMissionInfo) return;
+//--- CLIENT SCRIPTS BEGIN ---
+//Put any scripts that will be loaded on all clients (in MP / SP) here.
+// Note: these will be loaded by dedicated servers too, so be sure to test for
+// $Server::Dedicated before creating any GUI.
+//--- CLIENT SCRIPTS END ---
+//--- SERVER SCRIPTS BEGIN ---
+//Put any scripts that will be loaded on the server (in MP / SP) here
+//--- SERVER SCRIPTS END ---
+//--- MISSION BEGIN ---
+function MP_PQ_FlatGemTrainingHunt_LoadMission() {
+	return new SimGroup(MissionGroup) {
+
+   new ScriptObject(MissionInfo) {
+      artist = "AI Training";
+      blast = "0";
+      desc = "Simple flat training arena for reinforcement learning";
+      difficulty = "1";
+      game = "Ultra";
+      gameMode = "hunt";
+      gemGroups = "1";
+      level = "1";
+      maxGemsPerSpawn = "8";
+      minGemsPerGroup = "8";
+      music = "Astrolabe.ogg";
+      name = "Flat Gem Training";
+      radiusFromGem = "50";
+      Time = "60000";
+      type = "Beginner";
+   };
+
+   new Sky(Sky) {
+      position = "336 136 0";
+      rotation = "1 0 0 0";
+      scale = "1 1 1";
+      materialList = "~/data/skies/Beginner/Beginner_Sky.dml";
+      cloudHeightPer[0] = "0";
+      cloudHeightPer[1] = "0";
+      cloudHeightPer[2] = "0";
+      cloudSpeed1 = "0.0001";
+      cloudSpeed2 = "0.0002";
+      cloudSpeed3 = "0.0003";
+      visibleDistance = "500";
+      fogDistance = "300";
+      fogColor = "0.6 0.6 0.6 1";
+      useSkyTextures = "1";
+      renderBottomTexture = "1";
+      noRenderBans = "1";
+   };
+
+   new Sun() {
+      direction = "0.638261 0.459006 -0.61801";
+      color = "1.4 1.2 0.4 1";
+      ambient = "0.3 0.3 0.4 1";
+   };
+
+   // Simple flat rectangular platform - 50x50 units
+   // Using a basic square platform scaled up
+   new InteriorInstance() {
+      position = "0 0 0";
+      rotation = "1 0 0 0";
+      scale = "25 25 1";
+      interiorFile = "~/data/interiors_mbg/addon/smallplatform.dif";
+      showTerrainInside = "0";
+   };
+
+   // Bounds trigger - keep marble on platform (tight tolerance)
+   // Platform is 50x50 (from -25 to +25), trigger is slightly larger
+   // Very low Z tolerance - marble respawns almost immediately when falling off
+   new Trigger(Bounds) {
+      position = "-27 -27 -2";
+      rotation = "1 0 0 0";
+      scale = "54 54 5";
+      dataBlock = "InBoundsTrigger";
+      polyhedron = "0 0 0 1 0 0 0 -1 0 0 0 1";
+   };
+
+   // Out-of-bounds trigger - respawns marble when it falls off
+   // Positioned just below the in-bounds trigger for instant reset
+   new Trigger(OutOfBounds) {
+      position = "-30 -30 -5";
+      rotation = "1 0 0 0";
+      scale = "60 60 2";
+      dataBlock = "OutOfBoundsTrigger";
+      polyhedron = "0 0 0 1 0 0 0 -1 0 0 0 1";
+   };
+
+   // Start point - center of platform, on the floor (no pad)
+   new StaticShape(StartPoint) {
+      position = "0 0 0.2";
+      rotation = "1 0 0 0";
+      scale = "0.01 0.01 0.01";
+      dataBlock = "StartPad_MBU";
+   };
+
+   // ========================================
+   // GEM GROUPS - 7 distinct spawns with varied positions (randomized by Hunt mode)
+   // Each spawn has different gem positions spread across the platform
+   // Height: 0.6 units above platform
+   // Platform is ~50x50, keeping gems within ±20 range
+   // ========================================
+
+   new SimGroup(GemGroups) {
+
+      // SPAWN 1: Scattered pattern (5 red, 2 yellow, 1 blue)
+      new SimGroup(GemGroup0) {
+         new Item() { position = "18 -12 0.6"; rotation = "1 0 0 0"; scale = "1 1 1"; dataBlock = "GemItemRed_MBU"; collideable = "0"; static = "1"; rotate = "1"; };
+         new Item() { position = "-16 8 0.6"; rotation = "1 0 0 0"; scale = "1 1 1"; dataBlock = "GemItemRed_MBU"; collideable = "0"; static = "1"; rotate = "1"; };
+         new Item() { position = "5 19 0.6"; rotation = "1 0 0 0"; scale = "1 1 1"; dataBlock = "GemItemYellow_MBU"; collideable = "0"; static = "1"; rotate = "1"; };
+         new Item() { position = "-8 -18 0.6"; rotation = "1 0 0 0"; scale = "1 1 1"; dataBlock = "GemItemRed_MBU"; collideable = "0"; static = "1"; rotate = "1"; };
+         new Item() { position = "12 3 0.6"; rotation = "1 0 0 0"; scale = "1 1 1"; dataBlock = "GemItemRed_MBU"; collideable = "0"; static = "1"; rotate = "1"; };
+         new Item() { position = "-19 -6 0.6"; rotation = "1 0 0 0"; scale = "1 1 1"; dataBlock = "GemItemYellow_MBU"; collideable = "0"; static = "1"; rotate = "1"; };
+         new Item() { position = "3 -15 0.6"; rotation = "1 0 0 0"; scale = "1 1 1"; dataBlock = "GemItemBlue_MBU"; collideable = "0"; static = "1"; rotate = "1"; };
+         new Item() { position = "-11 16 0.6"; rotation = "1 0 0 0"; scale = "1 1 1"; dataBlock = "GemItemRed_MBU"; collideable = "0"; static = "1"; rotate = "1"; };
+      };
+
+      // SPAWN 2: Diagonal line pattern (5 red, 2 yellow, 1 blue)
+      new SimGroup(GemGroup1) {
+         new Item() { position = "-20 -18 0.6"; rotation = "1 0 0 0"; scale = "1 1 1"; dataBlock = "GemItemRed_MBU"; collideable = "0"; static = "1"; rotate = "1"; };
+         new Item() { position = "-14 -11 0.6"; rotation = "1 0 0 0"; scale = "1 1 1"; dataBlock = "GemItemYellow_MBU"; collideable = "0"; static = "1"; rotate = "1"; };
+         new Item() { position = "-8 -4 0.6"; rotation = "1 0 0 0"; scale = "1 1 1"; dataBlock = "GemItemRed_MBU"; collideable = "0"; static = "1"; rotate = "1"; };
+         new Item() { position = "-2 3 0.6"; rotation = "1 0 0 0"; scale = "1 1 1"; dataBlock = "GemItemRed_MBU"; collideable = "0"; static = "1"; rotate = "1"; };
+         new Item() { position = "4 10 0.6"; rotation = "1 0 0 0"; scale = "1 1 1"; dataBlock = "GemItemBlue_MBU"; collideable = "0"; static = "1"; rotate = "1"; };
+         new Item() { position = "10 17 0.6"; rotation = "1 0 0 0"; scale = "1 1 1"; dataBlock = "GemItemRed_MBU"; collideable = "0"; static = "1"; rotate = "1"; };
+         new Item() { position = "16 -13 0.6"; rotation = "1 0 0 0"; scale = "1 1 1"; dataBlock = "GemItemYellow_MBU"; collideable = "0"; static = "1"; rotate = "1"; };
+         new Item() { position = "-17 12 0.6"; rotation = "1 0 0 0"; scale = "1 1 1"; dataBlock = "GemItemRed_MBU"; collideable = "0"; static = "1"; rotate = "1"; };
+      };
+
+      // SPAWN 3: Clustered in corners (5 red, 2 yellow, 1 blue)
+      new SimGroup(GemGroup2) {
+         new Item() { position = "17 17 0.6"; rotation = "1 0 0 0"; scale = "1 1 1"; dataBlock = "GemItemRed_MBU"; collideable = "0"; static = "1"; rotate = "1"; };
+         new Item() { position = "14 19 0.6"; rotation = "1 0 0 0"; scale = "1 1 1"; dataBlock = "GemItemYellow_MBU"; collideable = "0"; static = "1"; rotate = "1"; };
+         new Item() { position = "-18 18 0.6"; rotation = "1 0 0 0"; scale = "1 1 1"; dataBlock = "GemItemRed_MBU"; collideable = "0"; static = "1"; rotate = "1"; };
+         new Item() { position = "-16 15 0.6"; rotation = "1 0 0 0"; scale = "1 1 1"; dataBlock = "GemItemRed_MBU"; collideable = "0"; static = "1"; rotate = "1"; };
+         new Item() { position = "19 -16 0.6"; rotation = "1 0 0 0"; scale = "1 1 1"; dataBlock = "GemItemBlue_MBU"; collideable = "0"; static = "1"; rotate = "1"; };
+         new Item() { position = "16 -19 0.6"; rotation = "1 0 0 0"; scale = "1 1 1"; dataBlock = "GemItemRed_MBU"; collideable = "0"; static = "1"; rotate = "1"; };
+         new Item() { position = "-17 -17 0.6"; rotation = "1 0 0 0"; scale = "1 1 1"; dataBlock = "GemItemYellow_MBU"; collideable = "0"; static = "1"; rotate = "1"; };
+         new Item() { position = "-19 -14 0.6"; rotation = "1 0 0 0"; scale = "1 1 1"; dataBlock = "GemItemRed_MBU"; collideable = "0"; static = "1"; rotate = "1"; };
+      };
+
+      // SPAWN 4: Central cluster (5 red, 2 yellow, 1 blue)
+      new SimGroup(GemGroup3) {
+         new Item() { position = "-3 -2 0.6"; rotation = "1 0 0 0"; scale = "1 1 1"; dataBlock = "GemItemRed_MBU"; collideable = "0"; static = "1"; rotate = "1"; };
+         new Item() { position = "4 1 0.6"; rotation = "1 0 0 0"; scale = "1 1 1"; dataBlock = "GemItemYellow_MBU"; collideable = "0"; static = "1"; rotate = "1"; };
+         new Item() { position = "-1 5 0.6"; rotation = "1 0 0 0"; scale = "1 1 1"; dataBlock = "GemItemBlue_MBU"; collideable = "0"; static = "1"; rotate = "1"; };
+         new Item() { position = "2 -4 0.6"; rotation = "1 0 0 0"; scale = "1 1 1"; dataBlock = "GemItemRed_MBU"; collideable = "0"; static = "1"; rotate = "1"; };
+         new Item() { position = "-5 3 0.6"; rotation = "1 0 0 0"; scale = "1 1 1"; dataBlock = "GemItemRed_MBU"; collideable = "0"; static = "1"; rotate = "1"; };
+         new Item() { position = "6 -1 0.6"; rotation = "1 0 0 0"; scale = "1 1 1"; dataBlock = "GemItemRed_MBU"; collideable = "0"; static = "1"; rotate = "1"; };
+         new Item() { position = "1 6 0.6"; rotation = "1 0 0 0"; scale = "1 1 1"; dataBlock = "GemItemYellow_MBU"; collideable = "0"; static = "1"; rotate = "1"; };
+         new Item() { position = "-4 -5 0.6"; rotation = "1 0 0 0"; scale = "1 1 1"; dataBlock = "GemItemRed_MBU"; collideable = "0"; static = "1"; rotate = "1"; };
+      };
+
+      // SPAWN 5: Edge positions (5 red, 2 yellow, 1 blue)
+      new SimGroup(GemGroup4) {
+         new Item() { position = "20 5 0.6"; rotation = "1 0 0 0"; scale = "1 1 1"; dataBlock = "GemItemRed_MBU"; collideable = "0"; static = "1"; rotate = "1"; };
+         new Item() { position = "-20 -8 0.6"; rotation = "1 0 0 0"; scale = "1 1 1"; dataBlock = "GemItemRed_MBU"; collideable = "0"; static = "1"; rotate = "1"; };
+         new Item() { position = "7 20 0.6"; rotation = "1 0 0 0"; scale = "1 1 1"; dataBlock = "GemItemBlue_MBU"; collideable = "0"; static = "1"; rotate = "1"; };
+         new Item() { position = "-9 -20 0.6"; rotation = "1 0 0 0"; scale = "1 1 1"; dataBlock = "GemItemYellow_MBU"; collideable = "0"; static = "1"; rotate = "1"; };
+         new Item() { position = "19 -10 0.6"; rotation = "1 0 0 0"; scale = "1 1 1"; dataBlock = "GemItemRed_MBU"; collideable = "0"; static = "1"; rotate = "1"; };
+         new Item() { position = "-18 12 0.6"; rotation = "1 0 0 0"; scale = "1 1 1"; dataBlock = "GemItemRed_MBU"; collideable = "0"; static = "1"; rotate = "1"; };
+         new Item() { position = "11 -19 0.6"; rotation = "1 0 0 0"; scale = "1 1 1"; dataBlock = "GemItemYellow_MBU"; collideable = "0"; static = "1"; rotate = "1"; };
+         new Item() { position = "-13 19 0.6"; rotation = "1 0 0 0"; scale = "1 1 1"; dataBlock = "GemItemRed_MBU"; collideable = "0"; static = "1"; rotate = "1"; };
+      };
+
+      // SPAWN 6: X-pattern (5 red, 2 yellow, 1 blue)
+      new SimGroup(GemGroup5) {
+         new Item() { position = "15 15 0.6"; rotation = "1 0 0 0"; scale = "1 1 1"; dataBlock = "GemItemRed_MBU"; collideable = "0"; static = "1"; rotate = "1"; };
+         new Item() { position = "8 8 0.6"; rotation = "1 0 0 0"; scale = "1 1 1"; dataBlock = "GemItemYellow_MBU"; collideable = "0"; static = "1"; rotate = "1"; };
+         new Item() { position = "-15 15 0.6"; rotation = "1 0 0 0"; scale = "1 1 1"; dataBlock = "GemItemRed_MBU"; collideable = "0"; static = "1"; rotate = "1"; };
+         new Item() { position = "-8 8 0.6"; rotation = "1 0 0 0"; scale = "1 1 1"; dataBlock = "GemItemRed_MBU"; collideable = "0"; static = "1"; rotate = "1"; };
+         new Item() { position = "15 -15 0.6"; rotation = "1 0 0 0"; scale = "1 1 1"; dataBlock = "GemItemYellow_MBU"; collideable = "0"; static = "1"; rotate = "1"; };
+         new Item() { position = "8 -8 0.6"; rotation = "1 0 0 0"; scale = "1 1 1"; dataBlock = "GemItemRed_MBU"; collideable = "0"; static = "1"; rotate = "1"; };
+         new Item() { position = "-15 -15 0.6"; rotation = "1 0 0 0"; scale = "1 1 1"; dataBlock = "GemItemBlue_MBU"; collideable = "0"; static = "1"; rotate = "1"; };
+         new Item() { position = "-8 -8 0.6"; rotation = "1 0 0 0"; scale = "1 1 1"; dataBlock = "GemItemRed_MBU"; collideable = "0"; static = "1"; rotate = "1"; };
+      };
+
+      // SPAWN 7: Random spread (5 red, 2 yellow, 1 blue)
+      new SimGroup(GemGroup6) {
+         new Item() { position = "13 -7 0.6"; rotation = "1 0 0 0"; scale = "1 1 1"; dataBlock = "GemItemRed_MBU"; collideable = "0"; static = "1"; rotate = "1"; };
+         new Item() { position = "-6 14 0.6"; rotation = "1 0 0 0"; scale = "1 1 1"; dataBlock = "GemItemYellow_MBU"; collideable = "0"; static = "1"; rotate = "1"; };
+         new Item() { position = "9 18 0.6"; rotation = "1 0 0 0"; scale = "1 1 1"; dataBlock = "GemItemBlue_MBU"; collideable = "0"; static = "1"; rotate = "1"; };
+         new Item() { position = "-15 -3 0.6"; rotation = "1 0 0 0"; scale = "1 1 1"; dataBlock = "GemItemRed_MBU"; collideable = "0"; static = "1"; rotate = "1"; };
+         new Item() { position = "17 6 0.6"; rotation = "1 0 0 0"; scale = "1 1 1"; dataBlock = "GemItemYellow_MBU"; collideable = "0"; static = "1"; rotate = "1"; };
+         new Item() { position = "-12 -16 0.6"; rotation = "1 0 0 0"; scale = "1 1 1"; dataBlock = "GemItemRed_MBU"; collideable = "0"; static = "1"; rotate = "1"; };
+         new Item() { position = "4 -11 0.6"; rotation = "1 0 0 0"; scale = "1 1 1"; dataBlock = "GemItemRed_MBU"; collideable = "0"; static = "1"; rotate = "1"; };
+         new Item() { position = "-18 9 0.6"; rotation = "1 0 0 0"; scale = "1 1 1"; dataBlock = "GemItemRed_MBU"; collideable = "0"; static = "1"; rotate = "1"; };
+            };
+   };
+	};
+}
+//--- MISSION END ---
