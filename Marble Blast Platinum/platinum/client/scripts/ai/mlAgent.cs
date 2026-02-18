@@ -165,11 +165,26 @@ function MLAgent::computeReward(%obs) {
         echo("MLAgent: [DEBUG] WasOOB flag is TRUE before checking in reward computation");
     }
 
-    // 2. Distance shaping: reward for getting closer to nearest gem
+    // 2. Distance-based potential shaping: smooth reward gradient toward gem
+    // This creates a "potential field" where being closer = higher reward
+    // Formula: reward = potential(new_state) - potential(old_state)
+    // Potential function: P(distance) = 100 * (1 / (1 + distance/10))
+    //   - At distance 0 (on gem): P = 100
+    //   - At distance 10: P = 50
+    //   - At distance 50: P = 16.7
+    //   - At distance 100: P = 9.1
     %nearestDist = %obs.gem[0, "distance"];
     if (%nearestDist > 0 && %nearestDist < 900) { // Not a sentinel value
-        %distDelta = $MLAgent::LastNearestGemDist - %nearestDist;
-        %reward += %distDelta * 0.1; // Reward for approaching gems (10x stronger)
+        // Calculate potential at current distance
+        %currentPotential = 100 / (1 + %nearestDist / 10);
+
+        // Calculate potential at last distance
+        %lastPotential = 100 / (1 + $MLAgent::LastNearestGemDist / 10);
+
+        // Reward = change in potential
+        %distanceReward = %currentPotential - %lastPotential;
+        %reward += %distanceReward;
+
         $MLAgent::LastNearestGemDist = %nearestDist;
     }
 
