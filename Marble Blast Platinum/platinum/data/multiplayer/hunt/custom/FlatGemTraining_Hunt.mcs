@@ -72,7 +72,7 @@ function MP_PQ_FlatGemTrainingHunt_LoadMission() {
       Time = "60000";
       type = "Beginner";
    };
-
+	
    new Sky(Sky) {
       position = "336 136 0";
       rotation = "1 0 0 0";
@@ -108,25 +108,25 @@ function MP_PQ_FlatGemTrainingHunt_LoadMission() {
       showTerrainInside = "0";
    };
 
-   // Bounds trigger - keep marble on platform (tight tolerance)
-   // Platform is 50x50 (from -25 to +25), trigger is slightly larger
-   // Very low Z tolerance - marble respawns almost immediately when falling off
+   // InBounds trigger - marble goes OOB when it LEAVES this volume
+   // BIGGER BOUNDS - marble only OOB when really far from platform
    new Trigger(Bounds) {
-      position = "-27 -27 -2";
+      position = "-50 -50 -50";
       rotation = "1 0 0 0";
-      scale = "54 54 5";
+      scale = "100 100 1000";
       dataBlock = "InBoundsTrigger";
-      polyhedron = "0 0 0 1 0 0 0 -1 0 0 0 1";
+      polyhedron = "0.0000000 0.0000000 0.0000000 1.0000000 0.0000000 0.0000000 0.0000000 -1.0000000 0.0000000 0.0000000 0.0000000 1.0000000";
    };
 
-   // Out-of-bounds trigger - respawns marble when it falls off
-   // Positioned just below the in-bounds trigger for instant reset
-   new Trigger(OutOfBounds) {
-      position = "-30 -30 -5";
+   // Spawn trigger - where marble respawns in Hunt mode
+   new Trigger(SpawnPoint) {
+      position = "0 0 1";
       rotation = "1 0 0 0";
-      scale = "60 60 2";
-      dataBlock = "OutOfBoundsTrigger";
-      polyhedron = "0 0 0 1 0 0 0 -1 0 0 0 1";
+      scale = "1 1 1";
+      dataBlock = "SpawnTrigger";
+      polyhedron = "0.0000000 0.0000000 0.0000000 1.0000000 0.0000000 0.0000000 0.0000000 -1.0000000 0.0000000 0.0000000 0.0000000 1.0000000";
+      add = "0 0 1";
+      gravity = "0";
    };
 
    // Start point - center of platform, on the floor (no pad)
