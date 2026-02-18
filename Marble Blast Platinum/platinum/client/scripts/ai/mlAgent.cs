@@ -1,11 +1,18 @@
 //------------------------------------------------------------------------------
 // ML Agent Controller
-// Main loop that sends observations to Python and executes actions
+// Main loop that sends observations + reward to Python and executes actions
+// Protocol: sends JSON with {obs: [...], reward: float, done: bool, info: {...}}
 //------------------------------------------------------------------------------
 
 $MLAgent::Enabled = false;
 $MLAgent::UpdateInterval = 50; // 20 Hz (50ms)
 $MLAgent::AutoStart = true;  // Auto-start when Hunt mode begins
+
+// Reward tracking
+$MLAgent::LastGemScore = 0;
+$MLAgent::LastNearestGemDist = 999;
+$MLAgent::EpisodeReward = 0;
+$MLAgent::WasOOB = false;
 
 function MLAgent::start() {
     if ($MLAgent::Enabled) {
@@ -34,6 +41,12 @@ function MLAgent::startLoop() {
     $MLAgent::StepCount = 0;
     $MLAgent::EpisodeStartTime = getRealTime();
 
+    // Initialize reward tracking
+    $MLAgent::LastGemScore = PlayGui.gemCount;
+    $MLAgent::LastNearestGemDist = 999;
+    $MLAgent::EpisodeReward = 0;
+    $MLAgent::WasOOB = false;
+
     MLAgent::update();
 }
 
@@ -42,7 +55,7 @@ function MLAgent::stop() {
         return;
     }
 
-    echo("MLAgent: Stopping (completed " @ $MLAgent::StepCount @ " steps)");
+    echo("MLAgent: Stopping (completed " @ $MLAgent::StepCount @ " steps, total reward: " @ $MLAgent::EpisodeReward @ ")");
     $MLAgent::Enabled = false;
 
     // Cancel scheduled update
@@ -50,6 +63,9 @@ function MLAgent::stop() {
         cancel($MLAgent::UpdateSchedule);
         $MLAgent::UpdateSchedule = "";
     }
+
+    // Clear inputs
+    AIAgent::clearInputs();
 
     // Disconnect from server
     AIBridge::disconnect();
@@ -70,44 +86,165 @@ function MLAgent::update() {
     // 1. Collect observation
     %obs = AIObserver::collectState();
 
-    // 2. Serialize to JSON
+    // 2. Compute reward for this step
+    %reward = MLAgent::computeReward(%obs);
+    $MLAgent::EpisodeReward += %reward;
+
+    // 3. Check if episode is done
+    %done = MLAgent::checkDone();
+
+    // 4. Build message: obs_json|reward|done
     %json = AIObserver::serializeToJSON(%obs);
+    %msg = %json @ "|" @ %reward @ "|" @ %done;
 
-    // 3. Send to Python server and get action
-    %actionJson = AIBridge::getAction(%json);
+    // 5. Send to Python server and get action
+    AIBridge::sendState(%msg);
+    %actionStr = $AIBridge::LastAction;
 
-    // 4. Parse and execute action
-    if (%actionJson !$= "") {
-        MLAgent::executeAction(%actionJson);
+    // 6. Parse and execute action
+    if (%actionStr !$= "") {
+        MLAgent::executeAction(%actionStr);
     }
+
+    // 7. Clean up observation object
+    %obs.delete();
 
     // Increment step counter
     $MLAgent::StepCount++;
 
-    // 5. Schedule next update
+    // Log every 200 steps
+    if ($MLAgent::StepCount % 200 == 0) {
+        echo("MLAgent: Step " @ $MLAgent::StepCount @ " | Episode Reward: " @ $MLAgent::EpisodeReward @ " | Gems: " @ PlayGui.gemCount);
+    }
+
+    // 8. If done, send done signal and wait for next episode
+    if (%done) {
+        echo("MLAgent: Episode done! Steps: " @ $MLAgent::StepCount @ " | Total Reward: " @ $MLAgent::EpisodeReward);
+        // Reset for next episode (game will restart automatically in Hunt mode)
+        MLAgent::resetEpisode();
+    }
+
+    // 9. Schedule next update
     $MLAgent::UpdateSchedule = schedule($MLAgent::UpdateInterval, 0, "MLAgent::update");
 }
 
-function MLAgent::executeAction(%actionJson) {
-    // Parse JSON action: {"forward": 1, "backward": 0, "left": 0, "right": 1, "jump": 0, "powerup": 0}
-    // For now, expect simple format: "0,1,0,1,0,0" (forward,backward,left,right,jump,powerup)
+//------------------------------------------------------------------------------
+// Reward Computation
+//------------------------------------------------------------------------------
 
-    %forward = getField(%actionJson, 0);
-    %backward = getField(%actionJson, 1);
-    %left = getField(%actionJson, 2);
-    %right = getField(%actionJson, 3);
-    %jump = getField(%actionJson, 4);
-    %powerup = getField(%actionJson, 5);
+function MLAgent::computeReward(%obs) {
+    %reward = 0;
+
+    // 1. Gem collection reward: +100 per point scored (DOMINANT SIGNAL)
+    %currentGemScore = PlayGui.gemCount;
+    %gemDelta = %currentGemScore - $MLAgent::LastGemScore;
+    if (%gemDelta > 0) {
+        %reward += %gemDelta * 100;
+        echo("MLAgent: Gem collected! +" @ (%gemDelta * 100) @ " reward");
+    }
+    $MLAgent::LastGemScore = %currentGemScore;
+
+    // 2. Distance shaping: tiny reward for getting closer to nearest gem
+    %nearestDist = %obs.gem[0, "distance"];
+    if (%nearestDist > 0 && %nearestDist < 900) { // Not a sentinel value
+        %distDelta = $MLAgent::LastNearestGemDist - %nearestDist;
+        %reward += %distDelta * 0.01; // Very small shaping reward
+        $MLAgent::LastNearestGemDist = %nearestDist;
+    }
+
+    // 3. Time penalty: -0.1 per step (encourages speed)
+    %reward -= 0.1;
+
+    // 4. OOB penalty: -5 for going out of bounds
+    if ($MLAgent::WasOOB) {
+        %reward -= 5;
+        $MLAgent::WasOOB = false;
+        echo("MLAgent: OOB penalty! -5 reward");
+    }
+
+    return %reward;
+}
+
+//------------------------------------------------------------------------------
+// Episode Done Check
+//------------------------------------------------------------------------------
+
+function MLAgent::checkDone() {
+    // Episode ends when:
+    // 1. Time runs out (Hunt mode timer hits 0)
+    if (isObject(MissionInfo) && MissionInfo.time > 0) {
+        if (PlayGui.currentTime <= 0 && $MLAgent::StepCount > 20) {
+            return 1;
+        }
+    }
+
+    // 2. All gems collected (rare but possible)
+    if (PlayGui.gemCount >= PlayGui.maxGems && PlayGui.maxGems > 0) {
+        return 1;
+    }
+
+    return 0;
+}
+
+//------------------------------------------------------------------------------
+// Episode Reset
+//------------------------------------------------------------------------------
+
+function MLAgent::resetEpisode() {
+    echo("MLAgent: Resetting episode");
+    $MLAgent::StepCount = 0;
+    $MLAgent::EpisodeStartTime = getRealTime();
+    $MLAgent::LastGemScore = 0;
+    $MLAgent::LastNearestGemDist = 999;
+    $MLAgent::EpisodeReward = 0;
+    $MLAgent::WasOOB = false;
+}
+
+//------------------------------------------------------------------------------
+// Action Execution
+//------------------------------------------------------------------------------
+
+function MLAgent::executeAction(%actionStr) {
+    // Parse comma-separated action: "0,1,0,1,0,0" (forward,backward,left,right,jump,powerup)
+    %forward = getWord(strreplace(%actionStr, ",", " "), 0);
+    %backward = getWord(strreplace(%actionStr, ",", " "), 1);
+    %left = getWord(strreplace(%actionStr, ",", " "), 2);
+    %right = getWord(strreplace(%actionStr, ",", " "), 3);
+    %jump = getWord(strreplace(%actionStr, ",", " "), 4);
+    %powerup = getWord(strreplace(%actionStr, ",", " "), 5);
 
     // Execute via existing AI agent system
     AIAgent::setBinaryActions(%forward, %backward, %left, %right, %jump, %powerup);
 }
 
-function MLAgent::reset() {
-    echo("MLAgent: Resetting episode");
-    $MLAgent::StepCount = 0;
-    $MLAgent::EpisodeStartTime = getRealTime();
+//------------------------------------------------------------------------------
+// OOB Hook - called when marble goes out of bounds
+//------------------------------------------------------------------------------
+
+function MLAgent::onOOB() {
+    if ($MLAgent::Enabled) {
+        $MLAgent::WasOOB = true;
+        // Reset nearest gem tracking since position changed
+        $MLAgent::LastNearestGemDist = 999;
+
+        // Schedule quick respawn after OOB message appears (500ms delay)
+        // This mimics the player clicking left mouse to respawn faster
+        schedule(500, 0, "MLAgent::triggerQuickRespawn");
+    }
 }
+
+function MLAgent::triggerQuickRespawn() {
+    // Send quick respawn command to server (same as left-click after OOB)
+    // Waits 500ms after OOB to ensure "Out of Bounds" message has appeared
+    // This avoids accidentally using powerups
+    if ($MLAgent::Enabled && isObject($MP::MyMarble)) {
+        commandToServer('QuickRespawn');
+    }
+}
+
+//------------------------------------------------------------------------------
+// Game Lifecycle Hooks
+//------------------------------------------------------------------------------
 
 function MLAgent::onGameStart() {
     // Called when entering a Hunt mode game
@@ -130,15 +267,54 @@ function MLAgent::onTimerStart() {
 }
 
 function MLAgent::onGameEnd() {
-    // Stop agent when game ends
-    if ($MLAgent::Enabled) {
-        MLAgent::stop();
+    // Send final done signal before stopping
+    if ($MLAgent::Enabled && $AIBridge::Connected) {
+        %msg = "[]|0|1";  // Empty obs, 0 reward, done=1
+        AIBridge::sendState(%msg);
     }
-    $MLAgent::ReadyToStart = false;
+
+    // Don't fully stop - just flag ready to restart
+    if ($MLAgent::Enabled) {
+        echo("MLAgent: Round ended, auto-restarting in 2 seconds...");
+        $MLAgent::Enabled = false;  // Temporarily disable updates
+
+        // Auto-restart after brief delay
+        schedule(2000, 0, "MLAgent::autoRestart");
+    }
+}
+
+function MLAgent::autoRestart() {
+    // Auto-restart the level for continuous training
+    if (mp() && $Game::isMode["hunt"]) {
+        echo("MLAgent: Restarting Hunt round...");
+
+        // Close end game dialog if open
+        if (isObject(MPEndGameDlg) && MPEndGameDlg.isAwake()) {
+            Canvas.popDialog(MPEndGameDlg);
+        }
+
+        // Restart the mission
+        commandToServer('restartLevel');
+
+        // Re-enable ML agent
+        schedule(1000, 0, "MLAgent::start");
+    }
 }
 
 // Hook into game start
 function clientCmdGameStart() {
     Parent::clientCmdGameStart();
     MLAgent::onGameStart();
+}
+
+// Hook into OOB callback
+function clientCbOnOutOfBounds() {
+    Parent::clientCbOnOutOfBounds();
+    MLAgent::onOOB();
+}
+
+// Hook into game end
+function clientCmdGameEnd() {
+    Parent::clientCmdGameEnd();
+    MLAgent::onGameEnd();
 }

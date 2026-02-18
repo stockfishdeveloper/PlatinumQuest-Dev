@@ -11,7 +11,8 @@
       "Bash(awk:*)",
       "Bash(python analyze_game.py:*)",
       "Bash(git check-ignore:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(python -c:*)"
     ]
   }
 }
