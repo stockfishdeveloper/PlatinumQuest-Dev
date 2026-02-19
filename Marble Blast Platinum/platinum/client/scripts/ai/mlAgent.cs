@@ -50,6 +50,7 @@ function MLAgent::startLoop() {
     // Initialize reward tracking
     $MLAgent::LastGemScore = PlayGui.gemCount;
     $MLAgent::LastNearestGemDist = 999;
+    $MLAgent::SkipPotentialStep = true;  // Suppress the sentinel spike on first step
     $MLAgent::EpisodeReward = 0;
     $MLAgent::WasOOB = false;
     $MLAgent::EpisodeShouldEnd = false;
@@ -109,9 +110,9 @@ function MLAgent::update() {
     // 3. Check if episode is done
     %done = MLAgent::checkDone();
 
-    // 4. Build message: obs_json|reward|done
+    // 4. Build message: obs_json|reward|done|gemDelta
     %json = AIObserver::serializeToJSON(%obs);
-    %msg = %json @ "|" @ %reward @ "|" @ %done;
+    %msg = %json @ "|" @ %reward @ "|" @ %done @ "|" @ $MLAgent::LastGemDelta;
 
     // 5. Send to Python server and get action
     AIBridge::sendState(%msg);
@@ -154,9 +155,13 @@ function MLAgent::computeReward(%obs) {
     // 1. Gem collection reward: +100 per point scored (DOMINANT SIGNAL)
     %currentGemScore = PlayGui.gemCount;
     %gemDelta = %currentGemScore - $MLAgent::LastGemScore;
+    $MLAgent::LastGemDelta = %gemDelta;  // Expose for protocol message
     if (%gemDelta > 0) {
         %reward += %gemDelta * 100;
         echo("MLAgent: Gem collected! +" @ (%gemDelta * 100) @ " reward");
+        // Suppress the potential-shaping spike that would fire on the next step
+        // after a gem is collected (distance jumps from ~0 back to the next gem).
+        $MLAgent::SkipPotentialStep = true;
     }
     $MLAgent::LastGemScore = %currentGemScore;
 
@@ -168,24 +173,36 @@ function MLAgent::computeReward(%obs) {
     // 2. Distance-based potential shaping: smooth reward gradient toward gem
     // This creates a "potential field" where being closer = higher reward
     // Formula: reward = potential(new_state) - potential(old_state)
-    // Potential function: P(distance) = 100 * (1 / (1 + distance/10))
+    // Potential function: P(distance) = 100 / (1 + distance/50)
     //   - At distance 0 (on gem): P = 100
-    //   - At distance 10: P = 50
-    //   - At distance 50: P = 16.7
-    //   - At distance 100: P = 9.1
+    //   - At distance 50: P = 50   (half-power at 50 units, not 10)
+    //   - At distance 100: P = 33  (was 9.1 — much stronger far signal)
+    //   - At distance 200: P = 20  (was 4.8)
+    // Using d/50 instead of d/10 extends the useful gradient range 5x,
+    // giving the agent meaningful direction even when the gem is far away.
     %nearestDist = %obs.gem[0, "distance"];
     if (%nearestDist > 0 && %nearestDist < 900) { // Not a sentinel value
-        // Calculate potential at current distance
-        %currentPotential = 100 / (1 + %nearestDist / 10);
+        if ($MLAgent::SkipPotentialStep) {
+            // First step after episode start or gem collection: just record the
+            // current distance without computing a reward. This suppresses the
+            // large false spike that would occur from jumping from the sentinel
+            // distance (999) or the just-collected gem distance (~0) to the
+            // nearest remaining gem distance.
+            $MLAgent::LastNearestGemDist = %nearestDist;
+            $MLAgent::SkipPotentialStep = false;
+        } else {
+            // Calculate potential at current distance
+            %currentPotential = 100 / (1 + %nearestDist / 50);
 
-        // Calculate potential at last distance
-        %lastPotential = 100 / (1 + $MLAgent::LastNearestGemDist / 10);
+            // Calculate potential at last distance
+            %lastPotential = 100 / (1 + $MLAgent::LastNearestGemDist / 50);
 
-        // Reward = change in potential
-        %distanceReward = %currentPotential - %lastPotential;
-        %reward += %distanceReward;
+            // Reward = change in potential
+            %distanceReward = %currentPotential - %lastPotential;
+            %reward += %distanceReward;
 
-        $MLAgent::LastNearestGemDist = %nearestDist;
+            $MLAgent::LastNearestGemDist = %nearestDist;
+        }
     }
 
     // 3. Time penalty: -0.1 per step (encourages speed)
@@ -237,8 +254,13 @@ function MLAgent::resetEpisode() {
     echo("MLAgent: Resetting episode");
     $MLAgent::StepCount = 0;
     $MLAgent::EpisodeStartTime = getRealTime();
-    $MLAgent::LastGemScore = 0;
+    // Sync to current score, not 0 — within a Hunt round the score accumulates,
+    // so resetting to 0 would cause a false gem-collection reward on the next step
+    // equal to however many gems were already collected this round.
+    $MLAgent::LastGemScore = PlayGui.gemCount;
+    $MLAgent::LastGemDelta = 0;
     $MLAgent::LastNearestGemDist = 999;
+    $MLAgent::SkipPotentialStep = true;  // Suppress sentinel spike on first step
     $MLAgent::EpisodeReward = 0;
     $MLAgent::WasOOB = false;
     $MLAgent::EpisodeShouldEnd = false;  // Reset early termination flag

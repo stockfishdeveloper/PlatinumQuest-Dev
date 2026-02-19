@@ -223,7 +223,7 @@ class PPOTrainer:
     """Proximal Policy Optimization trainer."""
 
     def __init__(self, model, lr=3e-4, clip_epsilon=0.2, value_coef=0.5,
-                 entropy_coef=0.05, max_grad_norm=0.5):
+                 entropy_coef=0.01, max_grad_norm=0.5):
         self.model = model
         self.optimizer = optim.Adam(model.parameters(), lr=lr)
         self.clip_epsilon = clip_epsilon
@@ -236,6 +236,7 @@ class PPOTrainer:
         total_policy_loss = 0
         total_value_loss = 0
         total_entropy = 0
+        total_grad_norm = 0
         n_updates = 0
 
         for epoch in range(n_epochs):
@@ -263,6 +264,15 @@ class PPOTrainer:
                 # Optimize
                 self.optimizer.zero_grad()
                 loss.backward()
+
+                # Measure gradient norm before clipping (useful for diagnosing exploding gradients)
+                grad_norm = sum(
+                    p.grad.norm().item() ** 2
+                    for p in self.model.parameters()
+                    if p.grad is not None
+                ) ** 0.5
+                total_grad_norm += grad_norm
+
                 nn.utils.clip_grad_norm_(self.model.parameters(), self.max_grad_norm)
                 self.optimizer.step()
 
@@ -275,6 +285,7 @@ class PPOTrainer:
             'policy_loss': total_policy_loss / max(n_updates, 1),
             'value_loss': total_value_loss / max(n_updates, 1),
             'entropy': total_entropy / max(n_updates, 1),
+            'grad_norm': total_grad_norm / max(n_updates, 1),
         }
 
 
@@ -302,12 +313,19 @@ class PPOServer:
         self.buffer = RolloutBuffer()
 
         # Training config
-        self.rollout_size = 256  # Steps before each PPO update (~4 seconds at 60 Hz)
+        self.rollout_size = 2048  # Steps before each PPO update — large enough to usually contain a full episode
         self.n_epochs = 4
         self.batch_size = 64
         self.gamma = 0.99
         self.lam = 0.95
         self.save_interval = 10  # Save every N updates
+
+        # Reward scaling: divide rewards by this before storing in buffer.
+        # Gem collection = +100 raw → +1.0 scaled. OOB = -50 → -0.5.
+        # This keeps critic targets in [0, ~10] per episode, preventing the
+        # critic from diverging to ±500 and flooding the shared network with
+        # enormous gradients that collapse the actor.
+        self.reward_scale = 0.01
 
         # Statistics (initialize before loading checkpoint)
         self.total_steps = 0
@@ -320,31 +338,64 @@ class PPOServer:
         # Load existing model if provided
         if model_path and os.path.exists(model_path):
             self.log(f"Loading model from {model_path}")
-            checkpoint = torch.load(model_path, weights_only=True)
+            checkpoint = torch.load(model_path, weights_only=False)
             self.model.load_state_dict(checkpoint['model_state_dict'])
-            self.trainer.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+            # Don't restore optimizer state — its momentum/variance was built at the
+            # old value scale and causes bad updates on resume.
+
+            # Reset the critic head so it relearns from the preserved shared features.
+            # The critic saves a wildly wrong value estimate (e.g. -2849) that causes
+            # a massive gradient flood into the shared layers on the first update,
+            # corrupting the actor and collapsing the policy every time we reload.
+            # The shared backbone and actor are untouched — the good policy is preserved.
+            for layer in self.model.critic:
+                if hasattr(layer, 'reset_parameters'):
+                    layer.reset_parameters()
 
             # Restore training progress
             self.total_steps = checkpoint.get('total_steps', 0)
             self.total_updates = checkpoint.get('total_updates', 0)
             self.total_episodes = checkpoint.get('total_episodes', 0)
+            self.best_avg_reward = checkpoint.get('best_avg_reward', -float('inf'))
+            saved_rewards = checkpoint.get('episode_rewards', [])
+            self.episode_rewards = deque(saved_rewards, maxlen=100)
 
             self.log(f"Model loaded successfully!")
             self.log(f"Resuming from: {self.total_steps} steps, {self.total_updates} updates, {self.total_episodes} episodes")
+            self.log(f"Best avg reward restored: {self.best_avg_reward:.2f}")
 
         self.model.train()
 
-        # Action tracking (for debugging)
-        self.action_counts = np.zeros(6)  # Count how often each action is chosen
-        self.episode_action_counts = np.zeros(6)  # Reset per episode
-
-        # Reward tracking (for debugging)
-        self.positive_rewards = 0
-        self.negative_rewards = 0
-        self.zero_rewards = 0
-
-        # Recent actions (for debugging repetition)
+        # Recent actions (for entropy-collapse detection)
         self.recent_actions = deque(maxlen=10)
+
+        # Per-episode counters (reset on done)
+        self.episode_gem_pts = 0   # gem points collected this episode
+        self.episode_oob = 0       # OOB events this episode
+        self.episode_step = 0      # step index within the current episode
+
+        # Per-rollout counters (reset after each PPO update)
+        self.rollout_gem_pts = 0   # gem points collected this rollout
+        self.rollout_oob = 0       # OOB events this rollout
+        self.rollout_positive = 0  # steps with positive reward this rollout
+        self.rollout_steps = 0     # total steps this rollout
+        self.rollout_action_sums = np.zeros(6)  # cumulative action activations this rollout
+
+        # Lifetime counters
+        self.total_gem_pts = 0     # gem points across entire run
+        self.total_oob = 0         # OOB events across entire run
+
+        # Entropy tracking for collapse detection
+        self.entropy_history = deque(maxlen=10)
+
+        # Run start time (for gems/hr)
+        self.run_start_time = time.time()
+
+        # Dry-rollout streak (rollouts with zero gems collected)
+        self.dry_rollouts = 0
+
+        # Rolling 20-episode gem points (for gems/episode trend)
+        self.recent_episode_gems = deque(maxlen=20)
 
         # Socket setup
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -386,9 +437,8 @@ class PPOServer:
                 if self.running:
                     self.log(f"Error: {e}")
 
-        self.save_model('models/checkpoints/final.pth')
         self.socket.close()
-        self.log("Server stopped. Final model saved.")
+        self.log("Server stopped.")
         self.logger.close()
 
     def handle_client(self, conn):
@@ -425,92 +475,144 @@ class PPOServer:
         finally:
             conn.close()
 
+    def normalize_obs(self, obs):
+        """Normalize raw game observations to roughly [-1, 1] range.
+
+        Raw problems:
+          - -999 sentinels for empty gem/opponent slots (150+ dims at -999)
+          - timeElapsed/timeRemaining in milliseconds (0-120,000)
+          - World-space positions in arbitrary units
+        Even with kaiming init these inputs produce value_est in the thousands,
+        causing a massive gradient flood on the very first PPO update.
+        """
+        # Replace -999 sentinels (absent gems/opponents) with 0 before scaling.
+        # Anything below -500 is a sentinel — real game values never go that low.
+        obs = np.where(obs < -500, 0.0, obs)
+
+        # Self state (indices 0-12)
+        obs[0:3]  /= 100.0   # Position (world units → ~[-1,1] for typical maps)
+        obs[3:6]  /= 20.0    # Velocity (max ~20 units/sec)
+        obs[6]    /= 360.0   # Camera yaw  (0-360 → 0-1)
+        obs[7]    /= 90.0    # Camera pitch (-90..90 → -1..1)
+        # obs[8]: collision radius (~0.2), already small
+        # obs[9]: powerup id (-1..5), already small
+        # obs[10]: megaMarbleActive (0/1)
+        obs[11]   /= 20.0    # megaMarbleTimeRemaining (0-20 s → 0-1)
+        obs[12]   /= 20.0    # powerupTimerRemaining   (0-20 s → 0-1)
+
+        # Gems (indices 13-262: 50 gems × 5 dims = x, y, z, value, distance)
+        gem_base = 13
+        for i in range(50):
+            b = gem_base + i * 5
+            obs[b:b+3] /= 100.0   # Relative x, y, z positions
+            obs[b+3]   /= 5.0     # Gem value (1-5 → 0.2-1.0)
+            obs[b+4]   /= 100.0   # Distance (0-100+ → 0-1+)
+
+        # Opponents (indices 263-280: 3 opponents × 6 dims)
+        opp_base = 263
+        for i in range(3):
+            b = opp_base + i * 6
+            obs[b:b+3]   /= 100.0  # Relative x, y, z positions
+            obs[b+3:b+5] /= 20.0   # Relative velocities
+            # obs[b+5]: isMega (0/1)
+
+        # Game state (indices 281-285)
+        # MissionInfo.time is ~6,000,000 ms (100-min hunt), NOT 2 min.
+        # Dividing by 6,000,000 gives a proper [0,1] range.
+        obs[281] /= 6000000.0  # timeElapsed    (ms → 0-1 over hunt duration)
+        obs[282] /= 6000000.0  # timeRemaining  (ms → 0-1 over hunt duration)
+        obs[283] /= 100.0      # myGemScore
+        obs[284] /= 100.0      # opponentBestScore
+        obs[285] /= 50.0       # gemsRemaining
+
+        # Safety clip: catch any remaining outliers (e.g. from changed map scales).
+        obs = np.clip(obs, -2.0, 2.0)
+
+        return obs
+
     def process_message(self, message):
         """Process a message from the game, return action."""
         try:
-            # Parse: obs_json|reward|done
+            # Parse: obs_json|reward|done|gem_delta
             parts = message.split('|')
 
-            if len(parts) != 3:
+            if len(parts) != 4:
                 if self.total_steps < 3:
-                    self.log(f"Malformed message (expected 3 parts, got {len(parts)}): {message[:100]}")
+                    self.log(f"Malformed message (expected 4 parts, got {len(parts)}): {message[:100]}")
                 return [0, 0, 0, 0, 0, 0]
 
-            obs_json, reward_str, done_str = parts
+            obs_json, reward_str, done_str, gem_delta_str = parts
 
             # Parse observation
             obs = json.loads(obs_json)
             reward = float(reward_str)
             done = int(float(done_str))
+            gem_delta = float(gem_delta_str)
 
             # Debug first message
             if self.total_steps == 0:
                 self.log(f"First observation: {len(obs)} dims")
+                raw = np.array(obs, dtype=np.float32)
+                self.log(f"First obs raw min={raw.min():.1f} max={raw.max():.1f} mean={raw.mean():.1f}")
                 self.log(f"First reward: {reward}")
                 self.log(f"First done: {done}")
 
-            # Get action from model
-            obs_array = np.array(obs, dtype=np.float32)
+            # Normalize observation before passing to network.
+            # Raw obs contains -999 sentinels (empty gem/opponent slots) and
+            # millisecond time values (0-120000), which cause the critic to
+            # output values in the thousands even with fresh random weights,
+            # flooding the network with enormous gradients on the first update.
+            obs_array = self.normalize_obs(np.array(obs, dtype=np.float32))
+
+            if self.total_steps == 0:
+                self.log(f"First obs normalized min={obs_array.min():.3f} max={obs_array.max():.3f} mean={obs_array.mean():.3f}")
+
             action, log_prob, value = self.model.get_action(obs_array)
-
-            # Track action usage
-            self.action_counts += action
-            self.episode_action_counts += action
             self.recent_actions.append(action.tolist())
+            self.rollout_action_sums += action
 
-            # Track and log reward distribution
+            # Warn if first step of a new episode carries a suspiciously large reward
+            # (indicates the sentinel-spike fix is not working or a new source of initial reward)
+            if self.episode_step == 0 and self.total_episodes > 0 and abs(reward) > 1.0:
+                self.log(f"  WARN: large first-step reward {reward:.2f} at ep={self.total_episodes+1} — check sentinel spike fix")
+
+            # Track events
+            if gem_delta > 0:
+                self.episode_gem_pts += int(gem_delta)
+                self.rollout_gem_pts += int(gem_delta)
+                self.total_gem_pts += int(gem_delta)
+                self.log(f"[GEM] ep={self.total_episodes+1} step={self.total_steps} +{gem_delta:.0f}pts | ep_total={self.current_episode_reward + reward:.1f}")
+            if reward < -40:  # OOB
+                self.episode_oob += 1
+                self.rollout_oob += 1
+                self.total_oob += 1
+                self.log(f"[OOB] ep={self.total_episodes+1} step={self.total_steps} | ep_reward_so_far={self.current_episode_reward:.1f}")
             if reward > 0.1:
-                self.positive_rewards += 1
-                # Log significant rewards (gem collection, distance improvements)
-                if reward > 10:  # Gem collected (base reward is 100 per gem)
-                    self.log(f"[GEM COLLECTED] Step {self.total_steps}: reward={reward:.2f} | Episode total: {self.current_episode_reward:.2f}")
-                elif reward > 1:
-                    self.log(f"[GOOD PROGRESS] Step {self.total_steps}: reward={reward:.2f} | Episode total: {self.current_episode_reward:.2f}")
-            elif reward < -0.1:
-                self.negative_rewards += 1
-                # Log penalties
-                if reward < -40:  # OOB penalty is -50 plus time/distance penalties
-                    self.log(f"[OOB PENALTY] Step {self.total_steps}: reward={reward:.2f} | Episode total: {self.current_episode_reward:.2f}")
-                elif reward < -5:
-                    self.log(f"[LARGE PENALTY] Step {self.total_steps}: reward={reward:.2f} | Episode total: {self.current_episode_reward:.2f}")
-            else:
-                self.zero_rewards += 1
+                self.rollout_positive += 1
+            self.rollout_steps += 1
+            self.episode_step += 1
 
-            # Log every reward for detailed debugging (every 50 steps to avoid spam)
-            if self.total_steps % 50 == 0:
-                self.log(f"[STEP {self.total_steps}] Reward: {reward:.3f} | Episode Total: {self.current_episode_reward:.2f} | Value Est: {value:.3f}")
-
-            # Store experience
-            self.buffer.add(obs_array, action, reward, value, log_prob, done)
+            # Store experience (scale reward to keep critic targets small)
+            self.buffer.add(obs_array, action, reward * self.reward_scale, value, log_prob, done)
             self.total_steps += 1
             self.current_episode_reward += reward
 
-            # Track episodes
+            # Episode end
             if done:
                 self.total_episodes += 1
                 self.episode_rewards.append(self.current_episode_reward)
+                self.recent_episode_gems.append(self.episode_gem_pts)
                 avg_reward = np.mean(self.episode_rewards) if self.episode_rewards else 0
-
-                # Calculate action percentages for this episode
-                episode_steps = np.sum(self.episode_action_counts) / 6.0
-                action_pcts = (self.episode_action_counts / max(episode_steps, 1)) * 100
-
-                # Classify episode outcome
                 outcome = "SUCCESS" if self.current_episode_reward > 50 else "FAIL" if self.current_episode_reward < -30 else "NEUTRAL"
-
-                self.log(f"\n{'=' * 60}")
-                self.log(f"Episode {self.total_episodes} Complete [{outcome}]")
-                self.log(f"{'=' * 60}")
-                self.log(f"  Episode Reward: {self.current_episode_reward:.2f}")
-                self.log(f"  Episode Steps: {int(episode_steps)}")
-                self.log(f"  Avg Reward (last 100): {avg_reward:.2f}")
-                self.log(f"  Total Steps: {self.total_steps}")
-                self.log(f"  Buffer Size: {len(self.buffer)}")
-                self.log(f"  Action Usage: F:{action_pcts[0]:.0f}% B:{action_pcts[1]:.0f}% L:{action_pcts[2]:.0f}% R:{action_pcts[3]:.0f}% J:{action_pcts[4]:.0f}% P:{action_pcts[5]:.0f}%")
-                self.log(f"{'=' * 60}\n")
-
+                oob_str = f" | OOB={self.episode_oob}" if self.episode_oob else ""
+                gems_str = f" | gems={self.episode_gem_pts}pts" if self.episode_gem_pts else ""
+                self.log(f"Ep {self.total_episodes} [{outcome}] rwd={self.current_episode_reward:.1f}{gems_str}{oob_str} | avg100={avg_reward:.1f} | val={value:.3f}")
+                if self.current_episode_reward > 50:
+                    self.log(f"  *** SUCCESS: {self.episode_gem_pts}pts in this episode ***")
                 self.current_episode_reward = 0
-                self.episode_action_counts = np.zeros(6)
+                self.episode_gem_pts = 0
+                self.episode_oob = 0
+                self.episode_step = 0
 
             # PPO update when buffer is full
             if len(self.buffer) >= self.rollout_size:
@@ -528,13 +630,8 @@ class PPOServer:
 
     def run_ppo_update(self):
         """Run PPO training update."""
-        self.log(f"\n{'=' * 40}")
-        self.log(f"PPO Update #{self.total_updates + 1}")
-        self.log(f"{'=' * 40}")
-
         self.model.train()
 
-        start_time = time.time()
         stats = self.trainer.update(
             self.buffer,
             n_epochs=self.n_epochs,
@@ -542,44 +639,61 @@ class PPOServer:
             gamma=self.gamma,
             lam=self.lam,
         )
-        elapsed = time.time() - start_time
-
         self.total_updates += 1
+        self.entropy_history.append(stats['entropy'])
 
         avg_reward = np.mean(self.episode_rewards) if self.episode_rewards else 0
+        pos_pct = (self.rollout_positive / max(self.rollout_steps, 1)) * 100
 
-        # Calculate overall action usage percentages
-        total_action_uses = np.sum(self.action_counts)
-        action_pcts = (self.action_counts / max(total_action_uses, 1)) * 100
+        # Detect entropy collapse
+        collapse_warn = ""
+        if stats['entropy'] < 1.0:
+            collapse_warn = " *** ENTROPY COLLAPSE ***"
+        elif stats['entropy'] < 2.0:
+            collapse_warn = " (entropy low)"
 
-        # Calculate reward distribution
-        total_reward_steps = self.positive_rewards + self.negative_rewards + self.zero_rewards
-        pos_pct = (self.positive_rewards / max(total_reward_steps, 1)) * 100
-        neg_pct = (self.negative_rewards / max(total_reward_steps, 1)) * 100
-        zero_pct = (self.zero_rewards / max(total_reward_steps, 1)) * 100
+        # Dry-rollout tracking
+        if self.rollout_gem_pts == 0:
+            self.dry_rollouts += 1
+        else:
+            self.dry_rollouts = 0
 
-        self.log(f"  Policy Loss:  {stats['policy_loss']:.6f}")
-        self.log(f"  Value Loss:   {stats['value_loss']:.6f}")
-        self.log(f"  Entropy:      {stats['entropy']:.6f}")
-        self.log(f"  Avg Reward:   {avg_reward:.2f}")
-        self.log(f"  Update Time:  {elapsed:.2f}s")
-        self.log(f"  Total Steps:  {self.total_steps}")
-        self.log(f"  Episodes:     {self.total_episodes}")
-        self.log(f"  Reward Distribution: +{pos_pct:.1f}%  -{neg_pct:.1f}%  0:{zero_pct:.1f}%")
-        self.log(f"  Overall Action Usage:")
-        self.log(f"    Forward: {action_pcts[0]:.1f}%  Backward: {action_pcts[1]:.1f}%")
-        self.log(f"    Left:    {action_pcts[2]:.1f}%  Right:    {action_pcts[3]:.1f}%")
-        self.log(f"    Jump:    {action_pcts[4]:.1f}%  Powerup:  {action_pcts[5]:.1f}%")
+        dry_warn = f" *** DRY x{self.dry_rollouts} ***" if self.dry_rollouts >= 5 else ""
 
-        # Check for repetitive behavior
+        # Action distribution: % of steps each action was pressed
+        n = max(self.rollout_steps, 1)
+        act_pct = self.rollout_action_sums / n * 100
+        act_str = (f"F:{act_pct[0]:.0f}% B:{act_pct[1]:.0f}% "
+                   f"L:{act_pct[2]:.0f}% R:{act_pct[3]:.0f}% "
+                   f"J:{act_pct[4]:.0f}% P:{act_pct[5]:.0f}%")
+
+        # Compact per-update line
+        gems_str = f" gems={self.rollout_gem_pts}pts" if self.rollout_gem_pts else " gems=0"
+        oob_str  = f" OOB={self.rollout_oob}" if self.rollout_oob else ""
+        self.log(
+            f"Upd {self.total_updates:4d} | "
+            f"VLoss={stats['value_loss']:.4f} | "
+            f"Ent={stats['entropy']:.3f}{collapse_warn} | "
+            f"GradN={stats['grad_norm']:.3f} | "
+            f"AvgRwd={avg_reward:.1f} | "
+            f"+rwd={pos_pct:.1f}% |"
+            f"{gems_str}{oob_str}{dry_warn}"
+        )
+        self.log(f"       Actions: {act_str}")
+
+        # Repetitive action warning
         if len(self.recent_actions) >= 10:
             action_strings = [''.join(map(str, a)) for a in self.recent_actions]
             unique_actions = len(set(action_strings))
-            self.log(f"  Action Diversity (last 10): {unique_actions}/10 unique")
             if unique_actions <= 2:
-                self.log(f"  WARNING: Highly repetitive! Recent: {action_strings[-5:]}")
+                self.log(f"  WARNING: repetitive actions! Recent: {action_strings[-5:]}")
 
-        self.log(f"{'=' * 40}\n")
+        # Reset rollout counters
+        self.rollout_gem_pts = 0
+        self.rollout_oob = 0
+        self.rollout_positive = 0
+        self.rollout_steps = 0
+        self.rollout_action_sums = np.zeros(6)
 
         # Save checkpoint periodically
         if self.total_updates % self.save_interval == 0:
@@ -590,23 +704,39 @@ class PPOServer:
             if avg_reward > self.best_avg_reward and len(self.episode_rewards) >= 10:
                 self.best_avg_reward = avg_reward
                 self.save_model('models/checkpoints/best.pth')
-                self.log(f"  ⭐ New best model! Avg reward: {avg_reward:.2f}")
+                self.log(f"  *** New best! avg_reward={avg_reward:.2f} ***")
 
-            # Print training summary every 10 updates
-            self.log(f"\n{'#' * 60}")
+            # Training summary every save_interval updates
+            elapsed_hrs = (time.time() - self.run_start_time) / 3600
+            gems_hr = self.total_gem_pts / max(elapsed_hrs, 1/3600)
+
+            entropy_trend = ""
+            if len(self.entropy_history) >= 5:
+                recent = list(self.entropy_history)
+                if recent[-1] < recent[0] - 0.5:
+                    entropy_trend = " (falling)"
+                elif recent[-1] > recent[0] + 0.5:
+                    entropy_trend = " (rising)"
+
+            self.log(f"\n{'#' * 55}")
             self.log(f"TRAINING SUMMARY - Update {self.total_updates}")
-            self.log(f"{'#' * 60}")
-            self.log(f"  Total Steps:     {self.total_steps:,}")
-            self.log(f"  Total Episodes:  {self.total_episodes}")
-            self.log(f"  Avg Reward:      {avg_reward:.2f}")
-            self.log(f"  Best Avg Reward: {self.best_avg_reward:.2f}")
+            self.log(f"{'#' * 55}")
+            self.log(f"  Steps: {self.total_steps:,} | Episodes: {self.total_episodes} | Time: {elapsed_hrs:.2f}h")
+            self.log(f"  Gems: {self.total_gem_pts}pts total | {gems_hr:.1f} pts/hr | OOB lifetime: {self.total_oob}")
+            self.log(f"  AvgRwd: {avg_reward:.2f} | Best: {self.best_avg_reward:.2f}")
+            self.log(f"  Entropy: {stats['entropy']:.4f}{entropy_trend}{collapse_warn}")
+            self.log(f"  GradNorm: {stats['grad_norm']:.4f} | VLoss: {stats['value_loss']:.6f} | PLoss: {stats['policy_loss']:.6f}")
             if len(self.episode_rewards) >= 2:
                 recent_10 = list(self.episode_rewards)[-10:]
-                self.log(f"  Last 10 Episode Rewards: {[f'{r:.1f}' for r in recent_10]}")
-            self.log(f"  Entropy:         {stats['entropy']:.4f}")
-            self.log(f"  Policy Loss:     {stats['policy_loss']:.6f}")
-            self.log(f"  Value Loss:      {stats['value_loss']:.6f}")
-            self.log(f"{'#' * 60}\n")
+                self.log(f"  Last 10 rewards: {[f'{r:.0f}' for r in recent_10]}")
+            if self.recent_episode_gems:
+                gem_list = list(self.recent_episode_gems)
+                recent_gems_total = sum(gem_list)
+                nonzero = sum(1 for g in gem_list if g > 0)
+                self.log(f"  Last {len(gem_list)} eps gems: {recent_gems_total}pts total | {nonzero}/{len(gem_list)} eps had gems")
+            if self.dry_rollouts >= 5:
+                self.log(f"  *** {self.dry_rollouts} consecutive dry rollouts — policy may be stuck ***")
+            self.log(f"{'#' * 55}\n")
 
         # Log to file
         self.log_stats(stats, avg_reward)
@@ -623,6 +753,7 @@ class PPOServer:
             'total_updates': self.total_updates,
             'total_episodes': self.total_episodes,
             'best_avg_reward': self.best_avg_reward,
+            'episode_rewards': list(self.episode_rewards),
         }, path)
         self.log(f"  Model saved to {path}")
 
@@ -651,7 +782,7 @@ def main():
     parser = argparse.ArgumentParser(description='PlatinumQuest PPO Training Server')
     parser.add_argument('--host', default='127.0.0.1', help='Server host')
     parser.add_argument('--port', type=int, default=8888, help='Server port')
-    parser.add_argument('--rollout-size', type=int, default=512, help='Steps per PPO update')
+    parser.add_argument('--rollout-size', type=int, default=2048, help='Steps per PPO update')
     parser.add_argument('--lr', type=float, default=3e-4, help='Learning rate')
     parser.add_argument('--batch-size', type=int, default=64, help='Mini-batch size')
     parser.add_argument('--epochs', type=int, default=4, help='PPO epochs per update')
@@ -697,7 +828,6 @@ def main():
     except KeyboardInterrupt:
         server.log("\nShutting down...")
     finally:
-        server.save_model('models/checkpoints/final.pth')
         server.socket.close()
         server.logger.close()
 

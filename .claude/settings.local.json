@@ -24,7 +24,27 @@
       "Bash(cmd /c \"bash -c \"\"uname -s\"\"\")",
       "Bash(cmd /c \"bash --version\")",
       "Bash(cmd /c:*)",
-      "Bash(powershell -NoProfile -ExecutionPolicy Bypass -Command \"\n$path = ''c:\\\\Users\\\\doug\\\\OneDrive\\\\Documents\\\\GitHub\\\\PlatinumQuest-Dev\\\\Marble Blast Platinum\\\\recompile.sh''\n$bytes = [System.IO.File]::ReadAllBytes\\($path\\)\n$text = [System.Text.Encoding]::UTF8.GetString\\($bytes\\)\n$fixed = $text.Replace\\([char]13 + [char]10, [char]10\\)\n[System.IO.File]::WriteAllBytes\\($path, [System.Text.Encoding]::UTF8.GetBytes\\($fixed\\)\\)\nWrite-Host ''Done''\n\")"
+      "Bash(powershell -NoProfile -ExecutionPolicy Bypass -Command \"\n$path = ''c:\\\\Users\\\\doug\\\\OneDrive\\\\Documents\\\\GitHub\\\\PlatinumQuest-Dev\\\\Marble Blast Platinum\\\\recompile.sh''\n$bytes = [System.IO.File]::ReadAllBytes\\($path\\)\n$text = [System.Text.Encoding]::UTF8.GetString\\($bytes\\)\n$fixed = $text.Replace\\([char]13 + [char]10, [char]10\\)\n[System.IO.File]::WriteAllBytes\\($path, [System.Text.Encoding]::UTF8.GetBytes\\($fixed\\)\\)\nWrite-Host ''Done''\n\")",
+      "Bash(sort:*)",
+      "Bash(powershell -Command:*)",
+      "Bash(powershell -NoProfile -Command:*)",
+      "Bash(powershell -ExecutionPolicy Bypass -File:*)",
+      "Bash(powershell.exe -Command \"Get-Content ''C:/Users/doug/OneDrive/Documents/GitHub/PlatinumQuest-Dev/ml_agent/logs/training_20260218_161258.log'' | Select-Object -First 100\")",
+      "Bash(powershell.exe -Command \"Get-Content ''C:/Users/doug/OneDrive/Documents/GitHub/PlatinumQuest-Dev/ml_agent/logs/training_20260218_161258.log'' | Select-Object -Last 100\")",
+      "Bash(powershell.exe -Command \"\\(Get-Content ''C:/Users/doug/OneDrive/Documents/GitHub/PlatinumQuest-Dev/ml_agent/logs/training_20260218_161258.log''\\).Count\")",
+      "Bash(powershell.exe -Command:*)",
+      "Bash(/tmp/analyze_log.ps1:*)",
+      "Bash(cmd.exe /c \"echo ^$lines = Get-Content ''C:/Users/doug/OneDrive/Documents/GitHub/PlatinumQuest-Dev/ml_agent/logs/training_20260218_161258.log'' > C:\\\\Windows\\\\Temp\\\\alog.ps1\")",
+      "Bash(cmd.exe /c \"echo ^$oob = \\(^$lines ^| Select-String ''OOB PENALTY''\\).Count >> C:\\\\Windows\\\\Temp\\\\alog.ps1\")",
+      "Bash(cmd.exe /c \"echo Write-Host \\(''Total OOB penalties: '' + ^$oob\\) >> C:\\\\Windows\\\\Temp\\\\alog.ps1\")",
+      "Bash(cmd.exe /c \"echo ^$ep = \\(^$lines ^| Select-String ''Episode.*Complete''\\).Count >> C:\\\\Windows\\\\Temp\\\\alog.ps1\")",
+      "Bash(cmd.exe /c \"echo Write-Host \\(''Total episodes: '' + ^$ep\\) >> C:\\\\Windows\\\\Temp\\\\alog.ps1\")",
+      "Bash(cmd.exe /c \"echo ^$suc = \\(^$lines ^| Select-String ''SUCCESS''\\).Count >> C:\\\\Windows\\\\Temp\\\\alog.ps1\")",
+      "Bash(cmd.exe /c \"echo Write-Host \\(''SUCCESS: '' + ^$suc\\) >> C:\\\\Windows\\\\Temp\\\\alog.ps1\")",
+      "Bash(cmd.exe /c \"echo ^$fail = \\(^$lines ^| Select-String ''[FAIL]''\\).Count >> C:\\\\Windows\\\\Temp\\\\alog.ps1\")",
+      "Bash(cmd.exe /c \"echo Write-Host \\(''FAIL: '' + ^$fail\\) >> C:\\\\Windows\\\\Temp\\\\alog.ps1\")",
+      "Bash(cmd.exe /c \"echo ^$neu = \\(^$lines ^| Select-String ''[NEUTRAL]''\\).Count >> C:\\\\Windows\\\\Temp\\\\alog.ps1\")",
+      "Bash(cmd.exe /c \"echo Write-Host \\(''NEUTRAL: '' + ^$neu\\) >> C:\\\\Windows\\\\Temp\\\\alog.ps1\")"
     ]
   }
 }
