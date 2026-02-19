@@ -3,10 +3,13 @@
 //
 // Collects all relevant game state for ML model training and inference.
 // Returns 61-dimensional observation vector:
-//   - Self state: 13 dims (pos, vel, camera, radius, powerup state)
-//   - Gems (5 nearest slots): 25 dims (5 per gem: x, y, z, value, distance)
-//   - Opponents (3 slots): 18 dims (6 per opponent: x, y, z, vel_x, vel_y, is_mega)
+//   - Self state: 13 dims (pos[world], vel[camera-relative], camera, radius, powerup state)
+//   - Gems (5 nearest slots): 25 dims (5 per gem: x, y, z [camera-relative], value, distance)
+//   - Opponents (3 slots): 18 dims (6 per opponent: x, y, z, vel_x, vel_y [camera-relative], is_mega)
 //   - Game state: 5 dims
+//
+// Gem/opponent/velocity observations are rotated into camera space so that
+// x = camera-right, y = camera-forward. This aligns with F/B/L/R actions.
 //
 // Usage:
 //   %obs = AIObserver::collectState();
@@ -53,21 +56,28 @@ function AIObserver::collectState() {
 //-----------------------------------------------------------------------------
 
 function AIObserver::collectSelfState(%obs) {
-    // Position (3)
+    // Position (3) — kept in world space (needed for OOB credit assignment)
     %pos = $MP::MyMarble.getPosition();
     %obs.selfPosX = getWord(%pos, 0) + 0;  // +0 converts empty string to 0
     %obs.selfPosY = getWord(%pos, 1) + 0;
     %obs.selfPosZ = getWord(%pos, 2) + 0;
 
-    // Velocity (3)
-    %vel = $MP::MyMarble.getVelocity();
-    %obs.selfVelX = getWord(%vel, 0) + 0;
-    %obs.selfVelY = getWord(%vel, 1) + 0;
-    %obs.selfVelZ = getWord(%vel, 2) + 0;
-
-    // Camera angles (2) - use globals if functions don't exist
+    // Camera angles (2)
     %obs.cameraYaw = ($cameraYaw $= "") ? 0 : $cameraYaw;
     %obs.cameraPitch = ($cameraPitch $= "") ? 0 : $cameraPitch;
+
+    // Velocity (3) — rotated into camera space so velX = rightward, velY = forward.
+    // This aligns velocity with the F/B/L/R action axes.
+    %vel = $MP::MyMarble.getVelocity();
+    %worldVelX = getWord(%vel, 0) + 0;
+    %worldVelY = getWord(%vel, 1) + 0;
+    // $cameraYaw is already in radians (wraps at ±pi), no degree conversion needed
+    %yawRad = %obs.cameraYaw;
+    %cosYaw = mCos(%yawRad);
+    %sinYaw = mSin(%yawRad);
+    %obs.selfVelX = %worldVelX * %cosYaw + %worldVelY * %sinYaw;
+    %obs.selfVelY = -%worldVelX * %sinYaw + %worldVelY * %cosYaw;
+    %obs.selfVelZ = getWord(%vel, 2) + 0;
 
     // Collision radius (1) - just get X component of scale vector
     %scale = $MP::MyMarble.getScale();
@@ -95,6 +105,15 @@ function AIObserver::collectGems(%obs) {
     %myPosX = getWord(%myPos, 0);
     %myPosY = getWord(%myPos, 1);
     %myPosZ = getWord(%myPos, 2);
+
+    // Camera yaw for rotating world-relative vectors into camera space.
+    // This ensures gem relX/relY align with the L/R and F/B action axes.
+    // Without this, "gem is at +X" might mean "press forward" or "press left"
+    // depending on where the camera happens to be pointing.
+    // $cameraYaw is already in radians (wraps at ±pi), no degree conversion needed.
+    %yawRad = ($cameraYaw $= "") ? 0 : $cameraYaw;
+    %cosYaw = mCos(%yawRad);
+    %sinYaw = mSin(%yawRad);
 
     // Collect all gems from ItemArray
     %gemCount = 0;
@@ -152,20 +171,25 @@ function AIObserver::collectGems(%obs) {
                     %gemY = getWord(%pos, 1);
                     %gemZ = getWord(%pos, 2);
 
-                    // Relative position
+                    // Relative position (world space)
                     %relX = %gemX - %myPosX;
                     %relY = %gemY - %myPosY;
                     %relZ = %gemZ - %myPosZ;
 
-                    // Distance
+                    // Rotate into camera space so relX = camera-right, relY = camera-forward.
+                    // This aligns gem directions with the F/B/L/R action axes.
+                    %camRelX = %relX * %cosYaw + %relY * %sinYaw;
+                    %camRelY = -%relX * %sinYaw + %relY * %cosYaw;
+
+                    // Distance (same in both frames)
                     %dist = mSqrt(%relX * %relX + %relY * %relY + %relZ * %relZ);
 
                     // Gem value
                     %value = AIObserver::getGemValue(%obj);
 
-                    // Store gem data directly in observation
-                    %obs.gemTemp[%gemCount, "x"] = %relX;
-                    %obs.gemTemp[%gemCount, "y"] = %relY;
+                    // Store gem data in camera-relative coordinates
+                    %obs.gemTemp[%gemCount, "x"] = %camRelX;
+                    %obs.gemTemp[%gemCount, "y"] = %camRelY;
                     %obs.gemTemp[%gemCount, "z"] = %relZ;
                     %obs.gemTemp[%gemCount, "value"] = %value;
                     %obs.gemTemp[%gemCount, "distance"] = %dist;
@@ -220,6 +244,12 @@ function AIObserver::collectOpponents(%obs) {
     %myPosY = getWord(%myPos, 1);
     %myPosZ = getWord(%myPos, 2);
 
+    // Camera yaw for world-to-camera rotation (same as in collectGems)
+    // $cameraYaw is already in radians
+    %yawRad = ($cameraYaw $= "") ? 0 : $cameraYaw;
+    %cosYaw = mCos(%yawRad);
+    %sinYaw = mSin(%yawRad);
+
     %oppCount = 0;
 
     if (isObject(PlayerListGuiList)) {
@@ -241,26 +271,34 @@ function AIObserver::collectOpponents(%obs) {
             %oppPosY = getWord(%oppPos, 1);
             %oppPosZ = getWord(%oppPos, 2);
 
-            // Relative position
+            // Relative position (world space)
             %relX = %oppPosX - %myPosX;
             %relY = %oppPosY - %myPosY;
             %relZ = %oppPosZ - %myPosZ;
 
-            // Relative velocity (planar only)
+            // Rotate into camera space
+            %camRelX = %relX * %cosYaw + %relY * %sinYaw;
+            %camRelY = -%relX * %sinYaw + %relY * %cosYaw;
+
+            // Relative velocity (world space, planar only)
             %oppVel = %player.getVelocity();
             %myVel = $MP::MyMarble.getVelocity();
             %velX = getWord(%oppVel, 0) - getWord(%myVel, 0);
             %velY = getWord(%oppVel, 1) - getWord(%myVel, 1);
 
+            // Rotate velocity into camera space too
+            %camVelX = %velX * %cosYaw + %velY * %sinYaw;
+            %camVelY = -%velX * %sinYaw + %velY * %cosYaw;
+
             // Mega marble status
             %isMega = %player.isMegaMarble() ? 1 : 0;
 
-            // Store opponent data
-            %obs.opp[%oppCount, "x"] = %relX;
-            %obs.opp[%oppCount, "y"] = %relY;
+            // Store opponent data in camera-relative coordinates
+            %obs.opp[%oppCount, "x"] = %camRelX;
+            %obs.opp[%oppCount, "y"] = %camRelY;
             %obs.opp[%oppCount, "z"] = %relZ;
-            %obs.opp[%oppCount, "velX"] = %velX;
-            %obs.opp[%oppCount, "velY"] = %velY;
+            %obs.opp[%oppCount, "velX"] = %camVelX;
+            %obs.opp[%oppCount, "velY"] = %camVelY;
             %obs.opp[%oppCount, "isMega"] = %isMega;
 
             %oppCount++;

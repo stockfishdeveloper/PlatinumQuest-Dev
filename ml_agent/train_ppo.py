@@ -11,7 +11,7 @@ Protocol (game -> server):
     Example: "[1.0,2.0,3.0,...,286 floats]|0.5|0"
 
 Protocol (server -> game):
-    "0,1,0,1,0,0\n"  (6 comma-separated binary actions)
+    "0,1,0,1\n"  (4 comma-separated binary actions: F,B,L,R)
 
 Usage:
     python train_ppo.py
@@ -60,7 +60,7 @@ class DualLogger:
 class ActorCritic(nn.Module):
     """Policy and value network for PPO."""
 
-    def __init__(self, obs_dim=61, action_dim=6):
+    def __init__(self, obs_dim=61, action_dim=4):  # 4 actions: F,B,L,R (jump+powerup removed)
         super().__init__()
 
         # Shared feature extractor
@@ -222,8 +222,8 @@ class RolloutBuffer:
 class PPOTrainer:
     """Proximal Policy Optimization trainer."""
 
-    def __init__(self, model, lr=1e-4, clip_epsilon=0.2, value_coef=0.5,
-                 entropy_coef=0.03, max_grad_norm=0.5):
+    def __init__(self, model, lr=3e-4, clip_epsilon=0.2, value_coef=0.5,
+                 entropy_coef=0.01, max_grad_norm=1.0):
         self.model = model
         self.optimizer = optim.Adam(model.parameters(), lr=lr)
         self.clip_epsilon = clip_epsilon
@@ -308,24 +308,27 @@ class PPOServer:
         self.log = self.logger.print  # Shortcut
 
         # Model and trainer
-        self.model = ActorCritic(obs_dim=61, action_dim=6)
+        self.model = ActorCritic(obs_dim=61, action_dim=4)  # 4 actions: F,B,L,R (jump+powerup removed)
         self.trainer = PPOTrainer(self.model)
         self.buffer = RolloutBuffer()
 
         # Training config
-        self.rollout_size = 2048  # Steps before each PPO update — large enough to usually contain a full episode
+        # Rollout must cover at least one full episode for PPO to learn meaningful
+        # associations.  At 3x game speed + 16ms ticks, a 5-min Hunt round ≈ 6,250 steps.
+        # 8192 guarantees a full episode plus partial next one in every rollout,
+        # so each PPO update sees complete gem-collection and OOB consequences.
+        # Previous 2048 covered only ~1/3 of an episode → most updates never saw a gem.
+        self.rollout_size = 8192
         self.n_epochs = 4
-        self.batch_size = 64
+        self.batch_size = 64  # Smaller batches = more gradient variance = stronger learning signal
         self.gamma = 0.99
         self.lam = 0.95
         self.save_interval = 10  # Save every N updates
 
-        # Reward scaling: divide rewards by this before storing in buffer.
-        # Gem collection = +100 raw → +1.0 scaled. OOB = -100 → -1.0 scaled.
-        # This keeps critic targets in a small range, preventing the
-        # critic from diverging and flooding the shared network with
-        # enormous gradients that collapse the actor.
-        self.reward_scale = 0.01
+        # Mild reward scaling: 0.01 crushed all signal (VLoss=0.0001, GradNorm=0.06),
+        # 1.0 caused wild VLoss spikes (163.6) and gradient clipping threw away 99%
+        # of gradient info. 0.1 is the sweet spot: gem=+20, OOB=-10, shaping=±0.05/step.
+        self.reward_scale = 0.1
 
         # Statistics (initialize before loading checkpoint)
         self.total_steps = 0
@@ -339,7 +342,14 @@ class PPOServer:
         if model_path and os.path.exists(model_path):
             self.log(f"Loading model from {model_path}")
             checkpoint = torch.load(model_path, weights_only=False)
-            self.model.load_state_dict(checkpoint['model_state_dict'])
+            # Handle action_dim mismatch (e.g. old checkpoint had 6 actions, now 5)
+            saved_state = checkpoint['model_state_dict']
+            current_state = self.model.state_dict()
+            for key in list(saved_state.keys()):
+                if key in current_state and saved_state[key].shape != current_state[key].shape:
+                    self.log(f"  Shape mismatch for {key}: checkpoint={saved_state[key].shape} vs model={current_state[key].shape} — skipping (will reinit)")
+                    del saved_state[key]
+            self.model.load_state_dict(saved_state, strict=False)
             # Don't restore optimizer state — its momentum/variance was built at the
             # old value scale and causes bad updates on resume.
 
@@ -379,7 +389,7 @@ class PPOServer:
         self.rollout_oob = 0       # OOB events this rollout
         self.rollout_positive = 0  # steps with positive reward this rollout
         self.rollout_steps = 0     # total steps this rollout
-        self.rollout_action_sums = np.zeros(6)  # cumulative action activations this rollout
+        self.rollout_action_sums = np.zeros(4)  # cumulative action activations this rollout (F,B,L,R)
 
         # Lifetime counters
         self.total_gem_pts = 0     # gem points across entire run
@@ -489,9 +499,14 @@ class PPOServer:
 
         # Self state (indices 0-12)
         obs[0:3]  /= 100.0   # Position (world units → ~[-1,1] for typical maps)
-        obs[3:6]  /= 20.0    # Velocity (max ~20 units/sec)
-        obs[6]    /= 360.0   # Camera yaw  (0-360 → 0-1)
-        obs[7]    /= 90.0    # Camera pitch (-90..90 → -1..1)
+        obs[3:6]  /= 20.0    # Velocity (camera-relative: x=right, y=forward, z=up)
+        # Wrap yaw to ±pi before normalizing (engine may return 0-2pi when AI doesn't move camera)
+        while obs[6] > 3.14159:
+            obs[6] -= 6.28318
+        while obs[6] < -3.14159:
+            obs[6] += 6.28318
+        obs[6]    /= 3.14159 # Camera yaw  (radians, ±pi → ±1)
+        obs[7]    /= 1.5708  # Camera pitch (radians, ±pi/2 → ±1)
         # obs[8]: collision radius (~0.2), already small
         # obs[9]: powerup id (-1..5), already small
         # obs[10]: megaMarbleActive (0/1)
@@ -502,7 +517,7 @@ class PPOServer:
         gem_base = 13
         for i in range(5):
             b = gem_base + i * 5
-            obs[b:b+3] /= 100.0   # Relative x, y, z positions
+            obs[b:b+3] /= 100.0   # Camera-relative x(right), y(forward), z(up)
             obs[b+3]   /= 5.0     # Gem value (1-5 → 0.2-1.0)
             obs[b+4]   /= 100.0   # Distance (0-100+ → 0-1+)
 
@@ -535,7 +550,7 @@ class PPOServer:
             if len(parts) != 4:
                 if self.total_steps < 3:
                     self.log(f"Malformed message (expected 4 parts, got {len(parts)}): {message[:100]}")
-                return [0, 0, 0, 0, 0, 0]
+                return [0, 0, 0, 0]
 
             obs_json, reward_str, done_str, gem_delta_str = parts
 
@@ -552,6 +567,21 @@ class PPOServer:
                 self.log(f"First obs raw min={raw.min():.1f} max={raw.max():.1f} mean={raw.mean():.1f}")
                 self.log(f"First reward: {reward}")
                 self.log(f"First done: {done}")
+                # [DIAG-CAM] Verify camera yaw is in radians (should be ±pi range, NOT ±360)
+                cam_yaw = raw[6] if len(raw) > 6 else -999
+                cam_pitch = raw[7] if len(raw) > 7 else -999
+                self.log(f"  [DIAG-CAM] Initial cameraYaw={cam_yaw:.4f} cameraPitch={cam_pitch:.4f} (expect radians: yaw in ±3.14, pitch in ±1.57)")
+
+            # [DIAG] Log gem distance + camera yaw from raw obs every 500 steps
+            # Gem slot 0 distance is at index 17 (13 + 0*5 + 4)
+            if self.total_steps % 500 == 0:
+                raw_obs = np.array(obs, dtype=np.float32)
+                gem0_dist = raw_obs[17] if len(raw_obs) > 17 else -1
+                gem0_x = raw_obs[13] if len(raw_obs) > 13 else -1
+                gem0_y = raw_obs[14] if len(raw_obs) > 14 else -1
+                gem0_z = raw_obs[15] if len(raw_obs) > 15 else -1
+                cam_yaw = raw_obs[6] if len(raw_obs) > 6 else -999
+                self.log(f"  [DIAG-GEM] step={self.total_steps} gem0_dist={gem0_dist:.1f} gem0_rel=({gem0_x:.1f},{gem0_y:.1f},{gem0_z:.1f}) camYaw={cam_yaw:.2f}rad reward={reward:.2f}")
 
             # Normalize observation before passing to network.
             # Raw obs contains -999 sentinels (empty gem/opponent slots) and
@@ -582,7 +612,10 @@ class PPOServer:
                 self.episode_oob += 1
                 self.rollout_oob += 1
                 self.total_oob += 1
+                # Log raw obs position to verify OOB credit assignment (should show edge pos, not spawn)
+                raw_obs = np.array(obs, dtype=np.float32)
                 self.log(f"[OOB] ep={self.total_episodes+1} step={self.total_steps} | penalty={reward:.1f} | ep_so_far={self.current_episode_reward:.1f}")
+                self.log(f"  [DIAG-OOB] obs_pos=({raw_obs[0]:.1f}, {raw_obs[1]:.1f}, {raw_obs[2]:.1f}) | obs_vel=({raw_obs[3]:.1f}, {raw_obs[4]:.1f}, {raw_obs[5]:.1f})")
             if reward > 0.1:
                 self.rollout_positive += 1
             self.rollout_steps += 1
@@ -622,7 +655,7 @@ class PPOServer:
                 self.log(f"Message (first 200 chars): {message[:200]}")
                 import traceback
                 traceback.print_exc()
-            return [0, 0, 0, 0, 0, 0]
+            return [0, 0, 0, 0]
 
     def run_ppo_update(self):
         """Run PPO training update."""
@@ -648,6 +681,19 @@ class PPOServer:
         elif stats['entropy'] < 2.0:
             collapse_warn = " (entropy low)"
 
+        # Reward distribution for this rollout
+        rollout_rewards = self.buffer.rewards[-self.rollout_steps:] if self.rollout_steps > 0 else []
+        if rollout_rewards:
+            rr = np.array(rollout_rewards)
+            rr_unscaled = rr / self.reward_scale  # undo scaling to show raw values
+            # Time penalty is -0.02/step; anything above 0 has positive shaping
+            above_baseline = rr_unscaled > 0.0    # shaping overcame time penalty
+            below_baseline = rr_unscaled < -0.05  # shaping made reward worse than baseline
+            big_pos = rr_unscaled > 1.0   # gem or large shaping
+            big_neg = rr_unscaled < -1.0  # OOB
+            self.log(f"  [DIAG-RWD] rollout: min={rr_unscaled.min():.1f} max={rr_unscaled.max():.2f} mean={rr_unscaled.mean():.3f} | "
+                     f"above_baseline={above_baseline.sum()} below_baseline={below_baseline.sum()} big_pos={big_pos.sum()} big_neg={big_neg.sum()}")
+
         # Dry-rollout tracking
         if self.rollout_gem_pts == 0:
             self.dry_rollouts += 1
@@ -660,14 +706,14 @@ class PPOServer:
         n = max(self.rollout_steps, 1)
         act_pct = self.rollout_action_sums / n * 100
         act_str = (f"F:{act_pct[0]:.0f}% B:{act_pct[1]:.0f}% "
-                   f"L:{act_pct[2]:.0f}% R:{act_pct[3]:.0f}% "
-                   f"J:{act_pct[4]:.0f}% P:{act_pct[5]:.0f}%")
+                   f"L:{act_pct[2]:.0f}% R:{act_pct[3]:.0f}%")
 
         # Compact per-update line
         gems_str = f" gems={self.rollout_gem_pts}pts" if self.rollout_gem_pts else " gems=0"
         oob_str  = f" OOB={self.rollout_oob}" if self.rollout_oob else ""
         self.log(
             f"Upd {self.total_updates:4d} | "
+            f"PLoss={stats['policy_loss']:.4f} | "
             f"VLoss={stats['value_loss']:.4f} | "
             f"Ent={stats['entropy']:.3f}{collapse_warn} | "
             f"GradN={stats['grad_norm']:.3f} | "
@@ -689,7 +735,7 @@ class PPOServer:
         self.rollout_oob = 0
         self.rollout_positive = 0
         self.rollout_steps = 0
-        self.rollout_action_sums = np.zeros(6)
+        self.rollout_action_sums = np.zeros(4)
 
         # Save checkpoint periodically
         if self.total_updates % self.save_interval == 0:
@@ -778,7 +824,7 @@ def main():
     parser = argparse.ArgumentParser(description='PlatinumQuest PPO Training Server')
     parser.add_argument('--host', default='127.0.0.1', help='Server host')
     parser.add_argument('--port', type=int, default=8888, help='Server port')
-    parser.add_argument('--rollout-size', type=int, default=2048, help='Steps per PPO update')
+    parser.add_argument('--rollout-size', type=int, default=8192, help='Steps per PPO update')
     parser.add_argument('--lr', type=float, default=3e-4, help='Learning rate')
     parser.add_argument('--batch-size', type=int, default=64, help='Mini-batch size')
     parser.add_argument('--epochs', type=int, default=4, help='PPO epochs per update')

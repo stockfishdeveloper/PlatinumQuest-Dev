@@ -49,7 +49,7 @@ function MLAgent::startLoop() {
     // Initialize reward tracking
     $MLAgent::LastGemScore = PlayGui.gemCount;
     $MLAgent::LastNearestGemDist = 999;
-    $MLAgent::SkipPotentialStep = true;  // Suppress the sentinel spike on first step
+    $MLAgent::SkipPotentialSteps = 1;  // Suppress the sentinel spike on first step
     $MLAgent::EpisodeReward = 0;
     $MLAgent::WasOOB = false;
     $MLAgent::EpisodeShouldEnd = false;
@@ -106,10 +106,15 @@ function MLAgent::update() {
     // edge position so the network associates the -100 penalty with the edge,
     // not the spawn point it just respawned to.
     if ($MLAgent::WasOOB && $MLAgent::OOBPosX !$= "") {
+        echo("MLAgent: [DIAG-OOB] Credit assignment FIRING at step=" @ $MLAgent::StepCount
+            @ " | edge_pos=" @ $MLAgent::OOBPosX SPC $MLAgent::OOBPosY SPC $MLAgent::OOBPosZ
+            @ " | spawn_pos=" @ %obs.selfPosX SPC %obs.selfPosY SPC %obs.selfPosZ);
         %obs.selfPosX = $MLAgent::OOBPosX;
         %obs.selfPosY = $MLAgent::OOBPosY;
         %obs.selfPosZ = $MLAgent::OOBPosZ;
         $MLAgent::OOBPosX = "";
+    } else if ($MLAgent::WasOOB && $MLAgent::OOBPosX $= "") {
+        echo("MLAgent: [DIAG-OOB] WARNING: WasOOB=true but OOBPosX is EMPTY — credit assignment MISSED!");
     }
 
     // 2. Compute reward for this step
@@ -161,41 +166,64 @@ function MLAgent::update() {
 function MLAgent::computeReward(%obs) {
     %reward = 0;
 
-    // 1. Gem collection reward: +100 per point scored (DOMINANT SIGNAL)
+    // 1. Gem collection reward: +200 per point scored
+    //    After 0.01 reward_scale: 1pt gem = +2.0, 5pt gem = +10.0 in buffer.
+    //    With time penalty at -0.02/step, 1 gem = 10,000 steps of penalty — very clear signal.
+    //    OOB is -100 raw (-1.0 scaled), so 1pt gem > 1 OOB — gems are worth pursuing even with risk.
+    //    Max episode spike: ~7 gems = +1400 raw (+14.0 scaled) — strong but manageable for critic.
+    //    History: +100 too weak vs old -0.1 penalty, +500 caused VLoss=1.44 critic blow-up.
     %currentGemScore = PlayGui.gemCount;
     %gemDelta = %currentGemScore - $MLAgent::LastGemScore;
     $MLAgent::LastGemDelta = %gemDelta;  // Expose for protocol message
     if (%gemDelta > 0) {
-        %reward += %gemDelta * 100;
-        echo("MLAgent: Gem collected! +" @ (%gemDelta * 100) @ " reward");
-        // Suppress the potential-shaping spike that would fire on the next step
-        // after a gem is collected (distance jumps from ~0 back to the next gem).
-        $MLAgent::SkipPotentialStep = true;
+        %reward += %gemDelta * 200;
+        echo("MLAgent: Gem collected! +" @ (%gemDelta * 200) @ " reward");
+        // Suppress potential-shaping for 20 steps (~1 sec) after gem collection.
+        // Without this grace period, the nearest gem jumps from ~0 to far away,
+        // and every step produces NEGATIVE shaping as the marble drifts without
+        // direction. This teaches the agent "collect gem → everything is punishment"
+        // which incentivizes going OOB to reset position instead of seeking the next gem.
+        $MLAgent::SkipPotentialSteps = 20;
     }
     $MLAgent::LastGemScore = %currentGemScore;
 
     // 2. Distance-based potential shaping: smooth reward gradient toward gem
     // Formula: reward = P(new_dist) - P(old_dist)
-    // Potential function: P(d) = 20 / (1 + d/50)
-    //   - Scale of 20 (was 100) limits the max per-step shaping to ~4 units,
-    //     preventing the marble from being violently yanked toward gems at the
-    //     expense of falling off the map.
-    //   - At distance 0: P = 20, at d=50: P = 10, at d=100: P = 6.7
+    // Potential function: P(d) = 200 / (1 + d/50)
+    //   - Scale must be large enough to produce clear per-step signal after 0.01 reward_scale.
+    //   - At typical distances (5-30 units), moving 0.3 units/tick → shaping ~0.4-2.0/step.
+    //   - After 0.01 scale: 0.004-0.02 in buffer — small but consistent directional gradient.
+    //   - History: scale=50 produced invisible signal (~0.001 scaled), agent couldn't find gems.
+    //     scale=200 was the only value that produced consistent learning signal.
+    //   - The 20-step grace period after gem collection prevents sign-flip thrashing.
     %nearestDist = %obs.gem[0, "distance"];
     if (%nearestDist > 0 && %nearestDist < 900) { // Not a sentinel value
-        if ($MLAgent::SkipPotentialStep) {
+        if ($MLAgent::SkipPotentialSteps > 0) {
             $MLAgent::LastNearestGemDist = %nearestDist;
-            $MLAgent::SkipPotentialStep = false;
+            $MLAgent::SkipPotentialSteps--;
+            // [DIAG] Log skip countdown (first and last of each grace period)
+            if ($MLAgent::SkipPotentialSteps == 19 || $MLAgent::SkipPotentialSteps == 0)
+                echo("MLAgent: [DIAG-SHAPE] SKIP potential step=" @ $MLAgent::StepCount @ " remaining=" @ $MLAgent::SkipPotentialSteps @ " dist=" @ %nearestDist);
         } else {
-            %currentPotential = 20 / (1 + %nearestDist / 50);
-            %lastPotential = 20 / (1 + $MLAgent::LastNearestGemDist / 50);
-            %reward += %currentPotential - %lastPotential;
+            %currentPotential = 200 / (1 + %nearestDist / 50);
+            %lastPotential = 200 / (1 + $MLAgent::LastNearestGemDist / 50);
+            %shapingReward = %currentPotential - %lastPotential;
+            %reward += %shapingReward;
+            // [DIAG] Log shaping reward every 200 steps and whenever it's large
+            if ($MLAgent::StepCount % 200 == 0 || %shapingReward > 1.0 || %shapingReward < -1.0)
+                echo("MLAgent: [DIAG-SHAPE] step=" @ $MLAgent::StepCount @ " dist=" @ mFloor(%nearestDist) @ " lastDist=" @ mFloor($MLAgent::LastNearestGemDist) @ " shaping=" @ %shapingReward);
             $MLAgent::LastNearestGemDist = %nearestDist;
         }
+    } else {
+        // [DIAG] Log when gem distance is invalid/sentinel
+        if ($MLAgent::StepCount % 200 == 0)
+            echo("MLAgent: [DIAG-SHAPE] NO VALID GEM dist=" @ %nearestDist @ " step=" @ $MLAgent::StepCount);
     }
 
-    // 3. Time penalty: -0.1 per step (encourages speed)
-    %reward -= 0.1;
+    // 3. Time penalty: -0.02 per step (encourages speed but doesn't dominate)
+    //    Over a full 7000-step episode: -140 total (prev -0.1 gave -700, overwhelming gems).
+    //    With gem reward at +500/pt, a single 1pt gem now clearly outweighs ~2500 steps of time penalty.
+    %reward -= 0.02;
 
     // 4. OOB penalty: -100 for going out of bounds.
     // Episode does NOT end on OOB — marble respawns and the Hunt round continues.
@@ -217,8 +245,11 @@ function MLAgent::checkDone() {
     // Episode ends when:
 
     // 1. Time runs out (Hunt mode: currentTime counts UP from 0)
+    //    Minimum 100 steps (~1.6s real time) prevents micro-episodes at round
+    //    boundaries where the timer is expired during scoreboard/restart.
+    //    These "NEUTRAL rwd=-2.2" episodes waste ~50% of training signal.
     if (isObject(MissionInfo) && MissionInfo.time > 0) {
-        if (PlayGui.currentTime >= MissionInfo.time && $MLAgent::StepCount > 20) {
+        if (PlayGui.currentTime >= MissionInfo.time && $MLAgent::StepCount > 100) {
             return 1;
         }
     }
@@ -253,7 +284,7 @@ function MLAgent::resetEpisode() {
     $MLAgent::LastGemScore = PlayGui.gemCount;
     $MLAgent::LastGemDelta = 0;
     $MLAgent::LastNearestGemDist = 999;
-    $MLAgent::SkipPotentialStep = true;  // Suppress sentinel spike on first step
+    $MLAgent::SkipPotentialSteps = 1;  // Suppress sentinel spike on first step
     $MLAgent::EpisodeReward = 0;
     $MLAgent::WasOOB = false;
 }
@@ -263,16 +294,19 @@ function MLAgent::resetEpisode() {
 //------------------------------------------------------------------------------
 
 function MLAgent::executeAction(%actionStr) {
-    // Parse comma-separated action: "0,1,0,1,0,0" (forward,backward,left,right,jump,powerup)
+    // Parse comma-separated action: "0,1,0,1" (forward,backward,left,right)
+    // NOTE: Jump and Powerup actions removed — flat training map, no powerups.
+    // To restore jump: add %jump as 5th element, change action_dim to 5 in train_ppo.py
+    // To restore powerup: add %powerup as 6th element, change action_dim to 6 in train_ppo.py
     %forward = getWord(strreplace(%actionStr, ",", " "), 0);
     %backward = getWord(strreplace(%actionStr, ",", " "), 1);
     %left = getWord(strreplace(%actionStr, ",", " "), 2);
     %right = getWord(strreplace(%actionStr, ",", " "), 3);
-    %jump = getWord(strreplace(%actionStr, ",", " "), 4);
-    %powerup = getWord(strreplace(%actionStr, ",", " "), 5);
+    // %jump = getWord(strreplace(%actionStr, ",", " "), 4);     // DISABLED: flat map, no jumping needed
+    // %powerup = getWord(strreplace(%actionStr, ",", " "), 5);  // DISABLED: no powerups on map
 
-    // Execute via existing AI agent system
-    AIAgent::setBinaryActions(%forward, %backward, %left, %right, %jump, %powerup);
+    // Execute via existing AI agent system (jump and powerup always 0)
+    AIAgent::setBinaryActions(%forward, %backward, %left, %right, 0, 0);
 }
 
 //------------------------------------------------------------------------------
@@ -291,11 +325,14 @@ function MLAgent::onOOB() {
             $MLAgent::OOBPosX = getWord(%pos, 0);
             $MLAgent::OOBPosY = getWord(%pos, 1);
             $MLAgent::OOBPosZ = getWord(%pos, 2);
+            echo("MLAgent: [DIAG-OOB] Saved edge position=" @ %pos @ " at step=" @ $MLAgent::StepCount);
+        } else {
+            echo("MLAgent: [DIAG-OOB] WARNING: No marble in onOOB — cannot save edge position!");
         }
 
         $MLAgent::WasOOB = true;
         $MLAgent::LastNearestGemDist = 999;
-        $MLAgent::SkipPotentialStep = true;
+        $MLAgent::SkipPotentialSteps = 1;  // Just suppress the sentinel spike
 
         // Delay respawn by 2 update intervals so the next update() fires
         // while the marble is still at the edge position.
