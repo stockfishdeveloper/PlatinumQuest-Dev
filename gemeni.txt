@@ -1,0 +1,93 @@
+ Gemini said
+
+It is incredibly frustrating when an RL agent refuses to learn, especially after setting up the entire bridge, observation extractors, and reward shaping. The good news is that your infrastructure works—the agent is occasionally stumbling into massive rewards (like the +1039 spike in Episode 31), which proves the environment loop and reward scaling are functioning.
+
+However, looking closely at your traininglog.txt and code, your agent is suffering from a few critical bottlenecks that are effectively blinding it and confusing its gradient updates. This is why the Entropy stays pinned at ~2.75 (meaning the agent is acting almost entirely randomly) and never converges on a strategy.
+
+Here is a breakdown of the core issues preventing your model from improving, and exactly how to fix them.
+1. The Observation Padding Bug (CRITICAL)
+
+This is the main reason your agent is struggling. In observer.cs, when there are fewer than 5 gems, you pad the empty array slots with -999.
+
+However, look at your normalization logic in train_ppo.py:
+Python
+
+# Replace -999 sentinels (absent gems/opponents) with 0 before scaling.
+obs = np.where(obs < -500, 0.0, obs)
+
+By converting missing gems to 0.0, you are telling the neural network that the empty gem is at a relative distance of 0, exactly on top of the marble. The network sees "there is a gem right here," stays still or turns randomly to collect it, gets no reward, and its gradients get completely scrambled.
+
+The Fix:
+Change how you handle sentinels in train_ppo.py. Missing entities should appear infinitely far away, not at the origin.
+Python
+
+# In train_ppo.py -> normalize_obs()
+# Instead of replacing with 0.0, replace with a large distance/coordinate
+obs = np.where(obs < -500, 10.0, obs) # 10.0 is way outside the [-1, 1] normalized range
+
+Even better, add a boolean "exists" flag (1 or 0) for each gem and opponent in observer.cs so the network explicitly knows to ignore that data slot.
+2. Action Space Inefficiency
+
+In train_ppo.py, your actor network outputs 4 independent Bernoulli distributions for [Forward, Backward, Left, Right].
+
+    24=16 possible combinations.
+
+    Pressing Forward and Backward at the same time is physically contradictory and wastes exploration time.
+
+The Fix:
+Flatten the action space into a single Categorical distribution with 9 mutually exclusive discrete actions. This reduces the search space drastically and guarantees the agent never inputs contradictory movement.
+
+    0: Idle
+
+    1: Forward
+
+    2: Backward
+
+    3: Left
+
+    4: Right
+
+    5: Forward + Left
+
+    6: Forward + Right
+
+    7: Backward + Left
+
+    8: Backward + Right
+
+You would change your Actor head to nn.Linear(64, 9) and use torch.distributions.Categorical(logits=action_logits).
+3. Absolute vs. Relative Coordinates
+
+In observer.cs, you are brilliantly calculating camRelX and camRelY for gems and opponents so the agent knows where things are relative to the camera.
+
+However, you are also feeding the network the marble's absolute world position (selfPosX, selfPosY). Because a flat map is symmetrical, the absolute coordinate tells the agent almost nothing about how to move to a gem, but it will cause the network to overfit (e.g., "I only know how to move left if I am at world X=50").
+
+The Fix:
+If the map has no walls and OOBs are the only danger, replace absolute X/Y with Distance to Map Edge. If you must keep absolute coordinates, ensure they are normalized perfectly, but ideally, the agent should only rely on the camera-relative positions of the gems.
+4. Reward Shaping Loophole
+
+Your distance-based potential shaping in mlAgent.cs is beautifully implemented:
+%shapingReward = %currentPotential - %lastPotential;
+
+But there is a trap in Hunt mode: Gems can despawn or be picked up by opponents. If the agent is 5 units away from a gem, and that gem disappears, the "nearest gem" suddenly jumps to 50 units away. The agent gets hit with a massive negative shaping penalty for something it didn't do. It teaches the agent to fear gems disappearing.
+
+The Fix:
+Clamp negative shaping rewards if the distance delta is impossibly large for one physics tick.
+JavaScript
+
+if (%nearestDist > $MLAgent::LastNearestGemDist + 5) {
+    // The target gem changed drastically (spawning/despawning). Ignore shaping this tick.
+    %shapingReward = 0;
+}
+
+5. PPO Hyperparameters
+
+Your batch size is too small for your rollout size:
+
+    rollout_size = 8192
+
+    batch_size = 64
+    This creates 128 mini-batches per epoch. A batch size of 64 is incredibly noisy for continuous-state PPO. It's causing the massive gradient spikes you see in your logs (GradN=43.670).
+
+The Fix:
+Increase your batch_size to 256 or 512. This will smooth out the gradient updates, stop the GradNorm from exploding, and allow the policy to stabilize.
