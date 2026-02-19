@@ -60,7 +60,7 @@ class DualLogger:
 class ActorCritic(nn.Module):
     """Policy and value network for PPO."""
 
-    def __init__(self, obs_dim=286, action_dim=6):
+    def __init__(self, obs_dim=61, action_dim=6):
         super().__init__()
 
         # Shared feature extractor
@@ -222,8 +222,8 @@ class RolloutBuffer:
 class PPOTrainer:
     """Proximal Policy Optimization trainer."""
 
-    def __init__(self, model, lr=3e-4, clip_epsilon=0.2, value_coef=0.5,
-                 entropy_coef=0.01, max_grad_norm=0.5):
+    def __init__(self, model, lr=1e-4, clip_epsilon=0.2, value_coef=0.5,
+                 entropy_coef=0.03, max_grad_norm=0.5):
         self.model = model
         self.optimizer = optim.Adam(model.parameters(), lr=lr)
         self.clip_epsilon = clip_epsilon
@@ -308,7 +308,7 @@ class PPOServer:
         self.log = self.logger.print  # Shortcut
 
         # Model and trainer
-        self.model = ActorCritic(obs_dim=286, action_dim=6)
+        self.model = ActorCritic(obs_dim=61, action_dim=6)
         self.trainer = PPOTrainer(self.model)
         self.buffer = RolloutBuffer()
 
@@ -321,9 +321,9 @@ class PPOServer:
         self.save_interval = 10  # Save every N updates
 
         # Reward scaling: divide rewards by this before storing in buffer.
-        # Gem collection = +100 raw → +1.0 scaled. OOB = -50 → -0.5.
-        # This keeps critic targets in [0, ~10] per episode, preventing the
-        # critic from diverging to ±500 and flooding the shared network with
+        # Gem collection = +100 raw → +1.0 scaled. OOB = -100 → -1.0 scaled.
+        # This keeps critic targets in a small range, preventing the
+        # critic from diverging and flooding the shared network with
         # enormous gradients that collapse the actor.
         self.reward_scale = 0.01
 
@@ -478,15 +478,13 @@ class PPOServer:
     def normalize_obs(self, obs):
         """Normalize raw game observations to roughly [-1, 1] range.
 
-        Raw problems:
-          - -999 sentinels for empty gem/opponent slots (150+ dims at -999)
-          - timeElapsed/timeRemaining in milliseconds (0-120,000)
-          - World-space positions in arbitrary units
-        Even with kaiming init these inputs produce value_est in the thousands,
-        causing a massive gradient flood on the very first PPO update.
+        Observation layout (61 dims total):
+          [0-12]  Self state (13 dims)
+          [13-37] 5 nearest gems × 5 dims = 25 dims
+          [38-55] 3 opponents × 6 dims   = 18 dims
+          [56-60] Game state              =  5 dims
         """
         # Replace -999 sentinels (absent gems/opponents) with 0 before scaling.
-        # Anything below -500 is a sentinel — real game values never go that low.
         obs = np.where(obs < -500, 0.0, obs)
 
         # Self state (indices 0-12)
@@ -500,32 +498,30 @@ class PPOServer:
         obs[11]   /= 20.0    # megaMarbleTimeRemaining (0-20 s → 0-1)
         obs[12]   /= 20.0    # powerupTimerRemaining   (0-20 s → 0-1)
 
-        # Gems (indices 13-262: 50 gems × 5 dims = x, y, z, value, distance)
+        # Gems (indices 13-37: 5 gems × 5 dims = x, y, z, value, distance)
         gem_base = 13
-        for i in range(50):
+        for i in range(5):
             b = gem_base + i * 5
             obs[b:b+3] /= 100.0   # Relative x, y, z positions
             obs[b+3]   /= 5.0     # Gem value (1-5 → 0.2-1.0)
             obs[b+4]   /= 100.0   # Distance (0-100+ → 0-1+)
 
-        # Opponents (indices 263-280: 3 opponents × 6 dims)
-        opp_base = 263
+        # Opponents (indices 38-55: 3 opponents × 6 dims)
+        opp_base = 38
         for i in range(3):
             b = opp_base + i * 6
             obs[b:b+3]   /= 100.0  # Relative x, y, z positions
             obs[b+3:b+5] /= 20.0   # Relative velocities
             # obs[b+5]: isMega (0/1)
 
-        # Game state (indices 281-285)
-        # MissionInfo.time is ~6,000,000 ms (100-min hunt), NOT 2 min.
-        # Dividing by 6,000,000 gives a proper [0,1] range.
-        obs[281] /= 6000000.0  # timeElapsed    (ms → 0-1 over hunt duration)
-        obs[282] /= 6000000.0  # timeRemaining  (ms → 0-1 over hunt duration)
-        obs[283] /= 100.0      # myGemScore
-        obs[284] /= 100.0      # opponentBestScore
-        obs[285] /= 50.0       # gemsRemaining
+        # Game state (indices 56-60)
+        obs[56] /= 300000.0   # timeElapsed    (5-min hunt = 300,000 ms → 0-1)
+        obs[57] /= 300000.0   # timeRemaining
+        obs[58] /= 100.0      # myGemScore
+        obs[59] /= 100.0      # opponentBestScore
+        obs[60] /= 50.0       # gemsRemaining
 
-        # Safety clip: catch any remaining outliers (e.g. from changed map scales).
+        # Safety clip: catch any remaining outliers.
         obs = np.clip(obs, -2.0, 2.0)
 
         return obs
@@ -582,11 +578,11 @@ class PPOServer:
                 self.rollout_gem_pts += int(gem_delta)
                 self.total_gem_pts += int(gem_delta)
                 self.log(f"[GEM] ep={self.total_episodes+1} step={self.total_steps} +{gem_delta:.0f}pts | ep_total={self.current_episode_reward + reward:.1f}")
-            if reward < -40:  # OOB
+            if reward < -80:  # OOB penalty (-100) from game
                 self.episode_oob += 1
                 self.rollout_oob += 1
                 self.total_oob += 1
-                self.log(f"[OOB] ep={self.total_episodes+1} step={self.total_steps} | ep_reward_so_far={self.current_episode_reward:.1f}")
+                self.log(f"[OOB] ep={self.total_episodes+1} step={self.total_steps} | penalty={reward:.1f} | ep_so_far={self.current_episode_reward:.1f}")
             if reward > 0.1:
                 self.rollout_positive += 1
             self.rollout_steps += 1

@@ -2,9 +2,9 @@
 // AI Observer - Game State Collection System
 //
 // Collects all relevant game state for ML model training and inference.
-// Returns 286-dimensional observation vector:
+// Returns 61-dimensional observation vector:
 //   - Self state: 13 dims (pos, vel, camera, radius, powerup state)
-//   - Gems (50 slots): 250 dims (5 per gem: x, y, z, value, distance)
+//   - Gems (5 nearest slots): 25 dims (5 per gem: x, y, z, value, distance)
 //   - Opponents (3 slots): 18 dims (6 per opponent: x, y, z, vel_x, vel_y, is_mega)
 //   - Game state: 5 dims
 //
@@ -17,7 +17,7 @@
 // Configuration
 //-----------------------------------------------------------------------------
 
-$AIObserver::MaxGems = 50;
+$AIObserver::MaxGems = 5;   // 5 nearest gems = 25 dims (was 50 = 250 dims)
 $AIObserver::MaxOpponents = 3;
 
 //-----------------------------------------------------------------------------
@@ -36,7 +36,7 @@ function AIObserver::collectState() {
     // 1. Collect self state (14 dims)
     AIObserver::collectSelfState(%obs);
 
-    // 2. Collect all gems (250 dims: 50 gems × 5)
+    // 2. Collect nearest 5 gems (25 dims: 5 gems × 5)
     AIObserver::collectGems(%obs);
 
     // 3. Collect opponents (15 dims: 3 opponents × 5)
@@ -87,7 +87,7 @@ function AIObserver::collectSelfState(%obs) {
 }
 
 //-----------------------------------------------------------------------------
-// Gem Collection (250 dimensions: 50 gems × 5)
+// Gem Collection (25 dimensions: 5 nearest gems × 5)
 //-----------------------------------------------------------------------------
 
 function AIObserver::collectGems(%obs) {
@@ -422,7 +422,7 @@ function AIObserver::serializeToJSON(%obs) {
     %json = %json @ AIObserver::safeNum(%obs.megaMarbleActive) @ "," @ AIObserver::safeNum(%obs.megaMarbleTimeRemaining) @ ",";
     %json = %json @ AIObserver::safeNum(%obs.powerupTimerRemaining);
 
-    // Gems (250 values: 50 × 5)
+    // Gems (25 values: 5 × 5)
     for (%i = 0; %i < $AIObserver::MaxGems; %i++) {
         %json = %json @ "," @ AIObserver::safeNum(%obs.gem[%i, "x"]);
         %json = %json @ "," @ AIObserver::safeNum(%obs.gem[%i, "y"]);

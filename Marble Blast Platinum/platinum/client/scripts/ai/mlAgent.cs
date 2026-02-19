@@ -14,7 +14,6 @@ $MLAgent::LastGemScore = 0;
 $MLAgent::LastNearestGemDist = 999;
 $MLAgent::EpisodeReward = 0;
 $MLAgent::WasOOB = false;
-$MLAgent::EpisodeShouldEnd = false;  // Persistent flag for early termination
 
 function MLAgent::start() {
     if ($MLAgent::Enabled) {
@@ -103,6 +102,16 @@ function MLAgent::update() {
     // 1. Collect observation
     %obs = AIObserver::collectState();
 
+    // If this is the OOB penalty step, override the position with the saved
+    // edge position so the network associates the -100 penalty with the edge,
+    // not the spawn point it just respawned to.
+    if ($MLAgent::WasOOB && $MLAgent::OOBPosX !$= "") {
+        %obs.selfPosX = $MLAgent::OOBPosX;
+        %obs.selfPosY = $MLAgent::OOBPosY;
+        %obs.selfPosZ = $MLAgent::OOBPosZ;
+        $MLAgent::OOBPosX = "";
+    }
+
     // 2. Compute reward for this step
     %reward = MLAgent::computeReward(%obs);
     $MLAgent::EpisodeReward += %reward;
@@ -165,42 +174,22 @@ function MLAgent::computeReward(%obs) {
     }
     $MLAgent::LastGemScore = %currentGemScore;
 
-    // DEBUG: Log if WasOOB flag is set
-    if ($MLAgent::WasOOB) {
-        echo("MLAgent: [DEBUG] WasOOB flag is TRUE before checking in reward computation");
-    }
-
     // 2. Distance-based potential shaping: smooth reward gradient toward gem
-    // This creates a "potential field" where being closer = higher reward
-    // Formula: reward = potential(new_state) - potential(old_state)
-    // Potential function: P(distance) = 100 / (1 + distance/50)
-    //   - At distance 0 (on gem): P = 100
-    //   - At distance 50: P = 50   (half-power at 50 units, not 10)
-    //   - At distance 100: P = 33  (was 9.1 — much stronger far signal)
-    //   - At distance 200: P = 20  (was 4.8)
-    // Using d/50 instead of d/10 extends the useful gradient range 5x,
-    // giving the agent meaningful direction even when the gem is far away.
+    // Formula: reward = P(new_dist) - P(old_dist)
+    // Potential function: P(d) = 20 / (1 + d/50)
+    //   - Scale of 20 (was 100) limits the max per-step shaping to ~4 units,
+    //     preventing the marble from being violently yanked toward gems at the
+    //     expense of falling off the map.
+    //   - At distance 0: P = 20, at d=50: P = 10, at d=100: P = 6.7
     %nearestDist = %obs.gem[0, "distance"];
     if (%nearestDist > 0 && %nearestDist < 900) { // Not a sentinel value
         if ($MLAgent::SkipPotentialStep) {
-            // First step after episode start or gem collection: just record the
-            // current distance without computing a reward. This suppresses the
-            // large false spike that would occur from jumping from the sentinel
-            // distance (999) or the just-collected gem distance (~0) to the
-            // nearest remaining gem distance.
             $MLAgent::LastNearestGemDist = %nearestDist;
             $MLAgent::SkipPotentialStep = false;
         } else {
-            // Calculate potential at current distance
-            %currentPotential = 100 / (1 + %nearestDist / 50);
-
-            // Calculate potential at last distance
-            %lastPotential = 100 / (1 + $MLAgent::LastNearestGemDist / 50);
-
-            // Reward = change in potential
-            %distanceReward = %currentPotential - %lastPotential;
-            %reward += %distanceReward;
-
+            %currentPotential = 20 / (1 + %nearestDist / 50);
+            %lastPotential = 20 / (1 + $MLAgent::LastNearestGemDist / 50);
+            %reward += %currentPotential - %lastPotential;
             $MLAgent::LastNearestGemDist = %nearestDist;
         }
     }
@@ -208,11 +197,13 @@ function MLAgent::computeReward(%obs) {
     // 3. Time penalty: -0.1 per step (encourages speed)
     %reward -= 0.1;
 
-    // 4. OOB penalty: -50 for going out of bounds (SEVERE PUNISHMENT)
+    // 4. OOB penalty: -100 for going out of bounds.
+    // Episode does NOT end on OOB — marble respawns and the Hunt round continues.
+    // This removes the incentive to go OOB early to escape time penalties.
     if ($MLAgent::WasOOB) {
-        %reward -= 50;
+        %reward -= 100;
         $MLAgent::WasOOB = false;
-        echo("MLAgent: [REWARD] OOB penalty applied! -50 (step " @ $MLAgent::StepCount @ ", total episode reward now: " @ ($MLAgent::EpisodeReward + %reward) @ ")");
+        echo("MLAgent: [REWARD] OOB penalty applied! -100 (step " @ $MLAgent::StepCount @ ", total episode reward now: " @ ($MLAgent::EpisodeReward + %reward) @ ")");
     }
 
     return %reward;
@@ -225,17 +216,19 @@ function MLAgent::computeReward(%obs) {
 function MLAgent::checkDone() {
     // Episode ends when:
 
-    // 1. Out of bounds (early termination to prevent wasting training time)
-    if ($MLAgent::EpisodeShouldEnd) {
-        echo("MLAgent: Episode ending early due to OOB");
-        return 1;
-    }
-
-    // 2. Time runs out (Hunt mode: currentTime counts UP from 0)
+    // 1. Time runs out (Hunt mode: currentTime counts UP from 0)
     if (isObject(MissionInfo) && MissionInfo.time > 0) {
         if (PlayGui.currentTime >= MissionInfo.time && $MLAgent::StepCount > 20) {
             return 1;
         }
+    }
+
+    // 2. Hard step-count cap — backup if the time check fails.
+    //    5-min round at 3x speed, 16ms update interval = ~6,250 steps.
+    //    7,000 gives a small buffer above that.
+    if ($MLAgent::StepCount >= 7000) {
+        echo("MLAgent: Hit max step cap (7000), forcing episode end");
+        return 1;
     }
 
     // 3. All gems collected (rare but possible)
@@ -263,7 +256,6 @@ function MLAgent::resetEpisode() {
     $MLAgent::SkipPotentialStep = true;  // Suppress sentinel spike on first step
     $MLAgent::EpisodeReward = 0;
     $MLAgent::WasOOB = false;
-    $MLAgent::EpisodeShouldEnd = false;  // Reset early termination flag
 }
 
 //------------------------------------------------------------------------------
@@ -290,14 +282,24 @@ function MLAgent::executeAction(%actionStr) {
 function MLAgent::onOOB() {
     if ($MLAgent::Enabled) {
         echo("MLAgent: [OOB EVENT] Marble went out of bounds at step " @ $MLAgent::StepCount);
-        $MLAgent::WasOOB = true;
-        $MLAgent::EpisodeShouldEnd = true;  // Mark episode for early termination
-        // Reset nearest gem tracking since position changed
-        $MLAgent::LastNearestGemDist = 999;
 
-        // Respawn INSTANTLY - no delay needed, message is already on screen
-        // This mimics the player clicking left mouse immediately to respawn faster
-        MLAgent::triggerQuickRespawn();
+        // Save the edge position NOW, before respawn moves the marble.
+        // collectSelfState() will inject this position when WasOOB is true,
+        // so the -100 penalty is associated with the edge — not the spawn point.
+        if (isObject($MP::MyMarble)) {
+            %pos = $MP::MyMarble.getPosition();
+            $MLAgent::OOBPosX = getWord(%pos, 0);
+            $MLAgent::OOBPosY = getWord(%pos, 1);
+            $MLAgent::OOBPosZ = getWord(%pos, 2);
+        }
+
+        $MLAgent::WasOOB = true;
+        $MLAgent::LastNearestGemDist = 999;
+        $MLAgent::SkipPotentialStep = true;
+
+        // Delay respawn by 2 update intervals so the next update() fires
+        // while the marble is still at the edge position.
+        schedule($MLAgent::UpdateInterval * 2, 0, "MLAgent::triggerQuickRespawn");
     }
 }
 
@@ -397,9 +399,7 @@ function clientCmdGameStart() {
 
 // Hook into setMessage to detect OOB (more reliable than callback system)
 function clientCmdSetMessage(%message, %timeout) {
-    // Check if this is an out of bounds message
     if (%message $= "outOfBounds") {
-        echo("MLAgent: [DEBUG] OOB message detected!");
         MLAgent::onOOB();
     }
 
