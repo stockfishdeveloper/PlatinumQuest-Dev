@@ -430,6 +430,12 @@ class PPOServer:
         # Dry-rollout streak (rollouts with zero gems collected)
         self.dry_rollouts = 0
 
+        # No-gem tracking (steps where no gem exists on the map)
+        self.no_gem_steps = 0        # consecutive steps with no gem
+        self.total_no_gem_steps = 0  # lifetime total
+        self.episode_no_gem_steps = 0  # per-episode total
+        self.no_gem_events = 0       # number of no-gem gaps
+
         # Rolling 20-episode gem points (for gems/episode trend)
         self.recent_episode_gems = deque(maxlen=20)
 
@@ -607,6 +613,19 @@ class PPOServer:
                 cam_pitch = raw[7] if len(raw) > 7 else -999
                 self.log(f"  [DIAG-CAM] Initial cameraYaw={cam_yaw:.4f} cameraPitch={cam_pitch:.4f} (expect radians: yaw in ±3.14, pitch in ±1.57)")
 
+            # [NO-GEM] Track steps where no gem exists on the map (sentinel distance)
+            raw_gem0_dist = obs[17] if len(obs) > 17 else -1
+            if raw_gem0_dist < -500:
+                if self.no_gem_steps == 0:
+                    self.no_gem_events += 1
+                    self.log(f"  [NO-GEM] Gap #{self.no_gem_events} started at step={self.total_steps} ep={self.total_episodes+1}")
+                self.no_gem_steps += 1
+                self.total_no_gem_steps += 1
+                self.episode_no_gem_steps += 1
+            elif self.no_gem_steps > 0:
+                self.log(f"  [NO-GEM] Gap #{self.no_gem_events} ended after {self.no_gem_steps} steps (step={self.total_steps})")
+                self.no_gem_steps = 0
+
             # [DIAG] Log gem distance + camera yaw from raw obs every 500 steps
             # Gem slot 0 distance is at index 17 (13 + 0*5 + 4)
             if self.total_steps % 500 == 0:
@@ -689,13 +708,15 @@ class PPOServer:
                 outcome = "SUCCESS" if self.current_episode_reward > 100 else "FAIL" if self.current_episode_reward < -20 else "NEUTRAL"
                 oob_str = f" | OOB={self.episode_oob}" if self.episode_oob else ""
                 gems_str = f" | gems={self.episode_gem_pts}pts" if self.episode_gem_pts else ""
-                self.log(f"Ep {self.total_episodes} [{outcome}] rwd={self.current_episode_reward:.1f}{gems_str}{oob_str} | avg100={avg_reward:.1f} | val={value:.3f}")
+                nogem_str = f" | noGem={self.episode_no_gem_steps}steps" if self.episode_no_gem_steps else ""
+                self.log(f"Ep {self.total_episodes} [{outcome}] rwd={self.current_episode_reward:.1f}{gems_str}{oob_str}{nogem_str} | avg100={avg_reward:.1f} | val={value:.3f}")
                 if self.current_episode_reward > 50:
                     self.log(f"  *** SUCCESS: {self.episode_gem_pts}pts in this episode ***")
                 self.current_episode_reward = 0
                 self.episode_gem_pts = 0
                 self.episode_oob = 0
                 self.episode_step = 0
+                self.episode_no_gem_steps = 0
 
             # PPO update when buffer is full
             if len(self.buffer) >= self.rollout_size:
@@ -821,6 +842,8 @@ class PPOServer:
             self.log(f"{'#' * 55}")
             self.log(f"  Steps: {self.total_steps:,} | Episodes: {self.total_episodes} | Time: {elapsed_hrs:.2f}h")
             self.log(f"  Gems: {self.total_gem_pts}pts total | {gems_hr:.1f} pts/hr | OOB lifetime: {self.total_oob}")
+            nogem_pct = (self.total_no_gem_steps / max(self.total_steps, 1)) * 100
+            self.log(f"  NoGem: {self.total_no_gem_steps} steps ({nogem_pct:.1f}%) | {self.no_gem_events} gaps")
             self.log(f"  AvgRwd: {avg_reward:.2f} | Best: {self.best_avg_reward:.2f}")
             self.log(f"  Entropy: {stats['entropy']:.4f}{entropy_trend}{collapse_warn}")
             self.log(f"  GradNorm: {stats['grad_norm']:.4f} | VLoss: {stats['value_loss']:.6f} | PLoss: {stats['policy_loss']:.6f}")

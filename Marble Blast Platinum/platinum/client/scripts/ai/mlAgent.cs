@@ -53,6 +53,7 @@ function MLAgent::startLoop() {
     $MLAgent::EpisodeReward = 0;
     $MLAgent::WasOOB = false;
     $MLAgent::EpisodeShouldEnd = false;
+    $MLAgent::NoGemSteps = 0;
 
     MLAgent::update();
 }
@@ -213,9 +214,19 @@ function MLAgent::computeReward(%obs) {
             $MLAgent::LastNearestGemDist = %nearestDist;
         }
     } else {
-        // [DIAG] Log when gem distance is invalid/sentinel
+        // [DIAG] Log when gem distance is invalid/sentinel — means no gem is on the map
         if ($MLAgent::StepCount % 200 == 0)
             echo("MLAgent: [DIAG-SHAPE] NO VALID GEM dist=" @ %nearestDist @ " step=" @ $MLAgent::StepCount);
+        // Track consecutive steps with no gem available
+        $MLAgent::NoGemSteps++;
+        if ($MLAgent::NoGemSteps == 1)
+            echo("MLAgent: [NO-GEM-START] No gem on map at step=" @ $MLAgent::StepCount);
+    }
+
+    // Detect gem reappearance after a gap
+    if (%nearestDist > 0 && %nearestDist < 900 && $MLAgent::NoGemSteps > 0) {
+        echo("MLAgent: [NO-GEM-END] Gem returned after " @ $MLAgent::NoGemSteps @ " steps (step=" @ $MLAgent::StepCount @ ")");
+        $MLAgent::NoGemSteps = 0;
     }
 
     // 3. Time penalty: REMOVED.
@@ -286,6 +297,7 @@ function MLAgent::resetEpisode() {
     $MLAgent::SkipPotentialSteps = 1;  // Suppress sentinel spike on first step
     $MLAgent::EpisodeReward = 0;
     $MLAgent::WasOOB = false;
+    $MLAgent::NoGemSteps = 0;
 }
 
 //------------------------------------------------------------------------------

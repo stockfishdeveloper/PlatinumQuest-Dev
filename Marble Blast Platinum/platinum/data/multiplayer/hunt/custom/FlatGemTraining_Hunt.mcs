@@ -13,7 +13,7 @@ function MP_PQ_FlatGemTrainingHunt_GetMissionInfo() {
 		blast = "0";
 		Time = "300000";
 		maxGemsPerSpawn = "1";
-		radiusFromGem = "50";
+		radiusFromGem = "5";
 		CustomRadarRule = $Radar::Flags::Gems | $Radar::Flags::EndPad;
 		alarmStartTime = "15";
 		easterEgg = "0";
@@ -68,7 +68,7 @@ function MP_PQ_FlatGemTrainingHunt_LoadMission() {
       minGemsPerGroup = "1";
       music = "Astrolabe.ogg";
       name = "Flat Gem Training";
-      radiusFromGem = "50";
+      radiusFromGem = "5";
       Time = "300000";
       type = "Beginner";
    };
