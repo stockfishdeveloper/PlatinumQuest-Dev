@@ -62,7 +62,7 @@ function MP_PQ_FlatGemTrainingHunt_LoadMission() {
       difficulty = "1";
       game = "Ultra";
       gameMode = "hunt";
-      gemGroups = "1";
+      gemGroups = "2";
       level = "1";
       maxGemsPerSpawn = "1";
       minGemsPerGroup = "1";

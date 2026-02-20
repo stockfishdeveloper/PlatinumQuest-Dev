@@ -339,12 +339,12 @@ class PPOServer:
         self.buffer = RolloutBuffer()
 
         # Training config
-        # Rollout must cover at least one full episode for PPO to learn meaningful
-        # associations.  At 3x game speed + 16ms ticks, a 5-min Hunt round ≈ 6,250 steps.
-        # 8192 guarantees a full episode plus partial next one in every rollout,
-        # so each PPO update sees complete gem-collection and OOB consequences.
-        # Previous 2048 covered only ~1/3 of an episode → most updates never saw a gem.
-        self.rollout_size = 8192
+        # Rollout reduced to 512 (was 8192) to match successful small-batch PPO
+        # implementations like RollerBall (buffer=100) or CleanRL (buffer=2048).
+        # Smaller rollouts mean frequent updates (every ~3s), allowing GAE to
+        # credit-assign sparse gem rewards much more effectively than diluting
+        # them over a 6000-step episode.
+        self.rollout_size = 512
         self.n_epochs = 4
         self.batch_size = 256  # Moderate batches for stable Categorical policy learning
         self.gamma = 0.99
@@ -880,7 +880,7 @@ def main():
     parser = argparse.ArgumentParser(description='PlatinumQuest PPO Training Server')
     parser.add_argument('--host', default='127.0.0.1', help='Server host')
     parser.add_argument('--port', type=int, default=8888, help='Server port')
-    parser.add_argument('--rollout-size', type=int, default=8192, help='Steps per PPO update')
+    parser.add_argument('--rollout-size', type=int, default=512, help='Steps per PPO update')
     parser.add_argument('--lr', type=float, default=3e-4, help='Learning rate')
     parser.add_argument('--batch-size', type=int, default=256, help='Mini-batch size')
     parser.add_argument('--epochs', type=int, default=4, help='PPO epochs per update')

@@ -188,11 +188,11 @@ function MLAgent::computeReward(%obs) {
 
     // 2. Distance-based potential shaping: smooth reward gradient toward gem
     // Formula: reward = P(new_dist) - P(old_dist)
-    // Potential function: P(d) = 500 / (1 + d/50)
-    //   - At typical distances (5-30 units), moving 0.3 units/tick → shaping ~0.5-3.0/step.
-    //   - After 0.1 reward_scale: 0.05-0.3 in buffer — clear directional gradient.
-    //   - History: scale=50 invisible, scale=200 worked but too weak vs time penalty.
-    //     scale=500 with no time penalty = shaping is the dominant per-step signal.
+    // Potential function: P(d) = 20 / (1 + d/50) (Reduced from 500)
+    //   - At typical distances (5-30 units), moving 0.3 units/tick → shaping ~0.02-0.12/step.
+    //   - After 0.1 reward_scale: 0.002-0.012 in buffer — barely audible whisper.
+    //   - History: scale=500 drowned out the sparse gem reward.
+    //     scale=20 provides a tiny directional hint but forces agent to rely on +200 gem signal.
     //   - The 20-step grace period after gem collection prevents sign-flip thrashing.
     %nearestDist = %obs.gem[0, "distance"];
     if (%nearestDist > 0 && %nearestDist < 900) { // Not a sentinel value
@@ -203,8 +203,8 @@ function MLAgent::computeReward(%obs) {
             if ($MLAgent::SkipPotentialSteps == 19 || $MLAgent::SkipPotentialSteps == 0)
                 echo("MLAgent: [DIAG-SHAPE] SKIP potential step=" @ $MLAgent::StepCount @ " remaining=" @ $MLAgent::SkipPotentialSteps @ " dist=" @ %nearestDist);
         } else {
-            %currentPotential = 500 / (1 + %nearestDist / 50);
-            %lastPotential = 500 / (1 + $MLAgent::LastNearestGemDist / 50);
+            %currentPotential = 20 / (1 + %nearestDist / 50);
+            %lastPotential = 20 / (1 + $MLAgent::LastNearestGemDist / 50);
             %shapingReward = %currentPotential - %lastPotential;
             %reward += %shapingReward;
             // [DIAG] Log shaping reward every 200 steps and whenever it's large
