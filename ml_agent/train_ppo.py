@@ -84,34 +84,35 @@ class ActorCritic(nn.Module):
     def __init__(self, obs_dim=61, n_actions=9):
         super().__init__()
 
-        # Shared feature extractor
-        self.shared = nn.Sequential(
+        # Actor network (obs -> 256 -> 256 -> 128 -> 64 -> n_actions)
+        self.actor = nn.Sequential(
             nn.Linear(obs_dim, 256),
             nn.ReLU(),
             nn.Linear(256, 256),
             nn.ReLU(),
             nn.Linear(256, 128),
             nn.ReLU(),
-        )
-
-        # Actor head (logits for 9 discrete actions)
-        self.actor = nn.Sequential(
             nn.Linear(128, 64),
             nn.ReLU(),
             nn.Linear(64, n_actions),
         )
 
-        # Critic head (state value)
+        # Critic network (obs -> 256 -> 256 -> 128 -> 64 -> 1)
         self.critic = nn.Sequential(
+            nn.Linear(obs_dim, 256),
+            nn.ReLU(),
+            nn.Linear(256, 256),
+            nn.ReLU(),
+            nn.Linear(256, 128),
+            nn.ReLU(),
             nn.Linear(128, 64),
             nn.ReLU(),
             nn.Linear(64, 1),
         )
 
     def forward(self, state):
-        features = self.shared(state)
-        action_logits = self.actor(features)
-        value = self.critic(features)
+        action_logits = self.actor(state)
+        value = self.critic(state)
         return action_logits, value
 
     def get_action(self, state, deterministic=False):
@@ -242,7 +243,7 @@ class PPOTrainer:
     """Proximal Policy Optimization trainer."""
 
     def __init__(self, model, lr=1e-4, clip_epsilon=0.2, value_coef=0.5,
-                 entropy_coef=0.01, max_grad_norm=1.0, vf_clip=10.0):
+                 entropy_coef=0.01, max_grad_norm=1.0, vf_clip=20.0):
         self.model = model
         self.optimizer = optim.Adam(model.parameters(), lr=lr)
         self.clip_epsilon = clip_epsilon
@@ -379,11 +380,10 @@ class PPOServer:
             # Don't restore optimizer state — its momentum/variance was built at the
             # old value scale and causes bad updates on resume.
 
-            # Reset the critic head so it relearns from the preserved shared features.
-            # The critic saves a wildly wrong value estimate (e.g. -2849) that causes
-            # a massive gradient flood into the shared layers on the first update,
-            # corrupting the actor and collapsing the policy every time we reload.
-            # The shared backbone and actor are untouched — the good policy is preserved.
+            # Reset the critic so it relearns value estimates from scratch.
+            # Old checkpoints may have wildly wrong value estimates that cause
+            # a massive gradient flood on the first update.
+            # With separate actor/critic networks, this only affects the critic.
             for layer in self.model.critic:
                 if hasattr(layer, 'reset_parameters'):
                     layer.reset_parameters()
@@ -672,11 +672,10 @@ class PPOServer:
             self.episode_step += 1
 
             # Store experience (scale reward to keep critic targets small).
-            # Clip scaled reward to [-5, 5] so gem spikes (+200 raw → +20 scaled)
-            # don't create outsized critic targets that cause VLoss=20+ explosions.
-            # At 0.1 scale, ±5 allows raw rewards up to ±50 unclipped; a single 1-pt
-            # gem (+200 raw → +20) gets capped at +5, multi-gem steps similarly.
-            scaled_reward = np.clip(reward * self.reward_scale, -5.0, 5.0)
+            # Clip scaled reward to [-20, 20] so gem spikes (+200 raw → +20 scaled)
+            # are captured fully, while OOB (-25 raw → -2.5) remains distinct.
+            # At 0.1 scale, ±20 allows raw rewards up to ±200 unclipped.
+            scaled_reward = np.clip(reward * self.reward_scale, -20.0, 20.0)
             self.buffer.add(obs_array, action, scaled_reward, value, log_prob, done)
             self.total_steps += 1
             self.current_episode_reward += reward
