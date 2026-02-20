@@ -62,10 +62,11 @@ function MP_PQ_FlatGemTrainingHunt_LoadMission() {
       difficulty = "1";
       game = "Ultra";
       gameMode = "hunt";
-      gemGroups = "2";
+      gemGroups = "0";
       level = "1";
       maxGemsPerSpawn = "1";
-      minGemsPerGroup = "1";
+      minGemsPerSpawn = "1";
+      minPointsPerSpawn = "1";
       music = "Astrolabe.ogg";
       name = "Flat Gem Training";
       radiusFromGem = "5";
