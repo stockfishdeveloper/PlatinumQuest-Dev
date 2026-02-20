@@ -24,7 +24,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from torch.distributions import Bernoulli
+from torch.distributions import Categorical
 import time
 import signal
 import sys
@@ -58,9 +58,30 @@ class DualLogger:
 # ============================================================================
 
 class ActorCritic(nn.Module):
-    """Policy and value network for PPO."""
+    """Policy and value network for PPO with 9-action Categorical output.
 
-    def __init__(self, obs_dim=61, action_dim=4):  # 4 actions: F,B,L,R (jump+powerup removed)
+    Actions:
+      0: Idle, 1: Forward, 2: Backward, 3: Left, 4: Right,
+      5: Fwd+Left, 6: Fwd+Right, 7: Back+Left, 8: Back+Right
+    """
+
+    # Lookup table: action index → (forward, backward, left, right)
+    ACTION_MAP = [
+        (0, 0, 0, 0),  # 0: Idle
+        (1, 0, 0, 0),  # 1: Forward
+        (0, 1, 0, 0),  # 2: Backward
+        (0, 0, 1, 0),  # 3: Left
+        (0, 0, 0, 1),  # 4: Right
+        (1, 0, 1, 0),  # 5: Forward+Left
+        (1, 0, 0, 1),  # 6: Forward+Right
+        (0, 1, 1, 0),  # 7: Backward+Left
+        (0, 1, 0, 1),  # 8: Backward+Right
+    ]
+
+    ACTION_NAMES = ["Idle", "Fwd", "Back", "Left", "Right",
+                    "FL", "FR", "BL", "BR"]
+
+    def __init__(self, obs_dim=61, n_actions=9):
         super().__init__()
 
         # Shared feature extractor
@@ -73,11 +94,11 @@ class ActorCritic(nn.Module):
             nn.ReLU(),
         )
 
-        # Actor head (action probabilities)
+        # Actor head (logits for 9 discrete actions)
         self.actor = nn.Sequential(
             nn.Linear(128, 64),
             nn.ReLU(),
-            nn.Linear(64, action_dim),
+            nn.Linear(64, n_actions),
         )
 
         # Critic head (state value)
@@ -100,28 +121,24 @@ class ActorCritic(nn.Module):
                 state = torch.FloatTensor(state).unsqueeze(0)
 
             action_logits, value = self.forward(state)
-            probs = torch.sigmoid(action_logits)
+            dist = Categorical(logits=action_logits)
 
             if deterministic:
-                actions = (probs > 0.5).int()
+                action = action_logits.argmax(dim=-1)
             else:
-                dist = Bernoulli(probs)
-                actions = dist.sample().int()
+                action = dist.sample()
 
-            # Compute log probability
-            dist = Bernoulli(probs)
-            log_prob = dist.log_prob(actions.float()).sum(dim=-1)
+            log_prob = dist.log_prob(action)
 
-        return actions.squeeze(0).numpy(), log_prob.item(), value.item()
+        return action.item(), log_prob.item(), value.item()
 
     def evaluate_actions(self, states, actions):
         """Evaluate actions for PPO update."""
         action_logits, values = self.forward(states)
-        probs = torch.sigmoid(action_logits)
-        dist = Bernoulli(probs)
+        dist = Categorical(logits=action_logits)
 
-        log_probs = dist.log_prob(actions).sum(dim=-1)
-        entropy = dist.entropy().sum(dim=-1)
+        log_probs = dist.log_prob(actions)
+        entropy = dist.entropy()
 
         return log_probs, values.squeeze(-1), entropy
 
@@ -186,8 +203,9 @@ class RolloutBuffer:
         returns, advantages = self.compute_returns_and_advantages(gamma, lam)
 
         states = torch.FloatTensor(np.array(self.states))
-        actions = torch.FloatTensor(np.array(self.actions))
+        actions = torch.LongTensor(np.array(self.actions))  # Categorical needs integer actions
         old_log_probs = torch.FloatTensor(self.log_probs)
+        old_values = torch.FloatTensor(self.values)
         returns_t = torch.FloatTensor(returns)
         advantages_t = torch.FloatTensor(advantages)
 
@@ -209,6 +227,7 @@ class RolloutBuffer:
                 old_log_probs[batch_idx],
                 returns_t[batch_idx],
                 advantages_t[batch_idx],
+                old_values[batch_idx],
             )
 
     def __len__(self):
@@ -222,14 +241,15 @@ class RolloutBuffer:
 class PPOTrainer:
     """Proximal Policy Optimization trainer."""
 
-    def __init__(self, model, lr=3e-4, clip_epsilon=0.2, value_coef=0.5,
-                 entropy_coef=0.01, max_grad_norm=1.0):
+    def __init__(self, model, lr=1e-4, clip_epsilon=0.2, value_coef=0.5,
+                 entropy_coef=0.01, max_grad_norm=1.0, vf_clip=10.0):
         self.model = model
         self.optimizer = optim.Adam(model.parameters(), lr=lr)
         self.clip_epsilon = clip_epsilon
         self.value_coef = value_coef
         self.entropy_coef = entropy_coef
         self.max_grad_norm = max_grad_norm
+        self.vf_clip = vf_clip  # Clip value loss to prevent VLoss explosions from gem spikes
 
     def update(self, buffer, n_epochs=4, batch_size=64, gamma=0.99, lam=0.95):
         """Run PPO update on collected experience."""
@@ -240,7 +260,7 @@ class PPOTrainer:
         n_updates = 0
 
         for epoch in range(n_epochs):
-            for states, actions, old_log_probs, returns, advantages in \
+            for states, actions, old_log_probs, returns, advantages, old_values in \
                     buffer.get_batches(batch_size, gamma, lam):
 
                 # Evaluate current policy
@@ -252,8 +272,13 @@ class PPOTrainer:
                 surr2 = torch.clamp(ratio, 1 - self.clip_epsilon, 1 + self.clip_epsilon) * advantages
                 policy_loss = -torch.min(surr1, surr2).mean()
 
-                # Value loss
-                value_loss = nn.functional.mse_loss(values, returns)
+                # Clipped value loss: prevent critic from jumping too far in one update.
+                # Without this, a single gem-heavy episode causes VLoss=20+ which blows
+                # gradients through the shared network and corrupts the actor.
+                values_clipped = old_values + torch.clamp(values - old_values, -self.vf_clip, self.vf_clip)
+                vf_loss1 = (values - returns) ** 2
+                vf_loss2 = (values_clipped - returns) ** 2
+                value_loss = 0.5 * torch.max(vf_loss1, vf_loss2).mean()
 
                 # Entropy bonus (encourages exploration)
                 entropy_loss = -entropy.mean()
@@ -308,7 +333,7 @@ class PPOServer:
         self.log = self.logger.print  # Shortcut
 
         # Model and trainer
-        self.model = ActorCritic(obs_dim=61, action_dim=4)  # 4 actions: F,B,L,R (jump+powerup removed)
+        self.model = ActorCritic(obs_dim=61, n_actions=9)  # 9 discrete actions: Idle,F,B,L,R,FL,FR,BL,BR
         self.trainer = PPOTrainer(self.model)
         self.buffer = RolloutBuffer()
 
@@ -320,14 +345,15 @@ class PPOServer:
         # Previous 2048 covered only ~1/3 of an episode → most updates never saw a gem.
         self.rollout_size = 8192
         self.n_epochs = 4
-        self.batch_size = 64  # Smaller batches = more gradient variance = stronger learning signal
+        self.batch_size = 256  # Moderate batches for stable Categorical policy learning
         self.gamma = 0.99
         self.lam = 0.95
         self.save_interval = 10  # Save every N updates
 
         # Mild reward scaling: 0.01 crushed all signal (VLoss=0.0001, GradNorm=0.06),
         # 1.0 caused wild VLoss spikes (163.6) and gradient clipping threw away 99%
-        # of gradient info. 0.1 is the sweet spot: gem=+20, OOB=-10, shaping=±0.05/step.
+        # of gradient info. 0.1 is the sweet spot: gem=+20, OOB=-2.5, shaping=±0.05-0.3/step.
+        # Per-step rewards are clipped to [-5, 5] after scaling to prevent VLoss explosions.
         self.reward_scale = 0.1
 
         # Statistics (initialize before loading checkpoint)
@@ -342,7 +368,7 @@ class PPOServer:
         if model_path and os.path.exists(model_path):
             self.log(f"Loading model from {model_path}")
             checkpoint = torch.load(model_path, weights_only=False)
-            # Handle action_dim mismatch (e.g. old checkpoint had 6 actions, now 5)
+            # Handle architecture mismatch (e.g. old checkpoint had Bernoulli 4-action, now Categorical 9-action)
             saved_state = checkpoint['model_state_dict']
             current_state = self.model.state_dict()
             for key in list(saved_state.keys()):
@@ -389,7 +415,7 @@ class PPOServer:
         self.rollout_oob = 0       # OOB events this rollout
         self.rollout_positive = 0  # steps with positive reward this rollout
         self.rollout_steps = 0     # total steps this rollout
-        self.rollout_action_sums = np.zeros(4)  # cumulative action activations this rollout (F,B,L,R)
+        self.rollout_action_counts = np.zeros(9, dtype=int)  # count of each categorical action this rollout
 
         # Lifetime counters
         self.total_gem_pts = 0     # gem points across entire run
@@ -494,10 +520,7 @@ class PPOServer:
           [38-55] 3 opponents × 6 dims   = 18 dims
           [56-60] Game state              =  5 dims
         """
-        # Replace -999 sentinels (absent gems/opponents) with 0 before scaling.
-        obs = np.where(obs < -500, 0.0, obs)
-
-        # Self state (indices 0-12)
+        # Self state (indices 0-12) — no sentinels in self state
         obs[0:3]  /= 100.0   # Position (world units → ~[-1,1] for typical maps)
         obs[3:6]  /= 20.0    # Velocity (camera-relative: x=right, y=forward, z=up)
         # Wrap yaw to ±pi before normalizing (engine may return 0-2pi when AI doesn't move camera)
@@ -514,20 +537,32 @@ class PPOServer:
         obs[12]   /= 20.0    # powerupTimerRemaining   (0-20 s → 0-1)
 
         # Gems (indices 13-37: 5 gems × 5 dims = x, y, z, value, distance)
+        # Fix sentinel values: -999 meant "no gem" but replacing with 0 told the
+        # network a gem was AT the marble. Instead, mark absent gems as far away.
         gem_base = 13
         for i in range(5):
             b = gem_base + i * 5
-            obs[b:b+3] /= 100.0   # Camera-relative x(right), y(forward), z(up)
-            obs[b+3]   /= 5.0     # Gem value (1-5 → 0.2-1.0)
-            obs[b+4]   /= 100.0   # Distance (0-100+ → 0-1+)
+            if obs[b+4] < -500:  # distance is sentinel → gem absent
+                obs[b:b+3] = 0.0  # no directional info
+                obs[b+3]   = 0.0  # no value
+                obs[b+4]   = 1.0  # max normalized distance (far away)
+            else:
+                obs[b:b+3] /= 100.0   # Camera-relative x(right), y(forward), z(up)
+                obs[b+3]   /= 5.0     # Gem value (1-5 → 0.2-1.0)
+                obs[b+4]   /= 100.0   # Distance (0-100+ → 0-1+)
 
         # Opponents (indices 38-55: 3 opponents × 6 dims)
         opp_base = 38
         for i in range(3):
             b = opp_base + i * 6
-            obs[b:b+3]   /= 100.0  # Relative x, y, z positions
-            obs[b+3:b+5] /= 20.0   # Relative velocities
-            # obs[b+5]: isMega (0/1)
+            if obs[b] < -500:  # sentinel → opponent absent
+                obs[b:b+3]   = 0.0  # no directional info
+                obs[b+3:b+5] = 0.0  # no velocity
+                obs[b+5]     = 0.0  # not mega
+            else:
+                obs[b:b+3]   /= 100.0  # Relative x, y, z positions
+                obs[b+3:b+5] /= 20.0   # Relative velocities
+                # obs[b+5]: isMega (0/1)
 
         # Game state (indices 56-60)
         obs[56] /= 300000.0   # timeElapsed    (5-min hunt = 300,000 ms → 0-1)
@@ -592,10 +627,25 @@ class PPOServer:
 
             if self.total_steps == 0:
                 self.log(f"First obs normalized min={obs_array.min():.3f} max={obs_array.max():.3f} mean={obs_array.mean():.3f}")
+                # [DIAG-SENTINEL] Verify sentinel fix: show normalized gem slots
+                raw = np.array(obs, dtype=np.float32)
+                for gi in range(5):
+                    b = 13 + gi * 5
+                    raw_dist = raw[b+4] if len(raw) > b+4 else -1
+                    nb = 13 + gi * 5  # same offset in normalized array
+                    self.log(f"  [DIAG-SENTINEL] gem{gi}: raw_dist={raw_dist:.1f} -> norm=({obs_array[nb]:.3f},{obs_array[nb+1]:.3f},{obs_array[nb+2]:.3f}) val={obs_array[nb+3]:.3f} dist={obs_array[nb+4]:.3f}"
+                             f" {'(ABSENT->far)' if raw_dist < -500 else '(present)'}")
+                # [DIAG-ACTION] Verify Categorical action space
+                self.log(f"  [DIAG-ACTION] Model output type: Categorical(9), max_entropy=ln(9)={2.197:.3f}")
 
             action, log_prob, value = self.model.get_action(obs_array)
-            self.recent_actions.append(action.tolist())
-            self.rollout_action_sums += action
+            self.recent_actions.append(action)
+            self.rollout_action_counts[action] += 1
+
+            # [DIAG-ACTION] Log first 5 actions to verify mapping
+            if self.total_steps < 5:
+                binary = ActorCritic.ACTION_MAP[action]
+                self.log(f"  [DIAG-ACTION] step={self.total_steps} action={action} ({ActorCritic.ACTION_NAMES[action]}) -> binary=F:{binary[0]} B:{binary[1]} L:{binary[2]} R:{binary[3]} logprob={log_prob:.3f}")
 
             # Warn if first step of a new episode carries a suspiciously large reward
             # (indicates the sentinel-spike fix is not working or a new source of initial reward)
@@ -608,7 +658,7 @@ class PPOServer:
                 self.rollout_gem_pts += int(gem_delta)
                 self.total_gem_pts += int(gem_delta)
                 self.log(f"[GEM] ep={self.total_episodes+1} step={self.total_steps} +{gem_delta:.0f}pts | ep_total={self.current_episode_reward + reward:.1f}")
-            if reward < -80:  # OOB penalty (-100) from game
+            if reward < -20:  # OOB penalty (-25) from game
                 self.episode_oob += 1
                 self.rollout_oob += 1
                 self.total_oob += 1
@@ -621,8 +671,13 @@ class PPOServer:
             self.rollout_steps += 1
             self.episode_step += 1
 
-            # Store experience (scale reward to keep critic targets small)
-            self.buffer.add(obs_array, action, reward * self.reward_scale, value, log_prob, done)
+            # Store experience (scale reward to keep critic targets small).
+            # Clip scaled reward to [-5, 5] so gem spikes (+200 raw → +20 scaled)
+            # don't create outsized critic targets that cause VLoss=20+ explosions.
+            # At 0.1 scale, ±5 allows raw rewards up to ±50 unclipped; a single 1-pt
+            # gem (+200 raw → +20) gets capped at +5, multi-gem steps similarly.
+            scaled_reward = np.clip(reward * self.reward_scale, -5.0, 5.0)
+            self.buffer.add(obs_array, action, scaled_reward, value, log_prob, done)
             self.total_steps += 1
             self.current_episode_reward += reward
 
@@ -632,7 +687,7 @@ class PPOServer:
                 self.episode_rewards.append(self.current_episode_reward)
                 self.recent_episode_gems.append(self.episode_gem_pts)
                 avg_reward = np.mean(self.episode_rewards) if self.episode_rewards else 0
-                outcome = "SUCCESS" if self.current_episode_reward > 50 else "FAIL" if self.current_episode_reward < -30 else "NEUTRAL"
+                outcome = "SUCCESS" if self.current_episode_reward > 100 else "FAIL" if self.current_episode_reward < -20 else "NEUTRAL"
                 oob_str = f" | OOB={self.episode_oob}" if self.episode_oob else ""
                 gems_str = f" | gems={self.episode_gem_pts}pts" if self.episode_gem_pts else ""
                 self.log(f"Ep {self.total_episodes} [{outcome}] rwd={self.current_episode_reward:.1f}{gems_str}{oob_str} | avg100={avg_reward:.1f} | val={value:.3f}")
@@ -647,7 +702,8 @@ class PPOServer:
             if len(self.buffer) >= self.rollout_size:
                 self.run_ppo_update()
 
-            return action.tolist()
+            # Convert categorical action index to binary (F,B,L,R) for game
+            return list(ActorCritic.ACTION_MAP[action])
 
         except Exception as e:
             if self.total_steps < 5:
@@ -675,10 +731,11 @@ class PPOServer:
         pos_pct = (self.rollout_positive / max(self.rollout_steps, 1)) * 100
 
         # Detect entropy collapse
+        # Max entropy for Categorical(9) = ln(9) ≈ 2.197
         collapse_warn = ""
-        if stats['entropy'] < 1.0:
+        if stats['entropy'] < 0.5:
             collapse_warn = " *** ENTROPY COLLAPSE ***"
-        elif stats['entropy'] < 2.0:
+        elif stats['entropy'] < 1.0:
             collapse_warn = " (entropy low)"
 
         # Reward distribution for this rollout
@@ -686,11 +743,11 @@ class PPOServer:
         if rollout_rewards:
             rr = np.array(rollout_rewards)
             rr_unscaled = rr / self.reward_scale  # undo scaling to show raw values
-            # Time penalty is -0.02/step; anything above 0 has positive shaping
-            above_baseline = rr_unscaled > 0.0    # shaping overcame time penalty
-            below_baseline = rr_unscaled < -0.05  # shaping made reward worse than baseline
-            big_pos = rr_unscaled > 1.0   # gem or large shaping
-            big_neg = rr_unscaled < -1.0  # OOB
+            # No time penalty; shaping is the dominant per-step signal
+            above_baseline = rr_unscaled > 0.1    # positive shaping (moving toward gem)
+            below_baseline = rr_unscaled < -0.1  # negative shaping (moving away from gem)
+            big_pos = rr_unscaled > 5.0    # gem collection
+            big_neg = rr_unscaled < -20.0  # OOB (-25 raw)
             self.log(f"  [DIAG-RWD] rollout: min={rr_unscaled.min():.1f} max={rr_unscaled.max():.2f} mean={rr_unscaled.mean():.3f} | "
                      f"above_baseline={above_baseline.sum()} below_baseline={below_baseline.sum()} big_pos={big_pos.sum()} big_neg={big_neg.sum()}")
 
@@ -702,11 +759,11 @@ class PPOServer:
 
         dry_warn = f" *** DRY x{self.dry_rollouts} ***" if self.dry_rollouts >= 5 else ""
 
-        # Action distribution: % of steps each action was pressed
+        # Action distribution: % of steps each categorical action was chosen
         n = max(self.rollout_steps, 1)
-        act_pct = self.rollout_action_sums / n * 100
-        act_str = (f"F:{act_pct[0]:.0f}% B:{act_pct[1]:.0f}% "
-                   f"L:{act_pct[2]:.0f}% R:{act_pct[3]:.0f}%")
+        act_pct = self.rollout_action_counts / n * 100
+        names = ActorCritic.ACTION_NAMES
+        act_str = " ".join(f"{names[i]}:{act_pct[i]:.0f}%" for i in range(9))
 
         # Compact per-update line
         gems_str = f" gems={self.rollout_gem_pts}pts" if self.rollout_gem_pts else " gems=0"
@@ -725,17 +782,17 @@ class PPOServer:
 
         # Repetitive action warning
         if len(self.recent_actions) >= 10:
-            action_strings = [''.join(map(str, a)) for a in self.recent_actions]
-            unique_actions = len(set(action_strings))
+            recent_list = list(self.recent_actions)
+            unique_actions = len(set(recent_list))
             if unique_actions <= 2:
-                self.log(f"  WARNING: repetitive actions! Recent: {action_strings[-5:]}")
+                self.log(f"  WARNING: repetitive actions! Recent: {recent_list[-5:]}")
 
         # Reset rollout counters
         self.rollout_gem_pts = 0
         self.rollout_oob = 0
         self.rollout_positive = 0
         self.rollout_steps = 0
-        self.rollout_action_sums = np.zeros(4)
+        self.rollout_action_counts = np.zeros(9, dtype=int)
 
         # Save checkpoint periodically
         if self.total_updates % self.save_interval == 0:
@@ -826,7 +883,7 @@ def main():
     parser.add_argument('--port', type=int, default=8888, help='Server port')
     parser.add_argument('--rollout-size', type=int, default=8192, help='Steps per PPO update')
     parser.add_argument('--lr', type=float, default=3e-4, help='Learning rate')
-    parser.add_argument('--batch-size', type=int, default=64, help='Mini-batch size')
+    parser.add_argument('--batch-size', type=int, default=256, help='Mini-batch size')
     parser.add_argument('--epochs', type=int, default=4, help='PPO epochs per update')
 
     args = parser.parse_args()

@@ -167,11 +167,10 @@ function MLAgent::computeReward(%obs) {
     %reward = 0;
 
     // 1. Gem collection reward: +200 per point scored
-    //    After 0.01 reward_scale: 1pt gem = +2.0, 5pt gem = +10.0 in buffer.
-    //    With time penalty at -0.02/step, 1 gem = 10,000 steps of penalty — very clear signal.
-    //    OOB is -100 raw (-1.0 scaled), so 1pt gem > 1 OOB — gems are worth pursuing even with risk.
-    //    Max episode spike: ~7 gems = +1400 raw (+14.0 scaled) — strong but manageable for critic.
-    //    History: +100 too weak vs old -0.1 penalty, +500 caused VLoss=1.44 critic blow-up.
+    //    After 0.1 reward_scale: 1pt gem = +20.0, 5pt gem = +100.0 in buffer.
+    //    OOB is -10 raw (-1.0 scaled), so 1pt gem = 20 OOBs — gems are very worth pursuing.
+    //    Max episode spike: ~7 gems = +1400 raw (+140 scaled) — strong but manageable for critic.
+    //    History: +100 too weak, +500 caused VLoss blow-up, +200 with 0.1 scale is the sweet spot.
     %currentGemScore = PlayGui.gemCount;
     %gemDelta = %currentGemScore - $MLAgent::LastGemScore;
     $MLAgent::LastGemDelta = %gemDelta;  // Expose for protocol message
@@ -189,12 +188,11 @@ function MLAgent::computeReward(%obs) {
 
     // 2. Distance-based potential shaping: smooth reward gradient toward gem
     // Formula: reward = P(new_dist) - P(old_dist)
-    // Potential function: P(d) = 200 / (1 + d/50)
-    //   - Scale must be large enough to produce clear per-step signal after 0.01 reward_scale.
-    //   - At typical distances (5-30 units), moving 0.3 units/tick → shaping ~0.4-2.0/step.
-    //   - After 0.01 scale: 0.004-0.02 in buffer — small but consistent directional gradient.
-    //   - History: scale=50 produced invisible signal (~0.001 scaled), agent couldn't find gems.
-    //     scale=200 was the only value that produced consistent learning signal.
+    // Potential function: P(d) = 500 / (1 + d/50)
+    //   - At typical distances (5-30 units), moving 0.3 units/tick → shaping ~0.5-3.0/step.
+    //   - After 0.1 reward_scale: 0.05-0.3 in buffer — clear directional gradient.
+    //   - History: scale=50 invisible, scale=200 worked but too weak vs time penalty.
+    //     scale=500 with no time penalty = shaping is the dominant per-step signal.
     //   - The 20-step grace period after gem collection prevents sign-flip thrashing.
     %nearestDist = %obs.gem[0, "distance"];
     if (%nearestDist > 0 && %nearestDist < 900) { // Not a sentinel value
@@ -205,8 +203,8 @@ function MLAgent::computeReward(%obs) {
             if ($MLAgent::SkipPotentialSteps == 19 || $MLAgent::SkipPotentialSteps == 0)
                 echo("MLAgent: [DIAG-SHAPE] SKIP potential step=" @ $MLAgent::StepCount @ " remaining=" @ $MLAgent::SkipPotentialSteps @ " dist=" @ %nearestDist);
         } else {
-            %currentPotential = 200 / (1 + %nearestDist / 50);
-            %lastPotential = 200 / (1 + $MLAgent::LastNearestGemDist / 50);
+            %currentPotential = 500 / (1 + %nearestDist / 50);
+            %lastPotential = 500 / (1 + $MLAgent::LastNearestGemDist / 50);
             %shapingReward = %currentPotential - %lastPotential;
             %reward += %shapingReward;
             // [DIAG] Log shaping reward every 200 steps and whenever it's large
@@ -220,18 +218,19 @@ function MLAgent::computeReward(%obs) {
             echo("MLAgent: [DIAG-SHAPE] NO VALID GEM dist=" @ %nearestDist @ " step=" @ $MLAgent::StepCount);
     }
 
-    // 3. Time penalty: -0.02 per step (encourages speed but doesn't dominate)
-    //    Over a full 7000-step episode: -140 total (prev -0.1 gave -700, overwhelming gems).
-    //    With gem reward at +500/pt, a single 1pt gem now clearly outweighs ~2500 steps of time penalty.
-    %reward -= 0.02;
+    // 3. Time penalty: REMOVED.
+    //    Was -0.02/step = -130/episode, drowning out the shaping signal (~0.05/step).
+    //    The agent couldn't distinguish "moved toward gem" from "moved away" because
+    //    both felt like punishment. Let shaping be the dominant per-step signal.
 
-    // 4. OOB penalty: -100 for going out of bounds.
-    // Episode does NOT end on OOB — marble respawns and the Hunt round continues.
-    // This removes the incentive to go OOB early to escape time penalties.
+    // 4. OOB penalty: -25 for going out of bounds.
+    //    At -100, five OOBs = -500 which overwhelmed everything including gem rewards.
+    //    At -10 the agent never learned to avoid edges (every episode had OOBs).
+    //    At -25, one OOB = 1/8th of a 1-pt gem — noticeable but not catastrophic.
     if ($MLAgent::WasOOB) {
-        %reward -= 100;
+        %reward -= 25;
         $MLAgent::WasOOB = false;
-        echo("MLAgent: [REWARD] OOB penalty applied! -100 (step " @ $MLAgent::StepCount @ ", total episode reward now: " @ ($MLAgent::EpisodeReward + %reward) @ ")");
+        echo("MLAgent: [REWARD] OOB penalty applied! -25 (step " @ $MLAgent::StepCount @ ", total episode reward now: " @ ($MLAgent::EpisodeReward + %reward) @ ")");
     }
 
     return %reward;
@@ -319,7 +318,7 @@ function MLAgent::onOOB() {
 
         // Save the edge position NOW, before respawn moves the marble.
         // collectSelfState() will inject this position when WasOOB is true,
-        // so the -100 penalty is associated with the edge — not the spawn point.
+        // so the -10 penalty is associated with the edge — not the spawn point.
         if (isObject($MP::MyMarble)) {
             %pos = $MP::MyMarble.getPosition();
             $MLAgent::OOBPosX = getWord(%pos, 0);

@@ -222,12 +222,13 @@ function AIObserver::collectGems(%obs) {
             %obs.gem[%i, "value"] = %obs.gemTemp[%i, "value"];
             %obs.gem[%i, "distance"] = %obs.gemTemp[%i, "distance"];
         } else {
-            // Padding with sentinel values
+            // Padding with sentinel values — distance must also be -999
+            // so Python's sentinel check (obs[b+4] < -500) catches it.
             %obs.gem[%i, "x"] = -999;
             %obs.gem[%i, "y"] = -999;
             %obs.gem[%i, "z"] = -999;
-            %obs.gem[%i, "value"] = 0;
-            %obs.gem[%i, "distance"] = 0;
+            %obs.gem[%i, "value"] = -999;
+            %obs.gem[%i, "distance"] = -999;
         }
     }
 
