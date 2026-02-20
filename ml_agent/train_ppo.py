@@ -31,6 +31,7 @@ import sys
 import os
 from collections import deque
 from datetime import datetime
+from dashboard import DashboardServer
 
 # ============================================================================
 # Logging Helper
@@ -449,6 +450,10 @@ class PPOServer:
         os.makedirs('models/checkpoints', exist_ok=True)
         os.makedirs('logs', exist_ok=True)
 
+        # Real-time dashboard (daemon thread, zero training impact)
+        self.dashboard = DashboardServer(self)
+        self.dashboard.start()
+
     def run(self):
         """Main server loop."""
         self.log(f"=" * 60)
@@ -861,6 +866,12 @@ class PPOServer:
 
         # Log to file
         self.log_stats(stats, avg_reward)
+
+        # Push to live dashboard
+        try:
+            self.dashboard.push_snapshot(stats, avg_reward)
+        except Exception:
+            pass
 
         # Clear buffer for next rollout
         self.buffer.clear()
