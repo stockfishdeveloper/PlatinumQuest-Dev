@@ -211,12 +211,15 @@ function MLAgent::computeReward(%obs) {
 
     // 2. Distance-based potential shaping: smooth reward gradient toward gem
     // Formula: reward = P(new_dist) - P(old_dist)
-    // Potential function: P(d) = 20 / (1 + d/5)
-    //   - Steeper than old d/50 to create a strong "last mile" signal.
-    //   - At d=30, moving 0.3 closer → shaping ~0.24/step (moderate pull from afar).
-    //   - At d=2, moving 0.3 closer → shaping ~0.95/step (strong "go get it" signal).
-    //   - At d=1, moving 0.3 closer → shaping ~1.39/step (very strong close-range pull).
-    //   - Old d/50 gave ~0.03/step everywhere — too flat, agent jittered near gems.
+    // Potential function: P(d) = 20 / (1 + d/50)
+    //   - Gentle gradient that guides marble toward gems without overshoot fear.
+    //   - At d=30, moving 0.3 closer → shaping ~0.05/step (gentle pull).
+    //   - At d=2, moving 0.3 closer → shaping ~0.11/step (slightly stronger close).
+    //   - Total approach shaping (30→0) ≈ 7.5 raw = 0.75 scaled. Gem = +20 scaled.
+    //   - History: d/2 caused wide orbiting (agent feared overshoot penalty),
+    //     d/5 still too steep. d/50 got marble within 1 marble width.
+    //   - The real close-range fix is unit direction vectors in normalize_obs,
+    //     not steeper potential.
     //   - Still potential-based (P(s')-P(s)), so cannot be "farmed" by oscillating.
     //   - The 20-step grace period after gem collection prevents sign-flip thrashing.
     %nearestDist = %obs.gem[0, "distance"];
@@ -323,7 +326,7 @@ function MLAgent::resetEpisode() {
     $MLAgent::LastGemScore = PlayGui.gemCount;
     $MLAgent::LastGemDelta = 0;
     $MLAgent::LastNearestGemDist = 999;
-    $MLAgent::SkipPotentialSteps = 1;  // Suppress sentinel spike on first step
+    $MLAgent::SkipPotentialSteps = 20;  // Same grace period as post-gem-collection
     $MLAgent::EpisodeReward = 0;
     $MLAgent::WasOOB = false;
     $MLAgent::NoGemSteps = 0;

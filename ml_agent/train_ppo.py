@@ -437,8 +437,8 @@ class PPOServer:
         self.episode_no_gem_steps = 0  # per-episode total
         self.no_gem_events = 0       # number of no-gem gaps
 
-        # Rolling 20-episode gem points (for gems/episode trend)
-        self.recent_episode_gems = deque(maxlen=20)
+        # Rolling 100-episode gem points (for gems/episode trend on dashboard)
+        self.recent_episode_gems = deque(maxlen=100)
 
         # Socket setup
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -558,9 +558,13 @@ class PPOServer:
                 obs[b+3]   = 0.0  # no value
                 obs[b+4]   = 1.0  # max normalized distance (far away)
             else:
-                obs[b:b+3] /= 100.0   # Camera-relative x(right), y(forward), z(up)
-                obs[b+3]   /= 5.0     # Gem value (1-5 → 0.2-1.0)
-                obs[b+4]   /= 100.0   # Distance (0-100+ → 0-1+)
+                dist = obs[b+4]
+                if dist > 0.01:
+                    obs[b:b+3] /= dist  # Unit direction vector (always magnitude ~1)
+                else:
+                    obs[b:b+3] = 0.0    # On top of gem, no direction needed
+                obs[b+3]   /= 5.0      # Gem value (1-5 → 0.2-1.0)
+                obs[b+4]   /= 100.0    # Distance (0-100+ → 0-1+)
 
         # Opponents (indices 38-55: 3 opponents × 6 dims)
         opp_base = 38
@@ -887,8 +891,8 @@ class PPOServer:
         # Push to live dashboard
         try:
             self.dashboard.push_snapshot(stats, avg_reward)
-        except Exception:
-            pass
+        except Exception as e:
+            self.log(f"Dashboard push error: {e}")
 
         # Clear buffer for next rollout
         self.buffer.clear()

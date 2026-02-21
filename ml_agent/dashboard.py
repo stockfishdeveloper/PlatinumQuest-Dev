@@ -5,11 +5,24 @@ Zero external dependencies — uses stdlib http.server + SSE (Server-Sent Events
 """
 
 import json
+import sys
 import time
 import threading
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 
 DASHBOARD_PORT = 8889
+
+
+class QuietHTTPServer(ThreadingHTTPServer):
+    """ThreadingHTTPServer that suppresses connection-abort tracebacks."""
+    def handle_error(self, request, client_address):
+        exc_type = sys.exc_info()[0]
+        if exc_type in (ConnectionAbortedError, ConnectionResetError, BrokenPipeError):
+            pass  # Browser disconnected — not an error
+        else:
+            super().handle_error(request, client_address)
+
+
 MAX_HISTORY = 10000  # Cap history arrays to bound memory (~1MB)
 
 
@@ -20,20 +33,24 @@ class DashboardHandler(BaseHTTPRequestHandler):
         pass  # Suppress default access logs — would spam training console
 
     def do_GET(self):
-        if self.path == '/':
-            self._serve_html()
-        elif self.path == '/stream':
-            self._serve_sse()
-        elif self.path == '/history':
-            self._serve_history()
-        else:
-            self.send_error(404)
+        try:
+            if self.path == '/':
+                self._serve_html()
+            elif self.path == '/stream':
+                self._serve_sse()
+            elif self.path == '/history':
+                self._serve_history()
+            else:
+                self.send_error(404)
+        except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError, OSError):
+            pass  # Client disconnected
 
     def _serve_html(self):
         content = DASHBOARD_HTML.encode('utf-8')
         self.send_response(200)
         self.send_header('Content-Type', 'text/html; charset=utf-8')
         self.send_header('Content-Length', str(len(content)))
+        self.send_header('Cache-Control', 'no-cache, no-store, must-revalidate')
         self.end_headers()
         self.wfile.write(content)
 
@@ -122,7 +139,7 @@ class DashboardServer:
     def start(self):
         """Start HTTP server in daemon thread."""
         try:
-            self._server = ThreadingHTTPServer((self.host, self.port), DashboardHandler)
+            self._server = QuietHTTPServer((self.host, self.port), DashboardHandler)
             self._server.dashboard = self  # Attach reference for handler access
             self._thread = threading.Thread(
                 target=self._server.serve_forever,
@@ -163,8 +180,8 @@ class DashboardServer:
             'value_loss': round(stats['value_loss'], 6),
             'entropy': round(stats['entropy'], 4),
             'grad_norm': round(stats['grad_norm'], 4),
-            'avg_reward_100ep': round(float(avg_reward), 2),
-            'best_avg_reward': round(float(s.best_avg_reward), 2),
+            'avg_reward_100ep': round(float(avg_reward), 2) if not (avg_reward != avg_reward) else 0.0,
+            'best_avg_reward': round(float(s.best_avg_reward), 2) if s.best_avg_reward > -1e9 else 0.0,
             'gems_per_hr': round(gems_per_hr, 2),
             'pos_reward_pct': round(pos_pct, 1),
             'rollout_gem_pts': s.rollout_gem_pts,
@@ -326,27 +343,23 @@ body { background: var(--bg); color: var(--text); font-family: 'Consolas', 'SF M
 <!-- Gauges -->
 <div id="gauges">
   <div class="gauge"><div class="label">Avg Reward (100ep)</div><div class="value" id="g-avgrwd">--</div></div>
+  <div class="gauge"><div class="label">Gems/hr</div><div class="value" id="g-gemshr" style="color:#f0c040">--</div></div>
   <div class="gauge"><div class="label">Entropy</div><div class="value" id="g-entropy">--</div></div>
   <div class="gauge"><div class="label">Policy Loss</div><div class="value" id="g-ploss">--</div></div>
   <div class="gauge"><div class="label">Value Loss</div><div class="value" id="g-vloss">--</div></div>
-  <div class="gauge"><div class="label">Grad Norm</div><div class="value" id="g-gradnorm">--</div></div>
   <div class="gauge"><div class="label">Dry Rollouts</div><div class="value" id="g-dry">--</div></div>
 </div>
 
 <!-- Charts -->
 <div id="charts">
   <div class="chart-card"><div class="chart-title">Avg Reward (100-episode rolling)</div><div id="c-avgrwd" style="height:220px"></div></div>
+  <div class="chart-card"><div class="chart-title">Gems Per Hour</div><div id="c-gemshr" style="height:220px"></div></div>
   <div class="chart-card"><div class="chart-title">PPO Losses (Policy + Value)</div><div id="c-losses" style="height:220px"></div></div>
   <div class="chart-card"><div class="chart-title">Entropy (exploration health)</div><div id="c-entropy" style="height:220px"></div></div>
-  <div class="chart-card"><div class="chart-title">Gradient Norm</div><div id="c-gradnorm" style="height:220px"></div></div>
-  <div class="chart-card"><div class="chart-title">Gems Per Hour</div><div id="c-gemshr" style="height:220px"></div></div>
-  <div class="chart-card"><div class="chart-title">Per-Rollout Gem Points</div><div id="c-rolloutgems" style="height:220px"></div></div>
-  <div class="chart-card full-width"><div class="chart-title">Action Distribution (stacked %)</div><div id="c-actions" style="height:240px"></div></div>
-  <div class="chart-card"><div class="chart-title">Recent Episode Rewards (last 20)</div><div id="c-eprewards" style="height:220px"></div></div>
-  <div class="chart-card"><div class="chart-title">Recent Episode Gem Points (last 20)</div><div id="c-epgems" style="height:220px"></div></div>
+  <div class="chart-card"><div class="chart-title">Gems Per Episode (last 100)</div><div id="c-epgems" style="height:220px"></div></div>
   <div class="chart-card"><div class="chart-title">OOB Events Per Rollout</div><div id="c-oob" style="height:220px"></div></div>
   <div class="chart-card"><div class="chart-title">No-Gem Step % (cumulative)</div><div id="c-nogem" style="height:220px"></div></div>
-  <div class="chart-card full-width"><div class="chart-title">Training Throughput (steps/sec)</div><div id="c-throughput" style="height:200px"></div></div>
+  <div class="chart-card"><div class="chart-title">Training Throughput (steps/sec)</div><div id="c-throughput" style="height:220px"></div></div>
 </div>
 
 <!-- Config -->
@@ -412,50 +425,15 @@ Plotly.newPlot('c-entropy', [
   ]
 }), plotConfig);
 
-// 4. Grad Norm
-Plotly.newPlot('c-gradnorm', [
-  { x: [], y: [], type: 'scatter', mode: 'lines', line: { color: '#d29922', width: 1.5 } }
-], darkLayout({
-  shapes: [
-    { type: 'line', y0: 1.0, y1: 1.0, x0: 0, x1: 1, xref: 'paper', line: { color: '#f85149', width: 1, dash: 'dash' } }
-  ]
-}), plotConfig);
-
-// 5. Gems/hr
+// 4. Gems/hr
 Plotly.newPlot('c-gemshr', [
   { x: [], y: [], type: 'scatter', mode: 'lines', line: { color: '#f0c040', width: 2 } }
 ], darkLayout(), plotConfig);
 
-// 6. Rollout gems (bar)
-Plotly.newPlot('c-rolloutgems', [
-  { x: [], y: [], type: 'bar', marker: { color: '#f0c040' } }
-], darkLayout({ bargap: 0.3 }), plotConfig);
-
-// 7. Action distribution (stacked bar)
-const ACTION_NAMES = ['Idle','Fwd','Back','Left','Right','FL','FR','BL','BR'];
-const ACTION_COLORS = ['#6e7681','#3fb950','#f85149','#58a6ff','#d29922','#bc8cff','#39d353','#ff7b72','#79c0ff'];
-Plotly.newPlot('c-actions',
-  ACTION_NAMES.map((name, i) => ({
-    x: [], y: [], type: 'bar', name: name,
-    marker: { color: ACTION_COLORS[i] }
-  })),
-  darkLayout({
-    barmode: 'stack', showlegend: true, bargap: 0.1,
-    legend: { orientation: 'h', y: -0.12, font: { size: 9 } },
-    yaxis: { range: [0, 100], gridcolor: '#21262d', color: '#7d8590', zeroline: false,
-             title: { text: '%', font: { size: 9 } } }
-  }), plotConfig
-);
-
-// 8. Episode rewards (last 20, color-coded bars)
-Plotly.newPlot('c-eprewards', [
-  { x: [], y: [], type: 'bar', marker: { color: [] } }
-], darkLayout({ bargap: 0.2 }), plotConfig);
-
-// 9. Episode gems (last 20)
+// 5. Episode gems (last 100, bar chart — full redraw each update)
 Plotly.newPlot('c-epgems', [
   { x: [], y: [], type: 'bar', marker: { color: '#f0c040' } }
-], darkLayout({ bargap: 0.2 }), plotConfig);
+], darkLayout({ bargap: 0.15 }), plotConfig);
 
 // 10. OOB per rollout
 Plotly.newPlot('c-oob', [
@@ -502,23 +480,8 @@ async function loadHistory() {
     // Entropy
     Plotly.extendTraces('c-entropy', { x: [xs], y: [h.entropy] }, [0]);
 
-    // Grad norm
-    Plotly.extendTraces('c-gradnorm', { x: [xs], y: [h.grad_norm] }, [0]);
-
     // Gems/hr
     Plotly.extendTraces('c-gemshr', { x: [xs], y: [h.gems_per_hr] }, [0]);
-
-    // Rollout gems
-    Plotly.extendTraces('c-rolloutgems', { x: [xs], y: [h.rollout_gem_pts] }, [0]);
-
-    // Action distribution
-    if (h.action_pcts_history && h.action_pcts_history.length > 0) {
-      const lastN = h.action_pcts_history.slice(-100);
-      const actXs = xs.slice(-100);
-      for (let i = 0; i < 9; i++) {
-        Plotly.extendTraces('c-actions', { x: [actXs], y: [lastN.map(a => a[i])] }, [i]);
-      }
-    }
 
     // OOB
     Plotly.extendTraces('c-oob', { x: [xs], y: [h.rollout_oob] }, [0]);
@@ -587,9 +550,9 @@ function updateDashboard(snap) {
   entEl.textContent = snap.entropy.toFixed(3);
   entEl.style.color = snap.entropy_collapse ? '#f85149' : snap.entropy_low ? '#d29922' : '#3fb950';
 
+  document.getElementById('g-gemshr').textContent = snap.gems_per_hr.toFixed(1);
   document.getElementById('g-ploss').textContent = snap.policy_loss.toFixed(4);
   document.getElementById('g-vloss').textContent = snap.value_loss < 0.001 ? snap.value_loss.toExponential(2) : snap.value_loss.toFixed(4);
-  document.getElementById('g-gradnorm').textContent = snap.grad_norm.toFixed(3);
 
   const dryEl = document.getElementById('g-dry');
   dryEl.textContent = snap.dry_rollouts;
@@ -611,9 +574,7 @@ function updateDashboard(snap) {
   Plotly.extendTraces('c-avgrwd', { x: [[x], [x]], y: [[snap.avg_reward_100ep], [bestReward]] }, [0, 1]);
   Plotly.extendTraces('c-losses', { x: [[x], [x]], y: [[snap.policy_loss], [snap.value_loss]] }, [0, 1]);
   Plotly.extendTraces('c-entropy', { x: [[x]], y: [[snap.entropy]] }, [0]);
-  Plotly.extendTraces('c-gradnorm', { x: [[x]], y: [[snap.grad_norm]] }, [0]);
   Plotly.extendTraces('c-gemshr', { x: [[x]], y: [[snap.gems_per_hr]] }, [0]);
-  Plotly.extendTraces('c-rolloutgems', { x: [[x]], y: [[snap.rollout_gem_pts]] }, [0]);
   Plotly.extendTraces('c-oob', { x: [[x]], y: [[snap.rollout_oob]] }, [0]);
 
   // No-gem %
@@ -628,31 +589,16 @@ function updateDashboard(snap) {
   }
   prevTimestamp = snap.timestamp;
 
-  // Action distribution (extend stacked bar)
-  for (let i = 0; i < 9; i++) {
-    Plotly.extendTraces('c-actions', { x: [[x]], y: [[snap.action_pcts[i]]] }, [i]);
-  }
-
   // === Snapshot charts (full redraw — small fixed-size arrays) ===
 
-  // Episode rewards (last 20, color-coded)
-  const rwds = snap.recent_rewards;
-  if (rwds.length > 0) {
-    const epIdxs = rwds.map((_, i) => i + 1);
-    const colors = rwds.map(r => r > 100 ? '#3fb950' : r < -20 ? '#f85149' : '#7d8590');
-    Plotly.react('c-eprewards',
-      [{ x: epIdxs, y: rwds, type: 'bar', marker: { color: colors } }],
-      darkLayout({ bargap: 0.2 }), plotConfig
-    );
-  }
-
-  // Episode gem points (last 20)
+  // Episode gem points (last 100)
   const gems = snap.recent_episode_gems;
   if (gems.length > 0) {
     const gemIdxs = gems.map((_, i) => i + 1);
+    const colors = gems.map(g => g > 0 ? '#f0c040' : '#30363d');
     Plotly.react('c-epgems',
-      [{ x: gemIdxs, y: gems, type: 'bar', marker: { color: '#f0c040' } }],
-      darkLayout({ bargap: 0.2 }), plotConfig
+      [{ x: gemIdxs, y: gems, type: 'bar', marker: { color: colors } }],
+      darkLayout({ bargap: 0.15 }), plotConfig
     );
   }
 }
