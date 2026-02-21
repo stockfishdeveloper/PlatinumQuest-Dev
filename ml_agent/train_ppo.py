@@ -336,7 +336,7 @@ class PPOServer:
 
         # Model and trainer
         self.model = ActorCritic(obs_dim=61, n_actions=9)  # 9 discrete actions: Idle,F,B,L,R,FL,FR,BL,BR
-        self.trainer = PPOTrainer(self.model)
+        self.trainer = PPOTrainer(self.model, vf_clip=100.0)
         self.buffer = RolloutBuffer()
 
         # Training config
@@ -641,6 +641,23 @@ class PPOServer:
                 gem0_z = raw_obs[15] if len(raw_obs) > 15 else -1
                 cam_yaw = raw_obs[6] if len(raw_obs) > 6 else -999
                 self.log(f"  [DIAG-GEM] step={self.total_steps} gem0_dist={gem0_dist:.1f} gem0_rel=({gem0_x:.1f},{gem0_y:.1f},{gem0_z:.1f}) camYaw={cam_yaw:.2f}rad reward={reward:.2f}")
+
+            # [DIAG-ROT] Rotation sanity check — every 5000 steps, reverse-rotate
+            # gem cam-rel back to world coords and compare to previous sample.
+            # If rotation is correct AND yaw is ~0, gem_world should match worldRel
+            # directly (identity transform). Any offset means yaw!=0 or wrong formula.
+            if self.total_steps % 5000 == 0:
+                raw_obs = np.array(obs, dtype=np.float32)
+                yaw = raw_obs[6]
+                mx, my = raw_obs[0], raw_obs[1]
+                cx, cy = raw_obs[13], raw_obs[14]
+                d = raw_obs[17]
+                if d > 0 and d < 900:
+                    cos_y, sin_y = np.cos(yaw), np.sin(yaw)
+                    # Inverse of: camX = relX*cos - relY*sin, camY = relX*sin + relY*cos
+                    wx = cx * cos_y + cy * sin_y + mx
+                    wy = -cx * sin_y + cy * cos_y + my
+                    self.log(f"  [DIAG-ROT] step={self.total_steps} yaw={yaw:.4f}({np.degrees(yaw):.1f}deg) gem_world=({wx:.1f},{wy:.1f}) marble=({mx:.1f},{my:.1f}) camRel=({cx:.1f},{cy:.1f})")
 
             # Normalize observation before passing to network.
             # Raw obs contains -999 sentinels (empty gem/opponent slots) and

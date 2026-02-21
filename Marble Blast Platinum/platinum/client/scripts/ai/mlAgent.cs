@@ -8,6 +8,7 @@ $MLAgent::Enabled = false;
 $MLAgent::UpdateInterval = 16; // 60 Hz (16ms) - matches game physics tick rate
 $MLAgent::AutoStart = true;  // Auto-start when Hunt mode begins
 $MLAgent::TrainingSpeed = 3.0;  // Game speed multiplier (1.0 = normal, 3.0 = 3x speed, etc.)
+$MLAgent::DiagnosticMode = false; // When true: send obs but don't execute actions or change speed
 
 // Reward tracking
 $MLAgent::LastGemScore = 0;
@@ -42,9 +43,13 @@ function MLAgent::startLoop() {
     $MLAgent::StepCount = 0;
     $MLAgent::EpisodeStartTime = getRealTime();
 
-    // Speed up game simulation for faster training
-    setTimeScale($MLAgent::TrainingSpeed);
-    echo("MLAgent: Set game speed to " @ $MLAgent::TrainingSpeed @ "x for faster training");
+    // Speed up game simulation for faster training (skip in diagnostic mode)
+    if (!$MLAgent::DiagnosticMode) {
+        setTimeScale($MLAgent::TrainingSpeed);
+        echo("MLAgent: Set game speed to " @ $MLAgent::TrainingSpeed @ "x for faster training");
+    } else {
+        echo("MLAgent: DIAGNOSTIC MODE — normal speed, player controls marble");
+    }
 
     // Initialize reward tracking
     $MLAgent::LastGemScore = PlayGui.gemCount;
@@ -54,6 +59,7 @@ function MLAgent::startLoop() {
     $MLAgent::WasOOB = false;
     $MLAgent::EpisodeShouldEnd = false;
     $MLAgent::NoGemSteps = 0;
+    $MLAgent::TimerStarted = false;
 
     MLAgent::update();
 }
@@ -89,7 +95,8 @@ function MLAgent::update() {
     }
 
     // Enforce time scale every update (game code may reset it)
-    if (getTimeScale() != $MLAgent::TrainingSpeed) {
+    // Skip in diagnostic mode — player controls game speed
+    if (!$MLAgent::DiagnosticMode && getTimeScale() != $MLAgent::TrainingSpeed) {
         setTimeScale($MLAgent::TrainingSpeed);
     }
 
@@ -98,6 +105,21 @@ function MLAgent::update() {
         // Not in game, try again later
         $MLAgent::UpdateSchedule = schedule($MLAgent::UpdateInterval, 0, "MLAgent::update");
         return;
+    }
+
+    // Wait for the timer to actually start before collecting observations.
+    // After restartLevel, there's a brief window where $Game::Running is true
+    // but the timer still shows 300,000ms (expired from last round). Steps
+    // taken during this dead zone produce garbage data (marble at origin,
+    // zero velocity, expired timer). Wait until currentTime < total time.
+    // Only applies at episode start — once we've seen a valid timer, we let
+    // the episode run to natural completion and send done=1 normally.
+    if (!$MLAgent::TimerStarted && isObject(MissionInfo) && MissionInfo.time > 0) {
+        if (PlayGui.currentTime >= MissionInfo.time) {
+            $MLAgent::UpdateSchedule = schedule($MLAgent::UpdateInterval, 0, "MLAgent::update");
+            return;
+        }
+        $MLAgent::TimerStarted = true;
     }
 
     // 1. Collect observation
@@ -133,8 +155,8 @@ function MLAgent::update() {
     AIBridge::sendState(%msg);
     %actionStr = $AIBridge::LastAction;
 
-    // 6. Parse and execute action
-    if (%actionStr !$= "") {
+    // 6. Parse and execute action (skip in diagnostic mode — player controls marble)
+    if (%actionStr !$= "" && !$MLAgent::DiagnosticMode) {
         MLAgent::executeAction(%actionStr);
     }
 
@@ -189,11 +211,13 @@ function MLAgent::computeReward(%obs) {
 
     // 2. Distance-based potential shaping: smooth reward gradient toward gem
     // Formula: reward = P(new_dist) - P(old_dist)
-    // Potential function: P(d) = 20 / (1 + d/50) (Reduced from 500)
-    //   - At typical distances (5-30 units), moving 0.3 units/tick → shaping ~0.02-0.12/step.
-    //   - After 0.1 reward_scale: 0.002-0.012 in buffer — barely audible whisper.
-    //   - History: scale=500 drowned out the sparse gem reward.
-    //     scale=20 provides a tiny directional hint but forces agent to rely on +200 gem signal.
+    // Potential function: P(d) = 20 / (1 + d/5)
+    //   - Steeper than old d/50 to create a strong "last mile" signal.
+    //   - At d=30, moving 0.3 closer → shaping ~0.24/step (moderate pull from afar).
+    //   - At d=2, moving 0.3 closer → shaping ~0.95/step (strong "go get it" signal).
+    //   - At d=1, moving 0.3 closer → shaping ~1.39/step (very strong close-range pull).
+    //   - Old d/50 gave ~0.03/step everywhere — too flat, agent jittered near gems.
+    //   - Still potential-based (P(s')-P(s)), so cannot be "farmed" by oscillating.
     //   - The 20-step grace period after gem collection prevents sign-flip thrashing.
     %nearestDist = %obs.gem[0, "distance"];
     if (%nearestDist > 0 && %nearestDist < 900) { // Not a sentinel value
@@ -204,8 +228,8 @@ function MLAgent::computeReward(%obs) {
             if ($MLAgent::SkipPotentialSteps == 19 || $MLAgent::SkipPotentialSteps == 0)
                 echo("MLAgent: [DIAG-SHAPE] SKIP potential step=" @ $MLAgent::StepCount @ " remaining=" @ $MLAgent::SkipPotentialSteps @ " dist=" @ %nearestDist);
         } else {
-            %currentPotential = 20 / (1 + %nearestDist / 50);
-            %lastPotential = 20 / (1 + $MLAgent::LastNearestGemDist / 50);
+            %currentPotential = 20 / (1 + %nearestDist / 5);
+            %lastPotential = 20 / (1 + $MLAgent::LastNearestGemDist / 5);
             %shapingReward = %currentPotential - %lastPotential;
             %reward += %shapingReward;
             // [DIAG] Log shaping reward every 200 steps and whenever it's large
@@ -255,11 +279,10 @@ function MLAgent::checkDone() {
     // Episode ends when:
 
     // 1. Time runs out (Hunt mode: currentTime counts UP from 0)
-    //    Minimum 100 steps (~1.6s real time) prevents micro-episodes at round
-    //    boundaries where the timer is expired during scoreboard/restart.
-    //    These "NEUTRAL rwd=-2.2" episodes waste ~50% of training signal.
+    //    The dead-zone guard in update() prevents observations before the timer
+    //    starts, so we only need a small safety margin (10 steps) here.
     if (isObject(MissionInfo) && MissionInfo.time > 0) {
-        if (PlayGui.currentTime >= MissionInfo.time && $MLAgent::StepCount > 100) {
+        if (PlayGui.currentTime >= MissionInfo.time && $MLAgent::StepCount > 10) {
             return 1;
         }
     }
@@ -273,7 +296,13 @@ function MLAgent::checkDone() {
     }
 
     // 3. All gems collected (rare but possible)
-    if (PlayGui.gemCount >= PlayGui.maxGems && PlayGui.maxGems > 0) {
+    //    Guard with StepCount > 10 to prevent episode flooding during Hunt round
+    //    transitions. When a round ends and restartLevel() fires, the server resets
+    //    gemCount to 0 via resetStats(), but the client-side PlayGui.gemCount lags
+    //    behind (needs a network message to propagate). At 3x speed the ML agent
+    //    checks checkDone() faster than the counter resets, creating hundreds of
+    //    1-step zero-reward episodes that destroy the reward history.
+    if (PlayGui.gemCount >= PlayGui.maxGems && PlayGui.maxGems > 0 && $MLAgent::StepCount > 10) {
         return 1;
     }
 
@@ -298,6 +327,7 @@ function MLAgent::resetEpisode() {
     $MLAgent::EpisodeReward = 0;
     $MLAgent::WasOOB = false;
     $MLAgent::NoGemSteps = 0;
+    $MLAgent::TimerStarted = false;
 }
 
 //------------------------------------------------------------------------------
@@ -467,4 +497,17 @@ function testOOB() {
     echo("Calling MLAgent::onOOB() directly...");
     MLAgent::onOOB();
     echo("Test complete.");
+}
+
+// Enable diagnostic mode: observations are sent to Python but you control the marble.
+// Run this in the game console BEFORE the Hunt round starts.
+// Then start python diagnostic.py and play normally.
+function MLAgent::enableDiagnostic() {
+    $MLAgent::DiagnosticMode = true;
+    $MLAgent::AutoStart = true;
+    setTimeScale(1.0);
+    echo("=== DIAGNOSTIC MODE ENABLED ===");
+    echo("Observations will be sent to Python server but YOU control the marble.");
+    echo("Start: python diagnostic.py");
+    echo("Then start a Hunt round normally.");
 }

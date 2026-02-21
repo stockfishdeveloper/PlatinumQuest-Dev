@@ -75,8 +75,9 @@ function AIObserver::collectSelfState(%obs) {
     %yawRad = %obs.cameraYaw;
     %cosYaw = mCos(%yawRad);
     %sinYaw = mSin(%yawRad);
-    %obs.selfVelX = %worldVelX * %cosYaw + %worldVelY * %sinYaw;
-    %obs.selfVelY = -%worldVelX * %sinYaw + %worldVelY * %cosYaw;
+    // Camera right = (cos(yaw), -sin(yaw)), forward = (sin(yaw), cos(yaw))
+    %obs.selfVelX = %worldVelX * %cosYaw - %worldVelY * %sinYaw;
+    %obs.selfVelY = %worldVelX * %sinYaw + %worldVelY * %cosYaw;
     %obs.selfVelZ = getWord(%vel, 2) + 0;
 
     // Collision radius (1) - just get X component of scale vector
@@ -151,21 +152,13 @@ function AIObserver::collectGems(%obs) {
         }
 
         if (isObject(%obj) && !%obj.isHidden()) {
-                // Get item type from datablock - accept all items for now
+                // Only accept items whose datablock classname is "Gem"
+                // This matches the check in makeGemGroup (huntGems.cs line 979)
+                // and filters out powerups, BackupGems, and any other non-gem Items
                 %datablock = %obj.getDatablock();
+                %isGem = (isObject(%datablock) && %datablock.classname $= "Gem");
 
-                // Skip if this is clearly a powerup (has specific powerup datablocks)
-                %dbName = %datablock.getName();
-                %isPowerup = (stristr(%dbName, "SuperSpeed") >= 0) ||
-                             (stristr(%dbName, "SuperJump") >= 0) ||
-                             (stristr(%dbName, "Shock") >= 0) ||
-                             (stristr(%dbName, "Helicopter") >= 0) ||
-                             (stristr(%dbName, "Gravity") >= 0) ||
-                             (stristr(%dbName, "MegaMarble") >= 0) ||
-                             (stristr(%dbName, "Blast") >= 0) ||
-                             (stristr(%dbName, "TimeTravel") >= 0);
-
-                if (!%isPowerup) {
+                if (%isGem) {
                     %pos = %obj.getPosition();
                     %gemX = getWord(%pos, 0);
                     %gemY = getWord(%pos, 1);
@@ -176,10 +169,16 @@ function AIObserver::collectGems(%obs) {
                     %relY = %gemY - %myPosY;
                     %relZ = %gemZ - %myPosZ;
 
+                    // DIAGNOSTIC: stash first gem's world position for logging
+                    if (%gemCount == 0 && $AIObserver::FrameCount % 30 == 1) {
+                        echo("[DIAG-OBS] gem0_WORLD=(" @ mFloor(%gemX*10)/10 SPC mFloor(%gemY*10)/10 SPC mFloor(%gemZ*10)/10
+                            @ ") worldRel=(" @ mFloor(%relX*10)/10 SPC mFloor(%relY*10)/10 SPC mFloor(%relZ*10)/10 @ ")");
+                    }
+
                     // Rotate into camera space so relX = camera-right, relY = camera-forward.
-                    // This aligns gem directions with the F/B/L/R action axes.
-                    %camRelX = %relX * %cosYaw + %relY * %sinYaw;
-                    %camRelY = -%relX * %sinYaw + %relY * %cosYaw;
+                    // Camera right = (cos(yaw), -sin(yaw)), forward = (sin(yaw), cos(yaw))
+                    %camRelX = %relX * %cosYaw - %relY * %sinYaw;
+                    %camRelY = %relX * %sinYaw + %relY * %cosYaw;
 
                     // Distance (same in both frames)
                     %dist = mSqrt(%relX * %relX + %relY * %relY + %relZ * %relZ);
@@ -208,6 +207,17 @@ function AIObserver::collectGems(%obs) {
     $AIObserver::FrameCount++;
     if ($AIObserver::FrameCount % 100 == 0) {
         echo("AIObserver: Found" SPC %gemCount SPC "gems this frame");
+    }
+
+    // DIAGNOSTIC: every 30 frames, log raw world + camera-relative for gem 0
+    // Also stash raw world-space gem data for diagnostic comparison
+    if ($AIObserver::FrameCount % 30 == 1 && %gemCount > 0) {
+        echo("[DIAG-OBS] marble=(" @ mFloor(%myPosX*10)/10 SPC mFloor(%myPosY*10)/10 SPC mFloor(%myPosZ*10)/10
+            @ ") yaw=" @ mFloor($cameraYaw * 1000)/1000 @ "rad=" @ mFloor($cameraYaw * 180 / 3.14159) @ "deg");
+        echo("[DIAG-OBS] gem0_camRel right=" @ mFloor(%obs.gemTemp[0, "x"]*10)/10
+            @ " fwd=" @ mFloor(%obs.gemTemp[0, "y"]*10)/10
+            @ " up=" @ mFloor(%obs.gemTemp[0, "z"]*10)/10
+            @ " dist=" @ mFloor(%obs.gemTemp[0, "distance"]*10)/10);
     }
 
     // Sort gems by distance (nearest first) - using bubble sort on temp storage
@@ -278,8 +288,9 @@ function AIObserver::collectOpponents(%obs) {
             %relZ = %oppPosZ - %myPosZ;
 
             // Rotate into camera space
-            %camRelX = %relX * %cosYaw + %relY * %sinYaw;
-            %camRelY = -%relX * %sinYaw + %relY * %cosYaw;
+            // Camera right = (cos(yaw), -sin(yaw)), forward = (sin(yaw), cos(yaw))
+            %camRelX = %relX * %cosYaw - %relY * %sinYaw;
+            %camRelY = %relX * %sinYaw + %relY * %cosYaw;
 
             // Relative velocity (world space, planar only)
             %oppVel = %player.getVelocity();
@@ -288,8 +299,9 @@ function AIObserver::collectOpponents(%obs) {
             %velY = getWord(%oppVel, 1) - getWord(%myVel, 1);
 
             // Rotate velocity into camera space too
-            %camVelX = %velX * %cosYaw + %velY * %sinYaw;
-            %camVelY = -%velX * %sinYaw + %velY * %cosYaw;
+            // Camera right = (cos(yaw), -sin(yaw)), forward = (sin(yaw), cos(yaw))
+            %camVelX = %velX * %cosYaw - %velY * %sinYaw;
+            %camVelY = %velX * %sinYaw + %velY * %cosYaw;
 
             // Mega marble status
             %isMega = %player.isMegaMarble() ? 1 : 0;
