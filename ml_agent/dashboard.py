@@ -8,6 +8,7 @@ import json
 import sys
 import time
 import threading
+import numpy as np
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 
 DASHBOARD_PORT = 8889
@@ -131,6 +132,7 @@ class DashboardServer:
             'dry_rollouts': [],
             'timestamps': [],
             'total_no_gem_steps': [],
+            'avg_ep_len': [],
             'action_pcts_history': [],  # list of 9-element lists
         }
         self._server = None
@@ -165,6 +167,8 @@ class DashboardServer:
             for c in counts
         ]
 
+        avg_ep_len = float(np.mean(s.recent_episode_lengths)) if s.recent_episode_lengths else 0
+
         snap = {
             'update': s.total_updates,
             'timestamp': time.time(),
@@ -191,6 +195,7 @@ class DashboardServer:
             'action_names': ['Idle', 'Fwd', 'Back', 'Left', 'Right', 'FL', 'FR', 'BL', 'BR'],
             'recent_rewards': [round(float(r), 1) for r in list(s.episode_rewards)[-20:]],
             'recent_episode_gems': list(s.recent_episode_gems),
+            'avg_ep_len': round(avg_ep_len, 1),
             'rollout_size': s.rollout_size,
             'batch_size': s.batch_size,
             'n_epochs': s.n_epochs,
@@ -221,6 +226,7 @@ class DashboardServer:
             h['dry_rollouts'].append(snap['dry_rollouts'])
             h['timestamps'].append(snap['timestamp'])
             h['total_no_gem_steps'].append(snap['total_no_gem_steps'])
+            h['avg_ep_len'].append(snap['avg_ep_len'])
             h['action_pcts_history'].append(action_pcts)
 
             # Cap history to prevent unbounded memory growth
@@ -358,7 +364,7 @@ body { background: var(--bg); color: var(--text); font-family: 'Consolas', 'SF M
   <div class="chart-card"><div class="chart-title">Entropy (exploration health)</div><div id="c-entropy" style="height:220px"></div></div>
   <div class="chart-card"><div class="chart-title">Gems Per Episode (last 100)</div><div id="c-epgems" style="height:220px"></div></div>
   <div class="chart-card"><div class="chart-title">OOB Events Per Rollout</div><div id="c-oob" style="height:220px"></div></div>
-  <div class="chart-card"><div class="chart-title">No-Gem Step % (cumulative)</div><div id="c-nogem" style="height:220px"></div></div>
+  <div class="chart-card"><div class="chart-title">Avg Episode Length (steps)</div><div id="c-eplen" style="height:220px"></div></div>
   <div class="chart-card"><div class="chart-title">Training Throughput (steps/sec)</div><div id="c-throughput" style="height:220px"></div></div>
 </div>
 
@@ -435,14 +441,14 @@ Plotly.newPlot('c-epgems', [
   { x: [], y: [], type: 'bar', marker: { color: '#f0c040' } }
 ], darkLayout({ bargap: 0.15 }), plotConfig);
 
-// 10. OOB per rollout
+// 10. OOB per rollout (line chart for smooth extendTraces)
 Plotly.newPlot('c-oob', [
-  { x: [], y: [], type: 'bar', marker: { color: '#f85149' } }
-], darkLayout({ bargap: 0.3 }), plotConfig);
+  { x: [], y: [], type: 'scatter', mode: 'lines', line: { color: '#f85149', width: 1.5 } }
+], darkLayout(), plotConfig);
 
-// 11. No-gem %
-Plotly.newPlot('c-nogem', [
-  { x: [], y: [], type: 'scatter', mode: 'lines', line: { color: '#d29922', width: 1.5 } }
+// 11. Avg Episode Length (key metric — flood bug detection)
+Plotly.newPlot('c-eplen', [
+  { x: [], y: [], type: 'scatter', mode: 'lines', line: { color: '#bc8cff', width: 2 } }
 ], darkLayout(), plotConfig);
 
 // 12. Throughput
@@ -486,11 +492,10 @@ async function loadHistory() {
     // OOB
     Plotly.extendTraces('c-oob', { x: [xs], y: [h.rollout_oob] }, [0]);
 
-    // No-gem %
-    const nogemPct = h.total_no_gem_steps.map((ng, i) =>
-      h.total_steps[i] > 0 ? (ng / h.total_steps[i] * 100) : 0
-    );
-    Plotly.extendTraces('c-nogem', { x: [xs], y: [nogemPct] }, [0]);
+    // Avg Episode Length
+    if (h.avg_ep_len) {
+      Plotly.extendTraces('c-eplen', { x: [xs], y: [h.avg_ep_len] }, [0]);
+    }
 
     // Throughput
     if (h.timestamps.length > 1) {
@@ -577,9 +582,8 @@ function updateDashboard(snap) {
   Plotly.extendTraces('c-gemshr', { x: [[x]], y: [[snap.gems_per_hr]] }, [0]);
   Plotly.extendTraces('c-oob', { x: [[x]], y: [[snap.rollout_oob]] }, [0]);
 
-  // No-gem %
-  const nogemPct = snap.total_steps > 0 ? (snap.total_no_gem_steps / snap.total_steps * 100) : 0;
-  Plotly.extendTraces('c-nogem', { x: [[x]], y: [[nogemPct]] }, [0]);
+  // Avg Episode Length
+  Plotly.extendTraces('c-eplen', { x: [[x]], y: [[snap.avg_ep_len]] }, [0]);
 
   // Throughput
   if (prevTimestamp !== null) {

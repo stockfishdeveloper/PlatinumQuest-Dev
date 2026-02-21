@@ -437,8 +437,9 @@ class PPOServer:
         self.episode_no_gem_steps = 0  # per-episode total
         self.no_gem_events = 0       # number of no-gem gaps
 
-        # Rolling 100-episode gem points (for gems/episode trend on dashboard)
+        # Rolling 100-episode gem points and lengths (for dashboard + flood detection)
         self.recent_episode_gems = deque(maxlen=100)
+        self.recent_episode_lengths = deque(maxlen=100)
 
         # Socket setup
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -612,90 +613,26 @@ class PPOServer:
 
             # Debug first message
             if self.total_steps == 0:
-                self.log(f"First observation: {len(obs)} dims")
                 raw = np.array(obs, dtype=np.float32)
-                self.log(f"First obs raw min={raw.min():.1f} max={raw.max():.1f} mean={raw.mean():.1f}")
-                self.log(f"First reward: {reward}")
-                self.log(f"First done: {done}")
-                # [DIAG-CAM] Verify camera yaw is in radians (should be ±pi range, NOT ±360)
-                cam_yaw = raw[6] if len(raw) > 6 else -999
-                cam_pitch = raw[7] if len(raw) > 7 else -999
-                self.log(f"  [DIAG-CAM] Initial cameraYaw={cam_yaw:.4f} cameraPitch={cam_pitch:.4f} (expect radians: yaw in ±3.14, pitch in ±1.57)")
+                self.log(f"First obs: {len(obs)} dims | raw min={raw.min():.1f} max={raw.max():.1f} | yaw={raw[6]:.4f}rad")
 
-            # [NO-GEM] Track steps where no gem exists on the map (sentinel distance)
+            # Track no-gem steps (sentinel distance at index 17)
             raw_gem0_dist = obs[17] if len(obs) > 17 else -1
             if raw_gem0_dist < -500:
                 if self.no_gem_steps == 0:
                     self.no_gem_events += 1
-                    self.log(f"  [NO-GEM] Gap #{self.no_gem_events} started at step={self.total_steps} ep={self.total_episodes+1}")
                 self.no_gem_steps += 1
                 self.total_no_gem_steps += 1
                 self.episode_no_gem_steps += 1
             elif self.no_gem_steps > 0:
-                self.log(f"  [NO-GEM] Gap #{self.no_gem_events} ended after {self.no_gem_steps} steps (step={self.total_steps})")
                 self.no_gem_steps = 0
 
-            # [DIAG] Log gem distance + camera yaw from raw obs every 500 steps
-            # Gem slot 0 distance is at index 17 (13 + 0*5 + 4)
-            if self.total_steps % 500 == 0:
-                raw_obs = np.array(obs, dtype=np.float32)
-                gem0_dist = raw_obs[17] if len(raw_obs) > 17 else -1
-                gem0_x = raw_obs[13] if len(raw_obs) > 13 else -1
-                gem0_y = raw_obs[14] if len(raw_obs) > 14 else -1
-                gem0_z = raw_obs[15] if len(raw_obs) > 15 else -1
-                cam_yaw = raw_obs[6] if len(raw_obs) > 6 else -999
-                self.log(f"  [DIAG-GEM] step={self.total_steps} gem0_dist={gem0_dist:.1f} gem0_rel=({gem0_x:.1f},{gem0_y:.1f},{gem0_z:.1f}) camYaw={cam_yaw:.2f}rad reward={reward:.2f}")
-
-            # [DIAG-ROT] Rotation sanity check — every 5000 steps, reverse-rotate
-            # gem cam-rel back to world coords and compare to previous sample.
-            # If rotation is correct AND yaw is ~0, gem_world should match worldRel
-            # directly (identity transform). Any offset means yaw!=0 or wrong formula.
-            if self.total_steps % 5000 == 0:
-                raw_obs = np.array(obs, dtype=np.float32)
-                yaw = raw_obs[6]
-                mx, my = raw_obs[0], raw_obs[1]
-                cx, cy = raw_obs[13], raw_obs[14]
-                d = raw_obs[17]
-                if d > 0 and d < 900:
-                    cos_y, sin_y = np.cos(yaw), np.sin(yaw)
-                    # Inverse of: camX = relX*cos - relY*sin, camY = relX*sin + relY*cos
-                    wx = cx * cos_y + cy * sin_y + mx
-                    wy = -cx * sin_y + cy * cos_y + my
-                    self.log(f"  [DIAG-ROT] step={self.total_steps} yaw={yaw:.4f}({np.degrees(yaw):.1f}deg) gem_world=({wx:.1f},{wy:.1f}) marble=({mx:.1f},{my:.1f}) camRel=({cx:.1f},{cy:.1f})")
-
-            # Normalize observation before passing to network.
-            # Raw obs contains -999 sentinels (empty gem/opponent slots) and
-            # millisecond time values (0-120000), which cause the critic to
-            # output values in the thousands even with fresh random weights,
-            # flooding the network with enormous gradients on the first update.
+            # Normalize observation
             obs_array = self.normalize_obs(np.array(obs, dtype=np.float32))
-
-            if self.total_steps == 0:
-                self.log(f"First obs normalized min={obs_array.min():.3f} max={obs_array.max():.3f} mean={obs_array.mean():.3f}")
-                # [DIAG-SENTINEL] Verify sentinel fix: show normalized gem slots
-                raw = np.array(obs, dtype=np.float32)
-                for gi in range(5):
-                    b = 13 + gi * 5
-                    raw_dist = raw[b+4] if len(raw) > b+4 else -1
-                    nb = 13 + gi * 5  # same offset in normalized array
-                    self.log(f"  [DIAG-SENTINEL] gem{gi}: raw_dist={raw_dist:.1f} -> norm=({obs_array[nb]:.3f},{obs_array[nb+1]:.3f},{obs_array[nb+2]:.3f}) val={obs_array[nb+3]:.3f} dist={obs_array[nb+4]:.3f}"
-                             f" {'(ABSENT->far)' if raw_dist < -500 else '(present)'}")
-                # [DIAG-ACTION] Verify Categorical action space
-                self.log(f"  [DIAG-ACTION] Model output type: Categorical(9), max_entropy=ln(9)={2.197:.3f}")
 
             action, log_prob, value = self.model.get_action(obs_array)
             self.recent_actions.append(action)
             self.rollout_action_counts[action] += 1
-
-            # [DIAG-ACTION] Log first 5 actions to verify mapping
-            if self.total_steps < 5:
-                binary = ActorCritic.ACTION_MAP[action]
-                self.log(f"  [DIAG-ACTION] step={self.total_steps} action={action} ({ActorCritic.ACTION_NAMES[action]}) -> binary=F:{binary[0]} B:{binary[1]} L:{binary[2]} R:{binary[3]} logprob={log_prob:.3f}")
-
-            # Warn if first step of a new episode carries a suspiciously large reward
-            # (indicates the sentinel-spike fix is not working or a new source of initial reward)
-            if self.episode_step == 0 and self.total_episodes > 0 and abs(reward) > 1.0:
-                self.log(f"  WARN: large first-step reward {reward:.2f} at ep={self.total_episodes+1} — check sentinel spike fix")
 
             # Track events
             if gem_delta > 0:
@@ -703,14 +640,10 @@ class PPOServer:
                 self.rollout_gem_pts += int(gem_delta)
                 self.total_gem_pts += int(gem_delta)
                 self.log(f"[GEM] ep={self.total_episodes+1} step={self.total_steps} +{gem_delta:.0f}pts | ep_total={self.current_episode_reward + reward:.1f}")
-            if reward < -20:  # OOB penalty (-25) from game
+            if reward < -20:  # OOB penalty (-25)
                 self.episode_oob += 1
                 self.rollout_oob += 1
                 self.total_oob += 1
-                # Log raw obs position to verify OOB credit assignment (should show edge pos, not spawn)
-                raw_obs = np.array(obs, dtype=np.float32)
-                self.log(f"[OOB] ep={self.total_episodes+1} step={self.total_steps} | penalty={reward:.1f} | ep_so_far={self.current_episode_reward:.1f}")
-                self.log(f"  [DIAG-OOB] obs_pos=({raw_obs[0]:.1f}, {raw_obs[1]:.1f}, {raw_obs[2]:.1f}) | obs_vel=({raw_obs[3]:.1f}, {raw_obs[4]:.1f}, {raw_obs[5]:.1f})")
             if reward > 0.1:
                 self.rollout_positive += 1
             self.rollout_steps += 1
@@ -730,14 +663,14 @@ class PPOServer:
                 self.total_episodes += 1
                 self.episode_rewards.append(self.current_episode_reward)
                 self.recent_episode_gems.append(self.episode_gem_pts)
+                self.recent_episode_lengths.append(self.episode_step)
                 avg_reward = np.mean(self.episode_rewards) if self.episode_rewards else 0
                 outcome = "SUCCESS" if self.current_episode_reward > 100 else "FAIL" if self.current_episode_reward < -20 else "NEUTRAL"
-                oob_str = f" | OOB={self.episode_oob}" if self.episode_oob else ""
-                gems_str = f" | gems={self.episode_gem_pts}pts" if self.episode_gem_pts else ""
-                nogem_str = f" | noGem={self.episode_no_gem_steps}steps" if self.episode_no_gem_steps else ""
-                self.log(f"Ep {self.total_episodes} [{outcome}] rwd={self.current_episode_reward:.1f}{gems_str}{oob_str}{nogem_str} | avg100={avg_reward:.1f} | val={value:.3f}")
-                if self.current_episode_reward > 50:
-                    self.log(f"  *** SUCCESS: {self.episode_gem_pts}pts in this episode ***")
+                oob_str = f" OOB={self.episode_oob}" if self.episode_oob else ""
+                gems_str = f" gems={self.episode_gem_pts}pts" if self.episode_gem_pts else ""
+                self.log(f"Ep {self.total_episodes} [{outcome}] rwd={self.current_episode_reward:.1f}{gems_str}{oob_str} steps={self.episode_step} | avg100={avg_reward:.1f}")
+                if self.episode_step <= 15:
+                    self.log(f"  *** SHORT EPISODE ({self.episode_step} steps) — flood bug may still be active ***")
                 self.current_episode_reward = 0
                 self.episode_gem_pts = 0
                 self.episode_oob = 0
@@ -774,28 +707,13 @@ class PPOServer:
         self.entropy_history.append(stats['entropy'])
 
         avg_reward = np.mean(self.episode_rewards) if self.episode_rewards else 0
-        pos_pct = (self.rollout_positive / max(self.rollout_steps, 1)) * 100
 
-        # Detect entropy collapse
-        # Max entropy for Categorical(9) = ln(9) ≈ 2.197
+        # Detect entropy collapse (max for Categorical(9) = ln(9) ≈ 2.197)
         collapse_warn = ""
         if stats['entropy'] < 0.5:
             collapse_warn = " *** ENTROPY COLLAPSE ***"
         elif stats['entropy'] < 1.0:
             collapse_warn = " (entropy low)"
-
-        # Reward distribution for this rollout
-        rollout_rewards = self.buffer.rewards[-self.rollout_steps:] if self.rollout_steps > 0 else []
-        if rollout_rewards:
-            rr = np.array(rollout_rewards)
-            rr_unscaled = rr / self.reward_scale  # undo scaling to show raw values
-            # No time penalty; shaping is the dominant per-step signal
-            above_baseline = rr_unscaled > 0.1    # positive shaping (moving toward gem)
-            below_baseline = rr_unscaled < -0.1  # negative shaping (moving away from gem)
-            big_pos = rr_unscaled > 5.0    # gem collection
-            big_neg = rr_unscaled < -20.0  # OOB (-25 raw)
-            self.log(f"  [DIAG-RWD] rollout: min={rr_unscaled.min():.1f} max={rr_unscaled.max():.2f} mean={rr_unscaled.mean():.3f} | "
-                     f"above_baseline={above_baseline.sum()} below_baseline={below_baseline.sum()} big_pos={big_pos.sum()} big_neg={big_neg.sum()}")
 
         # Dry-rollout tracking
         if self.rollout_gem_pts == 0:
@@ -803,35 +721,35 @@ class PPOServer:
         else:
             self.dry_rollouts = 0
 
-        dry_warn = f" *** DRY x{self.dry_rollouts} ***" if self.dry_rollouts >= 5 else ""
+        dry_warn = f" DRY×{self.dry_rollouts}" if self.dry_rollouts >= 5 else ""
 
-        # Action distribution: % of steps each categorical action was chosen
+        # Average episode length (key metric for flood bug detection)
+        avg_ep_len = np.mean(self.recent_episode_lengths) if self.recent_episode_lengths else 0
+
+        # Action distribution
         n = max(self.rollout_steps, 1)
         act_pct = self.rollout_action_counts / n * 100
         names = ActorCritic.ACTION_NAMES
         act_str = " ".join(f"{names[i]}:{act_pct[i]:.0f}%" for i in range(9))
 
         # Compact per-update line
-        gems_str = f" gems={self.rollout_gem_pts}pts" if self.rollout_gem_pts else " gems=0"
+        gems_str = f" gems={self.rollout_gem_pts}" if self.rollout_gem_pts else ""
         oob_str  = f" OOB={self.rollout_oob}" if self.rollout_oob else ""
         self.log(
             f"Upd {self.total_updates:4d} | "
-            f"PLoss={stats['policy_loss']:.4f} | "
-            f"VLoss={stats['value_loss']:.4f} | "
-            f"Ent={stats['entropy']:.3f}{collapse_warn} | "
-            f"GradN={stats['grad_norm']:.3f} | "
-            f"AvgRwd={avg_reward:.1f} | "
-            f"+rwd={pos_pct:.1f}% |"
+            f"PL={stats['policy_loss']:.4f} VL={stats['value_loss']:.4f} "
+            f"Ent={stats['entropy']:.3f} GN={stats['grad_norm']:.3f} | "
+            f"AvgRwd={avg_reward:.1f} AvgLen={avg_ep_len:.0f}{collapse_warn} |"
             f"{gems_str}{oob_str}{dry_warn}"
         )
-        self.log(f"       Actions: {act_str}")
+        self.log(f"       {act_str}")
 
-        # Repetitive action warning
-        if len(self.recent_actions) >= 10:
-            recent_list = list(self.recent_actions)
-            unique_actions = len(set(recent_list))
-            if unique_actions <= 2:
-                self.log(f"  WARNING: repetitive actions! Recent: {recent_list[-5:]}")
+        # Push to live dashboard BEFORE resetting rollout counters
+        # (snapshot reads rollout_gem_pts, rollout_oob, etc.)
+        try:
+            self.dashboard.push_snapshot(stats, avg_reward)
+        except Exception as e:
+            self.log(f"Dashboard push error: {e}")
 
         # Reset rollout counters
         self.rollout_gem_pts = 0
@@ -855,44 +773,16 @@ class PPOServer:
             elapsed_hrs = (time.time() - self.run_start_time) / 3600
             gems_hr = self.total_gem_pts / max(elapsed_hrs, 1/3600)
 
-            entropy_trend = ""
-            if len(self.entropy_history) >= 5:
-                recent = list(self.entropy_history)
-                if recent[-1] < recent[0] - 0.5:
-                    entropy_trend = " (falling)"
-                elif recent[-1] > recent[0] + 0.5:
-                    entropy_trend = " (rising)"
-
-            self.log(f"\n{'#' * 55}")
-            self.log(f"TRAINING SUMMARY - Update {self.total_updates}")
-            self.log(f"{'#' * 55}")
-            self.log(f"  Steps: {self.total_steps:,} | Episodes: {self.total_episodes} | Time: {elapsed_hrs:.2f}h")
-            self.log(f"  Gems: {self.total_gem_pts}pts total | {gems_hr:.1f} pts/hr | OOB lifetime: {self.total_oob}")
-            nogem_pct = (self.total_no_gem_steps / max(self.total_steps, 1)) * 100
-            self.log(f"  NoGem: {self.total_no_gem_steps} steps ({nogem_pct:.1f}%) | {self.no_gem_events} gaps")
-            self.log(f"  AvgRwd: {avg_reward:.2f} | Best: {self.best_avg_reward:.2f}")
-            self.log(f"  Entropy: {stats['entropy']:.4f}{entropy_trend}{collapse_warn}")
-            self.log(f"  GradNorm: {stats['grad_norm']:.4f} | VLoss: {stats['value_loss']:.6f} | PLoss: {stats['policy_loss']:.6f}")
-            if len(self.episode_rewards) >= 2:
-                recent_10 = list(self.episode_rewards)[-10:]
-                self.log(f"  Last 10 rewards: {[f'{r:.0f}' for r in recent_10]}")
+            self.log(f"\n--- SUMMARY Upd {self.total_updates} | {elapsed_hrs:.2f}h | {self.total_steps:,} steps | {self.total_episodes} eps ---")
+            self.log(f"  Gems: {self.total_gem_pts}pts ({gems_hr:.0f}/hr) | OOB: {self.total_oob} | AvgRwd: {avg_reward:.1f} | Best: {self.best_avg_reward:.1f}")
+            self.log(f"  AvgEpLen: {avg_ep_len:.0f} steps | Ent: {stats['entropy']:.3f} | GN: {stats['grad_norm']:.3f}")
             if self.recent_episode_gems:
-                gem_list = list(self.recent_episode_gems)
-                recent_gems_total = sum(gem_list)
-                nonzero = sum(1 for g in gem_list if g > 0)
-                self.log(f"  Last {len(gem_list)} eps gems: {recent_gems_total}pts total | {nonzero}/{len(gem_list)} eps had gems")
-            if self.dry_rollouts >= 5:
-                self.log(f"  *** {self.dry_rollouts} consecutive dry rollouts — policy may be stuck ***")
-            self.log(f"{'#' * 55}\n")
+                nonzero = sum(1 for g in self.recent_episode_gems if g > 0)
+                self.log(f"  Last {len(self.recent_episode_gems)} eps: {nonzero} had gems")
+            self.log(f"---")
 
         # Log to file
         self.log_stats(stats, avg_reward)
-
-        # Push to live dashboard
-        try:
-            self.dashboard.push_snapshot(stats, avg_reward)
-        except Exception as e:
-            self.log(f"Dashboard push error: {e}")
 
         # Clear buffer for next rollout
         self.buffer.clear()

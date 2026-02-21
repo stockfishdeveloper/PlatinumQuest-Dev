@@ -136,9 +136,8 @@ function AIObserver::collectGems(%obs) {
         %useServerConnection = true;
     }
 
-    // Debug: Log gem collection attempt (only first time)
     if (!$AIObserver::LoggedGemCollection) {
-        echo("AIObserver: Found" SPC %count SPC "objects" SPC (%useServerConnection ? "(from ServerConnection)" : "(from ItemArray)"));
+        echo("AIObserver: " @ %count @ " objects from " @ (%useServerConnection ? "ServerConnection" : "ItemArray"));
         $AIObserver::LoggedGemCollection = true;
     }
 
@@ -169,12 +168,6 @@ function AIObserver::collectGems(%obs) {
                     %relY = %gemY - %myPosY;
                     %relZ = %gemZ - %myPosZ;
 
-                    // DIAGNOSTIC: stash first gem's world position for logging
-                    if (%gemCount == 0 && $AIObserver::FrameCount % 30 == 1) {
-                        echo("[DIAG-OBS] gem0_WORLD=(" @ mFloor(%gemX*10)/10 SPC mFloor(%gemY*10)/10 SPC mFloor(%gemZ*10)/10
-                            @ ") worldRel=(" @ mFloor(%relX*10)/10 SPC mFloor(%relY*10)/10 SPC mFloor(%relZ*10)/10 @ ")");
-                    }
-
                     // Rotate into camera space so relX = camera-right, relY = camera-forward.
                     // Camera right = (cos(yaw), -sin(yaw)), forward = (sin(yaw), cos(yaw))
                     %camRelX = %relX * %cosYaw - %relY * %sinYaw;
@@ -200,25 +193,9 @@ function AIObserver::collectGems(%obs) {
             }
     }  // End of item loop
 
-    // Debug: Log gem count (only once every 100 frames)
     if (!$AIObserver::FrameCount)
         $AIObserver::FrameCount = 0;
-
     $AIObserver::FrameCount++;
-    if ($AIObserver::FrameCount % 100 == 0) {
-        echo("AIObserver: Found" SPC %gemCount SPC "gems this frame");
-    }
-
-    // DIAGNOSTIC: every 30 frames, log raw world + camera-relative for gem 0
-    // Also stash raw world-space gem data for diagnostic comparison
-    if ($AIObserver::FrameCount % 30 == 1 && %gemCount > 0) {
-        echo("[DIAG-OBS] marble=(" @ mFloor(%myPosX*10)/10 SPC mFloor(%myPosY*10)/10 SPC mFloor(%myPosZ*10)/10
-            @ ") yaw=" @ mFloor($cameraYaw * 1000)/1000 @ "rad=" @ mFloor($cameraYaw * 180 / 3.14159) @ "deg");
-        echo("[DIAG-OBS] gem0_camRel right=" @ mFloor(%obs.gemTemp[0, "x"]*10)/10
-            @ " fwd=" @ mFloor(%obs.gemTemp[0, "y"]*10)/10
-            @ " up=" @ mFloor(%obs.gemTemp[0, "z"]*10)/10
-            @ " dist=" @ mFloor(%obs.gemTemp[0, "distance"]*10)/10);
-    }
 
     // Sort gems by distance (nearest first) - using bubble sort on temp storage
     AIObserver::sortGemsInObs(%obs, %gemCount);
