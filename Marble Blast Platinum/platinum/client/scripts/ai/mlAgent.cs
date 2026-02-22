@@ -226,10 +226,10 @@ function MLAgent::computeReward(%obs) {
         $MLAgent::NoGemSteps = 0;
     }
 
-    // Time penalty: -0.09 per step to discourage orbiting/wasting time
-    // Episodes are ~18,875 steps → total cost ~1,699 (similar pressure as old -0.25 at 7,000 steps)
-    // Direct path vs orbit difference still meaningful without overwhelming gem rewards
-    %reward -= 0.09;
+    // Time penalty: -0.20 per step to discourage spiraling/wasting time
+    // Episodes are ~18,875 steps → total cost ~3,775 (break-even at ~19 gems, current avg ~67)
+    // A 40-step spiral costs 8.0 (4% of gem reward) — strong enough signal to learn clean approaches
+    %reward -= 0.20;
 
     // OOB penalty: -25 for going out of bounds
     if ($MLAgent::WasOOB) {

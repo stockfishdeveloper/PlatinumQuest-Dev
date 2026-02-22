@@ -512,7 +512,7 @@ async function loadHistory() {
       const tpY = [];
       for (let i = 1; i < h.timestamps.length; i++) {
         const dt = h.timestamps[i] - h.timestamps[i - 1];
-        tpY.push(dt > 0.001 ? 512 / dt : 0);
+        tpY.push(dt > 0.001 ? (h.config?.rollout_size || 2048) / dt : 0);
       }
       Plotly.extendTraces('c-throughput', { x: [tpXs], y: [tpY] }, [0]);
     }
