@@ -195,15 +195,14 @@ function MLAgent::computeReward(%obs) {
 
     // 2. Distance-based potential shaping: smooth reward gradient toward gem
     // Formula: reward = P(new_dist) - P(old_dist)
-    // Potential function: P(d) = 20 / (1 + d/50)
-    //   - Gentle gradient that guides marble toward gems without overshoot fear.
-    //   - At d=30, moving 0.3 closer → shaping ~0.05/step (gentle pull).
-    //   - At d=2, moving 0.3 closer → shaping ~0.11/step (slightly stronger close).
-    //   - Total approach shaping (30→0) ≈ 7.5 raw = 0.75 scaled. Gem = +20 scaled.
-    //   - History: d/2 caused wide orbiting (agent feared overshoot penalty),
-    //     d/5 still too steep. d/50 got marble within 1 marble width.
-    //   - The real close-range fix is unit direction vectors in normalize_obs,
-    //     not steeper potential.
+    // Potential function: P(d) = 20/(1+d/50) + 15/(1+d/3)
+    //   - Two-part potential: gentle long-range pull + steep close-range "gravity well"
+    //   - Long-range 20/(1+d/50): guides marble from far away without overshoot fear
+    //     At d=30, approach 0.3 → +0.05/step. Total 30→0 ≈ 7.5 raw.
+    //   - Close-range 15/(1+d/3): creates strong pull within ~5 units of gem
+    //     At d=3, approach 0.3 → +0.50/step. Pulls marble through last few units.
+    //     Without this, orbiting at d=3-5 is nearly free (d/50 is flat there).
+    //   - Total approach (30→0.5) ≈ 18.8 raw = 1.88 scaled. Gem = +20 scaled.
     //   - Still potential-based (P(s')-P(s)), so cannot be "farmed" by oscillating.
     //   - The 20-step grace period after gem collection prevents sign-flip thrashing.
     %nearestDist = %obs.gem[0, "distance"];
@@ -212,8 +211,8 @@ function MLAgent::computeReward(%obs) {
             $MLAgent::LastNearestGemDist = %nearestDist;
             $MLAgent::SkipPotentialSteps--;
         } else {
-            %currentPotential = 20 / (1 + %nearestDist / 5);
-            %lastPotential = 20 / (1 + $MLAgent::LastNearestGemDist / 5);
+            %currentPotential = 20 / (1 + %nearestDist / 50) + 15 / (1 + %nearestDist / 3);
+            %lastPotential = 20 / (1 + $MLAgent::LastNearestGemDist / 50) + 15 / (1 + $MLAgent::LastNearestGemDist / 3);
             %shapingReward = %currentPotential - %lastPotential;
             %reward += %shapingReward;
             $MLAgent::LastNearestGemDist = %nearestDist;
@@ -226,6 +225,11 @@ function MLAgent::computeReward(%obs) {
     if (%nearestDist > 0 && %nearestDist < 900 && $MLAgent::NoGemSteps > 0) {
         $MLAgent::NoGemSteps = 0;
     }
+
+    // Time penalty: -0.09 per step to discourage orbiting/wasting time
+    // Episodes are ~18,875 steps → total cost ~1,699 (similar pressure as old -0.25 at 7,000 steps)
+    // Direct path vs orbit difference still meaningful without overwhelming gem rewards
+    %reward -= 0.09;
 
     // OOB penalty: -25 for going out of bounds
     if ($MLAgent::WasOOB) {
@@ -253,10 +257,10 @@ function MLAgent::checkDone() {
     }
 
     // 2. Hard step-count cap — backup if the time check fails.
-    //    5-min round at 3x speed, 16ms update interval = ~6,250 steps.
-    //    7,000 gives a small buffer above that.
-    if ($MLAgent::StepCount >= 7000) {
-        echo("MLAgent: Hit max step cap (7000), forcing episode end");
+    //    Actual 5-min round at 3x takes ~11,873 steps (not 6,250 as originally estimated).
+    //    15,000 gives a comfortable buffer above that.
+    if ($MLAgent::StepCount >= 15000) {
+        echo("MLAgent: Hit max step cap (15000), forcing episode end");
         return 1;
     }
 

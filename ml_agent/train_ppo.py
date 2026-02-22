@@ -653,6 +653,7 @@ class PPOServer:
             # Clip scaled reward to [-20, 20] so gem spikes (+200 raw → +20 scaled)
             # are captured fully, while OOB (-25 raw → -2.5) remains distinct.
             # At 0.1 scale, ±20 allows raw rewards up to ±200 unclipped.
+
             scaled_reward = np.clip(reward * self.reward_scale, -20.0, 20.0)
             self.buffer.add(obs_array, action, scaled_reward, value, log_prob, done)
             self.total_steps += 1

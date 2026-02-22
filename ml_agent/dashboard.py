@@ -116,6 +116,7 @@ class DashboardServer:
         self.port = port
         self._lock = threading.Lock()
         self._snapshot = None
+        self._best_gems_hr = 0.0
         self._history = {
             'updates': [],
             'policy_loss': [],
@@ -124,6 +125,7 @@ class DashboardServer:
             'grad_norm': [],
             'avg_reward': [],
             'gems_per_hr': [],
+            'best_gems_hr': [],
             'rollout_gem_pts': [],
             'rollout_oob': [],
             'total_steps': [],
@@ -158,6 +160,8 @@ class DashboardServer:
         s = self.ppo_server
         elapsed_hrs = (time.time() - s.run_start_time) / 3600
         gems_per_hr = s.total_gem_pts / max(elapsed_hrs, 1 / 3600)
+        if gems_per_hr > self._best_gems_hr and s.total_updates > 10:
+            self._best_gems_hr = gems_per_hr
         pos_pct = (s.rollout_positive / max(s.rollout_steps, 1)) * 100
 
         counts = s.rollout_action_counts
@@ -187,6 +191,7 @@ class DashboardServer:
             'avg_reward_100ep': round(float(avg_reward), 2) if not (avg_reward != avg_reward) else 0.0,
             'best_avg_reward': round(float(s.best_avg_reward), 2) if s.best_avg_reward > -1e9 else 0.0,
             'gems_per_hr': round(gems_per_hr, 2),
+            'best_gems_hr': round(self._best_gems_hr, 2),
             'pos_reward_pct': round(pos_pct, 1),
             'rollout_gem_pts': s.rollout_gem_pts,
             'rollout_oob': s.rollout_oob,
@@ -218,6 +223,7 @@ class DashboardServer:
             h['grad_norm'].append(snap['grad_norm'])
             h['avg_reward'].append(snap['avg_reward_100ep'])
             h['gems_per_hr'].append(snap['gems_per_hr'])
+            h['best_gems_hr'].append(snap['best_gems_hr'])
             h['rollout_gem_pts'].append(snap['rollout_gem_pts'])
             h['rollout_oob'].append(snap['rollout_oob'])
             h['total_steps'].append(snap['total_steps'])
@@ -337,6 +343,7 @@ body { background: var(--bg); color: var(--text); font-family: 'Consolas', 'SF M
     <span>Time: <b id="m-time">--</b></span>
     <span>Gems: <b id="m-gems">--</b>pts</span>
     <span>Gems/hr: <b id="m-gems-hr">--</b></span>
+    <span>Best Gems/hr: <b id="m-best-gems-hr" style="color:#f0c040">--</b></span>
     <span>OOB: <b id="m-oob">--</b></span>
     <span>Best Avg: <b id="m-best">--</b></span>
   </div>
@@ -431,10 +438,11 @@ Plotly.newPlot('c-entropy', [
   ]
 }), plotConfig);
 
-// 4. Gems/hr
+// 4. Gems/hr + best line
 Plotly.newPlot('c-gemshr', [
-  { x: [], y: [], type: 'scatter', mode: 'lines', line: { color: '#f0c040', width: 2 } }
-], darkLayout(), plotConfig);
+  { x: [], y: [], type: 'scatter', mode: 'lines', line: { color: '#f0c040', width: 2 }, name: 'Gems/hr' },
+  { x: [], y: [], type: 'scatter', mode: 'lines', line: { color: '#3fb950', width: 1, dash: 'dash' }, name: 'Best' }
+], darkLayout({ showlegend: true, legend: { x: 0, y: 1, font: { size: 9 } } }), plotConfig);
 
 // 5. Episode gems (last 100, bar chart — full redraw each update)
 Plotly.newPlot('c-epgems', [
@@ -486,8 +494,9 @@ async function loadHistory() {
     // Entropy
     Plotly.extendTraces('c-entropy', { x: [xs], y: [h.entropy] }, [0]);
 
-    // Gems/hr
-    Plotly.extendTraces('c-gemshr', { x: [xs], y: [h.gems_per_hr] }, [0]);
+    // Gems/hr + best line
+    const bestGemsLine = h.best_gems_hr || h.gems_per_hr.map(() => 0);
+    Plotly.extendTraces('c-gemshr', { x: [xs, xs], y: [h.gems_per_hr, bestGemsLine] }, [0, 1]);
 
     // OOB
     Plotly.extendTraces('c-oob', { x: [xs], y: [h.rollout_oob] }, [0]);
@@ -529,6 +538,7 @@ function updateDashboard(snap) {
   document.getElementById('m-time').textContent = snap.elapsed_hrs.toFixed(2) + 'h';
   document.getElementById('m-gems').textContent = snap.total_gem_pts;
   document.getElementById('m-gems-hr').textContent = snap.gems_per_hr.toFixed(1);
+  document.getElementById('m-best-gems-hr').textContent = snap.best_gems_hr.toFixed(1);
   document.getElementById('m-oob').textContent = snap.total_oob;
   document.getElementById('m-best').textContent = snap.best_avg_reward.toFixed(1);
 
@@ -579,7 +589,7 @@ function updateDashboard(snap) {
   Plotly.extendTraces('c-avgrwd', { x: [[x], [x]], y: [[snap.avg_reward_100ep], [bestReward]] }, [0, 1]);
   Plotly.extendTraces('c-losses', { x: [[x], [x]], y: [[snap.policy_loss], [snap.value_loss]] }, [0, 1]);
   Plotly.extendTraces('c-entropy', { x: [[x]], y: [[snap.entropy]] }, [0]);
-  Plotly.extendTraces('c-gemshr', { x: [[x]], y: [[snap.gems_per_hr]] }, [0]);
+  Plotly.extendTraces('c-gemshr', { x: [[x], [x]], y: [[snap.gems_per_hr], [snap.best_gems_hr]] }, [0, 1]);
   Plotly.extendTraces('c-oob', { x: [[x]], y: [[snap.rollout_oob]] }, [0]);
 
   // Avg Episode Length
