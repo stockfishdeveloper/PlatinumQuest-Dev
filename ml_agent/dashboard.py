@@ -9,6 +9,7 @@ import sys
 import time
 import threading
 import numpy as np
+import torch
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 
 DASHBOARD_PORT = 8889
@@ -135,7 +136,8 @@ class DashboardServer:
             'timestamps': [],
             'total_no_gem_steps': [],
             'avg_ep_len': [],
-            'action_pcts_history': [],  # list of 9-element lists
+            'mean_angle': [],
+            'policy_std': [],
         }
         self._server = None
         self._thread = None
@@ -164,12 +166,16 @@ class DashboardServer:
             self._best_gems_hr = gems_per_hr
         pos_pct = (s.rollout_positive / max(s.rollout_steps, 1)) * 100
 
-        counts = s.rollout_action_counts
-        counts = counts.tolist() if hasattr(counts, 'tolist') else list(counts)
-        action_pcts = [
-            round(c / max(s.rollout_steps, 1) * 100, 1)
-            for c in counts
-        ]
+        # Continuous action stats
+        import math
+        recent = list(s.recent_actions)[-min(200, len(s.recent_actions)):]
+        if recent:
+            angles_deg = [((a * 180 / math.pi) % 360) for a in recent]
+            mean_deg = sum(angles_deg) / len(angles_deg)
+        else:
+            mean_deg = 0.0
+        log_std = torch.clamp(s.model.log_std, s.model.LOG_STD_MIN, s.model.LOG_STD_MAX)
+        policy_std_deg = log_std.exp().item() * 180 / math.pi
 
         avg_ep_len = float(np.mean(s.recent_episode_lengths)) if s.recent_episode_lengths else 0
 
@@ -196,10 +202,12 @@ class DashboardServer:
             'rollout_gem_pts': s.rollout_gem_pts,
             'rollout_oob': s.rollout_oob,
             'rollout_steps': s.rollout_steps,
-            'action_pcts': action_pcts,
-            'action_names': ['Idle', 'Fwd', 'Back', 'Left', 'Right', 'FL', 'FR', 'BL', 'BR'],
+            'mean_angle': round(mean_deg, 1),
+            'policy_std': round(policy_std_deg, 1),
             'recent_rewards': [round(float(r), 1) for r in list(s.episode_rewards)[-20:]],
             'recent_episode_gems': list(s.recent_episode_gems),
+            'recent_game_gems': list(s.recent_game_gems),
+            'best_game_gems': s.best_game_gems,
             'avg_ep_len': round(avg_ep_len, 1),
             'rollout_size': s.rollout_size,
             'batch_size': s.batch_size,
@@ -207,8 +215,8 @@ class DashboardServer:
             'gamma': s.gamma,
             'lam': s.lam,
             'reward_scale': s.reward_scale,
-            'entropy_collapse': stats['entropy'] < 0.5,
-            'entropy_low': stats['entropy'] < 1.0,
+            'entropy_collapse': stats['entropy'] < -0.5,
+            'entropy_low': stats['entropy'] < 0.3,
             'dry_warning': s.dry_rollouts >= 5,
             'game_connected': True,
         }
@@ -233,7 +241,8 @@ class DashboardServer:
             h['timestamps'].append(snap['timestamp'])
             h['total_no_gem_steps'].append(snap['total_no_gem_steps'])
             h['avg_ep_len'].append(snap['avg_ep_len'])
-            h['action_pcts_history'].append(action_pcts)
+            h['mean_angle'].append(snap['mean_angle'])
+            h['policy_std'].append(snap['policy_std'])
 
             # Cap history to prevent unbounded memory growth
             if len(h['updates']) > MAX_HISTORY:
@@ -294,7 +303,7 @@ body { background: var(--bg); color: var(--text); font-family: 'Consolas', 'SF M
 @keyframes pulse { from { opacity: 1; } to { opacity: 0.7; } }
 
 /* Gauges */
-#gauges { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; padding: 10px 12px; }
+#gauges { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; padding: 10px 12px; }
 @media (max-width: 900px) { #gauges { grid-template-columns: repeat(3, 1fr); } }
 @media (max-width: 500px) { #gauges { grid-template-columns: repeat(2, 1fr); } }
 .gauge {
@@ -344,13 +353,14 @@ body { background: var(--bg); color: var(--text); font-family: 'Consolas', 'SF M
     <span>Gems: <b id="m-gems">--</b>pts</span>
     <span>Gems/hr: <b id="m-gems-hr">--</b></span>
     <span>Best Gems/hr: <b id="m-best-gems-hr" style="color:#f0c040">--</b></span>
+    <span>Best Gems/Game: <b id="m-best-game-gems" style="color:#3fb950">--</b></span>
     <span>OOB: <b id="m-oob">--</b></span>
     <span>Best Avg: <b id="m-best">--</b></span>
   </div>
 </div>
 
 <!-- Alerts -->
-<div id="alert-collapse" class="alert alert-collapse">ENTROPY COLLAPSE (&lt; 0.5) - Policy has collapsed onto a single action!</div>
+<div id="alert-collapse" class="alert alert-collapse">ENTROPY COLLAPSE (&lt; -0.5) - Policy std has collapsed to near-zero!</div>
 <div id="alert-dry" class="alert alert-dry">DRY STREAK: <span id="dry-count">0</span> consecutive rollouts with zero gems collected</div>
 
 <!-- Gauges -->
@@ -358,8 +368,7 @@ body { background: var(--bg); color: var(--text); font-family: 'Consolas', 'SF M
   <div class="gauge"><div class="label">Avg Reward (100ep)</div><div class="value" id="g-avgrwd">--</div></div>
   <div class="gauge"><div class="label">Gems/hr</div><div class="value" id="g-gemshr" style="color:#f0c040">--</div></div>
   <div class="gauge"><div class="label">Entropy</div><div class="value" id="g-entropy">--</div></div>
-  <div class="gauge"><div class="label">Policy Loss</div><div class="value" id="g-ploss">--</div></div>
-  <div class="gauge"><div class="label">Value Loss</div><div class="value" id="g-vloss">--</div></div>
+  <div class="gauge"><div class="label">Last Game Gems</div><div class="value" id="g-lastgems" style="color:#f0c040">--</div></div>
   <div class="gauge"><div class="label">Dry Rollouts</div><div class="value" id="g-dry">--</div></div>
 </div>
 
@@ -367,11 +376,13 @@ body { background: var(--bg); color: var(--text); font-family: 'Consolas', 'SF M
 <div id="charts">
   <div class="chart-card"><div class="chart-title">Avg Reward (100-episode rolling)</div><div id="c-avgrwd" style="height:220px"></div></div>
   <div class="chart-card"><div class="chart-title">Gems Per Hour</div><div id="c-gemshr" style="height:220px"></div></div>
-  <div class="chart-card"><div class="chart-title">PPO Losses (Policy + Value)</div><div id="c-losses" style="height:220px"></div></div>
+  <div class="chart-card"><div class="chart-title">Gems Per Game (last 100)</div><div id="c-epgems" style="height:220px"></div></div>
   <div class="chart-card"><div class="chart-title">Entropy (exploration health)</div><div id="c-entropy" style="height:220px"></div></div>
-  <div class="chart-card"><div class="chart-title">Gems Per Episode (last 100)</div><div id="c-epgems" style="height:220px"></div></div>
+  <div class="chart-card"><div class="chart-title">Policy Std Dev (degrees)</div><div id="c-policystd" style="height:220px"></div></div>
+  <div class="chart-card"><div class="chart-title">PPO Losses (Policy + Value)</div><div id="c-losses" style="height:220px"></div></div>
   <div class="chart-card"><div class="chart-title">OOB Events Per Rollout</div><div id="c-oob" style="height:220px"></div></div>
   <div class="chart-card"><div class="chart-title">Avg Episode Length (steps)</div><div id="c-eplen" style="height:220px"></div></div>
+  <div class="chart-card"><div class="chart-title">Laziness (Reward / Gems per Hour)</div><div id="c-laziness" style="height:220px"></div></div>
   <div class="chart-card"><div class="chart-title">Training Throughput (steps/sec)</div><div id="c-throughput" style="height:220px"></div></div>
 </div>
 
@@ -385,7 +396,7 @@ body { background: var(--bg); color: var(--text); font-family: 'Consolas', 'SF M
     <span>Gamma: <b id="cfg-gamma">--</b></span>
     <span>Lambda: <b id="cfg-lam">--</b></span>
     <span>Reward Scale: <b id="cfg-rwdscale">--</b></span>
-    <span>Actions: <b>9 (Categorical)</b></span>
+    <span>Actions: <b>Continuous (angle)</b></span>
     <span>Obs Dim: <b>61</b></span>
   </div>
 </div>
@@ -430,12 +441,19 @@ Plotly.newPlot('c-entropy', [
   { x: [], y: [], type: 'scatter', mode: 'lines', fill: 'tozeroy',
     line: { color: '#3fb950', width: 2 }, fillcolor: 'rgba(63,185,80,0.1)', name: 'Entropy' }
 ], darkLayout({
-  yaxis: { range: [0, 2.4], gridcolor: '#21262d', color: '#7d8590', zeroline: false },
+  yaxis: { autorange: true, gridcolor: '#21262d', color: '#7d8590', zeroline: false },
   shapes: [
-    { type: 'line', y0: 0.5, y1: 0.5, x0: 0, x1: 1, xref: 'paper', line: { color: '#f85149', width: 1, dash: 'dash' } },
-    { type: 'line', y0: 1.0, y1: 1.0, x0: 0, x1: 1, xref: 'paper', line: { color: '#d29922', width: 1, dash: 'dot' } },
-    { type: 'line', y0: 2.197, y1: 2.197, x0: 0, x1: 1, xref: 'paper', line: { color: '#30363d', width: 1, dash: 'dot' } }
+    { type: 'line', y0: -0.5, y1: -0.5, x0: 0, x1: 1, xref: 'paper', line: { color: '#f85149', width: 1, dash: 'dash' } },
+    { type: 'line', y0: 0.3, y1: 0.3, x0: 0, x1: 1, xref: 'paper', line: { color: '#d29922', width: 1, dash: 'dot' } },
+    { type: 'line', y0: 2.0, y1: 2.0, x0: 0, x1: 1, xref: 'paper', line: { color: '#30363d', width: 1, dash: 'dot' } }
   ]
+}), plotConfig);
+
+// Policy Std Dev (degrees)
+Plotly.newPlot('c-policystd', [
+  { x: [], y: [], type: 'scatter', mode: 'lines', line: { color: '#f0883e', width: 2 }, name: 'PolicyStd' }
+], darkLayout({
+  yaxis: { autorange: true, gridcolor: '#21262d', color: '#7d8590', zeroline: false }
 }), plotConfig);
 
 // 4. Gems/hr + best line
@@ -458,6 +476,13 @@ Plotly.newPlot('c-oob', [
 Plotly.newPlot('c-eplen', [
   { x: [], y: [], type: 'scatter', mode: 'lines', line: { color: '#bc8cff', width: 2 } }
 ], darkLayout(), plotConfig);
+
+// Laziness (avg_reward / gems_per_hr) — rising = farming reward without collecting gems
+Plotly.newPlot('c-laziness', [
+  { x: [], y: [], type: 'scatter', mode: 'lines', line: { color: '#d29922', width: 2 } }
+], darkLayout({
+  yaxis: { autorange: true, gridcolor: '#21262d', color: '#7d8590', zeroline: false }
+}), plotConfig);
 
 // 12. Throughput
 Plotly.newPlot('c-throughput', [
@@ -494,6 +519,11 @@ async function loadHistory() {
     // Entropy
     Plotly.extendTraces('c-entropy', { x: [xs], y: [h.entropy] }, [0]);
 
+    // Policy Std
+    if (h.policy_std) {
+      Plotly.extendTraces('c-policystd', { x: [xs], y: [h.policy_std] }, [0]);
+    }
+
     // Gems/hr + best line
     const bestGemsLine = h.best_gems_hr || h.gems_per_hr.map(() => 0);
     Plotly.extendTraces('c-gemshr', { x: [xs, xs], y: [h.gems_per_hr, bestGemsLine] }, [0, 1]);
@@ -504,6 +534,12 @@ async function loadHistory() {
     // Avg Episode Length
     if (h.avg_ep_len) {
       Plotly.extendTraces('c-eplen', { x: [xs], y: [h.avg_ep_len] }, [0]);
+    }
+
+    // Laziness
+    if (h.avg_reward && h.gems_per_hr) {
+      const lazY = h.avg_reward.map((r, i) => h.gems_per_hr[i] > 0 ? r / h.gems_per_hr[i] : 0);
+      Plotly.extendTraces('c-laziness', { x: [xs], y: [lazY] }, [0]);
     }
 
     // Throughput
@@ -539,6 +575,7 @@ function updateDashboard(snap) {
   document.getElementById('m-gems').textContent = snap.total_gem_pts;
   document.getElementById('m-gems-hr').textContent = snap.gems_per_hr.toFixed(1);
   document.getElementById('m-best-gems-hr').textContent = snap.best_gems_hr.toFixed(1);
+  document.getElementById('m-best-game-gems').textContent = snap.best_game_gems || '--';
   document.getElementById('m-oob').textContent = snap.total_oob;
   document.getElementById('m-best').textContent = snap.best_avg_reward.toFixed(1);
 
@@ -566,8 +603,9 @@ function updateDashboard(snap) {
   entEl.style.color = snap.entropy_collapse ? '#f85149' : snap.entropy_low ? '#d29922' : '#3fb950';
 
   document.getElementById('g-gemshr').textContent = snap.gems_per_hr.toFixed(1);
-  document.getElementById('g-ploss').textContent = snap.policy_loss.toFixed(4);
-  document.getElementById('g-vloss').textContent = snap.value_loss < 0.001 ? snap.value_loss.toExponential(2) : snap.value_loss.toFixed(4);
+  const gameGemsArr = snap.recent_game_gems || [];
+  const lastGameGems = gameGemsArr.length > 0 ? gameGemsArr[gameGemsArr.length - 1] : 0;
+  document.getElementById('g-lastgems').textContent = lastGameGems;
 
   const dryEl = document.getElementById('g-dry');
   dryEl.textContent = snap.dry_rollouts;
@@ -589,11 +627,16 @@ function updateDashboard(snap) {
   Plotly.extendTraces('c-avgrwd', { x: [[x], [x]], y: [[snap.avg_reward_100ep], [bestReward]] }, [0, 1]);
   Plotly.extendTraces('c-losses', { x: [[x], [x]], y: [[snap.policy_loss], [snap.value_loss]] }, [0, 1]);
   Plotly.extendTraces('c-entropy', { x: [[x]], y: [[snap.entropy]] }, [0]);
+  Plotly.extendTraces('c-policystd', { x: [[x]], y: [[snap.policy_std]] }, [0]);
   Plotly.extendTraces('c-gemshr', { x: [[x], [x]], y: [[snap.gems_per_hr], [snap.best_gems_hr]] }, [0, 1]);
   Plotly.extendTraces('c-oob', { x: [[x]], y: [[snap.rollout_oob]] }, [0]);
 
   // Avg Episode Length
   Plotly.extendTraces('c-eplen', { x: [[x]], y: [[snap.avg_ep_len]] }, [0]);
+
+  // Laziness
+  const laziness = snap.gems_per_hr > 0 ? snap.avg_reward_100ep / snap.gems_per_hr : 0;
+  Plotly.extendTraces('c-laziness', { x: [[x]], y: [[laziness]] }, [0]);
 
   // Throughput
   if (prevTimestamp !== null) {
@@ -605,13 +648,18 @@ function updateDashboard(snap) {
 
   // === Snapshot charts (full redraw — small fixed-size arrays) ===
 
-  // Episode gem points (last 100)
-  const gems = snap.recent_episode_gems;
-  if (gems.length > 0) {
-    const gemIdxs = gems.map((_, i) => i + 1);
-    const colors = gems.map(g => g > 0 ? '#f0c040' : '#30363d');
+  // Game gem points (last 100 full games)
+  const gameGems = snap.recent_game_gems || [];
+  if (gameGems.length > 0) {
+    const gemIdxs = gameGems.map((_, i) => i + 1);
+    const maxGems = Math.max(...gameGems);
+    const colors = gameGems.map(g => {
+      if (g === maxGems && maxGems > 0) return '#3fb950';  // Best game = green
+      if (g > 0) return '#f0c040';                          // Normal = yellow
+      return '#30363d';                                       // Zero = dark
+    });
     Plotly.react('c-epgems',
-      [{ x: gemIdxs, y: gems, type: 'bar', marker: { color: colors } }],
+      [{ x: gemIdxs, y: gameGems, type: 'bar', marker: { color: colors } }],
       darkLayout({ bargap: 0.15 }), plotConfig
     );
   }

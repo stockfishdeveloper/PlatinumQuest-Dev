@@ -87,7 +87,7 @@ def main():
         sys.exit(1)
 
     # Load model
-    model = ActorCritic(obs_dim=61, n_actions=9)
+    model = ActorCritic(obs_dim=61)
     checkpoint = torch.load(args.model, weights_only=False)
     model.load_state_dict(checkpoint['model_state_dict'])
     model.eval()
@@ -167,7 +167,7 @@ def main():
                             episode_reward = 0.0
                             total_steps = 0
 
-                        action_tuple = ActorCritic.ACTION_MAP[action]
+                        action_tuple = ActorCritic.angle_to_joystick(action)
                         conn.sendall((','.join(map(str, action_tuple)) + '\n').encode('utf-8'))
 
             except Exception as e:

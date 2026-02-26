@@ -53,6 +53,7 @@ function MLAgent::startLoop() {
 
     // Initialize reward tracking
     $MLAgent::LastGemScore = PlayGui.gemCount;
+    $MLAgent::GameStartGemScore = PlayGui.gemCount;  // Baseline for full-game gem count
     $MLAgent::LastNearestGemDist = 999;
     $MLAgent::SkipPotentialSteps = 1;  // Suppress the sentinel spike on first step
     $MLAgent::EpisodeReward = 0;
@@ -126,7 +127,7 @@ function MLAgent::update() {
     %obs = AIObserver::collectState();
 
     // If this is the OOB penalty step, override the position with the saved
-    // edge position so the network associates the -100 penalty with the edge,
+    // edge position so the network associates the -25 penalty with the edge,
     // not the spawn point it just respawned to.
     if ($MLAgent::WasOOB && $MLAgent::OOBPosX !$= "") {
         %obs.selfPosX = $MLAgent::OOBPosX;
@@ -135,16 +136,19 @@ function MLAgent::update() {
         $MLAgent::OOBPosX = "";
     }
 
-    // 2. Compute reward for this step
+    // 2. Capture OOB flag before computeReward clears it
+    %oobFlag = $MLAgent::WasOOB ? 1 : 0;
+
+    // 3. Compute reward for this step
     %reward = MLAgent::computeReward(%obs);
     $MLAgent::EpisodeReward += %reward;
 
-    // 3. Check if episode is done
+    // 4. Check if episode is done
     %done = MLAgent::checkDone();
 
-    // 4. Build message: obs_json|reward|done|gemDelta
+    // 5. Build message: obs_json|reward|done|gemDelta|oob
     %json = AIObserver::serializeToJSON(%obs);
-    %msg = %json @ "|" @ %reward @ "|" @ %done @ "|" @ $MLAgent::LastGemDelta;
+    %msg = %json @ "|" @ %reward @ "|" @ %done @ "|" @ $MLAgent::LastGemDelta @ "|" @ %oobFlag;
 
     // 5. Send to Python server and get action
     AIBridge::sendState(%msg);
@@ -179,7 +183,7 @@ function MLAgent::computeReward(%obs) {
 
     // 1. Gem collection reward: +200 per point scored
     //    After 0.1 reward_scale: 1pt gem = +20.0, 5pt gem = +100.0 in buffer.
-    //    OOB is -10 raw (-1.0 scaled), so 1pt gem = 20 OOBs — gems are very worth pursuing.
+    //    OOB is -25 raw (-2.5 scaled) + time penalty from wasted recovery steps.
     //    Max episode spike: ~7 gems = +1400 raw (+140 scaled) — strong but manageable for critic.
     //    History: +100 too weak, +500 caused VLoss blow-up, +200 with 0.1 scale is the sweet spot.
     %currentGemScore = PlayGui.gemCount;
@@ -193,45 +197,25 @@ function MLAgent::computeReward(%obs) {
     }
     $MLAgent::LastGemScore = %currentGemScore;
 
-    // 2. Distance-based potential shaping: smooth reward gradient toward gem
-    // Formula: reward = P(new_dist) - P(old_dist)
-    // Potential function: P(d) = 20/(1+d/50) + 15/(1+d/3)
-    //   - Two-part potential: gentle long-range pull + steep close-range "gravity well"
-    //   - Long-range 20/(1+d/50): guides marble from far away without overshoot fear
-    //     At d=30, approach 0.3 → +0.05/step. Total 30→0 ≈ 7.5 raw.
-    //   - Close-range 15/(1+d/3): creates strong pull within ~5 units of gem
-    //     At d=3, approach 0.3 → +0.50/step. Pulls marble through last few units.
-    //     Without this, orbiting at d=3-5 is nearly free (d/50 is flat there).
-    //   - Total approach (30→0.5) ≈ 18.8 raw = 1.88 scaled. Gem = +20 scaled.
-    //   - Still potential-based (P(s')-P(s)), so cannot be "farmed" by oscillating.
-    //   - The 20-step grace period after gem collection prevents sign-flip thrashing.
+    // DISABLED: Distance shaping and velocity-alignment removed.
+    // The model learned to farm shaping reward by approaching gems closely
+    // then veering off at the last second (repeated approach = repeated shaping).
+    // Now: only gem collection (+200) and time penalty (-0.40) drive behavior.
+    // The model must collect gems to offset the constant time bleed.
     %nearestDist = %obs.gem[0, "distance"];
-    if (%nearestDist > 0 && %nearestDist < 900) { // Not a sentinel value
-        if ($MLAgent::SkipPotentialSteps > 0) {
-            $MLAgent::LastNearestGemDist = %nearestDist;
-            $MLAgent::SkipPotentialSteps--;
-        } else {
-            %currentPotential = 20 / (1 + %nearestDist / 50) + 15 / (1 + %nearestDist / 3);
-            %lastPotential = 20 / (1 + $MLAgent::LastNearestGemDist / 50) + 15 / (1 + $MLAgent::LastNearestGemDist / 3);
-            %shapingReward = %currentPotential - %lastPotential;
-            %reward += %shapingReward;
-            $MLAgent::LastNearestGemDist = %nearestDist;
-        }
+    if (%nearestDist > 0 && %nearestDist < 900) {
+        $MLAgent::NoGemSteps = 0;
     } else {
         $MLAgent::NoGemSteps++;
     }
 
-    // Detect gem reappearance after a gap
-    if (%nearestDist > 0 && %nearestDist < 900 && $MLAgent::NoGemSteps > 0) {
-        $MLAgent::NoGemSteps = 0;
-    }
+    // Time penalty: -0.40/step. Every wasted step hurts.
+    // Cost: ~7550/episode (18875 steps). 55 gems × 200 = 11000 gem reward - 7550 = 3450 net.
+    // History: -0.02 too weak, -0.05 not motivating, -0.20 agent still moseying.
+    %reward -= 0.40;
 
-    // Time penalty: -0.20 per step to discourage spiraling/wasting time
-    // Episodes are ~18,875 steps → total cost ~3,775 (break-even at ~19 gems, current avg ~67)
-    // A 40-step spiral costs 8.0 (4% of gem reward) — strong enough signal to learn clean approaches
-    %reward -= 0.20;
-
-    // OOB penalty: -25 for going out of bounds
+    // OOB penalty: -25 per event. Agent knows gem-seeking, time to punish sloppy play.
+    // Plus ~30 wasted recovery steps at -0.20/step = -6.0 implicit cost = ~-31 total per OOB.
     if ($MLAgent::WasOOB) {
         %reward -= 25;
         $MLAgent::WasOOB = false;
@@ -299,19 +283,17 @@ function MLAgent::resetEpisode() {
 //------------------------------------------------------------------------------
 
 function MLAgent::executeAction(%actionStr) {
-    // Parse comma-separated action: "0,1,0,1" (forward,backward,left,right)
-    // NOTE: Jump and Powerup actions removed — flat training map, no powerups.
-    // To restore jump: add %jump as 5th element, change action_dim to 5 in train_ppo.py
-    // To restore powerup: add %powerup as 6th element, change action_dim to 6 in train_ppo.py
-    %forward = getWord(strreplace(%actionStr, ",", " "), 0);
-    %backward = getWord(strreplace(%actionStr, ",", " "), 1);
-    %left = getWord(strreplace(%actionStr, ",", " "), 2);
-    %right = getWord(strreplace(%actionStr, ",", " "), 3);
-    // %jump = getWord(strreplace(%actionStr, ",", " "), 4);     // DISABLED: flat map, no jumping needed
-    // %powerup = getWord(strreplace(%actionStr, ",", " "), 5);  // DISABLED: no powerups on map
+    // Parse comma-separated analog action: "0.87,0.0,0.0,0.50" (forward,backward,left,right)
+    // Values are continuous floats [0.0, 1.0] from the PPO agent's angle → joystick conversion.
+    // Always full magnitude in some direction (no idle action).
+    %words = strreplace(%actionStr, ",", " ");
+    %forward = getWord(%words, 0);
+    %backward = getWord(%words, 1);
+    %left = getWord(%words, 2);
+    %right = getWord(%words, 3);
 
-    // Execute via existing AI agent system (jump and powerup always 0)
-    AIAgent::setBinaryActions(%forward, %backward, %left, %right, 0, 0);
+    // Execute via analog input (accepts float values 0.0-1.0)
+    AIAgent::setCustomAction(%left, %right, %forward, %backward, 0, 0);
 }
 
 //------------------------------------------------------------------------------
@@ -331,7 +313,10 @@ function MLAgent::onOOB() {
 
         $MLAgent::WasOOB = true;
         $MLAgent::LastNearestGemDist = 999;
-        $MLAgent::SkipPotentialSteps = 1;
+        // Skip 20 steps of shaping after OOB (same as gem grace period).
+        // Without this, the 999→nearby distance reset gives ~+35 free shaping
+        // per OOB, letting the agent farm reward by repeatedly going OOB.
+        $MLAgent::SkipPotentialSteps = 20;
 
         // Delay respawn by 2 update intervals so the next update() fires
         // while the marble is still at the edge position.
@@ -387,9 +372,16 @@ function MLAgent::onTimerStart() {
 }
 
 function MLAgent::onGameEnd() {
-    // Send final done signal before stopping
+    // Send game-end signal with the TOTAL gems collected this entire game.
+    // Uses GameStartGemScore (set at round start, never reset by resetEpisode)
+    // so the Python side gets the accurate full-game gem count.
+    // The gem_delta field is repurposed here: negative = total game gems signal.
+    // Protocol: []|0|1|<neg_total_game_gems>|0
     if ($MLAgent::Enabled && $AIBridge::Connected) {
-        %msg = "[]|0|1";  // Empty obs, 0 reward, done=1
+        %totalGameGems = PlayGui.gemCount - $MLAgent::GameStartGemScore;
+        // Send as negative to distinguish from normal per-step gem deltas.
+        // Python checks for negative gem_delta on empty obs to record game total.
+        %msg = "[]|0|1|" @ -%totalGameGems @ "|0";
         AIBridge::sendState(%msg);
     }
 

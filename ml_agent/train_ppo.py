@@ -11,7 +11,7 @@ Protocol (game -> server):
     Example: "[1.0,2.0,3.0,...,286 floats]|0.5|0"
 
 Protocol (server -> game):
-    "0,1,0,1\n"  (4 comma-separated binary actions: F,B,L,R)
+    "0.87,0.0,0.0,0.50\n"  (4 comma-separated float actions: F,B,L,R)
 
 Usage:
     python train_ppo.py
@@ -24,7 +24,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from torch.distributions import Categorical
+import torch.distributions
 import time
 import signal
 import sys
@@ -59,90 +59,116 @@ class DualLogger:
 # ============================================================================
 
 class ActorCritic(nn.Module):
-    """Policy and value network for PPO with 9-action Categorical output.
+    """Policy and value network for PPO with continuous angle output.
 
-    Actions:
-      0: Idle, 1: Forward, 2: Backward, 3: Left, 4: Right,
-      5: Fwd+Left, 6: Fwd+Right, 7: Back+Left, 8: Back+Right
+    Action: a single angle in radians [0, 2π) representing movement direction.
+    Always applied at full magnitude. No idle action.
+    Convention: 0 = forward (+Y), π/2 = right (+X), π = backward, 3π/2 = left.
     """
 
-    # Lookup table: action index → (forward, backward, left, right)
-    ACTION_MAP = [
-        (0, 0, 0, 0),  # 0: Idle
-        (1, 0, 0, 0),  # 1: Forward
-        (0, 1, 0, 0),  # 2: Backward
-        (0, 0, 1, 0),  # 3: Left
-        (0, 0, 0, 1),  # 4: Right
-        (1, 0, 1, 0),  # 5: Forward+Left
-        (1, 0, 0, 1),  # 6: Forward+Right
-        (0, 1, 1, 0),  # 7: Backward+Left
-        (0, 1, 0, 1),  # 8: Backward+Right
-    ]
+    LOG_STD_MIN = -1.0    # exp(-1.0) ≈ 0.37 rad ≈ 21° (floor: entropy ~0.3, prevents collapse)
+    LOG_STD_MAX = 0.0     # exp(0)  ≈ 1.0 rad  ≈ 57° (max exploration, overridden on checkpoint load)
 
-    ACTION_NAMES = ["Idle", "Fwd", "Back", "Left", "Right",
-                    "FL", "FR", "BL", "BR"]
-
-    def __init__(self, obs_dim=61, n_actions=9):
+    def __init__(self, obs_dim=61):
         super().__init__()
 
-        # Actor network (obs -> 256 -> 256 -> 128 -> 64 -> n_actions)
-        self.actor = nn.Sequential(
+        # Shared feature extractor
+        self.features = nn.Sequential(
             nn.Linear(obs_dim, 256),
             nn.ReLU(),
             nn.Linear(256, 256),
             nn.ReLU(),
             nn.Linear(256, 128),
             nn.ReLU(),
-            nn.Linear(128, 64),
-            nn.ReLU(),
-            nn.Linear(64, n_actions),
         )
 
-        # Critic network (obs -> 256 -> 256 -> 128 -> 64 -> 1)
+        # Actor head: outputs (mean_x, mean_y) as a unit-circle direction
+        # Using 2D output (sin, cos) instead of raw angle avoids the wraparound
+        # discontinuity at 0/2π which makes gradient optimization much easier.
+        self.actor_mean = nn.Sequential(
+            nn.Linear(128, 64),
+            nn.ReLU(),
+            nn.Linear(64, 2),  # (dx, dy) — will be normalized to unit circle
+        )
+
+        # Learnable log-std (state-independent, single scalar for angular spread)
+        # Init to -1.5 → exp(-1.5) ≈ 0.22 rad ≈ 12.8° (enough to explore, not flail)
+        self.log_std = nn.Parameter(torch.full((1,), -1.5))
+
+        # Critic head
         self.critic = nn.Sequential(
-            nn.Linear(obs_dim, 256),
-            nn.ReLU(),
-            nn.Linear(256, 256),
-            nn.ReLU(),
-            nn.Linear(256, 128),
-            nn.ReLU(),
             nn.Linear(128, 64),
             nn.ReLU(),
             nn.Linear(64, 1),
         )
 
     def forward(self, state):
-        action_logits = self.actor(state)
-        value = self.critic(state)
-        return action_logits, value
+        features = self.features(state)
+        mean_xy = self.actor_mean(features)
+        value = self.critic(features)
+        return mean_xy, value
+
+    def _get_dist(self, mean_xy):
+        """Build a VonMises-like distribution from 2D mean direction.
+
+        We convert (dx, dy) to an angle, then use a Normal distribution
+        on the angle. The log_std parameter controls exploration width.
+        """
+        # Normalize to unit circle to get mean angle
+        mean_angle = torch.atan2(mean_xy[:, 0], mean_xy[:, 1])  # atan2(x, y) so 0=forward
+
+        # Clamp log_std for stability
+        log_std = torch.clamp(self.log_std, self.LOG_STD_MIN, self.LOG_STD_MAX)
+        std = log_std.exp()
+
+        return torch.distributions.Normal(mean_angle, std)
 
     def get_action(self, state, deterministic=False):
-        """Get action from state, return action, log_prob, value."""
+        """Get action from state, return angle, log_prob, value."""
         with torch.no_grad():
             if not isinstance(state, torch.Tensor):
                 state = torch.FloatTensor(state).unsqueeze(0)
 
-            action_logits, value = self.forward(state)
-            dist = Categorical(logits=action_logits)
+            mean_xy, value = self.forward(state)
+            dist = self._get_dist(mean_xy)
 
             if deterministic:
-                action = action_logits.argmax(dim=-1)
+                angle = torch.atan2(mean_xy[:, 0], mean_xy[:, 1])
             else:
-                action = dist.sample()
+                angle = dist.sample()
 
-            log_prob = dist.log_prob(action)
+            log_prob = dist.log_prob(angle)
 
-        return action.item(), log_prob.item(), value.item()
+        return angle.item(), log_prob.item(), value.item()
 
     def evaluate_actions(self, states, actions):
         """Evaluate actions for PPO update."""
-        action_logits, values = self.forward(states)
-        dist = Categorical(logits=action_logits)
+        mean_xy, values = self.forward(states)
+        dist = self._get_dist(mean_xy)
 
         log_probs = dist.log_prob(actions)
         entropy = dist.entropy()
 
         return log_probs, values.squeeze(-1), entropy
+
+    @staticmethod
+    def angle_to_joystick(angle):
+        """Convert angle (radians) to joystick axes (fwd, back, left, right).
+
+        Convention: 0 = forward, π/2 = right, π = backward, 3π/2 = left.
+        Always full magnitude. Values rounded to 6 decimal places to avoid
+        scientific notation (e.g. 1.2e-16) which TorqueScript may not parse.
+        """
+        import math
+        move_x = math.sin(angle)  # positive = right
+        move_y = math.cos(angle)  # positive = forward
+
+        fwd  = round(max(move_y, 0.0), 6) + 0.0
+        back = round(max(-move_y, 0.0), 6) + 0.0
+        right = round(max(move_x, 0.0), 6) + 0.0
+        left  = round(max(-move_x, 0.0), 6) + 0.0
+
+        return fwd, back, left, right
 
 
 # ============================================================================
@@ -205,7 +231,7 @@ class RolloutBuffer:
         returns, advantages = self.compute_returns_and_advantages(gamma, lam)
 
         states = torch.FloatTensor(np.array(self.states))
-        actions = torch.LongTensor(np.array(self.actions))  # Categorical needs integer actions
+        actions = torch.FloatTensor(np.array(self.actions))  # Continuous angle (radians)
         old_log_probs = torch.FloatTensor(self.log_probs)
         old_values = torch.FloatTensor(self.values)
         returns_t = torch.FloatTensor(returns)
@@ -244,7 +270,8 @@ class PPOTrainer:
     """Proximal Policy Optimization trainer."""
 
     def __init__(self, model, lr=1e-4, clip_epsilon=0.2, value_coef=0.5,
-                 entropy_coef=0.01, max_grad_norm=1.0, vf_clip=20.0):
+                 entropy_coef=0.01, max_grad_norm=1.0, vf_clip=20.0,
+                 target_kl=0.5):
         self.model = model
         self.optimizer = optim.Adam(model.parameters(), lr=lr)
         self.clip_epsilon = clip_epsilon
@@ -252,6 +279,7 @@ class PPOTrainer:
         self.entropy_coef = entropy_coef
         self.max_grad_norm = max_grad_norm
         self.vf_clip = vf_clip  # Clip value loss to prevent VLoss explosions from gem spikes
+        self.target_kl = target_kl  # KL early stopping: fires at 1.5x = 0.75 (normal KL: 0.02-0.33, destructive: 1.16+)
 
     def update(self, buffer, n_epochs=4, batch_size=64, gamma=0.99, lam=0.95):
         """Run PPO update on collected experience."""
@@ -260,13 +288,28 @@ class PPOTrainer:
         total_entropy = 0
         total_grad_norm = 0
         n_updates = 0
+        max_kl = 0.0
+        kl_early_stopped = False
 
         for epoch in range(n_epochs):
+            if kl_early_stopped:
+                break
             for states, actions, old_log_probs, returns, advantages, old_values in \
                     buffer.get_batches(batch_size, gamma, lam):
 
                 # Evaluate current policy
                 new_log_probs, values, entropy = self.model.evaluate_actions(states, actions)
+
+                # KL divergence early stopping (Stable Baselines 3 method)
+                # Measures how far the policy has drifted from the start of this update.
+                # If it drifts too far, stop all remaining updates to prevent death spirals.
+                with torch.no_grad():
+                    log_ratio = new_log_probs - old_log_probs
+                    approx_kl = torch.mean((torch.exp(log_ratio) - 1) - log_ratio).item()
+                max_kl = max(max_kl, approx_kl)
+                if approx_kl > 1.5 * self.target_kl:
+                    kl_early_stopped = True
+                    break
 
                 # Policy loss (clipped surrogate objective)
                 ratio = torch.exp(new_log_probs - old_log_probs)
@@ -313,6 +356,8 @@ class PPOTrainer:
             'value_loss': total_value_loss / max(n_updates, 1),
             'entropy': total_entropy / max(n_updates, 1),
             'grad_norm': total_grad_norm / max(n_updates, 1),
+            'kl_early_stopped': kl_early_stopped,
+            'max_kl': max_kl,
         }
 
 
@@ -335,8 +380,8 @@ class PPOServer:
         self.log = self.logger.print  # Shortcut
 
         # Model and trainer
-        self.model = ActorCritic(obs_dim=61, n_actions=9)  # 9 discrete actions: Idle,F,B,L,R,FL,FR,BL,BR
-        self.trainer = PPOTrainer(self.model, vf_clip=100.0)
+        self.model = ActorCritic(obs_dim=61)
+        self.trainer = PPOTrainer(self.model, vf_clip=20.0)
         self.buffer = RolloutBuffer()
 
         # Training config
@@ -370,7 +415,7 @@ class PPOServer:
         if model_path and os.path.exists(model_path):
             self.log(f"Loading model from {model_path}")
             checkpoint = torch.load(model_path, weights_only=False)
-            # Handle architecture mismatch (e.g. old checkpoint had Bernoulli 4-action, now Categorical 9-action)
+            # Handle architecture mismatch (e.g. old checkpoint had different network shape)
             saved_state = checkpoint['model_state_dict']
             current_state = self.model.state_dict()
             for key in list(saved_state.keys()):
@@ -397,14 +442,24 @@ class PPOServer:
             saved_rewards = checkpoint.get('episode_rewards', [])
             self.episode_rewards = deque(saved_rewards, maxlen=100)
 
+            # Set LOG_STD_MAX to checkpoint's current log_std so there's no sudden clamp.
+            # The annealing in run_ppo_update() will gradually lower it from here.
+            with torch.no_grad():
+                current_log_std = self.model.log_std.item()
+                std_deg = self.model.log_std.exp().item() * 180 / 3.14159
+                self.model.LOG_STD_MAX = current_log_std
+                target_deg = torch.tensor(self.model.LOG_STD_MIN).exp().item() * 180 / 3.14159
+                self.log(f"  PolicyStd: {std_deg:.1f} degrees -> annealing to {target_deg:.1f} degrees")
+
             self.log(f"Model loaded successfully!")
             self.log(f"Resuming from: {self.total_steps} steps, {self.total_updates} updates, {self.total_episodes} episodes")
             self.log(f"Best avg reward restored: {self.best_avg_reward:.2f}")
 
         self.model.train()
+        self._session_start_step = self.total_steps
 
-        # Recent actions (for entropy-collapse detection)
-        self.recent_actions = deque(maxlen=10)
+        # Recent actions (for angle stats display and dashboard)
+        self.recent_actions = deque(maxlen=200)
 
         # Per-episode counters (reset on done)
         self.episode_gem_pts = 0   # gem points collected this episode
@@ -416,7 +471,7 @@ class PPOServer:
         self.rollout_oob = 0       # OOB events this rollout
         self.rollout_positive = 0  # steps with positive reward this rollout
         self.rollout_steps = 0     # total steps this rollout
-        self.rollout_action_counts = np.zeros(9, dtype=int)  # count of each categorical action this rollout
+        # (action counts removed — continuous actions tracked via recent_actions deque)
 
         # Lifetime counters
         self.total_gem_pts = 0     # gem points across entire run
@@ -440,6 +495,14 @@ class PPOServer:
         # Rolling 100-episode gem points and lengths (for dashboard + flood detection)
         self.recent_episode_gems = deque(maxlen=100)
         self.recent_episode_lengths = deque(maxlen=100)
+
+        # Game-level gem tracking (a "game" = full 5-min Hunt round)
+        # Episodes may be shorter than a game if step cap fires, so we
+        # accumulate gems across episodes and only record when a full
+        # game ends (episode_step >= 10000, meaning timer expired).
+        self.game_gem_pts = 0          # accumulator across episodes within one game
+        self.recent_game_gems = deque(maxlen=100)  # last 100 full games
+        self.best_game_gems = 0        # all-time best gems in a single game
 
         # Socket setup
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -497,7 +560,8 @@ class PPOServer:
             while self.running:
                 data = conn.recv(8192).decode('utf-8')
                 if not data:
-                    print("Game disconnected")
+                    self.log("Game disconnected. Shutting down.")
+                    self.running = False
                     break
 
                 buffer_str += data
@@ -595,26 +659,42 @@ class PPOServer:
     def process_message(self, message):
         """Process a message from the game, return action."""
         try:
-            # Parse: obs_json|reward|done|gem_delta
+            # Parse: obs_json|reward|done|gem_delta|oob
             parts = message.split('|')
 
-            if len(parts) != 4:
+            if len(parts) != 5:
                 if self.total_steps < 3:
-                    self.log(f"Malformed message (expected 4 parts, got {len(parts)}): {message[:100]}")
+                    self.log(f"Malformed message (expected 5 parts, got {len(parts)}): {message[:100]}")
                 return [0, 0, 0, 0]
 
-            obs_json, reward_str, done_str, gem_delta_str = parts
+            obs_json, reward_str, done_str, gem_delta_str, oob_str = parts
 
             # Parse observation
             obs = json.loads(obs_json)
             reward = float(reward_str)
             done = int(float(done_str))
             gem_delta = float(gem_delta_str)
+            oob = int(float(oob_str))
 
-            # Debug first message
-            if self.total_steps == 0:
+            # Handle game-end signal: empty obs [] with done=1.
+            # onGameEnd sends total game gems as negative gem_delta.
+            # This is the authoritative game boundary — record to recent_game_gems.
+            if len(obs) == 0 and done:
+                total_game_gems = int(abs(gem_delta))  # CS sends negative to distinguish
+                self.recent_game_gems.append(total_game_gems)
+                if total_game_gems > self.best_game_gems:
+                    self.best_game_gems = total_game_gems
+                self.log(f"[GAME END] total gems this game: {total_game_gems}pts (best: {self.best_game_gems})")
+                self.game_gem_pts = 0  # Reset accumulator for next game
+                return [0, 0, 0, 0]
+
+            # Debug first few messages of session to verify velocity is non-zero
+            session_step = self.total_steps - self._session_start_step
+            if session_step < 5 or (session_step < 100 and session_step % 20 == 0):
                 raw = np.array(obs, dtype=np.float32)
-                self.log(f"First obs: {len(obs)} dims | raw min={raw.min():.1f} max={raw.max():.1f} | yaw={raw[6]:.4f}rad")
+                vel = raw[3:6]
+                gem0 = raw[13:18] if len(raw) > 17 else [0]*5
+                self.log(f"Obs[{session_step}]: vel=({vel[0]:.2f},{vel[1]:.2f},{vel[2]:.2f}) gem0_xy=({gem0[0]:.1f},{gem0[1]:.1f}) gem0_dist={gem0[4]:.1f}")
 
             # Track no-gem steps (sentinel distance at index 17)
             raw_gem0_dist = obs[17] if len(obs) > 17 else -1
@@ -630,9 +710,9 @@ class PPOServer:
             # Normalize observation
             obs_array = self.normalize_obs(np.array(obs, dtype=np.float32))
 
+            # Action repeat: query model every N frames, reuse last action otherwise.
             action, log_prob, value = self.model.get_action(obs_array)
             self.recent_actions.append(action)
-            self.rollout_action_counts[action] += 1
 
             # Track events
             if gem_delta > 0:
@@ -640,7 +720,7 @@ class PPOServer:
                 self.rollout_gem_pts += int(gem_delta)
                 self.total_gem_pts += int(gem_delta)
                 self.log(f"[GEM] ep={self.total_episodes+1} step={self.total_steps} +{gem_delta:.0f}pts | ep_total={self.current_episode_reward + reward:.1f}")
-            if reward < -20:  # OOB penalty (-25)
+            if oob:
                 self.episode_oob += 1
                 self.rollout_oob += 1
                 self.total_oob += 1
@@ -672,6 +752,7 @@ class PPOServer:
                 self.log(f"Ep {self.total_episodes} [{outcome}] rwd={self.current_episode_reward:.1f}{gems_str}{oob_str} steps={self.episode_step} | avg100={avg_reward:.1f}")
                 if self.episode_step <= 15:
                     self.log(f"  *** SHORT EPISODE ({self.episode_step} steps) — flood bug may still be active ***")
+
                 self.current_episode_reward = 0
                 self.episode_gem_pts = 0
                 self.episode_oob = 0
@@ -682,8 +763,8 @@ class PPOServer:
             if len(self.buffer) >= self.rollout_size:
                 self.run_ppo_update()
 
-            # Convert categorical action index to binary (F,B,L,R) for game
-            return list(ActorCritic.ACTION_MAP[action])
+            # Convert continuous angle to analog joystick axes (F,B,L,R)
+            return list(ActorCritic.angle_to_joystick(action))
 
         except Exception as e:
             if self.total_steps < 5:
@@ -707,13 +788,21 @@ class PPOServer:
         self.total_updates += 1
         self.entropy_history.append(stats['entropy'])
 
+        # Anneal LOG_STD_MAX gradually to tighten aim over time.
+        # Decays 0.0005 per update. Over 1000 updates: drops ~0.5 in log-space.
+        # Target floor: LOG_STD_MIN (-1.85 = 9 deg). The clamp in _get_dist() enforces this.
+        if self.model.LOG_STD_MAX > self.model.LOG_STD_MIN:
+            self.model.LOG_STD_MAX = max(self.model.LOG_STD_MAX - 0.0005, self.model.LOG_STD_MIN)
+
         avg_reward = np.mean(self.episode_rewards) if self.episode_rewards else 0
 
-        # Detect entropy collapse (max for Categorical(9) = ln(9) ≈ 2.197)
+        # Detect entropy collapse for continuous Normal distribution
+        # Entropy = 0.5*ln(2πe*σ²). At LOG_STD_MIN=-3 (σ=0.05rad≈2.9°): entropy≈-2.3
+        # At LOG_STD_MAX=0.0 (σ=1.0rad≈57°): entropy≈1.4. Healthy range: -1.0 to 1.0
         collapse_warn = ""
-        if stats['entropy'] < 0.5:
+        if stats['entropy'] < -0.5:
             collapse_warn = " *** ENTROPY COLLAPSE ***"
-        elif stats['entropy'] < 1.0:
+        elif stats['entropy'] < 0.3:
             collapse_warn = " (entropy low)"
 
         # Dry-rollout tracking
@@ -723,15 +812,23 @@ class PPOServer:
             self.dry_rollouts = 0
 
         dry_warn = f" DRY×{self.dry_rollouts}" if self.dry_rollouts >= 5 else ""
+        kl_warn = " KL-STOP" if stats.get('kl_early_stopped') else ""
 
         # Average episode length (key metric for flood bug detection)
         avg_ep_len = np.mean(self.recent_episode_lengths) if self.recent_episode_lengths else 0
 
-        # Action distribution
-        n = max(self.rollout_steps, 1)
-        act_pct = self.rollout_action_counts / n * 100
-        names = ActorCritic.ACTION_NAMES
-        act_str = " ".join(f"{names[i]}:{act_pct[i]:.0f}%" for i in range(9))
+        # Action distribution (continuous angle)
+        import math
+        recent = list(self.recent_actions)[-min(200, len(self.recent_actions)):]
+        if recent:
+            angles_deg = [((a * 180 / math.pi) % 360) for a in recent]
+            mean_deg = sum(angles_deg) / len(angles_deg)
+            std_deg = (sum((d - mean_deg)**2 for d in angles_deg) / len(angles_deg)) ** 0.5
+            log_std = torch.clamp(self.model.log_std, self.model.LOG_STD_MIN, self.model.LOG_STD_MAX)
+            policy_std_deg = log_std.exp().item() * 180 / math.pi
+            act_str = f"MeanAngle:{mean_deg:.0f}° StdDev:{std_deg:.0f}° PolicyStd:{policy_std_deg:.1f}°"
+        else:
+            act_str = "no actions yet"
 
         # Compact per-update line
         gems_str = f" gems={self.rollout_gem_pts}" if self.rollout_gem_pts else ""
@@ -739,9 +836,9 @@ class PPOServer:
         self.log(
             f"Upd {self.total_updates:4d} | "
             f"PL={stats['policy_loss']:.4f} VL={stats['value_loss']:.4f} "
-            f"Ent={stats['entropy']:.3f} GN={stats['grad_norm']:.3f} | "
+            f"Ent={stats['entropy']:.3f} GN={stats['grad_norm']:.3f} KL={stats['max_kl']:.4f} | "
             f"AvgRwd={avg_reward:.1f} AvgLen={avg_ep_len:.0f}{collapse_warn} |"
-            f"{gems_str}{oob_str}{dry_warn}"
+            f"{gems_str}{oob_str}{dry_warn}{kl_warn}"
         )
         self.log(f"       {act_str}")
 
@@ -757,7 +854,6 @@ class PPOServer:
         self.rollout_oob = 0
         self.rollout_positive = 0
         self.rollout_steps = 0
-        self.rollout_action_counts = np.zeros(9, dtype=int)
 
         # Save checkpoint periodically
         if self.total_updates % self.save_interval == 0:
@@ -775,8 +871,11 @@ class PPOServer:
             gems_hr = self.total_gem_pts / max(elapsed_hrs, 1/3600)
 
             self.log(f"\n--- SUMMARY Upd {self.total_updates} | {elapsed_hrs:.2f}h | {self.total_steps:,} steps | {self.total_episodes} eps ---")
+            laziness = avg_reward / gems_hr if gems_hr > 0 else 0
+            log_std = torch.clamp(self.model.log_std, self.model.LOG_STD_MIN, self.model.LOG_STD_MAX)
+            policy_std_deg = log_std.exp().item() * 180 / 3.14159
             self.log(f"  Gems: {self.total_gem_pts}pts ({gems_hr:.0f}/hr) | OOB: {self.total_oob} | AvgRwd: {avg_reward:.1f} | Best: {self.best_avg_reward:.1f}")
-            self.log(f"  AvgEpLen: {avg_ep_len:.0f} steps | Ent: {stats['entropy']:.3f} | GN: {stats['grad_norm']:.3f}")
+            self.log(f"  AvgEpLen: {avg_ep_len:.0f} steps | Ent: {stats['entropy']:.3f} | GN: {stats['grad_norm']:.3f} | Lazy: {laziness:.2f} | Std: {policy_std_deg:.1f}°")
             if self.recent_episode_gems:
                 nonzero = sum(1 for g in self.recent_episode_gems if g > 0)
                 self.log(f"  Last {len(self.recent_episode_gems)} eps: {nonzero} had gems")
@@ -827,32 +926,39 @@ def main():
     parser.add_argument('--host', default='127.0.0.1', help='Server host')
     parser.add_argument('--port', type=int, default=8888, help='Server port')
     parser.add_argument('--rollout-size', type=int, default=2048, help='Steps per PPO update')
-    parser.add_argument('--lr', type=float, default=3e-4, help='Learning rate')
+    parser.add_argument('--lr', type=float, default=1e-4, help='Learning rate')
     parser.add_argument('--batch-size', type=int, default=256, help='Mini-batch size')
     parser.add_argument('--epochs', type=int, default=4, help='PPO epochs per update')
+    parser.add_argument('--load', type=str, default=None, help='Load specific checkpoint (e.g. models/checkpoints/update_5070.pth)')
 
     args = parser.parse_args()
 
-    # Auto-resume from latest checkpoint if it exists
-    # Check for update_N.pth files and find the highest N
-    import glob
-    checkpoint_dir = 'models/checkpoints'
-    update_files = glob.glob(f'{checkpoint_dir}/update_*.pth')
-
     model_path = None
-    if update_files:
-        # Find the checkpoint with the highest update number
-        latest_file = max(update_files, key=lambda f: int(f.split('_')[-1].split('.')[0]))
-        model_path = latest_file
-        print(f"Resuming training from {latest_file}")
-    elif os.path.exists(f'{checkpoint_dir}/best.pth'):
-        model_path = f'{checkpoint_dir}/best.pth'
-        print(f"Resuming training from best.pth")
-    elif os.path.exists(f'{checkpoint_dir}/final.pth'):
-        model_path = f'{checkpoint_dir}/final.pth'
-        print(f"Resuming training from final.pth")
+    if args.load:
+        # Explicit checkpoint specified
+        if not os.path.exists(args.load):
+            print(f"ERROR: Checkpoint not found: {args.load}")
+            sys.exit(1)
+        model_path = args.load
+        print(f"Loading specified checkpoint: {args.load}")
     else:
-        print("Starting fresh training (no checkpoint found)")
+        # Auto-resume from latest checkpoint if it exists
+        import glob
+        checkpoint_dir = 'models/checkpoints'
+        update_files = glob.glob(f'{checkpoint_dir}/update_*.pth')
+
+        if update_files:
+            latest_file = max(update_files, key=lambda f: int(f.split('_')[-1].split('.')[0]))
+            model_path = latest_file
+            print(f"Resuming training from {latest_file}")
+        elif os.path.exists(f'{checkpoint_dir}/best.pth'):
+            model_path = f'{checkpoint_dir}/best.pth'
+            print(f"Resuming training from best.pth")
+        elif os.path.exists(f'{checkpoint_dir}/final.pth'):
+            model_path = f'{checkpoint_dir}/final.pth'
+            print(f"Resuming training from final.pth")
+        else:
+            print("Starting fresh training (no checkpoint found)")
 
     server = PPOServer(host=args.host, port=args.port, model_path=model_path)
     server.rollout_size = args.rollout_size
