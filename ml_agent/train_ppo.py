@@ -66,8 +66,8 @@ class ActorCritic(nn.Module):
     Convention: 0 = forward (+Y), π/2 = right (+X), π = backward, 3π/2 = left.
     """
 
-    LOG_STD_MIN = -1.0    # exp(-1.0) ≈ 0.37 rad ≈ 21° (floor: entropy ~0.3, prevents collapse)
-    LOG_STD_MAX = 0.0     # exp(0)  ≈ 1.0 rad  ≈ 57° (max exploration, overridden on checkpoint load)
+    LOG_STD_MIN = -2.0    # exp(-2.0) ≈ 0.14 rad ≈ 7.7° (safety floor, prevents near-zero std)
+    LOG_STD_MAX = 1.0     # exp(1.0) ≈ 2.7 rad  ≈ 156° (safety ceiling, prevents chaos)
 
     def __init__(self, obs_dim=61):
         super().__init__()
@@ -442,14 +442,10 @@ class PPOServer:
             saved_rewards = checkpoint.get('episode_rewards', [])
             self.episode_rewards = deque(saved_rewards, maxlen=100)
 
-            # Set LOG_STD_MAX to checkpoint's current log_std so there's no sudden clamp.
-            # The annealing in run_ppo_update() will gradually lower it from here.
+            # log_std is restored from checkpoint via load_state_dict — just log it
             with torch.no_grad():
-                current_log_std = self.model.log_std.item()
                 std_deg = self.model.log_std.exp().item() * 180 / 3.14159
-                self.model.LOG_STD_MAX = current_log_std
-                target_deg = torch.tensor(self.model.LOG_STD_MIN).exp().item() * 180 / 3.14159
-                self.log(f"  PolicyStd: {std_deg:.1f} degrees -> annealing to {target_deg:.1f} degrees")
+                self.log(f"  PolicyStd: {std_deg:.1f} deg (learnable, bounds: {self.model.LOG_STD_MIN:.1f} to {self.model.LOG_STD_MAX:.1f})")
 
             self.log(f"Model loaded successfully!")
             self.log(f"Resuming from: {self.total_steps} steps, {self.total_updates} updates, {self.total_episodes} episodes")
@@ -688,14 +684,6 @@ class PPOServer:
                 self.game_gem_pts = 0  # Reset accumulator for next game
                 return [0, 0, 0, 0]
 
-            # Debug first few messages of session to verify velocity is non-zero
-            session_step = self.total_steps - self._session_start_step
-            if session_step < 5 or (session_step < 100 and session_step % 20 == 0):
-                raw = np.array(obs, dtype=np.float32)
-                vel = raw[3:6]
-                gem0 = raw[13:18] if len(raw) > 17 else [0]*5
-                self.log(f"Obs[{session_step}]: vel=({vel[0]:.2f},{vel[1]:.2f},{vel[2]:.2f}) gem0_xy=({gem0[0]:.1f},{gem0[1]:.1f}) gem0_dist={gem0[4]:.1f}")
-
             # Track no-gem steps (sentinel distance at index 17)
             raw_gem0_dist = obs[17] if len(obs) > 17 else -1
             if raw_gem0_dist < -500:
@@ -787,12 +775,6 @@ class PPOServer:
         )
         self.total_updates += 1
         self.entropy_history.append(stats['entropy'])
-
-        # Anneal LOG_STD_MAX gradually to tighten aim over time.
-        # Decays 0.0005 per update. Over 1000 updates: drops ~0.5 in log-space.
-        # Target floor: LOG_STD_MIN (-1.85 = 9 deg). The clamp in _get_dist() enforces this.
-        if self.model.LOG_STD_MAX > self.model.LOG_STD_MIN:
-            self.model.LOG_STD_MAX = max(self.model.LOG_STD_MAX - 0.0005, self.model.LOG_STD_MIN)
 
         avg_reward = np.mean(self.episode_rewards) if self.episode_rewards else 0
 

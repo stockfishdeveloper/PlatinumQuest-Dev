@@ -197,22 +197,29 @@ function MLAgent::computeReward(%obs) {
     }
     $MLAgent::LastGemScore = %currentGemScore;
 
-    // DISABLED: Distance shaping and velocity-alignment removed.
-    // The model learned to farm shaping reward by approaching gems closely
-    // then veering off at the last second (repeated approach = repeated shaping).
-    // Now: only gem collection (+200) and time penalty (-0.40) drive behavior.
-    // The model must collect gems to offset the constant time bleed.
+    // Distance shaping: potential-based P(d) = 20/(1+d/50) + 15/(1+d/3)
+    // Reward = P(new) - P(old) each step (positive when getting closer)
+    // Grace period after gem collection / OOB suppresses the sentinel->real spike
     %nearestDist = %obs.gem[0, "distance"];
     if (%nearestDist > 0 && %nearestDist < 900) {
         $MLAgent::NoGemSteps = 0;
+        if ($MLAgent::SkipPotentialSteps > 0) {
+            $MLAgent::SkipPotentialSteps--;
+        } else {
+            %newPotential = 20 / (1 + %nearestDist / 50) + 15 / (1 + %nearestDist / 3);
+            %oldPotential = 20 / (1 + $MLAgent::LastNearestGemDist / 50) + 15 / (1 + $MLAgent::LastNearestGemDist / 3);
+            %shapingReward = %newPotential - %oldPotential;
+            %reward += %shapingReward;
+        }
+        $MLAgent::LastNearestGemDist = %nearestDist;
     } else {
         $MLAgent::NoGemSteps++;
     }
 
-    // Time penalty: -0.40/step. Every wasted step hurts.
-    // Cost: ~7550/episode (18875 steps). 55 gems × 200 = 11000 gem reward - 7550 = 3450 net.
-    // History: -0.02 too weak, -0.05 not motivating, -0.20 agent still moseying.
-    %reward -= 0.40;
+    // Time penalty: -0.02/step. Mild efficiency pressure + implicit OOB cost.
+    // With distance shaping active, the shaping gradient provides directional signal.
+    // History: -0.40 buried shaping, -0.20 still too harsh, -0.02 lets shaping dominate.
+    %reward -= 0.02;
 
     // OOB penalty: -25 per event. Agent knows gem-seeking, time to punish sloppy play.
     // Plus ~30 wasted recovery steps at -0.20/step = -6.0 implicit cost = ~-31 total per OOB.
