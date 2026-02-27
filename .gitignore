@@ -16,7 +16,6 @@
 *.ilk
 *.lib
 *.lo
-*.log
 *.nam
 *.o
 *.ogv
@@ -77,6 +76,7 @@ Marble Blast Platinum/platinum/data/multiplayer/race/custom
 Marble Blast Platinum/client/ui/game/countdown/custom
 Marble Blast Platinum/platinum/data/stats
 Marble Blast Platinum/plugins
+Marble Blast Platinum/console.log
 MBExtender/build
 Marble Blast Platinum/marbleblast.torsion
 Marble Blast Platinum.app
