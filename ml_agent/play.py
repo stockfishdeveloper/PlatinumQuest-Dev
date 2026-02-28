@@ -19,7 +19,7 @@ import os
 import sys
 
 # Reuse the model definition from the training script
-from train_ppo import ActorCritic
+from train_ppo import Actor
 
 
 def normalize_obs(obs):
@@ -87,9 +87,10 @@ def main():
         sys.exit(1)
 
     # Load model
-    model = ActorCritic(obs_dim=61)
+    model = Actor(obs_dim=61)
     checkpoint = torch.load(args.model, weights_only=False)
-    model.load_state_dict(checkpoint['model_state_dict'])
+    state = checkpoint.get('actor_state_dict', checkpoint.get('model_state_dict', {}))
+    model.load_state_dict(state, strict=False)
     model.eval()
 
     deterministic = not args.stochastic
@@ -158,7 +159,7 @@ def main():
                         done = int(float(done_str))
 
                         obs = normalize_obs(obs)
-                        action, _, _ = model.get_action(obs, deterministic=deterministic)
+                        action, _ = model.get_action(obs, deterministic=deterministic)
                         total_steps += 1
 
                         if gem_delta > 0:
@@ -171,7 +172,7 @@ def main():
                             episode_gems = 0
                             total_steps = 0
 
-                        action_tuple = ActorCritic.angle_to_joystick(action)
+                        action_tuple = Actor.angle_to_joystick(action)
                         conn.sendall((','.join(map(str, action_tuple)) + '\n').encode('utf-8'))
 
             except Exception as e:

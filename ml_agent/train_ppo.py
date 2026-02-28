@@ -60,24 +60,26 @@ class DualLogger:
         self.file.close()
 
 # ============================================================================
-# Neural Network (Actor-Critic)
+# Neural Networks (Separate Actor and Critic)
 # ============================================================================
 
-class ActorCritic(nn.Module):
-    """Policy and value network for PPO with continuous angle output.
+class Actor(nn.Module):
+    """Policy network for PPO with continuous angle output.
 
-    Action: a single angle in radians [0, 2π) representing movement direction.
+    Action: a single angle in radians [0, 2pi) representing movement direction.
     Always applied at full magnitude. No idle action.
-    Convention: 0 = forward (+Y), π/2 = right (+X), π = backward, 3π/2 = left.
+    Convention: 0 = forward (+Y), pi/2 = right (+X), pi = backward, 3pi/2 = left.
+
+    Separate from Critic to eliminate gradient interference: critic's high-variance
+    value loss no longer contaminates policy gradient through shared weights.
     """
 
-    LOG_STD_MIN = -2.0    # exp(-2.0) ≈ 0.14 rad ≈ 7.7° (safety floor, prevents near-zero std)
-    LOG_STD_MAX = 1.0     # exp(1.0) ≈ 2.7 rad  ≈ 156° (safety ceiling, prevents chaos)
+    LOG_STD_MIN = -2.0    # exp(-2.0) ~= 0.14 rad ~= 7.7 deg (safety floor)
+    LOG_STD_MAX = 1.0     # exp(1.0)  ~= 2.7 rad  ~= 156 deg (safety ceiling)
 
     def __init__(self, obs_dim=61):
         super().__init__()
 
-        # Shared feature extractor
         self.features = nn.Sequential(
             nn.Linear(obs_dim, 256),
             nn.ReLU(),
@@ -87,80 +89,51 @@ class ActorCritic(nn.Module):
             nn.ReLU(),
         )
 
-        # Actor head: outputs (mean_x, mean_y) as a unit-circle direction
-        # Using 2D output (sin, cos) instead of raw angle avoids the wraparound
-        # discontinuity at 0/2π which makes gradient optimization much easier.
+        # Outputs (mean_x, mean_y) as a unit-circle direction.
+        # 2D output avoids the 0/2pi wraparound discontinuity.
         self.actor_mean = nn.Sequential(
             nn.Linear(128, 64),
             nn.ReLU(),
-            nn.Linear(64, 2),  # (dx, dy) — will be normalized to unit circle
+            nn.Linear(64, 2),  # (dx, dy) normalized to unit circle
         )
 
         # Learnable log-std (state-independent, single scalar for angular spread)
-        # Init to -1.5 → exp(-1.5) ≈ 0.22 rad ≈ 12.8° (enough to explore, not flail)
+        # Init to -1.5 -> exp(-1.5) ~= 0.22 rad ~= 12.8 deg
         self.log_std = nn.Parameter(torch.full((1,), -1.5))
 
-        # Critic head
-        self.critic = nn.Sequential(
-            nn.Linear(128, 64),
-            nn.ReLU(),
-            nn.Linear(64, 1),
-        )
+    def _get_dist(self, mean_xy):
+        mean_angle = torch.atan2(mean_xy[:, 0], mean_xy[:, 1])  # atan2(x, y) so 0=forward
+        log_std = torch.clamp(self.log_std, self.LOG_STD_MIN, self.LOG_STD_MAX)
+        return torch.distributions.Normal(mean_angle, log_std.exp())
 
     def forward(self, state):
-        features = self.features(state)
-        mean_xy = self.actor_mean(features)
-        value = self.critic(features)
-        return mean_xy, value
-
-    def _get_dist(self, mean_xy):
-        """Build a VonMises-like distribution from 2D mean direction.
-
-        We convert (dx, dy) to an angle, then use a Normal distribution
-        on the angle. The log_std parameter controls exploration width.
-        """
-        # Normalize to unit circle to get mean angle
-        mean_angle = torch.atan2(mean_xy[:, 0], mean_xy[:, 1])  # atan2(x, y) so 0=forward
-
-        # Clamp log_std for stability
-        log_std = torch.clamp(self.log_std, self.LOG_STD_MIN, self.LOG_STD_MAX)
-        std = log_std.exp()
-
-        return torch.distributions.Normal(mean_angle, std)
+        return self.actor_mean(self.features(state))
 
     def get_action(self, state, deterministic=False):
-        """Get action from state, return angle, log_prob, value."""
+        """Get action from state. Returns (angle, log_prob)."""
         with torch.no_grad():
             if not isinstance(state, torch.Tensor):
                 state = torch.FloatTensor(state).unsqueeze(0)
-
-            mean_xy, value = self.forward(state)
+            mean_xy = self.forward(state)
             dist = self._get_dist(mean_xy)
-
             if deterministic:
                 angle = torch.atan2(mean_xy[:, 0], mean_xy[:, 1])
             else:
                 angle = dist.sample()
-
             log_prob = dist.log_prob(angle)
-
-        return angle.item(), log_prob.item(), value.item()
+        return angle.item(), log_prob.item()
 
     def evaluate_actions(self, states, actions):
-        """Evaluate actions for PPO update."""
-        mean_xy, values = self.forward(states)
+        """Evaluate log_probs and entropy for stored actions."""
+        mean_xy = self.forward(states)
         dist = self._get_dist(mean_xy)
-
-        log_probs = dist.log_prob(actions)
-        entropy = dist.entropy()
-
-        return log_probs, values.squeeze(-1), entropy
+        return dist.log_prob(actions), dist.entropy()
 
     @staticmethod
     def angle_to_joystick(angle):
         """Convert angle (radians) to joystick axes (fwd, back, left, right).
 
-        Convention: 0 = forward, π/2 = right, π = backward, 3π/2 = left.
+        Convention: 0 = forward, pi/2 = right, pi = backward, 3pi/2 = left.
         Always full magnitude. Values rounded to 6 decimal places to avoid
         scientific notation (e.g. 1.2e-16) which TorqueScript may not parse.
         """
@@ -168,12 +141,45 @@ class ActorCritic(nn.Module):
         move_x = math.sin(angle)  # positive = right
         move_y = math.cos(angle)  # positive = forward
 
-        fwd  = round(max(move_y, 0.0), 6) + 0.0
-        back = round(max(-move_y, 0.0), 6) + 0.0
+        fwd   = round(max(move_y, 0.0), 6) + 0.0
+        back  = round(max(-move_y, 0.0), 6) + 0.0
         right = round(max(move_x, 0.0), 6) + 0.0
         left  = round(max(-move_x, 0.0), 6) + 0.0
 
         return fwd, back, left, right
+
+
+class Critic(nn.Module):
+    """Value network for PPO. Separate from Actor to prevent gradient interference.
+
+    The critic's value loss is high-variance (reward spikes from gem collection),
+    so keeping it separate ensures its gradients never corrupt the policy weights.
+    Uses a higher learning rate than the actor.
+    """
+
+    def __init__(self, obs_dim=61):
+        super().__init__()
+
+        self.net = nn.Sequential(
+            nn.Linear(obs_dim, 256),
+            nn.ReLU(),
+            nn.Linear(256, 256),
+            nn.ReLU(),
+            nn.Linear(256, 128),
+            nn.ReLU(),
+            nn.Linear(128, 64),
+            nn.ReLU(),
+            nn.Linear(64, 1),
+        )
+
+    def forward(self, state):
+        return self.net(state)
+
+    def get_value(self, state):
+        with torch.no_grad():
+            if not isinstance(state, torch.Tensor):
+                state = torch.FloatTensor(state).unsqueeze(0)
+            return self.forward(state).item()
 
 
 # ============================================================================
@@ -272,22 +278,30 @@ class RolloutBuffer:
 # ============================================================================
 
 class PPOTrainer:
-    """Proximal Policy Optimization trainer."""
+    """Proximal Policy Optimization trainer with separate actor/critic optimizers.
 
-    def __init__(self, model, lr=1e-4, clip_epsilon=0.2, value_coef=0.5,
-                 entropy_coef=0.01, max_grad_norm=1.0, vf_clip=20.0,
-                 target_kl=0.5):
-        self.model = model
-        self.optimizer = optim.Adam(model.parameters(), lr=lr)
+    Actor and critic are trained independently with separate Adam optimizers,
+    eliminating gradient interference between the policy and value objectives.
+    The critic can use a higher LR since its loss is a simple regression target,
+    while the actor uses a lower LR for stable policy updates.
+    """
+
+    def __init__(self, actor, critic,
+                 actor_lr=3e-5, critic_lr=1e-4,
+                 clip_epsilon=0.2, entropy_coef=0.01,
+                 max_grad_norm=1.0, vf_clip=20.0, target_kl=1.5):
+        self.actor = actor
+        self.critic = critic
+        self.actor_optimizer = optim.Adam(actor.parameters(), lr=actor_lr)
+        self.critic_optimizer = optim.Adam(critic.parameters(), lr=critic_lr)
         self.clip_epsilon = clip_epsilon
-        self.value_coef = value_coef
         self.entropy_coef = entropy_coef
         self.max_grad_norm = max_grad_norm
-        self.vf_clip = vf_clip  # Clip value loss to prevent VLoss explosions from gem spikes
-        self.target_kl = target_kl  # KL early stopping: fires at 1.5x = 0.75 (normal KL: 0.02-0.33, destructive: 1.16+)
+        self.vf_clip = vf_clip
+        self.target_kl = target_kl  # KL early stopping: fires at 1.5x (catches destructive updates)
 
     def update(self, buffer, n_epochs=4, batch_size=64, gamma=0.99, lam=0.95):
-        """Run PPO update on collected experience."""
+        """Run PPO update with independent actor and critic steps."""
         total_policy_loss = 0
         total_value_loss = 0
         total_entropy = 0
@@ -302,12 +316,10 @@ class PPOTrainer:
             for states, actions, old_log_probs, returns, advantages, old_values in \
                     buffer.get_batches(batch_size, gamma, lam):
 
-                # Evaluate current policy
-                new_log_probs, values, entropy = self.model.evaluate_actions(states, actions)
+                # --- Actor update ---
+                new_log_probs, entropy = self.actor.evaluate_actions(states, actions)
 
-                # KL divergence early stopping (Stable Baselines 3 method)
-                # Measures how far the policy has drifted from the start of this update.
-                # If it drifts too far, stop all remaining updates to prevent death spirals.
+                # KL early stopping: measures policy drift from start of this update
                 with torch.no_grad():
                     log_ratio = new_log_probs - old_log_probs
                     approx_kl = torch.mean((torch.exp(log_ratio) - 1) - log_ratio).item()
@@ -316,40 +328,35 @@ class PPOTrainer:
                     kl_early_stopped = True
                     break
 
-                # Policy loss (clipped surrogate objective)
                 ratio = torch.exp(new_log_probs - old_log_probs)
                 surr1 = ratio * advantages
                 surr2 = torch.clamp(ratio, 1 - self.clip_epsilon, 1 + self.clip_epsilon) * advantages
                 policy_loss = -torch.min(surr1, surr2).mean()
+                entropy_loss = -entropy.mean()
+                actor_loss = policy_loss + self.entropy_coef * entropy_loss
 
-                # Clipped value loss: prevent critic from jumping too far in one update.
-                # Without this, a single gem-heavy episode causes VLoss=20+ which blows
-                # gradients through the shared network and corrupts the actor.
+                self.actor_optimizer.zero_grad()
+                actor_loss.backward()
+                grad_norm = sum(
+                    p.grad.norm().item() ** 2
+                    for p in self.actor.parameters()
+                    if p.grad is not None
+                ) ** 0.5
+                total_grad_norm += grad_norm
+                nn.utils.clip_grad_norm_(self.actor.parameters(), self.max_grad_norm)
+                self.actor_optimizer.step()
+
+                # --- Critic update ---
+                values = self.critic(states).squeeze(-1)
                 values_clipped = old_values + torch.clamp(values - old_values, -self.vf_clip, self.vf_clip)
                 vf_loss1 = (values - returns) ** 2
                 vf_loss2 = (values_clipped - returns) ** 2
                 value_loss = 0.5 * torch.max(vf_loss1, vf_loss2).mean()
 
-                # Entropy bonus (encourages exploration)
-                entropy_loss = -entropy.mean()
-
-                # Total loss
-                loss = policy_loss + self.value_coef * value_loss + self.entropy_coef * entropy_loss
-
-                # Optimize
-                self.optimizer.zero_grad()
-                loss.backward()
-
-                # Measure gradient norm before clipping (useful for diagnosing exploding gradients)
-                grad_norm = sum(
-                    p.grad.norm().item() ** 2
-                    for p in self.model.parameters()
-                    if p.grad is not None
-                ) ** 0.5
-                total_grad_norm += grad_norm
-
-                nn.utils.clip_grad_norm_(self.model.parameters(), self.max_grad_norm)
-                self.optimizer.step()
+                self.critic_optimizer.zero_grad()
+                value_loss.backward()
+                nn.utils.clip_grad_norm_(self.critic.parameters(), self.max_grad_norm)
+                self.critic_optimizer.step()
 
                 total_policy_loss += policy_loss.item()
                 total_value_loss += value_loss.item()
@@ -384,17 +391,17 @@ class PPOServer:
         self.logger = DualLogger(log_filename)
         self.log = self.logger.print  # Shortcut
 
-        # Model and trainer
-        self.model = ActorCritic(obs_dim=61)
-        self.trainer = PPOTrainer(self.model, vf_clip=20.0)
+        # Separate actor and critic networks — eliminates gradient interference.
+        # The critic's high-variance value loss no longer corrupts policy weights.
+        # Actor LR is lower (3e-5) for stable policy updates; critic LR higher (1e-4)
+        # since value regression can afford bigger steps.
+        self.actor = Actor(obs_dim=61)
+        self.critic = Critic(obs_dim=61)
+        self.trainer = PPOTrainer(self.actor, self.critic, vf_clip=20.0)
         self.buffer = RolloutBuffer()
 
         # Training config
-        # Rollout reduced to 512 (was 8192) to match successful small-batch PPO
-        # implementations like RollerBall (buffer=100) or CleanRL (buffer=2048).
-        # Larger rollouts let the agent see coherent approach→collect→pivot
-        # sequences within a single advantage computation, improving precision.
-        # 2048 steps ≈ 11% of one episode (18,875 steps).
+        # 2048 steps ~= 11% of one episode (~18,875 steps).
         self.rollout_size = 2048
         self.n_epochs = 4
         self.batch_size = 256  # 2048/256 = 8 mini-batches per epoch
@@ -437,23 +444,21 @@ class PPOServer:
             self.log(f"Loading model from {model_path}")
             checkpoint = torch.load(model_path, weights_only=False)
             # Handle architecture mismatch (e.g. old checkpoint had different network shape)
-            saved_state = checkpoint['model_state_dict']
-            current_state = self.model.state_dict()
-            for key in list(saved_state.keys()):
-                if key in current_state and saved_state[key].shape != current_state[key].shape:
-                    self.log(f"  Shape mismatch for {key}: checkpoint={saved_state[key].shape} vs model={current_state[key].shape} — skipping (will reinit)")
-                    del saved_state[key]
-            self.model.load_state_dict(saved_state, strict=False)
-            # Don't restore optimizer state — its momentum/variance was built at the
-            # old value scale and causes bad updates on resume.
-
-            # Reset the critic so it relearns value estimates from scratch.
-            # Old checkpoints may have wildly wrong value estimates that cause
-            # a massive gradient flood on the first update.
-            # With separate actor/critic networks, this only affects the critic.
-            for layer in self.model.critic:
-                if hasattr(layer, 'reset_parameters'):
-                    layer.reset_parameters()
+            # Load actor weights. Old checkpoints used a shared ActorCritic —
+            # map compatible keys across (features.*, actor_mean.*, log_std).
+            # Critic is always reset to reinit: old value estimates are stale
+            # and would cause a gradient flood on the first update.
+            saved_state = checkpoint.get('model_state_dict', checkpoint.get('actor_state_dict', {}))
+            actor_state = self.actor.state_dict()
+            filtered = {}
+            for key, val in saved_state.items():
+                if key in actor_state:
+                    if val.shape == actor_state[key].shape:
+                        filtered[key] = val
+                    else:
+                        self.log(f"  Shape mismatch for {key}: checkpoint={val.shape} vs actor={actor_state[key].shape} — skipping")
+            self.actor.load_state_dict(filtered, strict=False)
+            # Critic always starts fresh — don't restore optimizer states either.
 
             # Restore training progress
             self.total_steps = checkpoint.get('total_steps', 0)
@@ -463,16 +468,17 @@ class PPOServer:
             saved_rewards = checkpoint.get('episode_rewards', [])
             self.episode_rewards = deque(saved_rewards, maxlen=100)
 
-            # log_std is restored from checkpoint via load_state_dict — just log it
             with torch.no_grad():
-                std_deg = self.model.log_std.exp().item() * 180 / 3.14159
-                self.log(f"  PolicyStd: {std_deg:.1f} deg (learnable, bounds: {self.model.LOG_STD_MIN:.1f} to {self.model.LOG_STD_MAX:.1f})")
+                std_deg = self.actor.log_std.exp().item() * 180 / 3.14159
+                self.log(f"  PolicyStd: {std_deg:.1f} deg (learnable, bounds: {self.actor.LOG_STD_MIN:.1f} to {self.actor.LOG_STD_MAX:.1f})")
+            self.log(f"  Critic reinitialised from scratch (stale value estimates discarded)")
 
             self.log(f"Model loaded successfully!")
             self.log(f"Resuming from: {self.total_steps} steps, {self.total_updates} updates, {self.total_episodes} episodes")
             self.log(f"Best avg reward restored: {self.best_avg_reward:.2f}")
 
-        self.model.train()
+        self.actor.train()
+        self.critic.train()
         self._session_start_step = self.total_steps
 
         # Recent actions (for angle stats display and dashboard)
@@ -770,7 +776,8 @@ class PPOServer:
             obs_array = self.normalize_obs(np.array(obs, dtype=np.float32))
 
             # Action repeat: query model every N frames, reuse last action otherwise.
-            action, log_prob, value = self.model.get_action(obs_array)
+            action, log_prob = self.actor.get_action(obs_array)
+            value = self.critic.get_value(obs_array)
             self.recent_actions.append(action)
 
             # Track events
@@ -825,7 +832,7 @@ class PPOServer:
                 self.run_ppo_update()
 
             # Convert continuous angle to analog joystick axes (F,B,L,R)
-            return list(ActorCritic.angle_to_joystick(action))
+            return list(Actor.angle_to_joystick(action))
 
         except Exception as e:
             if self.total_steps < 5:
@@ -837,7 +844,8 @@ class PPOServer:
 
     def run_ppo_update(self):
         """Run PPO training update."""
-        self.model.train()
+        self.actor.train()
+        self.critic.train()
 
         stats = self.trainer.update(
             self.buffer,
@@ -879,7 +887,7 @@ class PPOServer:
             angles_deg = [((a * 180 / math.pi) % 360) for a in recent]
             mean_deg = sum(angles_deg) / len(angles_deg)
             std_deg = (sum((d - mean_deg)**2 for d in angles_deg) / len(angles_deg)) ** 0.5
-            log_std = torch.clamp(self.model.log_std, self.model.LOG_STD_MIN, self.model.LOG_STD_MAX)
+            log_std = torch.clamp(self.actor.log_std, self.actor.LOG_STD_MIN, self.actor.LOG_STD_MAX)
             policy_std_deg = log_std.exp().item() * 180 / math.pi
             act_str = f"MeanAngle:{mean_deg:.0f}° StdDev:{std_deg:.0f}° PolicyStd:{policy_std_deg:.1f}°"
         else:
@@ -927,7 +935,7 @@ class PPOServer:
 
             self.log(f"\n--- SUMMARY Upd {self.total_updates} | {elapsed_hrs:.2f}h | {self.total_steps:,} steps | {self.total_episodes} eps ---")
             laziness = avg_reward / gems_hr if gems_hr > 0 else 0
-            log_std = torch.clamp(self.model.log_std, self.model.LOG_STD_MIN, self.model.LOG_STD_MAX)
+            log_std = torch.clamp(self.actor.log_std, self.actor.LOG_STD_MIN, self.actor.LOG_STD_MAX)
             policy_std_deg = log_std.exp().item() * 180 / 3.14159
             self.log(f"  Gems: {self.total_gem_pts}pts ({gems_hr:.0f}/hr) | OOB: {self.total_oob} | AvgRwd: {avg_reward:.1f} | Best: {self.best_avg_reward:.1f}")
             self.log(f"  AvgEpLen: {avg_ep_len:.0f} steps | Ent: {stats['entropy']:.3f} | GN: {stats['grad_norm']:.3f} | Lazy: {laziness:.2f} | Std: {policy_std_deg:.1f}°")
@@ -945,8 +953,10 @@ class PPOServer:
     def save_model(self, path):
         """Save model checkpoint."""
         torch.save({
-            'model_state_dict': self.model.state_dict(),
-            'optimizer_state_dict': self.trainer.optimizer.state_dict(),
+            'actor_state_dict': self.actor.state_dict(),
+            'critic_state_dict': self.critic.state_dict(),
+            'actor_optimizer_state_dict': self.trainer.actor_optimizer.state_dict(),
+            'critic_optimizer_state_dict': self.trainer.critic_optimizer.state_dict(),
             'total_steps': self.total_steps,
             'total_updates': self.total_updates,
             'total_episodes': self.total_episodes,
@@ -979,9 +989,9 @@ def main():
 
     parser = argparse.ArgumentParser(description='PlatinumQuest PPO Training Server')
     parser.add_argument('--host', default='127.0.0.1', help='Server host')
-    parser.add_argument('--port', type=int, default=8888, help='Server port')
+    parser.add_argument('--port', type=int, default=8890, help='Server port')
     parser.add_argument('--rollout-size', type=int, default=2048, help='Steps per PPO update')
-    parser.add_argument('--lr', type=float, default=1e-4, help='Learning rate')
+    parser.add_argument('--lr', type=float, default=3e-5, help='Actor learning rate (critic uses 1e-4)')
     parser.add_argument('--batch-size', type=int, default=256, help='Mini-batch size')
     parser.add_argument('--epochs', type=int, default=4, help='PPO epochs per update')
     parser.add_argument('--load', type=str, default=None, help='Load specific checkpoint (e.g. models/checkpoints/update_5070.pth)')
@@ -1019,7 +1029,7 @@ def main():
     server.rollout_size = args.rollout_size
     server.batch_size = args.batch_size
     server.n_epochs = args.epochs
-    server.trainer.optimizer.param_groups[0]['lr'] = args.lr
+    server.trainer.actor_optimizer.param_groups[0]['lr'] = args.lr
 
     # Signal handler
     def signal_handler(sig, frame):

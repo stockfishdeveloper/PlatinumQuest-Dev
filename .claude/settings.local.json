@@ -44,7 +44,12 @@
       "Bash(cmd.exe /c \"echo ^$fail = \\(^$lines ^| Select-String ''[FAIL]''\\).Count >> C:\\\\Windows\\\\Temp\\\\alog.ps1\")",
       "Bash(cmd.exe /c \"echo Write-Host \\(''FAIL: '' + ^$fail\\) >> C:\\\\Windows\\\\Temp\\\\alog.ps1\")",
       "Bash(cmd.exe /c \"echo ^$neu = \\(^$lines ^| Select-String ''[NEUTRAL]''\\).Count >> C:\\\\Windows\\\\Temp\\\\alog.ps1\")",
-      "Bash(cmd.exe /c \"echo Write-Host \\(''NEUTRAL: '' + ^$neu\\) >> C:\\\\Windows\\\\Temp\\\\alog.ps1\")"
+      "Bash(cmd.exe /c \"echo Write-Host \\(''NEUTRAL: '' + ^$neu\\) >> C:\\\\Windows\\\\Temp\\\\alog.ps1\")",
+      "Bash(python analyze_log.py)",
+      "Bash(python analyze_log.py logs/training_20260227_081420.log)",
+      "Bash(python analyze_log.py logs/training_20260227_202756.log)",
+      "Bash(python analyze_log.py logs/training_20260227_140635.log)",
+      "Bash(python analyze_log.py logs/training_20260227_201112.log)"
     ]
   }
 }

@@ -118,12 +118,15 @@ class DashboardServer:
         self._lock = threading.Lock()
         self._snapshot = None
         self._best_gems_hr = 0.0
+        self._kl_stop_window = []   # Rolling 100-update window for KL-stop %
         self._history = {
             'updates': [],
             'policy_loss': [],
             'value_loss': [],
             'entropy': [],
             'grad_norm': [],
+            'kl': [],
+            'kl_stop_pct': [],
             'avg_reward': [],
             'gems_per_hr': [],
             'best_gems_hr': [],
@@ -174,10 +177,16 @@ class DashboardServer:
             mean_deg = sum(angles_deg) / len(angles_deg)
         else:
             mean_deg = 0.0
-        log_std = torch.clamp(s.model.log_std, s.model.LOG_STD_MIN, s.model.LOG_STD_MAX)
+        log_std = torch.clamp(s.actor.log_std, s.actor.LOG_STD_MIN, s.actor.LOG_STD_MAX)
         policy_std_deg = log_std.exp().item() * 180 / math.pi
 
         avg_ep_len = float(np.mean(s.recent_episode_lengths)) if s.recent_episode_lengths else 0
+
+        # Rolling KL-stop percentage (last 100 updates)
+        self._kl_stop_window.append(1 if stats.get('kl_early_stopped') else 0)
+        if len(self._kl_stop_window) > 100:
+            self._kl_stop_window = self._kl_stop_window[-100:]
+        kl_stop_pct = round(100 * sum(self._kl_stop_window) / len(self._kl_stop_window), 1)
 
         snap = {
             'update': s.total_updates,
@@ -194,6 +203,8 @@ class DashboardServer:
             'value_loss': round(stats['value_loss'], 6),
             'entropy': round(stats['entropy'], 4),
             'grad_norm': round(stats['grad_norm'], 4),
+            'kl': round(stats.get('max_kl', 0.0), 4),
+            'kl_stop_pct': kl_stop_pct,
             'avg_reward_100ep': round(float(avg_reward), 2) if not (avg_reward != avg_reward) else 0.0,
             'best_avg_reward': round(float(s.best_avg_reward), 2) if s.best_avg_reward > -1e9 else 0.0,
             'gems_per_hr': round(gems_per_hr, 2),
@@ -229,6 +240,8 @@ class DashboardServer:
             h['value_loss'].append(snap['value_loss'])
             h['entropy'].append(snap['entropy'])
             h['grad_norm'].append(snap['grad_norm'])
+            h['kl'].append(snap['kl'])
+            h['kl_stop_pct'].append(snap['kl_stop_pct'])
             h['avg_reward'].append(snap['avg_reward_100ep'])
             h['gems_per_hr'].append(snap['gems_per_hr'])
             h['best_gems_hr'].append(snap['best_gems_hr'])
@@ -367,7 +380,10 @@ body { background: var(--bg); color: var(--text); font-family: 'Consolas', 'SF M
 <div id="gauges">
   <div class="gauge"><div class="label">Avg Reward (100ep)</div><div class="value" id="g-avgrwd">--</div></div>
   <div class="gauge"><div class="label">Gems/hr</div><div class="value" id="g-gemshr" style="color:#f0c040">--</div></div>
+  <div class="gauge"><div class="label">Avg Gems/Game</div><div class="value" id="g-gems-game" style="color:#3fb950">--</div></div>
   <div class="gauge"><div class="label">Entropy</div><div class="value" id="g-entropy">--</div></div>
+  <div class="gauge"><div class="label">KL-Stop %</div><div class="value" id="g-klstop">--</div></div>
+  <div class="gauge"><div class="label">Grad Norm</div><div class="value" id="g-gradnorm">--</div></div>
   <div class="gauge"><div class="label">Last Game Gems</div><div class="value" id="g-lastgems" style="color:#f0c040">--</div></div>
   <div class="gauge"><div class="label">Dry Rollouts</div><div class="value" id="g-dry">--</div></div>
 </div>
@@ -375,11 +391,13 @@ body { background: var(--bg); color: var(--text); font-family: 'Consolas', 'SF M
 <!-- Charts -->
 <div id="charts">
   <div class="chart-card"><div class="chart-title">Avg Reward (100-episode rolling)</div><div id="c-avgrwd" style="height:220px"></div></div>
+  <div class="chart-card"><div class="chart-title">Gems Per Game (last 100 games) + rolling avg</div><div id="c-epgems" style="height:220px"></div></div>
   <div class="chart-card"><div class="chart-title">Gems Per Hour</div><div id="c-gemshr" style="height:220px"></div></div>
-  <div class="chart-card"><div class="chart-title">Gems Per Game (last 100)</div><div id="c-epgems" style="height:220px"></div></div>
+  <div class="chart-card"><div class="chart-title">KL Divergence + KL-Stop % (last 100 updates)</div><div id="c-kl" style="height:220px"></div></div>
+  <div class="chart-card"><div class="chart-title">Gradient Norm (actor)</div><div id="c-gradnorm" style="height:220px"></div></div>
+  <div class="chart-card"><div class="chart-title">Actor Loss vs Value Loss</div><div id="c-losses" style="height:220px"></div></div>
   <div class="chart-card"><div class="chart-title">Entropy (exploration health)</div><div id="c-entropy" style="height:220px"></div></div>
   <div class="chart-card"><div class="chart-title">Policy Std Dev (degrees)</div><div id="c-policystd" style="height:220px"></div></div>
-  <div class="chart-card"><div class="chart-title">PPO Losses (Policy + Value)</div><div id="c-losses" style="height:220px"></div></div>
   <div class="chart-card"><div class="chart-title">OOB Events Per Rollout</div><div id="c-oob" style="height:220px"></div></div>
   <div class="chart-card"><div class="chart-title">Avg Episode Length (steps)</div><div id="c-eplen" style="height:220px"></div></div>
   <div class="chart-card"><div class="chart-title">Laziness (Reward / Gems per Hour)</div><div id="c-laziness" style="height:220px"></div></div>
@@ -427,9 +445,9 @@ Plotly.newPlot('c-avgrwd', [
   { x: [], y: [], type: 'scatter', mode: 'lines', line: { color: '#f0c040', width: 1, dash: 'dash' }, name: 'Best' }
 ], darkLayout({ showlegend: true, legend: { x: 0, y: 1, font: { size: 9 } } }), plotConfig);
 
-// 2. Losses (dual Y-axis)
+// 2. Losses — actor (left Y) vs value (right Y, log scale)
 Plotly.newPlot('c-losses', [
-  { x: [], y: [], type: 'scatter', mode: 'lines', line: { color: '#58a6ff', width: 1.5 }, name: 'Policy Loss' },
+  { x: [], y: [], type: 'scatter', mode: 'lines', line: { color: '#58a6ff', width: 1.5 }, name: 'Actor Loss' },
   { x: [], y: [], type: 'scatter', mode: 'lines', line: { color: '#f85149', width: 1.5 }, name: 'Value Loss', yaxis: 'y2' }
 ], darkLayout({
   showlegend: true, legend: { x: 0, y: 1, font: { size: 9 } },
@@ -462,29 +480,53 @@ Plotly.newPlot('c-gemshr', [
   { x: [], y: [], type: 'scatter', mode: 'lines', line: { color: '#3fb950', width: 1, dash: 'dash' }, name: 'Best' }
 ], darkLayout({ showlegend: true, legend: { x: 0, y: 1, font: { size: 9 } } }), plotConfig);
 
-// 5. Episode gems (last 100, bar chart — full redraw each update)
+// 5. Gems per game (bars) + rolling average line — full redraw each update
 Plotly.newPlot('c-epgems', [
-  { x: [], y: [], type: 'bar', marker: { color: '#f0c040' } }
-], darkLayout({ bargap: 0.15 }), plotConfig);
+  { x: [], y: [], type: 'bar', marker: { color: '#f0c040' }, name: 'Game Gems' },
+  { x: [], y: [], type: 'scatter', mode: 'lines', line: { color: '#f85149', width: 2 }, name: 'Avg' }
+], darkLayout({ bargap: 0.15, showlegend: true, legend: { x: 0, y: 1, font: { size: 9 } } }), plotConfig);
 
-// 10. OOB per rollout (line chart for smooth extendTraces)
+// 6. KL divergence (left Y) + KL-stop % rolling window (right Y)
+Plotly.newPlot('c-kl', [
+  { x: [], y: [], type: 'scatter', mode: 'lines', line: { color: '#bc8cff', width: 1.5 }, name: 'KL' },
+  { x: [], y: [], type: 'scatter', mode: 'lines', line: { color: '#f0c040', width: 2 }, name: 'KL-Stop %', yaxis: 'y2' }
+], darkLayout({
+  showlegend: true, legend: { x: 0, y: 1, font: { size: 9 } },
+  yaxis2: { overlaying: 'y', side: 'right', gridcolor: '#21262d', color: '#7d8590',
+            range: [0, 100], zeroline: false, ticksuffix: '%' },
+  shapes: [
+    { type: 'line', y0: 2.25, y1: 2.25, x0: 0, x1: 1, xref: 'paper',
+      line: { color: '#f85149', width: 1, dash: 'dash' } }  // KL-stop threshold
+  ]
+}), plotConfig);
+
+// 7. Gradient norm
+Plotly.newPlot('c-gradnorm', [
+  { x: [], y: [], type: 'scatter', mode: 'lines', line: { color: '#ff7b72', width: 1.5 }, name: 'Grad Norm' },
+  { x: [], y: [], type: 'scatter', mode: 'lines', line: { color: '#30363d', width: 1, dash: 'dot' }, name: 'Clip (1.0)' }
+], darkLayout({
+  showlegend: true, legend: { x: 0, y: 1, font: { size: 9 } },
+  yaxis: { type: 'log', autorange: true, gridcolor: '#21262d', color: '#7d8590', zeroline: false }
+}), plotConfig);
+
+// 8. OOB per rollout
 Plotly.newPlot('c-oob', [
   { x: [], y: [], type: 'scatter', mode: 'lines', line: { color: '#f85149', width: 1.5 } }
 ], darkLayout(), plotConfig);
 
-// 11. Avg Episode Length (key metric — flood bug detection)
+// 9. Avg Episode Length
 Plotly.newPlot('c-eplen', [
   { x: [], y: [], type: 'scatter', mode: 'lines', line: { color: '#bc8cff', width: 2 } }
 ], darkLayout(), plotConfig);
 
-// Laziness (avg_reward / gems_per_hr) — rising = farming reward without collecting gems
+// 10. Laziness
 Plotly.newPlot('c-laziness', [
   { x: [], y: [], type: 'scatter', mode: 'lines', line: { color: '#d29922', width: 2 } }
 ], darkLayout({
   yaxis: { autorange: true, gridcolor: '#21262d', color: '#7d8590', zeroline: false }
 }), plotConfig);
 
-// 12. Throughput
+// 11. Throughput
 Plotly.newPlot('c-throughput', [
   { x: [], y: [], type: 'scatter', mode: 'lines', line: { color: '#79c0ff', width: 1.5 } }
 ], darkLayout(), plotConfig);
@@ -527,6 +569,18 @@ async function loadHistory() {
     // Gems/hr + best line
     const bestGemsLine = h.best_gems_hr || h.gems_per_hr.map(() => 0);
     Plotly.extendTraces('c-gemshr', { x: [xs, xs], y: [h.gems_per_hr, bestGemsLine] }, [0, 1]);
+
+    // KL divergence + KL-stop %
+    if (h.kl) {
+      const klStop = h.kl_stop_pct || h.kl.map(() => 0);
+      Plotly.extendTraces('c-kl', { x: [xs, xs], y: [h.kl, klStop] }, [0, 1]);
+    }
+
+    // Gradient norm + clip line
+    if (h.grad_norm) {
+      const clipLine = h.grad_norm.map(() => 1.0);
+      Plotly.extendTraces('c-gradnorm', { x: [xs, xs], y: [h.grad_norm, clipLine] }, [0, 1]);
+    }
 
     // OOB
     Plotly.extendTraces('c-oob', { x: [xs], y: [h.rollout_oob] }, [0]);
@@ -603,9 +657,33 @@ function updateDashboard(snap) {
   entEl.style.color = snap.entropy_collapse ? '#f85149' : snap.entropy_low ? '#d29922' : '#3fb950';
 
   document.getElementById('g-gemshr').textContent = snap.gems_per_hr.toFixed(1);
+
   const gameGemsArr = snap.recent_game_gems || [];
   const lastGameGems = gameGemsArr.length > 0 ? gameGemsArr[gameGemsArr.length - 1] : 0;
   document.getElementById('g-lastgems').textContent = lastGameGems;
+
+  // Avg gems/game (last 20 full games)
+  const gemsGameEl = document.getElementById('g-gems-game');
+  if (gameGemsArr.length > 0) {
+    const recent20 = gameGemsArr.slice(-20);
+    const avgGems = recent20.reduce((a, b) => a + b, 0) / recent20.length;
+    gemsGameEl.textContent = avgGems.toFixed(1);
+    gemsGameEl.style.color = avgGems >= 100 ? '#f0c040' : avgGems >= 85 ? '#3fb950' : '#e6edf3';
+  } else {
+    gemsGameEl.textContent = '--';
+  }
+
+  // KL-stop %
+  const klStopEl = document.getElementById('g-klstop');
+  const klPct = snap.kl_stop_pct || 0;
+  klStopEl.textContent = klPct.toFixed(0) + '%';
+  klStopEl.style.color = klPct >= 80 ? '#f85149' : klPct >= 40 ? '#d29922' : '#3fb950';
+
+  // Grad norm
+  const gnEl = document.getElementById('g-gradnorm');
+  const gn = snap.grad_norm || 0;
+  gnEl.textContent = gn.toFixed(2);
+  gnEl.style.color = gn > 10 ? '#f85149' : gn > 2 ? '#d29922' : '#3fb950';
 
   const dryEl = document.getElementById('g-dry');
   dryEl.textContent = snap.dry_rollouts;
@@ -629,6 +707,8 @@ function updateDashboard(snap) {
   Plotly.extendTraces('c-entropy', { x: [[x]], y: [[snap.entropy]] }, [0]);
   Plotly.extendTraces('c-policystd', { x: [[x]], y: [[snap.policy_std]] }, [0]);
   Plotly.extendTraces('c-gemshr', { x: [[x], [x]], y: [[snap.gems_per_hr], [snap.best_gems_hr]] }, [0, 1]);
+  Plotly.extendTraces('c-kl', { x: [[x], [x]], y: [[snap.kl || 0], [snap.kl_stop_pct || 0]] }, [0, 1]);
+  Plotly.extendTraces('c-gradnorm', { x: [[x], [x]], y: [[snap.grad_norm || 0], [1.0]] }, [0, 1]);
   Plotly.extendTraces('c-oob', { x: [[x]], y: [[snap.rollout_oob]] }, [0]);
 
   // Avg Episode Length
@@ -648,20 +728,27 @@ function updateDashboard(snap) {
 
   // === Snapshot charts (full redraw — small fixed-size arrays) ===
 
-  // Game gem points (last 100 full games)
+  // Gems per game (last 100 full games) — bars + rolling avg line
   const gameGems = snap.recent_game_gems || [];
   if (gameGems.length > 0) {
     const gemIdxs = gameGems.map((_, i) => i + 1);
     const maxGems = Math.max(...gameGems);
     const colors = gameGems.map(g => {
-      if (g === maxGems && maxGems > 0) return '#3fb950';  // Best game = green
-      if (g > 0) return '#f0c040';                          // Normal = yellow
-      return '#30363d';                                       // Zero = dark
+      if (g === maxGems && maxGems > 0) return '#3fb950';
+      if (g > 0) return '#f0c040';
+      return '#30363d';
     });
-    Plotly.react('c-epgems',
-      [{ x: gemIdxs, y: gameGems, type: 'bar', marker: { color: colors } }],
-      darkLayout({ bargap: 0.15 }), plotConfig
-    );
+    // Rolling 10-game average line
+    const window = 10;
+    const rollingAvg = gameGems.map((_, i) => {
+      const slice = gameGems.slice(Math.max(0, i - window + 1), i + 1);
+      return slice.reduce((a, b) => a + b, 0) / slice.length;
+    });
+    Plotly.react('c-epgems', [
+      { x: gemIdxs, y: gameGems, type: 'bar', marker: { color: colors }, name: 'Game Gems' },
+      { x: gemIdxs, y: rollingAvg, type: 'scatter', mode: 'lines',
+        line: { color: '#f85149', width: 2 }, name: `Avg (${window})` }
+    ], darkLayout({ bargap: 0.15, showlegend: true, legend: { x: 0, y: 1, font: { size: 9 } } }), plotConfig);
   }
 }
 

@@ -8,7 +8,7 @@
 $MLAgent::Enabled = false;
 $MLAgent::UpdateInterval = 16; // 60 Hz (16ms) - matches game physics tick rate
 $MLAgent::AutoStart = true;  // Auto-start when Hunt mode begins
-$MLAgent::TrainingSpeed = 25.0;  // Game speed multiplier (1.0 = normal, 3.0 = 3x speed, etc.)
+$MLAgent::TrainingSpeed = 3.0;  // Game speed multiplier (1.0 = normal, 3.0 = 3x speed, etc.)
 $MLAgent::DiagnosticMode = false; // When true: send obs but don't execute actions or change speed
 
 // State tracking (reward computation is in Python)
