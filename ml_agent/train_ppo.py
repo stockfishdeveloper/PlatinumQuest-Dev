@@ -284,7 +284,7 @@ class PPOTrainer:
         self.entropy_coef = entropy_coef
         self.max_grad_norm = max_grad_norm
         self.vf_clip = vf_clip  # Clip value loss to prevent VLoss explosions from gem spikes
-        self.target_kl = target_kl  # KL early stopping: fires at 1.5x = 0.75 (normal KL: 0.02-0.33, destructive: 1.16+)
+        self.target_kl = target_kl  # KL early stopping: fires at 1.5x target (continuous policies have higher KL than discrete)
 
     def update(self, buffer, n_epochs=4, batch_size=64, gamma=0.99, lam=0.95):
         """Run PPO update on collected experience."""
@@ -386,7 +386,7 @@ class PPOServer:
 
         # Model and trainer
         self.model = ActorCritic(obs_dim=61)
-        self.trainer = PPOTrainer(self.model, vf_clip=20.0)
+        self.trainer = PPOTrainer(self.model, vf_clip=20.0, target_kl=2.667)
         self.buffer = RolloutBuffer()
 
         # Training config

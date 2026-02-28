@@ -138,6 +138,7 @@ class DashboardServer:
             'avg_ep_len': [],
             'mean_angle': [],
             'policy_std': [],
+            'max_kl': [],
         }
         self._server = None
         self._thread = None
@@ -194,6 +195,8 @@ class DashboardServer:
             'value_loss': round(stats['value_loss'], 6),
             'entropy': round(stats['entropy'], 4),
             'grad_norm': round(stats['grad_norm'], 4),
+            'max_kl': round(stats.get('max_kl', 0), 4),
+            'kl_early_stopped': stats.get('kl_early_stopped', False),
             'avg_reward_100ep': round(float(avg_reward), 2) if not (avg_reward != avg_reward) else 0.0,
             'best_avg_reward': round(float(s.best_avg_reward), 2) if s.best_avg_reward > -1e9 else 0.0,
             'gems_per_hr': round(gems_per_hr, 2),
@@ -243,6 +246,7 @@ class DashboardServer:
             h['avg_ep_len'].append(snap['avg_ep_len'])
             h['mean_angle'].append(snap['mean_angle'])
             h['policy_std'].append(snap['policy_std'])
+            h['max_kl'].append(snap['max_kl'])
 
             # Cap history to prevent unbounded memory growth
             if len(h['updates']) > MAX_HISTORY:
@@ -384,6 +388,8 @@ body { background: var(--bg); color: var(--text); font-family: 'Consolas', 'SF M
   <div class="chart-card"><div class="chart-title">Avg Episode Length (steps)</div><div id="c-eplen" style="height:220px"></div></div>
   <div class="chart-card"><div class="chart-title">Laziness (Reward / Gems per Hour)</div><div id="c-laziness" style="height:220px"></div></div>
   <div class="chart-card"><div class="chart-title">Training Throughput (steps/sec)</div><div id="c-throughput" style="height:220px"></div></div>
+  <div class="chart-card"><div class="chart-title">KL Divergence (policy change rate)</div><div id="c-kl" style="height:220px"></div></div>
+  <div class="chart-card"><div class="chart-title">Gradient Norm</div><div id="c-gradnorm" style="height:220px"></div></div>
 </div>
 
 <!-- Config -->
@@ -489,6 +495,20 @@ Plotly.newPlot('c-throughput', [
   { x: [], y: [], type: 'scatter', mode: 'lines', line: { color: '#79c0ff', width: 1.5 } }
 ], darkLayout(), plotConfig);
 
+// 13. KL Divergence
+Plotly.newPlot('c-kl', [
+  { x: [], y: [], type: 'scatter', mode: 'lines', line: { color: '#f0883e', width: 1.5 }, name: 'Max KL' }
+], darkLayout({
+  yaxis: { autorange: true, gridcolor: '#21262d', color: '#7d8590', zeroline: false }
+}), plotConfig);
+
+// 14. Gradient Norm
+Plotly.newPlot('c-gradnorm', [
+  { x: [], y: [], type: 'scatter', mode: 'lines', line: { color: '#bc8cff', width: 1.5 } }
+], darkLayout({
+  yaxis: { autorange: true, gridcolor: '#21262d', color: '#7d8590', zeroline: false }
+}), plotConfig);
+
 
 // ============================================================
 // State
@@ -540,6 +560,16 @@ async function loadHistory() {
     if (h.avg_reward && h.gems_per_hr) {
       const lazY = h.avg_reward.map((r, i) => h.gems_per_hr[i] > 0 ? r / h.gems_per_hr[i] : 0);
       Plotly.extendTraces('c-laziness', { x: [xs], y: [lazY] }, [0]);
+    }
+
+    // KL Divergence
+    if (h.max_kl) {
+      Plotly.extendTraces('c-kl', { x: [xs], y: [h.max_kl] }, [0]);
+    }
+
+    // Grad Norm
+    if (h.grad_norm) {
+      Plotly.extendTraces('c-gradnorm', { x: [xs], y: [h.grad_norm] }, [0]);
     }
 
     // Throughput
@@ -637,6 +667,12 @@ function updateDashboard(snap) {
   // Laziness
   const laziness = snap.gems_per_hr > 0 ? snap.avg_reward_100ep / snap.gems_per_hr : 0;
   Plotly.extendTraces('c-laziness', { x: [[x]], y: [[laziness]] }, [0]);
+
+  // KL Divergence
+  Plotly.extendTraces('c-kl', { x: [[x]], y: [[snap.max_kl]] }, [0]);
+
+  // Grad Norm
+  Plotly.extendTraces('c-gradnorm', { x: [[x]], y: [[snap.grad_norm]] }, [0]);
 
   // Throughput
   if (prevTimestamp !== null) {
