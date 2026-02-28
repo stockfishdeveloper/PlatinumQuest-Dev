@@ -989,7 +989,7 @@ def main():
 
     parser = argparse.ArgumentParser(description='PlatinumQuest PPO Training Server')
     parser.add_argument('--host', default='127.0.0.1', help='Server host')
-    parser.add_argument('--port', type=int, default=8890, help='Server port')
+    parser.add_argument('--port', type=int, default=8888, help='Server port')
     parser.add_argument('--rollout-size', type=int, default=2048, help='Steps per PPO update')
     parser.add_argument('--lr', type=float, default=3e-5, help='Actor learning rate (critic uses 1e-4)')
     parser.add_argument('--batch-size', type=int, default=256, help='Mini-batch size')
