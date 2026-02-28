@@ -105,7 +105,6 @@ def main():
     # Stats
     total_steps = 0
     episode_gems = 0
-    episode_reward = 0.0
     total_episodes = 0
 
     # Start server
@@ -140,31 +139,36 @@ def main():
                         if not line:
                             continue
 
+                        # Protocol: obs_json|gem_delta|oob|done
                         parts = line.split('|')
                         if len(parts) != 4:
                             conn.sendall(b'0,0,0,0\n')
                             continue
 
-                        obs_json, reward_str, done_str, gem_delta_str = parts
-                        obs = np.array(json.loads(obs_json), dtype=np.float32)
-                        reward = float(reward_str)
-                        done = int(float(done_str))
+                        obs_json, gem_delta_str, oob_str, done_str = parts
+                        obs_raw = json.loads(obs_json)
+
+                        # Skip game-end signals (empty obs)
+                        if len(obs_raw) == 0:
+                            conn.sendall(b'0,0,0,0\n')
+                            continue
+
+                        obs = np.array(obs_raw, dtype=np.float32)
                         gem_delta = float(gem_delta_str)
+                        done = int(float(done_str))
 
                         obs = normalize_obs(obs)
                         action, _, _ = model.get_action(obs, deterministic=deterministic)
                         total_steps += 1
 
-                        episode_reward += reward
                         if gem_delta > 0:
                             episode_gems += int(gem_delta)
                             print(f"  +{gem_delta:.0f} gem pts (episode total: {episode_gems})")
 
                         if done:
                             total_episodes += 1
-                            print(f"Ep {total_episodes} done | gems={episode_gems}pts rwd={episode_reward:.1f} steps={total_steps}")
+                            print(f"Ep {total_episodes} done | gems={episode_gems}pts steps={total_steps}")
                             episode_gems = 0
-                            episode_reward = 0.0
                             total_steps = 0
 
                         action_tuple = ActorCritic.angle_to_joystick(action)

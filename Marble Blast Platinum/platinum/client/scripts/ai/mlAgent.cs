@@ -1,19 +1,18 @@
 //------------------------------------------------------------------------------
 // ML Agent Controller
-// Main loop that sends observations + reward to Python and executes actions
-// Protocol: sends JSON with {obs: [...], reward: float, done: bool, info: {...}}
+// Main loop that sends observations to Python and executes actions.
+// Reward computation happens in Python (train_ppo.py) for easy tuning.
+// Protocol: obs_json|gem_delta|oob|done
 //------------------------------------------------------------------------------
 
 $MLAgent::Enabled = false;
 $MLAgent::UpdateInterval = 16; // 60 Hz (16ms) - matches game physics tick rate
 $MLAgent::AutoStart = true;  // Auto-start when Hunt mode begins
-$MLAgent::TrainingSpeed = 3.0;  // Game speed multiplier (1.0 = normal, 3.0 = 3x speed, etc.)
+$MLAgent::TrainingSpeed = 25.0;  // Game speed multiplier (1.0 = normal, 3.0 = 3x speed, etc.)
 $MLAgent::DiagnosticMode = false; // When true: send obs but don't execute actions or change speed
 
-// Reward tracking
+// State tracking (reward computation is in Python)
 $MLAgent::LastGemScore = 0;
-$MLAgent::LastNearestGemDist = 999;
-$MLAgent::EpisodeReward = 0;
 $MLAgent::WasOOB = false;
 
 function MLAgent::start() {
@@ -51,15 +50,11 @@ function MLAgent::startLoop() {
         echo("MLAgent: DIAGNOSTIC MODE — normal speed, player controls marble");
     }
 
-    // Initialize reward tracking
+    // Initialize state
     $MLAgent::LastGemScore = PlayGui.gemCount;
     $MLAgent::GameStartGemScore = PlayGui.gemCount;  // Baseline for full-game gem count
-    $MLAgent::LastNearestGemDist = 999;
-    $MLAgent::SkipPotentialSteps = 1;  // Suppress the sentinel spike on first step
-    $MLAgent::EpisodeReward = 0;
     $MLAgent::WasOOB = false;
     $MLAgent::EpisodeShouldEnd = false;
-    $MLAgent::NoGemSteps = 0;
     $MLAgent::TimerStarted = false;
 
     MLAgent::update();
@@ -70,7 +65,7 @@ function MLAgent::stop() {
         return;
     }
 
-    echo("MLAgent: Stopping (completed " @ $MLAgent::StepCount @ " steps, total reward: " @ $MLAgent::EpisodeReward @ ")");
+    echo("MLAgent: Stopping (completed " @ $MLAgent::StepCount @ " steps)");
     $MLAgent::Enabled = false;
 
     // Cancel scheduled update
@@ -126,8 +121,8 @@ function MLAgent::update() {
     // 1. Collect observation
     %obs = AIObserver::collectState();
 
-    // If this is the OOB penalty step, override the position with the saved
-    // edge position so the network associates the -25 penalty with the edge,
+    // If this is the OOB step, override the position with the saved
+    // edge position so the network associates the penalty with the edge,
     // not the spawn point it just respawned to.
     if ($MLAgent::WasOOB && $MLAgent::OOBPosX !$= "") {
         %obs.selfPosX = $MLAgent::OOBPosX;
@@ -136,99 +131,44 @@ function MLAgent::update() {
         $MLAgent::OOBPosX = "";
     }
 
-    // 2. Capture OOB flag before computeReward clears it
+    // 2. Capture OOB flag and clear it
     %oobFlag = $MLAgent::WasOOB ? 1 : 0;
+    $MLAgent::WasOOB = false;
 
-    // 3. Compute reward for this step
-    %reward = MLAgent::computeReward(%obs);
-    $MLAgent::EpisodeReward += %reward;
+    // 3. Compute gem delta (Python computes the actual reward)
+    %currentGemScore = PlayGui.gemCount;
+    %gemDelta = %currentGemScore - $MLAgent::LastGemScore;
+    $MLAgent::LastGemScore = %currentGemScore;
 
     // 4. Check if episode is done
     %done = MLAgent::checkDone();
 
-    // 5. Build message: obs_json|reward|done|gemDelta|oob
+    // 5. Build message: obs_json|gemDelta|oob|done
     %json = AIObserver::serializeToJSON(%obs);
-    %msg = %json @ "|" @ %reward @ "|" @ %done @ "|" @ $MLAgent::LastGemDelta @ "|" @ %oobFlag;
+    %msg = %json @ "|" @ %gemDelta @ "|" @ %oobFlag @ "|" @ %done;
 
-    // 5. Send to Python server and get action
+    // 6. Send to Python server and get action
     AIBridge::sendState(%msg);
     %actionStr = $AIBridge::LastAction;
 
-    // 6. Parse and execute action (skip in diagnostic mode — player controls marble)
+    // 7. Parse and execute action (skip in diagnostic mode — player controls marble)
     if (%actionStr !$= "" && !$MLAgent::DiagnosticMode) {
         MLAgent::executeAction(%actionStr);
     }
 
-    // 7. Clean up observation object
+    // 8. Clean up observation object
     %obs.delete();
 
     // Increment step counter
     $MLAgent::StepCount++;
 
-    // 8. If done, reset for next episode (game will restart automatically in Hunt mode)
+    // 9. If done, reset for next episode (game will restart automatically in Hunt mode)
     if (%done) {
         MLAgent::resetEpisode();
     }
 
-    // 9. Schedule next update
+    // 10. Schedule next update
     $MLAgent::UpdateSchedule = schedule($MLAgent::UpdateInterval, 0, "MLAgent::update");
-}
-
-//------------------------------------------------------------------------------
-// Reward Computation
-//------------------------------------------------------------------------------
-
-function MLAgent::computeReward(%obs) {
-    %reward = 0;
-
-    // 1. Gem collection reward: +200 per point scored
-    //    After 0.1 reward_scale: 1pt gem = +20.0, 5pt gem = +100.0 in buffer.
-    //    OOB is -25 raw (-2.5 scaled) + time penalty from wasted recovery steps.
-    //    Max episode spike: ~7 gems = +1400 raw (+140 scaled) — strong but manageable for critic.
-    //    History: +100 too weak, +500 caused VLoss blow-up, +200 with 0.1 scale is the sweet spot.
-    %currentGemScore = PlayGui.gemCount;
-    %gemDelta = %currentGemScore - $MLAgent::LastGemScore;
-    $MLAgent::LastGemDelta = %gemDelta;  // Expose for protocol message
-    if (%gemDelta > 0) {
-        %reward += %gemDelta * 200;
-        // Grace period: suppress shaping for 20 steps after gem so the jump to
-        // next-nearest doesn't produce negative shaping that punishes collection.
-        $MLAgent::SkipPotentialSteps = 20;
-    }
-    $MLAgent::LastGemScore = %currentGemScore;
-
-    // Distance shaping: potential-based P(d) = 20/(1+d/50) + 15/(1+d/3)
-    // Reward = P(new) - P(old) each step (positive when getting closer)
-    // Grace period after gem collection / OOB suppresses the sentinel->real spike
-    %nearestDist = %obs.gem[0, "distance"];
-    if (%nearestDist > 0 && %nearestDist < 900) {
-        $MLAgent::NoGemSteps = 0;
-        if ($MLAgent::SkipPotentialSteps > 0) {
-            $MLAgent::SkipPotentialSteps--;
-        } else {
-            %newPotential = 20 / (1 + %nearestDist / 50) + 15 / (1 + %nearestDist / 3);
-            %oldPotential = 20 / (1 + $MLAgent::LastNearestGemDist / 50) + 15 / (1 + $MLAgent::LastNearestGemDist / 3);
-            %shapingReward = %newPotential - %oldPotential;
-            %reward += %shapingReward;
-        }
-        $MLAgent::LastNearestGemDist = %nearestDist;
-    } else {
-        $MLAgent::NoGemSteps++;
-    }
-
-    // Time penalty: -0.02/step. Mild efficiency pressure + implicit OOB cost.
-    // With distance shaping active, the shaping gradient provides directional signal.
-    // History: -0.40 buried shaping, -0.20 still too harsh, -0.02 lets shaping dominate.
-    %reward -= 0.02;
-
-    // OOB penalty: -25 per event. Agent knows gem-seeking, time to punish sloppy play.
-    // Plus ~30 wasted recovery steps at -0.20/step = -6.0 implicit cost = ~-31 total per OOB.
-    if ($MLAgent::WasOOB) {
-        %reward -= 25;
-        $MLAgent::WasOOB = false;
-    }
-
-    return %reward;
 }
 
 //------------------------------------------------------------------------------
@@ -276,12 +216,7 @@ function MLAgent::resetEpisode() {
     // so resetting to 0 would cause a false gem-collection reward on the next step
     // equal to however many gems were already collected this round.
     $MLAgent::LastGemScore = PlayGui.gemCount;
-    $MLAgent::LastGemDelta = 0;
-    $MLAgent::LastNearestGemDist = 999;
-    $MLAgent::SkipPotentialSteps = 20;  // Same grace period as post-gem-collection
-    $MLAgent::EpisodeReward = 0;
     $MLAgent::WasOOB = false;
-    $MLAgent::NoGemSteps = 0;
     $MLAgent::TimerStarted = false;
 }
 
@@ -319,11 +254,6 @@ function MLAgent::onOOB() {
         }
 
         $MLAgent::WasOOB = true;
-        $MLAgent::LastNearestGemDist = 999;
-        // Skip 20 steps of shaping after OOB (same as gem grace period).
-        // Without this, the 999→nearby distance reset gives ~+35 free shaping
-        // per OOB, letting the agent farm reward by repeatedly going OOB.
-        $MLAgent::SkipPotentialSteps = 20;
 
         // Delay respawn by 2 update intervals so the next update() fires
         // while the marble is still at the edge position.
@@ -383,12 +313,12 @@ function MLAgent::onGameEnd() {
     // Uses GameStartGemScore (set at round start, never reset by resetEpisode)
     // so the Python side gets the accurate full-game gem count.
     // The gem_delta field is repurposed here: negative = total game gems signal.
-    // Protocol: []|0|1|<neg_total_game_gems>|0
+    // Protocol: []|<neg_total_game_gems>|0|1
     if ($MLAgent::Enabled && $AIBridge::Connected) {
         %totalGameGems = PlayGui.gemCount - $MLAgent::GameStartGemScore;
         // Send as negative to distinguish from normal per-step gem deltas.
         // Python checks for negative gem_delta on empty obs to record game total.
-        %msg = "[]|0|1|" @ -%totalGameGems @ "|0";
+        %msg = "[]|" @ -%totalGameGems @ "|0|1";
         AIBridge::sendState(%msg);
     }
 

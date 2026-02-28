@@ -1,14 +1,19 @@
 """
 PPO Training Server for PlatinumQuest Hunt Mode
 
-Receives observations + rewards from the game via TCP socket,
-runs PPO training updates, and sends actions back.
+Receives observations from the game via TCP socket, computes rewards
+in Python, runs PPO training updates, and sends actions back.
 
 Protocol (game -> server):
     Each message is newline-delimited:
-    "[obs_array]|reward|done"
+    "[obs_array]|gem_delta|oob|done"
 
-    Example: "[1.0,2.0,3.0,...,286 floats]|0.5|0"
+    - obs_array: 61-float JSON array (see observer.cs for layout)
+    - gem_delta: gem points collected this step (0 or positive int)
+    - oob:       1 if out-of-bounds this step, 0 otherwise
+    - done:      1 if episode ended, 0 otherwise
+
+    Game-end signal: "[]|<neg_total_gems>|0|1"
 
 Protocol (server -> game):
     "0.87,0.0,0.0,0.50\n"  (4 comma-separated float actions: F,B,L,R)
@@ -403,6 +408,22 @@ class PPOServer:
         # Per-step rewards are clipped to [-5, 5] after scaling to prevent VLoss explosions.
         self.reward_scale = 0.1
 
+        # === Reward parameters (all reward computation is in Python) ===
+        self.GEM_REWARD = 200       # Per gem-point bonus (+200 raw, +20 scaled)
+        self.OOB_PENALTY = 25       # Out-of-bounds penalty (-25 raw, -2.5 scaled)
+        self.TIME_PENALTY = 0.02    # Per-step efficiency pressure
+        self.SHAPING_COEFF_1 = 20   # Broad attraction: 20/(1+d/50)
+        self.SHAPING_RANGE_1 = 50   # Broad attraction range
+        self.SHAPING_COEFF_2 = 15   # Near-gem well: 15/(1+d/3)
+        self.SHAPING_RANGE_2 = 3    # Near-gem well range
+        self.GRACE_PERIOD = 20      # Steps to skip shaping after gem/OOB/episode start
+        self.DIST_SENTINEL = 999    # Sentinel value for "no gem"
+        self.DIST_MAX_VALID = 900   # Max valid gem distance
+
+        # Shaping state (mirrors CS globals that were removed)
+        self.last_nearest_gem_dist = self.DIST_SENTINEL
+        self.skip_potential_steps = 1  # Suppress sentinel spike on first step
+
         # Statistics (initialize before loading checkpoint)
         self.total_steps = 0
         self.total_updates = 0
@@ -569,7 +590,7 @@ class PPOServer:
                     if not line:
                         continue
 
-                    # Parse message: obs_json|reward|done
+                    # Parse message: obs_json|gem_delta|oob|done
                     action = self.process_message(line)
 
                     # Send action back
@@ -652,25 +673,72 @@ class PPOServer:
 
         return obs
 
+    def compute_reward(self, raw_obs, gem_delta, oob):
+        """Compute reward from raw game facts. Mirrors old mlAgent.cs::computeReward exactly.
+
+        Args:
+            raw_obs: raw observation list (before normalization), index 17 = nearest gem distance
+            gem_delta: gem points collected this step (0 or positive int)
+            oob: 1 if out-of-bounds this step, 0 otherwise
+
+        Returns:
+            float: raw reward (will be scaled/clipped later)
+        """
+        reward = 0.0
+
+        # 0. OOB resets shaping state BEFORE reward computation.
+        #    In CS, onOOB() fired before computeReward() — it set
+        #    LastNearestGemDist=999 and SkipPotentialSteps=20 so the
+        #    OOB step's distance check would be in grace period.
+        if oob:
+            self.last_nearest_gem_dist = self.DIST_SENTINEL
+            self.skip_potential_steps = self.GRACE_PERIOD
+
+        # 1. Gem collection reward
+        if gem_delta > 0:
+            reward += gem_delta * self.GEM_REWARD
+            self.skip_potential_steps = self.GRACE_PERIOD
+
+        # 2. Distance shaping: potential-based P(d) = C1/(1+d/R1) + C2/(1+d/R2)
+        nearest_dist = raw_obs[17] if len(raw_obs) > 17 else -1
+        if nearest_dist > 0 and nearest_dist < self.DIST_MAX_VALID:
+            if self.skip_potential_steps > 0:
+                self.skip_potential_steps -= 1
+            else:
+                new_potential = (self.SHAPING_COEFF_1 / (1 + nearest_dist / self.SHAPING_RANGE_1)
+                               + self.SHAPING_COEFF_2 / (1 + nearest_dist / self.SHAPING_RANGE_2))
+                old_potential = (self.SHAPING_COEFF_1 / (1 + self.last_nearest_gem_dist / self.SHAPING_RANGE_1)
+                               + self.SHAPING_COEFF_2 / (1 + self.last_nearest_gem_dist / self.SHAPING_RANGE_2))
+                reward += new_potential - old_potential
+            self.last_nearest_gem_dist = nearest_dist
+
+        # 3. Time penalty
+        reward -= self.TIME_PENALTY
+
+        # 4. OOB penalty
+        if oob:
+            reward -= self.OOB_PENALTY
+
+        return reward
+
     def process_message(self, message):
         """Process a message from the game, return action."""
         try:
-            # Parse: obs_json|reward|done|gem_delta|oob
+            # Parse: obs_json|gem_delta|oob|done
             parts = message.split('|')
 
-            if len(parts) != 5:
+            if len(parts) != 4:
                 if self.total_steps < 3:
-                    self.log(f"Malformed message (expected 5 parts, got {len(parts)}): {message[:100]}")
+                    self.log(f"Malformed message (expected 4 parts, got {len(parts)}): {message[:100]}")
                 return [0, 0, 0, 0]
 
-            obs_json, reward_str, done_str, gem_delta_str, oob_str = parts
+            obs_json, gem_delta_str, oob_str, done_str = parts
 
-            # Parse observation
+            # Parse fields
             obs = json.loads(obs_json)
-            reward = float(reward_str)
-            done = int(float(done_str))
             gem_delta = float(gem_delta_str)
             oob = int(float(oob_str))
+            done = int(float(done_str))
 
             # Handle game-end signal: empty obs [] with done=1.
             # onGameEnd sends total game gems as negative gem_delta.
@@ -695,7 +763,10 @@ class PPOServer:
             elif self.no_gem_steps > 0:
                 self.no_gem_steps = 0
 
-            # Normalize observation
+            # Compute reward in Python (all tunable params live here now)
+            reward = self.compute_reward(obs, gem_delta, oob)
+
+            # Normalize observation (must happen AFTER compute_reward uses raw values)
             obs_array = self.normalize_obs(np.array(obs, dtype=np.float32))
 
             # Action repeat: query model every N frames, reuse last action otherwise.
@@ -721,7 +792,6 @@ class PPOServer:
             # Clip scaled reward to [-20, 20] so gem spikes (+200 raw → +20 scaled)
             # are captured fully, while OOB (-25 raw → -2.5) remains distinct.
             # At 0.1 scale, ±20 allows raw rewards up to ±200 unclipped.
-
             scaled_reward = np.clip(reward * self.reward_scale, -20.0, 20.0)
             self.buffer.add(obs_array, action, scaled_reward, value, log_prob, done)
             self.total_steps += 1
@@ -746,6 +816,9 @@ class PPOServer:
                 self.episode_oob = 0
                 self.episode_step = 0
                 self.episode_no_gem_steps = 0
+                # Reset shaping state for new episode (mirrors CS resetEpisode)
+                self.last_nearest_gem_dist = self.DIST_SENTINEL
+                self.skip_potential_steps = self.GRACE_PERIOD
 
             # PPO update when buffer is full
             if len(self.buffer) >= self.rollout_size:
