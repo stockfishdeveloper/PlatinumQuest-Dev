@@ -125,6 +125,7 @@ class DashboardServer:
             'value_loss': [],
             'entropy': [],
             'grad_norm': [],
+            'critic_grad_norm': [],
             'kl': [],
             'kl_stop_pct': [],
             'avg_reward': [],
@@ -138,7 +139,7 @@ class DashboardServer:
             'dry_rollouts': [],
             'timestamps': [],
             'total_no_gem_steps': [],
-            'avg_ep_len': [],
+            'avg_gap_penalty': [],
             'mean_angle': [],
             'policy_std': [],
         }
@@ -180,7 +181,7 @@ class DashboardServer:
         log_std = torch.clamp(s.actor.log_std, s.actor.LOG_STD_MIN, s.actor.LOG_STD_MAX)
         policy_std_deg = log_std.exp().item() * 180 / math.pi
 
-        avg_ep_len = float(np.mean(s.recent_episode_lengths)) if s.recent_episode_lengths else 0
+        avg_gap_penalty = float(np.mean(s.recent_avg_gap_penalty)) if s.recent_avg_gap_penalty else 0
 
         # Rolling KL-stop percentage (last 100 updates)
         self._kl_stop_window.append(1 if stats.get('kl_early_stopped') else 0)
@@ -203,6 +204,7 @@ class DashboardServer:
             'value_loss': round(stats['value_loss'], 6),
             'entropy': round(stats['entropy'], 4),
             'grad_norm': round(stats['grad_norm'], 4),
+            'critic_grad_norm': round(stats.get('critic_grad_norm', 0.0), 4),
             'kl': round(stats.get('max_kl', 0.0), 4),
             'kl_stop_pct': kl_stop_pct,
             'avg_reward_100ep': round(float(avg_reward), 2) if not (avg_reward != avg_reward) else 0.0,
@@ -219,7 +221,7 @@ class DashboardServer:
             'recent_episode_gems': list(s.recent_episode_gems),
             'recent_game_gems': list(s.recent_game_gems),
             'best_game_gems': s.best_game_gems,
-            'avg_ep_len': round(avg_ep_len, 1),
+            'avg_gap_penalty': round(avg_gap_penalty, 2),
             'rollout_size': s.rollout_size,
             'batch_size': s.batch_size,
             'n_epochs': s.n_epochs,
@@ -240,6 +242,7 @@ class DashboardServer:
             h['value_loss'].append(snap['value_loss'])
             h['entropy'].append(snap['entropy'])
             h['grad_norm'].append(snap['grad_norm'])
+            h['critic_grad_norm'].append(snap['critic_grad_norm'])
             h['kl'].append(snap['kl'])
             h['kl_stop_pct'].append(snap['kl_stop_pct'])
             h['avg_reward'].append(snap['avg_reward_100ep'])
@@ -253,7 +256,7 @@ class DashboardServer:
             h['dry_rollouts'].append(snap['dry_rollouts'])
             h['timestamps'].append(snap['timestamp'])
             h['total_no_gem_steps'].append(snap['total_no_gem_steps'])
-            h['avg_ep_len'].append(snap['avg_ep_len'])
+            h['avg_gap_penalty'].append(snap['avg_gap_penalty'])
             h['mean_angle'].append(snap['mean_angle'])
             h['policy_std'].append(snap['policy_std'])
 
@@ -394,12 +397,12 @@ body { background: var(--bg); color: var(--text); font-family: 'Consolas', 'SF M
   <div class="chart-card"><div class="chart-title">Gems Per Game (last 100 games) + rolling avg</div><div id="c-epgems" style="height:220px"></div></div>
   <div class="chart-card"><div class="chart-title">Gems Per Hour</div><div id="c-gemshr" style="height:220px"></div></div>
   <div class="chart-card"><div class="chart-title">KL Divergence + KL-Stop % (last 100 updates)</div><div id="c-kl" style="height:220px"></div></div>
-  <div class="chart-card"><div class="chart-title">Gradient Norm (actor)</div><div id="c-gradnorm" style="height:220px"></div></div>
+  <div class="chart-card"><div class="chart-title">Gradient Norm (actor + critic)</div><div id="c-gradnorm" style="height:220px"></div></div>
   <div class="chart-card"><div class="chart-title">Actor Loss vs Value Loss</div><div id="c-losses" style="height:220px"></div></div>
   <div class="chart-card"><div class="chart-title">Entropy (exploration health)</div><div id="c-entropy" style="height:220px"></div></div>
   <div class="chart-card"><div class="chart-title">Policy Std Dev (degrees)</div><div id="c-policystd" style="height:220px"></div></div>
   <div class="chart-card"><div class="chart-title">OOB Events Per Rollout</div><div id="c-oob" style="height:220px"></div></div>
-  <div class="chart-card"><div class="chart-title">Avg Episode Length (steps)</div><div id="c-eplen" style="height:220px"></div></div>
+  <div class="chart-card"><div class="chart-title">Avg Gap Penalty Per Gem (lower = faster pickups)</div><div id="c-gappen" style="height:220px"></div></div>
   <div class="chart-card"><div class="chart-title">Laziness (Reward / Gems per Hour)</div><div id="c-laziness" style="height:220px"></div></div>
   <div class="chart-card"><div class="chart-title">Training Throughput (steps/sec)</div><div id="c-throughput" style="height:220px"></div></div>
 </div>
@@ -500,9 +503,10 @@ Plotly.newPlot('c-kl', [
   ]
 }), plotConfig);
 
-// 7. Gradient norm
+// 7. Gradient norm (actor + critic)
 Plotly.newPlot('c-gradnorm', [
-  { x: [], y: [], type: 'scatter', mode: 'lines', line: { color: '#ff7b72', width: 1.5 }, name: 'Grad Norm' },
+  { x: [], y: [], type: 'scatter', mode: 'lines', line: { color: '#ff7b72', width: 1.5 }, name: 'Actor' },
+  { x: [], y: [], type: 'scatter', mode: 'lines', line: { color: '#79c0ff', width: 1.5 }, name: 'Critic' },
   { x: [], y: [], type: 'scatter', mode: 'lines', line: { color: '#30363d', width: 1, dash: 'dot' }, name: 'Clip (1.0)' }
 ], darkLayout({
   showlegend: true, legend: { x: 0, y: 1, font: { size: 9 } },
@@ -514,8 +518,8 @@ Plotly.newPlot('c-oob', [
   { x: [], y: [], type: 'scatter', mode: 'lines', line: { color: '#f85149', width: 1.5 } }
 ], darkLayout(), plotConfig);
 
-// 9. Avg Episode Length
-Plotly.newPlot('c-eplen', [
+// 9. Avg Gap Penalty Per Gem
+Plotly.newPlot('c-gappen', [
   { x: [], y: [], type: 'scatter', mode: 'lines', line: { color: '#bc8cff', width: 2 } }
 ], darkLayout(), plotConfig);
 
@@ -576,18 +580,19 @@ async function loadHistory() {
       Plotly.extendTraces('c-kl', { x: [xs, xs], y: [h.kl, klStop] }, [0, 1]);
     }
 
-    // Gradient norm + clip line
+    // Gradient norm (actor + critic + clip line)
     if (h.grad_norm) {
+      const criticGN = h.critic_grad_norm || h.grad_norm.map(() => 0);
       const clipLine = h.grad_norm.map(() => 1.0);
-      Plotly.extendTraces('c-gradnorm', { x: [xs, xs], y: [h.grad_norm, clipLine] }, [0, 1]);
+      Plotly.extendTraces('c-gradnorm', { x: [xs, xs, xs], y: [h.grad_norm, criticGN, clipLine] }, [0, 1, 2]);
     }
 
     // OOB
     Plotly.extendTraces('c-oob', { x: [xs], y: [h.rollout_oob] }, [0]);
 
-    // Avg Episode Length
-    if (h.avg_ep_len) {
-      Plotly.extendTraces('c-eplen', { x: [xs], y: [h.avg_ep_len] }, [0]);
+    // Avg Gap Penalty Per Gem
+    if (h.avg_gap_penalty) {
+      Plotly.extendTraces('c-gappen', { x: [xs], y: [h.avg_gap_penalty] }, [0]);
     }
 
     // Laziness
@@ -708,11 +713,11 @@ function updateDashboard(snap) {
   Plotly.extendTraces('c-policystd', { x: [[x]], y: [[snap.policy_std]] }, [0]);
   Plotly.extendTraces('c-gemshr', { x: [[x], [x]], y: [[snap.gems_per_hr], [snap.best_gems_hr]] }, [0, 1]);
   Plotly.extendTraces('c-kl', { x: [[x], [x]], y: [[snap.kl || 0], [snap.kl_stop_pct || 0]] }, [0, 1]);
-  Plotly.extendTraces('c-gradnorm', { x: [[x], [x]], y: [[snap.grad_norm || 0], [1.0]] }, [0, 1]);
+  Plotly.extendTraces('c-gradnorm', { x: [[x], [x], [x]], y: [[snap.grad_norm || 0], [snap.critic_grad_norm || 0], [1.0]] }, [0, 1, 2]);
   Plotly.extendTraces('c-oob', { x: [[x]], y: [[snap.rollout_oob]] }, [0]);
 
-  // Avg Episode Length
-  Plotly.extendTraces('c-eplen', { x: [[x]], y: [[snap.avg_ep_len]] }, [0]);
+  // Avg Gap Penalty Per Gem
+  Plotly.extendTraces('c-gappen', { x: [[x]], y: [[snap.avg_gap_penalty]] }, [0]);
 
   // Laziness
   const laziness = snap.gems_per_hr > 0 ? snap.avg_reward_100ep / snap.gems_per_hr : 0;
