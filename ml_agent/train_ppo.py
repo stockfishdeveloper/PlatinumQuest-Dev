@@ -306,6 +306,7 @@ class PPOTrainer:
         total_value_loss = 0
         total_entropy = 0
         total_grad_norm = 0
+        total_critic_grad_norm = 0
         n_updates = 0
         max_kl = 0.0
         kl_early_stopped = False
@@ -355,6 +356,12 @@ class PPOTrainer:
 
                 self.critic_optimizer.zero_grad()
                 value_loss.backward()
+                critic_grad_norm = sum(
+                    p.grad.norm().item() ** 2
+                    for p in self.critic.parameters()
+                    if p.grad is not None
+                ) ** 0.5
+                total_critic_grad_norm += critic_grad_norm
                 nn.utils.clip_grad_norm_(self.critic.parameters(), self.max_grad_norm)
                 self.critic_optimizer.step()
 
@@ -368,6 +375,7 @@ class PPOTrainer:
             'value_loss': total_value_loss / max(n_updates, 1),
             'entropy': total_entropy / max(n_updates, 1),
             'grad_norm': total_grad_norm / max(n_updates, 1),
+            'critic_grad_norm': total_critic_grad_norm / max(n_updates, 1),
             'kl_early_stopped': kl_early_stopped,
             'max_kl': max_kl,
         }
@@ -397,7 +405,8 @@ class PPOServer:
         # since value regression can afford bigger steps.
         self.actor = Actor(obs_dim=61)
         self.critic = Critic(obs_dim=61)
-        self.trainer = PPOTrainer(self.actor, self.critic, vf_clip=20.0)
+        self.trainer = PPOTrainer(self.actor, self.critic, vf_clip=20.0,
+                                   target_kl=2.667, entropy_coef=0.008)
         self.buffer = RolloutBuffer()
 
         # Training config
@@ -418,7 +427,9 @@ class PPOServer:
         # === Reward parameters (all reward computation is in Python) ===
         self.GEM_REWARD = 200       # Per gem-point bonus (+200 raw, +20 scaled)
         self.OOB_PENALTY = 25       # Out-of-bounds penalty (-25 raw, -2.5 scaled)
-        self.TIME_PENALTY = 0.02    # Per-step efficiency pressure
+        self.GEM_GAP_PENALTY_K = 0.001  # Ramping time penalty: cost = k * steps_since_gem
+                                        # Resets to 0 on gem pickup. Typical 250-step gap costs 31.
+                                        # Overshooting by 1.5s (~94 steps) costs ~14% of a gem.
         self.SHAPING_COEFF_1 = 20   # Broad attraction: 20/(1+d/50)
         self.SHAPING_RANGE_1 = 50   # Broad attraction range
         self.SHAPING_COEFF_2 = 15   # Near-gem well: 15/(1+d/3)
@@ -430,6 +441,7 @@ class PPOServer:
         # Shaping state (mirrors CS globals that were removed)
         self.last_nearest_gem_dist = self.DIST_SENTINEL
         self.skip_potential_steps = 1  # Suppress sentinel spike on first step
+        self.steps_since_gem = 0       # Ramping penalty counter, reset on gem pickup
 
         # Statistics (initialize before loading checkpoint)
         self.total_steps = 0
@@ -443,11 +455,8 @@ class PPOServer:
         if model_path and os.path.exists(model_path):
             self.log(f"Loading model from {model_path}")
             checkpoint = torch.load(model_path, weights_only=False)
-            # Handle architecture mismatch (e.g. old checkpoint had different network shape)
             # Load actor weights. Old checkpoints used a shared ActorCritic —
             # map compatible keys across (features.*, actor_mean.*, log_std).
-            # Critic is always reset to reinit: old value estimates are stale
-            # and would cause a gradient flood on the first update.
             saved_state = checkpoint.get('model_state_dict', checkpoint.get('actor_state_dict', {}))
             actor_state = self.actor.state_dict()
             filtered = {}
@@ -456,9 +465,41 @@ class PPOServer:
                     if val.shape == actor_state[key].shape:
                         filtered[key] = val
                     else:
-                        self.log(f"  Shape mismatch for {key}: checkpoint={val.shape} vs actor={actor_state[key].shape} — skipping")
+                        self.log(f"  Shape mismatch for {key}: checkpoint={val.shape} vs actor={actor_state[key].shape} -- skipping")
             self.actor.load_state_dict(filtered, strict=False)
-            # Critic always starts fresh — don't restore optimizer states either.
+
+            # Restore critic if available (falls back to fresh init for old checkpoints)
+            critic_state_saved = checkpoint.get('critic_state_dict')
+            if critic_state_saved:
+                critic_state = self.critic.state_dict()
+                critic_filtered = {}
+                for key, val in critic_state_saved.items():
+                    if key in critic_state:
+                        if val.shape == critic_state[key].shape:
+                            critic_filtered[key] = val
+                if critic_filtered:
+                    self.critic.load_state_dict(critic_filtered, strict=False)
+                    self.log(f"  Critic restored from checkpoint")
+                else:
+                    self.log(f"  Critic: no compatible weights found, starting fresh")
+            else:
+                self.log(f"  Critic: no saved state in checkpoint, starting fresh")
+
+            # Restore optimizer states if available
+            actor_opt = checkpoint.get('actor_optimizer_state_dict')
+            if actor_opt:
+                try:
+                    self.trainer.actor_optimizer.load_state_dict(actor_opt)
+                    self.log(f"  Actor optimizer restored")
+                except Exception:
+                    self.log(f"  Actor optimizer: incompatible, starting fresh")
+            critic_opt = checkpoint.get('critic_optimizer_state_dict')
+            if critic_opt and critic_state_saved:
+                try:
+                    self.trainer.critic_optimizer.load_state_dict(critic_opt)
+                    self.log(f"  Critic optimizer restored")
+                except Exception:
+                    self.log(f"  Critic optimizer: incompatible, starting fresh")
 
             # Restore training progress
             self.total_steps = checkpoint.get('total_steps', 0)
@@ -471,7 +512,6 @@ class PPOServer:
             with torch.no_grad():
                 std_deg = self.actor.log_std.exp().item() * 180 / 3.14159
                 self.log(f"  PolicyStd: {std_deg:.1f} deg (learnable, bounds: {self.actor.LOG_STD_MIN:.1f} to {self.actor.LOG_STD_MAX:.1f})")
-            self.log(f"  Critic reinitialised from scratch (stale value estimates discarded)")
 
             self.log(f"Model loaded successfully!")
             self.log(f"Resuming from: {self.total_steps} steps, {self.total_updates} updates, {self.total_episodes} episodes")
@@ -526,6 +566,18 @@ class PPOServer:
         self.game_gem_pts = 0          # accumulator across episodes within one game
         self.recent_game_gems = deque(maxlen=100)  # last 100 full games
         self.best_game_gems = 0        # all-time best gems in a single game
+        self.game_gap_penalty_sum = 0.0   # sum of gap penalties across current game
+        self.game_gem_pickups = 0         # number of gem pickups in current game
+        self.recent_avg_gap_penalty = deque(maxlen=100)  # avg gap penalty per gem, per game
+
+        # Near-miss and dwell-time tracking (per game)
+        # "Near" = within 2 marble diameters of nearest gem (~0.8 units)
+        self.NEAR_GEM_THRESHOLD = 0.8    # 2 marble diameters (radius ~0.2 * 4)
+        self.near_gem = False             # currently within threshold
+        self.game_near_misses = 0         # count: entered near zone, left without pickup
+        self.game_dwell_steps = 0         # total steps spent within threshold
+        self.recent_near_misses = deque(maxlen=100)    # per-game near-miss count
+        self.recent_dwell_steps = deque(maxlen=100)    # per-game dwell steps
 
         # Socket setup
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -704,6 +756,11 @@ class PPOServer:
         if gem_delta > 0:
             reward += gem_delta * self.GEM_REWARD
             self.skip_potential_steps = self.GRACE_PERIOD
+            # Record gap penalty for this interval before resetting
+            gap_penalty = self.GEM_GAP_PENALTY_K * self.steps_since_gem * (self.steps_since_gem - 1) / 2
+            self.game_gap_penalty_sum += gap_penalty
+            self.game_gem_pickups += 1
+            self.steps_since_gem = 0  # Reset ramping penalty on gem pickup
 
         # 2. Distance shaping: potential-based P(d) = C1/(1+d/R1) + C2/(1+d/R2)
         nearest_dist = raw_obs[17] if len(raw_obs) > 17 else -1
@@ -718,8 +775,10 @@ class PPOServer:
                 reward += new_potential - old_potential
             self.last_nearest_gem_dist = nearest_dist
 
-        # 3. Time penalty
-        reward -= self.TIME_PENALTY
+        # 3. Ramping time penalty: grows with steps since last gem pickup.
+        #    Early steps after gem are nearly free; long gaps get expensive.
+        reward -= self.GEM_GAP_PENALTY_K * self.steps_since_gem
+        self.steps_since_gem += 1
 
         # 4. OOB penalty
         if oob:
@@ -754,8 +813,17 @@ class PPOServer:
                 self.recent_game_gems.append(total_game_gems)
                 if total_game_gems > self.best_game_gems:
                     self.best_game_gems = total_game_gems
-                self.log(f"[GAME END] total gems this game: {total_game_gems}pts (best: {self.best_game_gems})")
-                self.game_gem_pts = 0  # Reset accumulator for next game
+                avg_gap = self.game_gap_penalty_sum / max(self.game_gem_pickups, 1)
+                self.recent_avg_gap_penalty.append(round(avg_gap, 2))
+                self.recent_near_misses.append(self.game_near_misses)
+                self.recent_dwell_steps.append(self.game_dwell_steps)
+                self.log(f"[GAME END] total gems this game: {total_game_gems}pts (best: {self.best_game_gems}) avg_gap_penalty: {avg_gap:.1f} near_misses: {self.game_near_misses} dwell_steps: {self.game_dwell_steps}")
+                self.game_gem_pts = 0  # Reset accumulators for next game
+                self.game_gap_penalty_sum = 0.0
+                self.game_gem_pickups = 0
+                self.game_near_misses = 0
+                self.game_dwell_steps = 0
+                self.near_gem = False
                 return [0, 0, 0, 0]
 
             # Track no-gem steps (sentinel distance at index 17)
@@ -768,6 +836,24 @@ class PPOServer:
                 self.episode_no_gem_steps += 1
             elif self.no_gem_steps > 0:
                 self.no_gem_steps = 0
+
+            # Near-miss and dwell-time tracking
+            if raw_gem0_dist > 0 and raw_gem0_dist < self.DIST_MAX_VALID:
+                if raw_gem0_dist < self.NEAR_GEM_THRESHOLD:
+                    # Inside near zone
+                    if not self.near_gem:
+                        self.near_gem = True  # Just entered
+                    self.game_dwell_steps += 1
+                else:
+                    # Outside near zone
+                    if self.near_gem:
+                        # Was near, now left without picking up -> near miss
+                        if gem_delta == 0:
+                            self.game_near_misses += 1
+                        self.near_gem = False
+            # Reset near_gem flag on gem pickup (successful collection, not a miss)
+            if gem_delta > 0:
+                self.near_gem = False
 
             # Compute reward in Python (all tunable params live here now)
             reward = self.compute_reward(obs, gem_delta, oob)
@@ -826,6 +912,8 @@ class PPOServer:
                 # Reset shaping state for new episode (mirrors CS resetEpisode)
                 self.last_nearest_gem_dist = self.DIST_SENTINEL
                 self.skip_potential_steps = self.GRACE_PERIOD
+                self.steps_since_gem = 0
+                self.near_gem = False
 
             # PPO update when buffer is full
             if len(self.buffer) >= self.rollout_size:
@@ -899,7 +987,7 @@ class PPOServer:
         self.log(
             f"Upd {self.total_updates:4d} | "
             f"PL={stats['policy_loss']:.4f} VL={stats['value_loss']:.4f} "
-            f"Ent={stats['entropy']:.3f} GN={stats['grad_norm']:.3f} KL={stats['max_kl']:.4f} | "
+            f"Ent={stats['entropy']:.3f} GN={stats['grad_norm']:.3f} CGN={stats['critic_grad_norm']:.3f} KL={stats['max_kl']:.4f} | "
             f"AvgRwd={avg_reward:.1f} AvgLen={avg_ep_len:.0f}{collapse_warn} |"
             f"{gems_str}{oob_str}{dry_warn}{kl_warn}"
         )

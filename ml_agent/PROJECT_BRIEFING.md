@@ -8,86 +8,80 @@ The game is a legacy Torque Game Engine title. We control it by injecting AI scr
 
 ## The Goal
 
-Train the marble to efficiently collect gems in Hunt mode. The primary performance metric is **gems per hour** — how many gem points the agent collects per real-time hour of play. Currently training from scratch on a custom flat arena map with 7 gems that respawn upon collection.
+Train the marble to efficiently collect gems in Hunt mode. The primary performance metric is **gems per game** (points scored per 5-minute round). Currently training on a custom flat arena map with 7 gems that respawn upon collection. Current best: **~79 gems/game**. The main challenge now is getting the agent to take **tighter, more direct paths** to gems instead of overshooting and circling back.
 
 ## Architecture Overview
 
 ```
-┌─────────────────────┐     TCP Socket (port 8888)     ┌─────────────────────┐
-│   Torque Engine      │ ◄──────────────────────────►  │  Python PPO Server   │
-│   (PlatinumQuest)    │                                │  (train_ppo.py)      │
-│                      │   Game → Python:               │                      │
-│  mlAgent.cs          │   "[obs]|reward|done|gems|oob" │  ActorCritic NN      │
-│  observer.cs         │                                │  RolloutBuffer       │
-│  socketBridge.cs     │   Python → Game:               │  PPOTrainer          │
-│  agent.cs            │   "F,B,L,R\n"                  │  DashboardServer     │
-└─────────────────────┘                                └─────────────────────┘
++-----------------------+     TCP Socket (port 8889)     +-----------------------+
+|   Torque Engine       | <---------------------------> |  Python PPO Server    |
+|   (PlatinumQuest)     |                               |  (train_ppo.py)       |
+|                       |   Game -> Python:              |                       |
+|  mlAgent.cs           |   "obs_json|gemDelta|oob|done" |  Actor NN (policy)    |
+|  observer.cs          |                               |  Critic NN (value)    |
+|  socketBridge.cs      |   Python -> Game:              |  RolloutBuffer        |
+|  agent.cs             |   "F,B,L,R\n"                  |  PPOTrainer           |
++-----------------------+                               |  DashboardServer      |
+                                                        +-----------------------+
 ```
 
-## File Inventory (Every File In the Pipeline)
+**Data flow**: Game sends raw facts (observations, gem pickups, OOB events, done signal). Python computes ALL rewards and returns actions.
+
+## File Inventory
 
 ### Python (ML side)
 
 | File | Absolute Path | Purpose |
 |------|---------------|---------|
-| **train_ppo.py** | `c:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\train_ppo.py` | Main training server. Contains ActorCritic neural network, PPOTrainer, RolloutBuffer, PPOServer (TCP server + training loop). ~970 lines. |
-| **play.py** | `c:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\play.py` | Inference-only script. Loads a checkpoint and plays without training (deterministic policy). |
-| **dashboard.py** | `c:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\dashboard.py` | Real-time web dashboard (port 8889). SSE + Plotly.js charts. Runs as daemon thread during training. Shows reward, entropy, gems/hr, OOB, losses, etc. |
-| **analyze_log.py** | `c:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\analyze_log.py` | Post-training log analysis. Parses .log files and prints metrics progression, problem detection, final state summary. |
+| **train_ppo.py** | `ml_agent\train_ppo.py` | Main training server. Contains Actor/Critic networks, PPOTrainer, RolloutBuffer, PPOServer (TCP server + training loop + reward computation). ~1000 lines. |
+| **play.py** | `ml_agent\play.py` | Inference-only script. Loads a checkpoint and plays without training (deterministic policy). |
+| **dashboard.py** | `ml_agent\dashboard.py` | Real-time web dashboard (port 8889). SSE + Plotly.js charts. Runs as daemon thread during training. Shows reward, entropy, gems/hr, OOB, losses, gradient norms, gap penalty, etc. |
+| **analyze_log.py** | `ml_agent\analyze_log.py` | Post-training log analysis. Parses .log files and prints metrics progression, problem detection, final state summary. Must be kept in sync when new metrics are added to logs. |
+| **diagnostic.py** | `ml_agent\diagnostic.py` | Diagnostic tool (port 8888). Manual play verification — lets you play and see what observations/rewards the system generates. |
 
 ### TorqueScript (Game side)
 
 | File | Absolute Path | Purpose |
 |------|---------------|---------|
-| **mlAgent.cs** | `c:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\Marble Blast Platinum\platinum\client\scripts\ai\mlAgent.cs` | Main ML agent logic. Handles the step loop (called every tick at 3x game speed), assembles observations from observer.cs, receives actions from Python, applies them as joystick inputs. Handles episode boundaries (resetEpisode, checkDone, onGameEnd). |
-| **observer.cs** | `c:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\Marble Blast Platinum\platinum\client\scripts\ai\observer.cs` | Observation builder. Gathers all 61 observation dimensions: marble state (position, velocity, camera angles, powerups), 5 nearest gems (camera-relative position, value, distance), 3 opponents (camera-relative position, velocity, mega status), game state (time, scores, gems remaining). All spatial data is transformed into **camera-relative coordinates** (x=right, y=forward). |
-| **socketBridge.cs** | `c:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\Marble Blast Platinum\platinum\client\scripts\ai\socketBridge.cs` | TCP socket client. Sends observations to Python, receives actions back. Handles connection/reconnection. |
-| **agent.cs** | `c:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\Marble Blast Platinum\platinum\client\scripts\ai\agent.cs` | Base AI agent framework. Manages AI agent lifecycle, action application (setCustomAction for analog float inputs). |
-| **recorder.cs** | `c:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\Marble Blast Platinum\platinum\client\scripts\ai\recorder.cs` | (Not actively used in training) Data recorder for saving observation/action pairs. |
+| **mlAgent.cs** | `Marble Blast Platinum\platinum\client\scripts\ai\mlAgent.cs` | Main ML agent logic. Step loop (every tick), assembles observations from observer.cs, receives actions from Python, applies them as joystick inputs. Handles episode boundaries. |
+| **observer.cs** | `Marble Blast Platinum\platinum\client\scripts\ai\observer.cs` | Observation builder. Gathers all 61 observation dimensions: marble state, 5 nearest gems, 3 opponents, game state. All spatial data is in **camera-relative coordinates** (x=right, y=forward). |
+| **socketBridge.cs** | `Marble Blast Platinum\platinum\client\scripts\ai\socketBridge.cs` | TCP socket client. Sends observations to Python, receives actions back. Handles connection/reconnection. |
+| **agent.cs** | `Marble Blast Platinum\platinum\client\scripts\ai\agent.cs` | Base AI agent framework. Manages AI agent lifecycle, action application (setCustomAction for analog float inputs). |
 
 ### Game Data
 
 | File | Absolute Path | Purpose |
 |------|---------------|---------|
-| **FlatGemTraining_Hunt.mcs** | `c:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\Marble Blast Platinum\platinum\data\multiplayer\hunt\custom\FlatGemTraining_Hunt.mcs` | Custom training map. Flat arena with 7 gem spawn positions. `gemGroups="0"` (all gems in one group for reliable spawning). 5-minute rounds. |
-| **huntGems.cs** | `c:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\Marble Blast Platinum\platinum\server\scripts\huntGems.cs` | Server-side gem spawning logic. `makeGemGroup` scans for Items with `datablock.classname="Gem"`, `getCenterGems` finds spawn positions, `spawnHuntGemGroup` / `doSpawnHuntGemGroup` handle respawning. |
+| **FlatGemTraining_Hunt.mcs** | `Marble Blast Platinum\platinum\data\multiplayer\hunt\custom\FlatGemTraining_Hunt.mcs` | Custom training map. Flat arena with 7 gem spawn positions. `gemGroups="0"` (all gems in one group for reliable spawning). 5-minute rounds. |
+| **huntGems.cs** | `Marble Blast Platinum\platinum\server\scripts\huntGems.cs` | Server-side gem spawning logic. `makeGemGroup` scans for Items with `datablock.classname="Gem"`, `getCenterGems` finds spawn positions. |
 
 ### Training Output
 
 | Location | Purpose |
 |----------|---------|
-| `c:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\logs\` | Training log files (timestamped .log files) |
-| `c:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\models\checkpoints\` | Model checkpoints (update_N.pth, best.pth) |
+| `ml_agent\logs\` | Training log files (timestamped .log files) |
+| `ml_agent\models\checkpoints\` | Model checkpoints (update_N.pth, best.pth) |
 
 ## Neural Network Architecture
 
-**ActorCritic** (shared feature extractor, separate heads):
+**Separate Actor and Critic networks** (previously shared, split for independent learning rates):
 
 ```
-Input: 61 observations
-  ↓
-Shared Features:
-  Linear(61, 256) → ReLU
-  Linear(256, 256) → ReLU
-  Linear(256, 128) → ReLU
-  ↓                    ↓
-Actor Head:          Critic Head:
-  Linear(128, 64)      Linear(128, 64)
-  ReLU                 ReLU
-  Linear(64, 2)        Linear(64, 1)
-  ↓                    ↓
-  (dx, dy)             Value estimate
-  ↓
-  atan2(dx, dy) → angle (radians)
+Actor Network:                    Critic Network:
+  Input: 61 obs                     Input: 61 obs
+  Linear(61, 256) -> ReLU           Linear(61, 256) -> ReLU
+  Linear(256, 256) -> ReLU          Linear(256, 256) -> ReLU
+  Linear(256, 128) -> ReLU          Linear(256, 128) -> ReLU
+  Linear(128, 64) -> ReLU           Linear(128, 64) -> ReLU
+  Linear(64, 2) -> (dx, dy)         Linear(64, 1) -> Value estimate
+  atan2(dx, dy) -> angle
   Normal(angle, exp(log_std))
-  ↓
-  Sample angle → angle_to_joystick() → (fwd, back, left, right) floats [0,1]
+  Sample -> angle_to_joystick()
+  -> (fwd, back, left, right) [0,1]
 ```
 
 - **Continuous action space**: single angle in radians, always full magnitude (no idle)
-- **Learnable log_std**: single scalar parameter, clamped to [LOG_STD_MIN, LOG_STD_MAX]
-- **LOG_STD_MIN = -1.0** (exp(-1.0) = 0.37 rad = 21 degrees, entropy floor)
-- **LOG_STD_MAX = 0.0** initially (57 degrees), annealed down by 0.0005 per update
+- **Learnable log_std**: single scalar parameter, clamped to [-2.0, 1.0] (7.7 to 156 degrees)
 
 ## Observation Space (61 dimensions)
 
@@ -95,118 +89,161 @@ Actor Head:          Critic Head:
 |---------|-------|----------|---------------|
 | 0-2 | 3 | Marble position (world x,y,z) | /100 |
 | 3-5 | 3 | Marble velocity (camera-relative x,y,z) | /20 |
-| 6 | 1 | Camera yaw (radians) | /π |
+| 6 | 1 | Camera yaw (radians) | /pi |
 | 7 | 1 | Camera pitch (radians) | /1.57 |
 | 8 | 1 | Collision radius | raw (~0.2) |
 | 9 | 1 | Powerup ID (-1..5) | raw |
 | 10 | 1 | Mega marble active (0/1) | raw |
 | 11 | 1 | Mega marble time remaining | /20 |
 | 12 | 1 | Powerup timer remaining | /20 |
-| 13-37 | 25 | 5 nearest gems × 5 (cam-rel direction unit vec, value, distance) | direction=unit vec, value/5, dist/100 |
-| 38-55 | 18 | 3 opponents × 6 (cam-rel pos, cam-rel vel, isMega) | pos/100, vel/20 |
+| 13-37 | 25 | 5 nearest gems x 5 (cam-rel direction unit vec, value, distance) | direction=unit vec, value/5, dist/100 |
+| 38-55 | 18 | 3 opponents x 6 (cam-rel pos, cam-rel vel, isMega) | pos/100, vel/20 |
 | 56-60 | 5 | Game state (timeElapsed, timeRemaining, myScore, oppBestScore, gemsRemaining) | various |
 
-**Sentinel value**: `-999` for all absent gems/opponents. Replaced during normalization with zeros (direction/value) and max distance (1.0) for gems, or all zeros for opponents.
+**Sentinel value**: `-999` for absent gems/opponents. Replaced during normalization with zeros (direction/value) and max distance (1.0) for gems, or all zeros for opponents.
 
-**Camera-relative coordinates**: All spatial observations (velocity, gem positions, opponent positions/velocities) are rotated into camera space where x=right, y=forward. This means the agent's actions are relative to what it "sees." When you rotate the camera, the observations change, so the model does respond to camera rotation — this is intentional.
+**Camera-relative coordinates**: All spatial observations are rotated into camera space where x=right, y=forward. The agent's actions are relative to what it "sees."
 
-## Reward Structure
+## Communication Protocol
 
-All reward computation currently happens in TorqueScript (mlAgent.cs), NOT in Python. The Python side receives a pre-computed reward float.
+Game sends 4 pipe-delimited fields per step:
+```
+obs_json|gemDelta|oob|done
+```
+- `obs_json`: JSON array of 61 observation values
+- `gemDelta`: gem points collected this step (0, 1, 2, or 5)
+- `oob`: 1 if marble went out of bounds this step, else 0
+- `done`: 1 if episode ended, else 0
 
-| Signal | Raw Reward | After 0.1x scaling |
-|--------|-----------|---------------------|
-| Gem collected | +200 per point (1pt gem = +200, 5pt gem = +1000) | +20 to +100 |
-| Out of bounds (OOB) | -25 | -2.5 |
-| Time penalty | -0.02 per step | -0.002 |
-| Distance shaping (nearest gem) | P(d) = 20/(1+d/50) + 15/(1+d/3) | +0.05 to +3.5 |
+Python computes all rewards from these raw facts and returns:
+```
+F,B,L,R\n
+```
+Four float values [0,1] for forward, backward, left, right joystick inputs.
+
+## Reward Structure (All Computed in Python)
+
+| Signal | Raw Reward | After 0.1x scaling | Notes |
+|--------|-----------|---------------------|-------|
+| Gem collected | +200 per point | +20 to +100 | 1pt=+200, 2pt=+400, 5pt=+1000 |
+| Out of bounds | -25 | -2.5 | Gap penalty intentionally NOT reset on OOB |
+| Ramping gap penalty | -k * steps_since_gem per step | varies | k=0.001, resets to 0 on gem pickup |
+| Distance shaping | P(d) = 20/(1+d/50) + 15/(1+d/3) | +0.05 to +3.5 | Broad gradient + steep near-gem well |
 
 - **reward_scale = 0.1** applied before storing in buffer
 - **reward clip = [-20, 20]** after scaling
-- Distance shaping has two components: a broad gradient (d/50 term) for far gems and a steep near-gem well (d/3 term) to incentivize closing the last few units
+- **5-step grace period** after gem pickup (no shaping penalty during respawn transition)
+- **Ramping gap penalty** replaces the old flat time penalty. Cost per step grows linearly with time since last gem, creating quadratic total cost for long gaps. Normal 250-step gap costs ~31 raw. Overshooting a gem by 1.5 seconds (~94 steps) costs ~14% of one gem's reward.
 
 ## PPO Hyperparameters
 
 | Parameter | Value | Notes |
 |-----------|-------|-------|
-| Learning rate | 1e-4 | Adam optimizer |
+| Actor learning rate | 3e-5 | Adam optimizer, separate from critic |
+| Critic learning rate | 1e-4 | Adam optimizer, higher than actor |
 | Rollout size | 2048 | Steps per PPO update (~11% of one episode) |
 | Batch size | 256 | 8 mini-batches per epoch |
 | PPO epochs | 4 | Passes over buffer per update |
-| Gamma (γ) | 0.99 | Discount factor |
-| Lambda (λ) | 0.95 | GAE parameter |
+| Gamma | 0.99 | Discount factor |
+| Lambda | 0.95 | GAE parameter |
 | Clip epsilon | 0.2 | PPO clipping |
 | Value coef | 0.5 | Critic loss weight |
-| Entropy coef | 0.01 | Entropy bonus weight |
-| Max grad norm | 1.0 | Gradient clipping |
+| Entropy coef | 0.008 | Entropy bonus weight (tuned from 0.005) |
+| Max grad norm | 1.0 | Gradient clipping (actor and critic) |
 | VF clip | 20.0 | Value function clipping range |
-| Target KL | 0.5 | KL early stopping (fires at 1.5x = 0.75) |
+| Target KL | 2.667 | KL early stopping (fires at 1.5x = 4.0) |
 | Step cap | 15000 | Max steps per episode (in mlAgent.cs) |
 
 ## Training Protocol
 
-1. Game runs at **3x speed** (fast-forward for faster training)
-2. Each Hunt round is 5 minutes real-time = ~11,873 steps at 3x
-3. Python server listens on port 8888, game connects via TCP
-4. Every game tick: game sends obs → Python returns action (F,B,L,R floats)
-5. Every 2048 steps: PPO update runs (4 epochs × 8 mini-batches)
-6. Checkpoints saved every 10 updates
-7. Dashboard available at http://localhost:8889 during training
+1. Game runs at variable speed (typically 3-25x, adjustable during training)
+2. Each Hunt round is 5 minutes game-time = ~18,875 steps at normal speed
+3. Python server listens on port 8889, game connects via TCP
+4. Every game tick: game sends obs -> Python returns action
+5. Every 2048 steps: PPO update runs (4 epochs x 8 mini-batches)
+6. Checkpoints saved every 10 updates (includes actor, critic, both optimizer states, log_std)
+7. On checkpoint load: critic and optimizer states are restored (shape-filtered, with graceful fallback for old checkpoints)
+8. Dashboard available at http://localhost:8889 during training
+
+## Dashboard Charts
+
+- Average Reward (rolling 100-game average)
+- Policy Entropy
+- Gems per Hour
+- OOB Count
+- Policy Loss / Value Loss
+- Gradient Norm (actor + critic overlay)
+- Average Gap Penalty Per Gem (lower = faster pickups)
 
 ## What We've Tried & Key Bugs Fixed
 
 ### Action Space Evolution
 1. **Started with Categorical(9)**: 8 compass directions + idle. Worked but lacked analog precision.
-2. **Switched to continuous angle**: Actor outputs (dx,dy) → atan2 → angle. Normal distribution for exploration. This is the current architecture. **Incompatible with old checkpoints** — must train from scratch.
+2. **Switched to continuous angle**: Actor outputs (dx,dy) -> atan2 -> angle. Normal distribution for exploration. This is the current architecture.
+
+### Network Architecture Evolution
+1. **Started with shared ActorCritic**: Single feature extractor feeding both heads. Critic couldn't learn at a different rate than actor.
+2. **Split to separate Actor/Critic networks**: Independent architectures and learning rates (actor 3e-5, critic 1e-4). Critic state + optimizer now saved in checkpoints and restored on load.
+
+### Reward Evolution
+1. **Reward computed in TorqueScript** -> Moved to **Python-side reward computation**. Game now sends raw facts only.
+2. **Flat time penalty** (-0.02/step) -> Replaced with **ramping gap penalty** (k * steps_since_gem). Flat penalty was invisible (2.3% of signal, 10,000 steps to equal 1 gem). Ramping penalty creates meaningful pressure for faster gem collection.
+3. **Velocity-alignment / dot product shaping** -> REMOVED. Caused entropy collapse and gem-orbiting behavior.
+4. **Flat distance potential** (d/50) -> Added **steep near-gem well** (15/(1+d/3)). Without it, no incentive to close last few units.
+
+### Entropy Coefficient History
+- 0.01: too low with categorical actions, collapsed to 3 diagonal actions (84%)
+- 0.05: too high, policy was nearly uniform
+- 0.02: stable but plateaued
+- 0.01: entropy was rising (too much exploration) with continuous actions
+- 0.005: entropy falling too fast, policy over-narrowed, caused death spiral with gap penalty
+- **0.008** (current): attempting to stabilize entropy near 0.41-0.45
+
+### KL Divergence Tuning History
+- target_kl=0.01: way too tight, 100% stop rate, blocked all learning
+- target_kl=0.5: worked early but too tight later
+- target_kl=1.5: 46% stop rate, too many skipped updates
+- **target_kl=2.667** (current): fires at 4.0, ~5-6% stop rate
 
 ### Major Bugs (All Fixed)
-- **Camera rotation in observer.cs**: Torque's coordinate system uses forward=(sin(yaw), cos(yaw)), right=(cos(yaw), -sin(yaw)). Was wrong in 4 places (self velocity, gem pos, opp pos, opp velocity).
-- **Gem spawning**: `gemGroups="2"` in the map file caused frequent spawn failures. Fixed to `gemGroups="0"`.
-- **Observer gem filter**: Was using name-based blacklist for powerups; a phantom object slipped through. Fixed to positive check: `datablock.classname $= "Gem"`.
-- **Stuck episodes**: Dead zone after restartLevel where timer=300000ms but game is "running". Fixed with a `$MLAgent::TimerStarted` guard.
-- **Short episode flood**: `gemCount >= maxGems` check was permanently true in Hunt mode (cumulative score). Removed.
-- **Orbiting gems**: Flat potential d/50 gave no incentive to close last few units. Added steep near-gem well 15/(1+d/3). A facing/dot-product bonus was tried but REMOVED — it caused entropy collapse by rewarding the orbiting pattern itself.
-- **Entropy collapse**: entropy_coef=0.01 was too low with categorical actions, policy collapsed onto 3 diagonal actions (84%). Bumped to 0.05, then 0.02. With continuous actions, 0.01 is fine because the Normal distribution's entropy is naturally higher.
-- **Time penalty too harsh**: -0.20/step buried the shaping gradient. Reduced to -0.02/step.
-- **OOB penalty tuning**: -25 alone was too cheap, -50 too harsh. Current: -25 + implicit cost from time penalty on recovery steps.
-- **Step cap too low**: 7000 was less than one full game (~11,873 steps). Raised to 15000.
-- **Gems per game tracking**: checkDone() timer fires 5-10 seconds before the actual game end (clientCmdGameEnd). Fixed by having onGameEnd send an authoritative game-end signal with total gem count.
+- **Camera rotation in observer.cs**: Torque's coordinate system uses forward=(sin(yaw), cos(yaw)), right=(cos(yaw), -sin(yaw)). Was wrong in 4 places.
+- **Gem spawning**: `gemGroups="2"` caused frequent spawn failures. Fixed to `gemGroups="0"`.
+- **Observer gem filter**: Name-based blacklist let a phantom object through. Fixed to positive check: `datablock.classname $= "Gem"`.
+- **Stuck episodes**: Dead zone after restartLevel. Fixed with `$MLAgent::TimerStarted` guard.
+- **Short episode flood**: `gemCount >= maxGems` permanently true in Hunt mode. Removed.
+- **Step cap too low**: 7000 was less than one full game (~18,875 steps). Raised to 15000.
+- **Critic cold start**: Fresh critic every restart caused ~1000-update adaptation dips. Fixed: critic + optimizer states saved and restored from checkpoints.
 
-### KL Divergence Early Stopping
-- Added KL early stopping (SB3-style): `approx_kl = mean((exp(log_ratio) - 1) - log_ratio)`
-- Fires if approx_kl > 1.5 × target_kl
-- Initially set target_kl=0.01 (way too tight — fired 100% of updates, blocked all learning)
-- **Currently target_kl=0.5** (threshold 0.75, catches destructive KL >1.16 while allowing normal 0.02-0.33)
-
-### Reward Shaping History
-1. Started with velocity-alignment shaping (dot product of velocity and gem direction) → caused entropy collapse / orbiting
-2. Tried various combinations of distance potential, facing bonus, time penalty
-3. **Current approach**: distance potential P(d) = 20/(1+d/50) + 15/(1+d/3), no facing bonus, mild time penalty -0.02/step
-
-## Current State & Open Questions
+## Current State & Known Issues
 
 ### What's Working
-- The pipeline is stable: game connects, observations flow, training runs, dashboard works
-- The agent has learned to move toward gems and collect them
-- Gems per hour is the primary metric we track
-- KL early stopping catches destructive updates without blocking normal learning
+- Full pipeline: game connects, obs flow, training runs, dashboard works
+- Agent collects ~72-79 gems per game
+- Critic restoration eliminates cold-start dips
+- KL early stopping at healthy ~5-6% rate
+- Ramping gap penalty creates meaningful gem-collection pressure
 
-### TODO: Move Reward Computation to Python
-Currently reward is computed in TorqueScript (mlAgent.cs). This requires deleting compiled .dso files whenever reward logic changes. The plan is to have CS send raw facts (obs, gemDelta, wasOOB) and have Python compute rewards. Benefits: no .dso deletion, dynamic reward tuning during training, reward scheduling, all reward logic in one place. This has NOT been implemented yet.
+### Current Problem: Entropy Drift
+AvgRwd has been declining (~15,393 -> ~11,000) across recent runs. Root cause: entropy_coef=0.005 caused entropy to fall too aggressively (0.48 -> 0.41), PolicyStd narrowed from 22.4 to 20.9 degrees, creating a death spiral with the gap penalty — overly narrow policy can't course-correct on misses, misses become catastrophic, penalties spike, reward drops. Just changed entropy_coef to 0.008 to stabilize.
 
-### Key Metrics From Recent Training
-- The agent collects gems and achieves positive reward
-- Entropy tends to hover in a healthy range with the continuous action space
-- OOB events decrease as training progresses
-- Log_std anneals from ~57 degrees down toward ~21 degrees over training
+### Proposed but Not Yet Implemented: Overshoot Detection Penalty
+A surgical fix for gem-missing precision: track nearest gem distance each step. If distance drops below ~3 units then rises past ~5 without a gem pickup (gradual increase, not a respawn jump), fire a one-time penalty scaled by how close the marble got. Targets overshoots directly without inflating the base gap penalty. Pure Python-side, uses existing obs[17] (nearest gem distance), no TorqueScript changes needed.
 
-### TorqueScript Gotchas
+### Key Metrics (Latest Training)
+- Best average reward: ~16,743
+- Best gems/game: ~79
+- PolicyStd: ~21 degrees
+- Entropy: ~0.41 (declining, trying to stabilize)
+- KL-STOP rate: ~5-6%
+- Training at update ~20,490
+
+## TorqueScript Gotchas
 - `$= ""` checks empty, `$=` is string compare, `==` is numeric
 - `%var` is local, `$var` is global
 - `PlayGui.currentTime` counts UP from 0; `MissionInfo.time` is total (300000ms = 5 min)
 - `PlayGui.gemCount` is cumulative gem **points** (not count) — gems can be worth 1, 2, or 5 points
-- Compiled `.dso` files must be deleted when `.mcs` (script) files change, otherwise the engine uses the stale compiled version
-- Game runs server-side gem logic (huntGems.cs) — client scripts (observer.cs, mlAgent.cs) only read state
+- Compiled `.dso` files must be deleted when `.mcs` (script) files change
+- Game runs server-side gem logic (huntGems.cs) — client scripts only read state
 
-### Windows-Specific Issues
-- **No Unicode in Python log output**: Windows cp1252 encoding crashes on characters like → (U+2192), ≈, ←. The degree symbol (°) is fine. Use ASCII alternatives: `->` instead of `→`.
+## Windows-Specific Issues
+- **No Unicode in Python log output**: Windows cp1252 encoding crashes on characters like -> (U+2192). Use ASCII alternatives: `->` instead of `->`.

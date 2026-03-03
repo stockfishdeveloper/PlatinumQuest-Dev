@@ -23,12 +23,14 @@ def parse_log(filepath):
     updates = []
     episodes = []
     summaries = []
+    games = []  # [GAME END] lines with gap penalty data
 
     # Regex patterns
     upd_re = re.compile(
         r'Upd\s+(\d+)\s*\|\s*'
         r'PL=([-\d.]+)\s+VL=([-\d.]+)\s+'
         r'Ent=([-\d.]+)\s+GN=([-\d.]+)\s+'
+        r'(?:CGN=([-\d.]+)\s+)?'
         r'KL=([-\d.]+)\s*\|\s*'
         r'AvgRwd=([-\d.]+)\s+AvgLen=(\d+)'
         r'(.*?)$'
@@ -40,6 +42,10 @@ def parse_log(filepath):
         r'avg100=([-\d.]+)'
     )
     gem_re = re.compile(r'\[GEM\].*?\+(\d+)pts')
+    game_end_re = re.compile(
+        r'\[GAME END\] total gems this game: (\d+)pts \(best: (\d+)\) avg_gap_penalty: ([\d.]+)'
+        r'(?:\s+near_misses: (\d+)\s+dwell_steps: (\d+))?'
+    )
     summary_re = re.compile(
         r'SUMMARY Upd (\d+)\s*\|\s*([\d.]+)h\s*\|\s*([\d,]+)\s*steps\s*\|\s*(\d+)\s*eps'
     )
@@ -74,7 +80,7 @@ def parse_log(filepath):
             # Update lines
             m = upd_re.search(line)
             if m:
-                tail = m.group(9)
+                tail = m.group(10)
                 gems_m = re.search(r'gems=(\d+)', tail)
                 oob_m = re.search(r'OOB=(\d+)', tail)
                 dry_m = re.search(r'DRY.(\d+)', tail)
@@ -87,9 +93,10 @@ def parse_log(filepath):
                     'value_loss': float(m.group(3)),
                     'entropy': float(m.group(4)),
                     'grad_norm': float(m.group(5)),
-                    'kl': float(m.group(6)),
-                    'avg_reward': float(m.group(7)),
-                    'avg_len': int(m.group(8)),
+                    'critic_grad_norm': float(m.group(6)) if m.group(6) else None,
+                    'kl': float(m.group(7)),
+                    'avg_reward': float(m.group(8)),
+                    'avg_len': int(m.group(9)),
                     'gems': int(gems_m.group(1)) if gems_m else 0,
                     'oob': int(oob_m.group(1)) if oob_m else 0,
                     'dry': int(dry_m.group(1)) if dry_m else 0,
@@ -132,6 +139,17 @@ def parse_log(filepath):
                 summaries[-1]['avg_reward'] = float(m.group(4))
                 summaries[-1]['best_reward'] = float(m.group(5))
 
+            # Game end lines (gap penalty)
+            m = game_end_re.search(line)
+            if m:
+                games.append({
+                    'gems': int(m.group(1)),
+                    'best': int(m.group(2)),
+                    'avg_gap_penalty': float(m.group(3)),
+                    'near_misses': int(m.group(4)) if m.group(4) else None,
+                    'dwell_steps': int(m.group(5)) if m.group(5) else None,
+                })
+
             # Summary detail line
             m = summary_detail_re.search(line)
             if m and summaries:
@@ -143,6 +161,7 @@ def parse_log(filepath):
         'updates': updates,
         'episodes': episodes,
         'summaries': summaries,
+        'games': games,
         'load_info': load_info,
         'filepath': filepath,
     }
@@ -153,6 +172,7 @@ def print_analysis(data, last_n=None):
     updates = data['updates']
     episodes = data['episodes']
     summaries = data['summaries']
+    games = data['games']
     load_info = data['load_info']
 
     if not updates:
@@ -256,16 +276,131 @@ def print_analysis(data, last_n=None):
     if sample_indices[-1] != len(updates) - 1:
         sample_indices.append(len(updates) - 1)
 
-    print(f"  {'Upd':>6} {'Ent':>7} {'PStd':>6} {'PL':>8} {'VL':>8} {'GN':>7} {'KL':>7} {'AvgRwd':>9} {'OOB':>4} {'Gems':>5}")
+    has_cgn = any(u.get('critic_grad_norm') is not None for u in updates)
+    cgn_hdr = f" {'CGN':>7}" if has_cgn else ""
+    print(f"  {'Upd':>6} {'Ent':>7} {'PStd':>6} {'PL':>8} {'VL':>8} {'GN':>7}{cgn_hdr} {'KL':>7} {'AvgRwd':>9} {'OOB':>4} {'Gems':>5}")
     for i in sample_indices:
         u = updates[i]
         pstd = f"{u['policy_std']:.1f}" if u['policy_std'] else "?"
         kl_str = f"{u['kl']:.4f}" if 'kl' in u else "?"
         kl_flag = "*" if u.get('kl_stopped') else ""
+        cgn_str = f" {u['critic_grad_norm']:>7.3f}" if has_cgn and u.get('critic_grad_norm') is not None else (" " * 8 if has_cgn else "")
         print(f"  {u['update']:>6} {u['entropy']:>7.3f} {pstd:>6} "
-              f"{u['policy_loss']:>8.4f} {u['value_loss']:>8.4f} {u['grad_norm']:>7.3f} "
+              f"{u['policy_loss']:>8.4f} {u['value_loss']:>8.4f} {u['grad_norm']:>7.3f}"
+              f"{cgn_str} "
               f"{kl_str:>7}{kl_flag} "
               f"{u['avg_reward']:>9.1f} {u['oob']:>4} {u['gems']:>5}")
+
+    # =========================================================================
+    # Entropy / PolicyStd Trend
+    # =========================================================================
+    ent_values = [u['entropy'] for u in updates]
+    pstd_values = [u['policy_std'] for u in updates if u['policy_std'] is not None]
+
+    if len(ent_values) >= 20:
+        print("\n" + "-" * 70)
+        print("ENTROPY / POLICY STD TREND")
+        print("-" * 70)
+
+        # Split into fifths for trend analysis
+        n = len(ent_values)
+        fifth = n // 5
+        if fifth >= 2:
+            ent_fifths = []
+            for i in range(5):
+                start = i * fifth
+                end = start + fifth if i < 4 else n
+                ent_fifths.append(sum(ent_values[start:end]) / (end - start))
+            print(f"  Entropy by fifth:  {' -> '.join(f'{v:.3f}' for v in ent_fifths)}")
+
+            # Direction and rate
+            ent_start_avg = sum(ent_values[:10]) / 10
+            ent_end_avg = sum(ent_values[-10:]) / 10
+            ent_delta = ent_end_avg - ent_start_avg
+            ent_per_100 = ent_delta / (n / 100) if n > 0 else 0
+            direction = "RISING" if ent_delta > 0.005 else "FALLING" if ent_delta < -0.005 else "STABLE"
+            print(f"  Entropy trend:     {ent_start_avg:.3f} -> {ent_end_avg:.3f} ({direction}, {ent_per_100:+.4f}/100 updates)")
+
+        if len(pstd_values) >= 20:
+            pstd_n = len(pstd_values)
+            pstd_fifth = pstd_n // 5
+            if pstd_fifth >= 2:
+                pstd_fifths = []
+                for i in range(5):
+                    start = i * pstd_fifth
+                    end = start + pstd_fifth if i < 4 else pstd_n
+                    pstd_fifths.append(sum(pstd_values[start:end]) / (end - start))
+                print(f"  PolicyStd by fifth: {' -> '.join(f'{v:.1f}' for v in pstd_fifths)} deg")
+
+            pstd_start = sum(pstd_values[:10]) / 10
+            pstd_end = sum(pstd_values[-10:]) / 10
+            pstd_delta = pstd_end - pstd_start
+            pstd_per_100 = pstd_delta / (pstd_n / 100) if pstd_n > 0 else 0
+            direction = "WIDENING" if pstd_delta > 0.5 else "NARROWING" if pstd_delta < -0.5 else "STABLE"
+            print(f"  PolicyStd trend:   {pstd_start:.1f} -> {pstd_end:.1f} deg ({direction}, {pstd_per_100:+.2f} deg/100 updates)")
+
+    # =========================================================================
+    # Gap Penalty Analysis
+    # =========================================================================
+    if games:
+        print("\n" + "-" * 70)
+        print("GAP PENALTY ANALYSIS")
+        print("-" * 70)
+
+        gap_penalties = [g['avg_gap_penalty'] for g in games]
+        game_gems = [g['gems'] for g in games]
+
+        print(f"  Games tracked: {len(games)}")
+        print(f"  Avg gap penalty:  min={min(gap_penalties):.1f}  max={max(gap_penalties):.1f}  "
+              f"avg={sum(gap_penalties)/len(gap_penalties):.1f}  median={sorted(gap_penalties)[len(gap_penalties)//2]:.1f}")
+
+        # High gap penalty games (likely overshoots/inefficiency)
+        high_gap = [g for g in games if g['avg_gap_penalty'] > 50]
+        if high_gap:
+            pct = len(high_gap) / len(games) * 100
+            avg_gems_high = sum(g['gems'] for g in high_gap) / len(high_gap)
+            avg_gems_normal = sum(g['gems'] for g in games if g['avg_gap_penalty'] <= 50) / max(1, len(games) - len(high_gap))
+            print(f"  High penalty games (>50): {len(high_gap)} ({pct:.0f}%) -- avg gems: {avg_gems_high:.0f} vs normal: {avg_gems_normal:.0f}")
+
+        # Trend: first half vs second half
+        if len(games) >= 6:
+            half = len(games) // 2
+            gap_first = sum(g['avg_gap_penalty'] for g in games[:half]) / half
+            gap_second = sum(g['avg_gap_penalty'] for g in games[half:]) / (len(games) - half)
+            direction = "UP" if gap_second > gap_first * 1.05 else "DOWN" if gap_second < gap_first * 0.95 else "flat"
+            print(f"  Gap penalty trend: {gap_first:.1f} -> {gap_second:.1f} ({direction})")
+
+        # Near-miss analysis (only if data available)
+        near_miss_games = [g for g in games if g.get('near_misses') is not None]
+        if near_miss_games:
+            nm_vals = [g['near_misses'] for g in near_miss_games]
+            dw_vals = [g['dwell_steps'] for g in near_miss_games]
+            print(f"\n  Near misses/game: min={min(nm_vals)}  max={max(nm_vals)}  "
+                  f"avg={sum(nm_vals)/len(nm_vals):.1f}  median={sorted(nm_vals)[len(nm_vals)//2]}")
+            print(f"  Dwell steps/game: min={min(dw_vals)}  max={max(dw_vals)}  "
+                  f"avg={sum(dw_vals)/len(dw_vals):.0f}  median={sorted(dw_vals)[len(dw_vals)//2]}")
+
+            if len(near_miss_games) >= 6:
+                half = len(near_miss_games) // 2
+                nm_first = sum(g['near_misses'] for g in near_miss_games[:half]) / half
+                nm_second = sum(g['near_misses'] for g in near_miss_games[half:]) / (len(near_miss_games) - half)
+                dw_first = sum(g['dwell_steps'] for g in near_miss_games[:half]) / half
+                dw_second = sum(g['dwell_steps'] for g in near_miss_games[half:]) / (len(near_miss_games) - half)
+                nm_dir = "UP" if nm_second > nm_first * 1.05 else "DOWN" if nm_second < nm_first * 0.95 else "flat"
+                dw_dir = "UP" if dw_second > dw_first * 1.05 else "DOWN" if dw_second < dw_first * 0.95 else "flat"
+                print(f"  Near miss trend:  {nm_first:.1f} -> {nm_second:.1f} ({nm_dir})")
+                print(f"  Dwell step trend: {dw_first:.0f} -> {dw_second:.0f} ({dw_dir})")
+
+        # Correlation between gems and gap penalty
+        if len(games) >= 5:
+            n = len(games)
+            mean_g = sum(game_gems) / n
+            mean_p = sum(gap_penalties) / n
+            cov = sum((game_gems[i] - mean_g) * (gap_penalties[i] - mean_p) for i in range(n)) / n
+            std_g = (sum((g - mean_g)**2 for g in game_gems) / n) ** 0.5
+            std_p = (sum((p - mean_p)**2 for p in gap_penalties) / n) ** 0.5
+            corr = cov / (std_g * std_p) if std_g > 0 and std_p > 0 else 0
+            print(f"  Gems vs gap penalty correlation: {corr:.2f} (negative = higher penalty when fewer gems)")
 
     # =========================================================================
     # Problem Detection
@@ -277,7 +412,6 @@ def print_analysis(data, last_n=None):
     problems = []
 
     # Entropy collapse
-    ent_values = [u['entropy'] for u in updates]
     if ent_values[-1] < -0.5:
         problems.append(f"ENTROPY COLLAPSED: {ent_values[-1]:.3f} (< -0.5)")
     elif ent_values[-1] < 0.3:
@@ -290,6 +424,10 @@ def print_analysis(data, last_n=None):
         ent_drop = ent_start - ent_end
         if ent_drop > 0.5:
             problems.append(f"ENTROPY DROPPING FAST: {ent_start:.3f} -> {ent_end:.3f} (delta={ent_drop:.3f})")
+        elif ent_drop > 0.02:
+            problems.append(f"ENTROPY DECLINING: {ent_start:.3f} -> {ent_end:.3f} (delta={ent_drop:.3f}) - monitor for death spiral")
+        elif ent_drop < -0.02:
+            problems.append(f"ENTROPY RISING: {ent_start:.3f} -> {ent_end:.3f} (delta={abs(ent_drop):.3f}) - may need lower entropy_coef")
 
     # OOB trend
     if episodes:
@@ -363,6 +501,21 @@ def print_analysis(data, last_n=None):
         if vl_max > 10 * max(0.001, vl_min):
             problems.append(f"VALUE LOSS UNSTABLE: range {vl_min:.4f} - {vl_max:.4f} (ratio={vl_max/max(0.001,vl_min):.0f}x)")
 
+    # Critic gradient norm spikes
+    cgn_values = [u['critic_grad_norm'] for u in updates if u.get('critic_grad_norm') is not None]
+    if cgn_values:
+        cgn_spikes = [v for v in cgn_values if v > 100]
+        if cgn_spikes:
+            problems.append(f"CRITIC GRAD NORM SPIKES: {len(cgn_spikes)} updates with CGN>100 (max={max(cgn_spikes):.1f})")
+
+    # Gap penalty trend
+    if games and len(games) >= 6:
+        half = len(games) // 2
+        gap_first = sum(g['avg_gap_penalty'] for g in games[:half]) / half
+        gap_second = sum(g['avg_gap_penalty'] for g in games[half:]) / (len(games) - half)
+        if gap_second > gap_first * 1.3:
+            problems.append(f"GAP PENALTY RISING: {gap_first:.1f} -> {gap_second:.1f} (agent getting less efficient)")
+
     if problems:
         for p in problems:
             print(f"  [!] {p}")
@@ -398,6 +551,9 @@ def print_analysis(data, last_n=None):
         print(f"  KL:         {u['kl']:.4f}{' (KL-STOP)' if u.get('kl_stopped') else ''}")
     if u['policy_std']:
         print(f"  PolicyStd:  {u['policy_std']:.1f} deg")
+    print(f"  GradNorm:   {u['grad_norm']:.3f}")
+    if u.get('critic_grad_norm') is not None:
+        print(f"  CriticGN:   {u['critic_grad_norm']:.3f}")
     if episodes:
         e = episodes[-1]
         print(f"  Last Ep:    {e['episode']} (rwd={e['reward']:.0f}, gems={e['gems']}, OOB={e['oob']})")
@@ -405,6 +561,11 @@ def print_analysis(data, last_n=None):
         s = summaries[-1]
         print(f"  Gems/hr:    {s.get('gems_hr', 0):.0f}")
         print(f"  Best avg:   {s.get('best_reward', 0):.1f}")
+    if games:
+        g = games[-1]
+        recent_gap = sum(x['avg_gap_penalty'] for x in games[-10:]) / min(10, len(games))
+        print(f"  Last game:  {g['gems']}pts, gap_penalty={g['avg_gap_penalty']:.1f}")
+        print(f"  Avg gap (last 10 games): {recent_gap:.1f}")
 
     print("=" * 70)
 

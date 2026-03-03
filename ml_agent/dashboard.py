@@ -140,6 +140,8 @@ class DashboardServer:
             'timestamps': [],
             'total_no_gem_steps': [],
             'avg_gap_penalty': [],
+            'near_misses': [],
+            'dwell_steps': [],
             'mean_angle': [],
             'policy_std': [],
         }
@@ -182,6 +184,8 @@ class DashboardServer:
         policy_std_deg = log_std.exp().item() * 180 / math.pi
 
         avg_gap_penalty = float(np.mean(s.recent_avg_gap_penalty)) if s.recent_avg_gap_penalty else 0
+        avg_near_misses = float(np.mean(s.recent_near_misses)) if s.recent_near_misses else 0
+        avg_dwell_steps = float(np.mean(s.recent_dwell_steps)) if s.recent_dwell_steps else 0
 
         # Rolling KL-stop percentage (last 100 updates)
         self._kl_stop_window.append(1 if stats.get('kl_early_stopped') else 0)
@@ -222,6 +226,8 @@ class DashboardServer:
             'recent_game_gems': list(s.recent_game_gems),
             'best_game_gems': s.best_game_gems,
             'avg_gap_penalty': round(avg_gap_penalty, 2),
+            'near_misses': round(avg_near_misses, 1),
+            'dwell_steps': round(avg_dwell_steps, 0),
             'rollout_size': s.rollout_size,
             'batch_size': s.batch_size,
             'n_epochs': s.n_epochs,
@@ -257,6 +263,8 @@ class DashboardServer:
             h['timestamps'].append(snap['timestamp'])
             h['total_no_gem_steps'].append(snap['total_no_gem_steps'])
             h['avg_gap_penalty'].append(snap['avg_gap_penalty'])
+            h['near_misses'].append(snap['near_misses'])
+            h['dwell_steps'].append(snap['dwell_steps'])
             h['mean_angle'].append(snap['mean_angle'])
             h['policy_std'].append(snap['policy_std'])
 
@@ -403,6 +411,8 @@ body { background: var(--bg); color: var(--text); font-family: 'Consolas', 'SF M
   <div class="chart-card"><div class="chart-title">Policy Std Dev (degrees)</div><div id="c-policystd" style="height:220px"></div></div>
   <div class="chart-card"><div class="chart-title">OOB Events Per Rollout</div><div id="c-oob" style="height:220px"></div></div>
   <div class="chart-card"><div class="chart-title">Avg Gap Penalty Per Gem (lower = faster pickups)</div><div id="c-gappen" style="height:220px"></div></div>
+  <div class="chart-card"><div class="chart-title">Near Misses Per Game (within 2 marble diameters, no pickup)</div><div id="c-nearmiss" style="height:220px"></div></div>
+  <div class="chart-card"><div class="chart-title">Dwell Steps Near Gem Per Game (steps within 2 marble diameters)</div><div id="c-dwell" style="height:220px"></div></div>
   <div class="chart-card"><div class="chart-title">Laziness (Reward / Gems per Hour)</div><div id="c-laziness" style="height:220px"></div></div>
   <div class="chart-card"><div class="chart-title">Training Throughput (steps/sec)</div><div id="c-throughput" style="height:220px"></div></div>
 </div>
@@ -523,14 +533,24 @@ Plotly.newPlot('c-gappen', [
   { x: [], y: [], type: 'scatter', mode: 'lines', line: { color: '#bc8cff', width: 2 } }
 ], darkLayout(), plotConfig);
 
-// 10. Laziness
+// 10. Near Misses Per Game
+Plotly.newPlot('c-nearmiss', [
+  { x: [], y: [], type: 'scatter', mode: 'lines', line: { color: '#f85149', width: 2 } }
+], darkLayout(), plotConfig);
+
+// 11. Dwell Steps Near Gem Per Game
+Plotly.newPlot('c-dwell', [
+  { x: [], y: [], type: 'scatter', mode: 'lines', line: { color: '#d29922', width: 2 } }
+], darkLayout(), plotConfig);
+
+// 12. Laziness
 Plotly.newPlot('c-laziness', [
   { x: [], y: [], type: 'scatter', mode: 'lines', line: { color: '#d29922', width: 2 } }
 ], darkLayout({
   yaxis: { autorange: true, gridcolor: '#21262d', color: '#7d8590', zeroline: false }
 }), plotConfig);
 
-// 11. Throughput
+// 13. Throughput
 Plotly.newPlot('c-throughput', [
   { x: [], y: [], type: 'scatter', mode: 'lines', line: { color: '#79c0ff', width: 1.5 } }
 ], darkLayout(), plotConfig);
@@ -593,6 +613,16 @@ async function loadHistory() {
     // Avg Gap Penalty Per Gem
     if (h.avg_gap_penalty) {
       Plotly.extendTraces('c-gappen', { x: [xs], y: [h.avg_gap_penalty] }, [0]);
+    }
+
+    // Near Misses
+    if (h.near_misses) {
+      Plotly.extendTraces('c-nearmiss', { x: [xs], y: [h.near_misses] }, [0]);
+    }
+
+    // Dwell Steps
+    if (h.dwell_steps) {
+      Plotly.extendTraces('c-dwell', { x: [xs], y: [h.dwell_steps] }, [0]);
     }
 
     // Laziness
@@ -718,6 +748,12 @@ function updateDashboard(snap) {
 
   // Avg Gap Penalty Per Gem
   Plotly.extendTraces('c-gappen', { x: [[x]], y: [[snap.avg_gap_penalty]] }, [0]);
+
+  // Near Misses
+  Plotly.extendTraces('c-nearmiss', { x: [[x]], y: [[snap.near_misses || 0]] }, [0]);
+
+  // Dwell Steps
+  Plotly.extendTraces('c-dwell', { x: [[x]], y: [[snap.dwell_steps || 0]] }, [0]);
 
   // Laziness
   const laziness = snap.gems_per_hr > 0 ? snap.avg_reward_100ep / snap.gems_per_hr : 0;
