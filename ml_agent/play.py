@@ -17,13 +17,20 @@ import torch
 import argparse
 import os
 import sys
+from collections import deque
 
 # Reuse the model definition from the training script
 from train_ppo import Actor
 
 
 def normalize_obs(obs):
-    """Normalize raw game observations (mirrors PPOServer.normalize_obs exactly)."""
+    """Normalize raw game observations (mirrors PPOServer.normalize_obs exactly).
+
+    37-dim layout from game:
+      [0-7]   Self: pos(3), vel(3), yaw, pitch
+      [8-32]  5 gems x 5
+      [33-36] Game: timeElapsed, timeRemaining, myScore, gemsRemaining
+    """
     obs[0:3]  /= 100.0
     obs[3:6]  /= 20.0
     while obs[6] > 3.14159:
@@ -32,10 +39,8 @@ def normalize_obs(obs):
         obs[6] += 6.28318
     obs[6]    /= 3.14159
     obs[7]    /= 1.5708
-    obs[11]   /= 20.0
-    obs[12]   /= 20.0
 
-    gem_base = 13
+    gem_base = 8
     for i in range(5):
         b = gem_base + i * 5
         if obs[b+4] < -500:
@@ -51,28 +56,25 @@ def normalize_obs(obs):
             obs[b+3]   /= 5.0
             obs[b+4]   /= 100.0
 
-    opp_base = 38
-    for i in range(3):
-        b = opp_base + i * 6
-        if obs[b] < -500:
-            obs[b:b+3]   = 0.0
-            obs[b+3:b+5] = 0.0
-            obs[b+5]     = 0.0
-        else:
-            obs[b:b+3]   /= 100.0
-            obs[b+3:b+5] /= 20.0
-
-    obs[56] /= 300000.0
-    obs[57] /= 300000.0
-    obs[58] /= 100.0
-    obs[59] /= 100.0
-    obs[60] /= 50.0
+    obs[33] /= 300000.0
+    obs[34] /= 300000.0
+    obs[35] /= 100.0
+    obs[36] /= 50.0
 
     obs = np.clip(obs, -2.0, 2.0)
     return obs
 
 
 def main():
+    # Frame history config (must match train_ppo.py)
+    FRAME_HISTORY_COUNT = 4
+    FRAME_SKIP = 4
+    FRAME_HISTORY_DIMS = 6  # pos(3) + vel(3)
+    OBS_DIM_BASE = 37
+    OBS_DIM = OBS_DIM_BASE + FRAME_HISTORY_COUNT * FRAME_HISTORY_DIMS  # 61
+    frame_history_size = FRAME_HISTORY_COUNT * FRAME_SKIP + 1  # 17
+    frame_history = deque(maxlen=frame_history_size)
+
     parser = argparse.ArgumentParser(description='PlatinumQuest Inference Server')
     parser.add_argument('--model', default='models/checkpoints/best.pth',
                         help='Path to model checkpoint')
@@ -87,7 +89,7 @@ def main():
         sys.exit(1)
 
     # Load model
-    model = Actor(obs_dim=61)
+    model = Actor(obs_dim=OBS_DIM)
     checkpoint = torch.load(args.model, weights_only=False)
     state = checkpoint.get('actor_state_dict', checkpoint.get('model_state_dict', {}))
     model.load_state_dict(state, strict=False)
@@ -159,7 +161,20 @@ def main():
                         done = int(float(done_str))
 
                         obs = normalize_obs(obs)
-                        action, _ = model.get_action(obs, deterministic=deterministic)
+
+                        # Build augmented obs with frame history
+                        current_posvel = obs[0:6].copy()
+                        frame_history.append(current_posvel)
+                        history_frames = []
+                        for i in range(1, FRAME_HISTORY_COUNT + 1):
+                            idx = len(frame_history) - 1 - i * FRAME_SKIP
+                            if idx >= 0:
+                                history_frames.append(frame_history[idx])
+                            else:
+                                history_frames.append(np.zeros(FRAME_HISTORY_DIMS, dtype=np.float32))
+                        obs_augmented = np.concatenate([obs] + history_frames)
+
+                        action, _ = model.get_action(obs_augmented, deterministic=deterministic)
                         total_steps += 1
 
                         if gem_delta > 0:
@@ -171,6 +186,7 @@ def main():
                             print(f"Ep {total_episodes} done | gems={episode_gems}pts steps={total_steps}")
                             episode_gems = 0
                             total_steps = 0
+                            frame_history.clear()
 
                         action_tuple = Actor.angle_to_joystick(action)
                         conn.sendall((','.join(map(str, action_tuple)) + '\n').encode('utf-8'))

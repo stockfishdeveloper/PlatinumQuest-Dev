@@ -85,22 +85,39 @@ Actor Network:                    Critic Network:
 
 ## Observation Space (61 dimensions)
 
+The game sends 37 raw observation dims. Python appends 24 dims of frame history (4 historical snapshots of position+velocity, each 4 frames apart) to give the model trajectory information (acceleration, jerk).
+
+### Base observations (37 dims, from game)
+
 | Indices | Count | Contents | Normalization |
 |---------|-------|----------|---------------|
 | 0-2 | 3 | Marble position (world x,y,z) | /100 |
 | 3-5 | 3 | Marble velocity (camera-relative x,y,z) | /20 |
 | 6 | 1 | Camera yaw (radians) | /pi |
 | 7 | 1 | Camera pitch (radians) | /1.57 |
-| 8 | 1 | Collision radius | raw (~0.2) |
-| 9 | 1 | Powerup ID (-1..5) | raw |
-| 10 | 1 | Mega marble active (0/1) | raw |
-| 11 | 1 | Mega marble time remaining | /20 |
-| 12 | 1 | Powerup timer remaining | /20 |
-| 13-37 | 25 | 5 nearest gems x 5 (cam-rel direction unit vec, value, distance) | direction=unit vec, value/5, dist/100 |
-| 38-55 | 18 | 3 opponents x 6 (cam-rel pos, cam-rel vel, isMega) | pos/100, vel/20 |
-| 56-60 | 5 | Game state (timeElapsed, timeRemaining, myScore, oppBestScore, gemsRemaining) | various |
+| 8-32 | 25 | 5 nearest gems x 5 (cam-rel direction unit vec, value, distance) | direction=unit vec, value/5, dist/100 |
+| 33 | 1 | Time elapsed (ms) | /300000 |
+| 34 | 1 | Time remaining (ms) | /300000 |
+| 35 | 1 | My gem score | /100 |
+| 36 | 1 | Gems remaining | /50 |
 
-**Sentinel value**: `-999` for absent gems/opponents. Replaced during normalization with zeros (direction/value) and max distance (1.0) for gems, or all zeros for opponents.
+Removed from serialization (still collected by observer.cs for future use):
+- Collision radius, powerup ID, mega marble active/time, powerup timer (5 dims)
+- 3 opponent slots (18 dims)
+- Opponent best score (1 dim)
+
+### Frame history (24 dims, appended by Python)
+
+| Indices | Count | Contents | Normalization |
+|---------|-------|----------|---------------|
+| 37-42 | 6 | Position+velocity from t-4 frames ago | same as obs[0:6] |
+| 43-48 | 6 | Position+velocity from t-8 frames ago | same as obs[0:6] |
+| 49-54 | 6 | Position+velocity from t-12 frames ago | same as obs[0:6] |
+| 55-60 | 6 | Position+velocity from t-16 frames ago | same as obs[0:6] |
+
+Frame history is parameterized: `FRAME_HISTORY_COUNT=4`, `FRAME_SKIP=4`. Filled with zeros until enough frames exist. Cleared on episode boundaries.
+
+**Sentinel value**: `-999` for absent gems. Replaced during normalization with zeros (direction/value) and max distance (1.0).
 
 **Camera-relative coordinates**: All spatial observations are rotated into camera space where x=right, y=forward. The agent's actions are relative to what it "sees."
 
@@ -110,7 +127,7 @@ Game sends 4 pipe-delimited fields per step:
 ```
 obs_json|gemDelta|oob|done
 ```
-- `obs_json`: JSON array of 61 observation values
+- `obs_json`: JSON array of 37 observation values (Python appends 24 frame-history dims -> 61 total)
 - `gemDelta`: gem points collected this step (0, 1, 2, or 5)
 - `oob`: 1 if marble went out of bounds this step, else 0
 - `done`: 1 if episode ended, else 0

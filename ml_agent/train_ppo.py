@@ -8,7 +8,7 @@ Protocol (game -> server):
     Each message is newline-delimited:
     "[obs_array]|gem_delta|oob|done"
 
-    - obs_array: 61-float JSON array (see observer.cs for layout)
+    - obs_array: 37-float JSON array (see observer.cs for layout; Python appends 24 frame-history dims -> 61 total)
     - gem_delta: gem points collected this step (0 or positive int)
     - oob:       1 if out-of-bounds this step, 0 otherwise
     - done:      1 if episode ended, 0 otherwise
@@ -287,7 +287,7 @@ class PPOTrainer:
     """
 
     def __init__(self, actor, critic,
-                 actor_lr=3e-5, critic_lr=1e-4,
+                 actor_lr=1.5e-5, critic_lr=5e-5,
                  clip_epsilon=0.2, entropy_coef=0.01,
                  max_grad_norm=1.0, vf_clip=20.0, target_kl=1.5):
         self.actor = actor
@@ -399,14 +399,28 @@ class PPOServer:
         self.logger = DualLogger(log_filename)
         self.log = self.logger.print  # Shortcut
 
+        # Frame history: feed historical position+velocity to give the model
+        # trajectory information (acceleration, jerk). Each historical frame is
+        # 6 dims (pos xyz + vel xyz), taken FRAME_SKIP steps apart.
+        self.FRAME_HISTORY_COUNT = 4   # number of historical snapshots
+        self.FRAME_SKIP = 4            # frames between each snapshot
+        self.FRAME_HISTORY_DIMS = 6    # pos(3) + vel(3) per frame
+        self.obs_dim_base = 37         # base obs dimensions from game
+        self.obs_dim = self.obs_dim_base + self.FRAME_HISTORY_COUNT * self.FRAME_HISTORY_DIMS  # 61
+
+        # Ring buffer of recent normalized obs (pos+vel only, indices 0:6).
+        # Need current frame + FRAME_HISTORY_COUNT * FRAME_SKIP historical frames.
+        self.frame_history_size = self.FRAME_HISTORY_COUNT * self.FRAME_SKIP + 1  # 17
+        self.frame_history = deque(maxlen=self.frame_history_size)
+
         # Separate actor and critic networks — eliminates gradient interference.
         # The critic's high-variance value loss no longer corrupts policy weights.
         # Actor LR is lower (3e-5) for stable policy updates; critic LR higher (1e-4)
         # since value regression can afford bigger steps.
-        self.actor = Actor(obs_dim=61)
-        self.critic = Critic(obs_dim=61)
+        self.actor = Actor(obs_dim=self.obs_dim)
+        self.critic = Critic(obs_dim=self.obs_dim)
         self.trainer = PPOTrainer(self.actor, self.critic, vf_clip=20.0,
-                                   target_kl=2.667, entropy_coef=0.008)
+                                   target_kl=2.667, entropy_coef=0.005)
         self.buffer = RolloutBuffer()
 
         # Training config
@@ -428,7 +442,7 @@ class PPOServer:
         self.GEM_REWARD = 200       # Per gem-point bonus (+200 raw, +20 scaled)
         self.OOB_PENALTY = 25       # Out-of-bounds penalty (-25 raw, -2.5 scaled)
         self.GEM_GAP_PENALTY_K = 0.001  # Ramping time penalty: cost = k * steps_since_gem
-                                        # Resets to 0 on gem pickup. Typical 250-step gap costs 31.
+                                          # Resets to 0 on gem pickup. Typical 250-step gap costs ~31.
                                         # Overshooting by 1.5s (~94 steps) costs ~14% of a gem.
         self.SHAPING_COEFF_1 = 20   # Broad attraction: 20/(1+d/50)
         self.SHAPING_RANGE_1 = 50   # Broad attraction range
@@ -501,6 +515,11 @@ class PPOServer:
                 except Exception:
                     self.log(f"  Critic optimizer: incompatible, starting fresh")
 
+            # Override learning rates for fine-tuning phase
+            self.trainer.actor_optimizer.param_groups[0]['lr'] = 1.5e-5
+            self.trainer.critic_optimizer.param_groups[0]['lr'] = 5e-5
+            self.log(f"  LR override: actor=1.5e-5, critic=5e-5")
+
             # Restore training progress
             self.total_steps = checkpoint.get('total_steps', 0)
             self.total_updates = checkpoint.get('total_updates', 0)
@@ -528,6 +547,8 @@ class PPOServer:
         self.episode_gem_pts = 0   # gem points collected this episode
         self.episode_oob = 0       # OOB events this episode
         self.episode_step = 0      # step index within the current episode
+        self._frame_hist_logged = False  # has frame history debug logging started?
+        self._frame_hist_log_end = 999999  # step to stop logging at
 
         # Per-rollout counters (reset after each PPO update)
         self.rollout_gem_pts = 0   # gem points collected this rollout
@@ -599,6 +620,7 @@ class PPOServer:
         self.log(f"PPO Training Server")
         self.log(f"=" * 60)
         self.log(f"Listening on {self.host}:{self.port}")
+        self.log(f"Obs dim: {self.obs_dim} (base={self.obs_dim_base} + {self.FRAME_HISTORY_COUNT}x{self.FRAME_HISTORY_DIMS} history, skip={self.FRAME_SKIP})")
         self.log(f"Rollout size: {self.rollout_size} steps")
         self.log(f"PPO epochs: {self.n_epochs}")
         self.log(f"Batch size: {self.batch_size}")
@@ -665,35 +687,30 @@ class PPOServer:
     def normalize_obs(self, obs):
         """Normalize raw game observations to roughly [-1, 1] range.
 
-        Observation layout (61 dims total):
-          [0-12]  Self state (13 dims)
-          [13-37] 5 nearest gems × 5 dims = 25 dims
-          [38-55] 3 opponents × 6 dims   = 18 dims
-          [56-60] Game state              =  5 dims
+        Observation layout (37 dims from game):
+          [0-7]   Self state (8 dims: pos, vel, camera yaw/pitch)
+          [8-32]  5 nearest gems x 5 dims = 25 dims
+          [33-36] Game state              =  4 dims
+        Python appends 24 dims of frame history -> 61 total to model.
         """
-        # Self state (indices 0-12) — no sentinels in self state
-        obs[0:3]  /= 100.0   # Position (world units → ~[-1,1] for typical maps)
+        # Self state (indices 0-7)
+        obs[0:3]  /= 100.0   # Position (world units -> ~[-1,1] for typical maps)
         obs[3:6]  /= 20.0    # Velocity (camera-relative: x=right, y=forward, z=up)
-        # Wrap yaw to ±pi before normalizing (engine may return 0-2pi when AI doesn't move camera)
+        # Wrap yaw to +/-pi before normalizing (engine may return 0-2pi when AI doesn't move camera)
         while obs[6] > 3.14159:
             obs[6] -= 6.28318
         while obs[6] < -3.14159:
             obs[6] += 6.28318
-        obs[6]    /= 3.14159 # Camera yaw  (radians, ±pi → ±1)
-        obs[7]    /= 1.5708  # Camera pitch (radians, ±pi/2 → ±1)
-        # obs[8]: collision radius (~0.2), already small
-        # obs[9]: powerup id (-1..5), already small
-        # obs[10]: megaMarbleActive (0/1)
-        obs[11]   /= 20.0    # megaMarbleTimeRemaining (0-20 s → 0-1)
-        obs[12]   /= 20.0    # powerupTimerRemaining   (0-20 s → 0-1)
+        obs[6]    /= 3.14159 # Camera yaw  (radians, +/-pi -> +/-1)
+        obs[7]    /= 1.5708  # Camera pitch (radians, +/-pi/2 -> +/-1)
 
-        # Gems (indices 13-37: 5 gems × 5 dims = x, y, z, value, distance)
+        # Gems (indices 8-32: 5 gems x 5 dims = x, y, z, value, distance)
         # Fix sentinel values: -999 meant "no gem" but replacing with 0 told the
         # network a gem was AT the marble. Instead, mark absent gems as far away.
-        gem_base = 13
+        gem_base = 8
         for i in range(5):
             b = gem_base + i * 5
-            if obs[b+4] < -500:  # distance is sentinel → gem absent
+            if obs[b+4] < -500:  # distance is sentinel -> gem absent
                 obs[b:b+3] = 0.0  # no directional info
                 obs[b+3]   = 0.0  # no value
                 obs[b+4]   = 1.0  # max normalized distance (far away)
@@ -703,28 +720,14 @@ class PPOServer:
                     obs[b:b+3] /= dist  # Unit direction vector (always magnitude ~1)
                 else:
                     obs[b:b+3] = 0.0    # On top of gem, no direction needed
-                obs[b+3]   /= 5.0      # Gem value (1-5 → 0.2-1.0)
-                obs[b+4]   /= 100.0    # Distance (0-100+ → 0-1+)
+                obs[b+3]   /= 5.0      # Gem value (1-5 -> 0.2-1.0)
+                obs[b+4]   /= 100.0    # Distance (0-100+ -> 0-1+)
 
-        # Opponents (indices 38-55: 3 opponents × 6 dims)
-        opp_base = 38
-        for i in range(3):
-            b = opp_base + i * 6
-            if obs[b] < -500:  # sentinel → opponent absent
-                obs[b:b+3]   = 0.0  # no directional info
-                obs[b+3:b+5] = 0.0  # no velocity
-                obs[b+5]     = 0.0  # not mega
-            else:
-                obs[b:b+3]   /= 100.0  # Relative x, y, z positions
-                obs[b+3:b+5] /= 20.0   # Relative velocities
-                # obs[b+5]: isMega (0/1)
-
-        # Game state (indices 56-60)
-        obs[56] /= 300000.0   # timeElapsed    (5-min hunt = 300,000 ms → 0-1)
-        obs[57] /= 300000.0   # timeRemaining
-        obs[58] /= 100.0      # myGemScore
-        obs[59] /= 100.0      # opponentBestScore
-        obs[60] /= 50.0       # gemsRemaining
+        # Game state (indices 33-36)
+        obs[33] /= 300000.0   # timeElapsed    (5-min hunt = 300,000 ms -> 0-1)
+        obs[34] /= 300000.0   # timeRemaining
+        obs[35] /= 100.0      # myGemScore
+        obs[36] /= 50.0       # gemsRemaining
 
         # Safety clip: catch any remaining outliers.
         obs = np.clip(obs, -2.0, 2.0)
@@ -735,7 +738,7 @@ class PPOServer:
         """Compute reward from raw game facts. Mirrors old mlAgent.cs::computeReward exactly.
 
         Args:
-            raw_obs: raw observation list (before normalization), index 17 = nearest gem distance
+            raw_obs: raw observation list (before normalization), index 12 = nearest gem distance
             gem_delta: gem points collected this step (0 or positive int)
             oob: 1 if out-of-bounds this step, 0 otherwise
 
@@ -763,7 +766,7 @@ class PPOServer:
             self.steps_since_gem = 0  # Reset ramping penalty on gem pickup
 
         # 2. Distance shaping: potential-based P(d) = C1/(1+d/R1) + C2/(1+d/R2)
-        nearest_dist = raw_obs[17] if len(raw_obs) > 17 else -1
+        nearest_dist = raw_obs[12] if len(raw_obs) > 12 else -1
         if nearest_dist > 0 and nearest_dist < self.DIST_MAX_VALID:
             if self.skip_potential_steps > 0:
                 self.skip_potential_steps -= 1
@@ -776,7 +779,6 @@ class PPOServer:
             self.last_nearest_gem_dist = nearest_dist
 
         # 3. Ramping time penalty: grows with steps since last gem pickup.
-        #    Early steps after gem are nearly free; long gaps get expensive.
         reward -= self.GEM_GAP_PENALTY_K * self.steps_since_gem
         self.steps_since_gem += 1
 
@@ -826,8 +828,8 @@ class PPOServer:
                 self.near_gem = False
                 return [0, 0, 0, 0]
 
-            # Track no-gem steps (sentinel distance at index 17)
-            raw_gem0_dist = obs[17] if len(obs) > 17 else -1
+            # Track no-gem steps (sentinel distance at index 12 — nearest gem dist)
+            raw_gem0_dist = obs[12] if len(obs) > 12 else -1
             if raw_gem0_dist < -500:
                 if self.no_gem_steps == 0:
                     self.no_gem_events += 1
@@ -861,9 +863,45 @@ class PPOServer:
             # Normalize observation (must happen AFTER compute_reward uses raw values)
             obs_array = self.normalize_obs(np.array(obs, dtype=np.float32))
 
+            # Build augmented observation with frame history.
+            # Append current pos+vel (normalized) to ring buffer, then pull
+            # snapshots at t-FRAME_SKIP, t-2*FRAME_SKIP, etc.
+            current_posvel = obs_array[0:6].copy()  # 6 dims: pos(3) + vel(3)
+            self.frame_history.append(current_posvel)
+
+            history_frames = []
+            for i in range(1, self.FRAME_HISTORY_COUNT + 1):
+                # Current frame is at index len-1. Frame from i*FRAME_SKIP ago
+                # is at index len-1 - i*FRAME_SKIP.
+                idx = len(self.frame_history) - 1 - i * self.FRAME_SKIP
+                if idx >= 0:
+                    history_frames.append(self.frame_history[idx])
+                else:
+                    history_frames.append(np.zeros(self.FRAME_HISTORY_DIMS, dtype=np.float32))
+
+            obs_augmented = np.concatenate([obs_array] + history_frames)
+
+            # Debug: log frame history to file only, after 5s of game time
+            game_time_ms = obs[33] if len(obs) > 33 else 0
+            if game_time_ms >= 5000 and self.episode_step < self._frame_hist_log_end:
+                if not self._frame_hist_logged:
+                    self._frame_hist_logged = True
+                    self._frame_hist_log_end = self.episode_step + 20
+                filled = sum(1 for f in history_frames if np.any(f != 0))
+                ts = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                self.logger.file.write(
+                    f"[{ts}]   [FRAME_HIST] step={self.episode_step} buf_len={len(self.frame_history)} "
+                    f"filled={filled}/{self.FRAME_HISTORY_COUNT} "
+                    f"cur_pos=({current_posvel[0]:.3f},{current_posvel[1]:.3f},{current_posvel[2]:.3f}) "
+                    f"cur_vel=({current_posvel[3]:.3f},{current_posvel[4]:.3f},{current_posvel[5]:.3f})"
+                    f"{' t-4=(' + ','.join(f'{v:.3f}' for v in history_frames[0]) + ')' if filled >= 1 else ''}"
+                    f" obs_dim={len(obs_augmented)}\n"
+                )
+                self.logger.file.flush()
+
             # Action repeat: query model every N frames, reuse last action otherwise.
-            action, log_prob = self.actor.get_action(obs_array)
-            value = self.critic.get_value(obs_array)
+            action, log_prob = self.actor.get_action(obs_augmented)
+            value = self.critic.get_value(obs_augmented)
             self.recent_actions.append(action)
 
             # Track events
@@ -886,7 +924,7 @@ class PPOServer:
             # are captured fully, while OOB (-25 raw → -2.5) remains distinct.
             # At 0.1 scale, ±20 allows raw rewards up to ±200 unclipped.
             scaled_reward = np.clip(reward * self.reward_scale, -20.0, 20.0)
-            self.buffer.add(obs_array, action, scaled_reward, value, log_prob, done)
+            self.buffer.add(obs_augmented, action, scaled_reward, value, log_prob, done)
             self.total_steps += 1
             self.current_episode_reward += reward
 
@@ -914,6 +952,9 @@ class PPOServer:
                 self.skip_potential_steps = self.GRACE_PERIOD
                 self.steps_since_gem = 0
                 self.near_gem = False
+                self.frame_history.clear()  # Fresh history for new episode
+                self._frame_hist_logged = False
+                self._frame_hist_log_end = 999999
 
             # PPO update when buffer is full
             if len(self.buffer) >= self.rollout_size:
