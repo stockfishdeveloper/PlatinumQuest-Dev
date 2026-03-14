@@ -144,6 +144,10 @@ class DashboardServer:
             'dwell_steps': [],
             'mean_angle': [],
             'policy_std': [],
+            'throttle_mean': [],
+            'throttle_min': [],
+            'throttle_max': [],
+            'throttle_std': [],
         }
         self._server = None
         self._thread = None
@@ -182,6 +186,19 @@ class DashboardServer:
             mean_deg = 0.0
         log_std = torch.clamp(s.actor.log_std, s.actor.LOG_STD_MIN, s.actor.LOG_STD_MAX)
         policy_std_deg = log_std.exp().item() * 180 / math.pi
+
+        # Throttle stats
+        recent_thr = list(s.recent_throttles)[-min(200, len(s.recent_throttles)):]
+        if recent_thr:
+            throttle_mean = sum(recent_thr) / len(recent_thr)
+            throttle_min = min(recent_thr)
+            throttle_max = max(recent_thr)
+        else:
+            throttle_mean = throttle_min = throttle_max = 0.0
+        thr_log_std = torch.clamp(s.actor.throttle_log_std,
+                                  s.actor.THROTTLE_LOG_STD_MIN,
+                                  s.actor.THROTTLE_LOG_STD_MAX)
+        throttle_std = thr_log_std.exp().item()
 
         avg_gap_penalty = float(np.mean(s.recent_avg_gap_penalty)) if s.recent_avg_gap_penalty else 0
         avg_near_misses = float(np.mean(s.recent_near_misses)) if s.recent_near_misses else 0
@@ -234,6 +251,10 @@ class DashboardServer:
             'gamma': s.gamma,
             'lam': s.lam,
             'reward_scale': s.reward_scale,
+            'throttle_mean': round(throttle_mean, 4),
+            'throttle_min': round(throttle_min, 4),
+            'throttle_max': round(throttle_max, 4),
+            'throttle_std': round(throttle_std, 4),
             'entropy_collapse': stats['entropy'] < -0.5,
             'entropy_low': stats['entropy'] < 0.3,
             'dry_warning': s.dry_rollouts >= 5,
@@ -267,6 +288,10 @@ class DashboardServer:
             h['dwell_steps'].append(snap['dwell_steps'])
             h['mean_angle'].append(snap['mean_angle'])
             h['policy_std'].append(snap['policy_std'])
+            h['throttle_mean'].append(snap['throttle_mean'])
+            h['throttle_min'].append(snap['throttle_min'])
+            h['throttle_max'].append(snap['throttle_max'])
+            h['throttle_std'].append(snap['throttle_std'])
 
             # Cap history to prevent unbounded memory growth
             if len(h['updates']) > MAX_HISTORY:
@@ -413,6 +438,7 @@ body { background: var(--bg); color: var(--text); font-family: 'Consolas', 'SF M
   <div class="chart-card"><div class="chart-title">Avg Gap Penalty Per Gem (lower = faster pickups)</div><div id="c-gappen" style="height:220px"></div></div>
   <div class="chart-card"><div class="chart-title">Near Misses Per Game (within 2 marble diameters, no pickup)</div><div id="c-nearmiss" style="height:220px"></div></div>
   <div class="chart-card"><div class="chart-title">Dwell Steps Near Gem Per Game (steps within 2 marble diameters)</div><div id="c-dwell" style="height:220px"></div></div>
+  <div class="chart-card"><div class="chart-title">Throttle (mean + min/max range)</div><div id="c-throttle" style="height:220px"></div></div>
   <div class="chart-card"><div class="chart-title">Laziness (Reward / Gems per Hour)</div><div id="c-laziness" style="height:220px"></div></div>
   <div class="chart-card"><div class="chart-title">Training Throughput (steps/sec)</div><div id="c-throughput" style="height:220px"></div></div>
 </div>
@@ -543,7 +569,19 @@ Plotly.newPlot('c-dwell', [
   { x: [], y: [], type: 'scatter', mode: 'lines', line: { color: '#d29922', width: 2 } }
 ], darkLayout(), plotConfig);
 
-// 12. Laziness
+// 12. Throttle (mean + min/max fill)
+Plotly.newPlot('c-throttle', [
+  { x: [], y: [], type: 'scatter', mode: 'lines', line: { color: '#58a6ff', width: 2 }, name: 'Mean' },
+  { x: [], y: [], type: 'scatter', mode: 'lines', line: { color: 'rgba(88,166,255,0.3)', width: 0 },
+    fill: 'tonexty', fillcolor: 'rgba(88,166,255,0.15)', showlegend: false, name: 'Max' },
+  { x: [], y: [], type: 'scatter', mode: 'lines', line: { color: 'rgba(88,166,255,0.3)', width: 0 },
+    name: 'Min', showlegend: false }
+], darkLayout({
+  showlegend: true, legend: { x: 0, y: 1, font: { size: 9 } },
+  yaxis: { range: [0, 1.05], gridcolor: '#21262d', color: '#7d8590', zeroline: false }
+}), plotConfig);
+
+// 13. Laziness
 Plotly.newPlot('c-laziness', [
   { x: [], y: [], type: 'scatter', mode: 'lines', line: { color: '#d29922', width: 2 } }
 ], darkLayout({
@@ -623,6 +661,15 @@ async function loadHistory() {
     // Dwell Steps
     if (h.dwell_steps) {
       Plotly.extendTraces('c-dwell', { x: [xs], y: [h.dwell_steps] }, [0]);
+    }
+
+    // Throttle (mean + min/max range)
+    if (h.throttle_mean) {
+      // Fill goes between min (trace 2) and max (trace 1), mean is trace 0
+      Plotly.extendTraces('c-throttle', {
+        x: [xs, xs, xs],
+        y: [h.throttle_mean, h.throttle_max, h.throttle_min]
+      }, [0, 1, 2]);
     }
 
     // Laziness
@@ -754,6 +801,9 @@ function updateDashboard(snap) {
 
   // Dwell Steps
   Plotly.extendTraces('c-dwell', { x: [[x]], y: [[snap.dwell_steps || 0]] }, [0]);
+
+  // Throttle
+  Plotly.extendTraces('c-throttle', { x: [[x], [x], [x]], y: [[snap.throttle_mean || 1], [snap.throttle_max || 1], [snap.throttle_min || 1]] }, [0, 1, 2]);
 
   // Laziness
   const laziness = snap.gems_per_hr > 0 ? snap.avg_reward_100ep / snap.gems_per_hr : 0;

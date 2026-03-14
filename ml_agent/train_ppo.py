@@ -8,7 +8,7 @@ Protocol (game -> server):
     Each message is newline-delimited:
     "[obs_array]|gem_delta|oob|done"
 
-    - obs_array: 37-float JSON array (see observer.cs for layout; Python appends 24 frame-history dims -> 61 total)
+    - obs_array: 35-float JSON array (see observer.cs for layout; Python appends 24 frame-history dims -> 59 total)
     - gem_delta: gem points collected this step (0 or positive int)
     - oob:       1 if out-of-bounds this step, 0 otherwise
     - done:      1 if episode ended, 0 otherwise
@@ -64,18 +64,24 @@ class DualLogger:
 # ============================================================================
 
 class Actor(nn.Module):
-    """Policy network for PPO with continuous angle output.
+    """Policy network for PPO with continuous 2D direction + throttle output.
 
-    Action: a single angle in radians [0, 2pi) representing movement direction.
-    Always applied at full magnitude. No idle action.
-    Convention: 0 = forward (+Y), pi/2 = right (+X), pi = backward, 3pi/2 = left.
+    Action: (dx, dy, throttle) where:
+      - (dx, dy): unit-circle direction vector (0,1)=forward, (1,0)=right
+      - throttle: [0.15, 1] force magnitude (floor prevents sit-still collapse)
+    Buffer stores (dx, dy, throttle_logit) — 3 dims.
+    2D representation eliminates the scalar angle wrap discontinuity at +/-pi
+    that caused systematic failures in 1/4 of camera headings.
 
     Separate from Critic to eliminate gradient interference: critic's high-variance
     value loss no longer contaminates policy gradient through shared weights.
     """
 
-    LOG_STD_MIN = -2.0    # exp(-2.0) ~= 0.14 rad ~= 7.7 deg (safety floor)
-    LOG_STD_MAX = 1.0     # exp(1.0)  ~= 2.7 rad  ~= 156 deg (safety ceiling)
+    LOG_STD_MIN = -2.0    # exp(-2.0) ~= 0.14 (tight directional spread)
+    LOG_STD_MAX = 1.0     # exp(1.0)  ~= 2.7  (wide exploration)
+    THROTTLE_LOG_STD_MIN = -3.0   # exp(-3.0) ~= 0.05 (tight throttle control)
+    THROTTLE_FLOOR = 0.15         # Minimum throttle to prevent "sit still" collapse
+    THROTTLE_LOG_STD_MAX = 0.0    # exp(0.0)  ~= 1.0  (wide exploration)
 
     def __init__(self, obs_dim=61):
         super().__init__()
@@ -97,49 +103,127 @@ class Actor(nn.Module):
             nn.Linear(64, 2),  # (dx, dy) normalized to unit circle
         )
 
+        # Throttle head: outputs raw logit, passed through sigmoid -> [0, 1]
+        self.throttle_head = nn.Sequential(
+            nn.Linear(128, 64),
+            nn.ReLU(),
+            nn.Linear(64, 1),  # raw logit -> sigmoid -> throttle
+        )
+        # Initialize throttle bias to +2.0 so sigmoid(2.0) ~= 0.88 (mostly full throttle)
+        # This prevents the model from starting with 50% throttle which would halve gem collection
+        nn.init.constant_(self.throttle_head[-1].bias, 2.0)
+
         # Learnable log-std (state-independent, single scalar for angular spread)
         # Init to -1.5 -> exp(-1.5) ~= 0.22 rad ~= 12.8 deg
         self.log_std = nn.Parameter(torch.full((1,), -1.5))
+        # Throttle log-std: init to -1.0 -> exp(-1.0) ~= 0.37 (moderate exploration)
+        self.throttle_log_std = nn.Parameter(torch.full((1,), -1.0))
 
-    def _get_dist(self, mean_xy):
-        mean_angle = torch.atan2(mean_xy[:, 0], mean_xy[:, 1])  # atan2(x, y) so 0=forward
+    def _get_direction_dist(self, mean_xy):
+        """Get 2D isotropic Gaussian over (dx, dy) direction vectors.
+
+        The mean is normalized to the unit circle. Both dx and dy share
+        the same log_std, giving isotropic spread around the mean direction.
+        No wrap discontinuity since we never convert to/from scalar angle.
+        """
+        # Normalize mean to unit circle
+        norm = torch.norm(mean_xy, dim=1, keepdim=True).clamp(min=1e-6)
+        mean_unit = mean_xy / norm
         log_std = torch.clamp(self.log_std, self.LOG_STD_MIN, self.LOG_STD_MAX)
-        return torch.distributions.Normal(mean_angle, log_std.exp())
+        std = log_std.exp().expand_as(mean_unit)  # same std for both dims
+        return torch.distributions.Normal(mean_unit, std)
+
+    def _get_throttle_dist(self, throttle_mean):
+        """Get throttle distribution in logit space (unbounded Normal)."""
+        log_std = torch.clamp(self.throttle_log_std, self.THROTTLE_LOG_STD_MIN, self.THROTTLE_LOG_STD_MAX)
+        return torch.distributions.Normal(throttle_mean.squeeze(-1), log_std.exp())
 
     def forward(self, state):
-        return self.actor_mean(self.features(state))
+        features = self.features(state)
+        mean_xy = self.actor_mean(features)
+        throttle_logit = self.throttle_head(features)
+        return mean_xy, throttle_logit
 
     def get_action(self, state, deterministic=False):
-        """Get action from state. Returns (angle, log_prob)."""
+        """Get action from state.
+
+        Returns:
+            action_for_buffer: (dx, dy, throttle_logit) - stored in buffer for evaluate_actions
+            action_for_game: (dx, dy, throttle) - direction + throttle for joystick
+            log_prob: joint log probability
+        """
         with torch.no_grad():
             if not isinstance(state, torch.Tensor):
                 state = torch.FloatTensor(state).unsqueeze(0)
-            mean_xy = self.forward(state)
-            dist = self._get_dist(mean_xy)
+            mean_xy, throttle_logit = self.forward(state)
+
+            # Direction (2D)
+            dir_dist = self._get_direction_dist(mean_xy)
             if deterministic:
-                angle = torch.atan2(mean_xy[:, 0], mean_xy[:, 1])
+                norm = torch.norm(mean_xy, dim=1, keepdim=True).clamp(min=1e-6)
+                direction = mean_xy / norm  # (1, 2)
             else:
-                angle = dist.sample()
-            log_prob = dist.log_prob(angle)
-        return angle.item(), log_prob.item()
+                direction = dir_dist.sample()  # (1, 2)
+            # Sum log_prob over both dims for joint direction probability
+            dir_log_prob = dir_dist.log_prob(direction).sum(dim=1)
+
+            # Throttle (sample in logit space, then sigmoid)
+            throttle_dist = self._get_throttle_dist(throttle_logit)
+            if deterministic:
+                throttle_logit_sample = throttle_logit.squeeze(-1)
+            else:
+                throttle_logit_sample = throttle_dist.sample()
+            throttle_log_prob = throttle_dist.log_prob(throttle_logit_sample)
+            throttle_raw = torch.sigmoid(throttle_logit_sample)
+            # Remap [0,1] -> [THROTTLE_FLOOR, 1] to prevent sit-still collapse
+            throttle = self.THROTTLE_FLOOR + (1 - self.THROTTLE_FLOOR) * throttle_raw
+
+            # Joint log prob = direction + throttle
+            log_prob = dir_log_prob + throttle_log_prob
+
+        dx_val = direction[0, 0].item()
+        dy_val = direction[0, 1].item()
+        throttle_logit_val = throttle_logit_sample.item()
+        throttle_val = throttle.item()
+        return (dx_val, dy_val, throttle_logit_val), (dx_val, dy_val, throttle_val), log_prob.item()
 
     def evaluate_actions(self, states, actions):
-        """Evaluate log_probs and entropy for stored actions."""
-        mean_xy = self.forward(states)
-        dist = self._get_dist(mean_xy)
-        return dist.log_prob(actions), dist.entropy()
+        """Evaluate log_probs and entropy for stored actions.
+        actions: (N, 3) tensor with columns [dx, dy, throttle_logit]."""
+        mean_xy, throttle_logit = self.forward(states)
+
+        # Direction (2D) — actions[:, 0:2] are stored (dx, dy)
+        dir_dist = self._get_direction_dist(mean_xy)
+        dir_log_prob = dir_dist.log_prob(actions[:, 0:2]).sum(dim=1)
+        dir_entropy = dir_dist.entropy().sum(dim=1)
+
+        # Throttle (actions[:, 2] is stored in logit space)
+        throttle_dist = self._get_throttle_dist(throttle_logit)
+        throttle_log_prob = throttle_dist.log_prob(actions[:, 2])
+        throttle_entropy = throttle_dist.entropy()
+
+        # Joint: sum of independent log probs and entropies
+        return dir_log_prob + throttle_log_prob, dir_entropy + throttle_entropy
 
     @staticmethod
-    def angle_to_joystick(angle):
-        """Convert angle (radians) to joystick axes (fwd, back, left, right).
+    def action_to_joystick(dx, dy, throttle):
+        """Convert 2D direction + throttle to joystick axes (fwd, back, left, right).
 
-        Convention: 0 = forward, pi/2 = right, pi = backward, 3pi/2 = left.
-        Always full magnitude. Values rounded to 6 decimal places to avoid
-        scientific notation (e.g. 1.2e-16) which TorqueScript may not parse.
+        Convention: dx>0 = right, dy>0 = forward.
+        Direction is normalized to unit length so magnitude is controlled
+        purely by throttle. Sampled (dx,dy) from the 2D Gaussian can have
+        magnitude != 1, which would otherwise leak into joystick values.
+        Throttle scales the magnitude (0 = no force, 1 = full force).
+        Values rounded to 6 decimal places to avoid scientific notation.
         """
         import math
-        move_x = math.sin(angle)  # positive = right
-        move_y = math.cos(angle)  # positive = forward
+        norm = math.sqrt(dx * dx + dy * dy)
+        if norm > 1e-6:
+            dx = dx / norm
+            dy = dy / norm
+
+        move_x = dx * throttle  # positive = right
+        move_y = dy * throttle  # positive = forward
 
         fwd   = round(max(move_y, 0.0), 6) + 0.0
         back  = round(max(-move_y, 0.0), 6) + 0.0
@@ -242,7 +326,7 @@ class RolloutBuffer:
         returns, advantages = self.compute_returns_and_advantages(gamma, lam)
 
         states = torch.FloatTensor(np.array(self.states))
-        actions = torch.FloatTensor(np.array(self.actions))  # Continuous angle (radians)
+        actions = torch.FloatTensor(np.array(self.actions))  # (N, 3): [dx, dy, throttle_logit]
         old_log_probs = torch.FloatTensor(self.log_probs)
         old_values = torch.FloatTensor(self.values)
         returns_t = torch.FloatTensor(returns)
@@ -403,14 +487,14 @@ class PPOServer:
         # trajectory information (acceleration, jerk). Each historical frame is
         # 6 dims (pos xyz + vel xyz), taken FRAME_SKIP steps apart.
         self.FRAME_HISTORY_COUNT = 4   # number of historical snapshots
-        self.FRAME_SKIP = 4            # frames between each snapshot
+        self.FRAME_SKIP = 8            # frames between each snapshot
         self.FRAME_HISTORY_DIMS = 6    # pos(3) + vel(3) per frame
-        self.obs_dim_base = 37         # base obs dimensions from game
-        self.obs_dim = self.obs_dim_base + self.FRAME_HISTORY_COUNT * self.FRAME_HISTORY_DIMS  # 61
+        self.obs_dim_base = 35         # base obs dimensions from game
+        self.obs_dim = self.obs_dim_base + self.FRAME_HISTORY_COUNT * self.FRAME_HISTORY_DIMS  # 59
 
         # Ring buffer of recent normalized obs (pos+vel only, indices 0:6).
         # Need current frame + FRAME_HISTORY_COUNT * FRAME_SKIP historical frames.
-        self.frame_history_size = self.FRAME_HISTORY_COUNT * self.FRAME_SKIP + 1  # 17
+        self.frame_history_size = self.FRAME_HISTORY_COUNT * self.FRAME_SKIP + 1  # 33
         self.frame_history = deque(maxlen=self.frame_history_size)
 
         # Separate actor and critic networks — eliminates gradient interference.
@@ -440,10 +524,12 @@ class PPOServer:
 
         # === Reward parameters (all reward computation is in Python) ===
         self.GEM_REWARD = 200       # Per gem-point bonus (+200 raw, +20 scaled)
-        self.OOB_PENALTY = 25       # Out-of-bounds penalty (-25 raw, -2.5 scaled)
-        self.GEM_GAP_PENALTY_K = 0.001  # Ramping time penalty: cost = k * steps_since_gem
-                                          # Resets to 0 on gem pickup. Typical 250-step gap costs ~31.
-                                        # Overshooting by 1.5s (~94 steps) costs ~14% of a gem.
+        # self.OOB_PENALTY_INIT = 10   # Starting OOB penalty (gentle for early training)
+        # self.OOB_PENALTY_FULL = 25   # Full OOB penalty (activated at 30 avg gems/game)
+        # self.OOB_PENALTY = self.OOB_PENALTY_INIT
+        self.OOB_PENALTY = 0             # Disabled for fresh training
+        # self.GEM_GAP_PENALTY_K = 0.001  # Ramping time penalty: cost = k * steps_since_gem
+        self.GEM_GAP_PENALTY_K = 0        # Disabled for fresh training
         self.SHAPING_COEFF_1 = 20   # Broad attraction: 20/(1+d/50)
         self.SHAPING_RANGE_1 = 50   # Broad attraction range
         self.SHAPING_COEFF_2 = 15   # Near-gem well: 15/(1+d/3)
@@ -481,6 +567,9 @@ class PPOServer:
                     else:
                         self.log(f"  Shape mismatch for {key}: checkpoint={val.shape} vs actor={actor_state[key].shape} -- skipping")
             self.actor.load_state_dict(filtered, strict=False)
+            new_params = [k for k in actor_state if k not in filtered]
+            if new_params:
+                self.log(f"  New actor params (randomly init): {', '.join(new_params)}")
 
             # Restore critic if available (falls back to fresh init for old checkpoints)
             critic_state_saved = checkpoint.get('critic_state_dict')
@@ -530,7 +619,9 @@ class PPOServer:
 
             with torch.no_grad():
                 std_deg = self.actor.log_std.exp().item() * 180 / 3.14159
-                self.log(f"  PolicyStd: {std_deg:.1f} deg (learnable, bounds: {self.actor.LOG_STD_MIN:.1f} to {self.actor.LOG_STD_MAX:.1f})")
+                thr_std = self.actor.throttle_log_std.exp().item()
+                self.log(f"  PolicyStd: {std_deg:.1f} deg (bounds: {self.actor.LOG_STD_MIN:.1f} to {self.actor.LOG_STD_MAX:.1f})")
+                self.log(f"  ThrottleStd: {thr_std:.3f} (bounds: {self.actor.THROTTLE_LOG_STD_MIN:.1f} to {self.actor.THROTTLE_LOG_STD_MAX:.1f})")
 
             self.log(f"Model loaded successfully!")
             self.log(f"Resuming from: {self.total_steps} steps, {self.total_updates} updates, {self.total_episodes} episodes")
@@ -540,8 +631,9 @@ class PPOServer:
         self.critic.train()
         self._session_start_step = self.total_steps
 
-        # Recent actions (for angle stats display and dashboard)
+        # Recent actions (for angle/throttle stats display and dashboard)
         self.recent_actions = deque(maxlen=200)
+        self.recent_throttles = deque(maxlen=200)
 
         # Per-episode counters (reset on done)
         self.episode_gem_pts = 0   # gem points collected this episode
@@ -687,27 +779,20 @@ class PPOServer:
     def normalize_obs(self, obs):
         """Normalize raw game observations to roughly [-1, 1] range.
 
-        Observation layout (37 dims from game):
-          [0-7]   Self state (8 dims: pos, vel, camera yaw/pitch)
-          [8-32]  5 nearest gems x 5 dims = 25 dims
-          [33-36] Game state              =  4 dims
-        Python appends 24 dims of frame history -> 61 total to model.
+        Observation layout (35 dims from game):
+          [0-5]   Self state (6 dims: pos, vel — both camera-relative)
+          [6-30]  5 nearest gems x 5 dims = 25 dims
+          [31-34] Game state              =  4 dims
+        Python appends 24 dims of frame history -> 59 total to model.
         """
-        # Self state (indices 0-7)
-        obs[0:3]  /= 100.0   # Position (world units -> ~[-1,1] for typical maps)
+        # Self state (indices 0-5)
+        obs[0:3]  /= 100.0   # Position (camera-relative: x=right, y=forward, z=up)
         obs[3:6]  /= 20.0    # Velocity (camera-relative: x=right, y=forward, z=up)
-        # Wrap yaw to +/-pi before normalizing (engine may return 0-2pi when AI doesn't move camera)
-        while obs[6] > 3.14159:
-            obs[6] -= 6.28318
-        while obs[6] < -3.14159:
-            obs[6] += 6.28318
-        obs[6]    /= 3.14159 # Camera yaw  (radians, +/-pi -> +/-1)
-        obs[7]    /= 1.5708  # Camera pitch (radians, +/-pi/2 -> +/-1)
 
-        # Gems (indices 8-32: 5 gems x 5 dims = x, y, z, value, distance)
+        # Gems (indices 6-30: 5 gems x 5 dims = x, y, z, value, distance)
         # Fix sentinel values: -999 meant "no gem" but replacing with 0 told the
         # network a gem was AT the marble. Instead, mark absent gems as far away.
-        gem_base = 8
+        gem_base = 6
         for i in range(5):
             b = gem_base + i * 5
             if obs[b+4] < -500:  # distance is sentinel -> gem absent
@@ -723,11 +808,11 @@ class PPOServer:
                 obs[b+3]   /= 5.0      # Gem value (1-5 -> 0.2-1.0)
                 obs[b+4]   /= 100.0    # Distance (0-100+ -> 0-1+)
 
-        # Game state (indices 33-36)
-        obs[33] /= 300000.0   # timeElapsed    (5-min hunt = 300,000 ms -> 0-1)
-        obs[34] /= 300000.0   # timeRemaining
-        obs[35] /= 100.0      # myGemScore
-        obs[36] /= 50.0       # gemsRemaining
+        # Game state (indices 31-34)
+        obs[31] /= 300000.0   # timeElapsed    (5-min hunt = 300,000 ms -> 0-1)
+        obs[32] /= 300000.0   # timeRemaining
+        obs[33] /= 100.0      # myGemScore
+        obs[34] /= 50.0       # gemsRemaining
 
         # Safety clip: catch any remaining outliers.
         obs = np.clip(obs, -2.0, 2.0)
@@ -766,7 +851,7 @@ class PPOServer:
             self.steps_since_gem = 0  # Reset ramping penalty on gem pickup
 
         # 2. Distance shaping: potential-based P(d) = C1/(1+d/R1) + C2/(1+d/R2)
-        nearest_dist = raw_obs[12] if len(raw_obs) > 12 else -1
+        nearest_dist = raw_obs[10] if len(raw_obs) > 10 else -1
         if nearest_dist > 0 and nearest_dist < self.DIST_MAX_VALID:
             if self.skip_potential_steps > 0:
                 self.skip_potential_steps -= 1
@@ -829,7 +914,7 @@ class PPOServer:
                 return [0, 0, 0, 0]
 
             # Track no-gem steps (sentinel distance at index 12 — nearest gem dist)
-            raw_gem0_dist = obs[12] if len(obs) > 12 else -1
+            raw_gem0_dist = obs[10] if len(obs) > 10 else -1
             if raw_gem0_dist < -500:
                 if self.no_gem_steps == 0:
                     self.no_gem_events += 1
@@ -882,7 +967,7 @@ class PPOServer:
             obs_augmented = np.concatenate([obs_array] + history_frames)
 
             # Debug: log frame history to file only, after 5s of game time
-            game_time_ms = obs[33] if len(obs) > 33 else 0
+            game_time_ms = obs[31] if len(obs) > 31 else 0
             if game_time_ms >= 5000 and self.episode_step < self._frame_hist_log_end:
                 if not self._frame_hist_logged:
                     self._frame_hist_logged = True
@@ -899,10 +984,15 @@ class PPOServer:
                 )
                 self.logger.file.flush()
 
-            # Action repeat: query model every N frames, reuse last action otherwise.
-            action, log_prob = self.actor.get_action(obs_augmented)
+            # Action: query model. Returns buffer action (dx, dy, throttle_logit),
+            # game action (dx, dy, throttle), and joint log_prob.
+            action_buf, action_game, log_prob = self.actor.get_action(obs_augmented)
             value = self.critic.get_value(obs_augmented)
-            self.recent_actions.append(action)
+            dx, dy, throttle = action_game
+            import math
+            angle = math.atan2(dx, dy)  # For logging/display only
+            self.recent_actions.append(angle)
+            self.recent_throttles.append(throttle)
 
             # Track events
             if gem_delta > 0:
@@ -924,7 +1014,7 @@ class PPOServer:
             # are captured fully, while OOB (-25 raw → -2.5) remains distinct.
             # At 0.1 scale, ±20 allows raw rewards up to ±200 unclipped.
             scaled_reward = np.clip(reward * self.reward_scale, -20.0, 20.0)
-            self.buffer.add(obs_augmented, action, scaled_reward, value, log_prob, done)
+            self.buffer.add(obs_augmented, action_buf, scaled_reward, value, log_prob, done)
             self.total_steps += 1
             self.current_episode_reward += reward
 
@@ -960,8 +1050,8 @@ class PPOServer:
             if len(self.buffer) >= self.rollout_size:
                 self.run_ppo_update()
 
-            # Convert continuous angle to analog joystick axes (F,B,L,R)
-            return list(Actor.angle_to_joystick(action))
+            # Convert 2D direction + throttle to analog joystick axes (F,B,L,R)
+            return list(Actor.action_to_joystick(dx, dy, throttle))
 
         except Exception as e:
             if self.total_steps < 5:
@@ -1009,18 +1099,28 @@ class PPOServer:
         # Average episode length (key metric for flood bug detection)
         avg_ep_len = np.mean(self.recent_episode_lengths) if self.recent_episode_lengths else 0
 
-        # Action distribution (continuous angle)
+        # Action distribution (continuous angle + throttle)
         import math
         recent = list(self.recent_actions)[-min(200, len(self.recent_actions)):]
+        recent_thr = list(self.recent_throttles)[-min(200, len(self.recent_throttles)):]
         if recent:
             angles_deg = [((a * 180 / math.pi) % 360) for a in recent]
             mean_deg = sum(angles_deg) / len(angles_deg)
             std_deg = (sum((d - mean_deg)**2 for d in angles_deg) / len(angles_deg)) ** 0.5
             log_std = torch.clamp(self.actor.log_std, self.actor.LOG_STD_MIN, self.actor.LOG_STD_MAX)
             policy_std_deg = log_std.exp().item() * 180 / math.pi
-            act_str = f"MeanAngle:{mean_deg:.0f}° StdDev:{std_deg:.0f}° PolicyStd:{policy_std_deg:.1f}°"
+            act_str = f"MeanAngle:{mean_deg:.0f} StdDev:{std_deg:.0f} PolicyStd:{policy_std_deg:.1f}"
         else:
             act_str = "no actions yet"
+        if recent_thr:
+            mean_thr = sum(recent_thr) / len(recent_thr)
+            min_thr = min(recent_thr)
+            max_thr = max(recent_thr)
+            thr_log_std = torch.clamp(self.actor.throttle_log_std,
+                                      self.actor.THROTTLE_LOG_STD_MIN,
+                                      self.actor.THROTTLE_LOG_STD_MAX)
+            thr_policy_std = thr_log_std.exp().item()
+            act_str += f" | Thr:{mean_thr:.2f}({min_thr:.2f}-{max_thr:.2f}) ThrStd:{thr_policy_std:.3f}"
 
         # Compact per-update line
         gems_str = f" gems={self.rollout_gem_pts}" if self.rollout_gem_pts else ""
@@ -1067,7 +1167,12 @@ class PPOServer:
             log_std = torch.clamp(self.actor.log_std, self.actor.LOG_STD_MIN, self.actor.LOG_STD_MAX)
             policy_std_deg = log_std.exp().item() * 180 / 3.14159
             self.log(f"  Gems: {self.total_gem_pts}pts ({gems_hr:.0f}/hr) | OOB: {self.total_oob} | AvgRwd: {avg_reward:.1f} | Best: {self.best_avg_reward:.1f}")
-            self.log(f"  AvgEpLen: {avg_ep_len:.0f} steps | Ent: {stats['entropy']:.3f} | GN: {stats['grad_norm']:.3f} | Lazy: {laziness:.2f} | Std: {policy_std_deg:.1f}°")
+            thr_log_std = torch.clamp(self.actor.throttle_log_std,
+                                      self.actor.THROTTLE_LOG_STD_MIN,
+                                      self.actor.THROTTLE_LOG_STD_MAX)
+            thr_std = thr_log_std.exp().item()
+            mean_thr = np.mean(self.recent_throttles) if self.recent_throttles else 0
+            self.log(f"  AvgEpLen: {avg_ep_len:.0f} steps | Ent: {stats['entropy']:.3f} | GN: {stats['grad_norm']:.3f} | Lazy: {laziness:.2f} | Std: {policy_std_deg:.1f} | Thr: {mean_thr:.2f} ThrStd: {thr_std:.3f}")
             if self.recent_episode_gems:
                 nonzero = sum(1 for g in self.recent_episode_gems if g > 0)
                 self.log(f"  Last {len(self.recent_episode_gems)} eps: {nonzero} had gems")

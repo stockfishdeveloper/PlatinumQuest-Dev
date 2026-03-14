@@ -2,8 +2,8 @@
 // AI Observer - Game State Collection System
 //
 // Collects all relevant game state for ML model training and inference.
-// Returns 37-dimensional observation vector:
-//   - Self state: 8 dims (pos[world], vel[camera-relative], camera yaw/pitch)
+// Returns 35-dimensional observation vector:
+//   - Self state: 6 dims (pos[camera-relative], vel[camera-relative])
 //   - Gems (5 nearest slots): 25 dims (5 per gem: x, y, z [camera-relative], value, distance)
 //   - Game state: 4 dims (timeElapsed, timeRemaining, myScore, gemsRemaining)
 //
@@ -12,8 +12,9 @@
 //   - 3 opponent slots (18 dims)
 //   - opponent best score (1 dim)
 //
-// Gem/opponent/velocity observations are rotated into camera space so that
-// x = camera-right, y = camera-forward. This aligns with F/B/L/R actions.
+// All spatial observations (pos, vel, gems, opponents) are rotated into
+// camera space so x = camera-right, y = camera-forward. This aligns with
+// F/B/L/R actions and ensures consistency regardless of camera orientation.
 //
 // Usage:
 //   %obs = AIObserver::collectState();
@@ -60,26 +61,31 @@ function AIObserver::collectState() {
 //-----------------------------------------------------------------------------
 
 function AIObserver::collectSelfState(%obs) {
-    // Position (3) — kept in world space (needed for OOB credit assignment)
-    %pos = $MP::MyMarble.getPosition();
-    %obs.selfPosX = getWord(%pos, 0) + 0;  // +0 converts empty string to 0
-    %obs.selfPosY = getWord(%pos, 1) + 0;
-    %obs.selfPosZ = getWord(%pos, 2) + 0;
-
-    // Camera angles (2)
+    // Camera angles (2) — compute these first, needed for position/velocity rotation
     %obs.cameraYaw = ($cameraYaw $= "") ? 0 : $cameraYaw;
     %obs.cameraPitch = ($cameraPitch $= "") ? 0 : $cameraPitch;
+
+    // $cameraYaw is already in radians (wraps at +/-pi), no degree conversion needed
+    %yawRad = %obs.cameraYaw;
+    %cosYaw = mCos(%yawRad);
+    %sinYaw = mSin(%yawRad);
+    // Camera right = (cos(yaw), -sin(yaw)), forward = (sin(yaw), cos(yaw))
+
+    // Position (3) — rotated into camera space so posX = rightward, posY = forward.
+    // All observations must be camera-relative so the model sees a consistent
+    // world regardless of camera orientation (which varies per game).
+    %pos = $MP::MyMarble.getPosition();
+    %worldPosX = getWord(%pos, 0) + 0;
+    %worldPosY = getWord(%pos, 1) + 0;
+    %obs.selfPosX = %worldPosX * %cosYaw - %worldPosY * %sinYaw;
+    %obs.selfPosY = %worldPosX * %sinYaw + %worldPosY * %cosYaw;
+    %obs.selfPosZ = getWord(%pos, 2) + 0;
 
     // Velocity (3) — rotated into camera space so velX = rightward, velY = forward.
     // This aligns velocity with the F/B/L/R action axes.
     %vel = $MP::MyMarble.getVelocity();
     %worldVelX = getWord(%vel, 0) + 0;
     %worldVelY = getWord(%vel, 1) + 0;
-    // $cameraYaw is already in radians (wraps at ±pi), no degree conversion needed
-    %yawRad = %obs.cameraYaw;
-    %cosYaw = mCos(%yawRad);
-    %sinYaw = mSin(%yawRad);
-    // Camera right = (cos(yaw), -sin(yaw)), forward = (sin(yaw), cos(yaw))
     %obs.selfVelX = %worldVelX * %cosYaw - %worldVelY * %sinYaw;
     %obs.selfVelY = %worldVelX * %sinYaw + %worldVelY * %cosYaw;
     %obs.selfVelZ = getWord(%vel, 2) + 0;
@@ -444,10 +450,11 @@ function AIObserver::serializeToJSON(%obs) {
 
     %json = "[";
 
-    // Self state (8 values — was 13, removed radius/powerup/mega)
+    // Self state (6 values — pos + vel, both camera-relative. Yaw/pitch removed: redundant
+    // since all observations are already camera-relative, and scalar yaw had a wrap
+    // discontinuity at +/-pi that caused heading-dependent failures.)
     %json = %json @ AIObserver::safeNum(%obs.selfPosX) @ "," @ AIObserver::safeNum(%obs.selfPosY) @ "," @ AIObserver::safeNum(%obs.selfPosZ) @ ",";
-    %json = %json @ AIObserver::safeNum(%obs.selfVelX) @ "," @ AIObserver::safeNum(%obs.selfVelY) @ "," @ AIObserver::safeNum(%obs.selfVelZ) @ ",";
-    %json = %json @ AIObserver::safeNum(%obs.cameraYaw) @ "," @ AIObserver::safeNum(%obs.cameraPitch);
+    %json = %json @ AIObserver::safeNum(%obs.selfVelX) @ "," @ AIObserver::safeNum(%obs.selfVelY) @ "," @ AIObserver::safeNum(%obs.selfVelZ);
     // REMOVED: collision radius, powerup ID, mega marble, mega time, powerup timer (5 dims)
     // Still collected in collectSelfState() for future use:
     // %json = %json @ "," @ AIObserver::safeNum(%obs.collisionRadius);

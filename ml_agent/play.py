@@ -26,21 +26,15 @@ from train_ppo import Actor
 def normalize_obs(obs):
     """Normalize raw game observations (mirrors PPOServer.normalize_obs exactly).
 
-    37-dim layout from game:
-      [0-7]   Self: pos(3), vel(3), yaw, pitch
-      [8-32]  5 gems x 5
-      [33-36] Game: timeElapsed, timeRemaining, myScore, gemsRemaining
+    35-dim layout from game:
+      [0-5]   Self: pos(3), vel(3) — both camera-relative
+      [6-30]  5 gems x 5
+      [31-34] Game: timeElapsed, timeRemaining, myScore, gemsRemaining
     """
     obs[0:3]  /= 100.0
     obs[3:6]  /= 20.0
-    while obs[6] > 3.14159:
-        obs[6] -= 6.28318
-    while obs[6] < -3.14159:
-        obs[6] += 6.28318
-    obs[6]    /= 3.14159
-    obs[7]    /= 1.5708
 
-    gem_base = 8
+    gem_base = 6
     for i in range(5):
         b = gem_base + i * 5
         if obs[b+4] < -500:
@@ -56,10 +50,10 @@ def normalize_obs(obs):
             obs[b+3]   /= 5.0
             obs[b+4]   /= 100.0
 
-    obs[33] /= 300000.0
-    obs[34] /= 300000.0
-    obs[35] /= 100.0
-    obs[36] /= 50.0
+    obs[31] /= 300000.0
+    obs[32] /= 300000.0
+    obs[33] /= 100.0
+    obs[34] /= 50.0
 
     obs = np.clip(obs, -2.0, 2.0)
     return obs
@@ -68,11 +62,11 @@ def normalize_obs(obs):
 def main():
     # Frame history config (must match train_ppo.py)
     FRAME_HISTORY_COUNT = 4
-    FRAME_SKIP = 4
+    FRAME_SKIP = 8
     FRAME_HISTORY_DIMS = 6  # pos(3) + vel(3)
-    OBS_DIM_BASE = 37
-    OBS_DIM = OBS_DIM_BASE + FRAME_HISTORY_COUNT * FRAME_HISTORY_DIMS  # 61
-    frame_history_size = FRAME_HISTORY_COUNT * FRAME_SKIP + 1  # 17
+    OBS_DIM_BASE = 35
+    OBS_DIM = OBS_DIM_BASE + FRAME_HISTORY_COUNT * FRAME_HISTORY_DIMS  # 59
+    frame_history_size = FRAME_HISTORY_COUNT * FRAME_SKIP + 1  # 33
     frame_history = deque(maxlen=frame_history_size)
 
     parser = argparse.ArgumentParser(description='PlatinumQuest Inference Server')
@@ -174,7 +168,8 @@ def main():
                                 history_frames.append(np.zeros(FRAME_HISTORY_DIMS, dtype=np.float32))
                         obs_augmented = np.concatenate([obs] + history_frames)
 
-                        action, _ = model.get_action(obs_augmented, deterministic=deterministic)
+                        _, action_game, _ = model.get_action(obs_augmented, deterministic=deterministic)
+                        dx, dy, throttle = action_game
                         total_steps += 1
 
                         if gem_delta > 0:
@@ -188,7 +183,7 @@ def main():
                             total_steps = 0
                             frame_history.clear()
 
-                        action_tuple = Actor.angle_to_joystick(action)
+                        action_tuple = Actor.action_to_joystick(dx, dy, throttle)
                         conn.sendall((','.join(map(str, action_tuple)) + '\n').encode('utf-8'))
 
             except Exception as e:
