@@ -1,0 +1,25 @@
+[2026-03-11 12:02:42] Loading model from models/checkpoints\update_17570.pth
+[2026-03-11 12:02:42]   Critic restored from checkpoint
+[2026-03-11 12:02:42]   Actor optimizer restored
+[2026-03-11 12:02:42]   Critic optimizer restored
+[2026-03-11 12:02:42]   LR override: actor=1.5e-5, critic=5e-5
+[2026-03-11 12:02:42]   PolicyStd: 30.1 deg (bounds: -2.0 to 1.0)
+[2026-03-11 12:02:42]   ThrottleStd: 1.000 (bounds: -3.0 to 0.0)
+[2026-03-11 12:02:42] Model loaded successfully!
+[2026-03-11 12:02:42] Resuming from: 35893292 steps, 17570 updates, 1901 episodes
+[2026-03-11 12:02:42] Best avg reward restored: 16021.51
+[2026-03-11 12:02:43] Dashboard: http://0.0.0.0:8889 (accessible on WiFi)
+[2026-03-11 12:02:43] ============================================================
+[2026-03-11 12:02:43] PPO Training Server
+[2026-03-11 12:02:43] ============================================================
+[2026-03-11 12:02:43] Listening on 127.0.0.1:8888
+[2026-03-11 12:02:43] Obs dim: 61 (base=37 + 4x6 history, skip=8)
+[2026-03-11 12:02:43] Rollout size: 2048 steps
+[2026-03-11 12:02:43] PPO epochs: 4
+[2026-03-11 12:02:43] Batch size: 256
+[2026-03-11 12:02:43] Press Ctrl+C to stop
+[2026-03-11 12:02:43] ============================================================
+[2026-03-11 12:02:43] Waiting for game to connect...
+[2026-03-11 12:05:48] 
+Received interrupt, saving and shutting down...
+[2026-03-11 12:05:48] Server stopped.
