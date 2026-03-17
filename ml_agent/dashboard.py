@@ -570,12 +570,13 @@ Plotly.newPlot('c-dwell', [
 ], darkLayout(), plotConfig);
 
 // 12. Throttle (mean + min/max fill)
+// Trace order: 0=Min (bottom), 1=Max (fills down to Min), 2=Mean (on top)
 Plotly.newPlot('c-throttle', [
-  { x: [], y: [], type: 'scatter', mode: 'lines', line: { color: '#58a6ff', width: 2 }, name: 'Mean' },
+  { x: [], y: [], type: 'scatter', mode: 'lines', line: { color: 'rgba(88,166,255,0.3)', width: 0 },
+    name: 'Min', showlegend: false },
   { x: [], y: [], type: 'scatter', mode: 'lines', line: { color: 'rgba(88,166,255,0.3)', width: 0 },
     fill: 'tonexty', fillcolor: 'rgba(88,166,255,0.15)', showlegend: false, name: 'Max' },
-  { x: [], y: [], type: 'scatter', mode: 'lines', line: { color: 'rgba(88,166,255,0.3)', width: 0 },
-    name: 'Min', showlegend: false }
+  { x: [], y: [], type: 'scatter', mode: 'lines', line: { color: '#58a6ff', width: 2 }, name: 'Mean' }
 ], darkLayout({
   showlegend: true, legend: { x: 0, y: 1, font: { size: 9 } },
   yaxis: { range: [0, 1.05], gridcolor: '#21262d', color: '#7d8590', zeroline: false }
@@ -663,12 +664,11 @@ async function loadHistory() {
       Plotly.extendTraces('c-dwell', { x: [xs], y: [h.dwell_steps] }, [0]);
     }
 
-    // Throttle (mean + min/max range)
+    // Throttle (trace 0=Min, 1=Max, 2=Mean)
     if (h.throttle_mean) {
-      // Fill goes between min (trace 2) and max (trace 1), mean is trace 0
       Plotly.extendTraces('c-throttle', {
         x: [xs, xs, xs],
-        y: [h.throttle_mean, h.throttle_max, h.throttle_min]
+        y: [h.throttle_min, h.throttle_max, h.throttle_mean]
       }, [0, 1, 2]);
     }
 
@@ -802,8 +802,8 @@ function updateDashboard(snap) {
   // Dwell Steps
   Plotly.extendTraces('c-dwell', { x: [[x]], y: [[snap.dwell_steps || 0]] }, [0]);
 
-  // Throttle
-  Plotly.extendTraces('c-throttle', { x: [[x], [x], [x]], y: [[snap.throttle_mean || 1], [snap.throttle_max || 1], [snap.throttle_min || 1]] }, [0, 1, 2]);
+  // Throttle (trace 0=Min, 1=Max, 2=Mean)
+  Plotly.extendTraces('c-throttle', { x: [[x], [x], [x]], y: [[snap.throttle_min || 1], [snap.throttle_max || 1], [snap.throttle_mean || 1]] }, [0, 1, 2]);
 
   // Laziness
   const laziness = snap.gems_per_hr > 0 ? snap.avg_reward_100ep / snap.gems_per_hr : 0;

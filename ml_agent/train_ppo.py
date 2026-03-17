@@ -97,11 +97,21 @@ class Actor(nn.Module):
 
         # Outputs (mean_x, mean_y) as a unit-circle direction.
         # 2D output avoids the 0/2pi wraparound discontinuity.
+        # Tanh bounds output to [-1,1] to prevent magnitude explosion:
+        # without it, weights grow unbounded (norm reached 26+) since
+        # normalization makes the loss magnitude-invariant, killing
+        # gradient signal and collapsing the policy to a fixed direction.
         self.actor_mean = nn.Sequential(
             nn.Linear(128, 64),
             nn.ReLU(),
             nn.Linear(64, 2),  # (dx, dy) normalized to unit circle
+            nn.Tanh(),
         )
+        # Initialize final layer with small weights so tanh starts in its
+        # linear region (near zero). Default init saturates tanh at +/-1,
+        # killing gradient and making output input-independent.
+        nn.init.uniform_(self.actor_mean[2].weight, -0.01, 0.01)
+        nn.init.zeros_(self.actor_mean[2].bias)
 
         # Throttle head: outputs raw logit, passed through sigmoid -> [0, 1]
         self.throttle_head = nn.Sequential(
@@ -371,7 +381,7 @@ class PPOTrainer:
     """
 
     def __init__(self, actor, critic,
-                 actor_lr=1.5e-5, critic_lr=5e-5,
+                 actor_lr=3e-5, critic_lr=1e-4,
                  clip_epsilon=0.2, entropy_coef=0.01,
                  max_grad_norm=1.0, vf_clip=20.0, target_kl=1.5):
         self.actor = actor
@@ -479,7 +489,8 @@ class PPOServer:
 
         # Setup dual logging (console + file)
         os.makedirs('logs', exist_ok=True)
-        log_filename = f"logs/training_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
+        self.run_timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        log_filename = f"logs/training_{self.run_timestamp}.log"
         self.logger = DualLogger(log_filename)
         self.log = self.logger.print  # Shortcut
 
@@ -504,7 +515,7 @@ class PPOServer:
         self.actor = Actor(obs_dim=self.obs_dim)
         self.critic = Critic(obs_dim=self.obs_dim)
         self.trainer = PPOTrainer(self.actor, self.critic, vf_clip=20.0,
-                                   target_kl=2.667, entropy_coef=0.005)
+                                   target_kl=2.667, entropy_coef=0.01)
         self.buffer = RolloutBuffer()
 
         # Training config
@@ -527,7 +538,7 @@ class PPOServer:
         # self.OOB_PENALTY_INIT = 10   # Starting OOB penalty (gentle for early training)
         # self.OOB_PENALTY_FULL = 25   # Full OOB penalty (activated at 30 avg gems/game)
         # self.OOB_PENALTY = self.OOB_PENALTY_INIT
-        self.OOB_PENALTY = 0             # Disabled for fresh training
+        self.OOB_PENALTY = 0
         # self.GEM_GAP_PENALTY_K = 0.001  # Ramping time penalty: cost = k * steps_since_gem
         self.GEM_GAP_PENALTY_K = 0        # Disabled for fresh training
         self.SHAPING_COEFF_1 = 20   # Broad attraction: 20/(1+d/50)
@@ -604,10 +615,12 @@ class PPOServer:
                 except Exception:
                     self.log(f"  Critic optimizer: incompatible, starting fresh")
 
-            # Override learning rates for fine-tuning phase
-            self.trainer.actor_optimizer.param_groups[0]['lr'] = 1.5e-5
-            self.trainer.critic_optimizer.param_groups[0]['lr'] = 5e-5
-            self.log(f"  LR override: actor=1.5e-5, critic=5e-5")
+            # Re-apply current LR after optimizer state restore (which carries old LR)
+            actor_lr = self.trainer.actor_optimizer.defaults['lr']
+            critic_lr = self.trainer.critic_optimizer.defaults['lr']
+            self.trainer.actor_optimizer.param_groups[0]['lr'] = actor_lr
+            self.trainer.critic_optimizer.param_groups[0]['lr'] = critic_lr
+            self.log(f"  LR set: actor={actor_lr}, critic={critic_lr}")
 
             # Restore training progress
             self.total_steps = checkpoint.get('total_steps', 0)
@@ -1201,7 +1214,7 @@ class PPOServer:
 
     def log_stats(self, stats, avg_reward):
         """Log training statistics to CSV."""
-        log_path = 'logs/training_log.csv'
+        log_path = f'logs/training_{self.run_timestamp}.csv'
 
         # Write header if file doesn't exist
         if not os.path.exists(log_path):
