@@ -34,6 +34,8 @@ import time
 import signal
 import sys
 import os
+import math
+import random
 from collections import deque
 from datetime import datetime
 from dashboard import DashboardServer
@@ -666,6 +668,11 @@ class PPOServer:
         self.total_gem_pts = 0     # gem points across entire run
         self.total_oob = 0         # OOB events across entire run
 
+        # Camera yaw randomization — rotate camera to a random angle at
+        # episode start and after each OOB. Trains the model to be camera-
+        # invariant by experiencing all orientations. Value is in radians.
+        self.camera_yaw = random.uniform(-math.pi, math.pi)
+
         # Entropy tracking for collapse detection
         self.entropy_history = deque(maxlen=10)
 
@@ -778,8 +785,8 @@ class PPOServer:
                     # Parse message: obs_json|gem_delta|oob|done
                     action = self.process_message(line)
 
-                    # Send action back
-                    action_str = ','.join(map(str, action)) + '\n'
+                    # Send action back (5th field = camera yaw for randomization)
+                    action_str = ','.join(map(str, action)) + f',{self.camera_yaw:.6f}\n'
                     conn.sendall(action_str.encode('utf-8'))
 
         except Exception as e:
@@ -1017,6 +1024,7 @@ class PPOServer:
                 self.episode_oob += 1
                 self.rollout_oob += 1
                 self.total_oob += 1
+                self.camera_yaw = random.uniform(-math.pi, math.pi)
             if reward > 0.1:
                 self.rollout_positive += 1
             self.rollout_steps += 1
@@ -1058,6 +1066,7 @@ class PPOServer:
                 self.frame_history.clear()  # Fresh history for new episode
                 self._frame_hist_logged = False
                 self._frame_hist_log_end = 999999
+                self.camera_yaw = random.uniform(-math.pi, math.pi)
 
             # PPO update when buffer is full
             if len(self.buffer) >= self.rollout_size:

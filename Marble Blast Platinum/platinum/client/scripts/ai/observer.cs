@@ -61,11 +61,15 @@ function AIObserver::collectState() {
 //-----------------------------------------------------------------------------
 
 function AIObserver::collectSelfState(%obs) {
-    // Camera angles (2) — compute these first, needed for position/velocity rotation
-    %obs.cameraYaw = ($cameraYaw $= "") ? 0 : $cameraYaw;
+    // Camera angles (2) — compute these first, needed for position/velocity rotation.
+    // CRITICAL: Read yaw from the marble's internal camera, NOT the $cameraYaw global.
+    // The engine applies movement relative to the marble's internal camera yaw.
+    // $cameraYaw can drift out of sync (playGui.cs modifies it, $mvYaw deltas, etc).
+    // Using getCameraYaw() ensures observations are rotated by the SAME yaw the
+    // engine uses for movement, so the model's actions align with its observations.
+    %obs.cameraYaw = $MP::MyMarble.getCameraYaw();
     %obs.cameraPitch = ($cameraPitch $= "") ? 0 : $cameraPitch;
 
-    // $cameraYaw is already in radians (wraps at +/-pi), no degree conversion needed
     %yawRad = %obs.cameraYaw;
     %cosYaw = mCos(%yawRad);
     %sinYaw = mSin(%yawRad);
@@ -119,10 +123,8 @@ function AIObserver::collectGems(%obs) {
 
     // Camera yaw for rotating world-relative vectors into camera space.
     // This ensures gem relX/relY align with the L/R and F/B action axes.
-    // Without this, "gem is at +X" might mean "press forward" or "press left"
-    // depending on where the camera happens to be pointing.
-    // $cameraYaw is already in radians (wraps at ±pi), no degree conversion needed.
-    %yawRad = ($cameraYaw $= "") ? 0 : $cameraYaw;
+    // Read from marble's internal camera (same source as engine movement).
+    %yawRad = $MP::MyMarble.getCameraYaw();
     %cosYaw = mCos(%yawRad);
     %sinYaw = mSin(%yawRad);
 
@@ -242,9 +244,9 @@ function AIObserver::collectOpponents(%obs) {
     %myPosY = getWord(%myPos, 1);
     %myPosZ = getWord(%myPos, 2);
 
-    // Camera yaw for world-to-camera rotation (same as in collectGems)
-    // $cameraYaw is already in radians
-    %yawRad = ($cameraYaw $= "") ? 0 : $cameraYaw;
+    // Camera yaw for world-to-camera rotation (same as in collectGems).
+    // Read from marble's internal camera (same source as engine movement).
+    %yawRad = $MP::MyMarble.getCameraYaw();
     %cosYaw = mCos(%yawRad);
     %sinYaw = mSin(%yawRad);
 

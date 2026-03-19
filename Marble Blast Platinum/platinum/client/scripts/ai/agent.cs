@@ -70,6 +70,13 @@ function AIAgent::clearInputs() {
 	$mvBackwardAction = 0;
 	$mvTriggerCount0 = 0; // Jump
 	$mvTriggerCount2 = 0; // Use powerup
+	// Zero camera deltas — the engine applies $mvYaw as a per-tick rotation
+	// to the marble's camera. Any residual from mouse input causes the camera
+	// to drift, creating a mismatch between observer's $cameraYaw and the
+	// engine's actual movement direction.
+	$mvYaw = 0;
+	$mvYawLeftSpeed = 0;
+	$mvYawRightSpeed = 0;
 }
 
 // Set binary actions directly (for ML agent)
