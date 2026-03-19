@@ -82,7 +82,7 @@ class Actor(nn.Module):
     LOG_STD_MIN = -2.0    # exp(-2.0) ~= 0.14 (tight directional spread)
     LOG_STD_MAX = 1.0     # exp(1.0)  ~= 2.7  (wide exploration)
     THROTTLE_LOG_STD_MIN = -3.0   # exp(-3.0) ~= 0.05 (tight throttle control)
-    THROTTLE_FLOOR = 0.15         # Minimum throttle to prevent "sit still" collapse
+    THROTTLE_FLOOR = 0.15         # Minimum throttle (disabled after model matures)
     THROTTLE_LOG_STD_MAX = 0.0    # exp(0.0)  ~= 1.0  (wide exploration)
 
     def __init__(self, obs_dim=61):
@@ -517,7 +517,7 @@ class PPOServer:
         self.actor = Actor(obs_dim=self.obs_dim)
         self.critic = Critic(obs_dim=self.obs_dim)
         self.trainer = PPOTrainer(self.actor, self.critic, vf_clip=20.0,
-                                   target_kl=2.667, entropy_coef=0.01)
+                                   target_kl=2.667, entropy_coef=0.005)
         self.buffer = RolloutBuffer()
 
         # Training config
@@ -541,8 +541,9 @@ class PPOServer:
         # self.OOB_PENALTY_FULL = 25   # Full OOB penalty (activated at 30 avg gems/game)
         # self.OOB_PENALTY = self.OOB_PENALTY_INIT
         self.OOB_PENALTY = 0
-        # self.GEM_GAP_PENALTY_K = 0.001  # Ramping time penalty: cost = k * steps_since_gem
-        self.GEM_GAP_PENALTY_K = 0        # Disabled for fresh training
+        self.GEM_GAP_PENALTY_K = 0        # Ramping time penalty (disabled)
+        self.SLOW_PICKUP_BONUS = 0    # Speed bonus at gem pickup (disabled)
+        self.SLOW_PICKUP_SPEED_CAP = 15  # Speed at/above which bonus is zero
         self.SHAPING_COEFF_1 = 20   # Broad attraction: 20/(1+d/50)
         self.SHAPING_RANGE_1 = 50   # Broad attraction range
         self.SHAPING_COEFF_2 = 15   # Near-gem well: 15/(1+d/3)
@@ -638,9 +639,16 @@ class PPOServer:
                 self.log(f"  PolicyStd: {std_deg:.1f} deg (bounds: {self.actor.LOG_STD_MIN:.1f} to {self.actor.LOG_STD_MAX:.1f})")
                 self.log(f"  ThrottleStd: {thr_std:.3f} (bounds: {self.actor.THROTTLE_LOG_STD_MIN:.1f} to {self.actor.THROTTLE_LOG_STD_MAX:.1f})")
 
+            # Restore throttle floor state
+            self.throttle_floor_active = checkpoint.get('throttle_floor_active', True)
+            if not self.throttle_floor_active:
+                self.actor.THROTTLE_FLOOR = 0.0
+                self.consecutive_20gem_games = 3  # Already matured
+
             self.log(f"Model loaded successfully!")
             self.log(f"Resuming from: {self.total_steps} steps, {self.total_updates} updates, {self.total_episodes} episodes")
             self.log(f"Best avg reward restored: {self.best_avg_reward:.2f}")
+            self.log(f"  Throttle floor: {'active (0.15)' if self.throttle_floor_active else 'disabled (mature)'}")
 
         self.actor.train()
         self.critic.train()
@@ -691,6 +699,14 @@ class PPOServer:
         # Rolling 100-episode gem points and lengths (for dashboard + flood detection)
         self.recent_episode_gems = deque(maxlen=100)
         self.recent_episode_lengths = deque(maxlen=100)
+
+        # Throttle floor maturity gate: keep THROTTLE_FLOOR=0.15 until the model
+        # gets 20+ gems for 3 consecutive games, then drop to 0 permanently.
+        # This prevents sit-still collapse during early training when the model
+        # hasn't learned that gems = reward, while allowing full speed control
+        # once it knows what it's doing.
+        self.throttle_floor_active = True
+        self.consecutive_20gem_games = 0
 
         # Game-level gem tracking (a "game" = full 5-min Hunt round)
         # Episodes may be shorter than a game if step cap fires, so we
@@ -863,6 +879,17 @@ class PPOServer:
         # 1. Gem collection reward
         if gem_delta > 0:
             reward += gem_delta * self.GEM_REWARD
+
+            # Slow pickup bonus: reward collecting gems at low speed.
+            # Encourages braking before collection so the marble can
+            # immediately redirect toward the next gem instead of overshooting.
+            # obs[3:6] = velocity (camera-relative vx, vy, vz)
+            if len(raw_obs) > 5:
+                vx, vy, vz = raw_obs[3], raw_obs[4], raw_obs[5]
+                speed = (vx**2 + vy**2 + vz**2) ** 0.5
+                bonus = self.SLOW_PICKUP_BONUS * max(0.0, 1.0 - speed / self.SLOW_PICKUP_SPEED_CAP)
+                reward += bonus
+
             self.skip_potential_steps = self.GRACE_PERIOD
             # Record gap penalty for this interval before resetting
             gap_penalty = self.GEM_GAP_PENALTY_K * self.steps_since_gem * (self.steps_since_gem - 1) / 2
@@ -925,6 +952,18 @@ class PPOServer:
                 self.recent_near_misses.append(self.game_near_misses)
                 self.recent_dwell_steps.append(self.game_dwell_steps)
                 self.log(f"[GAME END] total gems this game: {total_game_gems}pts (best: {self.best_game_gems}) avg_gap_penalty: {avg_gap:.1f} near_misses: {self.game_near_misses} dwell_steps: {self.game_dwell_steps}")
+
+                # Throttle floor maturity gate
+                if self.throttle_floor_active:
+                    if total_game_gems >= 20:
+                        self.consecutive_20gem_games += 1
+                        if self.consecutive_20gem_games >= 3:
+                            self.actor.THROTTLE_FLOOR = 0.0
+                            self.throttle_floor_active = False
+                            self.log(f"[MATURITY] Throttle floor disabled (3 consecutive 20+ gem games)")
+                    else:
+                        self.consecutive_20gem_games = 0
+
                 self.game_gem_pts = 0  # Reset accumulators for next game
                 self.game_gap_penalty_sum = 0.0
                 self.game_gem_pickups = 0
@@ -1218,6 +1257,7 @@ class PPOServer:
             'total_episodes': self.total_episodes,
             'best_avg_reward': self.best_avg_reward,
             'episode_rewards': list(self.episode_rewards),
+            'throttle_floor_active': self.throttle_floor_active,
         }, path)
         self.log(f"  Model saved to {path}")
 
