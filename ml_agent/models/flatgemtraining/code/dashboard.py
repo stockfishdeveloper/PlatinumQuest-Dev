@@ -1,0 +1,871 @@
+"""
+Real-time PPO Training Dashboard
+Runs as a background daemon thread, serves a web dashboard on port 8889.
+Zero external dependencies — uses stdlib http.server + SSE (Server-Sent Events).
+"""
+
+import json
+import sys
+import time
+import threading
+import numpy as np
+import torch
+from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
+
+DASHBOARD_PORT = 8889
+
+
+class QuietHTTPServer(ThreadingHTTPServer):
+    """ThreadingHTTPServer that suppresses connection-abort tracebacks."""
+    def handle_error(self, request, client_address):
+        exc_type = sys.exc_info()[0]
+        if exc_type in (ConnectionAbortedError, ConnectionResetError, BrokenPipeError):
+            pass  # Browser disconnected — not an error
+        else:
+            super().handle_error(request, client_address)
+
+
+MAX_HISTORY = 10000  # Cap history arrays to bound memory (~1MB)
+
+
+class DashboardHandler(BaseHTTPRequestHandler):
+    """HTTP request handler for the dashboard."""
+
+    def log_message(self, format, *args):
+        pass  # Suppress default access logs — would spam training console
+
+    def do_GET(self):
+        try:
+            if self.path == '/':
+                self._serve_html()
+            elif self.path == '/stream':
+                self._serve_sse()
+            elif self.path == '/history':
+                self._serve_history()
+            else:
+                self.send_error(404)
+        except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError, OSError):
+            pass  # Client disconnected
+
+    def _serve_html(self):
+        content = DASHBOARD_HTML.encode('utf-8')
+        self.send_response(200)
+        self.send_header('Content-Type', 'text/html; charset=utf-8')
+        self.send_header('Content-Length', str(len(content)))
+        self.send_header('Cache-Control', 'no-cache, no-store, must-revalidate')
+        self.end_headers()
+        self.wfile.write(content)
+
+    def _serve_history(self):
+        dashboard = self.server.dashboard
+        history = dashboard.get_history()
+        data = json.dumps(history).encode('utf-8')
+        self.send_response(200)
+        self.send_header('Content-Type', 'application/json')
+        self.send_header('Content-Length', str(len(data)))
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.end_headers()
+        self.wfile.write(data)
+
+    def _serve_sse(self):
+        self.send_response(200)
+        self.send_header('Content-Type', 'text/event-stream')
+        self.send_header('Cache-Control', 'no-cache')
+        self.send_header('Connection', 'keep-alive')
+        self.send_header('X-Accel-Buffering', 'no')
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.end_headers()
+
+        # Send retry interval (browser will reconnect after 3s if connection drops)
+        self.wfile.write(b'retry: 3000\n\n')
+        self.wfile.flush()
+
+        last_update = -1
+        keepalive_counter = 0
+
+        try:
+            while True:
+                dashboard = self.server.dashboard
+                snap = dashboard.get_snapshot()
+
+                if snap and snap['update'] != last_update:
+                    data = json.dumps(snap)
+                    self.wfile.write(f'data: {data}\n\n'.encode('utf-8'))
+                    self.wfile.flush()
+                    last_update = snap['update']
+                    keepalive_counter = 0
+
+                time.sleep(1)
+                keepalive_counter += 1
+
+                # Send keepalive comment every 15s to prevent WiFi NAT timeout
+                if keepalive_counter >= 15:
+                    self.wfile.write(b': keepalive\n\n')
+                    self.wfile.flush()
+                    keepalive_counter = 0
+
+        except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError, OSError):
+            pass  # Client disconnected — EventSource will auto-reconnect
+
+
+class DashboardServer:
+    """Manages dashboard state and runs HTTP server in a background thread."""
+
+    def __init__(self, ppo_server, host='0.0.0.0', port=DASHBOARD_PORT):
+        self.ppo_server = ppo_server
+        self.host = host
+        self.port = port
+        self._lock = threading.Lock()
+        self._snapshot = None
+        self._best_gems_hr = 0.0
+        self._kl_stop_window = []   # Rolling 100-update window for KL-stop %
+        self._history = {
+            'updates': [],
+            'policy_loss': [],
+            'value_loss': [],
+            'entropy': [],
+            'grad_norm': [],
+            'critic_grad_norm': [],
+            'kl': [],
+            'kl_stop_pct': [],
+            'avg_reward': [],
+            'gems_per_hr': [],
+            'best_gems_hr': [],
+            'rollout_gem_pts': [],
+            'rollout_oob': [],
+            'total_steps': [],
+            'episodes': [],
+            'pos_reward_pct': [],
+            'dry_rollouts': [],
+            'timestamps': [],
+            'total_no_gem_steps': [],
+            'avg_gap_penalty': [],
+            'near_misses': [],
+            'dwell_steps': [],
+            'mean_angle': [],
+            'policy_std': [],
+            'throttle_mean': [],
+            'throttle_min': [],
+            'throttle_max': [],
+            'throttle_std': [],
+        }
+        self._server = None
+        self._thread = None
+
+    def start(self):
+        """Start HTTP server in daemon thread."""
+        try:
+            self._server = QuietHTTPServer((self.host, self.port), DashboardHandler)
+            self._server.dashboard = self  # Attach reference for handler access
+            self._thread = threading.Thread(
+                target=self._server.serve_forever,
+                daemon=True,
+                name='dashboard'
+            )
+            self._thread.start()
+            self.ppo_server.log(f"Dashboard: http://0.0.0.0:{self.port} (accessible on WiFi)")
+        except OSError as e:
+            self.ppo_server.log(f"Dashboard: Failed to start on port {self.port}: {e} (training continues without dashboard)")
+
+    def push_snapshot(self, stats, avg_reward):
+        """Called from training thread after each PPO update. Must be fast."""
+        s = self.ppo_server
+        elapsed_hrs = (time.time() - s.run_start_time) / 3600
+        gems_per_hr = s.total_gem_pts / max(elapsed_hrs, 1 / 3600)
+        if gems_per_hr > self._best_gems_hr and s.total_updates > 10:
+            self._best_gems_hr = gems_per_hr
+        pos_pct = (s.rollout_positive / max(s.rollout_steps, 1)) * 100
+
+        # Continuous action stats
+        import math
+        recent = list(s.recent_actions)[-min(200, len(s.recent_actions)):]
+        if recent:
+            angles_deg = [((a * 180 / math.pi) % 360) for a in recent]
+            mean_deg = sum(angles_deg) / len(angles_deg)
+        else:
+            mean_deg = 0.0
+        log_std = torch.clamp(s.actor.log_std, s.actor.LOG_STD_MIN, s.actor.LOG_STD_MAX)
+        policy_std_deg = log_std.exp().item() * 180 / math.pi
+
+        # Throttle stats
+        recent_thr = list(s.recent_throttles)[-min(200, len(s.recent_throttles)):]
+        if recent_thr:
+            throttle_mean = sum(recent_thr) / len(recent_thr)
+            throttle_min = min(recent_thr)
+            throttle_max = max(recent_thr)
+        else:
+            throttle_mean = throttle_min = throttle_max = 0.0
+        thr_log_std = torch.clamp(s.actor.throttle_log_std,
+                                  s.actor.THROTTLE_LOG_STD_MIN,
+                                  s.actor.THROTTLE_LOG_STD_MAX)
+        throttle_std = thr_log_std.exp().item()
+
+        avg_gap_penalty = float(np.mean(s.recent_avg_gap_penalty)) if s.recent_avg_gap_penalty else 0
+        avg_near_misses = float(np.mean(s.recent_near_misses)) if s.recent_near_misses else 0
+        avg_dwell_steps = float(np.mean(s.recent_dwell_steps)) if s.recent_dwell_steps else 0
+
+        # Rolling KL-stop percentage (last 100 updates)
+        self._kl_stop_window.append(1 if stats.get('kl_early_stopped') else 0)
+        if len(self._kl_stop_window) > 100:
+            self._kl_stop_window = self._kl_stop_window[-100:]
+        kl_stop_pct = round(100 * sum(self._kl_stop_window) / len(self._kl_stop_window), 1)
+
+        snap = {
+            'update': s.total_updates,
+            'timestamp': time.time(),
+            'elapsed_hrs': round(elapsed_hrs, 4),
+            'total_steps': s.total_steps,
+            'total_episodes': s.total_episodes,
+            'total_gem_pts': s.total_gem_pts,
+            'total_oob': s.total_oob,
+            'total_no_gem_steps': s.total_no_gem_steps,
+            'no_gem_events': s.no_gem_events,
+            'dry_rollouts': s.dry_rollouts,
+            'policy_loss': round(stats['policy_loss'], 6),
+            'value_loss': round(stats['value_loss'], 6),
+            'entropy': round(stats['entropy'], 4),
+            'grad_norm': round(stats['grad_norm'], 4),
+            'critic_grad_norm': round(stats.get('critic_grad_norm', 0.0), 4),
+            'kl': round(stats.get('max_kl', 0.0), 4),
+            'kl_stop_pct': kl_stop_pct,
+            'avg_reward_100ep': round(float(avg_reward), 2) if not (avg_reward != avg_reward) else 0.0,
+            'best_avg_reward': round(float(s.best_avg_reward), 2) if s.best_avg_reward > -1e9 else 0.0,
+            'gems_per_hr': round(gems_per_hr, 2),
+            'best_gems_hr': round(self._best_gems_hr, 2),
+            'pos_reward_pct': round(pos_pct, 1),
+            'rollout_gem_pts': s.rollout_gem_pts,
+            'rollout_oob': s.rollout_oob,
+            'rollout_steps': s.rollout_steps,
+            'mean_angle': round(mean_deg, 1),
+            'policy_std': round(policy_std_deg, 1),
+            'recent_rewards': [round(float(r), 1) for r in list(s.episode_rewards)[-20:]],
+            'recent_episode_gems': list(s.recent_episode_gems),
+            'recent_game_gems': list(s.recent_game_gems),
+            'best_game_gems': s.best_game_gems,
+            'avg_gap_penalty': round(avg_gap_penalty, 2),
+            'near_misses': round(avg_near_misses, 1),
+            'dwell_steps': round(avg_dwell_steps, 0),
+            'rollout_size': s.rollout_size,
+            'batch_size': s.batch_size,
+            'n_epochs': s.n_epochs,
+            'gamma': s.gamma,
+            'lam': s.lam,
+            'reward_scale': s.reward_scale,
+            'throttle_mean': round(throttle_mean, 4),
+            'throttle_min': round(throttle_min, 4),
+            'throttle_max': round(throttle_max, 4),
+            'throttle_std': round(throttle_std, 4),
+            'entropy_collapse': stats['entropy'] < -0.5,
+            'entropy_low': stats['entropy'] < 0.3,
+            'dry_warning': s.dry_rollouts >= 5,
+            'game_connected': True,
+        }
+
+        with self._lock:
+            self._snapshot = snap
+            h = self._history
+            h['updates'].append(snap['update'])
+            h['policy_loss'].append(snap['policy_loss'])
+            h['value_loss'].append(snap['value_loss'])
+            h['entropy'].append(snap['entropy'])
+            h['grad_norm'].append(snap['grad_norm'])
+            h['critic_grad_norm'].append(snap['critic_grad_norm'])
+            h['kl'].append(snap['kl'])
+            h['kl_stop_pct'].append(snap['kl_stop_pct'])
+            h['avg_reward'].append(snap['avg_reward_100ep'])
+            h['gems_per_hr'].append(snap['gems_per_hr'])
+            h['best_gems_hr'].append(snap['best_gems_hr'])
+            h['rollout_gem_pts'].append(snap['rollout_gem_pts'])
+            h['rollout_oob'].append(snap['rollout_oob'])
+            h['total_steps'].append(snap['total_steps'])
+            h['episodes'].append(snap['total_episodes'])
+            h['pos_reward_pct'].append(snap['pos_reward_pct'])
+            h['dry_rollouts'].append(snap['dry_rollouts'])
+            h['timestamps'].append(snap['timestamp'])
+            h['total_no_gem_steps'].append(snap['total_no_gem_steps'])
+            h['avg_gap_penalty'].append(snap['avg_gap_penalty'])
+            h['near_misses'].append(snap['near_misses'])
+            h['dwell_steps'].append(snap['dwell_steps'])
+            h['mean_angle'].append(snap['mean_angle'])
+            h['policy_std'].append(snap['policy_std'])
+            h['throttle_mean'].append(snap['throttle_mean'])
+            h['throttle_min'].append(snap['throttle_min'])
+            h['throttle_max'].append(snap['throttle_max'])
+            h['throttle_std'].append(snap['throttle_std'])
+
+            # Cap history to prevent unbounded memory growth
+            if len(h['updates']) > MAX_HISTORY:
+                for key in h:
+                    h[key] = h[key][-MAX_HISTORY:]
+
+    def get_snapshot(self):
+        with self._lock:
+            return self._snapshot
+
+    def get_history(self):
+        with self._lock:
+            return {k: list(v) for k, v in self._history.items()}
+
+
+# =============================================================================
+# Embedded Dashboard HTML
+# =============================================================================
+
+DASHBOARD_HTML = r"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PPO Training Dashboard</title>
+<script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+<style>
+:root {
+  --bg: #0d1117; --card: #161b22; --border: #30363d;
+  --text: #e6edf3; --muted: #7d8590; --green: #3fb950;
+  --yellow: #d29922; --red: #f85149; --gold: #f0c040;
+  --blue: #58a6ff; --purple: #bc8cff;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: 'Consolas', 'SF Mono', 'Fira Code', monospace; }
+
+/* Header */
+#header {
+  position: sticky; top: 0; z-index: 100;
+  background: var(--card); border-bottom: 1px solid var(--border);
+  padding: 10px 16px;
+}
+#header-top { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+#header h1 { font-size: 1rem; font-weight: 600; white-space: nowrap; }
+.badge { font-size: 0.7rem; padding: 2px 8px; border-radius: 10px; font-weight: 600; }
+.badge-live { background: #238636; color: white; }
+.badge-reconnecting { background: var(--yellow); color: black; }
+.badge-game { background: var(--border); color: var(--muted); }
+.badge-game.connected { background: #238636; color: white; }
+#meta-row { display: flex; gap: 20px; flex-wrap: wrap; font-size: 0.75rem; color: var(--muted); margin-top: 6px; }
+#meta-row b { color: var(--text); }
+
+/* Alert banners */
+.alert { display: none; padding: 8px 16px; font-weight: 600; font-size: 0.8rem; text-align: center; }
+.alert.visible { display: block; }
+.alert-collapse { background: var(--red); color: white; animation: pulse 1s infinite alternate; }
+.alert-dry { background: #7c5e00; color: var(--gold); }
+@keyframes pulse { from { opacity: 1; } to { opacity: 0.7; } }
+
+/* Gauges */
+#gauges { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; padding: 10px 12px; }
+@media (max-width: 900px) { #gauges { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 500px) { #gauges { grid-template-columns: repeat(2, 1fr); } }
+.gauge {
+  background: var(--card); border: 1px solid var(--border); border-radius: 6px;
+  padding: 10px 8px; text-align: center;
+}
+.gauge .label { font-size: 0.65rem; color: var(--muted); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+.gauge .value { font-size: 1.3rem; font-weight: 700; }
+
+/* Chart grid */
+#charts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 0 12px 12px; }
+@media (max-width: 900px) { #charts { grid-template-columns: 1fr; } }
+.chart-card {
+  background: var(--card); border: 1px solid var(--border); border-radius: 6px;
+  padding: 8px; overflow: hidden;
+}
+.chart-card.full-width { grid-column: 1 / -1; }
+.chart-title { font-size: 0.7rem; color: var(--muted); margin-bottom: 2px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+/* Config panel */
+#config-section { padding: 0 12px 16px; }
+#config-label { font-size: 0.65rem; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+#config {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px;
+  background: var(--card); border: 1px solid var(--border); border-radius: 6px;
+  padding: 10px 12px; font-size: 0.75rem;
+}
+@media (max-width: 768px) { #config { grid-template-columns: repeat(2, 1fr); } }
+#config b { color: var(--text); }
+#config span { color: var(--muted); }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div id="header">
+  <div id="header-top">
+    <h1>PlatinumQuest PPO Training</h1>
+    <span id="live-badge" class="badge badge-reconnecting">CONNECTING...</span>
+    <span id="game-badge" class="badge badge-game">Game: --</span>
+  </div>
+  <div id="meta-row">
+    <span>Update: <b id="m-update">--</b></span>
+    <span>Steps: <b id="m-steps">--</b></span>
+    <span>Episodes: <b id="m-eps">--</b></span>
+    <span>Time: <b id="m-time">--</b></span>
+    <span>Gems: <b id="m-gems">--</b>pts</span>
+    <span>Gems/hr: <b id="m-gems-hr">--</b></span>
+    <span>Best Gems/hr: <b id="m-best-gems-hr" style="color:#f0c040">--</b></span>
+    <span>Best Gems/Game: <b id="m-best-game-gems" style="color:#3fb950">--</b></span>
+    <span>OOB: <b id="m-oob">--</b></span>
+    <span>Best Avg: <b id="m-best">--</b></span>
+  </div>
+</div>
+
+<!-- Alerts -->
+<div id="alert-collapse" class="alert alert-collapse">ENTROPY COLLAPSE (&lt; -0.5) - Policy std has collapsed to near-zero!</div>
+<div id="alert-dry" class="alert alert-dry">DRY STREAK: <span id="dry-count">0</span> consecutive rollouts with zero gems collected</div>
+
+<!-- Gauges -->
+<div id="gauges">
+  <div class="gauge"><div class="label">Avg Reward (100ep)</div><div class="value" id="g-avgrwd">--</div></div>
+  <div class="gauge"><div class="label">Gems/hr</div><div class="value" id="g-gemshr" style="color:#f0c040">--</div></div>
+  <div class="gauge"><div class="label">Avg Gems/Game</div><div class="value" id="g-gems-game" style="color:#3fb950">--</div></div>
+  <div class="gauge"><div class="label">Entropy</div><div class="value" id="g-entropy">--</div></div>
+  <div class="gauge"><div class="label">KL-Stop %</div><div class="value" id="g-klstop">--</div></div>
+  <div class="gauge"><div class="label">Grad Norm</div><div class="value" id="g-gradnorm">--</div></div>
+  <div class="gauge"><div class="label">Last Game Gems</div><div class="value" id="g-lastgems" style="color:#f0c040">--</div></div>
+  <div class="gauge"><div class="label">Dry Rollouts</div><div class="value" id="g-dry">--</div></div>
+</div>
+
+<!-- Charts -->
+<div id="charts">
+  <div class="chart-card"><div class="chart-title">Avg Reward (100-episode rolling)</div><div id="c-avgrwd" style="height:220px"></div></div>
+  <div class="chart-card"><div class="chart-title">Gems Per Game (last 100 games) + rolling avg</div><div id="c-epgems" style="height:220px"></div></div>
+  <div class="chart-card"><div class="chart-title">Gems Per Hour</div><div id="c-gemshr" style="height:220px"></div></div>
+  <div class="chart-card"><div class="chart-title">KL Divergence + KL-Stop % (last 100 updates)</div><div id="c-kl" style="height:220px"></div></div>
+  <div class="chart-card"><div class="chart-title">Gradient Norm (actor + critic)</div><div id="c-gradnorm" style="height:220px"></div></div>
+  <div class="chart-card"><div class="chart-title">Actor Loss vs Value Loss</div><div id="c-losses" style="height:220px"></div></div>
+  <div class="chart-card"><div class="chart-title">Entropy (exploration health)</div><div id="c-entropy" style="height:220px"></div></div>
+  <div class="chart-card"><div class="chart-title">Policy Std Dev (degrees)</div><div id="c-policystd" style="height:220px"></div></div>
+  <div class="chart-card"><div class="chart-title">OOB Events Per Rollout</div><div id="c-oob" style="height:220px"></div></div>
+  <div class="chart-card"><div class="chart-title">Avg Gap Penalty Per Gem (lower = faster pickups)</div><div id="c-gappen" style="height:220px"></div></div>
+  <div class="chart-card"><div class="chart-title">Near Misses Per Game (within 2 marble diameters, no pickup)</div><div id="c-nearmiss" style="height:220px"></div></div>
+  <div class="chart-card"><div class="chart-title">Dwell Steps Near Gem Per Game (steps within 2 marble diameters)</div><div id="c-dwell" style="height:220px"></div></div>
+  <div class="chart-card"><div class="chart-title">Throttle (mean + min/max range)</div><div id="c-throttle" style="height:220px"></div></div>
+  <div class="chart-card"><div class="chart-title">Laziness (Reward / Gems per Hour)</div><div id="c-laziness" style="height:220px"></div></div>
+  <div class="chart-card"><div class="chart-title">Training Throughput (steps/sec)</div><div id="c-throughput" style="height:220px"></div></div>
+</div>
+
+<!-- Config -->
+<div id="config-section">
+  <div id="config-label">Hyperparameters</div>
+  <div id="config">
+    <span>Rollout Size: <b id="cfg-rollout">--</b></span>
+    <span>Batch Size: <b id="cfg-batch">--</b></span>
+    <span>Epochs/Update: <b id="cfg-epochs">--</b></span>
+    <span>Gamma: <b id="cfg-gamma">--</b></span>
+    <span>Lambda: <b id="cfg-lam">--</b></span>
+    <span>Reward Scale: <b id="cfg-rwdscale">--</b></span>
+    <span>Actions: <b>Continuous (angle)</b></span>
+    <span>Obs Dim: <b>61</b></span>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// Plotly layout helper
+// ============================================================
+const darkLayout = (extra) => Object.assign({
+  paper_bgcolor: '#161b22',
+  plot_bgcolor: '#0d1117',
+  font: { color: '#e6edf3', size: 10, family: 'Consolas, monospace' },
+  margin: { l: 50, r: 12, t: 8, b: 32 },
+  showlegend: false,
+  xaxis: { gridcolor: '#21262d', color: '#7d8590', zeroline: false },
+  yaxis: { gridcolor: '#21262d', color: '#7d8590', zeroline: false },
+}, extra || {});
+
+const plotConfig = { responsive: true, displayModeBar: false };
+
+// ============================================================
+// Initialize all charts (empty)
+// ============================================================
+
+// 1. Avg Reward
+Plotly.newPlot('c-avgrwd', [
+  { x: [], y: [], type: 'scatter', mode: 'lines', line: { color: '#3fb950', width: 2 }, name: 'Avg Reward' },
+  { x: [], y: [], type: 'scatter', mode: 'lines', line: { color: '#f0c040', width: 1, dash: 'dash' }, name: 'Best' }
+], darkLayout({ showlegend: true, legend: { x: 0, y: 1, font: { size: 9 } } }), plotConfig);
+
+// 2. Losses — actor (left Y) vs value (right Y, log scale)
+Plotly.newPlot('c-losses', [
+  { x: [], y: [], type: 'scatter', mode: 'lines', line: { color: '#58a6ff', width: 1.5 }, name: 'Actor Loss' },
+  { x: [], y: [], type: 'scatter', mode: 'lines', line: { color: '#f85149', width: 1.5 }, name: 'Value Loss', yaxis: 'y2' }
+], darkLayout({
+  showlegend: true, legend: { x: 0, y: 1, font: { size: 9 } },
+  yaxis2: { overlaying: 'y', side: 'right', gridcolor: '#21262d', color: '#7d8590', type: 'log', zeroline: false }
+}), plotConfig);
+
+// 3. Entropy with thresholds
+Plotly.newPlot('c-entropy', [
+  { x: [], y: [], type: 'scatter', mode: 'lines', fill: 'tozeroy',
+    line: { color: '#3fb950', width: 2 }, fillcolor: 'rgba(63,185,80,0.1)', name: 'Entropy' }
+], darkLayout({
+  yaxis: { autorange: true, gridcolor: '#21262d', color: '#7d8590', zeroline: false },
+  shapes: [
+    { type: 'line', y0: -0.5, y1: -0.5, x0: 0, x1: 1, xref: 'paper', line: { color: '#f85149', width: 1, dash: 'dash' } },
+    { type: 'line', y0: 0.3, y1: 0.3, x0: 0, x1: 1, xref: 'paper', line: { color: '#d29922', width: 1, dash: 'dot' } },
+    { type: 'line', y0: 2.0, y1: 2.0, x0: 0, x1: 1, xref: 'paper', line: { color: '#30363d', width: 1, dash: 'dot' } }
+  ]
+}), plotConfig);
+
+// Policy Std Dev (degrees)
+Plotly.newPlot('c-policystd', [
+  { x: [], y: [], type: 'scatter', mode: 'lines', line: { color: '#f0883e', width: 2 }, name: 'PolicyStd' }
+], darkLayout({
+  yaxis: { autorange: true, gridcolor: '#21262d', color: '#7d8590', zeroline: false }
+}), plotConfig);
+
+// 4. Gems/hr + best line
+Plotly.newPlot('c-gemshr', [
+  { x: [], y: [], type: 'scatter', mode: 'lines', line: { color: '#f0c040', width: 2 }, name: 'Gems/hr' },
+  { x: [], y: [], type: 'scatter', mode: 'lines', line: { color: '#3fb950', width: 1, dash: 'dash' }, name: 'Best' }
+], darkLayout({ showlegend: true, legend: { x: 0, y: 1, font: { size: 9 } } }), plotConfig);
+
+// 5. Gems per game (bars) + rolling average line — full redraw each update
+Plotly.newPlot('c-epgems', [
+  { x: [], y: [], type: 'bar', marker: { color: '#f0c040' }, name: 'Game Gems' },
+  { x: [], y: [], type: 'scatter', mode: 'lines', line: { color: '#f85149', width: 2 }, name: 'Avg' }
+], darkLayout({ bargap: 0.15, showlegend: true, legend: { x: 0, y: 1, font: { size: 9 } } }), plotConfig);
+
+// 6. KL divergence (left Y) + KL-stop % rolling window (right Y)
+Plotly.newPlot('c-kl', [
+  { x: [], y: [], type: 'scatter', mode: 'lines', line: { color: '#bc8cff', width: 1.5 }, name: 'KL' },
+  { x: [], y: [], type: 'scatter', mode: 'lines', line: { color: '#f0c040', width: 2 }, name: 'KL-Stop %', yaxis: 'y2' }
+], darkLayout({
+  showlegend: true, legend: { x: 0, y: 1, font: { size: 9 } },
+  yaxis2: { overlaying: 'y', side: 'right', gridcolor: '#21262d', color: '#7d8590',
+            range: [0, 100], zeroline: false, ticksuffix: '%' },
+  shapes: [
+    { type: 'line', y0: 2.25, y1: 2.25, x0: 0, x1: 1, xref: 'paper',
+      line: { color: '#f85149', width: 1, dash: 'dash' } }  // KL-stop threshold
+  ]
+}), plotConfig);
+
+// 7. Gradient norm (actor + critic)
+Plotly.newPlot('c-gradnorm', [
+  { x: [], y: [], type: 'scatter', mode: 'lines', line: { color: '#ff7b72', width: 1.5 }, name: 'Actor' },
+  { x: [], y: [], type: 'scatter', mode: 'lines', line: { color: '#79c0ff', width: 1.5 }, name: 'Critic' },
+  { x: [], y: [], type: 'scatter', mode: 'lines', line: { color: '#30363d', width: 1, dash: 'dot' }, name: 'Clip (1.0)' }
+], darkLayout({
+  showlegend: true, legend: { x: 0, y: 1, font: { size: 9 } },
+  yaxis: { type: 'log', autorange: true, gridcolor: '#21262d', color: '#7d8590', zeroline: false }
+}), plotConfig);
+
+// 8. OOB per rollout
+Plotly.newPlot('c-oob', [
+  { x: [], y: [], type: 'scatter', mode: 'lines', line: { color: '#f85149', width: 1.5 } }
+], darkLayout(), plotConfig);
+
+// 9. Avg Gap Penalty Per Gem
+Plotly.newPlot('c-gappen', [
+  { x: [], y: [], type: 'scatter', mode: 'lines', line: { color: '#bc8cff', width: 2 } }
+], darkLayout(), plotConfig);
+
+// 10. Near Misses Per Game
+Plotly.newPlot('c-nearmiss', [
+  { x: [], y: [], type: 'scatter', mode: 'lines', line: { color: '#f85149', width: 2 } }
+], darkLayout(), plotConfig);
+
+// 11. Dwell Steps Near Gem Per Game
+Plotly.newPlot('c-dwell', [
+  { x: [], y: [], type: 'scatter', mode: 'lines', line: { color: '#d29922', width: 2 } }
+], darkLayout(), plotConfig);
+
+// 12. Throttle (mean + min/max fill)
+// Trace order: 0=Min (bottom), 1=Max (fills down to Min), 2=Mean (on top)
+Plotly.newPlot('c-throttle', [
+  { x: [], y: [], type: 'scatter', mode: 'lines', line: { color: 'rgba(88,166,255,0.3)', width: 0 },
+    name: 'Min', showlegend: false },
+  { x: [], y: [], type: 'scatter', mode: 'lines', line: { color: 'rgba(88,166,255,0.3)', width: 0 },
+    fill: 'tonexty', fillcolor: 'rgba(88,166,255,0.15)', showlegend: false, name: 'Max' },
+  { x: [], y: [], type: 'scatter', mode: 'lines', line: { color: '#58a6ff', width: 2 }, name: 'Mean' }
+], darkLayout({
+  showlegend: true, legend: { x: 0, y: 1, font: { size: 9 } },
+  yaxis: { range: [0, 1.05], gridcolor: '#21262d', color: '#7d8590', zeroline: false }
+}), plotConfig);
+
+// 13. Laziness
+Plotly.newPlot('c-laziness', [
+  { x: [], y: [], type: 'scatter', mode: 'lines', line: { color: '#d29922', width: 2 } }
+], darkLayout({
+  yaxis: { autorange: true, gridcolor: '#21262d', color: '#7d8590', zeroline: false }
+}), plotConfig);
+
+// 13. Throughput
+Plotly.newPlot('c-throughput', [
+  { x: [], y: [], type: 'scatter', mode: 'lines', line: { color: '#79c0ff', width: 1.5 } }
+], darkLayout(), plotConfig);
+
+
+// ============================================================
+// State
+// ============================================================
+let prevTimestamp = null;
+let bestReward = -Infinity;
+
+// ============================================================
+// History hydration on page load
+// ============================================================
+async function loadHistory() {
+  try {
+    const resp = await fetch('/history');
+    const h = await resp.json();
+    if (!h.updates || h.updates.length === 0) return;
+
+    const xs = h.updates;
+    const n = xs.length;
+
+    // Avg reward + best line
+    bestReward = Math.max(...h.avg_reward);
+    const bestLine = h.avg_reward.map(() => bestReward);
+    Plotly.extendTraces('c-avgrwd', { x: [xs, xs], y: [h.avg_reward, bestLine] }, [0, 1]);
+
+    // Losses
+    Plotly.extendTraces('c-losses', { x: [xs, xs], y: [h.policy_loss, h.value_loss] }, [0, 1]);
+
+    // Entropy
+    Plotly.extendTraces('c-entropy', { x: [xs], y: [h.entropy] }, [0]);
+
+    // Policy Std
+    if (h.policy_std) {
+      Plotly.extendTraces('c-policystd', { x: [xs], y: [h.policy_std] }, [0]);
+    }
+
+    // Gems/hr + best line
+    const bestGemsLine = h.best_gems_hr || h.gems_per_hr.map(() => 0);
+    Plotly.extendTraces('c-gemshr', { x: [xs, xs], y: [h.gems_per_hr, bestGemsLine] }, [0, 1]);
+
+    // KL divergence + KL-stop %
+    if (h.kl) {
+      const klStop = h.kl_stop_pct || h.kl.map(() => 0);
+      Plotly.extendTraces('c-kl', { x: [xs, xs], y: [h.kl, klStop] }, [0, 1]);
+    }
+
+    // Gradient norm (actor + critic + clip line)
+    if (h.grad_norm) {
+      const criticGN = h.critic_grad_norm || h.grad_norm.map(() => 0);
+      const clipLine = h.grad_norm.map(() => 1.0);
+      Plotly.extendTraces('c-gradnorm', { x: [xs, xs, xs], y: [h.grad_norm, criticGN, clipLine] }, [0, 1, 2]);
+    }
+
+    // OOB
+    Plotly.extendTraces('c-oob', { x: [xs], y: [h.rollout_oob] }, [0]);
+
+    // Avg Gap Penalty Per Gem
+    if (h.avg_gap_penalty) {
+      Plotly.extendTraces('c-gappen', { x: [xs], y: [h.avg_gap_penalty] }, [0]);
+    }
+
+    // Near Misses
+    if (h.near_misses) {
+      Plotly.extendTraces('c-nearmiss', { x: [xs], y: [h.near_misses] }, [0]);
+    }
+
+    // Dwell Steps
+    if (h.dwell_steps) {
+      Plotly.extendTraces('c-dwell', { x: [xs], y: [h.dwell_steps] }, [0]);
+    }
+
+    // Throttle (trace 0=Min, 1=Max, 2=Mean)
+    if (h.throttle_mean) {
+      Plotly.extendTraces('c-throttle', {
+        x: [xs, xs, xs],
+        y: [h.throttle_min, h.throttle_max, h.throttle_mean]
+      }, [0, 1, 2]);
+    }
+
+    // Laziness
+    if (h.avg_reward && h.gems_per_hr) {
+      const lazY = h.avg_reward.map((r, i) => h.gems_per_hr[i] > 0 ? r / h.gems_per_hr[i] : 0);
+      Plotly.extendTraces('c-laziness', { x: [xs], y: [lazY] }, [0]);
+    }
+
+    // Throughput
+    if (h.timestamps.length > 1) {
+      const tpXs = xs.slice(1);
+      const tpY = [];
+      for (let i = 1; i < h.timestamps.length; i++) {
+        const dt = h.timestamps[i] - h.timestamps[i - 1];
+        tpY.push(dt > 0.001 ? (h.config?.rollout_size || 2048) / dt : 0);
+      }
+      Plotly.extendTraces('c-throughput', { x: [tpXs], y: [tpY] }, [0]);
+    }
+
+    // Set prevTimestamp for live throughput calc
+    if (h.timestamps.length > 0) {
+      prevTimestamp = h.timestamps[h.timestamps.length - 1];
+    }
+
+  } catch (e) {
+    console.log('History load failed (training just started?):', e);
+  }
+}
+
+// ============================================================
+// Live SSE update handler
+// ============================================================
+function updateDashboard(snap) {
+  // === Header ===
+  document.getElementById('m-update').textContent = snap.update;
+  document.getElementById('m-steps').textContent = snap.total_steps.toLocaleString();
+  document.getElementById('m-eps').textContent = snap.total_episodes;
+  document.getElementById('m-time').textContent = snap.elapsed_hrs.toFixed(2) + 'h';
+  document.getElementById('m-gems').textContent = snap.total_gem_pts;
+  document.getElementById('m-gems-hr').textContent = snap.gems_per_hr.toFixed(1);
+  document.getElementById('m-best-gems-hr').textContent = snap.best_gems_hr.toFixed(1);
+  document.getElementById('m-best-game-gems').textContent = snap.best_game_gems || '--';
+  document.getElementById('m-oob').textContent = snap.total_oob;
+  document.getElementById('m-best').textContent = snap.best_avg_reward.toFixed(1);
+
+  // === Badges ===
+  const liveBadge = document.getElementById('live-badge');
+  liveBadge.textContent = 'LIVE';
+  liveBadge.className = 'badge badge-live';
+
+  const gameBadge = document.getElementById('game-badge');
+  gameBadge.textContent = snap.game_connected ? 'Game: CONNECTED' : 'Game: WAITING';
+  gameBadge.className = 'badge badge-game' + (snap.game_connected ? ' connected' : '');
+
+  // === Alerts ===
+  document.getElementById('alert-collapse').classList.toggle('visible', snap.entropy_collapse);
+  const dryAlert = document.getElementById('alert-dry');
+  dryAlert.classList.toggle('visible', snap.dry_warning);
+  if (snap.dry_warning) document.getElementById('dry-count').textContent = snap.dry_rollouts;
+
+  // === Gauges ===
+  document.getElementById('g-avgrwd').textContent = snap.avg_reward_100ep.toFixed(1);
+  document.getElementById('g-avgrwd').style.color = snap.avg_reward_100ep > 0 ? '#3fb950' : snap.avg_reward_100ep < -20 ? '#f85149' : '#e6edf3';
+
+  const entEl = document.getElementById('g-entropy');
+  entEl.textContent = snap.entropy.toFixed(3);
+  entEl.style.color = snap.entropy_collapse ? '#f85149' : snap.entropy_low ? '#d29922' : '#3fb950';
+
+  document.getElementById('g-gemshr').textContent = snap.gems_per_hr.toFixed(1);
+
+  const gameGemsArr = snap.recent_game_gems || [];
+  const lastGameGems = gameGemsArr.length > 0 ? gameGemsArr[gameGemsArr.length - 1] : 0;
+  document.getElementById('g-lastgems').textContent = lastGameGems;
+
+  // Avg gems/game (last 20 full games)
+  const gemsGameEl = document.getElementById('g-gems-game');
+  if (gameGemsArr.length > 0) {
+    const recent20 = gameGemsArr.slice(-20);
+    const avgGems = recent20.reduce((a, b) => a + b, 0) / recent20.length;
+    gemsGameEl.textContent = avgGems.toFixed(1);
+    gemsGameEl.style.color = avgGems >= 100 ? '#f0c040' : avgGems >= 85 ? '#3fb950' : '#e6edf3';
+  } else {
+    gemsGameEl.textContent = '--';
+  }
+
+  // KL-stop %
+  const klStopEl = document.getElementById('g-klstop');
+  const klPct = snap.kl_stop_pct || 0;
+  klStopEl.textContent = klPct.toFixed(0) + '%';
+  klStopEl.style.color = klPct >= 80 ? '#f85149' : klPct >= 40 ? '#d29922' : '#3fb950';
+
+  // Grad norm
+  const gnEl = document.getElementById('g-gradnorm');
+  const gn = snap.grad_norm || 0;
+  gnEl.textContent = gn.toFixed(2);
+  gnEl.style.color = gn > 10 ? '#f85149' : gn > 2 ? '#d29922' : '#3fb950';
+
+  const dryEl = document.getElementById('g-dry');
+  dryEl.textContent = snap.dry_rollouts;
+  dryEl.style.color = snap.dry_warning ? '#f85149' : snap.dry_rollouts > 0 ? '#d29922' : '#3fb950';
+
+  // === Config (once) ===
+  document.getElementById('cfg-rollout').textContent = snap.rollout_size;
+  document.getElementById('cfg-batch').textContent = snap.batch_size;
+  document.getElementById('cfg-epochs').textContent = snap.n_epochs;
+  document.getElementById('cfg-gamma').textContent = snap.gamma;
+  document.getElementById('cfg-lam').textContent = snap.lam;
+  document.getElementById('cfg-rwdscale').textContent = snap.reward_scale;
+
+  // === Time-series charts (extend traces - O(1)) ===
+  const x = snap.update;
+
+  // Best reward tracking
+  if (snap.best_avg_reward > bestReward) bestReward = snap.best_avg_reward;
+  Plotly.extendTraces('c-avgrwd', { x: [[x], [x]], y: [[snap.avg_reward_100ep], [bestReward]] }, [0, 1]);
+  Plotly.extendTraces('c-losses', { x: [[x], [x]], y: [[snap.policy_loss], [snap.value_loss]] }, [0, 1]);
+  Plotly.extendTraces('c-entropy', { x: [[x]], y: [[snap.entropy]] }, [0]);
+  Plotly.extendTraces('c-policystd', { x: [[x]], y: [[snap.policy_std]] }, [0]);
+  Plotly.extendTraces('c-gemshr', { x: [[x], [x]], y: [[snap.gems_per_hr], [snap.best_gems_hr]] }, [0, 1]);
+  Plotly.extendTraces('c-kl', { x: [[x], [x]], y: [[snap.kl || 0], [snap.kl_stop_pct || 0]] }, [0, 1]);
+  Plotly.extendTraces('c-gradnorm', { x: [[x], [x], [x]], y: [[snap.grad_norm || 0], [snap.critic_grad_norm || 0], [1.0]] }, [0, 1, 2]);
+  Plotly.extendTraces('c-oob', { x: [[x]], y: [[snap.rollout_oob]] }, [0]);
+
+  // Avg Gap Penalty Per Gem
+  Plotly.extendTraces('c-gappen', { x: [[x]], y: [[snap.avg_gap_penalty]] }, [0]);
+
+  // Near Misses
+  Plotly.extendTraces('c-nearmiss', { x: [[x]], y: [[snap.near_misses || 0]] }, [0]);
+
+  // Dwell Steps
+  Plotly.extendTraces('c-dwell', { x: [[x]], y: [[snap.dwell_steps || 0]] }, [0]);
+
+  // Throttle (trace 0=Min, 1=Max, 2=Mean)
+  Plotly.extendTraces('c-throttle', { x: [[x], [x], [x]], y: [[snap.throttle_min || 1], [snap.throttle_max || 1], [snap.throttle_mean || 1]] }, [0, 1, 2]);
+
+  // Laziness
+  const laziness = snap.gems_per_hr > 0 ? snap.avg_reward_100ep / snap.gems_per_hr : 0;
+  Plotly.extendTraces('c-laziness', { x: [[x]], y: [[laziness]] }, [0]);
+
+  // Throughput
+  if (prevTimestamp !== null) {
+    const dt = snap.timestamp - prevTimestamp;
+    const sps = dt > 0.001 ? snap.rollout_size / dt : 0;
+    Plotly.extendTraces('c-throughput', { x: [[x]], y: [[sps]] }, [0]);
+  }
+  prevTimestamp = snap.timestamp;
+
+  // === Snapshot charts (full redraw — small fixed-size arrays) ===
+
+  // Gems per game (last 100 full games) — bars + rolling avg line
+  const gameGems = snap.recent_game_gems || [];
+  if (gameGems.length > 0) {
+    const gemIdxs = gameGems.map((_, i) => i + 1);
+    const maxGems = Math.max(...gameGems);
+    const colors = gameGems.map(g => {
+      if (g === maxGems && maxGems > 0) return '#3fb950';
+      if (g > 0) return '#f0c040';
+      return '#30363d';
+    });
+    // Rolling 10-game average line
+    const window = 10;
+    const rollingAvg = gameGems.map((_, i) => {
+      const slice = gameGems.slice(Math.max(0, i - window + 1), i + 1);
+      return slice.reduce((a, b) => a + b, 0) / slice.length;
+    });
+    Plotly.react('c-epgems', [
+      { x: gemIdxs, y: gameGems, type: 'bar', marker: { color: colors }, name: 'Game Gems' },
+      { x: gemIdxs, y: rollingAvg, type: 'scatter', mode: 'lines',
+        line: { color: '#f85149', width: 2 }, name: `Avg (${window})` }
+    ], darkLayout({ bargap: 0.15, showlegend: true, legend: { x: 0, y: 1, font: { size: 9 } } }), plotConfig);
+  }
+}
+
+// ============================================================
+// Boot
+// ============================================================
+loadHistory().then(() => {
+  const source = new EventSource('/stream');
+
+  source.onmessage = (e) => {
+    try { updateDashboard(JSON.parse(e.data)); }
+    catch (err) { console.error('Dashboard update error:', err); }
+  };
+
+  source.onopen = () => {
+    const b = document.getElementById('live-badge');
+    b.textContent = 'LIVE';
+    b.className = 'badge badge-live';
+  };
+
+  source.onerror = () => {
+    const b = document.getElementById('live-badge');
+    b.textContent = 'RECONNECTING...';
+    b.className = 'badge badge-reconnecting';
+  };
+});
+</script>
+</body>
+</html>"""

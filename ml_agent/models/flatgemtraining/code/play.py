@@ -1,17 +1,17 @@
 """
-Camera Angle Sensitivity Test — with position zeroed out
+Inference-only server for PlatinumQuest Hunt Mode
 
-Tests whether self-position in observations is the source of camera-angle
-dependence. Zeroes out obs[0:3] (camera-relative position) before feeding
-to the model. If results become uniform across angles, position is the culprit.
+Loads a trained model and plays the game at normal speed (1x).
+No training, no buffer, no dashboard — just picks the best action each step.
 
 Usage:
-    python camera_test_nopos.py
+    python play.py                              # loads best.pth
+    python play.py --model models/checkpoints/update_7500.pth
+    python play.py --stochastic                 # sample from policy instead of argmax
 """
 
 import socket
 import json
-import math
 import numpy as np
 import torch
 import argparse
@@ -19,11 +19,18 @@ import os
 import sys
 from collections import deque
 
+# Reuse the model definition from the training script
 from train_ppo import Actor
 
 
 def normalize_obs(obs):
-    """Normalize raw game observations (mirrors PPOServer.normalize_obs exactly)."""
+    """Normalize raw game observations (mirrors PPOServer.normalize_obs exactly).
+
+    35-dim layout from game:
+      [0-5]   Self: pos(3), vel(3) — both camera-relative
+      [6-30]  5 gems x 5
+      [31-34] Game: timeElapsed, timeRemaining, myScore, gemsRemaining
+    """
     obs[0:3]  /= 100.0
     obs[3:6]  /= 20.0
 
@@ -53,26 +60,29 @@ def normalize_obs(obs):
 
 
 def main():
+    # Frame history config (must match train_ppo.py)
     FRAME_HISTORY_COUNT = 4
     FRAME_SKIP = 8
-    FRAME_HISTORY_DIMS = 6
+    FRAME_HISTORY_DIMS = 6  # pos(3) + vel(3)
     OBS_DIM_BASE = 35
-    OBS_DIM = OBS_DIM_BASE + FRAME_HISTORY_COUNT * FRAME_HISTORY_DIMS
-    frame_history_size = FRAME_HISTORY_COUNT * FRAME_SKIP + 1
+    OBS_DIM = OBS_DIM_BASE + FRAME_HISTORY_COUNT * FRAME_HISTORY_DIMS  # 59
+    frame_history_size = FRAME_HISTORY_COUNT * FRAME_SKIP + 1  # 33
     frame_history = deque(maxlen=frame_history_size)
 
-    parser = argparse.ArgumentParser(description='Camera Test (no position)')
-    parser.add_argument('--model', default='models/checkpoints/best.pth')
+    parser = argparse.ArgumentParser(description='PlatinumQuest Inference Server')
+    parser.add_argument('--model', default='models/checkpoints/best.pth',
+                        help='Path to model checkpoint')
     parser.add_argument('--host', default='127.0.0.1')
     parser.add_argument('--port', type=int, default=8888)
-    parser.add_argument('--stochastic', action='store_true')
-    parser.add_argument('--step-deg', type=int, default=10)
+    parser.add_argument('--stochastic', action='store_true',
+                        help='Sample from policy instead of taking argmax')
     args = parser.parse_args()
 
     if not os.path.exists(args.model):
         print(f"Model not found: {args.model}")
         sys.exit(1)
 
+    # Load model
     model = Actor(obs_dim=OBS_DIM)
     checkpoint = torch.load(args.model, weights_only=False)
     state = checkpoint.get('actor_state_dict', checkpoint.get('model_state_dict', {}))
@@ -81,24 +91,20 @@ def main():
 
     deterministic = not args.stochastic
     mode = "stochastic" if args.stochastic else "deterministic"
-    print(f"Loaded {args.model}")
+    updates = checkpoint.get('total_updates', '?')
+    best = checkpoint.get('best_avg_reward', '?')
+    print(f"Loaded {args.model} (update {updates}, best_avg={best})")
     print(f"Mode: {mode}")
-    print(f"*** POSITION ZEROED OUT (obs[0:3] = 0) ***")
-
-    angles_deg = list(range(0, 360, args.step_deg))
-    num_games = len(angles_deg)
-    results = {}
-
-    current_game = 0
-    current_angle_deg = angles_deg[0]
-    current_angle_rad = math.radians(current_angle_deg)
-    episode_gems = 0
-    total_steps = 0
-
-    print(f"Will test {num_games} camera angles: 0 to {360 - args.step_deg} degrees")
     print(f"Listening on {args.host}:{args.port}")
-    print()
+    print(f"Start the game (make sure MLAgent uses 1x speed for inference)")
+    print(f"Press Ctrl+C to stop")
 
+    # Stats
+    total_steps = 0
+    episode_gems = 0
+    total_episodes = 0
+
+    # Start server
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     sock.settimeout(1.0)
@@ -106,7 +112,7 @@ def main():
     sock.listen(1)
 
     try:
-        while current_game < num_games:
+        while True:
             try:
                 conn, addr = sock.accept()
                 print(f"Game connected from {addr}")
@@ -117,7 +123,7 @@ def main():
 
             buffer_str = ""
             try:
-                while current_game < num_games:
+                while True:
                     data = conn.recv(8192).decode('utf-8')
                     if not data:
                         print("Game disconnected")
@@ -130,6 +136,7 @@ def main():
                         if not line:
                             continue
 
+                        # Protocol: obs_json|gem_delta|oob|done
                         parts = line.split('|')
                         if len(parts) != 4:
                             conn.sendall(b'0,0,0,0\n')
@@ -138,6 +145,7 @@ def main():
                         obs_json, gem_delta_str, oob_str, done_str = parts
                         obs_raw = json.loads(obs_json)
 
+                        # Skip game-end signals (empty obs)
                         if len(obs_raw) == 0:
                             conn.sendall(b'0,0,0,0\n')
                             continue
@@ -148,10 +156,7 @@ def main():
 
                         obs = normalize_obs(obs)
 
-                        # ZERO OUT POSITION (obs[0:3])
-                        obs[0:3] = 0.0
-
-                        # Frame history
+                        # Build augmented obs with frame history
                         current_posvel = obs[0:6].copy()
                         frame_history.append(current_posvel)
                         history_frames = []
@@ -169,59 +174,27 @@ def main():
 
                         if gem_delta > 0:
                             episode_gems += int(gem_delta)
-
-                        action_tuple = Actor.action_to_joystick(dx, dy, throttle)
-                        action_str = ','.join(map(str, action_tuple))
-                        action_str += f',{current_angle_rad:.6f}'
-                        conn.sendall((action_str + '\n').encode('utf-8'))
+                            print(f"  +{gem_delta:.0f} gem pts (episode total: {episode_gems})")
 
                         if done:
-                            results[current_angle_deg] = episode_gems
-                            print(f"  Game {current_game+1}/{num_games}: camera={current_angle_deg} deg -> {episode_gems} gems")
-
+                            total_episodes += 1
+                            print(f"Ep {total_episodes} done | gems={episode_gems}pts steps={total_steps}")
                             episode_gems = 0
                             total_steps = 0
                             frame_history.clear()
-                            current_game += 1
 
-                            if current_game < num_games:
-                                current_angle_deg = angles_deg[current_game]
-                                current_angle_rad = math.radians(current_angle_deg)
+                        action_tuple = Actor.action_to_joystick(dx, dy, throttle)
+                        conn.sendall((','.join(map(str, action_tuple)) + '\n').encode('utf-8'))
 
             except Exception as e:
                 print(f"Error: {e}")
-                import traceback
-                traceback.print_exc()
             finally:
                 conn.close()
 
     except KeyboardInterrupt:
-        print("\nStopping early...")
+        print("\nStopping...")
     finally:
         sock.close()
-
-    if results:
-        print("\n" + "=" * 50)
-        print("RESULTS: Gems per camera angle (POSITION ZEROED)")
-        print("=" * 50)
-        gems_list = []
-        for angle in sorted(results.keys()):
-            gems = results[angle]
-            gems_list.append(gems)
-            bar = "#" * (gems // 2)
-            print(f"  {angle:>3} deg: {gems:>3} gems  {bar}")
-
-        avg = sum(gems_list) / len(gems_list)
-        best_angle = max(results, key=results.get)
-        worst_angle = min(results, key=results.get)
-        print(f"\n  Average: {avg:.1f} gems")
-        print(f"  Best:    {results[best_angle]} gems @ {best_angle} deg")
-        print(f"  Worst:   {results[worst_angle]} gems @ {worst_angle} deg")
-        print(f"  Spread:  {results[best_angle] - results[worst_angle]} gems")
-
-        with open("camera_test_nopos_results.json", "w") as f:
-            json.dump(results, f, indent=2)
-        print(f"\n  Results saved to camera_test_nopos_results.json")
 
 
 if __name__ == '__main__':
