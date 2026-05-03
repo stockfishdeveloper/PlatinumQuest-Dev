@@ -1,11 +1,11 @@
 //--- INFO BEGIN ---
 //Mission information for the level select. Generated from the MissionInfo object except with extra goodies.
-function MP_PQ_FlatWithJumpHunt_GetMissionInfo() {
+function MP_PQ_JumpOnlyHunt_GetMissionInfo() {
 	return new ScriptObject() {
-		name = "Flat With Jump";
+		name = "Jump Only";
 		type = "Custom";
 		level = "9999";
-		desc = "Flat training arena with a raised block requiring jump";
+		desc = "Curriculum map - only elevated gems, forces jump learning";
 		artist = "AI Training";
 		music = "Astrolabe.ogg";
 		game = "Ultra";
@@ -43,13 +43,13 @@ if ($loadingMissionInfo) return;
 //--- SERVER SCRIPTS BEGIN ---
 //--- SERVER SCRIPTS END ---
 //--- MISSION BEGIN ---
-function MP_PQ_FlatWithJumpHunt_LoadMission() {
+function MP_PQ_JumpOnlyHunt_LoadMission() {
 	return new SimGroup(MissionGroup) {
 
    new ScriptObject(MissionInfo) {
       artist = "AI Training";
       blast = "0";
-      desc = "Flat training arena with a raised block requiring jump";
+      desc = "Curriculum map - only elevated gems, forces jump learning";
       difficulty = "1";
       game = "Ultra";
       gameMode = "hunt";
@@ -59,7 +59,7 @@ function MP_PQ_FlatWithJumpHunt_LoadMission() {
       minGemsPerSpawn = "1";
       minPointsPerSpawn = "1";
       music = "Astrolabe.ogg";
-      name = "Flat With Jump";
+      name = "Jump Only";
       radiusFromGem = "5";
       Time = "300000";
       type = "Beginner";
@@ -100,13 +100,9 @@ function MP_PQ_FlatWithJumpHunt_LoadMission() {
    };
 
    // Raised blocks - require jumping to reach gems on top.
-   // FOUR symmetric platforms at (+/-10, +/-10) — one in each quadrant.
-   // Symmetric distribution prevents the model from learning a Y-axis or
-   // X-axis shortcut (which was happening with the old 3-platform layout
-   // where 2 of 3 platforms had Y<0, letting the model "cheat" by jumping
-   // at all negative-Y positions).
+   // Three blocks spread around the map, away from spawn (0,0).
    new InteriorInstance() {
-      position = "10 10 0.3";
+      position = "8 8 0.3";
       rotation = "1 0 0 0";
       scale = "1 1 2";
       interiorFile = "~/data/interiors_mbg/addon/smallplatform.dif";
@@ -114,7 +110,7 @@ function MP_PQ_FlatWithJumpHunt_LoadMission() {
    };
 
    new InteriorInstance() {
-      position = "-10 10 0.3";
+      position = "-10 -8 0.3";
       rotation = "1 0 0 0";
       scale = "1 1 2";
       interiorFile = "~/data/interiors_mbg/addon/smallplatform.dif";
@@ -122,15 +118,7 @@ function MP_PQ_FlatWithJumpHunt_LoadMission() {
    };
 
    new InteriorInstance() {
-      position = "-10 -10 0.3";
-      rotation = "1 0 0 0";
-      scale = "1 1 2";
-      interiorFile = "~/data/interiors_mbg/addon/smallplatform.dif";
-      showTerrainInside = "0";
-   };
-
-   new InteriorInstance() {
-      position = "10 -10 0.3";
+      position = "12 -12 0.3";
       rotation = "1 0 0 0";
       scale = "1 1 2";
       interiorFile = "~/data/interiors_mbg/addon/smallplatform.dif";
@@ -166,50 +154,23 @@ function MP_PQ_FlatWithJumpHunt_LoadMission() {
    };
 
    // ========================================
-   // GEM GROUPS - 8 spawns, 1 gem each
-   // 7 on the flat ground (same as FlatGemTraining) + 1 on top of the block.
-   // The block gem forces the model to learn jumping.
+   // GEM GROUPS - 3 spawns, all elevated
+   // CURRICULUM: only gems on top of raised blocks. Every gem collection
+   // requires a jump. No ground gems to dilute the "jump helped" signal.
    // ========================================
 
-   // 4 ground gems + 4 elevated gems = 50/50 split, all SYMMETRIC.
-   // Ground gems on cardinal axes at radius 17. Elevated gems on top of the
-   // 4 corner platforms at (+/-10, +/-10). This balanced distribution prevents
-   // the model from learning XY-shortcut policies (e.g., "always jump if Y<0")
-   // — every quadrant of the map is treated equally.
    new SimGroup(GemGroups) {
 
-      // Ground gems — cardinal axes
       new SimGroup(GemGroup0) {
-         new Item() { position = "17 0 0.6"; rotation = "1 0 0 0"; scale = "1 1 1"; dataBlock = "GemItemRed_MBU"; collideable = "0"; static = "1"; rotate = "1"; };
+         new Item() { position = "8 8 1.6"; rotation = "1 0 0 0"; scale = "1 1 1"; dataBlock = "GemItemRed_MBU"; collideable = "0"; static = "1"; rotate = "1"; };
       };
 
       new SimGroup(GemGroup1) {
-         new Item() { position = "-17 0 0.6"; rotation = "1 0 0 0"; scale = "1 1 1"; dataBlock = "GemItemRed_MBU"; collideable = "0"; static = "1"; rotate = "1"; };
+         new Item() { position = "-10 -8 1.6"; rotation = "1 0 0 0"; scale = "1 1 1"; dataBlock = "GemItemRed_MBU"; collideable = "0"; static = "1"; rotate = "1"; };
       };
 
       new SimGroup(GemGroup2) {
-         new Item() { position = "0 17 0.6"; rotation = "1 0 0 0"; scale = "1 1 1"; dataBlock = "GemItemRed_MBU"; collideable = "0"; static = "1"; rotate = "1"; };
-      };
-
-      new SimGroup(GemGroup3) {
-         new Item() { position = "0 -17 0.6"; rotation = "1 0 0 0"; scale = "1 1 1"; dataBlock = "GemItemRed_MBU"; collideable = "0"; static = "1"; rotate = "1"; };
-      };
-
-      // Elevated gems — on top of the 4 corner platforms
-      new SimGroup(GemGroup4) {
-         new Item() { position = "10 10 1.6"; rotation = "1 0 0 0"; scale = "1 1 1"; dataBlock = "GemItemRed_MBU"; collideable = "0"; static = "1"; rotate = "1"; };
-      };
-
-      new SimGroup(GemGroup5) {
-         new Item() { position = "-10 10 1.6"; rotation = "1 0 0 0"; scale = "1 1 1"; dataBlock = "GemItemRed_MBU"; collideable = "0"; static = "1"; rotate = "1"; };
-      };
-
-      new SimGroup(GemGroup6) {
-         new Item() { position = "-10 -10 1.6"; rotation = "1 0 0 0"; scale = "1 1 1"; dataBlock = "GemItemRed_MBU"; collideable = "0"; static = "1"; rotate = "1"; };
-      };
-
-      new SimGroup(GemGroup7) {
-         new Item() { position = "10 -10 1.6"; rotation = "1 0 0 0"; scale = "1 1 1"; dataBlock = "GemItemRed_MBU"; collideable = "0"; static = "1"; rotate = "1"; };
+         new Item() { position = "12 -12 1.6"; rotation = "1 0 0 0"; scale = "1 1 1"; dataBlock = "GemItemRed_MBU"; collideable = "0"; static = "1"; rotate = "1"; };
       };
    };
 	};

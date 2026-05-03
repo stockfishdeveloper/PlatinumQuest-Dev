@@ -68,8 +68,8 @@ function AIAgent::clearInputs() {
 	$mvRightAction = 0;
 	$mvForwardAction = 0;
 	$mvBackwardAction = 0;
-	$mvTriggerCount0 = 0; // Jump
-	$mvTriggerCount2 = 0; // Use powerup
+	$mvTriggerCount2 = 0; // Jump
+	$mvTriggerCount0 = 0; // Use powerup
 	// Zero camera deltas — the engine applies $mvYaw as a per-tick rotation
 	// to the marble's camera. Any residual from mouse input causes the camera
 	// to drift, creating a mismatch between observer's $cameraYaw and the
@@ -90,8 +90,8 @@ function AIAgent::setBinaryActions(%forward, %backward, %left, %right, %jump, %p
 	$mvBackwardAction = %backward ? 1.0 : 0;
 	$mvLeftAction = %left ? 1.0 : 0;
 	$mvRightAction = %right ? 1.0 : 0;
-	$mvTriggerCount0 = %jump ? 1 : 0;      // Jump
-	$mvTriggerCount2 = %powerup ? 1 : 0;   // Use powerup
+	$mvTriggerCount2 = %jump ? 1 : 0;      // Jump
+	$mvTriggerCount0 = %powerup ? 1 : 0;   // Use powerup
 }
 
 // Apply a specific action by index
@@ -117,8 +117,8 @@ function AIAgent::applyAction(%actionIndex) {
 	$mvRightAction = %mvRight;
 	$mvForwardAction = %mvForward;
 	$mvBackwardAction = %mvBackward;
-	$mvTriggerCount0 = %jump;
-	$mvTriggerCount2 = %usePowerup;
+	$mvTriggerCount2 = %jump;        // Jump = trigger 2 (matches default.bind.cs input_jump)
+	$mvTriggerCount0 = %usePowerup;  // Powerup = trigger 0 (matches default.bind.cs input_usePowerup)
 
 	return %name;
 }
@@ -131,8 +131,8 @@ function AIAgent::setCustomAction(%left, %right, %forward, %backward, %jump, %us
 	$mvRightAction = %right;
 	$mvForwardAction = %forward;
 	$mvBackwardAction = %backward;
-	$mvTriggerCount0 = %jump;
-	$mvTriggerCount2 = %usePowerup;
+	$mvTriggerCount2 = %jump;        // Jump = trigger 2
+	$mvTriggerCount0 = %usePowerup;  // Powerup = trigger 0
 }
 
 //-----------------------------------------------------------------------------

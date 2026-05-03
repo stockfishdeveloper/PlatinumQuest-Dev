@@ -139,7 +139,7 @@ def main():
                         # Protocol: obs_json|gem_delta|oob|done
                         parts = line.split('|')
                         if len(parts) != 4:
-                            conn.sendall(b'0,0,0,0\n')
+                            conn.sendall(b'0,0,0,0,0\n')
                             continue
 
                         obs_json, gem_delta_str, oob_str, done_str = parts
@@ -147,7 +147,7 @@ def main():
 
                         # Skip game-end signals (empty obs)
                         if len(obs_raw) == 0:
-                            conn.sendall(b'0,0,0,0\n')
+                            conn.sendall(b'0,0,0,0,0\n')
                             continue
 
                         obs = np.array(obs_raw, dtype=np.float32)
@@ -169,7 +169,7 @@ def main():
                         obs_augmented = np.concatenate([obs] + history_frames)
 
                         _, action_game, _ = model.get_action(obs_augmented, deterministic=deterministic)
-                        dx, dy, throttle = action_game
+                        dx, dy, throttle, jump, brake = action_game
                         total_steps += 1
 
                         if gem_delta > 0:
@@ -183,7 +183,10 @@ def main():
                             total_steps = 0
                             frame_history.clear()
 
-                        action_tuple = Actor.action_to_joystick(dx, dy, throttle)
+                        # Brake override needs raw camera-relative velocity (obs_raw[3:5]).
+                        vx_raw = float(obs_raw[3]) if len(obs_raw) > 5 else 0.0
+                        vy_raw = float(obs_raw[4]) if len(obs_raw) > 5 else 0.0
+                        action_tuple = Actor.action_to_joystick(dx, dy, throttle, jump, brake, vx_raw, vy_raw)
                         conn.sendall((','.join(map(str, action_tuple)) + '\n').encode('utf-8'))
 
             except Exception as e:

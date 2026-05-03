@@ -225,16 +225,15 @@ function MLAgent::resetEpisode() {
 //------------------------------------------------------------------------------
 
 function MLAgent::executeAction(%actionStr) {
-    // Parse comma-separated analog action: "0.87,0.0,0.0,0.50[,yaw]" (forward,backward,left,right[,cameraYaw])
-    // Values are continuous floats [0.0, 1.0] from the PPO agent's angle -> joystick conversion.
-    // Always full magnitude in some direction (no idle action).
-    // Optional 5th field: camera yaw in radians (used by test scripts to set camera orientation).
+    // Parse comma-separated action: "fwd,back,left,right,jump,camYaw"
+    // Movement: continuous floats [0.0, 1.0]. Jump: 0 or 1. CamYaw: radians (optional).
     %words = strreplace(%actionStr, ",", " ");
     %forward = getWord(%words, 0);
     %backward = getWord(%words, 1);
     %left = getWord(%words, 2);
     %right = getWord(%words, 3);
-    %camYaw = getWord(%words, 4);
+    %jump = getWord(%words, 4);
+    %camYaw = getWord(%words, 5);
 
     // If a camera yaw was provided, set it (must use setMarbleCamYaw to keep
     // both $cameraYaw and $MP::MyMarble camera in sync — observer reads $cameraYaw
@@ -249,7 +248,8 @@ function MLAgent::executeAction(%actionStr) {
     }
 
     // Execute via analog input (accepts float values 0.0-1.0)
-    AIAgent::setCustomAction(%left, %right, %forward, %backward, 0, 0);
+    // Jump is binary (0 or 1) via $mvTriggerCount0
+    AIAgent::setCustomAction(%left, %right, %forward, %backward, %jump + 0, 0);
 }
 
 //------------------------------------------------------------------------------

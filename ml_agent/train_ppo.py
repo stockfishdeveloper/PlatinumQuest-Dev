@@ -35,7 +35,6 @@ import signal
 import sys
 import os
 import math
-import random
 from collections import deque
 from datetime import datetime
 from dashboard import DashboardServer
@@ -66,12 +65,13 @@ class DualLogger:
 # ============================================================================
 
 class Actor(nn.Module):
-    """Policy network for PPO with continuous 2D direction + throttle output.
+    """Policy network for PPO with continuous 2D direction + throttle + binary jump.
 
-    Action: (dx, dy, throttle) where:
+    Action: (dx, dy, throttle, jump) where:
       - (dx, dy): unit-circle direction vector (0,1)=forward, (1,0)=right
       - throttle: [0.15, 1] force magnitude (floor prevents sit-still collapse)
-    Buffer stores (dx, dy, throttle_logit) — 3 dims.
+      - jump: binary (0 or 1), sampled from Bernoulli
+    Buffer stores (dx, dy, throttle_logit, jump_binary) — 4 dims.
     2D representation eliminates the scalar angle wrap discontinuity at +/-pi
     that caused systematic failures in 1/4 of camera headings.
 
@@ -125,6 +125,40 @@ class Actor(nn.Module):
         # This prevents the model from starting with 50% throttle which would halve gem collection
         nn.init.constant_(self.throttle_head[-1].bias, 2.0)
 
+        # Jump pathway has its OWN feature extractor, decoupled from the shared
+        # features backbone used by direction/throttle. The shared backbone is
+        # dominated by gradients from direction/throttle (dense, continuous rewards)
+        # and its 128-dim representation ends up optimized for steering decisions —
+        # not for "am I near a platform, is this gem elevated, should I be airborne".
+        # Giving jump its own 2-layer MLP lets it learn its own internal features
+        # specifically tuned to the jump decision. Adds ~6K params, no impact on
+        # direction/throttle quality.
+        self.jump_features = nn.Sequential(
+            nn.Linear(obs_dim, 64),
+            nn.ReLU(),
+            nn.Linear(64, 32),
+            nn.ReLU(),
+        )
+        self.jump_head = nn.Linear(32, 1)
+        nn.init.constant_(self.jump_head.bias, -1.0)  # sigmoid(-1) ~= 27% starting
+
+        # Brake pathway: explicit "decelerate now" action that overrides direction
+        # to anti-velocity at full throttle for one frame. Same architectural pattern
+        # as jump (independent feature MLP + Bernoulli head). Reason it's a separate
+        # discrete action rather than relying on direction-head exploration: the
+        # direction Gaussian (PolicyStd ~30°) puts ~0.003% probability on samples
+        # 180° from gem direction, so the model never discovers braking via random
+        # direction exploration. A Bernoulli on a single bit gives natural ~5%
+        # baseline exploration via bias=-3 init.
+        self.brake_features = nn.Sequential(
+            nn.Linear(obs_dim, 64),
+            nn.ReLU(),
+            nn.Linear(64, 32),
+            nn.ReLU(),
+        )
+        self.brake_head = nn.Linear(32, 1)
+        nn.init.constant_(self.brake_head.bias, -3.0)  # sigmoid(-3) ~= 4.7% baseline brake rate
+
         # Learnable log-std (state-independent, single scalar for angular spread)
         # Init to -1.5 -> exp(-1.5) ~= 0.22 rad ~= 12.8 deg
         self.log_std = nn.Parameter(torch.full((1,), -1.5))
@@ -154,20 +188,32 @@ class Actor(nn.Module):
         features = self.features(state)
         mean_xy = self.actor_mean(features)
         throttle_logit = self.throttle_head(features)
-        return mean_xy, throttle_logit
+        # Jump uses its own features extractor on raw (normalized) obs.
+        jump_logit = self.jump_head(self.jump_features(state))
+        # Asymmetric clamp. Negative side opened up to -7 (sigmoid = 0.09%) so the
+        # JUMP_COST gradient can actually drive flat-ground jump prob below 1%.
+        # Previous symmetric clamp at -3 (= 4.74% floor) was eating the suppression
+        # gradient and making any JUMP_COST irrelevant on flat ground. Positive side
+        # stays at +3 (= 95.3%) to prevent overconfidence at platforms.
+        jump_logit = torch.clamp(jump_logit, -7.0, 3.0)
+        # Brake: same pattern, same clamp. Allows model to suppress unneeded brakes
+        # toward 0.09% on flat travel while committing strongly (95.3%) at slowdown moments.
+        brake_logit = self.brake_head(self.brake_features(state))
+        brake_logit = torch.clamp(brake_logit, -7.0, 3.0)
+        return mean_xy, throttle_logit, jump_logit, brake_logit
 
     def get_action(self, state, deterministic=False):
         """Get action from state.
 
         Returns:
-            action_for_buffer: (dx, dy, throttle_logit) - stored in buffer for evaluate_actions
-            action_for_game: (dx, dy, throttle) - direction + throttle for joystick
-            log_prob: joint log probability
+            action_for_buffer: (dx, dy, throttle_logit, jump_binary, brake_binary) - stored in buffer
+            action_for_game: (dx, dy, throttle, jump_binary, brake_binary) - passed to action_to_joystick
+            log_prob: joint log probability (direction + throttle + jump + brake)
         """
         with torch.no_grad():
             if not isinstance(state, torch.Tensor):
                 state = torch.FloatTensor(state).unsqueeze(0)
-            mean_xy, throttle_logit = self.forward(state)
+            mean_xy, throttle_logit, jump_logit, brake_logit = self.forward(state)
 
             # Direction (2D)
             dir_dist = self._get_direction_dist(mean_xy)
@@ -176,7 +222,6 @@ class Actor(nn.Module):
                 direction = mean_xy / norm  # (1, 2)
             else:
                 direction = dir_dist.sample()  # (1, 2)
-            # Sum log_prob over both dims for joint direction probability
             dir_log_prob = dir_dist.log_prob(direction).sum(dim=1)
 
             # Throttle (sample in logit space, then sigmoid)
@@ -187,24 +232,46 @@ class Actor(nn.Module):
                 throttle_logit_sample = throttle_dist.sample()
             throttle_log_prob = throttle_dist.log_prob(throttle_logit_sample)
             throttle_raw = torch.sigmoid(throttle_logit_sample)
-            # Remap [0,1] -> [THROTTLE_FLOOR, 1] to prevent sit-still collapse
             throttle = self.THROTTLE_FLOOR + (1 - self.THROTTLE_FLOOR) * throttle_raw
 
-            # Joint log prob = direction + throttle
-            log_prob = dir_log_prob + throttle_log_prob
+            # Jump (Bernoulli from logit)
+            jump_prob = torch.sigmoid(jump_logit.squeeze(-1))
+            jump_dist = torch.distributions.Bernoulli(probs=jump_prob)
+            if deterministic:
+                jump_action = (jump_prob > 0.5).float()
+            else:
+                jump_action = jump_dist.sample()
+            jump_log_prob = jump_dist.log_prob(jump_action)
+
+            # Brake (Bernoulli from logit) — same pattern as jump
+            brake_prob = torch.sigmoid(brake_logit.squeeze(-1))
+            brake_dist = torch.distributions.Bernoulli(probs=brake_prob)
+            if deterministic:
+                brake_action = (brake_prob > 0.5).float()
+            else:
+                brake_action = brake_dist.sample()
+            brake_log_prob = brake_dist.log_prob(brake_action)
+
+            # Joint log prob includes all four heads
+            log_prob = dir_log_prob + throttle_log_prob + jump_log_prob + brake_log_prob
 
         dx_val = direction[0, 0].item()
         dy_val = direction[0, 1].item()
         throttle_logit_val = throttle_logit_sample.item()
         throttle_val = throttle.item()
-        return (dx_val, dy_val, throttle_logit_val), (dx_val, dy_val, throttle_val), log_prob.item()
+        jump_val = jump_action.item()
+        brake_val = brake_action.item()
+        # Buffer stores binary jump/brake actions (not logits) since Bernoulli log_prob needs 0/1
+        return (dx_val, dy_val, throttle_logit_val, jump_val, brake_val), \
+               (dx_val, dy_val, throttle_val, jump_val, brake_val), \
+               log_prob.item()
 
     def evaluate_actions(self, states, actions):
         """Evaluate log_probs and entropy for stored actions.
-        actions: (N, 3) tensor with columns [dx, dy, throttle_logit]."""
-        mean_xy, throttle_logit = self.forward(states)
+        actions: (N, 5) tensor with columns [dx, dy, throttle_logit, jump_binary, brake_binary]."""
+        mean_xy, throttle_logit, jump_logit, brake_logit = self.forward(states)
 
-        # Direction (2D) — actions[:, 0:2] are stored (dx, dy)
+        # Direction (2D)
         dir_dist = self._get_direction_dist(mean_xy)
         dir_log_prob = dir_dist.log_prob(actions[:, 0:2]).sum(dim=1)
         dir_entropy = dir_dist.entropy().sum(dim=1)
@@ -214,25 +281,55 @@ class Actor(nn.Module):
         throttle_log_prob = throttle_dist.log_prob(actions[:, 2])
         throttle_entropy = throttle_dist.entropy()
 
-        # Joint: sum of independent log probs and entropies
-        return dir_log_prob + throttle_log_prob, dir_entropy + throttle_entropy
+        # Jump (actions[:, 3] is the binary 0/1 action)
+        jump_prob = torch.sigmoid(jump_logit.squeeze(-1))
+        jump_dist = torch.distributions.Bernoulli(probs=jump_prob)
+        jump_binary = actions[:, 3]
+        jump_log_prob = jump_dist.log_prob(jump_binary)
+
+        # Brake (actions[:, 4] is the binary 0/1 action)
+        brake_prob = torch.sigmoid(brake_logit.squeeze(-1))
+        brake_dist = torch.distributions.Bernoulli(probs=brake_prob)
+        brake_binary = actions[:, 4]
+        brake_log_prob = brake_dist.log_prob(brake_binary)
+
+        # Joint log_prob includes ALL heads. Entropy EXCLUDES jump and brake —
+        # Bernoulli entropy bonus pushes binary actions toward 50% probability,
+        # which would cause constant jumping/braking. Jump and brake learn purely
+        # from reward signal.
+        log_prob_total = dir_log_prob + throttle_log_prob + jump_log_prob + brake_log_prob
+        entropy_total = dir_entropy + throttle_entropy
+        return log_prob_total, entropy_total
 
     @staticmethod
-    def action_to_joystick(dx, dy, throttle):
-        """Convert 2D direction + throttle to joystick axes (fwd, back, left, right).
+    def action_to_joystick(dx, dy, throttle, jump=0, brake=0, vx=0.0, vy=0.0):
+        """Convert (dx, dy, throttle, jump, brake) action to joystick axes.
 
         Convention: dx>0 = right, dy>0 = forward.
-        Direction is normalized to unit length so magnitude is controlled
-        purely by throttle. Sampled (dx,dy) from the 2D Gaussian can have
-        magnitude != 1, which would otherwise leak into joystick values.
-        Throttle scales the magnitude (0 = no force, 1 = full force).
-        Values rounded to 6 decimal places to avoid scientific notation.
+        Direction is normalized to unit length; throttle scales the magnitude.
+
+        When brake=1, the direction is OVERRIDDEN to anti-velocity at full throttle:
+        the joystick points exactly opposite the marble's current 2D velocity (vx, vy
+        in camera-relative frame), applying a maximum decelerating force for that frame.
+        Falls back to no-op if the marble is already nearly stopped (|v_xy| < 0.1).
+
+        The brake field is NOT sent in the wire protocol — its effect is already baked
+        into fwd/back/left/right. The 5th return value remains `jump` to match the
+        existing CS-side joystick handler that expects (fwd, back, left, right, jump).
         """
         import math
-        norm = math.sqrt(dx * dx + dy * dy)
-        if norm > 1e-6:
-            dx = dx / norm
-            dy = dy / norm
+        if brake > 0.5:
+            speed_xy = math.sqrt(vx * vx + vy * vy)
+            if speed_xy > 0.1:
+                dx = -vx / speed_xy
+                dy = -vy / speed_xy
+                throttle = 1.0
+            # else: marble basically stopped — brake is no-op, fall through to normal handling
+        else:
+            norm = math.sqrt(dx * dx + dy * dy)
+            if norm > 1e-6:
+                dx = dx / norm
+                dy = dy / norm
 
         move_x = dx * throttle  # positive = right
         move_y = dy * throttle  # positive = forward
@@ -242,7 +339,7 @@ class Actor(nn.Module):
         right = round(max(move_x, 0.0), 6) + 0.0
         left  = round(max(-move_x, 0.0), 6) + 0.0
 
-        return fwd, back, left, right
+        return fwd, back, left, right, int(jump)
 
 
 class Critic(nn.Module):
@@ -338,7 +435,7 @@ class RolloutBuffer:
         returns, advantages = self.compute_returns_and_advantages(gamma, lam)
 
         states = torch.FloatTensor(np.array(self.states))
-        actions = torch.FloatTensor(np.array(self.actions))  # (N, 3): [dx, dy, throttle_logit]
+        actions = torch.FloatTensor(np.array(self.actions))  # (N, 5): [dx, dy, throttle_logit, jump_binary, brake_binary]
         old_log_probs = torch.FloatTensor(self.log_probs)
         old_values = torch.FloatTensor(self.values)
         returns_t = torch.FloatTensor(returns)
@@ -541,9 +638,19 @@ class PPOServer:
         # self.OOB_PENALTY_FULL = 25   # Full OOB penalty (activated at 30 avg gems/game)
         # self.OOB_PENALTY = self.OOB_PENALTY_INIT
         self.OOB_PENALTY = 0
-        self.GEM_GAP_PENALTY_K = 0        # Ramping time penalty (disabled)
-        self.SLOW_PICKUP_BONUS = 0    # Speed bonus at gem pickup (disabled)
-        self.SLOW_PICKUP_SPEED_CAP = 15  # Speed at/above which bonus is zero
+        self.GEM_GAP_PENALTY_K = 0.0008    # Reverted from 0.0015 -> 0.0008 after the 0.0015 run produced ZERO behavior change: avg_steps/gem stayed flat at ~293 while gap_penalty/gem rose +1.87x (exactly the k ratio), proving the model didn't adapt — it just paid more for the same bumps. AvgRwd dropped 24% (10867 -> 8241) for no benefit. The plateau at ~290 steps/gem is structural, not motivational: model can't see obstacles in its forward trajectory (only current XY/velocity/gem-relative pos), so the gradient has nothing to grab onto when punishing bumps harder. Reward pressure is exhausted as a lever; real fix requires obs changes (raycasts or platform-relative XYs).
+        self.JUMP_COST = 0.3          # Per-step cost when jump action == 1. Halved from 0.6 -> 0.3 to make jump-over an economically viable alternative to bumping into platforms during flat traversal. Combined with GEM_GAP_PENALTY_K=0.0008, the model now has incentive to either steer around platforms (cheapest, ~0 cost) or jump over them (cheap, ~3 raw) instead of bumping (expensive, ~8.4 raw per second of waste). Per-platform jumps still profitable at this level: 30-frame approach jump = 9 raw cost vs 200 gem reward = +191 net.
+        self.SLOW_PICKUP_BONUS = 100     # Re-enabled (3rd time). Disabling it killed the brake action: with no positive reward target for "arrive slow," random brake samples only experienced costs (gap penalty from wasted time), so PPO suppressed the brake_logit to the clamp floor over ~150 games. The brake action and slow-pickup bonus are NOT redundant — they're complementary: bonus is the *destination* (arriving slow = good), brake is the *mechanism* (the discrete tool for arriving slow), overshoot penalty is the *constraint* (don't over-commit). All three needed for the model to converge on "fire brake near gem → arrive slow → get +100." Linear ramp at speed 0 -> +100, speed 30 -> 0.
+        self.SLOW_PICKUP_SPEED_CAP = 30  # Speed at/above which bonus is zero.
+        # === Time-Optimal Control: overshoot penalty (Phase 1) ===
+        # At any step, if stopping_dist = v_radial^2 / (2*A_MAX) exceeds distance to gem,
+        # the marble is committed to overshoot. Penalty fires continuously until the
+        # marble brakes back into the safe envelope. This gives a DENSE gradient signal
+        # (every step in the overshoot zone) instead of sparse pickup-time rewards,
+        # solving the credit-assignment problem of "when to start braking".
+        # See "Time-Optimal Control" / "Safe Velocity Envelope" — physics-grounded approach.
+        self.A_MAX = 12.0           # Calibrated empirically via manual_brake.py benchmark (10 games × 2 configs). The aggressive config (a_max=12, margin=0.00, min_target=0.05) hit avg 102.7 gems with avg pickup speed 4.33. Was 20.0 (intuition guess), now 12.0 (measured). At v=25 with A_MAX=12: stopping_dist = 625/24 = 26.0 units. So safe zone shrinks from d>15.6 (old) to d>26 (new) — penalty fires earlier on approach, pushing the model to brake sooner. This matches actual marble physics where reverse-throttle decel + rolling friction ≈ 12 units/s², not 20.
+        self.OVERSHOOT_LAMBDA = 0.5  # Coefficient on overshoot penalty (raw units). At full commitment (v_radial=25, d=5): overshoot=10.6, penalty=5.3 raw/step. Sustained 30 frames -> -159 raw -> ~80% of gem reward — strong but not catastrophic; model can recover and still pickup positive net. Penalty is 0 in safe zone (B>=0), so it's free to coast at high speed when far from gem. Direction-aware: uses v_radial (velocity component toward gem) so doing donuts at high speed near the gem doesn't get penalized.
         self.SHAPING_COEFF_1 = 20   # Broad attraction: 20/(1+d/50)
         self.SHAPING_RANGE_1 = 50   # Broad attraction range
         self.SHAPING_COEFF_2 = 15   # Near-gem well: 15/(1+d/3)
@@ -676,10 +783,16 @@ class PPOServer:
         self.total_gem_pts = 0     # gem points across entire run
         self.total_oob = 0         # OOB events across entire run
 
-        # Camera yaw randomization — rotate camera to a random angle at
-        # episode start and after each OOB. Trains the model to be camera-
-        # invariant by experiencing all orientations. Value is in radians.
-        self.camera_yaw = random.uniform(-math.pi, math.pi)
+        # Camera yaw is now FIXED at 0 radians for every episode and every respawn.
+        # Random camera during training was preventing the jump_features network
+        # from learning XY-based platform discrimination — the same world position
+        # produced a different obs[0:2] every game with random camera, making
+        # "jump at these coordinates" impossible to learn. At inference time the
+        # camera is also locked (never moves during play), so training with a
+        # fixed orientation transfers cleanly — the model never needs to deal
+        # with rotation and doesn't overfit to one specific angle because there's
+        # only ever one angle to experience.
+        self.camera_yaw = 0.0
 
         # Entropy tracking for collapse detection
         self.entropy_history = deque(maxlen=10)
@@ -719,6 +832,16 @@ class PPOServer:
         self.game_gem_pickups = 0         # number of gem pickups in current game
         self.recent_avg_gap_penalty = deque(maxlen=100)  # avg gap penalty per gem, per game
 
+        # Overshoot penalty tracking (Time-Optimal Control)
+        # Per-game accumulators reset at game end. Useful diagnostics:
+        # - overshoot_penalty_sum: total raw cost paid this game (units of raw reward)
+        # - overshoot_frames: count of frames where penalty fired (high = lots of bad commits)
+        # - avg_overshoot_per_frame: severity per active frame (low = grazing the edge of safe zone; high = deep in overshoot)
+        self.game_overshoot_penalty_sum = 0.0
+        self.game_overshoot_frames = 0
+        self.recent_overshoot_penalty = deque(maxlen=100)  # per-game total overshoot penalty
+        self.recent_overshoot_frames = deque(maxlen=100)   # per-game count of overshoot frames
+
         # Near-miss and dwell-time tracking (per game)
         # "Near" = within 2 marble diameters of nearest gem (~0.8 units)
         self.NEAR_GEM_THRESHOLD = 0.8    # 2 marble diameters (radius ~0.2 * 4)
@@ -727,6 +850,31 @@ class PPOServer:
         self.game_dwell_steps = 0         # total steps spent within threshold
         self.recent_near_misses = deque(maxlen=100)    # per-game near-miss count
         self.recent_dwell_steps = deque(maxlen=100)    # per-game dwell steps
+
+        # Jump rate and steps-per-gem tracking (per game)
+        self.game_jumps = 0              # jump actions this game
+        self.game_brakes = 0             # brake actions this game
+        self.game_steps = 0              # total steps this game
+        self.game_gem_steps_sum = 0      # sum of steps_since_gem at each pickup
+        self.recent_jump_rate = deque(maxlen=100)        # jump % per game
+        self.recent_brake_rate = deque(maxlen=100)       # brake % per game
+        self.recent_avg_steps_per_gem = deque(maxlen=100) # avg steps between gems per game
+
+        # Brake-effectiveness diagnostics (added to verify the brake action is doing
+        # what we want vs just firing randomly). Three metrics:
+        #  - avg_pickup_speed: speed at moment of gem pickup. The OUTCOME metric — if
+        #    brake works, this drops over training.
+        #  - brakes_near_pickup: number of brake events in last 30 frames before each
+        #    pickup. The MECHANISM metric — if model learned timing, this rises.
+        #  - slow_pickup_bonus_total: sum of bonus paid out per game. Verifies the
+        #    reward signal is reaching the model.
+        self.recent_brake_history = deque(maxlen=30)      # rolling 30-step brake action history
+        self.game_pickup_speed_sum = 0.0                  # sum of pickup speeds this game
+        self.game_brakes_near_pickup_sum = 0              # sum of brake counts in last 30 frames before each pickup
+        self.game_slow_pickup_bonus_sum = 0.0             # sum of slow-pickup bonuses paid this game
+        self.recent_avg_pickup_speed = deque(maxlen=100)
+        self.recent_avg_brakes_near_pickup = deque(maxlen=100)
+        self.recent_slow_pickup_bonus = deque(maxlen=100)
 
         # Socket setup
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -889,25 +1037,54 @@ class PPOServer:
                 speed = (vx**2 + vy**2 + vz**2) ** 0.5
                 bonus = self.SLOW_PICKUP_BONUS * max(0.0, 1.0 - speed / self.SLOW_PICKUP_SPEED_CAP)
                 reward += bonus
+                # Diagnostic accumulators: pickup speed, brakes-near-pickup, bonus paid.
+                self.game_pickup_speed_sum += speed
+                self.game_brakes_near_pickup_sum += sum(self.recent_brake_history)
+                self.game_slow_pickup_bonus_sum += bonus
 
             self.skip_potential_steps = self.GRACE_PERIOD
             # Record gap penalty for this interval before resetting
             gap_penalty = self.GEM_GAP_PENALTY_K * self.steps_since_gem * (self.steps_since_gem - 1) / 2
             self.game_gap_penalty_sum += gap_penalty
             self.game_gem_pickups += 1
+            self.game_gem_steps_sum += self.steps_since_gem
             self.steps_since_gem = 0  # Reset ramping penalty on gem pickup
 
         # 2. Distance shaping: potential-based P(d) = C1/(1+d/R1) + C2/(1+d/R2)
+        # 2b. Overshoot penalty (Time-Optimal Control): -OVERSHOOT_LAMBDA * max(0, v_radial^2/(2*A_MAX) - d)
+        #     Fires when stopping distance exceeds remaining distance — i.e., the marble is
+        #     committed to overshoot. Continuous gradient signal at the "switching point".
+        #     Skipped during grace period (just like distance shaping) because the gem just
+        #     changed and the marble can't be expected to react instantly.
         nearest_dist = raw_obs[10] if len(raw_obs) > 10 else -1
         if nearest_dist > 0 and nearest_dist < self.DIST_MAX_VALID:
             if self.skip_potential_steps > 0:
                 self.skip_potential_steps -= 1
             else:
+                # 2a. Distance shaping
                 new_potential = (self.SHAPING_COEFF_1 / (1 + nearest_dist / self.SHAPING_RANGE_1)
                                + self.SHAPING_COEFF_2 / (1 + nearest_dist / self.SHAPING_RANGE_2))
                 old_potential = (self.SHAPING_COEFF_1 / (1 + self.last_nearest_gem_dist / self.SHAPING_RANGE_1)
                                + self.SHAPING_COEFF_2 / (1 + self.last_nearest_gem_dist / self.SHAPING_RANGE_2))
                 reward += new_potential - old_potential
+
+                # 2b. Overshoot penalty
+                # raw_obs[3:6] = velocity (camera-relative); raw_obs[6:9] = gem-relative position
+                if len(raw_obs) >= 9 and nearest_dist > 0.01:
+                    vx, vy, vz = raw_obs[3], raw_obs[4], raw_obs[5]
+                    gx_rel, gy_rel, gz_rel = raw_obs[6], raw_obs[7], raw_obs[8]
+                    # Component of velocity in the gem direction (positive = approaching).
+                    # Doing donuts at high speed (perpendicular motion) gives v_radial ~= 0
+                    # so no penalty fires from non-approaching motion.
+                    v_radial = (vx * gx_rel + vy * gy_rel + vz * gz_rel) / nearest_dist
+                    v_radial = max(0.0, v_radial)
+                    stopping_dist = (v_radial * v_radial) / (2.0 * self.A_MAX)
+                    overshoot = max(0.0, stopping_dist - nearest_dist)
+                    if overshoot > 0:
+                        overshoot_penalty = self.OVERSHOOT_LAMBDA * overshoot
+                        reward -= overshoot_penalty
+                        self.game_overshoot_penalty_sum += overshoot_penalty
+                        self.game_overshoot_frames += 1
             self.last_nearest_gem_dist = nearest_dist
 
         # 3. Ramping time penalty: grows with steps since last gem pickup.
@@ -929,7 +1106,7 @@ class PPOServer:
             if len(parts) != 4:
                 if self.total_steps < 3:
                     self.log(f"Malformed message (expected 4 parts, got {len(parts)}): {message[:100]}")
-                return [0, 0, 0, 0]
+                return [0, 0, 0, 0, 0]
 
             obs_json, gem_delta_str, oob_str, done_str = parts
 
@@ -951,7 +1128,38 @@ class PPOServer:
                 self.recent_avg_gap_penalty.append(round(avg_gap, 2))
                 self.recent_near_misses.append(self.game_near_misses)
                 self.recent_dwell_steps.append(self.game_dwell_steps)
-                self.log(f"[GAME END] total gems this game: {total_game_gems}pts (best: {self.best_game_gems}) avg_gap_penalty: {avg_gap:.1f} near_misses: {self.game_near_misses} dwell_steps: {self.game_dwell_steps}")
+                # Jump rate, brake rate, and avg steps per gem for this game
+                jump_rate = (self.game_jumps / max(self.game_steps, 1)) * 100
+                brake_rate = (self.game_brakes / max(self.game_steps, 1)) * 100
+                self.recent_jump_rate.append(round(jump_rate, 2))
+                self.recent_brake_rate.append(round(brake_rate, 2))
+                avg_steps_per_gem = self.game_gem_steps_sum / max(self.game_gem_pickups, 1)
+                self.recent_avg_steps_per_gem.append(round(avg_steps_per_gem, 1))
+
+                # Overshoot stats for this game (Time-Optimal Control diagnostics)
+                self.recent_overshoot_penalty.append(round(self.game_overshoot_penalty_sum, 1))
+                self.recent_overshoot_frames.append(self.game_overshoot_frames)
+                overshoot_pct = (self.game_overshoot_frames / max(self.game_steps, 1)) * 100
+                avg_overshoot_per_frame = (self.game_overshoot_penalty_sum
+                                           / max(self.game_overshoot_frames, 1))
+
+                # Brake-effectiveness diagnostics (per-pickup averages + per-game total bonus)
+                pickups = max(self.game_gem_pickups, 1)
+                avg_pickup_speed = self.game_pickup_speed_sum / pickups
+                avg_brakes_near_pickup = self.game_brakes_near_pickup_sum / pickups
+                self.recent_avg_pickup_speed.append(round(avg_pickup_speed, 2))
+                self.recent_avg_brakes_near_pickup.append(round(avg_brakes_near_pickup, 2))
+                self.recent_slow_pickup_bonus.append(round(self.game_slow_pickup_bonus_sum, 1))
+
+                self.log(f"[GAME END] total gems this game: {total_game_gems}pts (best: {self.best_game_gems}) avg_gap_penalty: {avg_gap:.1f} jump_rate: {jump_rate:.1f}% brake_rate: {brake_rate:.1f}% avg_steps/gem: {avg_steps_per_gem:.0f} overshoot: {self.game_overshoot_penalty_sum:.0f} ({overshoot_pct:.1f}% of steps, avg {avg_overshoot_per_frame:.2f}/frame) pickup_speed: {avg_pickup_speed:.1f} brakes_near_pickup: {avg_brakes_near_pickup:.2f}/gem slow_pickup_bonus: {self.game_slow_pickup_bonus_sum:.0f}")
+
+                # Refresh the dashboard's jump-probability heatmap in a background
+                # thread. Probe takes ~1s on a snapshot of actor weights — never
+                # blocks the training loop.
+                try:
+                    self.dashboard.trigger_heatmap_update()
+                except Exception as e:
+                    self.log(f"Dashboard heatmap trigger error: {e}")
 
                 # Throttle floor maturity gate
                 if self.throttle_floor_active:
@@ -969,8 +1177,17 @@ class PPOServer:
                 self.game_gem_pickups = 0
                 self.game_near_misses = 0
                 self.game_dwell_steps = 0
+                self.game_jumps = 0
+                self.game_brakes = 0
+                self.game_steps = 0
+                self.game_gem_steps_sum = 0
+                self.game_overshoot_penalty_sum = 0.0
+                self.game_overshoot_frames = 0
+                self.game_pickup_speed_sum = 0.0
+                self.game_brakes_near_pickup_sum = 0
+                self.game_slow_pickup_bonus_sum = 0.0
                 self.near_gem = False
-                return [0, 0, 0, 0]
+                return [0, 0, 0, 0, 0]
 
             # Track no-gem steps (sentinel distance at index 12 — nearest gem dist)
             raw_gem0_dist = obs[10] if len(obs) > 10 else -1
@@ -1043,15 +1260,31 @@ class PPOServer:
                 )
                 self.logger.file.flush()
 
-            # Action: query model. Returns buffer action (dx, dy, throttle_logit),
-            # game action (dx, dy, throttle), and joint log_prob.
+            # Action: query model. Returns buffer action (dx, dy, throttle_logit, jump_binary, brake_binary),
+            # game action (dx, dy, throttle, jump, brake), and joint log_prob.
             action_buf, action_game, log_prob = self.actor.get_action(obs_augmented)
             value = self.critic.get_value(obs_augmented)
-            dx, dy, throttle = action_game
+            dx, dy, throttle, jump, brake = action_game
             import math
             angle = math.atan2(dx, dy)  # For logging/display only
             self.recent_actions.append(angle)
             self.recent_throttles.append(throttle)
+            self.game_steps += 1
+            if jump > 0.5:
+                self.game_jumps += 1
+                # Per-jump physical cost. Each jump must "earn its keep" via a
+                # subsequent reward (gem pickup typically gives +200, easily
+                # offsetting -0.3). Drives the policy toward selective jumping
+                # — only at moments where a real reward is expected.
+                reward -= self.JUMP_COST
+            if brake > 0.5:
+                self.game_brakes += 1
+                # No explicit BRAKE_COST yet. Gap penalty already discourages
+                # excessive braking (slower travel = longer gem cycles = more cost).
+                # Add a small per-brake cost later if the model spams it.
+            # Rolling 30-frame brake history. compute_reward reads this on the next
+            # frame's gem pickup to tally "brakes in last 30 frames before pickup".
+            self.recent_brake_history.append(1 if brake > 0.5 else 0)
 
             # Track events
             if gem_delta > 0:
@@ -1063,7 +1296,7 @@ class PPOServer:
                 self.episode_oob += 1
                 self.rollout_oob += 1
                 self.total_oob += 1
-                self.camera_yaw = random.uniform(-math.pi, math.pi)
+                self.camera_yaw = 0.0  # fixed orientation (see __init__ for rationale)
             if reward > 0.1:
                 self.rollout_positive += 1
             self.rollout_steps += 1
@@ -1105,14 +1338,18 @@ class PPOServer:
                 self.frame_history.clear()  # Fresh history for new episode
                 self._frame_hist_logged = False
                 self._frame_hist_log_end = 999999
-                self.camera_yaw = random.uniform(-math.pi, math.pi)
+                self.camera_yaw = 0.0  # fixed orientation (see __init__ for rationale)
 
             # PPO update when buffer is full
             if len(self.buffer) >= self.rollout_size:
                 self.run_ppo_update()
 
-            # Convert 2D direction + throttle to analog joystick axes (F,B,L,R)
-            return list(Actor.action_to_joystick(dx, dy, throttle))
+            # Convert action to joystick axes (F,B,L,R,jump). Brake's effect is baked
+            # into F/B/L/R via direction override — no new wire field needed.
+            # Velocity for brake-override: raw_obs[3:6] is camera-relative velocity.
+            vx_raw = obs[3] if len(obs) > 5 else 0.0
+            vy_raw = obs[4] if len(obs) > 5 else 0.0
+            return list(Actor.action_to_joystick(dx, dy, throttle, jump, brake, vx_raw, vy_raw))
 
         except Exception as e:
             if self.total_steps < 5:
@@ -1120,7 +1357,7 @@ class PPOServer:
                 self.log(f"Message (first 200 chars): {message[:200]}")
                 import traceback
                 traceback.print_exc()
-            return [0, 0, 0, 0]
+            return [0, 0, 0, 0, 0]
 
     def run_ppo_update(self):
         """Run PPO training update."""

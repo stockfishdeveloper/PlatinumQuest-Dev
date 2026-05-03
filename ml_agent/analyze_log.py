@@ -45,6 +45,9 @@ def parse_log(filepath):
     game_end_re = re.compile(
         r'\[GAME END\] total gems this game: (\d+)pts \(best: (\d+)\) avg_gap_penalty: ([\d.]+)'
         r'(?:\s+near_misses: (\d+)\s+dwell_steps: (\d+))?'
+        r'(?:\s+jump_rate: ([\d.]+)%(?:\s+brake_rate: ([\d.]+)%)?\s+avg_steps/gem: (\d+))?'
+        r'(?:\s+overshoot: ([\d.]+)\s+\(([\d.]+)% of steps,\s+avg ([\d.]+)/frame\))?'
+        r'(?:\s+pickup_speed: ([\d.]+)\s+brakes_near_pickup: ([\d.]+)/gem\s+slow_pickup_bonus: ([\d.]+))?'
     )
     summary_re = re.compile(
         r'SUMMARY Upd (\d+)\s*\|\s*([\d.]+)h\s*\|\s*([\d,]+)\s*steps\s*\|\s*(\d+)\s*eps'
@@ -139,7 +142,7 @@ def parse_log(filepath):
                 summaries[-1]['avg_reward'] = float(m.group(4))
                 summaries[-1]['best_reward'] = float(m.group(5))
 
-            # Game end lines (gap penalty)
+            # Game end lines (gap penalty + overshoot diagnostics)
             m = game_end_re.search(line)
             if m:
                 games.append({
@@ -148,6 +151,15 @@ def parse_log(filepath):
                     'avg_gap_penalty': float(m.group(3)),
                     'near_misses': int(m.group(4)) if m.group(4) else None,
                     'dwell_steps': int(m.group(5)) if m.group(5) else None,
+                    'jump_rate': float(m.group(6)) if m.group(6) else None,
+                    'brake_rate': float(m.group(7)) if m.group(7) else None,
+                    'avg_steps_per_gem': int(m.group(8)) if m.group(8) else None,
+                    'overshoot_total': float(m.group(9)) if m.group(9) else None,
+                    'overshoot_pct_steps': float(m.group(10)) if m.group(10) else None,
+                    'overshoot_avg_per_frame': float(m.group(11)) if m.group(11) else None,
+                    'pickup_speed': float(m.group(12)) if m.group(12) else None,
+                    'brakes_near_pickup': float(m.group(13)) if m.group(13) else None,
+                    'slow_pickup_bonus': float(m.group(14)) if m.group(14) else None,
                 })
 
             # Summary detail line
@@ -390,6 +402,48 @@ def print_analysis(data, last_n=None):
                 dw_dir = "UP" if dw_second > dw_first * 1.05 else "DOWN" if dw_second < dw_first * 0.95 else "flat"
                 print(f"  Near miss trend:  {nm_first:.1f} -> {nm_second:.1f} ({nm_dir})")
                 print(f"  Dwell step trend: {dw_first:.0f} -> {dw_second:.0f} ({dw_dir})")
+
+        # Overshoot penalty analysis (Time-Optimal Control diagnostics)
+        overshoot_games = [g for g in games if g.get('overshoot_total') is not None]
+        if overshoot_games:
+            print(f"\n  OVERSHOOT PENALTY (Time-Optimal Control)")
+            ov_total = [g['overshoot_total'] for g in overshoot_games]
+            ov_pct = [g['overshoot_pct_steps'] for g in overshoot_games]
+            ov_avg = [g['overshoot_avg_per_frame'] for g in overshoot_games]
+            print(f"  Total/game:    min={min(ov_total):.0f}  max={max(ov_total):.0f}  avg={sum(ov_total)/len(ov_total):.0f}  median={sorted(ov_total)[len(ov_total)//2]:.0f}")
+            print(f"  % of steps:    min={min(ov_pct):.1f}%  max={max(ov_pct):.1f}%  avg={sum(ov_pct)/len(ov_pct):.1f}%   (frames in overshoot zone)")
+            print(f"  Severity:      avg={sum(ov_avg)/len(ov_avg):.2f} raw/frame    (low=grazing safe edge; high=deep overshoot)")
+            if len(overshoot_games) >= 6:
+                half = len(overshoot_games) // 2
+                ov_first = sum(g['overshoot_total'] for g in overshoot_games[:half]) / half
+                ov_second = sum(g['overshoot_total'] for g in overshoot_games[half:]) / (len(overshoot_games) - half)
+                pct_first = sum(g['overshoot_pct_steps'] for g in overshoot_games[:half]) / half
+                pct_second = sum(g['overshoot_pct_steps'] for g in overshoot_games[half:]) / (len(overshoot_games) - half)
+                ov_dir = "UP" if ov_second > ov_first * 1.05 else "DOWN" if ov_second < ov_first * 0.95 else "flat"
+                pct_dir = "UP" if pct_second > pct_first * 1.05 else "DOWN" if pct_second < pct_first * 0.95 else "flat"
+                print(f"  Total trend:   {ov_first:.0f} -> {ov_second:.0f} ({ov_dir})    (DOWN = model learning to brake earlier)")
+                print(f"  %steps trend:  {pct_first:.1f}% -> {pct_second:.1f}% ({pct_dir})")
+
+        # Brake-effectiveness diagnostics
+        brake_games = [g for g in games if g.get('pickup_speed') is not None]
+        if brake_games:
+            print(f"\n  BRAKE EFFECTIVENESS")
+            ps = [g['pickup_speed'] for g in brake_games]
+            bnp = [g['brakes_near_pickup'] for g in brake_games]
+            spb = [g['slow_pickup_bonus'] for g in brake_games]
+            print(f"  Pickup speed:        min={min(ps):.1f}  max={max(ps):.1f}  avg={sum(ps)/len(ps):.1f}    (OUTCOME: should DROP if brake works)")
+            print(f"  Brakes/gem (last30): min={min(bnp):.2f}  max={max(bnp):.2f}  avg={sum(bnp)/len(bnp):.2f}    (MECHANISM: should RISE if model learned timing)")
+            print(f"  Slow-pickup bonus:   min={min(spb):.0f}   max={max(spb):.0f}   avg={sum(spb)/len(spb):.0f}     (per-game total reward earned)")
+            if len(brake_games) >= 6:
+                half = len(brake_games) // 2
+                ps_first = sum(g['pickup_speed'] for g in brake_games[:half]) / half
+                ps_second = sum(g['pickup_speed'] for g in brake_games[half:]) / (len(brake_games) - half)
+                bnp_first = sum(g['brakes_near_pickup'] for g in brake_games[:half]) / half
+                bnp_second = sum(g['brakes_near_pickup'] for g in brake_games[half:]) / (len(brake_games) - half)
+                ps_dir = "DOWN" if ps_second < ps_first * 0.95 else "UP" if ps_second > ps_first * 1.05 else "flat"
+                bnp_dir = "UP" if bnp_second > bnp_first * 1.05 else "DOWN" if bnp_second < bnp_first * 0.95 else "flat"
+                print(f"  Pickup speed trend:    {ps_first:.1f} -> {ps_second:.1f} ({ps_dir})    (DOWN = WORKING)")
+                print(f"  Brakes/gem trend:      {bnp_first:.2f} -> {bnp_second:.2f} ({bnp_dir})  (UP = model learned brake timing)")
 
         # Correlation between gems and gap penalty
         if len(games) >= 5:
