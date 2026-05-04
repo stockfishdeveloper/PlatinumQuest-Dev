@@ -1,0 +1,344 @@
+[2026-03-21 10:27:18] Loading model from models/checkpoints\update_10710.pth
+[2026-03-21 10:27:18]   Critic restored from checkpoint
+[2026-03-21 10:27:18]   Actor optimizer restored
+[2026-03-21 10:27:18]   Critic optimizer restored
+[2026-03-21 10:27:18]   LR set: actor=3e-05, critic=0.0001
+[2026-03-21 10:27:18]   PolicyStd: 23.8 deg (bounds: -2.0 to 1.0)
+[2026-03-21 10:27:18]   ThrottleStd: 0.495 (bounds: -3.0 to 0.0)
+[2026-03-21 10:27:18] Model loaded successfully!
+[2026-03-21 10:27:18] Resuming from: 21870623 steps, 10710 updates, 1158 episodes
+[2026-03-21 10:27:18] Best avg reward restored: 17184.53
+[2026-03-21 10:27:18]   Throttle floor: disabled (mature)
+[2026-03-21 10:27:18] Dashboard: http://0.0.0.0:8889 (accessible on WiFi)
+[2026-03-21 10:27:18] ============================================================
+[2026-03-21 10:27:18] PPO Training Server
+[2026-03-21 10:27:18] ============================================================
+[2026-03-21 10:27:18] Listening on 127.0.0.1:8888
+[2026-03-21 10:27:18] Obs dim: 59 (base=35 + 4x6 history, skip=8)
+[2026-03-21 10:27:18] Rollout size: 2048 steps
+[2026-03-21 10:27:18] PPO epochs: 4
+[2026-03-21 10:27:18] Batch size: 256
+[2026-03-21 10:27:18] Press Ctrl+C to stop
+[2026-03-21 10:27:18] ============================================================
+[2026-03-21 10:27:18] Waiting for game to connect...
+[2026-03-21 10:28:21] 
+Game connected from ('127.0.0.1', 60151)
+[2026-03-21 10:28:21]   [FRAME_HIST] step=0 buf_len=1 filled=0/4 cur_pos=(0.000,0.000,0.006) cur_vel=(0.000,0.000,0.000) obs_dim=59
+[2026-03-21 10:28:22]   [FRAME_HIST] step=1 buf_len=2 filled=0/4 cur_pos=(0.000,0.000,0.006) cur_vel=(0.000,0.000,0.000) obs_dim=59
+[2026-03-21 10:28:22]   [FRAME_HIST] step=2 buf_len=3 filled=0/4 cur_pos=(0.000,0.000,0.006) cur_vel=(0.000,0.000,0.000) obs_dim=59
+[2026-03-21 10:28:22]   [FRAME_HIST] step=3 buf_len=4 filled=0/4 cur_pos=(0.000,0.000,0.006) cur_vel=(0.000,0.000,0.000) obs_dim=59
+[2026-03-21 10:28:22]   [FRAME_HIST] step=4 buf_len=5 filled=0/4 cur_pos=(0.000,0.000,0.006) cur_vel=(0.000,0.000,0.000) obs_dim=59
+[2026-03-21 10:28:22]   [FRAME_HIST] step=5 buf_len=6 filled=0/4 cur_pos=(0.000,0.000,0.006) cur_vel=(0.000,0.000,0.000) obs_dim=59
+[2026-03-21 10:28:22]   [FRAME_HIST] step=6 buf_len=7 filled=0/4 cur_pos=(0.000,0.000,0.006) cur_vel=(0.000,0.000,0.000) obs_dim=59
+[2026-03-21 10:28:22]   [FRAME_HIST] step=7 buf_len=8 filled=0/4 cur_pos=(0.000,0.000,0.006) cur_vel=(0.000,0.000,0.000) obs_dim=59
+[2026-03-21 10:28:22]   [FRAME_HIST] step=8 buf_len=9 filled=1/4 cur_pos=(0.000,0.000,0.006) cur_vel=(0.000,0.000,0.000) t-4=(0.000,0.000,0.006,0.000,0.000,0.000) obs_dim=59
+[2026-03-21 10:28:22]   [FRAME_HIST] step=9 buf_len=10 filled=1/4 cur_pos=(0.000,0.000,0.006) cur_vel=(0.000,0.000,0.000) t-4=(0.000,0.000,0.006,0.000,0.000,0.000) obs_dim=59
+[2026-03-21 10:28:22]   [FRAME_HIST] step=10 buf_len=11 filled=1/4 cur_pos=(0.000,0.000,0.006) cur_vel=(0.000,0.000,0.000) t-4=(0.000,0.000,0.006,0.000,0.000,0.000) obs_dim=59
+[2026-03-21 10:28:22]   [FRAME_HIST] step=11 buf_len=12 filled=1/4 cur_pos=(-0.000,0.000,0.006) cur_vel=(-0.008,0.004,0.000) t-4=(0.000,0.000,0.006,0.000,0.000,0.000) obs_dim=59
+[2026-03-21 10:28:22]   [FRAME_HIST] step=12 buf_len=13 filled=1/4 cur_pos=(-0.000,0.000,0.006) cur_vel=(-0.013,0.012,0.000) t-4=(0.000,0.000,0.006,0.000,0.000,0.000) obs_dim=59
+[2026-03-21 10:28:22]   [FRAME_HIST] step=13 buf_len=14 filled=1/4 cur_pos=(-0.000,0.000,0.006) cur_vel=(-0.013,0.025,0.000) t-4=(0.000,0.000,0.006,0.000,0.000,0.000) obs_dim=59
+[2026-03-21 10:28:22]   [FRAME_HIST] step=14 buf_len=15 filled=1/4 cur_pos=(-0.000,0.000,0.006) cur_vel=(-0.019,0.033,0.000) t-4=(0.000,0.000,0.006,0.000,0.000,0.000) obs_dim=59
+[2026-03-21 10:28:22]   [FRAME_HIST] step=15 buf_len=16 filled=1/4 cur_pos=(-0.000,0.000,0.006) cur_vel=(-0.027,0.039,0.000) t-4=(0.000,0.000,0.006,0.000,0.000,0.000) obs_dim=59
+[2026-03-21 10:28:22]   [FRAME_HIST] step=16 buf_len=17 filled=2/4 cur_pos=(-0.000,0.000,0.006) cur_vel=(-0.039,0.044,0.000) t-4=(0.000,0.000,0.006,0.000,0.000,0.000) obs_dim=59
+[2026-03-21 10:28:22]   [FRAME_HIST] step=17 buf_len=18 filled=2/4 cur_pos=(-0.000,0.001,0.006) cur_vel=(-0.044,0.052,0.000) t-4=(0.000,0.000,0.006,0.000,0.000,0.000) obs_dim=59
+[2026-03-21 10:28:22]   [FRAME_HIST] step=18 buf_len=19 filled=2/4 cur_pos=(-0.001,0.001,0.006) cur_vel=(-0.043,0.062,0.000) t-4=(0.000,0.000,0.006,0.000,0.000,0.000) obs_dim=59
+[2026-03-21 10:28:22]   [FRAME_HIST] step=19 buf_len=20 filled=2/4 cur_pos=(-0.001,0.001,0.006) cur_vel=(-0.053,0.067,0.000) t-4=(-0.000,0.000,0.006,-0.008,0.004,0.000) obs_dim=59
+[2026-03-21 10:28:22] [GEM] ep=1159 step=21870780 +1pts | ep_total=215.6
+[2026-03-21 10:28:24] [GEM] ep=1159 step=21871009 +1pts | ep_total=430.6
+[2026-03-21 10:28:28] [GEM] ep=1159 step=21871767 +1pts | ep_total=648.0
+[2026-03-21 10:28:29] [GEM] ep=1159 step=21871969 +1pts | ep_total=865.8
+[2026-03-21 10:28:30] [GEM] ep=1159 step=21872213 +1pts | ep_total=1080.2
+[2026-03-21 10:28:31] [GEM] ep=1159 step=21872443 +1pts | ep_total=1294.7
+[2026-03-21 10:28:33] Upd 10711 | PL=0.0010 VL=1.5977 Ent=1.799 GN=5.834 CGN=16.380 KL=0.0379 | AvgRwd=11628.0 AvgLen=0 | gems=6
+[2026-03-21 10:28:33]        MeanAngle:89 StdDev:31 PolicyStd:23.8 | Thr:1.00(1.00-1.00) ThrStd:0.495
+[2026-03-21 10:28:33] [GEM] ep=1159 step=21872684 +1pts | ep_total=1510.3
+[2026-03-21 10:28:34] [GEM] ep=1159 step=21873062 +1pts | ep_total=1726.3
+[2026-03-21 10:28:35] [GEM] ep=1159 step=21873250 +1pts | ep_total=1942.8
+[2026-03-21 10:28:37] [GEM] ep=1159 step=21873593 +1pts | ep_total=2157.8
+[2026-03-21 10:28:38] [GEM] ep=1159 step=21873801 +1pts | ep_total=2376.0
+[2026-03-21 10:28:41] [GEM] ep=1159 step=21874319 +1pts | ep_total=2595.4
+[2026-03-21 10:28:42] [GEM] ep=1159 step=21874484 +1pts | ep_total=2814.0
+[2026-03-21 10:28:44] Upd 10712 | PL=-0.0029 VL=0.9297 Ent=1.799 GN=4.560 CGN=6.435 KL=0.0392 | AvgRwd=11628.0 AvgLen=0 | gems=7
+[2026-03-21 10:28:44]        MeanAngle:144 StdDev:37 PolicyStd:23.8 | Thr:1.00(1.00-1.00) ThrStd:0.495
+[2026-03-21 10:28:45] [GEM] ep=1159 step=21874986 +1pts | ep_total=3031.1
+[2026-03-21 10:28:46] [GEM] ep=1159 step=21875146 +1pts | ep_total=3246.2
+[2026-03-21 10:28:46] [GEM] ep=1159 step=21875287 +1pts | ep_total=3459.7
+[2026-03-21 10:28:48] [GEM] ep=1159 step=21875669 +1pts | ep_total=3673.2
+[2026-03-21 10:28:49] [GEM] ep=1159 step=21875849 +1pts | ep_total=3889.5
+[2026-03-21 10:28:55] [GEM] ep=1159 step=21876490 +1pts | ep_total=4103.9
+[2026-03-21 10:28:57] [GEM] ep=1159 step=21876668 +1pts | ep_total=4318.5
+[2026-03-21 10:28:59] Upd 10713 | PL=-0.0030 VL=1.1701 Ent=1.799 GN=3.175 CGN=8.495 KL=0.0099 | AvgRwd=11628.0 AvgLen=0 | gems=7
+[2026-03-21 10:28:59]        MeanAngle:189 StdDev:83 PolicyStd:23.8 | Thr:1.00(1.00-1.00) ThrStd:0.495
+[2026-03-21 10:29:02] [GEM] ep=1159 step=21877093 +1pts | ep_total=4534.3
+[2026-03-21 10:29:08] [GEM] ep=1159 step=21877706 +1pts | ep_total=4749.6
+[2026-03-21 10:29:12] [GEM] ep=1159 step=21878201 +1pts | ep_total=4967.6
+[2026-03-21 10:29:13] [GEM] ep=1159 step=21878382 +1pts | ep_total=5182.6
+[2026-03-21 10:29:15] Upd 10714 | PL=-0.0019 VL=0.9607 Ent=1.797 GN=4.100 CGN=11.900 KL=0.0094 | AvgRwd=11628.0 AvgLen=0 | gems=4
+[2026-03-21 10:29:15]        MeanAngle:134 StdDev:149 PolicyStd:23.8 | Thr:1.00(1.00-1.00) ThrStd:0.495
+[2026-03-21 10:29:18] [GEM] ep=1159 step=21879321 +1pts | ep_total=5399.0
+[2026-03-21 10:29:19] [GEM] ep=1159 step=21879538 +1pts | ep_total=5610.7
+[2026-03-21 10:29:21] [GEM] ep=1159 step=21879964 +1pts | ep_total=5824.1
+[2026-03-21 10:29:22] [GEM] ep=1159 step=21880108 +1pts | ep_total=6037.0
+[2026-03-21 10:29:24] [GEM] ep=1159 step=21880469 +1pts | ep_total=6247.9
+[2026-03-21 10:29:25] [GEM] ep=1159 step=21880640 +1pts | ep_total=6460.7
+[2026-03-21 10:29:26] Upd 10715 | PL=-0.0036 VL=1.6249 Ent=1.797 GN=2.804 CGN=22.037 KL=0.0048 | AvgRwd=11628.0 AvgLen=0 | gems=6
+[2026-03-21 10:29:26]        MeanAngle:210 StdDev:90 PolicyStd:23.8 | Thr:1.00(1.00-1.00) ThrStd:0.494
+[2026-03-21 10:29:27] [GEM] ep=1159 step=21881151 +1pts | ep_total=6672.9
+[2026-03-21 10:29:29] [GEM] ep=1159 step=21881450 +1pts | ep_total=6889.1
+[2026-03-21 10:29:33] [GEM] ep=1159 step=21882291 +1pts | ep_total=7103.7
+[2026-03-21 10:29:35] [GEM] ep=1159 step=21882628 +1pts | ep_total=7319.4
+[2026-03-21 10:29:36] [GEM] ep=1159 step=21882843 +1pts | ep_total=7535.7
+[2026-03-21 10:29:37] Upd 10716 | PL=-0.0036 VL=1.1963 Ent=1.797 GN=2.977 CGN=12.041 KL=0.0104 | AvgRwd=11628.0 AvgLen=0 | gems=5
+[2026-03-21 10:29:37]        MeanAngle:183 StdDev:103 PolicyStd:23.8 | Thr:1.00(1.00-1.00) ThrStd:0.494
+[2026-03-21 10:29:41] [GEM] ep=1159 step=21883686 +1pts | ep_total=7752.6
+[2026-03-21 10:29:43] [GEM] ep=1159 step=21884089 +1pts | ep_total=7969.9
+[2026-03-21 10:29:45] [GEM] ep=1159 step=21884407 +1pts | ep_total=8186.3
+[2026-03-21 10:29:47] [GEM] ep=1159 step=21884773 +1pts | ep_total=8403.8
+[2026-03-21 10:29:48] Upd 10717 | PL=-0.0020 VL=1.1299 Ent=1.797 GN=3.441 CGN=8.682 KL=0.0073 | AvgRwd=11628.0 AvgLen=0 | gems=4
+[2026-03-21 10:29:48]        MeanAngle:237 StdDev:37 PolicyStd:23.8 | Thr:1.00(1.00-1.00) ThrStd:0.494
+[2026-03-21 10:29:49] [GEM] ep=1159 step=21885284 +1pts | ep_total=8623.4
+[2026-03-21 10:29:51] Ep 1159 [SUCCESS] rwd=8634.0 gems=40pts steps=15001 | avg100=11599.8
+[2026-03-21 10:29:51]   [FRAME_HIST] step=0 buf_len=1 filled=0/4 cur_pos=(-0.000,0.132,0.019) cur_vel=(0.415,0.410,0.073) obs_dim=59
+[2026-03-21 10:29:51]   [FRAME_HIST] step=1 buf_len=2 filled=0/4 cur_pos=(0.001,0.134,0.019) cur_vel=(0.413,0.406,0.055) obs_dim=59
+[2026-03-21 10:29:51]   [FRAME_HIST] step=2 buf_len=3 filled=0/4 cur_pos=(-0.120,-0.062,0.019) cur_vel=(-0.552,0.174,0.040) obs_dim=59
+[2026-03-21 10:29:51]   [FRAME_HIST] step=3 buf_len=4 filled=0/4 cur_pos=(-0.122,-0.061,0.019) cur_vel=(-0.551,0.177,0.025) obs_dim=59
+[2026-03-21 10:29:51]   [FRAME_HIST] step=4 buf_len=5 filled=0/4 cur_pos=(-0.124,-0.061,0.019) cur_vel=(-0.549,0.181,0.007) obs_dim=59
+[2026-03-21 10:29:51]   [FRAME_HIST] step=5 buf_len=6 filled=0/4 cur_pos=(-0.125,-0.060,0.019) cur_vel=(-0.551,0.181,-0.008) obs_dim=59
+[2026-03-21 10:29:51]   [FRAME_HIST] step=6 buf_len=7 filled=0/4 cur_pos=(-0.127,-0.060,0.019) cur_vel=(-0.555,0.182,-0.023) obs_dim=59
+[2026-03-21 10:29:51]   [FRAME_HIST] step=7 buf_len=8 filled=0/4 cur_pos=(-0.129,-0.059,0.019) cur_vel=(-0.559,0.182,-0.041) obs_dim=59
+[2026-03-21 10:29:51]   [FRAME_HIST] step=8 buf_len=9 filled=1/4 cur_pos=(-0.131,-0.058,0.019) cur_vel=(-0.563,0.182,-0.056) t-4=(-0.000,0.132,0.019,0.415,0.410,0.073) obs_dim=59
+[2026-03-21 10:29:51]   [FRAME_HIST] step=9 buf_len=10 filled=1/4 cur_pos=(-0.132,-0.058,0.019) cur_vel=(-0.566,0.180,-0.071) t-4=(0.001,0.134,0.019,0.413,0.406,0.055) obs_dim=59
+[2026-03-21 10:29:51]   [FRAME_HIST] step=10 buf_len=11 filled=1/4 cur_pos=(-0.134,-0.057,0.019) cur_vel=(-0.570,0.181,-0.089) t-4=(-0.120,-0.062,0.019,-0.552,0.174,0.040) obs_dim=59
+[2026-03-21 10:29:51]   [FRAME_HIST] step=11 buf_len=12 filled=1/4 cur_pos=(-0.136,-0.057,0.018) cur_vel=(-0.574,0.180,-0.104) t-4=(-0.122,-0.061,0.019,-0.551,0.177,0.025) obs_dim=59
+[2026-03-21 10:29:51]   [FRAME_HIST] step=12 buf_len=13 filled=1/4 cur_pos=(-0.138,-0.056,0.018) cur_vel=(-0.578,0.180,-0.119) t-4=(-0.124,-0.061,0.019,-0.549,0.181,0.007) obs_dim=59
+[2026-03-21 10:29:51]   [FRAME_HIST] step=13 buf_len=14 filled=1/4 cur_pos=(-0.140,-0.055,0.018) cur_vel=(-0.582,0.179,-0.137) t-4=(-0.125,-0.060,0.019,-0.551,0.181,-0.008) obs_dim=59
+[2026-03-21 10:29:51]   [FRAME_HIST] step=14 buf_len=15 filled=1/4 cur_pos=(-0.142,-0.055,0.017) cur_vel=(-0.586,0.180,-0.152) t-4=(-0.127,-0.060,0.019,-0.555,0.182,-0.023) obs_dim=59
+[2026-03-21 10:29:51]   [FRAME_HIST] step=15 buf_len=16 filled=1/4 cur_pos=(-0.143,-0.054,0.017) cur_vel=(-0.590,0.179,-0.167) t-4=(-0.129,-0.059,0.019,-0.559,0.182,-0.041) obs_dim=59
+[2026-03-21 10:29:51]   [FRAME_HIST] step=16 buf_len=17 filled=2/4 cur_pos=(-0.145,-0.054,0.016) cur_vel=(-0.594,0.180,-0.185) t-4=(-0.131,-0.058,0.019,-0.563,0.182,-0.056) obs_dim=59
+[2026-03-21 10:29:51]   [FRAME_HIST] step=17 buf_len=18 filled=2/4 cur_pos=(-0.147,-0.053,0.015) cur_vel=(-0.597,0.180,-0.200) t-4=(-0.132,-0.058,0.019,-0.566,0.180,-0.071) obs_dim=59
+[2026-03-21 10:29:51]   [FRAME_HIST] step=18 buf_len=19 filled=2/4 cur_pos=(-0.149,-0.053,0.015) cur_vel=(-0.601,0.179,-0.215) t-4=(-0.134,-0.057,0.019,-0.570,0.181,-0.089) obs_dim=59
+[2026-03-21 10:29:51]   [FRAME_HIST] step=19 buf_len=20 filled=2/4 cur_pos=(-0.151,-0.052,0.014) cur_vel=(-0.606,0.177,-0.233) t-4=(-0.136,-0.057,0.018,-0.574,0.180,-0.104) obs_dim=59
+[2026-03-21 10:29:51] [GEM] ep=1160 step=21885647 +1pts | ep_total=201.8
+[2026-03-21 10:29:53] [GEM] ep=1160 step=21885917 +1pts | ep_total=414.7
+[2026-03-21 10:29:54] [GEM] ep=1160 step=21886098 +1pts | ep_total=628.7
+[2026-03-21 10:29:56] [GEM] ep=1160 step=21886491 +1pts | ep_total=842.8
+[2026-03-21 10:29:57] [GEM] ep=1160 step=21886691 +1pts | ep_total=1056.2
+[2026-03-21 10:29:58] [GEM] ep=1160 step=21886900 +1pts | ep_total=1273.1
+[2026-03-21 10:29:59] Upd 10718 | PL=-0.0072 VL=2.0188 Ent=1.796 GN=4.551 CGN=11.796 KL=0.0229 | AvgRwd=11599.8 AvgLen=15001 | gems=7
+[2026-03-21 10:29:59]        MeanAngle:215 StdDev:118 PolicyStd:23.8 | Thr:1.00(0.99-1.00) ThrStd:0.494
+[2026-03-21 10:30:00] [GEM] ep=1160 step=21887251 +1pts | ep_total=1488.2
+[2026-03-21 10:30:02] [GEM] ep=1160 step=21887614 +1pts | ep_total=1702.2
+[2026-03-21 10:30:03] [GEM] ep=1160 step=21887783 +1pts | ep_total=1915.7
+[2026-03-21 10:30:03] [GEM] ep=1160 step=21887903 +1pts | ep_total=2129.6
+[2026-03-21 10:30:04] [GEM] ep=1160 step=21888037 +1pts | ep_total=2343.9
+[2026-03-21 10:30:05] [GEM] ep=1160 step=21888266 +1pts | ep_total=2559.4
+[2026-03-21 10:30:06] [GEM] ep=1160 step=21888467 +1pts | ep_total=2773.1
+[2026-03-21 10:30:10] Upd 10719 | PL=-0.0022 VL=1.9210 Ent=1.796 GN=4.428 CGN=15.748 KL=0.0099 | AvgRwd=11599.8 AvgLen=15001 | gems=7
+[2026-03-21 10:30:10]        MeanAngle:75 StdDev:53 PolicyStd:23.8 | Thr:1.00(1.00-1.00) ThrStd:0.494
+[2026-03-21 10:30:10] [GEM] ep=1160 step=21889084 +1pts | ep_total=2989.0
+[2026-03-21 10:30:12] [GAME END] total gems this game: 54pts (best: 54) avg_gap_penalty: 0.0 jump_rate: 1.0% avg_steps/gem: 336
+[2026-03-21 10:30:15] [GEM] ep=1160 step=21889628 +1pts | ep_total=3203.6
+[2026-03-21 10:30:18] [GEM] ep=1160 step=21890134 +1pts | ep_total=3423.3
+[2026-03-21 10:30:20] [GEM] ep=1160 step=21890415 +1pts | ep_total=3636.3
+[2026-03-21 10:30:21] [GEM] ep=1160 step=21890599 +1pts | ep_total=3851.6
+[2026-03-21 10:30:22] [GEM] ep=1160 step=21890947 +1pts | ep_total=4069.7
+[2026-03-21 10:30:24] Upd 10720 | PL=-0.0036 VL=0.9026 Ent=1.796 GN=4.963 CGN=7.621 KL=0.0156 | AvgRwd=11599.8 AvgLen=15001 | gems=6
+[2026-03-21 10:30:24]        MeanAngle:172 StdDev:60 PolicyStd:23.8 | Thr:1.00(1.00-1.00) ThrStd:0.495
+[2026-03-21 10:30:24]   Model saved to models/checkpoints/update_10720.pth
+[2026-03-21 10:30:24] 
+--- SUMMARY Upd 10720 | 0.05h | 21,891,103 steps | 1159 eps ---
+[2026-03-21 10:30:24]   Gems: 59pts (1141/hr) | OOB: 0 | AvgRwd: 11599.8 | Best: 17184.5
+[2026-03-21 10:30:24]   AvgEpLen: 15001 steps | Ent: 1.796 | GN: 4.963 | Lazy: 10.16 | Std: 23.8 | Thr: 1.00 ThrStd: 0.495
+[2026-03-21 10:30:24]   Last 1 eps: 1 had gems
+[2026-03-21 10:30:24] ---
+[2026-03-21 10:30:26] [GEM] ep=1160 step=21891540 +1pts | ep_total=4288.8
+[2026-03-21 10:30:29] [GEM] ep=1160 step=21892150 +1pts | ep_total=4504.1
+[2026-03-21 10:30:31] [GEM] ep=1160 step=21892488 +1pts | ep_total=4720.3
+[2026-03-21 10:30:31] [GEM] ep=1160 step=21892622 +1pts | ep_total=4936.8
+[2026-03-21 10:30:33] [GEM] ep=1160 step=21892856 +1pts | ep_total=5151.3
+[2026-03-21 10:30:35] Upd 10721 | PL=-0.0037 VL=1.0993 Ent=1.796 GN=3.987 CGN=10.733 KL=0.0119 | AvgRwd=11599.8 AvgLen=15001 | gems=5
+[2026-03-21 10:30:35]        MeanAngle:233 StdDev:38 PolicyStd:23.8 | Thr:1.00(1.00-1.00) ThrStd:0.494
+[2026-03-21 10:30:35] [GEM] ep=1160 step=21893185 +1pts | ep_total=5368.6
+[2026-03-21 10:30:37] [GEM] ep=1160 step=21893597 +1pts | ep_total=5583.8
+[2026-03-21 10:30:37] [GEM] ep=1160 step=21893750 +1pts | ep_total=5798.9
+[2026-03-21 10:30:39] [GEM] ep=1160 step=21894134 +1pts | ep_total=6018.0
+[2026-03-21 10:30:41] [GEM] ep=1160 step=21894417 +1pts | ep_total=6235.3
+[2026-03-21 10:30:43] [GEM] ep=1160 step=21894703 +1pts | ep_total=6453.6
+[2026-03-21 10:30:44] [GEM] ep=1160 step=21894986 +1pts | ep_total=6670.5
+[2026-03-21 10:30:45] [GEM] ep=1160 step=21895162 +1pts | ep_total=6885.7
+[2026-03-21 10:30:46] Upd 10722 | PL=0.0046 VL=0.8953 Ent=1.795 GN=8.422 CGN=7.646 KL=0.1010 | AvgRwd=11599.8 AvgLen=15001 | gems=8
+[2026-03-21 10:30:46]        MeanAngle:271 StdDev:79 PolicyStd:23.8 | Thr:1.00(1.00-1.00) ThrStd:0.494
+[2026-03-21 10:30:49] [GEM] ep=1160 step=21895825 +1pts | ep_total=7101.1
+[2026-03-21 10:30:50] [GEM] ep=1160 step=21896025 +1pts | ep_total=7316.2
+[2026-03-21 10:30:52] [GEM] ep=1160 step=21896470 +1pts | ep_total=7533.1
+[2026-03-21 10:30:54] [GEM] ep=1160 step=21896815 +1pts | ep_total=7747.9
+[2026-03-21 10:30:54] [GEM] ep=1160 step=21896916 +1pts | ep_total=7961.0
+[2026-03-21 10:30:55] [GEM] ep=1160 step=21897014 +1pts | ep_total=8174.9
+[2026-03-21 10:30:56] [GEM] ep=1160 step=21897192 +1pts | ep_total=8390.2
+[2026-03-21 10:30:57] Upd 10723 | PL=-0.0014 VL=1.0966 Ent=1.795 GN=3.940 CGN=11.831 KL=0.0051 | AvgRwd=11599.8 AvgLen=15001 | gems=7
+[2026-03-21 10:30:57]        MeanAngle:257 StdDev:85 PolicyStd:23.8 | Thr:1.00(1.00-1.00) ThrStd:0.494
+[2026-03-21 10:30:59] [GEM] ep=1160 step=21897752 +1pts | ep_total=8605.8
+[2026-03-21 10:31:00] [GEM] ep=1160 step=21897935 +1pts | ep_total=8822.6
+[2026-03-21 10:31:01] [GEM] ep=1160 step=21898166 +1pts | ep_total=9038.8
+[2026-03-21 10:31:03] [GEM] ep=1160 step=21898593 +1pts | ep_total=9256.1
+[2026-03-21 10:31:06] [GEM] ep=1160 step=21899048 +1pts | ep_total=9471.6
+[2026-03-21 10:31:08] Upd 10724 | PL=-0.0022 VL=1.0081 Ent=1.794 GN=4.322 CGN=9.567 KL=0.0182 | AvgRwd=11599.8 AvgLen=15001 | gems=5
+[2026-03-21 10:31:08]        MeanAngle:146 StdDev:66 PolicyStd:23.8 | Thr:1.00(0.99-1.00) ThrStd:0.494
+[2026-03-21 10:31:09] [GEM] ep=1160 step=21899633 +1pts | ep_total=9688.7
+[2026-03-21 10:31:10] [GEM] ep=1160 step=21899902 +1pts | ep_total=9907.3
+[2026-03-21 10:31:13] [GEM] ep=1160 step=21900328 +1pts | ep_total=10125.8
+[2026-03-21 10:31:14] [GEM] ep=1160 step=21900638 +1pts | ep_total=10343.3
+[2026-03-21 10:31:16] [GEM] ep=1160 step=21900955 +1pts | ep_total=10557.4
+[2026-03-21 10:31:17] [GEM] ep=1160 step=21901125 +1pts | ep_total=10772.2
+[2026-03-21 10:31:19] Upd 10725 | PL=-0.0014 VL=0.9983 Ent=1.794 GN=6.846 CGN=7.276 KL=0.0191 | AvgRwd=11599.8 AvgLen=15001 | gems=6
+[2026-03-21 10:31:19]        MeanAngle:112 StdDev:58 PolicyStd:23.8 | Thr:1.00(0.99-1.00) ThrStd:0.494
+[2026-03-21 10:31:20] [GEM] ep=1160 step=21901668 +1pts | ep_total=10989.4
+[2026-03-21 10:31:20] [GEM] ep=1160 step=21901811 +1pts | ep_total=11205.6
+[2026-03-21 10:31:22] [GEM] ep=1160 step=21902132 +1pts | ep_total=11420.6
+[2026-03-21 10:31:24] [GEM] ep=1160 step=21902500 +1pts | ep_total=11638.4
+[2026-03-21 10:31:25] [GEM] ep=1160 step=21902684 +1pts | ep_total=11855.4
+[2026-03-21 10:31:27] [GEM] ep=1160 step=21903109 +1pts | ep_total=12072.6
+[2026-03-21 10:31:28] [GEM] ep=1160 step=21903256 +1pts | ep_total=12288.0
+[2026-03-21 10:31:29] Upd 10726 | PL=-0.0035 VL=0.7876 Ent=1.794 GN=4.469 CGN=7.005 KL=0.0221 | AvgRwd=11599.8 AvgLen=15001 | gems=7
+[2026-03-21 10:31:29]        MeanAngle:158 StdDev:134 PolicyStd:23.8 | Thr:1.00(1.00-1.00) ThrStd:0.494
+[2026-03-21 10:31:30] [GEM] ep=1160 step=21903598 +1pts | ep_total=12507.1
+[2026-03-21 10:31:33] [GEM] ep=1160 step=21904077 +1pts | ep_total=12724.6
+[2026-03-21 10:31:34] [GEM] ep=1160 step=21904360 +1pts | ep_total=12941.4
+[2026-03-21 10:31:35] Ep 1160 [SUCCESS] rwd=12942.1 gems=60pts steps=18838 | avg100=11619.2
+[2026-03-21 10:31:35]   [FRAME_HIST] step=0 buf_len=1 filled=0/4 cur_pos=(-0.150,-0.187,0.006) cur_vel=(-0.154,0.364,0.000) obs_dim=59
+[2026-03-21 10:31:35]   [FRAME_HIST] step=1 buf_len=2 filled=0/4 cur_pos=(0.237,0.028,0.006) cur_vel=(-0.138,-0.360,0.000) obs_dim=59
+[2026-03-21 10:31:35]   [FRAME_HIST] step=2 buf_len=3 filled=0/4 cur_pos=(0.237,0.027,0.006) cur_vel=(-0.137,-0.349,0.000) obs_dim=59
+[2026-03-21 10:31:35]   [FRAME_HIST] step=3 buf_len=4 filled=0/4 cur_pos=(0.236,0.026,0.006) cur_vel=(-0.145,-0.348,0.000) obs_dim=59
+[2026-03-21 10:31:35]   [FRAME_HIST] step=4 buf_len=5 filled=0/4 cur_pos=(0.236,0.025,0.006) cur_vel=(-0.153,-0.348,0.000) obs_dim=59
+[2026-03-21 10:31:35]   [FRAME_HIST] step=5 buf_len=6 filled=0/4 cur_pos=(0.235,0.024,0.006) cur_vel=(-0.162,-0.348,0.000) obs_dim=59
+[2026-03-21 10:31:35]   [FRAME_HIST] step=6 buf_len=7 filled=0/4 cur_pos=(0.235,0.022,0.006) cur_vel=(-0.172,-0.348,0.000) obs_dim=59
+[2026-03-21 10:31:35]   [FRAME_HIST] step=7 buf_len=8 filled=0/4 cur_pos=(0.234,0.021,0.006) cur_vel=(-0.180,-0.348,0.000) obs_dim=59
+[2026-03-21 10:31:35]   [FRAME_HIST] step=8 buf_len=9 filled=1/4 cur_pos=(0.233,0.020,0.006) cur_vel=(-0.188,-0.344,0.000) t-4=(-0.150,-0.187,0.006,-0.154,0.364,0.000) obs_dim=59
+[2026-03-21 10:31:35]   [FRAME_HIST] step=9 buf_len=10 filled=1/4 cur_pos=(0.233,0.019,0.006) cur_vel=(-0.196,-0.345,0.000) t-4=(0.237,0.028,0.006,-0.138,-0.360,0.000) obs_dim=59
+[2026-03-21 10:31:35]   [FRAME_HIST] step=10 buf_len=11 filled=1/4 cur_pos=(0.232,0.018,0.006) cur_vel=(-0.199,-0.349,0.000) t-4=(0.237,0.027,0.006,-0.137,-0.349,0.000) obs_dim=59
+[2026-03-21 10:31:35]   [FRAME_HIST] step=11 buf_len=12 filled=1/4 cur_pos=(0.232,0.017,0.006) cur_vel=(-0.205,-0.352,0.000) t-4=(0.236,0.026,0.006,-0.145,-0.348,0.000) obs_dim=59
+[2026-03-21 10:31:35]   [FRAME_HIST] step=12 buf_len=13 filled=1/4 cur_pos=(0.231,0.016,0.006) cur_vel=(-0.212,-0.355,0.000) t-4=(0.236,0.025,0.006,-0.153,-0.348,0.000) obs_dim=59
+[2026-03-21 10:31:35]   [FRAME_HIST] step=13 buf_len=14 filled=1/4 cur_pos=(0.230,0.015,0.006) cur_vel=(-0.220,-0.356,0.000) t-4=(0.235,0.024,0.006,-0.162,-0.348,0.000) obs_dim=59
+[2026-03-21 10:31:35]   [FRAME_HIST] step=14 buf_len=15 filled=1/4 cur_pos=(0.230,0.014,0.006) cur_vel=(-0.228,-0.356,0.000) t-4=(0.235,0.022,0.006,-0.172,-0.348,0.000) obs_dim=59
+[2026-03-21 10:31:35]   [FRAME_HIST] step=15 buf_len=16 filled=1/4 cur_pos=(0.229,0.012,0.006) cur_vel=(-0.237,-0.356,0.000) t-4=(0.234,0.021,0.006,-0.180,-0.348,0.000) obs_dim=59
+[2026-03-21 10:31:35]   [FRAME_HIST] step=16 buf_len=17 filled=2/4 cur_pos=(0.228,0.011,0.006) cur_vel=(-0.245,-0.351,0.000) t-4=(0.233,0.020,0.006,-0.188,-0.344,0.000) obs_dim=59
+[2026-03-21 10:31:35]   [FRAME_HIST] step=17 buf_len=18 filled=2/4 cur_pos=(0.227,0.010,0.007) cur_vel=(-0.249,-0.350,0.361) t-4=(0.233,0.019,0.006,-0.196,-0.345,0.000) obs_dim=59
+[2026-03-21 10:31:35]   [FRAME_HIST] step=18 buf_len=19 filled=2/4 cur_pos=(0.226,0.009,0.008) cur_vel=(-0.253,-0.350,0.343) t-4=(0.232,0.018,0.006,-0.199,-0.349,0.000) obs_dim=59
+[2026-03-21 10:31:35]   [FRAME_HIST] step=19 buf_len=20 filled=2/4 cur_pos=(0.226,0.008,0.009) cur_vel=(-0.255,-0.352,0.328) t-4=(0.232,0.017,0.006,-0.205,-0.352,0.000) obs_dim=59
+[2026-03-21 10:31:35] [GEM] ep=1161 step=21904592 +1pts | ep_total=214.5
+[2026-03-21 10:31:38] [GEM] ep=1161 step=21905025 +1pts | ep_total=427.0
+[2026-03-21 10:31:40] Upd 10727 | PL=-0.0057 VL=0.8020 Ent=1.793 GN=3.310 CGN=4.830 KL=0.0215 | AvgRwd=11619.2 AvgLen=16920 | gems=5
+[2026-03-21 10:31:40]        MeanAngle:283 StdDev:42 PolicyStd:23.8 | Thr:1.00(1.00-1.00) ThrStd:0.494
+[2026-03-21 10:31:43] [GEM] ep=1161 step=21906095 +1pts | ep_total=643.8
+[2026-03-21 10:31:45] [GEM] ep=1161 step=21906415 +1pts | ep_total=861.7
+[2026-03-21 10:31:46] [GEM] ep=1161 step=21906680 +1pts | ep_total=1080.0
+[2026-03-21 10:31:49] [GEM] ep=1161 step=21907088 +1pts | ep_total=1297.3
+[2026-03-21 10:31:50] [GEM] ep=1161 step=21907326 +1pts | ep_total=1513.7
+[2026-03-21 10:31:51] Upd 10728 | PL=-0.0042 VL=0.8011 Ent=1.793 GN=6.027 CGN=4.514 KL=0.0160 | AvgRwd=11619.2 AvgLen=16920 | gems=5
+[2026-03-21 10:31:51]        MeanAngle:193 StdDev:60 PolicyStd:23.8 | Thr:1.00(1.00-1.00) ThrStd:0.494
+[2026-03-21 10:31:52] [GEM] ep=1161 step=21907795 +1pts | ep_total=1730.8
+[2026-03-21 10:31:54] [GEM] ep=1161 step=21908119 +1pts | ep_total=1948.0
+[2026-03-21 10:31:55] [GAME END] total gems this game: 55pts (best: 55) avg_gap_penalty: 0.0 jump_rate: 1.0% avg_steps/gem: 344
+[2026-03-21 10:31:59] [GEM] ep=1161 step=21908504 +1pts | ep_total=2163.6
+[2026-03-21 10:32:01] [GEM] ep=1161 step=21908907 +1pts | ep_total=2380.7
+[2026-03-21 10:32:05] Upd 10729 | PL=-0.0021 VL=1.4513 Ent=1.794 GN=4.501 CGN=13.720 KL=0.0179 | AvgRwd=11619.2 AvgLen=16920 | gems=4
+[2026-03-21 10:32:05]        MeanAngle:190 StdDev:24 PolicyStd:23.8 | Thr:1.00(1.00-1.00) ThrStd:0.494
+[2026-03-21 10:32:15] [GEM] ep=1161 step=21910567 +1pts | ep_total=2596.9
+[2026-03-21 10:32:17] [GEM] ep=1161 step=21910720 +1pts | ep_total=2810.8
+[2026-03-21 10:32:22] [GEM] ep=1161 step=21911220 +1pts | ep_total=3028.3
+[2026-03-21 10:32:23] [GEM] ep=1161 step=21911364 +1pts | ep_total=3239.1
+[2026-03-21 10:32:26] Upd 10730 | PL=-0.0023 VL=1.7018 Ent=1.795 GN=2.714 CGN=18.383 KL=0.0053 | AvgRwd=11619.2 AvgLen=16920 | gems=4
+[2026-03-21 10:32:26]        MeanAngle:102 StdDev:28 PolicyStd:23.8 | Thr:1.00(1.00-1.00) ThrStd:0.494
+[2026-03-21 10:32:26]   Model saved to models/checkpoints/update_10730.pth
+[2026-03-21 10:32:26] 
+--- SUMMARY Upd 10730 | 0.09h | 21,911,583 steps | 1160 eps ---
+[2026-03-21 10:32:26]   Gems: 115pts (1343/hr) | OOB: 0 | AvgRwd: 11619.2 | Best: 17184.5
+[2026-03-21 10:32:26]   AvgEpLen: 16920 steps | Ent: 1.795 | GN: 2.714 | Lazy: 8.65 | Std: 23.8 | Thr: 1.00 ThrStd: 0.494
+[2026-03-21 10:32:26]   Last 2 eps: 2 had gems
+[2026-03-21 10:32:26] ---
+[2026-03-21 10:32:37] [GEM] ep=1161 step=21912623 +1pts | ep_total=3456.0
+[2026-03-21 10:32:43] [GEM] ep=1161 step=21913261 +1pts | ep_total=3674.4
+[2026-03-21 10:32:46] [GEM] ep=1161 step=21913498 +1pts | ep_total=3892.2
+[2026-03-21 10:32:48] Upd 10731 | PL=-0.0029 VL=1.1054 Ent=1.795 GN=3.489 CGN=14.045 KL=0.0131 | AvgRwd=11619.2 AvgLen=16920 | gems=3
+[2026-03-21 10:32:48]        MeanAngle:191 StdDev:80 PolicyStd:23.8 | Thr:1.00(0.99-1.00) ThrStd:0.494
+[2026-03-21 10:32:49] [GEM] ep=1161 step=21913801 +1pts | ep_total=4110.1
+[2026-03-21 10:32:53] [GEM] ep=1161 step=21914189 +1pts | ep_total=4323.8
+[2026-03-21 10:32:56] [GEM] ep=1161 step=21914498 +1pts | ep_total=4540.5
+[2026-03-21 10:33:00] [GEM] ep=1161 step=21914823 +1pts | ep_total=4756.3
+[2026-03-21 10:33:09] Upd 10732 | PL=-0.0025 VL=1.3752 Ent=1.795 GN=3.253 CGN=15.232 KL=0.0433 | AvgRwd=11619.2 AvgLen=16920 | gems=4
+[2026-03-21 10:33:09]        MeanAngle:290 StdDev:33 PolicyStd:23.8 | Thr:1.00(1.00-1.00) ThrStd:0.494
+[2026-03-21 10:33:14] [GEM] ep=1161 step=21916198 +1pts | ep_total=4972.4
+[2026-03-21 10:33:16] [GEM] ep=1161 step=21916376 +1pts | ep_total=5185.9
+[2026-03-21 10:33:25] [GEM] ep=1161 step=21917189 +1pts | ep_total=5402.6
+[2026-03-21 10:33:28] [GEM] ep=1161 step=21917529 +1pts | ep_total=5620.2
+[2026-03-21 10:33:31] Upd 10733 | PL=-0.0008 VL=1.5574 Ent=1.795 GN=2.888 CGN=20.881 KL=0.0045 | AvgRwd=11619.2 AvgLen=16920 | gems=4
+[2026-03-21 10:33:31]        MeanAngle:187 StdDev:140 PolicyStd:23.8 | Thr:1.00(1.00-1.00) ThrStd:0.494
+[2026-03-21 10:33:31] [GEM] ep=1161 step=21917733 +1pts | ep_total=5836.8
+[2026-03-21 10:33:41] [GEM] ep=1161 step=21918745 +1pts | ep_total=6053.5
+[2026-03-21 10:33:44] [GEM] ep=1161 step=21919017 +1pts | ep_total=6269.4
+[2026-03-21 10:33:47] [GEM] ep=1161 step=21919286 +1pts | ep_total=6486.2
+[2026-03-21 10:33:49] [GEM] ep=1161 step=21919514 +1pts | ep_total=6701.3
+[2026-03-21 10:33:52] Upd 10734 | PL=-0.0017 VL=1.1627 Ent=1.794 GN=3.880 CGN=11.317 KL=0.0096 | AvgRwd=11619.2 AvgLen=16920 | gems=5
+[2026-03-21 10:33:52]        MeanAngle:88 StdDev:44 PolicyStd:23.8 | Thr:1.00(1.00-1.00) ThrStd:0.493
+[2026-03-21 10:33:56] [GEM] ep=1161 step=21920161 +1pts | ep_total=6919.1
+[2026-03-21 10:33:59] [GEM] ep=1161 step=21920411 +1pts | ep_total=7134.3
+[2026-03-21 10:34:04] [GEM] ep=1161 step=21920873 +1pts | ep_total=7346.5
+[2026-03-21 10:34:09] [GEM] ep=1161 step=21921370 +1pts | ep_total=7564.2
+[2026-03-21 10:34:14] Upd 10735 | PL=-0.0062 VL=1.8568 Ent=1.795 GN=2.800 CGN=17.291 KL=0.0134 | AvgRwd=11619.2 AvgLen=16920 | gems=4
+[2026-03-21 10:34:14]        MeanAngle:179 StdDev:93 PolicyStd:23.8 | Thr:1.00(1.00-1.00) ThrStd:0.493
+[2026-03-21 10:34:16] [GEM] ep=1161 step=21922020 +1pts | ep_total=7779.7
+[2026-03-21 10:34:18] [GEM] ep=1161 step=21922258 +1pts | ep_total=7994.3
+[2026-03-21 10:34:28] Ep 1161 [SUCCESS] rwd=8005.4 gems=37pts steps=18874 | avg100=11588.9
+[2026-03-21 10:34:28]   [FRAME_HIST] step=0 buf_len=1 filled=0/4 cur_pos=(0.115,-0.099,0.023) cur_vel=(0.483,0.016,-0.167) obs_dim=59
+[2026-03-21 10:34:28]   [FRAME_HIST] step=1 buf_len=2 filled=0/4 cur_pos=(0.079,0.131,0.023) cur_vel=(-0.092,0.478,-0.185) obs_dim=59
+[2026-03-21 10:34:28]   [FRAME_HIST] step=2 buf_len=3 filled=0/4 cur_pos=(0.078,0.133,0.022) cur_vel=(-0.090,0.481,-0.200) obs_dim=59
+[2026-03-21 10:34:28]   [FRAME_HIST] step=3 buf_len=4 filled=0/4 cur_pos=(0.078,0.134,0.021) cur_vel=(-0.091,0.483,-0.215) obs_dim=59
+[2026-03-21 10:34:28]   [FRAME_HIST] step=4 buf_len=5 filled=0/4 cur_pos=(0.078,0.136,0.021) cur_vel=(-0.095,0.485,-0.233) obs_dim=59
+[2026-03-21 10:34:28]   [FRAME_HIST] step=5 buf_len=6 filled=0/4 cur_pos=(0.077,0.137,0.020) cur_vel=(-0.098,0.488,-0.248) obs_dim=59
+[2026-03-21 10:34:28]   [FRAME_HIST] step=6 buf_len=7 filled=0/4 cur_pos=(0.077,0.139,0.019) cur_vel=(-0.100,0.490,-0.263) obs_dim=59
+[2026-03-21 10:34:28]   [FRAME_HIST] step=7 buf_len=8 filled=0/4 cur_pos=(0.077,0.140,0.018) cur_vel=(-0.104,0.493,-0.281) obs_dim=59
+[2026-03-21 10:34:28]   [FRAME_HIST] step=8 buf_len=9 filled=1/4 cur_pos=(0.076,0.142,0.017) cur_vel=(-0.107,0.496,-0.296) t-4=(0.115,-0.099,0.023,0.483,0.016,-0.167) obs_dim=59
+[2026-03-21 10:34:28]   [FRAME_HIST] step=9 buf_len=10 filled=1/4 cur_pos=(0.076,0.143,0.016) cur_vel=(-0.110,0.497,-0.311) t-4=(0.079,0.131,0.023,-0.092,0.478,-0.185) obs_dim=59
+[2026-03-21 10:34:28]   [FRAME_HIST] step=10 buf_len=11 filled=1/4 cur_pos=(0.076,0.145,0.015) cur_vel=(-0.113,0.500,-0.329) t-4=(0.078,0.133,0.022,-0.090,0.481,-0.200) obs_dim=59
+[2026-03-21 10:34:28]   [FRAME_HIST] step=11 buf_len=12 filled=1/4 cur_pos=(0.075,0.147,0.014) cur_vel=(-0.117,0.501,-0.344) t-4=(0.078,0.134,0.021,-0.091,0.483,-0.215) obs_dim=59
+[2026-03-21 10:34:28]   [FRAME_HIST] step=12 buf_len=13 filled=1/4 cur_pos=(0.075,0.148,0.013) cur_vel=(-0.120,0.501,-0.359) t-4=(0.078,0.136,0.021,-0.095,0.485,-0.233) obs_dim=59
+[2026-03-21 10:34:28]   [FRAME_HIST] step=13 buf_len=14 filled=1/4 cur_pos=(0.075,0.150,0.012) cur_vel=(-0.123,0.505,-0.377) t-4=(0.077,0.137,0.020,-0.098,0.488,-0.248) obs_dim=59
+[2026-03-21 10:34:28]   [FRAME_HIST] step=14 buf_len=15 filled=1/4 cur_pos=(0.074,0.152,0.011) cur_vel=(-0.126,0.507,-0.392) t-4=(0.077,0.139,0.019,-0.100,0.490,-0.263) obs_dim=59
+[2026-03-21 10:34:28]   [FRAME_HIST] step=15 buf_len=16 filled=1/4 cur_pos=(0.074,0.153,0.009) cur_vel=(-0.129,0.509,-0.407) t-4=(0.077,0.140,0.018,-0.104,0.493,-0.281) obs_dim=59
+[2026-03-21 10:34:28]   [FRAME_HIST] step=16 buf_len=17 filled=2/4 cur_pos=(0.073,0.155,0.008) cur_vel=(-0.134,0.510,-0.425) t-4=(0.076,0.142,0.017,-0.107,0.496,-0.296) obs_dim=59
+[2026-03-21 10:34:28]   [FRAME_HIST] step=17 buf_len=18 filled=2/4 cur_pos=(0.073,0.156,0.007) cur_vel=(-0.137,0.511,-0.440) t-4=(0.076,0.143,0.016,-0.110,0.497,-0.311) obs_dim=59
+[2026-03-21 10:34:28]   [FRAME_HIST] step=18 buf_len=19 filled=2/4 cur_pos=(0.073,0.158,0.006) cur_vel=(-0.200,0.475,0.222) t-4=(0.076,0.145,0.015,-0.113,0.500,-0.329) obs_dim=59
+[2026-03-21 10:34:28]   [FRAME_HIST] step=19 buf_len=20 filled=2/4 cur_pos=(0.072,0.160,0.007) cur_vel=(-0.204,0.475,0.204) t-4=(0.075,0.147,0.014,-0.117,0.501,-0.344) obs_dim=59
+[2026-03-21 10:34:30] [GEM] ep=1162 step=21923644 +1pts | ep_total=202.9
+[2026-03-21 10:34:32] Upd 10736 | PL=-0.0055 VL=1.0782 Ent=1.796 GN=3.578 CGN=11.546 KL=0.0111 | AvgRwd=11588.9 AvgLen=17571 | gems=3
+[2026-03-21 10:34:32]        MeanAngle:163 StdDev:30 PolicyStd:23.8 | Thr:1.00(1.00-1.00) ThrStd:0.494
+[2026-03-21 10:34:34] [GEM] ep=1162 step=21924313 +1pts | ep_total=421.1
+[2026-03-21 10:34:35] [GEM] ep=1162 step=21924686 +1pts | ep_total=636.3
+[2026-03-21 10:34:37] [GEM] ep=1162 step=21925001 +1pts | ep_total=849.4
+[2026-03-21 10:34:38] [GEM] ep=1162 step=21925131 +1pts | ep_total=1062.6
+[2026-03-21 10:34:40] [GEM] ep=1162 step=21925441 +1pts | ep_total=1281.2
+[2026-03-21 10:34:41] [GEM] ep=1162 step=21925681 +1pts | ep_total=1493.7
+[2026-03-21 10:34:43] Upd 10737 | PL=-0.0049 VL=1.5694 Ent=1.797 GN=3.040 CGN=11.059 KL=0.0065 | AvgRwd=11588.9 AvgLen=17571 | gems=6
+[2026-03-21 10:34:43]        MeanAngle:275 StdDev:31 PolicyStd:23.8 | Thr:1.00(1.00-1.00) ThrStd:0.494
+[2026-03-21 10:34:45] [GEM] ep=1162 step=21926382 +1pts | ep_total=1708.7
+[2026-03-21 10:34:46] [GEM] ep=1162 step=21926638 +1pts | ep_total=1921.3
+[2026-03-21 10:34:48] [GEM] ep=1162 step=21927051 +1pts | ep_total=2135.4
+[2026-03-21 10:34:49] [GAME END] total gems this game: 38pts (best: 55) avg_gap_penalty: 0.0 jump_rate: 1.4% avg_steps/gem: 470
+[2026-03-21 10:34:49] [MATURITY] Throttle floor disabled (3 consecutive 20+ gem games)
+[2026-03-21 10:34:52] [GEM] ep=1162 step=21927321 +1pts | ep_total=2353.2
+[2026-03-21 10:34:55] [GEM] ep=1162 step=21927738 +1pts | ep_total=2565.9
+[2026-03-21 10:34:56] [GEM] ep=1162 step=21927938 +1pts | ep_total=2782.1
+[2026-03-21 10:34:56] Upd 10738 | PL=-0.0012 VL=1.5966 Ent=1.798 GN=4.195 CGN=11.052 KL=0.0090 | AvgRwd=11588.9 AvgLen=17571 | gems=6
+[2026-03-21 10:34:56]        MeanAngle:179 StdDev:144 PolicyStd:23.8 | Thr:1.00(1.00-1.00) ThrStd:0.494
+[2026-03-21 10:34:59] [GEM] ep=1162 step=21928483 +1pts | ep_total=3000.8
+[2026-03-21 10:34:59] [GEM] ep=1162 step=21928649 +1pts | ep_total=3219.5
+[2026-03-21 10:35:01] [GEM] ep=1162 step=21928966 +1pts | ep_total=3437.4
+[2026-03-21 10:35:02] [GEM] ep=1162 step=21929184 +1pts | ep_total=3651.0
+[2026-03-21 10:35:09] Upd 10739 | PL=-0.0036 VL=1.1838 Ent=1.798 GN=4.451 CGN=10.042 KL=0.0151 | AvgRwd=11588.9 AvgLen=17571 | gems=4
+[2026-03-21 10:35:09]        MeanAngle:279 StdDev:28 PolicyStd:23.9 | Thr:1.00(1.00-1.00) ThrStd:0.493
+[2026-03-21 10:35:10] [GEM] ep=1162 step=21930068 +1pts | ep_total=3866.8
+[2026-03-21 10:35:15] [GEM] ep=1162 step=21930605 +1pts | ep_total=4084.2
+[2026-03-21 10:35:19] [GEM] ep=1162 step=21931021 +1pts | ep_total=4302.9
+[2026-03-21 10:35:19] [GAME END] total gems this game: 10pts (best: 55) avg_gap_penalty: 0.0 jump_rate: 1.2% avg_steps/gem: 397
+[2026-03-21 10:35:22] Game disconnected. Shutting down.
+[2026-03-21 10:35:22] Server stopped.
