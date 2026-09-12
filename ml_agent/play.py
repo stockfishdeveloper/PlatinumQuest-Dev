@@ -68,6 +68,12 @@ def main():
     OBS_DIM = OBS_DIM_BASE + FRAME_HISTORY_COUNT * FRAME_HISTORY_DIMS  # 59
     frame_history_size = FRAME_HISTORY_COUNT * FRAME_SKIP + 1  # 33
     frame_history = deque(maxlen=frame_history_size)
+    # Action repeat (must match train_ppo.py ACTION_REPEAT): the policy was
+    # trained with each decision held for this many ticks, so inference holds
+    # it too. Frame history is still fed every tick.
+    ACTION_REPEAT = 4
+    tick_in_window = 0
+    cached_action = None
 
     parser = argparse.ArgumentParser(description='PlatinumQuest Inference Server')
     parser.add_argument('--model', default='models/checkpoints/best.pth',
@@ -168,8 +174,11 @@ def main():
                                 history_frames.append(np.zeros(FRAME_HISTORY_DIMS, dtype=np.float32))
                         obs_augmented = np.concatenate([obs] + history_frames)
 
-                        _, action_game, _ = model.get_action(obs_augmented, deterministic=deterministic)
-                        dx, dy, throttle, jump, brake = action_game
+                        tick_in_window += 1
+                        if cached_action is None or tick_in_window >= ACTION_REPEAT:
+                            _, cached_action, _ = model.get_action(obs_augmented, deterministic=deterministic)
+                            tick_in_window = 0
+                        dx, dy, throttle, jump, brake = cached_action
                         total_steps += 1
 
                         if gem_delta > 0:
@@ -182,6 +191,8 @@ def main():
                             episode_gems = 0
                             total_steps = 0
                             frame_history.clear()
+                            cached_action = None
+                            tick_in_window = 0
 
                         # Brake override needs raw camera-relative velocity (obs_raw[3:5]).
                         vx_raw = float(obs_raw[3]) if len(obs_raw) > 5 else 0.0

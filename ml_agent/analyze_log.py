@@ -87,6 +87,7 @@ def parse_log(filepath):
                 gems_m = re.search(r'gems=(\d+)', tail)
                 oob_m = re.search(r'OOB=(\d+)', tail)
                 dry_m = re.search(r'DRY.(\d+)', tail)
+                vstd_m = re.search(r'Vstd=([\d.]+)', tail)
                 pstd_m = policystd_re.search(line)
                 kl_stopped = 'KL-STOP' in tail
 
@@ -103,6 +104,7 @@ def parse_log(filepath):
                     'gems': int(gems_m.group(1)) if gems_m else 0,
                     'oob': int(oob_m.group(1)) if oob_m else 0,
                     'dry': int(dry_m.group(1)) if dry_m else 0,
+                    'value_std': float(vstd_m.group(1)) if vstd_m else None,  # PopArt scale (2026-09-11+)
                     'policy_std': float(pstd_m.group(1)) if pstd_m else None,
                     'collapse': '*** ENTROPY COLLAPSE ***' in tail,
                     'entropy_low': '(entropy low)' in tail,
@@ -608,6 +610,8 @@ def print_analysis(data, last_n=None):
     print(f"  GradNorm:   {u['grad_norm']:.3f}")
     if u.get('critic_grad_norm') is not None:
         print(f"  CriticGN:   {u['critic_grad_norm']:.3f}")
+    if u.get('value_std') is not None:
+        print(f"  ValueStd:   {u['value_std']:.2f}  (VL is PopArt-normalized; raw-scaled VL ~= VL * ValueStd^2)")
     if episodes:
         e = episodes[-1]
         print(f"  Last Ep:    {e['episode']} (rwd={e['reward']:.0f}, gems={e['gems']}, OOB={e['oob']})")

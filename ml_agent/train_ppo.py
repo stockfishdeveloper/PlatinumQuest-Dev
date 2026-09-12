@@ -80,10 +80,20 @@ class Actor(nn.Module):
     """
 
     LOG_STD_MIN = -2.0    # exp(-2.0) ~= 0.14 (tight directional spread)
-    LOG_STD_MAX = 1.0     # exp(1.0)  ~= 2.7  (wide exploration)
+    LOG_STD_MAX = -0.5    # exp(-0.5) ~= 0.61 rad ~= 35 deg (tightened from 1.0).
+                          # On KingOfTheMarble the policy was drifting to ~50 deg
+                          # spread despite entropy_coef reductions (0.005->0.002->0.001).
+                          # Reward gradient itself was pushing log_std up — entropy_coef
+                          # wasn't the lever. This is an architectural ceiling: forces
+                          # log_std clamp at 35 deg, recovering navigation precision
+                          # while keeping enough exploration to maintain brake learning.
     THROTTLE_LOG_STD_MIN = -3.0   # exp(-3.0) ~= 0.05 (tight throttle control)
     THROTTLE_FLOOR = 0.15         # Minimum throttle (disabled after model matures)
-    THROTTLE_LOG_STD_MAX = 0.0    # exp(0.0)  ~= 1.0  (wide exploration)
+    THROTTLE_LOG_STD_MAX = -0.9   # exp(-0.9) ~= 0.41 (tightened from 0.0/=1.0).
+                                  # Same reason: throttle stddev was creeping up
+                                  # (0.231 -> 0.318) and contributing to runaway.
+                                  # Cap at ~0.4 keeps reasonable headroom above
+                                  # current 0.32 but prevents further widening.
 
     def __init__(self, obs_dim=61):
         super().__init__()
@@ -348,7 +358,24 @@ class Critic(nn.Module):
     The critic's value loss is high-variance (reward spikes from gem collection),
     so keeping it separate ensures its gradients never corrupt the policy weights.
     Uses a higher learning rate than the actor.
+
+    Value-target normalization (PopArt, van Hasselt et al. 2016). The last layer
+    predicts a NORMALIZED value v_n; the real value is
+        V(s) = v_n * value_std + value_mean
+    Running (mean, std) of the GAE returns are refreshed once per rollout.
+    Whenever the stats change, the last layer's weight and bias are rescaled so
+    that every V(s) is exactly preserved (output-preserving update) -- only the
+    loss scale changes. This keeps the regression target O(1) regardless of
+    gamma, reward scale or map, which is what previously forced critic_lr down
+    to 1e-5 and a 0.3 grad clip (VL spiked to 27, CGN to 472 on the
+    KingOfTheMarble switch). The stats are registered buffers, so they are
+    saved in the checkpoint; checkpoints that predate them load with
+    mean=0, std=1 (identity), i.e. the loaded critic behaves exactly as before
+    until the first rollout initializes the stats.
     """
+
+    POPART_BETA = 0.05      # per-rollout EMA rate for the running stats (~20-rollout memory)
+    POPART_MIN_STD = 1e-2   # floor on value_std (degenerate all-equal returns)
 
     def __init__(self, obs_dim=61):
         super().__init__()
@@ -364,15 +391,58 @@ class Critic(nn.Module):
             nn.ReLU(),
             nn.Linear(64, 1),
         )
+        # PopArt running statistics of the value targets, in raw-scaled reward units.
+        self.register_buffer('value_mean', torch.zeros(1))
+        self.register_buffer('value_std', torch.ones(1))
+        self.register_buffer('value_sq_mean', torch.ones(1))          # running E[G^2]
+        self.register_buffer('value_stats_initialized', torch.zeros(1))  # 0 until first rollout
+
+    def forward_normalized(self, state):
+        """Raw last-layer output: the normalized value v_n. Used only by the value loss."""
+        return self.net(state)
 
     def forward(self, state):
-        return self.net(state)
+        """Real (denormalized) value V(s). Used by GAE, bootstrapping and all diagnostics."""
+        return self.net(state) * self.value_std + self.value_mean
 
     def get_value(self, state):
         with torch.no_grad():
             if not isinstance(state, torch.Tensor):
                 state = torch.FloatTensor(state).unsqueeze(0)
             return self.forward(state).item()
+
+    @torch.no_grad()
+    def update_value_stats(self, returns):
+        """Refresh the running mean/std of the value targets and rescale the output
+        layer so every V(s) prediction is unchanged (PopArt).
+
+        Args:
+            returns: 1-D tensor of GAE returns for this rollout (raw-scaled units).
+        """
+        old_mean = self.value_mean.clone()
+        old_std = self.value_std.clone()
+
+        batch_mean = returns.mean()
+        batch_sq = (returns ** 2).mean()
+        if self.value_stats_initialized.item() < 0.5:
+            # First rollout: adopt the batch statistics directly rather than
+            # crawling away from the (0, 1) placeholder via the EMA.
+            self.value_mean.copy_(batch_mean.reshape(1))
+            self.value_sq_mean.copy_(batch_sq.reshape(1))
+            self.value_stats_initialized.fill_(1.0)
+        else:
+            b = self.POPART_BETA
+            self.value_mean.mul_(1 - b).add_(b * batch_mean)
+            self.value_sq_mean.mul_(1 - b).add_(b * batch_sq)
+        var = (self.value_sq_mean - self.value_mean ** 2).clamp(min=0.0)
+        self.value_std.copy_(var.sqrt().clamp(min=self.POPART_MIN_STD))
+
+        # Output-preserving rescale of the final Linear(64, 1):
+        #   v_n_new * std_new + mean_new  ==  v_n_old * std_old + mean_old
+        out = self.net[-1]
+        scale = old_std / self.value_std
+        out.weight.mul_(scale)
+        out.bias.mul_(scale).add_((old_mean - self.value_mean) / self.value_std)
 
 
 # ============================================================================
@@ -406,8 +476,17 @@ class RolloutBuffer:
         self.log_probs.clear()
         self.dones.clear()
 
-    def compute_returns_and_advantages(self, gamma=0.99, lam=0.95):
-        """Compute GAE advantages and discounted returns."""
+    def compute_returns_and_advantages(self, gamma=0.99, lam=0.95, last_value=0.0):
+        """Compute GAE advantages and discounted returns.
+
+        last_value: V(s_{T+1}), the critic's estimate for the observation that
+        follows the final stored transition. The buffer is cut every
+        rollout_size decisions in the MIDDLE of an episode (truncation, not
+        termination), so the last step must bootstrap from it. The old code
+        used 0 here, which gave the final transition a TD error of roughly
+        -V(s) and propagated a spurious negative advantage back ~50 steps
+        into every single rollout. Ignored when dones[-1] is True.
+        """
         advantages = []
         returns = []
         gae = 0
@@ -415,7 +494,7 @@ class RolloutBuffer:
         # Work backwards through experience
         for t in reversed(range(len(self.rewards))):
             if t == len(self.rewards) - 1:
-                next_value = 0  # Terminal
+                next_value = last_value  # truncation: bootstrap from V(s_{T+1})
             else:
                 next_value = self.values[t + 1]
 
@@ -430,9 +509,18 @@ class RolloutBuffer:
 
         return returns, advantages
 
-    def get_batches(self, batch_size, gamma=0.99, lam=0.95):
-        """Get training batches with computed advantages."""
-        returns, advantages = self.compute_returns_and_advantages(gamma, lam)
+    def get_batches(self, batch_size, gamma=0.99, lam=0.95, last_value=0.0,
+                    precomputed=None):
+        """Get training batches with computed advantages.
+
+        precomputed: optional (returns, advantages) from
+        compute_returns_and_advantages(), so the update can compute GAE once,
+        use the returns for value-target normalization, and reuse them here.
+        """
+        if precomputed is not None:
+            returns, advantages = precomputed
+        else:
+            returns, advantages = self.compute_returns_and_advantages(gamma, lam, last_value)
 
         states = torch.FloatTensor(np.array(self.states))
         actions = torch.FloatTensor(np.array(self.actions))  # (N, 5): [dx, dy, throttle_logit, jump_binary, brake_binary]
@@ -482,7 +570,8 @@ class PPOTrainer:
     def __init__(self, actor, critic,
                  actor_lr=3e-5, critic_lr=1e-4,
                  clip_epsilon=0.2, entropy_coef=0.01,
-                 max_grad_norm=1.0, vf_clip=20.0, target_kl=1.5):
+                 max_grad_norm=1.0, vf_clip=20.0, target_kl=1.5,
+                 critic_max_grad_norm=None):
         self.actor = actor
         self.critic = critic
         self.actor_optimizer = optim.Adam(actor.parameters(), lr=actor_lr)
@@ -490,11 +579,24 @@ class PPOTrainer:
         self.clip_epsilon = clip_epsilon
         self.entropy_coef = entropy_coef
         self.max_grad_norm = max_grad_norm
-        self.vf_clip = vf_clip
+        # The critic gets its own clip. Sharing the actor's 0.3 clip against a
+        # critic grad norm of ~100 meant clipping by 300x on every minibatch.
+        self.critic_max_grad_norm = critic_max_grad_norm if critic_max_grad_norm is not None else max_grad_norm
+        self.vf_clip = vf_clip   # in raw-scaled reward units; converted to normalized units per update
         self.target_kl = target_kl  # KL early stopping: fires at 1.5x (catches destructive updates)
 
-    def update(self, buffer, n_epochs=4, batch_size=64, gamma=0.99, lam=0.95):
-        """Run PPO update with independent actor and critic steps."""
+    def update(self, buffer, n_epochs=4, batch_size=64, gamma=0.99, lam=0.95,
+               freeze_actor=False, last_value=0.0):
+        """Run PPO update with independent actor and critic steps.
+
+        When freeze_actor=True (warmup phase), the actor's policy weights are
+        not updated — only the critic is trained. KL/grad_norm are still
+        computed for logging. Used after a map switch to let the critic
+        relearn V(s) before the actor moves on potentially-garbage advantages.
+
+        last_value: V(s_{T+1}) for bootstrapping the truncated rollout (see
+        RolloutBuffer.compute_returns_and_advantages).
+        """
         total_policy_loss = 0
         total_value_loss = 0
         total_entropy = 0
@@ -504,11 +606,21 @@ class PPOTrainer:
         max_kl = 0.0
         kl_early_stopped = False
 
+        # GAE once per update (values are fixed for the whole update), then
+        # refresh the PopArt value-target statistics from this rollout's returns
+        # BEFORE any gradient step. The refresh is output-preserving, so the
+        # buffer's stored old_values are still exact predictions of V(s).
+        precomputed = buffer.compute_returns_and_advantages(gamma, lam, last_value)
+        self.critic.update_value_stats(torch.FloatTensor(precomputed[0]))
+        v_mean = self.critic.value_mean.item()
+        v_std = self.critic.value_std.item()
+        vf_clip_n = self.vf_clip / v_std
+
         for epoch in range(n_epochs):
             if kl_early_stopped:
                 break
             for states, actions, old_log_probs, returns, advantages, old_values in \
-                    buffer.get_batches(batch_size, gamma, lam):
+                    buffer.get_batches(batch_size, gamma, lam, last_value, precomputed=precomputed):
 
                 # --- Actor update ---
                 new_log_probs, entropy = self.actor.evaluate_actions(states, actions)
@@ -529,22 +641,25 @@ class PPOTrainer:
                 entropy_loss = -entropy.mean()
                 actor_loss = policy_loss + self.entropy_coef * entropy_loss
 
-                self.actor_optimizer.zero_grad()
-                actor_loss.backward()
-                grad_norm = sum(
-                    p.grad.norm().item() ** 2
-                    for p in self.actor.parameters()
-                    if p.grad is not None
-                ) ** 0.5
-                total_grad_norm += grad_norm
-                nn.utils.clip_grad_norm_(self.actor.parameters(), self.max_grad_norm)
-                self.actor_optimizer.step()
+                if not freeze_actor:
+                    self.actor_optimizer.zero_grad()
+                    actor_loss.backward()
+                    grad_norm = sum(
+                        p.grad.norm().item() ** 2
+                        for p in self.actor.parameters()
+                        if p.grad is not None
+                    ) ** 0.5
+                    total_grad_norm += grad_norm
+                    nn.utils.clip_grad_norm_(self.actor.parameters(), self.max_grad_norm)
+                    self.actor_optimizer.step()
 
-                # --- Critic update ---
-                values = self.critic(states).squeeze(-1)
-                values_clipped = old_values + torch.clamp(values - old_values, -self.vf_clip, self.vf_clip)
-                vf_loss1 = (values - returns) ** 2
-                vf_loss2 = (values_clipped - returns) ** 2
+                # --- Critic update (regression in PopArt-normalized units) ---
+                values_n = self.critic.forward_normalized(states).squeeze(-1)
+                returns_n = (returns - v_mean) / v_std
+                old_values_n = (old_values - v_mean) / v_std
+                values_clipped_n = old_values_n + torch.clamp(values_n - old_values_n, -vf_clip_n, vf_clip_n)
+                vf_loss1 = (values_n - returns_n) ** 2
+                vf_loss2 = (values_clipped_n - returns_n) ** 2
                 value_loss = 0.5 * torch.max(vf_loss1, vf_loss2).mean()
 
                 self.critic_optimizer.zero_grad()
@@ -555,7 +670,7 @@ class PPOTrainer:
                     if p.grad is not None
                 ) ** 0.5
                 total_critic_grad_norm += critic_grad_norm
-                nn.utils.clip_grad_norm_(self.critic.parameters(), self.max_grad_norm)
+                nn.utils.clip_grad_norm_(self.critic.parameters(), self.critic_max_grad_norm)
                 self.critic_optimizer.step()
 
                 total_policy_loss += policy_loss.item()
@@ -571,6 +686,8 @@ class PPOTrainer:
             'critic_grad_norm': total_critic_grad_norm / max(n_updates, 1),
             'kl_early_stopped': kl_early_stopped,
             'max_kl': max_kl,
+            'value_std': v_std,    # PopArt scale: VL above is in units of this
+            'value_mean': v_mean,
         }
 
 
@@ -613,16 +730,69 @@ class PPOServer:
         # since value regression can afford bigger steps.
         self.actor = Actor(obs_dim=self.obs_dim)
         self.critic = Critic(obs_dim=self.obs_dim)
+        # Trust region tightened for cross-map transfer (KingOfTheMarble switch):
+        # target_kl 2.667->1.0 (early-stops at 1.5 instead of 4.0, catches bad updates 3x sooner),
+        # clip_epsilon 0.2->0.1 (smaller policy ratio bounds), max_grad_norm 1.0->0.3
+        # (3x tighter gradient clip). Combined with the critic warmup below, this
+        # prevents grad-norm explosions when the critic's V(s) is wrong on a new map.
+        #
+        # critic_lr 1e-4 -> 1e-5: first KingOfTheMarble warmup attempt showed the
+        # critic itself oscillating wildly (VL spiked 4 -> 27 -> 6 -> 16 -> ..., CGN hit 472
+        # mid-warmup). The reward distribution on this map has much higher variance
+        # than flat training (frequent OOBs + sparse gems = bimodal returns), and the
+        # critic_lr was too high to stably absorb it. 10x lower critic_lr lets the
+        # critic settle without exploding even with high target variance.
+        # 2026-09-11: critic un-throttled. critic_lr back to 1e-4 and its own
+        # grad clip of 5.0 (actor keeps 0.3). This is safe now because the value
+        # targets are PopArt-normalized inside PPOTrainer/Critic, which removes
+        # the target-variance problem that the 1e-5 / 0.3 throttling was
+        # papering over. Expect VL to read ~0.1-1.0 (normalized units; multiply
+        # by Vstd^2 from the Upd line for raw-scaled) and CGN to drop from ~100
+        # to O(1).
         self.trainer = PPOTrainer(self.actor, self.critic, vf_clip=20.0,
-                                   target_kl=2.667, entropy_coef=0.005)
+                                   critic_lr=1e-4, critic_max_grad_norm=5.0,
+                                   target_kl=1.0, clip_epsilon=0.1,
+                                   max_grad_norm=0.3, entropy_coef=-0.001)
+        # entropy_coef history on KingOfTheMarble:
+        #   0.005: full runaway (Ent 2.15 -> 2.82 over 2854 updates, PolicyStd 30->50 deg)
+        #   0.002: runaway slowed but not reversed (Ent 2.83 -> 2.89 over 940 updates)
+        #   0.001: still rising slowly even after architectural log_std cap at -0.5.
+        #          Throttle stddev was creeping up (0.318 -> 0.331). Diagnosis: reward
+        #          gradient is correlating wider sampling with higher reward (mean
+        #          direction policy is poorly calibrated for KOTM, so wide sampling
+        #          finds gems by luck) — entropy bonus was on top of that, no
+        #          downward pressure existed at all.
+        #   -0.001: SIGN FLIPPED. Loss now PENALIZES entropy instead of rewarding it.
+        #          Creates active downward pressure to balance the reward-gradient
+        #          push upward. Watch: entropy should start trending DOWN. If it
+        #          keeps rising even with this, reward gradient pressure is too
+        #          strong — escalate to -0.002 or implement target-entropy
+        #          (SAC-style adaptive). If entropy collapses below ~1.0 fast,
+        #          back off to -0.0005 — too much pressure killing exploration.
         self.buffer = RolloutBuffer()
 
+        # Critic warmup: when transitioning to a new map, the critic's V(s)
+        # predictions are wildly wrong for the new state distribution. PPO
+        # advantages = R - V(s) become garbage, the actor moves in bad directions,
+        # grad norms explode. Solution: freeze the actor for the first
+        # WARMUP_ROLLOUTS rollouts so the critic can relearn V(s) before the
+        # policy starts moving on noisy gradients.
+        self.WARMUP_ROLLOUTS = 75   # was 300 at one tick per decision; 75 covers
+                                    # the same game time under ACTION_REPEAT=4.
+                                    # Force a fresh warmup with --warmup N.
+        self.warmup_start_update = None  # set on first PPO update; persists in checkpoint
+
         # Training config
-        # 2048 steps ~= 11% of one episode (~18,875 steps).
+        # rollout_size counts DECISIONS (see ACTION_REPEAT below). 2048 decisions
+        # = 8192 ticks ~= 131 s of game time, ~70% of a 3-min KOTM round, so a
+        # rollout now contains ~20 gem events instead of ~5.
         self.rollout_size = 2048
         self.n_epochs = 4
         self.batch_size = 256  # 2048/256 = 8 mini-batches per epoch
-        self.gamma = 0.999       # Bumped from 0.99 to extend effective horizon ~10x. At 0.99 the next gem (~290 steps after current pickup) was weighted at only 5% of its value — model had no real reason to "set up for next gem" vs "grab this gem fast." At 0.999 effective horizon is ~1000 steps (~3.5 gem cycles), next-gem weight ~75%. Tradeoff: higher variance in value targets, slower critic convergence. Watch CGN (critic grad norm) for instability.
+        self.gamma = 0.996       # Per DECISION. With ACTION_REPEAT=4 one decision spans 4 ticks, and
+                                 # 0.996 ~= 0.999^4, so the effective horizon is unchanged at
+                                 # ~1000 ticks / 16 s of game time. Original note (per-tick 0.999):
+                                 # bumped from 0.99 so the next gem (~290 ticks away) keeps ~75% weight.
         self.lam = 0.95
         self.save_interval = 10  # Save every N updates
 
@@ -631,16 +801,82 @@ class PPOServer:
         # of gradient info. 0.1 is the sweet spot: gem=+20, OOB=-2.5, shaping=±0.05-0.3/step.
         # Per-step rewards are clipped to [-5, 5] after scaling to prevent VLoss explosions.
         self.reward_scale = 0.1
+        # Clip on the SCALED per-decision reward. Was +/-20, which is exactly a
+        # 1-point gem (200 * 0.1): a 2-point gem (40) and a 5-point gem (100)
+        # were being clipped down to 20, so the policy was never told that gem
+        # value exists. +/-100 admits a 5-point gem unclipped. The value-target
+        # normalization in the critic absorbs the larger spikes.
+        self.REWARD_CLIP = 100.0
+
+        # === Action repeat (frame skip) ===
+        # One decision is held for ACTION_REPEAT consecutive game ticks (16 ms
+        # each). Python still receives and processes EVERY tick: rewards are
+        # computed per tick and summed into the held decision's window, frame
+        # history and all diagnostics stay tick-based, and the held action is
+        # re-aimed against the current velocity each tick so a held brake keeps
+        # pointing anti-velocity. Only the buffer sees one transition per
+        # decision. Why: at one tick per decision the GAE credit reaching a
+        # decision 50 ticks before a fall was 0.949^50 = 7%; at 4 ticks per
+        # decision it is 0.946^12.5 = 50%. Per-tick Gaussian noise was also
+        # averaged away by the marble's inertia; a held sample actually moves
+        # the trajectory. Purely temporal, no map content.
+        self.ACTION_REPEAT = 4
 
         # === Reward parameters (all reward computation is in Python) ===
         self.GEM_REWARD = 200       # Per gem-point bonus (+200 raw, +20 scaled)
         # self.OOB_PENALTY_INIT = 10   # Starting OOB penalty (gentle for early training)
         # self.OOB_PENALTY_FULL = 25   # Full OOB penalty (activated at 30 avg gems/game)
         # self.OOB_PENALTY = self.OOB_PENALTY_INIT
-        self.OOB_PENALTY = 0
-        self.GEM_GAP_PENALTY_K = 0.0008    # Reverted from 0.0015 -> 0.0008 after the 0.0015 run produced ZERO behavior change: avg_steps/gem stayed flat at ~293 while gap_penalty/gem rose +1.87x (exactly the k ratio), proving the model didn't adapt — it just paid more for the same bumps. AvgRwd dropped 24% (10867 -> 8241) for no benefit. The plateau at ~290 steps/gem is structural, not motivational: model can't see obstacles in its forward trajectory (only current XY/velocity/gem-relative pos), so the gradient has nothing to grab onto when punishing bumps harder. Reward pressure is exhausted as a lever; real fix requires obs changes (raycasts or platform-relative XYs).
+        self.OOB_PENALTY = 25   # SMALL terminal event marker. The capped FREE_FALL
+                                # penalty (5/step max, ~100 frames -> -500 raw) is the
+                                # primary signal now. Keeping OOB at the original
+                                # baseline -25 gives the critic a clear "trajectory
+                                # ended badly" punctuation without re-triggering the
+                                # panic-brake response we got at -50/-100. Total cost
+                                # of a typical fall: ~500 (freefall) + 25 (OOB) = 525,
+                                # roughly 2.5 gems worth — strong enough to matter,
+                                # weak enough not to drown gem-seeking.
+
+        # Free-fall penalty: dense per-step cost when vz indicates falling. The
+        # model already has vz in obs (index 5) and frame history of vz over the
+        # last 32 frames. Free-fall is detectable from vz alone, on any map:
+        # bouncing on a normal surface keeps |vz| small (around -7), while
+        # falling off any platform produces strong negative vz that grows with
+        # gravity (we measured up to -68 on KOTM during a long fall).
+        #
+        # Per-step cost = min(MAX, max(0, -vz - threshold) * coef), so:
+        #   vz = -2  (bouncing):       cost = 0
+        #   vz = -10 (slope):          cost = 4/step
+        #   vz = -15 (moderate fall):  cost = 5/step (CAP)
+        #   vz = -68 (full fall):      cost = 5/step (CAP)
+        # The CAP is critical: without it, a single long fall (100+ frames at
+        # vz=-68) integrates to -58k raw and crashes training (we measured
+        # critic VL spike to 3337 and policy collapsed to 92% brake / 0 gems).
+        # With cap at 5/step, a 100-frame fall costs ~500 raw — comparable to
+        # 2-3 gems, gives strong gradient signal, but can never drown reward.
+        self.FREE_FALL_VZ_THRESHOLD = 8.0   # cost only above this magnitude
+        self.FREE_FALL_COEF = 2.0           # raw units per (vz - threshold)
+        self.FREE_FALL_MAX_PER_STEP = 0.75  # MIDPOINT (2026-05-09). Cap=1.5 caused
+                                            # collapse (gems 30->3 over 200 games as
+                                            # marble froze to avoid falls). Cap=0.5 was
+                                            # ignored (OOB rate flat at 5/rollout, gems
+                                            # climbed 28->34 organically without behavior
+                                            # change toward edge avoidance). The transition
+                                            # is sharp because of marginal-payoff dynamics:
+                                            # too low and reducing FF saves trivial reward,
+                                            # too high and reducing FF beats keeping gem
+                                            # rate up. 0.75 splits the difference.
+                                            # Per game expected: 28 OOBs * 100 frames * 0.75
+                                            # = ~2100 raw freefall = ~32% of gem reward at
+                                            # 33 gems. Hopefully creates measurable OOB
+                                            # pressure without re-triggering collapse.
+                                            # WATCH for collapse pattern: brake_rate
+                                            # climbing past 50%, pickup_speed dropping
+                                            # below 7, steps/gem above 600 — all early
+                                            # warnings of the freeze trajectory.
+        self.GEM_GAP_PENALTY_K = 0.0    # DISABLED for KingOfTheMarble transfer. On this map, avg_steps/gem hit 2838 (vs ~290 on flat). At k=0.0008, the cumulative gap penalty per inter-gem segment was ~3,200 raw — over 16x the gem reward (+200). This dominated the reward signal, made returns wildly bimodal (huge negative spikes between gems), and contributed directly to the critic instability (VL oscillating 4-27, CGN spiking to 472). With sparse gems on a complex map, ramping penalties teach the model nothing — they just punish exploration. Re-enable later (low value like 0.0001) once the model is reliably picking up gems on the new map. Old value: 0.0008. Original note kept for context: "Reverted from 0.0015 -> 0.0008 after the 0.0015 run produced ZERO behavior change."
         self.JUMP_COST = 0.3          # Per-step cost when jump action == 1. Halved from 0.6 -> 0.3 to make jump-over an economically viable alternative to bumping into platforms during flat traversal. Combined with GEM_GAP_PENALTY_K=0.0008, the model now has incentive to either steer around platforms (cheapest, ~0 cost) or jump over them (cheap, ~3 raw) instead of bumping (expensive, ~8.4 raw per second of waste). Per-platform jumps still profitable at this level: 30-frame approach jump = 9 raw cost vs 200 gem reward = +191 net.
-        self.SLOW_PICKUP_BONUS = 100     # Re-enabled (3rd time). Disabling it killed the brake action: with no positive reward target for "arrive slow," random brake samples only experienced costs (gap penalty from wasted time), so PPO suppressed the brake_logit to the clamp floor over ~150 games. The brake action and slow-pickup bonus are NOT redundant — they're complementary: bonus is the *destination* (arriving slow = good), brake is the *mechanism* (the discrete tool for arriving slow), overshoot penalty is the *constraint* (don't over-commit). All three needed for the model to converge on "fire brake near gem → arrive slow → get +100." Linear ramp at speed 0 -> +100, speed 30 -> 0.
+        self.SLOW_PICKUP_BONUS = 0       # DISABLED for KingOfTheMarble transfer. Adds reward variance the critic can't absorb during transfer; brake never developed structure on flat anyway (heatmap proved state-blind). Was 100. Re-enable later if model is reliably picking up gems on the new map and we want to push for slower pickups.
         self.SLOW_PICKUP_SPEED_CAP = 30  # Speed at/above which bonus is zero.
         # === Time-Optimal Control: overshoot penalty (Phase 1) ===
         # At any step, if stopping_dist = v_radial^2 / (2*A_MAX) exceeds distance to gem,
@@ -650,7 +886,7 @@ class PPOServer:
         # solving the credit-assignment problem of "when to start braking".
         # See "Time-Optimal Control" / "Safe Velocity Envelope" — physics-grounded approach.
         self.A_MAX = 12.0           # Calibrated empirically via manual_brake.py benchmark (10 games × 2 configs). The aggressive config (a_max=12, margin=0.00, min_target=0.05) hit avg 102.7 gems with avg pickup speed 4.33. Was 20.0 (intuition guess), now 12.0 (measured). At v=25 with A_MAX=12: stopping_dist = 625/24 = 26.0 units. So safe zone shrinks from d>15.6 (old) to d>26 (new) — penalty fires earlier on approach, pushing the model to brake sooner. This matches actual marble physics where reverse-throttle decel + rolling friction ≈ 12 units/s², not 20.
-        self.OVERSHOOT_LAMBDA = 0.5  # Coefficient on overshoot penalty (raw units). At full commitment (v_radial=25, d=5): overshoot=10.6, penalty=5.3 raw/step. Sustained 30 frames -> -159 raw -> ~80% of gem reward — strong but not catastrophic; model can recover and still pickup positive net. Penalty is 0 in safe zone (B>=0), so it's free to coast at high speed when far from gem. Direction-aware: uses v_radial (velocity component toward gem) so doing donuts at high speed near the gem doesn't get penalized.
+        self.OVERSHOOT_LAMBDA = 0.0  # DISABLED for KingOfTheMarble transfer. The overshoot penalty was Time-Optimal Control shaping calibrated for flat ground (A_MAX=12). On a sloped map, the constant A_MAX assumption is wrong, so this penalty fires misleadingly. More importantly, it's sustained-negative shaping that adds variance to the reward signal during transfer — exactly what we're stripping out to let the critic stabilize. Was 0.5. Original calibration note: "At full commitment (v_radial=25, d=5): overshoot=10.6, penalty=5.3 raw/step."
         self.SHAPING_COEFF_1 = 20   # Broad attraction: 20/(1+d/50)
         self.SHAPING_RANGE_1 = 50   # Broad attraction range
         self.SHAPING_COEFF_2 = 15   # Near-gem well: 15/(1+d/3)
@@ -740,6 +976,9 @@ class PPOServer:
             saved_rewards = checkpoint.get('episode_rewards', [])
             self.episode_rewards = deque(saved_rewards, maxlen=100)
 
+            # Restore warmup state (None if checkpoint pre-dates warmup feature)
+            self.warmup_start_update = checkpoint.get('warmup_start_update', None)
+
             with torch.no_grad():
                 std_deg = self.actor.log_std.exp().item() * 180 / 3.14159
                 thr_std = self.actor.throttle_log_std.exp().item()
@@ -772,11 +1011,27 @@ class PPOServer:
         self._frame_hist_logged = False  # has frame history debug logging started?
         self._frame_hist_log_end = 999999  # step to stop logging at
 
+        # Action-repeat state. `pending` is the decision currently being held:
+        # (obs_augmented, action_buf, value, log_prob). It is stored to the
+        # buffer only when its window closes (next decision tick, done, or game
+        # end), with `pending_reward` = sum of the per-tick rewards received
+        # while it was held. `cached_action` is the (dx, dy, throttle, jump,
+        # brake) tuple re-emitted on the intermediate ticks.
+        self.pending = None
+        self.pending_reward = 0.0
+        self.tick_in_window = 0
+        self.cached_action = None
+
         # Per-rollout counters (reset after each PPO update)
         self.rollout_gem_pts = 0   # gem points collected this rollout
         self.rollout_oob = 0       # OOB events this rollout
         self.rollout_positive = 0  # steps with positive reward this rollout
         self.rollout_steps = 0     # total steps this rollout
+        # Free-fall penalty diagnostics (per rollout, surfaced on each Upd log line
+        # so we can see in <12 sec wall-clock whether the new penalty is firing).
+        self.rollout_freefall_frames = 0     # frames where free-fall penalty fired
+        self.rollout_freefall_penalty = 0.0  # total free-fall penalty applied this rollout
+        self.rollout_min_vz = 0.0            # most-negative vz seen this rollout
         # (action counts removed — continuous actions tracked via recent_actions deque)
 
         # Lifetime counters
@@ -839,6 +1094,8 @@ class PPOServer:
         # - avg_overshoot_per_frame: severity per active frame (low = grazing the edge of safe zone; high = deep in overshoot)
         self.game_overshoot_penalty_sum = 0.0
         self.game_overshoot_frames = 0
+        self.game_freefall_penalty_sum = 0.0
+        self.game_freefall_frames = 0
         self.recent_overshoot_penalty = deque(maxlen=100)  # per-game total overshoot penalty
         self.recent_overshoot_frames = deque(maxlen=100)   # per-game count of overshoot frames
 
@@ -852,9 +1109,10 @@ class PPOServer:
         self.recent_dwell_steps = deque(maxlen=100)    # per-game dwell steps
 
         # Jump rate and steps-per-gem tracking (per game)
-        self.game_jumps = 0              # jump actions this game
-        self.game_brakes = 0             # brake actions this game
-        self.game_steps = 0              # total steps this game
+        self.game_jumps = 0              # jump DECISIONS this game
+        self.game_brakes = 0             # brake DECISIONS this game
+        self.game_decisions = 0          # decisions this game (jump/brake rate denominator)
+        self.game_steps = 0              # total ticks this game
         self.game_gem_steps_sum = 0      # sum of steps_since_gem at each pickup
         self.recent_jump_rate = deque(maxlen=100)        # jump % per game
         self.recent_brake_rate = deque(maxlen=100)       # brake % per game
@@ -1095,6 +1353,26 @@ class PPOServer:
         if oob:
             reward -= self.OOB_PENALTY
 
+        # 5. Free-fall penalty (dense per-step signal during a fall trajectory).
+        # Replaces brute-force OOB-only terminal penalty. The marble's vz becomes
+        # strongly negative when falling off a surface (gravity, no contact force),
+        # well above the bouncing range on any normal floor / slope / curve.
+        # Per-step cost is HARD-CAPPED to prevent the catastrophic drown-out we
+        # measured when uncapped (vz=-68 -> -120/step -> -58k/rollout).
+        if len(raw_obs) > 5:
+            vz = raw_obs[5]
+            if vz < self.rollout_min_vz:
+                self.rollout_min_vz = vz
+            fall_excess = -vz - self.FREE_FALL_VZ_THRESHOLD
+            if fall_excess > 0:
+                fall_cost = min(self.FREE_FALL_MAX_PER_STEP,
+                                fall_excess * self.FREE_FALL_COEF)
+                reward -= fall_cost
+                self.game_freefall_penalty_sum += fall_cost
+                self.game_freefall_frames += 1
+                self.rollout_freefall_penalty += fall_cost
+                self.rollout_freefall_frames += 1
+
         return reward
 
     def process_message(self, message):
@@ -1121,6 +1399,12 @@ class PPOServer:
             # This is the authoritative game boundary — record to recent_game_gems.
             if len(obs) == 0 and done:
                 total_game_gems = int(abs(gem_delta))  # CS sends negative to distinguish
+                # The game is over: close the held decision's window and mark it
+                # terminal so GAE does not bootstrap across the restart teleport.
+                # (Previously the last stored transition kept done=False and its
+                # return silently included V(spawn) of the NEXT game.)
+                self._finalize_pending(done=True)
+                self.cached_action = None
                 self.recent_game_gems.append(total_game_gems)
                 if total_game_gems > self.best_game_gems:
                     self.best_game_gems = total_game_gems
@@ -1128,9 +1412,9 @@ class PPOServer:
                 self.recent_avg_gap_penalty.append(round(avg_gap, 2))
                 self.recent_near_misses.append(self.game_near_misses)
                 self.recent_dwell_steps.append(self.game_dwell_steps)
-                # Jump rate, brake rate, and avg steps per gem for this game
-                jump_rate = (self.game_jumps / max(self.game_steps, 1)) * 100
-                brake_rate = (self.game_brakes / max(self.game_steps, 1)) * 100
+                # Jump rate, brake rate (% of DECISIONS), and avg steps per gem for this game
+                jump_rate = (self.game_jumps / max(self.game_decisions, 1)) * 100
+                brake_rate = (self.game_brakes / max(self.game_decisions, 1)) * 100
                 self.recent_jump_rate.append(round(jump_rate, 2))
                 self.recent_brake_rate.append(round(brake_rate, 2))
                 avg_steps_per_gem = self.game_gem_steps_sum / max(self.game_gem_pickups, 1)
@@ -1151,7 +1435,8 @@ class PPOServer:
                 self.recent_avg_brakes_near_pickup.append(round(avg_brakes_near_pickup, 2))
                 self.recent_slow_pickup_bonus.append(round(self.game_slow_pickup_bonus_sum, 1))
 
-                self.log(f"[GAME END] total gems this game: {total_game_gems}pts (best: {self.best_game_gems}) avg_gap_penalty: {avg_gap:.1f} jump_rate: {jump_rate:.1f}% brake_rate: {brake_rate:.1f}% avg_steps/gem: {avg_steps_per_gem:.0f} overshoot: {self.game_overshoot_penalty_sum:.0f} ({overshoot_pct:.1f}% of steps, avg {avg_overshoot_per_frame:.2f}/frame) pickup_speed: {avg_pickup_speed:.1f} brakes_near_pickup: {avg_brakes_near_pickup:.2f}/gem slow_pickup_bonus: {self.game_slow_pickup_bonus_sum:.0f}")
+                freefall_pct = (self.game_freefall_frames / max(self.game_steps, 1)) * 100
+                self.log(f"[GAME END] total gems this game: {total_game_gems}pts (best: {self.best_game_gems}) avg_gap_penalty: {avg_gap:.1f} jump_rate: {jump_rate:.1f}% brake_rate: {brake_rate:.1f}% avg_steps/gem: {avg_steps_per_gem:.0f} overshoot: {self.game_overshoot_penalty_sum:.0f} ({overshoot_pct:.1f}% of steps, avg {avg_overshoot_per_frame:.2f}/frame) pickup_speed: {avg_pickup_speed:.1f} brakes_near_pickup: {avg_brakes_near_pickup:.2f}/gem slow_pickup_bonus: {self.game_slow_pickup_bonus_sum:.0f} freefall: {self.game_freefall_penalty_sum:.0f} ({freefall_pct:.1f}% of steps)")
 
                 # Refresh the dashboard's jump-probability heatmap in a background
                 # thread. Probe takes ~1s on a snapshot of actor weights — never
@@ -1179,17 +1464,52 @@ class PPOServer:
                 self.game_dwell_steps = 0
                 self.game_jumps = 0
                 self.game_brakes = 0
+                self.game_decisions = 0
                 self.game_steps = 0
                 self.game_gem_steps_sum = 0
                 self.game_overshoot_penalty_sum = 0.0
                 self.game_overshoot_frames = 0
+                self.game_freefall_penalty_sum = 0.0
+                self.game_freefall_frames = 0
                 self.game_pickup_speed_sum = 0.0
                 self.game_brakes_near_pickup_sum = 0
                 self.game_slow_pickup_bonus_sum = 0.0
                 self.near_gem = False
+
+                # Game-end is the authoritative episode boundary on this protocol.
+                # The per-step done=1 path (checkDone in mlAgent.cs) rarely fires
+                # because clientCmdGameEnd preempts the next agent tick by setting
+                # $MLAgent::Enabled=false. Without this bookkeeping, total_episodes
+                # and episode_rewards stay frozen at the values from the previous
+                # working run -> AvgRwd appears stuck (was 12973.2 from FlatWithJump
+                # for ~5 KingOfTheMarble runs in a row).
+                self.total_episodes += 1
+                self.episode_rewards.append(self.current_episode_reward)
+                self.recent_episode_gems.append(self.episode_gem_pts)
+                self.recent_episode_lengths.append(self.episode_step)
+                avg_reward = np.mean(self.episode_rewards) if self.episode_rewards else 0
+                outcome = "SUCCESS" if self.current_episode_reward > 100 else "FAIL" if self.current_episode_reward < -20 else "NEUTRAL"
+                self.log(f"Ep {self.total_episodes} [{outcome}] rwd={self.current_episode_reward:.1f} "
+                         f"gems={total_game_gems}pts oob={self.episode_oob} "
+                         f"steps={self.episode_step} | avg100={avg_reward:.1f}")
+                self.current_episode_reward = 0
+                self.episode_gem_pts = 0
+                self.episode_oob = 0
+                self.episode_step = 0
+                self.episode_no_gem_steps = 0
+                # Reset shaping state for next episode (mirrors the per-step done branch)
+                self.last_nearest_gem_dist = self.DIST_SENTINEL
+                self.skip_potential_steps = 1
+                self.steps_since_gem = 0
+                self.near_gem = False
+                self.frame_history.clear()  # the marble teleports to spawn on restart
+                self._frame_hist_logged = False
+                self._frame_hist_log_end = 999999
+
                 return [0, 0, 0, 0, 0]
 
-            # Track no-gem steps (sentinel distance at index 12 — nearest gem dist)
+            # ======================= Per-tick work (every 16 ms game tick) =======================
+            # Track no-gem steps (sentinel distance at index 10 -- nearest gem dist)
             raw_gem0_dist = obs[10] if len(obs) > 10 else -1
             if raw_gem0_dist < -500:
                 if self.no_gem_steps == 0:
@@ -1218,73 +1538,23 @@ class PPOServer:
             if gem_delta > 0:
                 self.near_gem = False
 
-            # Compute reward in Python (all tunable params live here now)
+            # Compute reward in Python (all tunable params live here now).
+            # Rewards are computed EVERY tick and summed into the window of the
+            # decision currently being held. The facts in this message (gem
+            # pickup, OOB, position) are consequences of actions applied on
+            # earlier ticks, so they belong to the pending decision -- never to
+            # the one chosen below. (The old code stored each tick's reward with
+            # the action chosen AFTER seeing it, i.e. with the wrong action.)
             reward = self.compute_reward(obs, gem_delta, oob)
+            self.pending_reward += reward
 
             # Normalize observation (must happen AFTER compute_reward uses raw values)
             obs_array = self.normalize_obs(np.array(obs, dtype=np.float32))
 
-            # Build augmented observation with frame history.
-            # Append current pos+vel (normalized) to ring buffer, then pull
-            # snapshots at t-FRAME_SKIP, t-2*FRAME_SKIP, etc.
+            # Frame-history ring buffer is fed every tick, so the t-8/16/24/32
+            # snapshots keep their tick-based meaning under action repeat.
             current_posvel = obs_array[0:6].copy()  # 6 dims: pos(3) + vel(3)
             self.frame_history.append(current_posvel)
-
-            history_frames = []
-            for i in range(1, self.FRAME_HISTORY_COUNT + 1):
-                # Current frame is at index len-1. Frame from i*FRAME_SKIP ago
-                # is at index len-1 - i*FRAME_SKIP.
-                idx = len(self.frame_history) - 1 - i * self.FRAME_SKIP
-                if idx >= 0:
-                    history_frames.append(self.frame_history[idx])
-                else:
-                    history_frames.append(np.zeros(self.FRAME_HISTORY_DIMS, dtype=np.float32))
-
-            obs_augmented = np.concatenate([obs_array] + history_frames)
-
-            # Debug: log frame history to file only, after 5s of game time
-            game_time_ms = obs[31] if len(obs) > 31 else 0
-            if game_time_ms >= 5000 and self.episode_step < self._frame_hist_log_end:
-                if not self._frame_hist_logged:
-                    self._frame_hist_logged = True
-                    self._frame_hist_log_end = self.episode_step + 20
-                filled = sum(1 for f in history_frames if np.any(f != 0))
-                ts = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-                self.logger.file.write(
-                    f"[{ts}]   [FRAME_HIST] step={self.episode_step} buf_len={len(self.frame_history)} "
-                    f"filled={filled}/{self.FRAME_HISTORY_COUNT} "
-                    f"cur_pos=({current_posvel[0]:.3f},{current_posvel[1]:.3f},{current_posvel[2]:.3f}) "
-                    f"cur_vel=({current_posvel[3]:.3f},{current_posvel[4]:.3f},{current_posvel[5]:.3f})"
-                    f"{' t-4=(' + ','.join(f'{v:.3f}' for v in history_frames[0]) + ')' if filled >= 1 else ''}"
-                    f" obs_dim={len(obs_augmented)}\n"
-                )
-                self.logger.file.flush()
-
-            # Action: query model. Returns buffer action (dx, dy, throttle_logit, jump_binary, brake_binary),
-            # game action (dx, dy, throttle, jump, brake), and joint log_prob.
-            action_buf, action_game, log_prob = self.actor.get_action(obs_augmented)
-            value = self.critic.get_value(obs_augmented)
-            dx, dy, throttle, jump, brake = action_game
-            import math
-            angle = math.atan2(dx, dy)  # For logging/display only
-            self.recent_actions.append(angle)
-            self.recent_throttles.append(throttle)
-            self.game_steps += 1
-            if jump > 0.5:
-                self.game_jumps += 1
-                # Per-jump physical cost. Each jump must "earn its keep" via a
-                # subsequent reward (gem pickup typically gives +200, easily
-                # offsetting -0.3). Drives the policy toward selective jumping
-                # — only at moments where a real reward is expected.
-                reward -= self.JUMP_COST
-            if brake > 0.5:
-                self.game_brakes += 1
-                # No explicit BRAKE_COST yet. Gap penalty already discourages
-                # excessive braking (slower travel = longer gem cycles = more cost).
-                # Add a small per-brake cost later if the model spams it.
-            # Rolling 30-frame brake history. compute_reward reads this on the next
-            # frame's gem pickup to tally "brakes in last 30 frames before pickup".
-            self.recent_brake_history.append(1 if brake > 0.5 else 0)
 
             # Track events
             if gem_delta > 0:
@@ -1301,18 +1571,16 @@ class PPOServer:
                 self.rollout_positive += 1
             self.rollout_steps += 1
             self.episode_step += 1
-
-            # Store experience (scale reward to keep critic targets small).
-            # Clip scaled reward to [-20, 20] so gem spikes (+200 raw → +20 scaled)
-            # are captured fully, while OOB (-25 raw → -2.5) remains distinct.
-            # At 0.1 scale, ±20 allows raw rewards up to ±200 unclipped.
-            scaled_reward = np.clip(reward * self.reward_scale, -20.0, 20.0)
-            self.buffer.add(obs_augmented, action_buf, scaled_reward, value, log_prob, done)
+            self.game_steps += 1
             self.total_steps += 1
             self.current_episode_reward += reward
 
-            # Episode end
+            # ======================= Episode end (per-step done from checkDone) =======================
             if done:
+                # The held decision's window ends here, terminally.
+                self._finalize_pending(done=True)
+                self.cached_action = None
+
                 self.total_episodes += 1
                 self.episode_rewards.append(self.current_episode_reward)
                 self.recent_episode_gems.append(self.episode_gem_pts)
@@ -1323,7 +1591,7 @@ class PPOServer:
                 gems_str = f" gems={self.episode_gem_pts}pts" if self.episode_gem_pts else ""
                 self.log(f"Ep {self.total_episodes} [{outcome}] rwd={self.current_episode_reward:.1f}{gems_str}{oob_str} steps={self.episode_step} | avg100={avg_reward:.1f}")
                 if self.episode_step <= 15:
-                    self.log(f"  *** SHORT EPISODE ({self.episode_step} steps) — flood bug may still be active ***")
+                    self.log(f"  *** SHORT EPISODE ({self.episode_step} steps) - flood bug may still be active ***")
 
                 self.current_episode_reward = 0
                 self.episode_gem_pts = 0
@@ -1339,14 +1607,89 @@ class PPOServer:
                 self._frame_hist_logged = False
                 self._frame_hist_log_end = 999999
                 self.camera_yaw = 0.0  # fixed orientation (see __init__ for rationale)
+                self.recent_brake_history.append(0)
+                return [0, 0, 0, 0, 0]
 
-            # PPO update when buffer is full
-            if len(self.buffer) >= self.rollout_size:
-                self.run_ppo_update()
+            # ======================= Decision tick (every ACTION_REPEAT ticks) =======================
+            self.tick_in_window += 1
+            if self.pending is None or self.tick_in_window >= self.ACTION_REPEAT:
+                # 1. The previous decision's window is complete: store it.
+                self._finalize_pending(done=False)
 
-            # Convert action to joystick axes (F,B,L,R,jump). Brake's effect is baked
-            # into F/B/L/R via direction override — no new wire field needed.
-            # Velocity for brake-override: raw_obs[3:6] is camera-relative velocity.
+                # 2. Build the augmented observation for this decision.
+                history_frames = []
+                for i in range(1, self.FRAME_HISTORY_COUNT + 1):
+                    # Current frame is at index len-1. Frame from i*FRAME_SKIP ticks ago
+                    # is at index len-1 - i*FRAME_SKIP.
+                    idx = len(self.frame_history) - 1 - i * self.FRAME_SKIP
+                    if idx >= 0:
+                        history_frames.append(self.frame_history[idx])
+                    else:
+                        history_frames.append(np.zeros(self.FRAME_HISTORY_DIMS, dtype=np.float32))
+                obs_augmented = np.concatenate([obs_array] + history_frames)
+
+                # Debug: log frame history to file only, after 5s of game time
+                game_time_ms = obs[31] if len(obs) > 31 else 0
+                if game_time_ms >= 5000 and self.episode_step < self._frame_hist_log_end:
+                    if not self._frame_hist_logged:
+                        self._frame_hist_logged = True
+                        self._frame_hist_log_end = self.episode_step + 20
+                    filled = sum(1 for f in history_frames if np.any(f != 0))
+                    ts = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                    self.logger.file.write(
+                        f"[{ts}]   [FRAME_HIST] step={self.episode_step} buf_len={len(self.frame_history)} "
+                        f"filled={filled}/{self.FRAME_HISTORY_COUNT} "
+                        f"cur_pos=({current_posvel[0]:.3f},{current_posvel[1]:.3f},{current_posvel[2]:.3f}) "
+                        f"cur_vel=({current_posvel[3]:.3f},{current_posvel[4]:.3f},{current_posvel[5]:.3f})"
+                        f"{' t-4=(' + ','.join(f'{v:.3f}' for v in history_frames[0]) + ')' if filled >= 1 else ''}"
+                        f" obs_dim={len(obs_augmented)}\n"
+                    )
+                    self.logger.file.flush()
+
+                # 3. Rollout boundary. The rollout is TRUNCATED here, not terminated:
+                #    bootstrap its last transition with V(s_next) from the critic
+                #    that produced the buffer's values, then update. (The old code
+                #    updated right after buffer.add() with next_value=0.)
+                if len(self.buffer) >= self.rollout_size:
+                    bootstrap_value = 0.0 if self.buffer.dones[-1] else self.critic.get_value(obs_augmented)
+                    self.run_ppo_update(last_value=bootstrap_value)
+
+                # 4. Choose the new decision with the (possibly just-updated) networks.
+                #    Returns buffer action (dx, dy, throttle_logit, jump_binary, brake_binary),
+                #    game action (dx, dy, throttle, jump, brake), and joint log_prob.
+                action_buf, action_game, log_prob = self.actor.get_action(obs_augmented)
+                value = self.critic.get_value(obs_augmented)
+                dx, dy, throttle, jump, brake = action_game
+                angle = math.atan2(dx, dy)  # For logging/display only
+                self.recent_actions.append(angle)
+                self.recent_throttles.append(throttle)
+                self.game_decisions += 1
+                self.pending = (obs_augmented, action_buf, value, log_prob)
+                self.pending_reward = 0.0
+                self.tick_in_window = 0
+                self.cached_action = action_game
+                if jump > 0.5:
+                    self.game_jumps += 1
+                    # Per-decision physical cost of a jump, charged once per held
+                    # decision. Each jump must "earn its keep" via a subsequent
+                    # reward (a gem pickup gives +200, easily offsetting -0.3).
+                    self.pending_reward -= self.JUMP_COST
+                if brake > 0.5:
+                    self.game_brakes += 1
+                    # No explicit BRAKE_COST. Add a small per-brake cost later if
+                    # the model spams it.
+
+            # ======================= Emit the held action =======================
+            # Rolling 30-tick brake history (brake flag of the action being held).
+            # compute_reward reads this on the next tick's gem pickup to tally
+            # "brakes in the last 30 ticks before pickup".
+            dx, dy, throttle, jump, brake = self.cached_action
+            self.recent_brake_history.append(1 if brake > 0.5 else 0)
+
+            # Convert to joystick axes (F,B,L,R,jump). Brake's effect is baked into
+            # F/B/L/R via the anti-velocity override, which is recomputed from the
+            # CURRENT camera-relative velocity (obs[3:5]) on every tick so a held
+            # brake keeps decelerating as the velocity vector changes.
             vx_raw = obs[3] if len(obs) > 5 else 0.0
             vy_raw = obs[4] if len(obs) > 5 else 0.0
             return list(Actor.action_to_joystick(dx, dy, throttle, jump, brake, vx_raw, vy_raw))
@@ -1359,10 +1702,40 @@ class PPOServer:
                 traceback.print_exc()
             return [0, 0, 0, 0, 0]
 
-    def run_ppo_update(self):
-        """Run PPO training update."""
+    def _finalize_pending(self, done):
+        """Store the held decision as one transition, with the reward summed over
+        every tick of its window (scaled and clipped here). No-op when nothing
+        is pending (first tick of a session / right after an episode boundary).
+        """
+        if self.pending is None:
+            return
+        obs_aug, action_buf, value, log_prob = self.pending
+        scaled_reward = float(np.clip(self.pending_reward * self.reward_scale,
+                                      -self.REWARD_CLIP, self.REWARD_CLIP))
+        self.buffer.add(obs_aug, action_buf, scaled_reward, value, log_prob, done)
+        self.pending = None
+        self.pending_reward = 0.0
+        self.tick_in_window = 0
+
+    def run_ppo_update(self, last_value=0.0):
+        """Run PPO training update.
+
+        last_value: V(s_{T+1}) for the observation following the final stored
+        transition (rollout truncation bootstrap). 0.0 if that transition was
+        terminal.
+        """
         self.actor.train()
         self.critic.train()
+
+        # Initialize warmup window on first update of this run if not already set
+        if self.warmup_start_update is None:
+            self.warmup_start_update = self.total_updates
+            self.log(f"  [WARMUP] Critic-only phase started at update {self.warmup_start_update}, "
+                     f"will run for {self.WARMUP_ROLLOUTS} rollouts (until update "
+                     f"{self.warmup_start_update + self.WARMUP_ROLLOUTS}). "
+                     f"Actor frozen during this window.")
+
+        warmup_active = (self.total_updates - self.warmup_start_update) < self.WARMUP_ROLLOUTS
 
         stats = self.trainer.update(
             self.buffer,
@@ -1370,8 +1743,14 @@ class PPOServer:
             batch_size=self.batch_size,
             gamma=self.gamma,
             lam=self.lam,
+            freeze_actor=warmup_active,
+            last_value=last_value,
         )
         self.total_updates += 1
+
+        # Log warmup-end transition once
+        if warmup_active and (self.total_updates - self.warmup_start_update) >= self.WARMUP_ROLLOUTS:
+            self.log(f"  [WARMUP] Phase complete at update {self.total_updates}. Actor unfrozen.")
         self.entropy_history.append(stats['entropy'])
 
         avg_reward = np.mean(self.episode_rewards) if self.episode_rewards else 0
@@ -1423,12 +1802,16 @@ class PPOServer:
         # Compact per-update line
         gems_str = f" gems={self.rollout_gem_pts}" if self.rollout_gem_pts else ""
         oob_str  = f" OOB={self.rollout_oob}" if self.rollout_oob else ""
+        # Free-fall diagnostics — answers "is the penalty getting applied?".
+        # FF=<frames>(-<penalty>) shows how many frames triggered it and total cost.
+        # minVz= shows the most-negative vz seen — confirms the threshold is reached.
+        ff_str = f" FF={self.rollout_freefall_frames}(-{self.rollout_freefall_penalty:.0f}) minVz={self.rollout_min_vz:.1f}"
         self.log(
             f"Upd {self.total_updates:4d} | "
             f"PL={stats['policy_loss']:.4f} VL={stats['value_loss']:.4f} "
             f"Ent={stats['entropy']:.3f} GN={stats['grad_norm']:.3f} CGN={stats['critic_grad_norm']:.3f} KL={stats['max_kl']:.4f} | "
             f"AvgRwd={avg_reward:.1f} AvgLen={avg_ep_len:.0f}{collapse_warn} |"
-            f"{gems_str}{oob_str}{dry_warn}{kl_warn}"
+            f"{gems_str}{oob_str}{ff_str} Vstd={stats.get('value_std', 0.0):.1f}{dry_warn}{kl_warn}"
         )
         self.log(f"       {act_str}")
 
@@ -1444,6 +1827,9 @@ class PPOServer:
         self.rollout_oob = 0
         self.rollout_positive = 0
         self.rollout_steps = 0
+        self.rollout_freefall_frames = 0
+        self.rollout_freefall_penalty = 0.0
+        self.rollout_min_vz = 0.0
 
         # Save checkpoint periodically
         if self.total_updates % self.save_interval == 0:
@@ -1495,6 +1881,7 @@ class PPOServer:
             'best_avg_reward': self.best_avg_reward,
             'episode_rewards': list(self.episode_rewards),
             'throttle_floor_active': self.throttle_floor_active,
+            'warmup_start_update': self.warmup_start_update,
         }, path)
         self.log(f"  Model saved to {path}")
 
@@ -1528,6 +1915,11 @@ def main():
     parser.add_argument('--batch-size', type=int, default=256, help='Mini-batch size')
     parser.add_argument('--epochs', type=int, default=4, help='PPO epochs per update')
     parser.add_argument('--load', type=str, default=None, help='Load specific checkpoint (e.g. models/checkpoints/update_5070.pth)')
+    parser.add_argument('--warmup', type=int, default=0,
+                        help='Force a fresh critic-only warmup of N rollouts on this start (actor frozen). '
+                             'Useful after changes that move the value targets (gamma, reward clip, bootstrap fix).')
+    parser.add_argument('--action-repeat', type=int, default=None,
+                        help='Override ACTION_REPEAT (ticks each decision is held; default 4)')
 
     args = parser.parse_args()
 
@@ -1563,6 +1955,14 @@ def main():
     server.batch_size = args.batch_size
     server.n_epochs = args.epochs
     server.trainer.actor_optimizer.param_groups[0]['lr'] = args.lr
+    if args.action_repeat is not None:
+        server.ACTION_REPEAT = max(1, args.action_repeat)
+        server.log(f"ACTION_REPEAT overridden to {server.ACTION_REPEAT}")
+    if args.warmup > 0:
+        server.WARMUP_ROLLOUTS = args.warmup
+        server.warmup_start_update = None   # (re)starts at the first update of this run
+        server.log(f"Forced critic-only warmup: {args.warmup} rollouts")
+    server.log(f"Action repeat: {server.ACTION_REPEAT} ticks/decision | gamma={server.gamma} | reward clip=+/-{server.REWARD_CLIP:.0f}")
 
 
     # Signal handler

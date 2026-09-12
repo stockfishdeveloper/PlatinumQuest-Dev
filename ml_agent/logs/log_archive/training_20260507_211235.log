@@ -1,0 +1,144 @@
+[2026-05-07 21:12:36] Loading model from models/checkpoints\update_66580.pth
+[2026-05-07 21:12:37]   Critic restored from checkpoint
+[2026-05-07 21:12:37]   Actor optimizer restored
+[2026-05-07 21:12:37]   Critic optimizer restored
+[2026-05-07 21:12:37]   LR set: actor=3e-05, critic=1e-05
+[2026-05-07 21:12:37]   PolicyStd: 51.7 deg (bounds: -2.0 to -0.5)
+[2026-05-07 21:12:37]   ThrottleStd: 0.274 (bounds: -3.0 to -0.9)
+[2026-05-07 21:12:37] Model loaded successfully!
+[2026-05-07 21:12:37] Resuming from: 136292383 steps, 66580 updates, 7265 episodes
+[2026-05-07 21:12:37] Best avg reward restored: 17184.53
+[2026-05-07 21:12:37]   Throttle floor: disabled (mature)
+[2026-05-07 21:12:38] Dashboard: http://0.0.0.0:8889 (accessible on WiFi)
+[2026-05-07 21:12:38] ============================================================
+[2026-05-07 21:12:38] PPO Training Server
+[2026-05-07 21:12:38] ============================================================
+[2026-05-07 21:12:38] Listening on 127.0.0.1:8888
+[2026-05-07 21:12:38] Obs dim: 59 (base=35 + 4x6 history, skip=8)
+[2026-05-07 21:12:38] Rollout size: 2048 steps
+[2026-05-07 21:12:38] PPO epochs: 4
+[2026-05-07 21:12:38] Batch size: 256
+[2026-05-07 21:12:38] Press Ctrl+C to stop
+[2026-05-07 21:12:38] ============================================================
+[2026-05-07 21:12:38] Waiting for game to connect...
+[2026-05-07 21:13:27] 
+Game connected from ('127.0.0.1', 58412)
+[2026-05-07 21:13:27]   [FRAME_HIST] step=0 buf_len=1 filled=0/4 cur_pos=(0.119,-0.410,0.220) cur_vel=(0.036,0.100,-0.027) obs_dim=59
+[2026-05-07 21:13:27]   [FRAME_HIST] step=1 buf_len=2 filled=0/4 cur_pos=(-0.250,0.345,0.220) cur_vel=(0.000,-0.108,-0.027) obs_dim=59
+[2026-05-07 21:13:27]   [FRAME_HIST] step=2 buf_len=3 filled=0/4 cur_pos=(-0.250,0.345,0.220) cur_vel=(0.000,-0.110,-0.028) obs_dim=59
+[2026-05-07 21:13:27]   [FRAME_HIST] step=3 buf_len=4 filled=0/4 cur_pos=(-0.250,0.344,0.220) cur_vel=(0.000,-0.112,-0.028) obs_dim=59
+[2026-05-07 21:13:27]   [FRAME_HIST] step=4 buf_len=5 filled=0/4 cur_pos=(-0.250,0.344,0.219) cur_vel=(0.000,-0.114,-0.029) obs_dim=59
+[2026-05-07 21:13:27]   [FRAME_HIST] step=5 buf_len=6 filled=0/4 cur_pos=(-0.250,0.344,0.219) cur_vel=(0.000,-0.116,-0.029) obs_dim=59
+[2026-05-07 21:13:27]   [FRAME_HIST] step=6 buf_len=7 filled=0/4 cur_pos=(-0.250,0.343,0.219) cur_vel=(0.000,-0.118,-0.029) obs_dim=59
+[2026-05-07 21:13:27]   [FRAME_HIST] step=7 buf_len=8 filled=0/4 cur_pos=(-0.250,0.343,0.219) cur_vel=(0.000,-0.120,-0.030) obs_dim=59
+[2026-05-07 21:13:27]   [FRAME_HIST] step=8 buf_len=9 filled=1/4 cur_pos=(-0.250,0.342,0.219) cur_vel=(0.008,-0.125,-0.031) t-4=(0.119,-0.410,0.220,0.036,0.100,-0.027) obs_dim=59
+[2026-05-07 21:13:27]   [FRAME_HIST] step=9 buf_len=10 filled=1/4 cur_pos=(-0.250,0.342,0.219) cur_vel=(0.009,-0.136,-0.034) t-4=(-0.250,0.345,0.220,0.000,-0.108,-0.027) obs_dim=59
+[2026-05-07 21:13:27]   [FRAME_HIST] step=10 buf_len=11 filled=1/4 cur_pos=(-0.250,0.342,0.219) cur_vel=(0.002,-0.149,-0.037) t-4=(-0.250,0.345,0.220,0.000,-0.110,-0.028) obs_dim=59
+[2026-05-07 21:13:27]   [FRAME_HIST] step=11 buf_len=12 filled=1/4 cur_pos=(-0.250,0.341,0.219) cur_vel=(0.005,-0.160,-0.040) t-4=(-0.250,0.344,0.220,0.000,-0.112,-0.028) obs_dim=59
+[2026-05-07 21:13:27]   [FRAME_HIST] step=12 buf_len=13 filled=1/4 cur_pos=(-0.250,0.341,0.219) cur_vel=(0.012,-0.168,-0.042) t-4=(-0.250,0.344,0.219,0.000,-0.114,-0.029) obs_dim=59
+[2026-05-07 21:13:27]   [FRAME_HIST] step=13 buf_len=14 filled=1/4 cur_pos=(-0.250,0.340,0.218) cur_vel=(0.010,-0.181,-0.045) t-4=(-0.250,0.344,0.219,0.000,-0.116,-0.029) obs_dim=59
+[2026-05-07 21:13:27]   [FRAME_HIST] step=14 buf_len=15 filled=1/4 cur_pos=(-0.250,0.339,0.218) cur_vel=(0.011,-0.178,-0.044) t-4=(-0.250,0.343,0.219,0.000,-0.118,-0.029) obs_dim=59
+[2026-05-07 21:13:27]   [FRAME_HIST] step=15 buf_len=16 filled=1/4 cur_pos=(-0.250,0.339,0.218) cur_vel=(0.007,-0.185,-0.046) t-4=(-0.250,0.343,0.219,0.000,-0.120,-0.030) obs_dim=59
+[2026-05-07 21:13:27]   [FRAME_HIST] step=16 buf_len=17 filled=2/4 cur_pos=(-0.250,0.338,0.218) cur_vel=(0.012,-0.198,-0.049) t-4=(-0.250,0.342,0.219,0.008,-0.125,-0.031) obs_dim=59
+[2026-05-07 21:13:27]   [FRAME_HIST] step=17 buf_len=18 filled=2/4 cur_pos=(-0.250,0.338,0.218) cur_vel=(0.005,-0.204,-0.051) t-4=(-0.250,0.342,0.219,0.009,-0.136,-0.034) obs_dim=59
+[2026-05-07 21:13:27]   [FRAME_HIST] step=18 buf_len=19 filled=2/4 cur_pos=(-0.250,0.337,0.218) cur_vel=(-0.003,-0.212,-0.053) t-4=(-0.250,0.342,0.219,0.002,-0.149,-0.037) obs_dim=59
+[2026-05-07 21:13:27]   [FRAME_HIST] step=19 buf_len=20 filled=2/4 cur_pos=(-0.250,0.336,0.218) cur_vel=(0.005,-0.220,-0.055) t-4=(-0.250,0.341,0.219,0.005,-0.160,-0.040) obs_dim=59
+[2026-05-07 21:13:28] [GEM] ep=7266 step=136292524 +1pts | ep_total=213.8
+[2026-05-07 21:13:34] [GEM] ep=7266 step=136293637 +1pts | ep_total=-1559.7
+[2026-05-07 21:13:35] [GEM] ep=7266 step=136293808 +2pts | ep_total=-1146.8
+[2026-05-07 21:13:36] [GEM] ep=7266 step=136293974 +1pts | ep_total=-934.5
+[2026-05-07 21:13:39] Upd 66581 | PL=-0.0013 VL=11.3659 Ent=1.962 GN=4.522 CGN=604.663 KL=0.0028 | AvgRwd=3178.4 AvgLen=0 | gems=5 OOB=5 FF=611(-2932) minVz=-67.4
+[2026-05-07 21:13:39]        MeanAngle:189 StdDev:135 PolicyStd:34.8 | Thr:0.90(0.62-1.00) ThrStd:0.274
+[2026-05-07 21:13:42] [GEM] ep=7266 step=136295146 +1pts | ep_total=-3623.7
+[2026-05-07 21:13:42] [GEM] ep=7266 step=136295213 +1pts | ep_total=-3413.3
+[2026-05-07 21:13:43] [GEM] ep=7266 step=136295316 +1pts | ep_total=-3203.4
+[2026-05-07 21:13:44] [GEM] ep=7266 step=136295466 +2pts | ep_total=-2791.3
+[2026-05-07 21:13:49] Upd 66582 | PL=-0.0014 VL=16.5694 Ent=1.962 GN=4.264 CGN=391.999 KL=0.0126 | AvgRwd=3178.4 AvgLen=0 | gems=5 OOB=5 FF=779(-3731) minVz=-68.3
+[2026-05-07 21:13:49]        MeanAngle:180 StdDev:93 PolicyStd:34.8 | Thr:0.98(0.91-1.00) ThrStd:0.274
+[2026-05-07 21:13:53] [GEM] ep=7266 step=136297268 +1pts | ep_total=-6391.9
+[2026-05-07 21:13:54] [GEM] ep=7266 step=136297428 +1pts | ep_total=-6181.2
+[2026-05-07 21:13:55] [GEM] ep=7266 step=136297557 +1pts | ep_total=-5969.8
+[2026-05-07 21:13:55] [GEM] ep=7266 step=136297682 +2pts | ep_total=-5558.2
+[2026-05-07 21:13:57] [GEM] ep=7266 step=136297925 +1pts | ep_total=-5342.7
+[2026-05-07 21:14:00] Upd 66583 | PL=-0.0000 VL=18.3189 Ent=1.962 GN=4.767 CGN=371.928 KL=0.0048 | AvgRwd=3178.4 AvgLen=0 | gems=6 OOB=4 FF=579(-2781) minVz=-66.1
+[2026-05-07 21:14:00]        MeanAngle:182 StdDev:129 PolicyStd:34.8 | Thr:0.99(0.92-1.00) ThrStd:0.274
+[2026-05-07 21:14:02] [GEM] ep=7266 step=136298849 +1pts | ep_total=-7087.3
+[2026-05-07 21:14:02] [GEM] ep=7266 step=136298996 +2pts | ep_total=-6675.3
+[2026-05-07 21:14:04] [GEM] ep=7266 step=136299200 +1pts | ep_total=-6463.1
+[2026-05-07 21:14:06] [GEM] ep=7266 step=136299650 +2pts | ep_total=-6981.0
+[2026-05-07 21:14:07] [GEM] ep=7266 step=136299780 +1pts | ep_total=-6768.7
+[2026-05-07 21:14:11] Upd 66584 | PL=-0.0014 VL=20.8861 Ent=1.962 GN=4.752 CGN=372.453 KL=0.0024 | AvgRwd=3178.4 AvgLen=0 | gems=7 OOB=5 FF=746(-3598) minVz=-67.1
+[2026-05-07 21:14:11]        MeanAngle:134 StdDev:126 PolicyStd:34.8 | Thr:0.99(0.92-1.00) ThrStd:0.274
+[2026-05-07 21:14:19] [GEM] ep=7266 step=136302066 +1pts | ep_total=-11380.1
+[2026-05-07 21:14:21] [GEM] ep=7266 step=136302509 +1pts | ep_total=-12091.3
+[2026-05-07 21:14:21] [GEM] ep=7266 step=136302546 +1pts | ep_total=-11886.6
+[2026-05-07 21:14:22] Upd 66585 | PL=-0.0021 VL=27.9090 Ent=1.962 GN=4.364 CGN=378.261 KL=0.0036 | AvgRwd=3178.4 AvgLen=0 | gems=3 OOB=6 FF=817(-3911) minVz=-66.7
+[2026-05-07 21:14:22]        MeanAngle:205 StdDev:131 PolicyStd:34.8 | Thr:0.86(0.66-0.99) ThrStd:0.274
+[2026-05-07 21:14:23] [GEM] ep=7266 step=136302872 +1pts | ep_total=-12563.6
+[2026-05-07 21:14:24] [GEM] ep=7266 step=136303053 +2pts | ep_total=-12151.0
+[2026-05-07 21:14:25] [GEM] ep=7266 step=136303197 +1pts | ep_total=-11938.5
+[2026-05-07 21:14:28] [GAME END] total gems this game: 30pts (best: 30) avg_gap_penalty: 0.0 jump_rate: 0.7% brake_rate: 36.1% avg_steps/gem: 451 overshoot: 0 (3.9% of steps, avg 0.00/frame) pickup_speed: 8.2 brakes_near_pickup: 1.08/gem slow_pickup_bonus: 0 freefall: 18104 (33.3% of steps)
+[2026-05-07 21:14:28] Ep 7266 [FAIL] rwd=-12425.2 gems=30pts oob=27 steps=11338 | avg100=3027.0
+[2026-05-07 21:14:31]   [FRAME_HIST] step=0 buf_len=33 filled=4/4 cur_pos=(-0.270,-0.452,0.221) cur_vel=(-0.006,0.008,-0.002) t-4=(-0.228,0.124,-0.036,-0.000,-0.000,-0.000) obs_dim=59
+[2026-05-07 21:14:31]   [FRAME_HIST] step=1 buf_len=33 filled=4/4 cur_pos=(-0.452,0.270,0.221) cur_vel=(0.019,0.016,-0.005) t-4=(-0.228,0.124,-0.036,-0.000,-0.000,-0.000) obs_dim=59
+[2026-05-07 21:14:31]   [FRAME_HIST] step=2 buf_len=33 filled=4/4 cur_pos=(-0.452,0.270,0.221) cur_vel=(0.029,0.024,-0.007) t-4=(-0.228,0.124,-0.036,-0.000,-0.000,-0.000) obs_dim=59
+[2026-05-07 21:14:31]   [FRAME_HIST] step=3 buf_len=33 filled=4/4 cur_pos=(-0.452,0.270,0.221) cur_vel=(0.038,0.032,-0.010) t-4=(-0.228,0.124,-0.036,-0.000,-0.000,-0.000) obs_dim=59
+[2026-05-07 21:14:31]   [FRAME_HIST] step=4 buf_len=33 filled=4/4 cur_pos=(-0.452,0.270,0.221) cur_vel=(0.050,0.042,-0.012) t-4=(-0.228,0.124,-0.036,-0.000,-0.000,-0.000) obs_dim=59
+[2026-05-07 21:14:31]   [FRAME_HIST] step=5 buf_len=33 filled=4/4 cur_pos=(-0.452,0.270,0.221) cur_vel=(0.059,0.050,-0.015) t-4=(-0.228,0.124,-0.036,-0.000,-0.000,-0.000) obs_dim=59
+[2026-05-07 21:14:31]   [FRAME_HIST] step=6 buf_len=33 filled=4/4 cur_pos=(-0.452,0.271,0.221) cur_vel=(0.069,0.058,-0.017) t-4=(-0.228,0.124,-0.036,-0.000,-0.000,-0.000) obs_dim=59
+[2026-05-07 21:14:31]   [FRAME_HIST] step=7 buf_len=33 filled=4/4 cur_pos=(-0.451,0.271,0.221) cur_vel=(0.081,0.067,-0.020) t-4=(-0.228,0.124,-0.036,-0.000,-0.000,-0.000) obs_dim=59
+[2026-05-07 21:14:31]   [FRAME_HIST] step=8 buf_len=33 filled=4/4 cur_pos=(-0.451,0.271,0.221) cur_vel=(0.091,0.075,-0.023) t-4=(-0.270,-0.452,0.221,-0.006,0.008,-0.002) obs_dim=59
+[2026-05-07 21:14:31]   [FRAME_HIST] step=9 buf_len=33 filled=4/4 cur_pos=(-0.451,0.271,0.221) cur_vel=(0.102,0.082,-0.025) t-4=(-0.452,0.270,0.221,0.019,0.016,-0.005) obs_dim=59
+[2026-05-07 21:14:31]   [FRAME_HIST] step=10 buf_len=33 filled=4/4 cur_pos=(-0.451,0.272,0.221) cur_vel=(0.114,0.091,-0.029) t-4=(-0.452,0.270,0.221,0.029,0.024,-0.007) obs_dim=59
+[2026-05-07 21:14:31]   [FRAME_HIST] step=11 buf_len=33 filled=4/4 cur_pos=(-0.450,0.272,0.220) cur_vel=(0.125,0.098,-0.031) t-4=(-0.452,0.270,0.221,0.038,0.032,-0.010) obs_dim=59
+[2026-05-07 21:14:31]   [FRAME_HIST] step=12 buf_len=33 filled=4/4 cur_pos=(-0.450,0.272,0.220) cur_vel=(0.136,0.104,-0.034) t-4=(-0.452,0.270,0.221,0.050,0.042,-0.012) obs_dim=59
+[2026-05-07 21:14:31]   [FRAME_HIST] step=13 buf_len=33 filled=4/4 cur_pos=(-0.449,0.273,0.220) cur_vel=(0.152,0.101,-0.038) t-4=(-0.452,0.270,0.221,0.059,0.050,-0.015) obs_dim=59
+[2026-05-07 21:14:31]   [FRAME_HIST] step=14 buf_len=33 filled=4/4 cur_pos=(-0.449,0.273,0.220) cur_vel=(0.163,0.099,-0.041) t-4=(-0.452,0.271,0.221,0.069,0.058,-0.017) obs_dim=59
+[2026-05-07 21:14:31]   [FRAME_HIST] step=15 buf_len=33 filled=4/4 cur_pos=(-0.448,0.273,0.220) cur_vel=(0.173,0.101,-0.043) t-4=(-0.451,0.271,0.221,0.081,0.067,-0.020) obs_dim=59
+[2026-05-07 21:14:31]   [FRAME_HIST] step=16 buf_len=33 filled=4/4 cur_pos=(-0.448,0.274,0.220) cur_vel=(0.184,0.094,-0.046) t-4=(-0.451,0.271,0.221,0.091,0.075,-0.023) obs_dim=59
+[2026-05-07 21:14:31]   [FRAME_HIST] step=17 buf_len=33 filled=4/4 cur_pos=(-0.447,0.274,0.220) cur_vel=(0.195,0.091,-0.049) t-4=(-0.451,0.271,0.221,0.102,0.082,-0.025) obs_dim=59
+[2026-05-07 21:14:31]   [FRAME_HIST] step=18 buf_len=33 filled=4/4 cur_pos=(-0.446,0.274,0.220) cur_vel=(0.205,0.086,-0.051) t-4=(-0.451,0.272,0.221,0.114,0.091,-0.029) obs_dim=59
+[2026-05-07 21:14:31]   [FRAME_HIST] step=19 buf_len=33 filled=4/4 cur_pos=(-0.446,0.274,0.219) cur_vel=(0.217,0.082,-0.054) t-4=(-0.450,0.272,0.220,0.125,0.098,-0.031) obs_dim=59
+[2026-05-07 21:14:31] [GEM] ep=7267 step=136303797 +2pts | ep_total=410.6
+[2026-05-07 21:14:31] [GEM] ep=7267 step=136303872 +1pts | ep_total=621.5
+[2026-05-07 21:14:39] Upd 66586 | PL=-0.0007 VL=19.8981 Ent=1.962 GN=5.188 CGN=273.015 KL=0.0039 | AvgRwd=3027.0 AvgLen=11338 | gems=7 OOB=5 FF=633(-3043) minVz=-65.6
+[2026-05-07 21:14:39]        MeanAngle:113 StdDev:122 PolicyStd:34.8 | Thr:1.00(0.99-1.00) ThrStd:0.274
+[2026-05-07 21:14:41] [GEM] ep=7267 step=136304856 +1pts | ep_total=-1122.9
+[2026-05-07 21:14:48] [GEM] ep=7267 step=136305572 +1pts | ep_total=-1949.1
+[2026-05-07 21:14:51] [GEM] ep=7267 step=136305837 +2pts | ep_total=-1536.8
+[2026-05-07 21:14:53] [GEM] ep=7267 step=136306003 +1pts | ep_total=-1324.5
+[2026-05-07 21:14:54] [GEM] ep=7267 step=136306097 +2pts | ep_total=-914.2
+[2026-05-07 21:15:01] Upd 66587 | PL=-0.0025 VL=12.9863 Ent=1.962 GN=4.003 CGN=129.619 KL=0.0031 | AvgRwd=3027.0 AvgLen=11338 | gems=7 OOB=5 FF=296(-1358) minVz=-65.0
+[2026-05-07 21:15:01]        MeanAngle:152 StdDev:79 PolicyStd:34.8 | Thr:0.98(0.93-1.00) ThrStd:0.274
+[2026-05-07 21:15:04] [GEM] ep=7267 step=136307069 +1pts | ep_total=-1871.6
+[2026-05-07 21:15:08] [GEM] ep=7267 step=136307497 +1pts | ep_total=-2543.3
+[2026-05-07 21:15:13] [GEM] ep=7267 step=136307928 +2pts | ep_total=-3042.3
+[2026-05-07 21:15:14] [GEM] ep=7267 step=136308037 +1pts | ep_total=-2830.8
+[2026-05-07 21:15:16] [GEM] ep=7267 step=136308216 +1pts | ep_total=-2619.2
+[2026-05-07 21:15:22] Upd 66588 | PL=-0.0003 VL=33.3821 Ent=1.961 GN=7.442 CGN=294.602 KL=0.0044 | AvgRwd=3027.0 AvgLen=11338 | gems=6 OOB=4 FF=709(-3466) minVz=-65.7
+[2026-05-07 21:15:22]        MeanAngle:136 StdDev:131 PolicyStd:34.8 | Thr:1.00(0.97-1.00) ThrStd:0.274
+[2026-05-07 21:15:25] [GEM] ep=7267 step=136309116 +1pts | ep_total=-4298.3
+[2026-05-07 21:15:30] [GEM] ep=7267 step=136309584 +2pts | ep_total=-4756.6
+[2026-05-07 21:15:36] [GEM] ep=7267 step=136310116 +1pts | ep_total=-5435.4
+[2026-05-07 21:15:44] Upd 66589 | PL=-0.0025 VL=36.3374 Ent=1.961 GN=3.583 CGN=332.527 KL=0.0041 | AvgRwd=3027.0 AvgLen=11338 | gems=4 OOB=5 FF=731(-3556) minVz=-64.2
+[2026-05-07 21:15:44]        MeanAngle:161 StdDev:98 PolicyStd:34.8 | Thr:0.99(0.96-1.00) ThrStd:0.274
+[2026-05-07 21:15:52] [GEM] ep=7267 step=136311600 +1pts | ep_total=-8039.6
+[2026-05-07 21:15:57] [GEM] ep=7267 step=136312091 +2pts | ep_total=-8527.4
+[2026-05-07 21:15:59] [GEM] ep=7267 step=136312259 +1pts | ep_total=-8315.4
+[2026-05-07 21:16:00] [GEM] ep=7267 step=136312362 +2pts | ep_total=-7905.5
+[2026-05-07 21:16:05] Upd 66590 | PL=-0.0014 VL=28.7332 Ent=1.961 GN=3.842 CGN=237.054 KL=0.0023 | AvgRwd=3027.0 AvgLen=11338 | gems=6 OOB=5 FF=653(-3173) minVz=-64.7
+[2026-05-07 21:16:05]        MeanAngle:143 StdDev:96 PolicyStd:34.8 | Thr:0.98(0.95-1.00) ThrStd:0.274
+[2026-05-07 21:16:05]   Model saved to models/checkpoints/update_66590.pth
+[2026-05-07 21:16:05] 
+--- SUMMARY Upd 66590 | 0.06h | 136,312,863 steps | 7266 eps ---
+[2026-05-07 21:16:05]   Gems: 56pts (965/hr) | OOB: 49 | AvgRwd: 3027.0 | Best: 17184.5
+[2026-05-07 21:16:05]   AvgEpLen: 11338 steps | Ent: 1.961 | GN: 3.842 | Lazy: 3.14 | Std: 34.8 | Thr: 0.98 ThrStd: 0.274
+[2026-05-07 21:16:05] ---
+[2026-05-07 21:16:08] [GEM] ep=7267 step=136313172 +1pts | ep_total=-8729.2
+[2026-05-07 21:16:13] [GEM] ep=7267 step=136313569 +1pts | ep_total=-9395.5
+[2026-05-07 21:16:16] [GEM] ep=7267 step=136313894 +1pts | ep_total=-10062.6
+[2026-05-07 21:16:18] [GEM] ep=7267 step=136314091 +2pts | ep_total=-9651.2
+[2026-05-07 21:16:23] [GAME END] total gems this game: 31pts (best: 31) avg_gap_penalty: 0.0 jump_rate: 0.3% brake_rate: 36.4% avg_steps/gem: 451 overshoot: 0 (3.4% of steps, avg 0.00/frame) pickup_speed: 8.7 brakes_near_pickup: 1.35/gem slow_pickup_bonus: 0 freefall: 16586 (31.3% of steps)
+[2026-05-07 21:16:23] Ep 7267 [FAIL] rwd=-10697.7 gems=31pts oob=26 steps=10965 | avg100=2883.5
+[2026-05-07 21:16:26] Game disconnected. Shutting down.
+[2026-05-07 21:16:26] Server stopped.

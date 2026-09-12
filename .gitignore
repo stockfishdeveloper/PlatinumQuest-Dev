@@ -89,3 +89,9 @@ Marble Blast Platinum/platinum/client/ui/lb/avatars/avatar*
 Marble Blast Platinum/platinum/data/recordings
 Marble Blast Platinum/platinum/client/ui/search/marbleland/*.jpg
 Marble Blast Platinum/platinum/client/ui/search/marblelandpacks/*.jpg
+
+# ML agent training checkpoints: ~3 MB each, one every 10 updates, thousands per run.
+# Kept out of git by default (GitHub rejects pushes over 2 GB). To keep a milestone:
+#   git add -f ml_agent/models/checkpoints/update_NNNNN.pth
+ml_agent/models/checkpoints/*.pth
+ml_agent/__pycache__/

@@ -106,20 +106,30 @@ Separate Actor and Critic networks, both with a 59→128→128 features backbone
 
 ## Training Hyperparameters
 
-- `actor_lr = 3e-5`
-- `critic_lr = 1e-4`
-- `rollout_size = 2048`
-- `batch_size = 256`
-- `n_epochs = 4`
-- `clip_epsilon = 0.2`
-- `gamma = 0.99`
-- `lam = 0.95`
-- `entropy_coef = 0.005` (applied to direction + throttle entropy only; jump excluded)
-- `vf_clip = 20.0`
-- `target_kl = 2.667` (early-stop threshold; actual fire at max_kl ≥ 4.0)
-- `reward_scale = 0.1`, reward clip `[-20, 20]`
+Current values in `train_ppo.py` as of 2026-09-11 (the training loop was corrected that day; see the list at the end of this section):
 
-Training runs at **3× game speed**, so a 5-min real round is ~18,875 env steps.
+- `actor_lr = 3e-5`, actor grad clip `0.3`
+- `critic_lr = 1e-4`, critic grad clip `5.0` (its own clip; it was throttled to 1e-5 / 0.3 before value-target normalization existed)
+- **Value-target normalization (PopArt) in `Critic`.** The last layer predicts a normalized value; running mean/std of the GAE returns are refreshed every rollout with an output-preserving rescale of the last layer, so V(s) never jumps. `VL` on the Upd line is in normalized units and `Vstd=` is the scale (raw-scaled VL ~= VL * Vstd^2). Expect `CGN` around O(1) now, not ~100.
+- **`ACTION_REPEAT = 4`.** Each decision is held for 4 game ticks (64 ms). Python still processes every tick: per-tick rewards are summed into the held decision, frame history stays tick-based, and a held brake is re-aimed against the current velocity each tick. The buffer stores one transition per decision. `jump_rate` / `brake_rate` on the GAME END line are now % of decisions.
+- `rollout_size = 2048` decisions (= 8192 ticks, ~131 s of game time, ~20 gem events per rollout)
+- `batch_size = 256`, `n_epochs = 4`
+- `gamma = 0.996` per decision (== 0.999 per tick; horizon unchanged at ~16 s of game time), `lam = 0.95`
+- `clip_epsilon = 0.1`, `target_kl = 1.0` (early stop fires at max_kl >= 1.5)
+- `entropy_coef = -0.001` (direction + throttle only; jump and brake excluded). Direction log_std clamp `[-2.0, -0.5]` (35 deg max), throttle log_std clamp `[-3.0, -0.9]`.
+- `vf_clip = 20.0` in raw-scaled units (converted to normalized units each update)
+- `reward_scale = 0.1`, reward clip `[-100, 100]` per decision (was +/-20, which clipped a 2-point gem (40) and a 5-point gem (100) down to a 1-point gem's 20)
+- `WARMUP_ROLLOUTS = 75` critic-only rollouts on a fresh warmup (was 300 at one tick per decision). `--warmup N` on the command line forces a fresh warmup of N rollouts; `--action-repeat N` overrides the repeat.
+
+Training runs at **3x game speed**. One game tick is 16 ms of game time, so a 3-min KingOfTheMarble round is ~11,375 ticks / ~2,840 decisions, and a 5-min flat round is ~18,875 ticks.
+
+### Training-loop fixes applied 2026-09-11 (already done, don't re-suggest)
+
+- **Rollout-boundary bootstrap.** GAE used next_value = 0 at the end of every buffer even though the buffer is cut mid-episode. The last transition now bootstraps from V(s_next) of the following observation (the PPO update runs at the start of the next decision tick). Terminal transitions still use 0.
+- **Game end marks done.** The `[]|-gems|0|1` game-end message finalizes the held decision with done=True, so returns no longer bootstrap across the restart teleport. It also clears the frame history.
+- **Reward attached to the right action.** Each tick's reward is a consequence of earlier actions; it used to be stored with the action chosen after observing it. A decision's stored reward is now the sum over the ticks it was held.
+- **Gem value is no longer clipped away** (reward clip +/-20 -> +/-100).
+- **Critic un-throttled** via PopArt normalization instead of a tiny LR and a 0.3 clip.
 
 ---
 
@@ -153,6 +163,7 @@ Training runs at **3× game speed**, so a 5-min real round is ~18,875 env steps.
 
 ## Bugs Already Fixed (don't re-suggest these)
 
+- **Training-loop bugs (2026-09-11)**: rollout-boundary bootstrap of 0, game end not marked done, reward stored with the wrong action, gem value clipped to 1-point, critic throttled instead of normalized. All fixed; details in the Training Hyperparameters section.
 - **Camera yaw mismatch**: `observer.cs` was reading the `$cameraYaw` TorqueScript global, which drifts from the engine's internal `$MP::MyMarble.getCameraYaw()`. Now reads directly from the marble.
 - **Torque rotation formula**: `forward=(sin(yaw),cos(yaw))`, `right=(cos(yaw),-sin(yaw))` — fixed in 4 places in observer.cs (self vel, gem pos, opp pos, opp vel).
 - **Mixed coordinate frames**: position was world-space while velocity was camera-relative. Fixed by rotating position into camera space too, and dropping redundant yaw/pitch from obs.
