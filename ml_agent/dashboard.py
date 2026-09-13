@@ -124,7 +124,11 @@ def compute_heatmap(actor):
     n_cells = len(xs) * len(ys)
     n_gems = len(HEATMAP_ALL_GEMS)
 
-    # Build all observations at once
+    # Build all observations at once. Actors trained with the terrain
+    # observation take 64 extra dims after the frame history; this flat-map
+    # probe feeds them the flat-floor sample.
+    from terrain_obs import TerrainMap
+    flat_terrain = TerrainMap.flat_sample()
     all_obs = np.zeros((n_cells * n_gems, obs_dim), dtype=np.float32)
     idx = 0
     for j, y in enumerate(ys):
@@ -139,7 +143,10 @@ def compute_heatmap(actor):
                     vy = (dy / d) * 6.0
                 else:
                     vx, vy = 0.0, 0.0
-                all_obs[idx] = _heatmap_make_obs((float(x), float(y)), (vx, vy), gem)
+                o = _heatmap_make_obs((float(x), float(y)), (vx, vy), gem)
+                all_obs[idx, :len(o)] = o
+                if obs_dim > len(o):
+                    all_obs[idx, len(o):] = flat_terrain[:obs_dim - len(o)]
                 idx += 1
 
     # One batched forward pass — fast on small models
@@ -565,6 +572,8 @@ class DashboardServer:
             'recent_episode_gems': list(s.recent_episode_gems),
             'recent_game_gems': list(s.recent_game_gems),
             'best_game_gems': s.best_game_gems,
+            'best_game': getattr(s, 'best_game_breakdown', None),   # score + pickups by point value
+            'last_game': getattr(s, 'last_game_breakdown', None),
             'avg_gap_penalty': round(avg_gap_penalty, 2),
             'near_misses': round(avg_near_misses, 1),
             'dwell_steps': round(avg_dwell_steps, 0),
@@ -897,10 +906,10 @@ body { background: var(--bg); color: var(--text); font-family: 'Consolas', 'SF M
     <span>Steps: <b id="m-steps">--</b></span>
     <span>Episodes: <b id="m-eps">--</b></span>
     <span>Time: <b id="m-time">--</b></span>
-    <span>Gems: <b id="m-gems">--</b>pts</span>
-    <span>Gems/hr: <b id="m-gems-hr">--</b></span>
-    <span>Best Gems/hr: <b id="m-best-gems-hr" style="color:#f0c040">--</b></span>
-    <span>Best Gems/Game: <b id="m-best-game-gems" style="color:#3fb950">--</b></span>
+    <span>Score: <b id="m-gems">--</b>pts</span>
+    <span>Score/hr: <b id="m-gems-hr">--</b></span>
+    <span>Best Score/hr: <b id="m-best-gems-hr" style="color:#f0c040">--</b></span>
+    <span>Best Game: <b id="m-best-game-gems" style="color:#3fb950">--</b>pts <span id="m-best-game-breakdown" style="color:#8b949e"></span></span>
     <span>OOB: <b id="m-oob">--</b></span>
     <span>Best Avg: <b id="m-best">--</b></span>
   </div>
@@ -913,20 +922,20 @@ body { background: var(--bg); color: var(--text); font-family: 'Consolas', 'SF M
 <!-- Gauges -->
 <div id="gauges">
   <div class="gauge"><div class="label">Avg Reward (100ep)</div><div class="value" id="g-avgrwd">--</div></div>
-  <div class="gauge"><div class="label">Gems/hr</div><div class="value" id="g-gemshr" style="color:#f0c040">--</div></div>
-  <div class="gauge"><div class="label">Avg Gems/Game</div><div class="value" id="g-gems-game" style="color:#3fb950">--</div></div>
+  <div class="gauge"><div class="label">Score/hr</div><div class="value" id="g-gemshr" style="color:#f0c040">--</div></div>
+  <div class="gauge"><div class="label">Avg Score/Game</div><div class="value" id="g-gems-game" style="color:#3fb950">--</div></div>
   <div class="gauge"><div class="label">Entropy</div><div class="value" id="g-entropy">--</div></div>
   <div class="gauge"><div class="label">KL-Stop %</div><div class="value" id="g-klstop">--</div></div>
   <div class="gauge"><div class="label">Grad Norm</div><div class="value" id="g-gradnorm">--</div></div>
-  <div class="gauge"><div class="label">Last Game Gems</div><div class="value" id="g-lastgems" style="color:#f0c040">--</div></div>
+  <div class="gauge"><div class="label">Last Game Score</div><div class="value" id="g-lastgems" style="color:#f0c040">--</div><div class="label" id="g-lastgems-breakdown"></div></div>
   <div class="gauge"><div class="label">Dry Rollouts</div><div class="value" id="g-dry">--</div></div>
 </div>
 
 <!-- Charts -->
 <div id="charts">
   <div class="chart-card"><div class="chart-title">Avg Reward (100-episode rolling)</div><div id="c-avgrwd" style="height:220px"></div></div>
-  <div class="chart-card"><div class="chart-title">Gems Per Game (last 100 games) + rolling avg</div><div id="c-epgems" style="height:220px"></div></div>
-  <div class="chart-card"><div class="chart-title">Gems Per Hour</div><div id="c-gemshr" style="height:220px"></div></div>
+  <div class="chart-card"><div class="chart-title">Score Per Game (last 100 games) + rolling avg</div><div id="c-epgems" style="height:220px"></div></div>
+  <div class="chart-card"><div class="chart-title">Score Per Hour</div><div id="c-gemshr" style="height:220px"></div></div>
   <div class="chart-card"><div class="chart-title">KL Divergence + KL-Stop % (last 100 updates)</div><div id="c-kl" style="height:220px"></div></div>
   <div class="chart-card"><div class="chart-title">Gradient Norm (actor + critic)</div><div id="c-gradnorm" style="height:220px"></div></div>
   <div class="chart-card"><div class="chart-title">Actor Loss vs Value Loss</div><div id="c-losses" style="height:220px"></div></div>
@@ -1252,6 +1261,17 @@ async function loadHistory() {
 // ============================================================
 // Live SSE update handler
 // ============================================================
+// Gem colour by point value. The game reports points per pickup, so colour is
+// inferred; two gems taken in one tick sum and show under their combined value.
+const GEM_COLOUR_BY_PTS = {1: 'red', 2: 'yellow', 3: 'orange', 4: 'green', 5: 'blue', 6: 'purple', 7: 'turquoise', 10: 'platinum'};
+function fmtBreakdown(b) {
+  if (!b || !b.counts) return '';
+  const entries = Object.entries(b.counts).sort((x, y) => Number(x[0]) - Number(y[0]));
+  const parts = entries.map(([pts, n]) => `${n} ${GEM_COLOUR_BY_PTS[pts] || (pts + 'pt')}`);
+  const total = entries.reduce((acc, [, n]) => acc + n, 0);
+  return `(${parts.join(', ')} = ${total} gems)`;
+}
+
 function updateDashboard(snap) {
   // Heatmap refresh — only if a new version is available
   if (typeof window.heatmapMaybeRefresh === 'function' && snap.heatmap_version !== undefined) {
@@ -1267,6 +1287,7 @@ function updateDashboard(snap) {
   document.getElementById('m-gems-hr').textContent = snap.gems_per_hr.toFixed(1);
   document.getElementById('m-best-gems-hr').textContent = snap.best_gems_hr.toFixed(1);
   document.getElementById('m-best-game-gems').textContent = snap.best_game_gems || '--';
+  document.getElementById('m-best-game-breakdown').textContent = fmtBreakdown(snap.best_game);
   document.getElementById('m-oob').textContent = snap.total_oob;
   document.getElementById('m-best').textContent = snap.best_avg_reward.toFixed(1);
 
@@ -1298,6 +1319,7 @@ function updateDashboard(snap) {
   const gameGemsArr = snap.recent_game_gems || [];
   const lastGameGems = gameGemsArr.length > 0 ? gameGemsArr[gameGemsArr.length - 1] : 0;
   document.getElementById('g-lastgems').textContent = lastGameGems;
+  document.getElementById('g-lastgems-breakdown').textContent = fmtBreakdown(snap.last_game);
 
   // Avg gems/game (last 20 full games)
   const gemsGameEl = document.getElementById('g-gems-game');

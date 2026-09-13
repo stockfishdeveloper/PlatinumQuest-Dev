@@ -38,6 +38,7 @@ import math
 from collections import deque
 from datetime import datetime
 from dashboard import DashboardServer
+from terrain_obs import TerrainMap, TERRAIN_DIM
 
 # ============================================================================
 # Logging Helper
@@ -59,6 +60,62 @@ class DualLogger:
 
     def close(self):
         self.file.close()
+
+
+# ============================================================================
+# Checkpoint widening (observation grew, e.g. the terrain observation was added)
+# ============================================================================
+
+def widen_state_dict(model, saved_state, log=print):
+    """Filter/adapt `saved_state` for loading into `model`.
+
+    Exact-shape tensors are copied. A 2-D weight whose output size matches but
+    whose INPUT size is smaller than the model's (the observation grew) is
+    zero-padded on the right: the new inputs start with zero weight, so the
+    loaded network computes exactly what it did before the change and learns
+    the new inputs from there. Anything else is skipped and reported.
+    """
+    model_state = model.state_dict()
+    out, widened, skipped = {}, [], []
+    for key, val in saved_state.items():
+        if key not in model_state:
+            continue
+        tgt = model_state[key]
+        if tuple(val.shape) == tuple(tgt.shape):
+            out[key] = val
+        elif (val.dim() == 2 and tgt.dim() == 2 and val.shape[0] == tgt.shape[0]
+              and val.shape[1] < tgt.shape[1]):
+            w = torch.zeros_like(tgt)
+            w[:, :val.shape[1]] = val
+            out[key] = w
+            widened.append((key, int(val.shape[1]), int(tgt.shape[1])))
+        else:
+            skipped.append((key, tuple(val.shape), tuple(tgt.shape)))
+    for key, a, b in widened:
+        log(f"  Widened {key}: in_features {a} -> {b} (new columns zero-initialized)")
+    for key, a, b in skipped:
+        log(f"  Shape mismatch for {key}: checkpoint={a} vs model={b} -- skipping")
+    return out
+
+
+def widen_optimizer_state(opt_state, model):
+    """Zero-pad Adam moment tensors for parameters that widen_state_dict widened,
+    so the optimizer state still loads and keeps its history for the old columns."""
+    params = list(model.parameters())
+    for idx, entry in opt_state.get('state', {}).items():
+        if not isinstance(idx, int) or idx >= len(params):
+            continue
+        tgt = params[idx]
+        for k in ('exp_avg', 'exp_avg_sq', 'max_exp_avg_sq'):
+            t = entry.get(k)
+            if t is None or not torch.is_tensor(t) or tuple(t.shape) == tuple(tgt.shape):
+                continue
+            if t.dim() == 2 and tgt.dim() == 2 and t.shape[0] == tgt.shape[0] and t.shape[1] < tgt.shape[1]:
+                w = torch.zeros(tgt.shape, dtype=t.dtype)
+                w[:, :t.shape[1]] = t
+                entry[k] = w
+    return opt_state
+
 
 # ============================================================================
 # Neural Networks (Separate Actor and Critic)
@@ -571,11 +628,13 @@ class PPOTrainer:
                  actor_lr=3e-5, critic_lr=1e-4,
                  clip_epsilon=0.2, entropy_coef=0.01,
                  max_grad_norm=1.0, vf_clip=20.0, target_kl=1.5,
-                 critic_max_grad_norm=None):
+                 critic_max_grad_norm=None,
+                 terrain_lr_mult=1.0, terrain_split=None, obs_dim=None):
         self.actor = actor
         self.critic = critic
         self.actor_optimizer = optim.Adam(actor.parameters(), lr=actor_lr)
         self.critic_optimizer = optim.Adam(critic.parameters(), lr=critic_lr)
+        self.configure_terrain_lr(terrain_lr_mult, terrain_split, obs_dim)
         self.clip_epsilon = clip_epsilon
         self.entropy_coef = entropy_coef
         self.max_grad_norm = max_grad_norm
@@ -584,6 +643,27 @@ class PPOTrainer:
         self.critic_max_grad_norm = critic_max_grad_norm if critic_max_grad_norm is not None else max_grad_norm
         self.vf_clip = vf_clip   # in raw-scaled reward units; converted to normalized units per update
         self.target_kl = target_kl  # KL early stopping: fires at 1.5x (catches destructive updates)
+
+    def configure_terrain_lr(self, mult, split, obs_dim):
+        """Give the actor's terrain input columns an effective learning rate of
+        actor_lr * mult.
+
+        The terrain columns live inside the first-layer weight of each actor trunk
+        (features, jump_features, brake_features), so they cannot get their own
+        Adam parameter group without splitting the tensors and changing checkpoint
+        keys. Adam's per-element step is linear in lr and invariant to gradient
+        scale, so the exact equivalent is: after optimizer.step(), scale the
+        change that just happened to those columns by `mult`. Selected weights are
+        every 2-D actor parameter whose input width equals obs_dim (the first
+        layer of each trunk); columns [split:] are the terrain inputs.
+        """
+        self.terrain_lr_mult = float(mult)
+        self.terrain_split = split
+        self._terrain_params = []
+        if split is not None and obs_dim is not None and self.terrain_lr_mult != 1.0:
+            for name, p in self.actor.named_parameters():
+                if p.dim() == 2 and p.shape[1] == obs_dim and split < obs_dim:
+                    self._terrain_params.append(p)
 
     def update(self, buffer, n_epochs=4, batch_size=64, gamma=0.99, lam=0.95,
                freeze_actor=False, last_value=0.0):
@@ -651,7 +731,16 @@ class PPOTrainer:
                     ) ** 0.5
                     total_grad_norm += grad_norm
                     nn.utils.clip_grad_norm_(self.actor.parameters(), self.max_grad_norm)
+                    if self._terrain_params:
+                        before = [p.data[:, self.terrain_split:].clone() for p in self._terrain_params]
                     self.actor_optimizer.step()
+                    if self._terrain_params:
+                        # Terrain-column LR multiplier (see configure_terrain_lr):
+                        # amplify the step Adam just took on those columns.
+                        with torch.no_grad():
+                            for p, b in zip(self._terrain_params, before):
+                                cols = p.data[:, self.terrain_split:]
+                                cols.add_((self.terrain_lr_mult - 1.0) * (cols - b))
 
                 # --- Critic update (regression in PopArt-normalized units) ---
                 values_n = self.critic.forward_normalized(states).squeeze(-1)
@@ -698,7 +787,7 @@ class PPOTrainer:
 class PPOServer:
     """TCP server that trains the model while communicating with the game."""
 
-    def __init__(self, host='127.0.0.1', port=8888, model_path=None):
+    def __init__(self, host='127.0.0.1', port=8888, model_path=None, terrain=None):
         self.host = host
         self.port = port
         self.running = True
@@ -717,7 +806,15 @@ class PPOServer:
         self.FRAME_SKIP = 8            # frames between each snapshot
         self.FRAME_HISTORY_DIMS = 6    # pos(3) + vel(3) per frame
         self.obs_dim_base = 35         # base obs dimensions from game
-        self.obs_dim = self.obs_dim_base + self.FRAME_HISTORY_COUNT * self.FRAME_HISTORY_DIMS  # 59
+        # Local terrain observation (terrain_obs.py): 64 dims appended after the
+        # frame history, sampled every decision from a height stack precomputed
+        # from the map's .dif (generate_terrain_map.py). It gives the policy the
+        # floor geometry around it, so hole avoidance can be learned as a local,
+        # map-independent pattern instead of a table of this map's coordinates.
+        # terrain=None (--no-terrain) feeds the flat-floor placeholder sample.
+        self.terrain = TerrainMap(terrain) if terrain else None
+        self.obs_dim = (self.obs_dim_base + self.FRAME_HISTORY_COUNT * self.FRAME_HISTORY_DIMS
+                        + TERRAIN_DIM)  # 35 + 24 + 64 = 123
 
         # Ring buffer of recent normalized obs (pos+vel only, indices 0:6).
         # Need current frame + FRAME_HISTORY_COUNT * FRAME_SKIP historical frames.
@@ -749,10 +846,23 @@ class PPOServer:
         # papering over. Expect VL to read ~0.1-1.0 (normalized units; multiply
         # by Vstd^2 from the Upd line for raw-scaled) and CGN to drop from ~100
         # to O(1).
+        # 2026-09-13: faster learning on the actor's terrain input columns.
+        # After ~2,400 updates with the terrain observation, the critic's terrain
+        # columns had reached 15% of the magnitude of its original columns but
+        # the actor's only 8%, and the score had plateaued at ~69/game with OOB
+        # ~10 while the actor's void-avoidance was still mostly position-based.
+        # The multiplier gives those columns an effective LR of actor_lr * mult
+        # (4x -> 1.2e-4), leaving every other weight at 3e-5. Override with
+        # --terrain-lr-mult; 1.0 disables. Watch KL: if it sits above 0.05,
+        # lower the multiplier.
+        self.TERRAIN_LR_MULT = 4.0
         self.trainer = PPOTrainer(self.actor, self.critic, vf_clip=20.0,
                                    critic_lr=1e-4, critic_max_grad_norm=5.0,
                                    target_kl=1.0, clip_epsilon=0.1,
-                                   max_grad_norm=0.3, entropy_coef=-0.001)
+                                   max_grad_norm=0.3, entropy_coef=-0.001,
+                                   terrain_lr_mult=self.TERRAIN_LR_MULT,
+                                   terrain_split=self.obs_dim - TERRAIN_DIM,
+                                   obs_dim=self.obs_dim)
         # entropy_coef history on KingOfTheMarble:
         #   0.005: full runaway (Ent 2.15 -> 2.82 over 2854 updates, PolicyStd 30->50 deg)
         #   0.002: runaway slowed but not reversed (Ent 2.83 -> 2.89 over 940 updates)
@@ -916,13 +1026,10 @@ class PPOServer:
             # map compatible keys across (features.*, actor_mean.*, log_std).
             saved_state = checkpoint.get('model_state_dict', checkpoint.get('actor_state_dict', {}))
             actor_state = self.actor.state_dict()
-            filtered = {}
-            for key, val in saved_state.items():
-                if key in actor_state:
-                    if val.shape == actor_state[key].shape:
-                        filtered[key] = val
-                    else:
-                        self.log(f"  Shape mismatch for {key}: checkpoint={val.shape} vs actor={actor_state[key].shape} -- skipping")
+            # Widening: a checkpoint saved before the terrain observation has
+            # 59-wide first layers; they are zero-padded to the new width so the
+            # loaded policy behaves identically at the switch.
+            filtered = widen_state_dict(self.actor, saved_state, log=self.log)
             self.actor.load_state_dict(filtered, strict=False)
             new_params = [k for k in actor_state if k not in filtered]
             if new_params:
@@ -931,12 +1038,7 @@ class PPOServer:
             # Restore critic if available (falls back to fresh init for old checkpoints)
             critic_state_saved = checkpoint.get('critic_state_dict')
             if critic_state_saved:
-                critic_state = self.critic.state_dict()
-                critic_filtered = {}
-                for key, val in critic_state_saved.items():
-                    if key in critic_state:
-                        if val.shape == critic_state[key].shape:
-                            critic_filtered[key] = val
+                critic_filtered = widen_state_dict(self.critic, critic_state_saved, log=self.log)
                 if critic_filtered:
                     self.critic.load_state_dict(critic_filtered, strict=False)
                     self.log(f"  Critic restored from checkpoint")
@@ -949,14 +1051,14 @@ class PPOServer:
             actor_opt = checkpoint.get('actor_optimizer_state_dict')
             if actor_opt:
                 try:
-                    self.trainer.actor_optimizer.load_state_dict(actor_opt)
+                    self.trainer.actor_optimizer.load_state_dict(widen_optimizer_state(actor_opt, self.actor))
                     self.log(f"  Actor optimizer restored")
                 except Exception:
                     self.log(f"  Actor optimizer: incompatible, starting fresh")
             critic_opt = checkpoint.get('critic_optimizer_state_dict')
             if critic_opt and critic_state_saved:
                 try:
-                    self.trainer.critic_optimizer.load_state_dict(critic_opt)
+                    self.trainer.critic_optimizer.load_state_dict(widen_optimizer_state(critic_opt, self.critic))
                     self.log(f"  Critic optimizer restored")
                 except Exception:
                     self.log(f"  Critic optimizer: incompatible, starting fresh")
@@ -1082,7 +1184,16 @@ class PPOServer:
         # game ends (episode_step >= 10000, meaning timer expired).
         self.game_gem_pts = 0          # accumulator across episodes within one game
         self.recent_game_gems = deque(maxlen=100)  # last 100 full games
-        self.best_game_gems = 0        # all-time best gems in a single game
+        self.best_game_gems = 0        # best score (points) in a single game this run
+        # Per-game pickup breakdown by point value. The game only reports points
+        # per tick, so colour is inferred from the value (1 red, 2 yellow, 3 orange,
+        # 4 green, 5 blue, 6 purple, 7 turquoise, 10 platinum); two gems taken in
+        # the same tick sum and land under their combined value. `last_game` and
+        # `best_game` (highest score this run) are dicts with 'score', 'counts'
+        # {points: pickups}, 'pickups', 'episode', 'update'; the dashboard shows them.
+        self.game_gem_counts = {}
+        self.last_game_breakdown = None
+        self.best_game_breakdown = None
         self.game_gap_penalty_sum = 0.0   # sum of gap penalties across current game
         self.game_gem_pickups = 0         # number of gem pickups in current game
         self.recent_avg_gap_penalty = deque(maxlen=100)  # avg gap penalty per gem, per game
@@ -1154,7 +1265,18 @@ class PPOServer:
         self.log(f"PPO Training Server")
         self.log(f"=" * 60)
         self.log(f"Listening on {self.host}:{self.port}")
-        self.log(f"Obs dim: {self.obs_dim} (base={self.obs_dim_base} + {self.FRAME_HISTORY_COUNT}x{self.FRAME_HISTORY_DIMS} history, skip={self.FRAME_SKIP})")
+        self.log(f"Obs dim: {self.obs_dim} (base={self.obs_dim_base} + {self.FRAME_HISTORY_COUNT}x{self.FRAME_HISTORY_DIMS} history, skip={self.FRAME_SKIP} + {TERRAIN_DIM} terrain)")
+        if self.terrain is not None:
+            self.log(f"Terrain: {self.terrain.path} ({self.terrain.W}x{self.terrain.H} cells at {self.terrain.res}u, "
+                     f"{self.terrain.K}-level stack, z bounds {self.terrain.z_bounds})")
+        else:
+            self.log("Terrain: DISABLED (--no-terrain) -- feeding the flat-floor placeholder sample")
+        tr = self.trainer
+        if tr._terrain_params:
+            self.log(f"Terrain LR multiplier: {tr.terrain_lr_mult:g}x on {len(tr._terrain_params)} actor first-layer weights "
+                     f"(columns {tr.terrain_split}..{self.obs_dim - 1}; effective lr {tr.actor_optimizer.param_groups[0]['lr'] * tr.terrain_lr_mult:.1e})")
+        else:
+            self.log("Terrain LR multiplier: off (1.0x)")
         self.log(f"Rollout size: {self.rollout_size} steps")
         self.log(f"PPO epochs: {self.n_epochs}")
         self.log(f"Batch size: {self.batch_size}")
@@ -1408,6 +1530,17 @@ class PPOServer:
                 self.recent_game_gems.append(total_game_gems)
                 if total_game_gems > self.best_game_gems:
                     self.best_game_gems = total_game_gems
+                breakdown = {
+                    'score': total_game_gems,
+                    'counts': {int(k): int(v) for k, v in sorted(self.game_gem_counts.items())},
+                    'pickups': self.game_gem_pickups,
+                    'episode': self.total_episodes + 1,
+                    'update': self.total_updates,
+                }
+                self.last_game_breakdown = breakdown
+                if self.best_game_breakdown is None or total_game_gems > self.best_game_breakdown['score']:
+                    self.best_game_breakdown = breakdown
+                breakdown_str = ' '.join(f'{k}x{v}' for k, v in breakdown['counts'].items()) or '-'
                 avg_gap = self.game_gap_penalty_sum / max(self.game_gem_pickups, 1)
                 self.recent_avg_gap_penalty.append(round(avg_gap, 2))
                 self.recent_near_misses.append(self.game_near_misses)
@@ -1436,7 +1569,7 @@ class PPOServer:
                 self.recent_slow_pickup_bonus.append(round(self.game_slow_pickup_bonus_sum, 1))
 
                 freefall_pct = (self.game_freefall_frames / max(self.game_steps, 1)) * 100
-                self.log(f"[GAME END] total gems this game: {total_game_gems}pts (best: {self.best_game_gems}) avg_gap_penalty: {avg_gap:.1f} jump_rate: {jump_rate:.1f}% brake_rate: {brake_rate:.1f}% avg_steps/gem: {avg_steps_per_gem:.0f} overshoot: {self.game_overshoot_penalty_sum:.0f} ({overshoot_pct:.1f}% of steps, avg {avg_overshoot_per_frame:.2f}/frame) pickup_speed: {avg_pickup_speed:.1f} brakes_near_pickup: {avg_brakes_near_pickup:.2f}/gem slow_pickup_bonus: {self.game_slow_pickup_bonus_sum:.0f} freefall: {self.game_freefall_penalty_sum:.0f} ({freefall_pct:.1f}% of steps)")
+                self.log(f"[GAME END] total gems this game: {total_game_gems}pts (best: {self.best_game_gems}) avg_gap_penalty: {avg_gap:.1f} jump_rate: {jump_rate:.1f}% brake_rate: {brake_rate:.1f}% avg_steps/gem: {avg_steps_per_gem:.0f} overshoot: {self.game_overshoot_penalty_sum:.0f} ({overshoot_pct:.1f}% of steps, avg {avg_overshoot_per_frame:.2f}/frame) pickup_speed: {avg_pickup_speed:.1f} brakes_near_pickup: {avg_brakes_near_pickup:.2f}/gem slow_pickup_bonus: {self.game_slow_pickup_bonus_sum:.0f} freefall: {self.game_freefall_penalty_sum:.0f} ({freefall_pct:.1f}% of steps) gems_by_pts: {breakdown_str}")
 
                 # Refresh the dashboard's jump-probability heatmap in a background
                 # thread. Probe takes ~1s on a snapshot of actor weights — never
@@ -1460,6 +1593,7 @@ class PPOServer:
                 self.game_gem_pts = 0  # Reset accumulators for next game
                 self.game_gap_penalty_sum = 0.0
                 self.game_gem_pickups = 0
+                self.game_gem_counts = {}
                 self.game_near_misses = 0
                 self.game_dwell_steps = 0
                 self.game_jumps = 0
@@ -1561,6 +1695,7 @@ class PPOServer:
                 self.episode_gem_pts += int(gem_delta)
                 self.rollout_gem_pts += int(gem_delta)
                 self.total_gem_pts += int(gem_delta)
+                self.game_gem_counts[int(gem_delta)] = self.game_gem_counts.get(int(gem_delta), 0) + 1
                 self.log(f"[GEM] ep={self.total_episodes+1} step={self.total_steps} +{gem_delta:.0f}pts | ep_total={self.current_episode_reward + reward:.1f}")
             if oob:
                 self.episode_oob += 1
@@ -1626,7 +1761,13 @@ class PPOServer:
                         history_frames.append(self.frame_history[idx])
                     else:
                         history_frames.append(np.zeros(self.FRAME_HISTORY_DIMS, dtype=np.float32))
-                obs_augmented = np.concatenate([obs_array] + history_frames)
+                # Terrain observation from the RAW (world/camera-frame) position;
+                # yaw is locked at 0 so the sample star is axis-aligned in world.
+                if self.terrain is not None:
+                    terrain_vec = self.terrain.sample(obs[0], obs[1], obs[2], self.camera_yaw)
+                else:
+                    terrain_vec = TerrainMap.flat_sample()
+                obs_augmented = np.concatenate([obs_array] + history_frames + [terrain_vec])
 
                 # Debug: log frame history to file only, after 5s of game time
                 game_time_ms = obs[31] if len(obs) > 31 else 0
@@ -1857,6 +1998,16 @@ class PPOServer:
             thr_std = thr_log_std.exp().item()
             mean_thr = np.mean(self.recent_throttles) if self.recent_throttles else 0
             self.log(f"  AvgEpLen: {avg_ep_len:.0f} steps | Ent: {stats['entropy']:.3f} | GN: {stats['grad_norm']:.3f} | Lazy: {laziness:.2f} | Std: {policy_std_deg:.1f} | Thr: {mean_thr:.2f} ThrStd: {thr_std:.3f}")
+            # How much the networks use the terrain input: mean |w| of the terrain
+            # columns relative to the original columns, first layer of each trunk.
+            with torch.no_grad():
+                split = self.obs_dim - TERRAIN_DIM
+                def _ratio(w):
+                    return (w[:, split:].abs().mean() / w[:, :split].abs().mean().clamp(min=1e-8)).item()
+                self.log(f"  TerrainCols: actor={_ratio(self.actor.features[0].weight):.3f} "
+                         f"brake={_ratio(self.actor.brake_features[0].weight):.3f} "
+                         f"jump={_ratio(self.actor.jump_features[0].weight):.3f} "
+                         f"critic={_ratio(self.critic.net[0].weight):.3f}")
             if self.recent_episode_gems:
                 nonzero = sum(1 for g in self.recent_episode_gems if g > 0)
                 self.log(f"  Last {len(self.recent_episode_gems)} eps: {nonzero} had gems")
@@ -1920,6 +2071,14 @@ def main():
                              'Useful after changes that move the value targets (gamma, reward clip, bootstrap fix).')
     parser.add_argument('--action-repeat', type=int, default=None,
                         help='Override ACTION_REPEAT (ticks each decision is held; default 4)')
+    parser.add_argument('--terrain', type=str, default=None,
+                        help='Terrain map for the map being trained on: a name like KingOfTheMarble_Hunt '
+                             '(resolves terrain_maps/terrain_<name>.npz) or a path. Generate with '
+                             'generate_terrain_map.py. If omitted and exactly one terrain map exists, it is used.')
+    parser.add_argument('--no-terrain', action='store_true',
+                        help='Train without a terrain map (the 64 terrain dims read as an infinite flat floor)')
+    parser.add_argument('--terrain-lr-mult', type=float, default=None,
+                        help='Effective learning-rate multiplier for the actor\'s terrain input columns (default 4.0; 1.0 disables)')
 
     args = parser.parse_args()
 
@@ -1950,7 +2109,29 @@ def main():
         else:
             print("Starting fresh training (no checkpoint found)")
 
-    server = PPOServer(host=args.host, port=args.port, model_path=model_path)
+    # Terrain map selection
+    terrain_path = None
+    if not args.no_terrain:
+        import glob as _glob
+        if args.terrain:
+            terrain_path = TerrainMap.resolve(args.terrain)
+        else:
+            found = sorted(_glob.glob(os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                                   'terrain_maps', 'terrain_*.npz')))
+            if len(found) == 1:
+                terrain_path = found[0]
+            elif not found:
+                print("ERROR: no terrain map found. Generate one for the map you are training on, e.g.\n"
+                      "    python generate_terrain_map.py KingOfTheMarble_Hunt\n"
+                      "or pass --no-terrain to train with the flat-floor placeholder.")
+                sys.exit(1)
+            else:
+                print("ERROR: several terrain maps found; choose one with --terrain <name>:\n  "
+                      + "\n  ".join(os.path.basename(f) for f in found))
+                sys.exit(1)
+        print(f"Terrain map: {terrain_path}")
+
+    server = PPOServer(host=args.host, port=args.port, model_path=model_path, terrain=terrain_path)
     server.rollout_size = args.rollout_size
     server.batch_size = args.batch_size
     server.n_epochs = args.epochs
@@ -1958,6 +2139,10 @@ def main():
     if args.action_repeat is not None:
         server.ACTION_REPEAT = max(1, args.action_repeat)
         server.log(f"ACTION_REPEAT overridden to {server.ACTION_REPEAT}")
+    if args.terrain_lr_mult is not None:
+        server.TERRAIN_LR_MULT = args.terrain_lr_mult
+        server.trainer.configure_terrain_lr(args.terrain_lr_mult, server.obs_dim - TERRAIN_DIM, server.obs_dim)
+        server.log(f"TERRAIN_LR_MULT overridden to {args.terrain_lr_mult:g}")
     if args.warmup > 0:
         server.WARMUP_ROLLOUTS = args.warmup
         server.warmup_start_update = None   # (re)starts at the first update of this run

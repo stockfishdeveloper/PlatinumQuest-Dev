@@ -20,7 +20,8 @@ import sys
 from collections import deque
 
 # Reuse the model definition from the training script
-from train_ppo import Actor
+from train_ppo import Actor, widen_state_dict
+from terrain_obs import TerrainMap, TERRAIN_DIM
 
 
 def normalize_obs(obs):
@@ -65,7 +66,7 @@ def main():
     FRAME_SKIP = 8
     FRAME_HISTORY_DIMS = 6  # pos(3) + vel(3)
     OBS_DIM_BASE = 35
-    OBS_DIM = OBS_DIM_BASE + FRAME_HISTORY_COUNT * FRAME_HISTORY_DIMS  # 59
+    OBS_DIM = OBS_DIM_BASE + FRAME_HISTORY_COUNT * FRAME_HISTORY_DIMS + TERRAIN_DIM  # 59 + 64 = 123
     frame_history_size = FRAME_HISTORY_COUNT * FRAME_SKIP + 1  # 33
     frame_history = deque(maxlen=frame_history_size)
     # Action repeat (must match train_ppo.py ACTION_REPEAT): the policy was
@@ -82,7 +83,26 @@ def main():
     parser.add_argument('--port', type=int, default=8888)
     parser.add_argument('--stochastic', action='store_true',
                         help='Sample from policy instead of taking argmax')
+    parser.add_argument('--terrain', type=str, default=None,
+                        help='Terrain map name or path (must match the map being played)')
+    parser.add_argument('--no-terrain', action='store_true',
+                        help='Play without a terrain map (terrain dims read as a flat floor)')
     args = parser.parse_args()
+
+    terrain = None
+    if not args.no_terrain:
+        import glob as _glob
+        if args.terrain:
+            terrain = TerrainMap(TerrainMap.resolve(args.terrain))
+        else:
+            found = sorted(_glob.glob(os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                                   'terrain_maps', 'terrain_*.npz')))
+            if len(found) != 1:
+                print("Pass --terrain <name> (or --no-terrain); found terrain maps: "
+                      + (", ".join(os.path.basename(f) for f in found) or "none"))
+                sys.exit(1)
+            terrain = TerrainMap(found[0])
+        print(f"Terrain map: {terrain.path}")
 
     if not os.path.exists(args.model):
         print(f"Model not found: {args.model}")
@@ -92,7 +112,7 @@ def main():
     model = Actor(obs_dim=OBS_DIM)
     checkpoint = torch.load(args.model, weights_only=False)
     state = checkpoint.get('actor_state_dict', checkpoint.get('model_state_dict', {}))
-    model.load_state_dict(state, strict=False)
+    model.load_state_dict(widen_state_dict(model, state, log=print), strict=False)
     model.eval()
 
     deterministic = not args.stochastic
@@ -172,7 +192,11 @@ def main():
                                 history_frames.append(frame_history[idx])
                             else:
                                 history_frames.append(np.zeros(FRAME_HISTORY_DIMS, dtype=np.float32))
-                        obs_augmented = np.concatenate([obs] + history_frames)
+                        if terrain is not None:
+                            terrain_vec = terrain.sample(float(obs_raw[0]), float(obs_raw[1]), float(obs_raw[2]), 0.0)
+                        else:
+                            terrain_vec = TerrainMap.flat_sample()
+                        obs_augmented = np.concatenate([obs] + history_frames + [terrain_vec])
 
                         tick_in_window += 1
                         if cached_action is None or tick_in_window >= ACTION_REPEAT:

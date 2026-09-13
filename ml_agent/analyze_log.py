@@ -147,7 +147,9 @@ def parse_log(filepath):
             # Game end lines (gap penalty + overshoot diagnostics)
             m = game_end_re.search(line)
             if m:
+                gb_m = re.search(r'gems_by_pts: ([-0-9x ]+)', line)   # 2026-09-12+: "1x38 2x11"
                 games.append({
+                    'gems_by_pts': gb_m.group(1).strip() if gb_m else None,
                     'gems': int(m.group(1)),
                     'best': int(m.group(2)),
                     'avg_gap_penalty': float(m.group(3)),
@@ -170,6 +172,14 @@ def parse_log(filepath):
                 summaries[-1]['entropy'] = float(m.group(2))
                 summaries[-1]['laziness'] = float(m.group(4))
                 summaries[-1]['policy_std'] = float(m.group(5))
+
+            # Summary terrain-column line (2026-09-13+): how much each trunk uses the terrain input
+            m = re.search(r'TerrainCols: actor=([\d.]+) brake=([\d.]+) jump=([\d.]+) critic=([\d.]+)', line)
+            if m and summaries:
+                summaries[-1]['terrain_actor'] = float(m.group(1))
+                summaries[-1]['terrain_brake'] = float(m.group(2))
+                summaries[-1]['terrain_jump'] = float(m.group(3))
+                summaries[-1]['terrain_critic'] = float(m.group(4))
 
     return {
         'updates': updates,
@@ -619,10 +629,24 @@ def print_analysis(data, last_n=None):
         s = summaries[-1]
         print(f"  Gems/hr:    {s.get('gems_hr', 0):.0f}")
         print(f"  Best avg:   {s.get('best_reward', 0):.1f}")
+        if 'terrain_actor' in s:
+            print(f"  TerrainCols: actor={s['terrain_actor']:.3f} brake={s['terrain_brake']:.3f} jump={s['terrain_jump']:.3f} critic={s['terrain_critic']:.3f}  (terrain-column weight magnitude / original columns)")
     if games:
         g = games[-1]
         recent_gap = sum(x['avg_gap_penalty'] for x in games[-10:]) / min(10, len(games))
         print(f"  Last game:  {g['gems']}pts, gap_penalty={g['avg_gap_penalty']:.1f}")
+        best_g = max(games, key=lambda x: x['gems'])
+        colour = {1: 'red', 2: 'yellow', 3: 'orange', 4: 'green', 5: 'blue', 6: 'purple', 7: 'turquoise', 10: 'platinum'}
+        bd = ''
+        if best_g.get('gems_by_pts'):
+            parts = []
+            total = 0
+            for tok in best_g['gems_by_pts'].split():
+                pts, n = tok.split('x')
+                parts.append(f"{n} {colour.get(int(pts), pts + 'pt')}")
+                total += int(n)
+            bd = f"  ({', '.join(parts)} = {total} gems)"
+        print(f"  Best game:  {best_g['gems']}pts{bd}")
         print(f"  Avg gap (last 10 games): {recent_gap:.1f}")
 
     print("=" * 70)

@@ -36,7 +36,9 @@ from matplotlib import cm
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import hxDif
-from train_ppo import Actor, Critic
+from train_ppo import Actor, Critic, widen_state_dict
+from terrain_obs import TerrainMap
+import generate_brake_heatmap_map as gbh
 from generate_map_topdown import (extract_surfaces, parse_mission_items,
                                    parse_interior_position)
 from generate_brake_heatmap_map import (rasterize_floors, normalize_obs, make_obs)
@@ -72,13 +74,21 @@ def main():
     label = os.path.basename(latest).replace('.pth', '')
     print(f'Probing checkpoint: {latest}')
 
-    actor = Actor(obs_dim=59)
-    critic = Critic(obs_dim=59)
     cp = torch.load(latest, weights_only=False, map_location='cpu')
-    actor.load_state_dict(cp['actor_state_dict'])
-    critic.load_state_dict(cp['critic_state_dict'], strict=False)  # older checkpoints lack the PopArt buffers
+    obs_dim = cp['actor_state_dict']['features.0.weight'].shape[1]
+    actor = Actor(obs_dim=obs_dim)
+    critic = Critic(obs_dim=obs_dim)
+    actor.load_state_dict(widen_state_dict(actor, cp['actor_state_dict'], log=print), strict=False)
+    critic.load_state_dict(widen_state_dict(critic, cp['critic_state_dict'], log=print), strict=False)  # older checkpoints lack the PopArt buffers
     actor.eval()
     critic.eval()
+    # Terrain observation (appended by make_obs when gbh.TERRAIN is set)
+    try:
+        gbh.TERRAIN = TerrainMap(TerrainMap.resolve(MCS_NAME.replace('.mcs', '')))
+        print(f'Terrain map: {gbh.TERRAIN.path}')
+    except FileNotFoundError:
+        gbh.TERRAIN = None
+        print('Terrain map not found; probing with the flat-floor sample')
 
     # Parse map
     items = parse_mission_items(mcs_path)
@@ -113,7 +123,7 @@ def main():
             obs_batch.append(make_obs((float(x), float(y), float(z)),
                                        (PROBE_VX, PROBE_VY), best_gem))
 
-    obs_batch = np.array(obs_batch, dtype=np.float32)
+    obs_batch = np.array(obs_batch, dtype=np.float32)[:, :obs_dim]   # 59-dim for pre-terrain checkpoints
     print(f'Probing {len(obs_batch):,} cells...')
     t = torch.from_numpy(obs_batch)
     with torch.no_grad():

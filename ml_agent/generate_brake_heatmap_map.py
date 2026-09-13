@@ -27,7 +27,8 @@ from matplotlib import cm
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import hxDif
-from train_ppo import Actor
+from train_ppo import Actor, widen_state_dict
+from terrain_obs import TerrainMap
 from generate_map_topdown import (extract_surfaces, parse_mission_items,
                                    parse_interior_position)
 
@@ -46,6 +47,11 @@ FLOOR_NORMAL_Z = 0.5   # surfaces with normal_z above this count as floors
 # Map files
 MCS_NAME = 'KingOfTheMarble_Hunt.mcs'
 DIF_NAME = 'KingOfTheMarble.dif'
+
+# Terrain observation source for make_obs(). Set to a TerrainMap to sample the
+# real geometry (train_ppo obs layout: 35 base + 24 history + 64 terrain);
+# None feeds the flat-floor placeholder. Probe scripts set this in main().
+TERRAIN = None
 
 
 # ---------------------------------------------------------------------------
@@ -98,7 +104,9 @@ def make_obs(marble_xyz, marble_vel, gem_xyz):
         obs[35 + i*6 + 2] = mz / 100.0
         obs[35 + i*6 + 3] = vx / 20.0
         obs[35 + i*6 + 4] = vy / 20.0
-    return normalize_obs(obs)
+    base = normalize_obs(obs)
+    terrain = TERRAIN.sample(mx, my, mz, 0.0) if TERRAIN is not None else TerrainMap.flat_sample()
+    return np.concatenate([base, terrain])
 
 
 # ---------------------------------------------------------------------------
@@ -179,10 +187,18 @@ def main():
     label = os.path.basename(latest).replace('.pth', '')
     print(f'Probing checkpoint: {latest}')
 
-    model = Actor(obs_dim=59)
     cp = torch.load(latest, weights_only=False, map_location='cpu')
-    model.load_state_dict(cp['actor_state_dict'])
+    obs_dim = cp['actor_state_dict']['features.0.weight'].shape[1]
+    model = Actor(obs_dim=obs_dim)
+    model.load_state_dict(widen_state_dict(model, cp['actor_state_dict'], log=print), strict=False)
     model.eval()
+    global TERRAIN
+    try:
+        TERRAIN = TerrainMap(TerrainMap.resolve(MCS_NAME.replace('.mcs', '')))
+        print(f'  Terrain map: {TERRAIN.path}')
+    except FileNotFoundError:
+        TERRAIN = None
+        print('  Terrain map not found; probing with the flat-floor sample')
 
     # Parse map
     print('Parsing .dif and .mcs ...')
@@ -225,7 +241,7 @@ def main():
             obs_batch.append(make_obs((float(x), float(y), float(z)),
                                        (VEL_X, VEL_Y), best_gem))
 
-    obs_batch = np.array(obs_batch, dtype=np.float32)
+    obs_batch = np.array(obs_batch, dtype=np.float32)[:, :obs_dim]   # 59-dim for pre-terrain checkpoints
     print(f'Probing {len(obs_batch):,} walkable cells ...')
     t = torch.from_numpy(obs_batch)
     with torch.no_grad():

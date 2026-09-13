@@ -47,7 +47,7 @@ Training a PPO reinforcement-learning agent to play **Marble Blast Platinum** Hu
 
 The joystick layer converts `(dx, dy, throttle, jump)` to `(fwd, back, left, right, jump)` — throttle scales the forward/right components.
 
-## Observation Space (59 dims, camera-relative)
+## Observation Space (123 dims, camera-relative)
 
 | Range | Meaning |
 |---|---|
@@ -60,6 +60,9 @@ The joystick layer converts `(dx, dy, throttle, jump)` to `(fwd, back, left, rig
 | obs[26:31] | Gem 4 |
 | obs[31:35] | timeElapsed (ms), timeRemaining (ms), myScore, gemsRemaining |
 | obs[35:59] | Frame history: 4 snapshots × (pos, vel) at t-8, t-16, t-24, t-32 |
+| obs[59:123] | **Terrain observation (added 2026-09-11)**: 8 directions (E, NE, N, NW, W, SW, S, SE) × 4 ranges (2, 5, 10, 20 units) × [present, dz]. `present` = a floor exists at that point; `dz` = height of the floor level nearest the marble's own height minus the marble's height, divided by 10, clipped to [-1, 1]. Void reads (0, -1); flat (1, 0); a drop (1, negative); a ramp (1, small positive growing with range); a wall or raised platform (1, large positive). Sampled every decision from `terrain_maps/terrain_<map>.npz`, which `generate_terrain_map.py` builds from the map's .dif with the in-bounds trigger as the z cutoff. No value judgment attached; the agent learns from OOB outcomes which patterns are dangerous. |
+
+**Terrain workflow:** `python generate_terrain_map.py <MapName>` once per map (writes the .npz and a check image), then `python train_ppo.py --terrain <MapName>` (auto-selected when only one terrain map exists; `--no-terrain` feeds a flat-floor placeholder). Checkpoints saved before the terrain observation (59-dim) load through `widen_state_dict`: the four first layers get zero-initialized columns for the new inputs, so the loaded policy behaves identically at the switch and Adam moments are carried over. Probe scripts (`generate_policy_diagnostic.py`, `generate_brake_heatmap_map.py`) append the terrain dims automatically via `gbh.TERRAIN`.
 
 Hunt mode only ever has 1 gem visible, so slots 1–4 are always sentinel (-999). Empty opponent slots and powerup fields are commented out in `observer.cs`.
 
@@ -147,8 +150,9 @@ Training runs at **3x game speed**. One game tick is 16 ms of game time, so a 3-
 | **CGN / Critic grad norm** | Healthy 5–20. Very low (<1) = critic not learning. |
 | **PL (policy loss)** | Small negative values oscillating around 0 is normal. |
 | **VL (value loss)** | Depends on reward scale; should decrease over time. |
-| **Gems/hr** | Training-wide throughput of gem points. |
-| **Avg Gems/Game** | Per-game average over recent games. This is the "how well is it playing" metric. |
+| **Score/hr** (was Gems/hr) | Training-wide throughput of gem points. Every "gems" number in the logs is POINTS (red 1, yellow 2, blue 5), not a pickup count. |
+| **Avg Score/Game** (was Avg Gems/Game) | Per-game average score over recent games. This is the "how well is it playing" metric. |
+| **Best Game / Last Game breakdown** | Header and gauge show the highest-scoring game of this run and the most recent game as points plus pickups by colour, inferred from the per-tick point value (1 red, 2 yellow, 5 blue). Also logged on the GAME END line as `gems_by_pts: 1x38 2x11`. |
 | **Jump Rate** | % of steps where jump=1 in the most recent game. Not per-episode-averaged. |
 | **Avg Steps/Gem** | Average steps between gem pickups. Lower = agent navigates/lands on gems faster. |
 | **OOB** | Total out-of-bounds events across training. On flat maps this should trend down. |
@@ -197,6 +201,8 @@ Training runs at **3x game speed**. One game tick is 16 ms of game time, so a 3-
 - `ml_agent/dashboard.py` — this dashboard (port 8889, SSE + Plotly)
 - `ml_agent/play.py` — inference-only server for watching the model play
 - `ml_agent/analyze_log.py` — post-training log analysis (keep in sync with new log fields)
+- `ml_agent/terrain_obs.py` — terrain observation sampler (TerrainMap, 64 dims)
+- `ml_agent/generate_terrain_map.py` — builds `terrain_maps/terrain_<map>.npz` + check PNG from a map's .dif
 - `Marble Blast Platinum/platinum/client/scripts/ai/mlAgent.cs` — TorqueScript game loop
 - `Marble Blast Platinum/platinum/client/scripts/ai/observer.cs` — obs collection
 - `Marble Blast Platinum/platinum/client/scripts/ai/agent.cs` — low-level input handling
