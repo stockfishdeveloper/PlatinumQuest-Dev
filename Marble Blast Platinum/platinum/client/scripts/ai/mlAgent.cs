@@ -406,3 +406,99 @@ function MLAgent::enableDiagnostic() {
     echo("Start: python diagnostic.py");
     echo("Then start a Hunt round normally.");
 }
+
+//------------------------------------------------------------------------------
+// Unattended training: host and start a round automatically
+//
+// ml_agent/run_game_loop.ps1 launches the game with "-autotrain <MissionName>".
+// (The engine's own -mission argument does nothing on the client in this build:
+// the mod's argument handler is activated after the arguments were parsed.)
+// This replays exactly what a person does: Multiplayer > Host, pick the map,
+// Play, then Ready and Start in the pregame dialog. Every step waits for the
+// game state it needs rather than a fixed delay. Once the round is running,
+// the existing auto-start (onTimerStart) and round-end auto-restart take over.
+//------------------------------------------------------------------------------
+
+$MLAgent::AutoTrainMission = "";
+for ($MLAgent::_argi = 1; $MLAgent::_argi < $Game::argc; $MLAgent::_argi++) {
+    if ($Game::argv[$MLAgent::_argi] $= "-autotrain" && $MLAgent::_argi + 1 < $Game::argc) {
+        $MLAgent::AutoTrainMission = $Game::argv[$MLAgent::_argi + 1];
+    }
+}
+if ($MLAgent::AutoTrainMission !$= "") {
+    echo("MLAgent: -autotrain " @ $MLAgent::AutoTrainMission @ " -- will host and start the round automatically");
+    schedule(5000, 0, "MLAgent::autoTrainStage", 1);
+}
+
+function MLAgent::autoTrainStage(%stage) {
+    %mission = $MLAgent::AutoTrainMission;
+    if (%mission $= "")
+        return;
+
+    // Stage 1: wait for the main menu, then host (what Multiplayer > Host does)
+    if (%stage == 1) {
+        if (!$Server::Hosting) {
+            if (!$Menu::Loaded) {
+                schedule(1000, 0, "MLAgent::autoTrainStage", 1);
+                return;
+            }
+            echo("MLAgent: autotrain: hosting a server");
+            PlayMissionGui.startServer();
+        }
+        schedule(2000, 0, "MLAgent::autoTrainStage", 2);
+        return;
+    }
+
+    // Stage 2: lobby is open -> select the mission and press Play
+    if (%stage == 2) {
+        if (!$Server::Lobby || !isObject(ServerConnection) || RootGui.getContent().getName() !$= "PlayMissionGui") {
+            schedule(1000, 0, "MLAgent::autoTrainStage", 2);
+            return;
+        }
+        %file = findNamedFile(%mission, ".m?s");
+        if (%file $= "") {
+            error("MLAgent: autotrain: mission not found: " @ %mission);
+            $MLAgent::AutoTrainMission = "";
+            return;
+        }
+        %info = getMissionInfo(%file);
+        if (!isObject(%info)) {
+            error("MLAgent: autotrain: no mission info for " @ %file);
+            $MLAgent::AutoTrainMission = "";
+            return;
+        }
+        PlayMissionGui.setSelectedMission(%info);
+        echo("MLAgent: autotrain: selected " @ %file @ ", loading");
+        PlayMissionGui.play();
+        schedule(3000, 0, "MLAgent::autoTrainStage", 3);
+        return;
+    }
+
+    // Stage 3: pregame dialog is up -> Ready
+    if (%stage == 3) {
+        if (!isObject(MPPreGameDlg) || !MPPreGameDlg.isAwake()) {
+            schedule(1000, 0, "MLAgent::autoTrainStage", 3);
+            return;
+        }
+        echo("MLAgent: autotrain: ready");
+        commandToServer('Ready', 1);
+        schedule(1500, 0, "MLAgent::autoTrainStage", 4);
+        return;
+    }
+
+    // Stage 4: Start (host override, so it does not wait on anyone)
+    if (%stage == 4) {
+        echo("MLAgent: autotrain: starting the round");
+        commandToServer('PreGamePlay', 1);
+        schedule(15000, 0, "MLAgent::autoTrainStage", 5);
+        return;
+    }
+
+    // Stage 5: if the dialog is still up and nothing is running, try again
+    if (%stage == 5) {
+        if (isObject(MPPreGameDlg) && MPPreGameDlg.isAwake() && !$Game::Running) {
+            echo("MLAgent: autotrain: round did not start, retrying");
+            schedule(0, 0, "MLAgent::autoTrainStage", 3);
+        }
+    }
+}

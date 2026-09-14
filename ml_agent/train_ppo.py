@@ -41,6 +41,22 @@ from dashboard import DashboardServer
 from terrain_obs import TerrainMap, TERRAIN_DIM
 
 # ============================================================================
+# Run defaults -- everything needed to start training with a plain
+#     python train_ppo.py
+# lives here or in PPOServer.__init__. Command-line flags exist only for
+# one-off experiments; change the defaults here when a setting becomes the
+# new normal, so no flags accumulate.
+# ============================================================================
+DEFAULT_TERRAIN_MAP = 'KingOfTheMarble_Hunt'   # terrain_maps/terrain_<name>.npz; change when switching maps
+
+
+def resolve_terrain_path(name=None, disabled=False):
+    """Terrain map to load: an explicit name/path, else DEFAULT_TERRAIN_MAP. None when disabled."""
+    if disabled:
+        return None
+    return TerrainMap.resolve(name or DEFAULT_TERRAIN_MAP)
+
+# ============================================================================
 # Logging Helper
 # ============================================================================
 
@@ -137,7 +153,12 @@ class Actor(nn.Module):
     """
 
     LOG_STD_MIN = -2.0    # exp(-2.0) ~= 0.14 (tight directional spread)
-    LOG_STD_MAX = -0.5    # exp(-0.5) ~= 0.61 rad ~= 35 deg (tightened from 1.0).
+    LOG_STD_MAX = -0.5    # START of the noise-cap anneal (2026-09-13): PPOServer lowers the
+                          # instance attribute actor.LOG_STD_MAX by LOG_STD_ANNEAL_STEP per
+                          # update down to LOG_STD_MAX_TARGET, and the current value is saved
+                          # in the checkpoint. The raw log_std parameter sits above the cap,
+                          # so the cap IS the direction exploration std.
+                          # exp(-0.5) ~= 0.61 rad ~= 35 deg (tightened from 1.0).
                           # On KingOfTheMarble the policy was drifting to ~50 deg
                           # spread despite entropy_coef reductions (0.005->0.002->0.001).
                           # Reward gradient itself was pushing log_std up — entropy_coef
@@ -384,7 +405,6 @@ class Actor(nn.Module):
         into fwd/back/left/right. The 5th return value remains `jump` to match the
         existing CS-side joystick handler that expects (fwd, back, left, right, jump).
         """
-        import math
         if brake > 0.5:
             speed_xy = math.sqrt(vx * vx + vy * vy)
             if speed_xy > 0.1:
@@ -846,23 +866,40 @@ class PPOServer:
         # papering over. Expect VL to read ~0.1-1.0 (normalized units; multiply
         # by Vstd^2 from the Upd line for raw-scaled) and CGN to drop from ~100
         # to O(1).
-        # 2026-09-13: faster learning on the actor's terrain input columns.
-        # After ~2,400 updates with the terrain observation, the critic's terrain
-        # columns had reached 15% of the magnitude of its original columns but
-        # the actor's only 8%, and the score had plateaued at ~69/game with OOB
-        # ~10 while the actor's void-avoidance was still mostly position-based.
-        # The multiplier gives those columns an effective LR of actor_lr * mult
-        # (4x -> 1.2e-4), leaving every other weight at 3e-5. Override with
-        # --terrain-lr-mult; 1.0 disables. Watch KL: if it sits above 0.05,
-        # lower the multiplier.
-        self.TERRAIN_LR_MULT = 4.0
+        # Terrain-column learning-rate multiplier for the actor (effective LR =
+        # actor_lr * mult on the terrain input columns of the three first-layer
+        # weights; 1.0 = off). Tried at 4.0 on 2026-09-13 (updates 83410-84030):
+        # the actor's terrain columns caught up with the critic's in 8 hours but
+        # OOB did not improve, KL doubled with destructive spikes, and the score
+        # dipped ~5/game before recovering. Off by default; the mechanism stays
+        # available via --terrain-lr-mult for experiments.
+        self.TERRAIN_LR_MULT = 1.0
+        # target_kl 1.0 -> 0.2 (2026-09-13): the early stop fires at 1.5x target.
+        # At 1.0 it fired at 1.5 and never once triggered while updates with
+        # KL 1.29 and 0.85 went through during the terrain-LR-multiplier run and
+        # cost ~250 games. Typical KL is 0.02, so a stop at 0.3 only catches
+        # destructive updates.
         self.trainer = PPOTrainer(self.actor, self.critic, vf_clip=20.0,
                                    critic_lr=1e-4, critic_max_grad_norm=5.0,
-                                   target_kl=1.0, clip_epsilon=0.1,
+                                   target_kl=0.2, clip_epsilon=0.1,
                                    max_grad_norm=0.3, entropy_coef=-0.001,
                                    terrain_lr_mult=self.TERRAIN_LR_MULT,
                                    terrain_split=self.obs_dim - TERRAIN_DIM,
                                    obs_dim=self.obs_dim)
+
+        # Direction noise cap anneal (2026-09-13). The raw log_std parameter sits
+        # above the clamp, so the clamp is the exploration std. At ~69 pts/game
+        # the policy is competent, and 35 deg of noise held for 4 ticks costs
+        # precision without buying exploration (score plateaued for two days).
+        # After every PPO update the cap steps down by LOG_STD_ANNEAL_STEP until
+        # it reaches LOG_STD_MAX_TARGET (exp(-1.0) = 0.37 rad = 21 deg), so each
+        # rollout is evaluated under the clamp it was collected with. The current
+        # cap persists in the checkpoint. Watch: if score drops by more than
+        # ~5/game for 100 games, raise the target with --log-std-max (e.g. -0.8
+        # = 26 deg).
+        self.LOG_STD_MAX_TARGET = -1.0
+        self.LOG_STD_ANNEAL_STEP = 0.02      # per update: -0.5 -> -1.0 in 25 updates
+        self.actor.LOG_STD_MAX = Actor.LOG_STD_MAX   # start value; a checkpoint overrides it below
         # entropy_coef history on KingOfTheMarble:
         #   0.005: full runaway (Ent 2.15 -> 2.82 over 2854 updates, PolicyStd 30->50 deg)
         #   0.002: runaway slowed but not reversed (Ent 2.83 -> 2.89 over 940 updates)
@@ -1081,10 +1118,16 @@ class PPOServer:
             # Restore warmup state (None if checkpoint pre-dates warmup feature)
             self.warmup_start_update = checkpoint.get('warmup_start_update', None)
 
+            # Restore the direction noise cap (anneal state). Checkpoints that
+            # predate the anneal start from the class default (-0.5, 35 deg).
+            self.actor.LOG_STD_MAX = float(checkpoint.get('log_std_max', Actor.LOG_STD_MAX))
+
             with torch.no_grad():
                 std_deg = self.actor.log_std.exp().item() * 180 / 3.14159
+                cap_deg = math.exp(self.actor.LOG_STD_MAX) * 180 / math.pi
                 thr_std = self.actor.throttle_log_std.exp().item()
-                self.log(f"  PolicyStd: {std_deg:.1f} deg (bounds: {self.actor.LOG_STD_MIN:.1f} to {self.actor.LOG_STD_MAX:.1f})")
+                self.log(f"  PolicyStd: raw {std_deg:.1f} deg, cap {cap_deg:.1f} deg -> effective {min(std_deg, cap_deg):.1f} deg "
+                         f"(log_std_max={self.actor.LOG_STD_MAX:.2f}, target {self.LOG_STD_MAX_TARGET:.2f} = {math.exp(self.LOG_STD_MAX_TARGET) * 180 / math.pi:.1f} deg)")
                 self.log(f"  ThrottleStd: {thr_std:.3f} (bounds: {self.actor.THROTTLE_LOG_STD_MIN:.1f} to {self.actor.THROTTLE_LOG_STD_MAX:.1f})")
 
             # Restore throttle floor state
@@ -1277,6 +1320,9 @@ class PPOServer:
                      f"(columns {tr.terrain_split}..{self.obs_dim - 1}; effective lr {tr.actor_optimizer.param_groups[0]['lr'] * tr.terrain_lr_mult:.1e})")
         else:
             self.log("Terrain LR multiplier: off (1.0x)")
+        self.log(f"Direction noise cap: {math.exp(self.actor.LOG_STD_MAX) * 180 / math.pi:.1f} deg now, "
+                 f"annealing {self.LOG_STD_ANNEAL_STEP:g}/update to {math.exp(self.LOG_STD_MAX_TARGET) * 180 / math.pi:.1f} deg "
+                 f"| KL early stop at {1.5 * self.trainer.target_kl:.2f}")
         self.log(f"Rollout size: {self.rollout_size} steps")
         self.log(f"PPO epochs: {self.n_epochs}")
         self.log(f"Batch size: {self.batch_size}")
@@ -1290,6 +1336,7 @@ class PPOServer:
             try:
                 conn, addr = self.socket.accept()
                 self.log(f"\nGame connected from {addr}")
+                self.on_game_connected()
                 self.handle_client(conn)
             except socket.timeout:
                 continue
@@ -1313,8 +1360,8 @@ class PPOServer:
             while self.running:
                 data = conn.recv(8192).decode('utf-8')
                 if not data:
-                    self.log("Game disconnected. Shutting down.")
-                    self.running = False
+                    self.log("Game disconnected. Waiting for it to reconnect (training state kept in memory; "
+                             "Ctrl+C to stop).")
                     break
 
                 buffer_str += data
@@ -1334,11 +1381,56 @@ class PPOServer:
                     conn.sendall(action_str.encode('utf-8'))
 
         except Exception as e:
-            self.log(f"Client error: {e}")
-            import traceback
-            traceback.print_exc()
+            # A crashed game shows up here as a reset connection. Keep the
+            # server alive: the actor, critic, optimizer state and counters are
+            # all in memory, so a relaunched game simply resumes training.
+            self.log(f"Client error: {e} -- waiting for the game to reconnect (Ctrl+C to stop).")
         finally:
             conn.close()
+            self.on_game_disconnected()
+
+    def on_game_connected(self):
+        """A (re)connected game starts a fresh round: drop any half-collected
+        decision and the tick-based history so nothing from the old process
+        bleeds into the new one."""
+        self.pending = None
+        self.pending_reward = 0.0
+        self.tick_in_window = 0
+        self.cached_action = None
+        self.frame_history.clear()
+        self.last_nearest_gem_dist = self.DIST_SENTINEL
+        self.skip_potential_steps = self.GRACE_PERIOD
+        self.steps_since_gem = 0
+        self.near_gem = False
+        self.game_reconnects = getattr(self, 'game_reconnects', -1) + 1
+        if self.game_reconnects > 0:
+            self.log(f"[RECONNECT] game connection #{self.game_reconnects + 1}; resuming at update {self.total_updates}")
+
+    def on_game_disconnected(self):
+        """Close out the interrupted game's bookkeeping without recording a
+        partial game as a full one."""
+        self.pending = None
+        self.pending_reward = 0.0
+        self.cached_action = None
+        self.game_gem_pts = 0
+        self.game_gap_penalty_sum = 0.0
+        self.game_gem_pickups = 0
+        self.game_gem_counts = {}
+        self.game_near_misses = 0
+        self.game_dwell_steps = 0
+        self.game_jumps = 0
+        self.game_brakes = 0
+        self.game_decisions = 0
+        self.game_steps = 0
+        self.game_gem_steps_sum = 0
+        self.game_freefall_penalty_sum = 0.0
+        self.game_freefall_frames = 0
+        self.game_pickup_speed_sum = 0.0
+        self.game_brakes_near_pickup_sum = 0
+        self.current_episode_reward = 0
+        self.episode_gem_pts = 0
+        self.episode_oob = 0
+        self.episode_step = 0
 
     def normalize_obs(self, obs):
         """Normalize raw game observations to roughly [-1, 1] range.
@@ -1836,11 +1928,16 @@ class PPOServer:
             return list(Actor.action_to_joystick(dx, dy, throttle, jump, brake, vx_raw, vy_raw))
 
         except Exception as e:
-            if self.total_steps < 5:
-                self.log(f"Error processing message: {e}")
-                self.log(f"Message (first 200 chars): {message[:200]}")
+            # Never let a failure here disappear: an exception inside
+            # run_ppo_update() used to be swallowed silently after the first five
+            # steps (it skipped the Upd log line and buffer.clear() with no trace).
+            # Log the first 20 errors of a session in full, then every 500th.
+            self._error_count = getattr(self, '_error_count', 0) + 1
+            if self._error_count <= 20 or self._error_count % 500 == 0:
                 import traceback
-                traceback.print_exc()
+                self.log(f"Error processing message (#{self._error_count}): {type(e).__name__}: {e}")
+                self.log(f"Message (first 200 chars): {message[:200]}")
+                self.log(traceback.format_exc())
             return [0, 0, 0, 0, 0]
 
     def _finalize_pending(self, done):
@@ -1892,6 +1989,15 @@ class PPOServer:
         # Log warmup-end transition once
         if warmup_active and (self.total_updates - self.warmup_start_update) >= self.WARMUP_ROLLOUTS:
             self.log(f"  [WARMUP] Phase complete at update {self.total_updates}. Actor unfrozen.")
+
+        # Direction noise cap anneal: step the cap down AFTER the update so the
+        # rollout just consumed was evaluated under the clamp it was collected with.
+        if not warmup_active and self.actor.LOG_STD_MAX > self.LOG_STD_MAX_TARGET + 1e-9:
+            new_max = max(self.LOG_STD_MAX_TARGET, self.actor.LOG_STD_MAX - self.LOG_STD_ANNEAL_STEP)
+            self.actor.LOG_STD_MAX = new_max
+            if new_max <= self.LOG_STD_MAX_TARGET + 1e-9:
+                self.log(f"  [NOISE CAP] Direction std cap reached its target: "
+                         f"{math.exp(new_max) * 180 / math.pi:.1f} deg (log_std_max={new_max:.2f})")
         self.entropy_history.append(stats['entropy'])
 
         avg_reward = np.mean(self.episode_rewards) if self.episode_rewards else 0
@@ -1918,7 +2024,6 @@ class PPOServer:
         avg_ep_len = np.mean(self.recent_episode_lengths) if self.recent_episode_lengths else 0
 
         # Action distribution (continuous angle + throttle)
-        import math
         recent = list(self.recent_actions)[-min(200, len(self.recent_actions)):]
         recent_thr = list(self.recent_throttles)[-min(200, len(self.recent_throttles)):]
         if recent:
@@ -2033,6 +2138,7 @@ class PPOServer:
             'episode_rewards': list(self.episode_rewards),
             'throttle_floor_active': self.throttle_floor_active,
             'warmup_start_update': self.warmup_start_update,
+            'log_std_max': float(self.actor.LOG_STD_MAX),   # direction noise cap (anneal state)
         }, path)
         self.log(f"  Model saved to {path}")
 
@@ -2072,11 +2178,13 @@ def main():
     parser.add_argument('--action-repeat', type=int, default=None,
                         help='Override ACTION_REPEAT (ticks each decision is held; default 4)')
     parser.add_argument('--terrain', type=str, default=None,
-                        help='Terrain map for the map being trained on: a name like KingOfTheMarble_Hunt '
-                             '(resolves terrain_maps/terrain_<name>.npz) or a path. Generate with '
-                             'generate_terrain_map.py. If omitted and exactly one terrain map exists, it is used.')
+                        help=f'Terrain map name or path (default: DEFAULT_TERRAIN_MAP = {DEFAULT_TERRAIN_MAP}; '
+                             'generate with generate_terrain_map.py)')
     parser.add_argument('--no-terrain', action='store_true',
                         help='Train without a terrain map (the 64 terrain dims read as an infinite flat floor)')
+    parser.add_argument('--log-std-max', type=float, default=None,
+                        help='Target for the direction noise cap anneal, in log_std units '
+                             '(default -1.0 = 21 deg; -0.8 = 26 deg; -0.5 = 35 deg = no change)')
     parser.add_argument('--terrain-lr-mult', type=float, default=None,
                         help='Effective learning-rate multiplier for the actor\'s terrain input columns (default 4.0; 1.0 disables)')
 
@@ -2109,26 +2217,13 @@ def main():
         else:
             print("Starting fresh training (no checkpoint found)")
 
-    # Terrain map selection
-    terrain_path = None
-    if not args.no_terrain:
-        import glob as _glob
-        if args.terrain:
-            terrain_path = TerrainMap.resolve(args.terrain)
-        else:
-            found = sorted(_glob.glob(os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                                                   'terrain_maps', 'terrain_*.npz')))
-            if len(found) == 1:
-                terrain_path = found[0]
-            elif not found:
-                print("ERROR: no terrain map found. Generate one for the map you are training on, e.g.\n"
-                      "    python generate_terrain_map.py KingOfTheMarble_Hunt\n"
-                      "or pass --no-terrain to train with the flat-floor placeholder.")
-                sys.exit(1)
-            else:
-                print("ERROR: several terrain maps found; choose one with --terrain <name>:\n  "
-                      + "\n  ".join(os.path.basename(f) for f in found))
-                sys.exit(1)
+    # Terrain map selection: DEFAULT_TERRAIN_MAP unless overridden
+    try:
+        terrain_path = resolve_terrain_path(args.terrain, args.no_terrain)
+    except FileNotFoundError as e:
+        print(f"ERROR: {e}")
+        sys.exit(1)
+    if terrain_path:
         print(f"Terrain map: {terrain_path}")
 
     server = PPOServer(host=args.host, port=args.port, model_path=model_path, terrain=terrain_path)
@@ -2139,6 +2234,11 @@ def main():
     if args.action_repeat is not None:
         server.ACTION_REPEAT = max(1, args.action_repeat)
         server.log(f"ACTION_REPEAT overridden to {server.ACTION_REPEAT}")
+    if args.log_std_max is not None:
+        server.LOG_STD_MAX_TARGET = args.log_std_max
+        if server.actor.LOG_STD_MAX < args.log_std_max:      # raising the target: jump the cap back up
+            server.actor.LOG_STD_MAX = args.log_std_max
+        server.log(f"LOG_STD_MAX_TARGET overridden to {args.log_std_max:.2f} ({math.exp(args.log_std_max) * 180 / math.pi:.1f} deg)")
     if args.terrain_lr_mult is not None:
         server.TERRAIN_LR_MULT = args.terrain_lr_mult
         server.trainer.configure_terrain_lr(args.terrain_lr_mult, server.obs_dim - TERRAIN_DIM, server.obs_dim)

@@ -41,16 +41,21 @@ function AIObserver::collectState() {
         return %obs;
     }
 
-    // 1. Collect self state (14 dims)
+    // 1. Collect self state (6 dims serialized: pos + vel)
     AIObserver::collectSelfState(%obs);
 
     // 2. Collect nearest 5 gems (25 dims: 5 gems × 5)
     AIObserver::collectGems(%obs);
 
-    // 3. Collect opponents (15 dims: 3 opponents × 5)
-    AIObserver::collectOpponents(%obs);
+    // 3. Opponents: NOT collected. The 18 opponent dims are not serialized, and
+    //    collectOpponents() / getBestOpponentScore() indexed ClientGroup with a
+    //    client ID (12,784 "Set::getObject index out of range" engine warnings
+    //    per 8-hour session). Re-enable, after fixing, when opponent awareness is
+    //    added to the observation.
+    // AIObserver::collectOpponents(%obs);
+    %obs.opponentCount = 0;
 
-    // 4. Collect game state (5 dims)
+    // 4. Collect game state (4 dims serialized)
     AIObserver::collectGameState(%obs);
 
     return %obs;
@@ -94,21 +99,20 @@ function AIObserver::collectSelfState(%obs) {
     %obs.selfVelY = %worldVelX * %sinYaw + %worldVelY * %cosYaw;
     %obs.selfVelZ = getWord(%vel, 2) + 0;
 
-    // Collision radius (1) - just get X component of scale vector
-    %scale = $MP::MyMarble.getScale();
-    %obs.collisionRadius = (%scale $= "") ? 0.2 : getWord(%scale, 0);
-
-    // Powerup state (3)
-    %obs.powerupId = $MP::MyMarble.getPowerUp();
-    if (%obs.powerupId $= "")
-        %obs.powerupId = -1;
-
-    // Mega marble state (2)
-    %obs.megaMarbleActive = $MP::MyMarble.isMegaMarble() ? 1 : 0;
-    %obs.megaMarbleTimeRemaining = AIObserver::getMegaMarbleTimeRemaining() + 0;
-
-    // Powerup timer (2)
-    %obs.powerupTimerRemaining = AIObserver::getPowerupTimerRemaining() + 0;
+    // Collision radius, powerup and mega-marble state: NOT collected.
+    // None of these are serialized (see serializeToJSON), and the two
+    // $MP::MyMarble.isMegaMarble() calls made the engine print
+    // "Object (id) Marble -> ShapeBase -> ..." twice on EVERY tick:
+    // 10.2 million lines per 8-hour session, a 1 GB console.log, and the
+    // most likely driver of the access-violation crash after ~10 hours
+    // (the engine buffers console output in memory). Placeholder values keep
+    // the field set intact for when powerups are added to the observation;
+    // verify each engine call in the console before re-enabling it.
+    %obs.collisionRadius = 0.2;
+    %obs.powerupId = -1;
+    %obs.megaMarbleActive = 0;
+    %obs.megaMarbleTimeRemaining = 0;
+    %obs.powerupTimerRemaining = 0;
 }
 
 //-----------------------------------------------------------------------------
@@ -255,8 +259,9 @@ function AIObserver::collectOpponents(%obs) {
     if (isObject(PlayerListGuiList)) {
         %count = PlayerListGuiList.rowCount();
         for (%i = 0; %i < %count && %oppCount < $AIObserver::MaxOpponents; %i++) {
-            %clientId = PlayerListGuiList.getRowId(%i);
-            %client = ClientGroup.getObject(%clientId);
+            // Row id is the client object's id; ClientGroup.getObject() takes an
+            // INDEX, so the old lookup produced "Set::getObject index out of range".
+            %client = PlayerListGuiList.getRowId(%i);
 
             if (!isObject(%client) || %client == $Client::MyClient)
                 continue;
@@ -338,8 +343,8 @@ function AIObserver::collectGameState(%obs) {
     // My gem score (total points)
     %obs.myGemScore = PlayGui.gemCount;
 
-    // Best opponent score
-    %obs.opponentBestScore = AIObserver::getBestOpponentScore();
+    // Best opponent score: not serialized; skipped (see collectState).
+    %obs.opponentBestScore = 0;
 
     // Gems remaining in level
     %obs.gemsRemaining = PlayGui.maxGems - PlayGui.gemCount;
@@ -389,8 +394,7 @@ function AIObserver::getBestOpponentScore() {
     if (isObject(PlayerListGuiList)) {
         %count = PlayerListGuiList.rowCount();
         for (%i = 0; %i < %count; %i++) {
-            %clientId = PlayerListGuiList.getRowId(%i);
-            %client = ClientGroup.getObject(%clientId);
+            %client = PlayerListGuiList.getRowId(%i);   // row id == client object id (not an index)
 
             if (!isObject(%client) || %client == $Client::MyClient)
                 continue;

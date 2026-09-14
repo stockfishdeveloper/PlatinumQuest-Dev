@@ -20,7 +20,7 @@ import sys
 from collections import deque
 
 # Reuse the model definition from the training script
-from train_ppo import Actor, widen_state_dict
+from train_ppo import Actor, widen_state_dict, DEFAULT_TERRAIN_MAP, resolve_terrain_path
 from terrain_obs import TerrainMap, TERRAIN_DIM
 
 
@@ -84,24 +84,19 @@ def main():
     parser.add_argument('--stochastic', action='store_true',
                         help='Sample from policy instead of taking argmax')
     parser.add_argument('--terrain', type=str, default=None,
-                        help='Terrain map name or path (must match the map being played)')
+                        help=f'Terrain map name or path (default: {DEFAULT_TERRAIN_MAP})')
     parser.add_argument('--no-terrain', action='store_true',
                         help='Play without a terrain map (terrain dims read as a flat floor)')
     args = parser.parse_args()
 
     terrain = None
-    if not args.no_terrain:
-        import glob as _glob
-        if args.terrain:
-            terrain = TerrainMap(TerrainMap.resolve(args.terrain))
-        else:
-            found = sorted(_glob.glob(os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                                                   'terrain_maps', 'terrain_*.npz')))
-            if len(found) != 1:
-                print("Pass --terrain <name> (or --no-terrain); found terrain maps: "
-                      + (", ".join(os.path.basename(f) for f in found) or "none"))
-                sys.exit(1)
-            terrain = TerrainMap(found[0])
+    try:
+        tpath = resolve_terrain_path(args.terrain, args.no_terrain)
+    except FileNotFoundError as e:
+        print(f"ERROR: {e}")
+        sys.exit(1)
+    if tpath:
+        terrain = TerrainMap(tpath)
         print(f"Terrain map: {terrain.path}")
 
     if not os.path.exists(args.model):

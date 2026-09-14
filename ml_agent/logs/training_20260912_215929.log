@@ -39810,3 +39810,6 @@ Game connected from ('127.0.0.1', 63735)
 [2026-09-13 09:16:42] [GEM] ep=11850 step=188486531 +1pts | ep_total=7398.4
 [2026-09-13 09:16:43] [GEM] ep=11850 step=188486651 +2pts | ep_total=7810.8
 [2026-09-13 09:16:47] Client error: [WinError 10054] An existing connection was forcibly closed by the remote host
+[2026-09-13 13:36:41] 
+Received interrupt, saving and shutting down...
+[2026-09-13 13:36:41] Server stopped.
