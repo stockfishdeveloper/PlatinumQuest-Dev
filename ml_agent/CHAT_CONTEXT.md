@@ -47,7 +47,9 @@ Training a PPO reinforcement-learning agent to play **Marble Blast Platinum** Hu
 
 The joystick layer converts `(dx, dy, throttle, jump)` to `(fwd, back, left, right, jump)` — throttle scales the forward/right components.
 
-## Observation Space (123 dims, camera-relative)
+## Observation Space (123 dims, WORLD frame since 2026-09-14)
+
+**Frame bug fixed 2026-09-14.** The observer rotated everything by `$MP::MyMarble.getCameraYaw()`, which is set by the spawn trigger's rotation (0/90/180/-90 deg on King of the Marble; each `SpawnTrigger` in the .mcs has a `rotation`) and is NOT reset by `setMarbleCamYaw(0)`. So the policy's frame changed with every spawn/respawn, the terrain observation (sampled from the obs position as if it were world) was garbage in 3 of 4 games, and human demos recorded in the world frame did not transfer (8 pts/game, 18 OOB). Now `$AIObserver::ForceYaw = 0` always (world frame for training, play and recording) and `MLAgent::executeAction` rotates the policy's world-frame command into the marble's camera frame each tick (right = (cos yaw, -sin yaw), forward = (sin yaw, cos yaw)). The GAME END line prints `offmap: N` (ticks at floor height outside the terrain footprint; ~0 when the frame is right) and the trainer logs a FRAME CHECK warning above 5%. Checkpoints before 84691 were trained in the per-spawn rotated frame; 84691 (BC) is world-frame native.
 
 | Range | Meaning |
 |---|---|
@@ -125,6 +127,7 @@ Current values in `train_ppo.py` as of 2026-09-11 (the training loop was correct
 - `vf_clip = 20.0` in raw-scaled units (converted to normalized units each update)
 - `reward_scale = 0.1`, reward clip `[-100, 100]` per decision (was +/-20, which clipped a 2-point gem (40) and a 5-point gem (100) down to a 1-point gem's 20)
 - `WARMUP_ROLLOUTS = 75` critic-only rollouts on a fresh warmup (was 300 at one tick per decision). `--warmup N` on the command line forces a fresh warmup of N rollouts; `--action-repeat N` overrides the repeat.
+- **Human demonstrations + behavior cloning (2026-09-14).** 23.6 min of human play on KOTM (8 rounds, ~166 pts/round, 0 OOB) recorded with `record_demos.py` into `demos/demo_*.npz`. `bc_pretrain.py` fit the actor's four heads to the demos (held-out round: direction cosine 0.41 -> 0.91, 85% of directions within 30 deg, brake log-loss 0.88 -> 0.27, jump rate matched to the human's 1.4%) and wrote `update_84691.pth` (critic kept, actor Adam state dropped, `warmup_start_update` cleared so PPO starts with a 75-rollout critic-only warmup). `train_ppo.py` loads every demo at startup and adds `bc_coef * bc_loss` (demo_data.bc_loss: direction cosine + throttle/jump/brake BCE, all O(1)) to each actor minibatch: `BC_COEF_START` (1.0) decays linearly to `BC_COEF_FLOOR` (0.2) over `BC_DECAY_UPDATES` (400) non-warmup updates and stays at the floor as a light anchor (`bc_updates_done` persists in the checkpoint). The demos are a bootstrap, not a target: the goal is superhuman play, so set the floor to 0 once the agent matches the human (~166/round) and let the game reward alone shape it from there. Upd line: `BC=<demo loss>/cos<dir agreement>(c=<coef>,gn=<BC grad norm>)`; `analyze_log.py` reports a BC section. Why: the PPO-only policy had learned a ~7 u/s speed cap (it reverses on clear floor) that its own 21-35 deg exploration could never escape, so the critic never saw that fast play pays; the demos put the policy on the fast side of that cliff. Map-independent: (obs, action) pairs in the agent's own frame, nothing about this layout in the loss. Recording works on any map.
 
 Training runs at **3x game speed**. One game tick is 16 ms of game time, so a 3-min KingOfTheMarble round is ~11,375 ticks / ~2,840 decisions, and a 5-min flat round is ~18,875 ticks.
 
@@ -205,6 +208,10 @@ Training runs at **3x game speed**. One game tick is 16 ms of game time, so a 3-
 - `ml_agent/play.py` — inference-only server for watching the model play
 - `ml_agent/analyze_log.py` — post-training log analysis (keep in sync with new log fields)
 - `ml_agent/terrain_obs.py` — terrain observation sampler (TerrainMap, 64 dims)
+- `ml_agent/record_demos.py` — human demonstration recorder for behaviour cloning: run instead of the trainer, host the map and play at 1x (no console command: the recorder answers every message with `RECORD` and mlAgent.cs switches itself into recording mode; rounds chain automatically, one file per recorder run). Writes `demos/demo_<ts>.npz` with obs_model (123, identical to training) + action (dx, dy, throttle, jump, brake) per tick, with live frame/terrain self-checks. observer.cs `$AIObserver::ForceYaw` pins the observation frame to yaw 0 while the human's camera stays free; the key direction is rotated into that frame with the recorded camera yaw.
+- `ml_agent/demo_data.py` — `DemoSet` (loads all demos, holds out the last full round) and `bc_loss` (shared by pretraining and the PPO aux term)
+- `ml_agent/bc_pretrain.py` — behavior-cloning pretraining of the actor on the demos; writes the next `update_<N+1>.pth`, then plain `python train_ppo.py` resumes from it
+- `ml_agent/replay_demo.py` — one-off proof that recorded actions are right: replays a demo's actions through the game at 1x (uses the `SPEED n` / `TELEPORT x y z vx vy vz` control replies added to mlAgent.cs; action messages may carry a 7th field, use-powerup)
 - `ml_agent/generate_terrain_map.py` — builds `terrain_maps/terrain_<map>.npz` + check PNG from a map's .dif
 - `Marble Blast Platinum/platinum/client/scripts/ai/mlAgent.cs` — TorqueScript game loop
 - `Marble Blast Platinum/platinum/client/scripts/ai/observer.cs` — obs collection

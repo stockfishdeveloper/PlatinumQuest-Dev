@@ -88,6 +88,7 @@ def parse_log(filepath):
                 oob_m = re.search(r'OOB=(\d+)', tail)
                 dry_m = re.search(r'DRY.(\d+)', tail)
                 vstd_m = re.search(r'Vstd=([\d.]+)', tail)
+                bc_m = re.search(r'BC=([\d.]+)/cos([-\d.]+)\(c=([\d.]+),gn=([\d.]+)\)', tail)   # 2026-09-14+: BC aux loss
                 pstd_m = policystd_re.search(line)
                 kl_stopped = 'KL-STOP' in tail
 
@@ -105,6 +106,10 @@ def parse_log(filepath):
                     'oob': int(oob_m.group(1)) if oob_m else 0,
                     'dry': int(dry_m.group(1)) if dry_m else 0,
                     'value_std': float(vstd_m.group(1)) if vstd_m else None,  # PopArt scale (2026-09-11+)
+                    'bc_loss': float(bc_m.group(1)) if bc_m else None,
+                    'bc_cos': float(bc_m.group(2)) if bc_m else None,
+                    'bc_coef': float(bc_m.group(3)) if bc_m else None,
+                    'bc_gn': float(bc_m.group(4)) if bc_m else None,
                     'policy_std': float(pstd_m.group(1)) if pstd_m else None,
                     'collapse': '*** ENTROPY COLLAPSE ***' in tail,
                     'entropy_low': '(entropy low)' in tail,
@@ -148,8 +153,12 @@ def parse_log(filepath):
             m = game_end_re.search(line)
             if m:
                 gb_m = re.search(r'gems_by_pts: ([-0-9x ]+)', line)   # 2026-09-12+: "1x38 2x11"
+                om_m = re.search(r'offmap: (\d+)', line)                # 2026-09-14+: frame check
+                cc_m = re.search(r'cmd_accel_cos: ([-\d.]+)', line)     # 2026-09-14+: action-frame check
                 games.append({
                     'gems_by_pts': gb_m.group(1).strip() if gb_m else None,
+                    'offmap': int(om_m.group(1)) if om_m else None,
+                    'cmd_accel_cos': float(cc_m.group(1)) if cc_m else None,
                     'gems': int(m.group(1)),
                     'best': int(m.group(2)),
                     'avg_gap_penalty': float(m.group(3)),
@@ -314,6 +323,42 @@ def print_analysis(data, last_n=None):
               f"{cgn_str} "
               f"{kl_str:>7}{kl_flag} "
               f"{u['avg_reward']:>9.1f} {u['oob']:>4} {u['gems']:>5}")
+
+    # =========================================================================
+    # Behavior-cloning auxiliary loss (2026-09-14+): BC=<loss>/cos<dir agreement>(c=<coef>,gn=<BC grad norm>)
+    # =========================================================================
+    offmap_games = [g for g in games if g.get('offmap') is not None]
+    if offmap_games:
+        bad = sum(1 for g in offmap_games if g['offmap'] > 500)
+        if bad:
+            problems.append(f"FRAME CHECK: {bad}/{len(offmap_games)} games had >500 ticks off the terrain map at floor height (observation frame != world)")
+        else:
+            print(f"\n  Frame check: off-map ticks per game max {max(g['offmap'] for g in offmap_games)} (world frame OK)")
+
+    cc_games = [g['cmd_accel_cos'] for g in games if g.get('cmd_accel_cos') is not None]
+    if cc_games:
+        mean_cc = sum(cc_games) / len(cc_games)
+        if mean_cc < 0.2:
+            problems.append(f"ACTION FRAME CHECK: command/acceleration agreement {mean_cc:.2f} (expect > 0.4): joystick not moving the marble as commanded")
+        else:
+            print(f"  Action-frame check: command/acceleration agreement mean {mean_cc:.2f} over {len(cc_games)} games (OK)")
+
+    bc_upd = [u for u in updates if u.get('bc_loss') is not None]
+    if bc_upd:
+        print("\n" + "-" * 70)
+        print("BEHAVIOR CLONING AUX LOSS (demo fit under PPO)")
+        print("-" * 70)
+        print(f"  {'Upd':>6} {'BC':>7} {'DirCos':>7} {'Coef':>6} {'BC-GN':>6} {'PPO-GN':>7}")
+        n = len(bc_upd)
+        for i in sorted(set([0, n // 4, n // 2, 3 * n // 4, n - 1])):
+            u = bc_upd[i]
+            print(f"  {u['update']:>6} {u['bc_loss']:>7.3f} {u['bc_cos']:>7.2f} {u['bc_coef']:>6.3f} {u['bc_gn']:>6.3f} {u['grad_norm']:>7.3f}")
+        first, last = bc_upd[0], bc_upd[-1]
+        drift = last['bc_loss'] - first['bc_loss']
+        print(f"  Demo fit {first['bc_loss']:.3f} -> {last['bc_loss']:.3f} ({'drifting from the human' if drift > 0.15 else 'holding'}); "
+              f"direction agreement {first['bc_cos']:.2f} -> {last['bc_cos']:.2f}")
+        if last['bc_loss'] > 1.0:
+            problems.append(f"BC DRIFT: demo loss {last['bc_loss']:.2f} (pretrain level ~0.4-0.6): policy has left the human behaviour")
 
     # =========================================================================
     # Entropy / PolicyStd Trend
@@ -622,6 +667,8 @@ def print_analysis(data, last_n=None):
         print(f"  CriticGN:   {u['critic_grad_norm']:.3f}")
     if u.get('value_std') is not None:
         print(f"  ValueStd:   {u['value_std']:.2f}  (VL is PopArt-normalized; raw-scaled VL ~= VL * ValueStd^2)")
+    if u.get('bc_loss') is not None:
+        print(f"  BC:         loss {u['bc_loss']:.3f} dir-cos {u['bc_cos']:.2f} coef {u['bc_coef']:.3f} (BC grad {u['bc_gn']:.3f} vs PPO grad {u['grad_norm']:.3f})")
     if episodes:
         e = episodes[-1]
         print(f"  Last Ep:    {e['episode']} (rwd={e['reward']:.0f}, gems={e['gems']}, OOB={e['oob']})")

@@ -72,7 +72,10 @@ function AIObserver::collectSelfState(%obs) {
     // $cameraYaw can drift out of sync (playGui.cs modifies it, $mvYaw deltas, etc).
     // Using getCameraYaw() ensures observations are rotated by the SAME yaw the
     // engine uses for movement, so the model's actions align with its observations.
-    %obs.cameraYaw = $MP::MyMarble.getCameraYaw();
+    // $AIObserver::ForceYaw (set by MLAgent::enableRecording) pins the observation
+    // frame to a fixed yaw so human demonstrations are recorded in the same frame
+    // the agent trains in (yaw 0 = world), while the human's own camera stays free.
+    %obs.cameraYaw = ($AIObserver::ForceYaw !$= "") ? $AIObserver::ForceYaw : $MP::MyMarble.getCameraYaw();
     %obs.cameraPitch = ($cameraPitch $= "") ? 0 : $cameraPitch;
 
     %yawRad = %obs.cameraYaw;
@@ -128,7 +131,7 @@ function AIObserver::collectGems(%obs) {
     // Camera yaw for rotating world-relative vectors into camera space.
     // This ensures gem relX/relY align with the L/R and F/B action axes.
     // Read from marble's internal camera (same source as engine movement).
-    %yawRad = $MP::MyMarble.getCameraYaw();
+    %yawRad = ($AIObserver::ForceYaw !$= "") ? $AIObserver::ForceYaw : $MP::MyMarble.getCameraYaw();
     %cosYaw = mCos(%yawRad);
     %sinYaw = mSin(%yawRad);
 
@@ -250,7 +253,7 @@ function AIObserver::collectOpponents(%obs) {
 
     // Camera yaw for world-to-camera rotation (same as in collectGems).
     // Read from marble's internal camera (same source as engine movement).
-    %yawRad = $MP::MyMarble.getCameraYaw();
+    %yawRad = ($AIObserver::ForceYaw !$= "") ? $AIObserver::ForceYaw : $MP::MyMarble.getCameraYaw();
     %cosYaw = mCos(%yawRad);
     %sinYaw = mSin(%yawRad);
 

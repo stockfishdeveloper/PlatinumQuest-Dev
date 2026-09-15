@@ -1,0 +1,65 @@
+[2026-09-14 21:27:37] Demonstrations loaded: 8,915 ticks (2.4 min) in 1 rounds from 1 file(s); train 8,915 / val 0 (val = round None); moving 91% jump 1.1% brake 12.9%
+[2026-09-14 21:27:37]   BC aux loss: coef 1.0 -> 0.2 over 400 updates
+[2026-09-14 21:27:37] Loading model from models/checkpoints\update_84692.pth
+[2026-09-14 21:27:37]   Critic restored from checkpoint
+[2026-09-14 21:27:37]   Critic optimizer restored
+[2026-09-14 21:27:37]   LR set: actor=3e-05, critic=0.0001
+[2026-09-14 21:27:37]   BC-pretrained checkpoint (from update_84691.pth); BC aux updates done: 0
+[2026-09-14 21:27:37]   PolicyStd: raw 51.7 deg, cap 21.1 deg -> effective 21.1 deg (log_std_max=-1.00, target -1.00 = 21.1 deg)
+[2026-09-14 21:27:37]   ThrottleStd: 0.174 (bounds: -3.0 to -0.9)
+[2026-09-14 21:27:37] Model loaded successfully!
+[2026-09-14 21:27:37] Resuming from: 198936611 steps, 84692 updates, 12767 episodes
+[2026-09-14 21:27:37] Best avg reward restored: 17184.53
+[2026-09-14 21:27:37]   Throttle floor: disabled (mature)
+[2026-09-14 21:27:38] Dashboard: http://0.0.0.0:8889 (accessible on WiFi)
+[2026-09-14 21:27:38] Action repeat: 4 ticks/decision | gamma=0.996 | reward clip=+/-100
+[2026-09-14 21:27:38] ============================================================
+[2026-09-14 21:27:38] PPO Training Server
+[2026-09-14 21:27:38] ============================================================
+[2026-09-14 21:27:38] Listening on 127.0.0.1:8888
+[2026-09-14 21:27:38] Obs dim: 123 (base=35 + 4x6 history, skip=8 + 64 terrain)
+[2026-09-14 21:27:38] Terrain: C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\terrain_maps\terrain_KingOfTheMarble_Hunt.npz (99x99 cells at 0.5u, 4-level stack, z bounds (16.0, 91.0))
+[2026-09-14 21:27:38] Terrain LR multiplier: off (1.0x)
+[2026-09-14 21:27:38] Direction noise cap: 21.1 deg now, annealing 0.02/update to 21.1 deg | KL early stop at 0.30
+[2026-09-14 21:27:38] Rollout size: 2048 steps
+[2026-09-14 21:27:38] PPO epochs: 4
+[2026-09-14 21:27:38] Batch size: 256
+[2026-09-14 21:27:38] Press Ctrl+C to stop
+[2026-09-14 21:27:38] ============================================================
+[2026-09-14 21:27:38] Waiting for game to connect...
+[2026-09-14 21:28:10] 
+Game connected from ('127.0.0.1', 54053)
+[2026-09-14 21:28:10]   [FRAME_HIST] step=1 buf_len=1 filled=0/4 cur_pos=(-0.060,0.030,0.219) cur_vel=(-0.106,0.000,-0.027) obs_dim=123
+[2026-09-14 21:28:10]   [FRAME_HIST] step=5 buf_len=5 filled=0/4 cur_pos=(-0.061,0.030,0.219) cur_vel=(-0.131,0.024,-0.033) obs_dim=123
+[2026-09-14 21:28:10]   [FRAME_HIST] step=9 buf_len=9 filled=1/4 cur_pos=(-0.063,0.031,0.218) cur_vel=(-0.176,0.031,-0.044) t-4=(-0.060,0.030,0.219,-0.106,0.000,-0.027) obs_dim=123
+[2026-09-14 21:28:10]   [FRAME_HIST] step=13 buf_len=13 filled=1/4 cur_pos=(-0.066,0.031,0.218) cur_vel=(-0.224,0.028,-0.056) t-4=(-0.061,0.030,0.219,-0.131,0.024,-0.033) obs_dim=123
+[2026-09-14 21:28:10]   [FRAME_HIST] step=17 buf_len=17 filled=2/4 cur_pos=(-0.069,0.031,0.217) cur_vel=(-0.269,0.023,-0.067) t-4=(-0.063,0.031,0.218,-0.176,0.031,-0.044) obs_dim=123
+[2026-09-14 21:28:43] [GEM] ep=12768 step=198939785 +1pts | ep_total=-1144.0
+[2026-09-14 21:28:43] [GEM] ep=12768 step=198939848 +1pts | ep_total=-934.8
+[2026-09-14 21:29:15] [GEM] ep=12768 step=198942867 +1pts | ep_total=-1426.7
+[2026-09-14 21:29:16] [GEM] ep=12768 step=198942942 +2pts | ep_total=-1016.9
+[2026-09-14 21:29:22] [GEM] ep=12768 step=198943542 +1pts | ep_total=-961.9
+[2026-09-14 21:29:36]   [WARMUP] Critic-only phase started at update 84692, will run for 75 rollouts (until update 84767). Actor frozen during this window.
+[2026-09-14 21:29:36] Upd 84693 | PL=0.0000 VL=0.0653 Ent=0.509 GN=0.000 CGN=8.765 KL=0.0000 | AvgRwd=16083.7 AvgLen=0 | gems=6 OOB=21 FF=3006(-2238) minVz=-69.3 Vstd=43.3
+[2026-09-14 21:29:36]        MeanAngle:166 StdDev:113 PolicyStd:21.1 | Thr:0.71(0.00-1.00) ThrStd:0.174
+[2026-09-14 21:30:09] [GAME END] total gems this game: 6pts (best: 6) avg_gap_penalty: 0.0 jump_rate: 0.7% brake_rate: 6.7% avg_steps/gem: 1386 overshoot: 0 (1.3% of steps, avg 0.00/frame) pickup_speed: 9.9 brakes_near_pickup: 4.80/gem slow_pickup_bonus: 0 freefall: 3347 (39.6% of steps) gems_by_pts: 1x4 2x1 offmap: 0 cmd_accel_cos: 0.58
+[2026-09-14 21:30:09] Ep 12768 [FAIL] rwd=-2759.8 gems=6pts oob=30 steps=11340 | avg100=15946.4
+[2026-09-14 21:30:13]   [FRAME_HIST] step=1 buf_len=1 filled=0/4 cur_pos=(-0.053,0.150,0.221) cur_vel=(-0.044,0.008,-0.011) obs_dim=123
+[2026-09-14 21:30:13]   [FRAME_HIST] step=5 buf_len=5 filled=0/4 cur_pos=(-0.054,0.150,0.221) cur_vel=(-0.087,0.017,-0.022) obs_dim=123
+[2026-09-14 21:30:13]   [FRAME_HIST] step=9 buf_len=9 filled=1/4 cur_pos=(-0.055,0.150,0.220) cur_vel=(-0.131,0.026,-0.033) t-4=(-0.053,0.150,0.221,-0.044,0.008,-0.011) obs_dim=123
+[2026-09-14 21:30:13]   [FRAME_HIST] step=13 buf_len=13 filled=1/4 cur_pos=(-0.058,0.151,0.219) cur_vel=(-0.217,0.047,-0.054) t-4=(-0.054,0.150,0.221,-0.087,0.017,-0.022) obs_dim=123
+[2026-09-14 21:30:13]   [FRAME_HIST] step=17 buf_len=17 filled=2/4 cur_pos=(-0.061,0.152,0.219) cur_vel=(-0.259,0.064,-0.065) t-4=(-0.055,0.150,0.220,-0.131,0.026,-0.033) obs_dim=123
+[2026-09-14 21:30:43] [GEM] ep=12769 step=198950779 +1pts | ep_total=-787.1
+[2026-09-14 21:31:00] Upd 84694 | PL=0.0000 VL=0.1045 Ent=0.509 GN=0.000 CGN=13.653 KL=0.0000 | AvgRwd=15946.4 AvgLen=11340 | gems=1 OOB=21 FF=3191(-2376) minVz=-70.1 Vstd=45.2
+[2026-09-14 21:31:00]        MeanAngle:201 StdDev:131 PolicyStd:21.1 | Thr:0.89(0.00-1.00) ThrStd:0.174
+[2026-09-14 21:31:01] [GEM] ep=12769 step=198953219 +1pts | ep_total=-1098.3
+[2026-09-14 21:31:06] [GEM] ep=12769 step=198954235 +2pts | ep_total=-1038.8
+[2026-09-14 21:31:33] [GAME END] total gems this game: 4pts (best: 6) avg_gap_penalty: 0.0 jump_rate: 0.3% brake_rate: 10.7% avg_steps/gem: 2095 overshoot: 0 (1.1% of steps, avg 0.00/frame) pickup_speed: 8.4 brakes_near_pickup: 2.67/gem slow_pickup_bonus: 0 freefall: 3232 (38.2% of steps) gems_by_pts: 1x2 2x1 offmap: 0 cmd_accel_cos: 0.72
+[2026-09-14 21:31:33] Ep 12769 [FAIL] rwd=-3021.0 gems=4pts oob=29 steps=11369 | avg100=15763.0
+[2026-09-14 21:31:36]   [FRAME_HIST] step=1 buf_len=1 filled=0/4 cur_pos=(-0.053,0.150,0.221) cur_vel=(-0.001,-0.008,-0.000) obs_dim=123
+[2026-09-14 21:31:36] [GAME END] total gems this game: 0pts (best: 6) avg_gap_penalty: 0.0 jump_rate: 0.0% brake_rate: 0.0% avg_steps/gem: 0 overshoot: 0 (0.0% of steps, avg 0.00/frame) pickup_speed: 0.0 brakes_near_pickup: 0.00/gem slow_pickup_bonus: 0 freefall: 0 (0.0% of steps) gems_by_pts: - offmap: 0 cmd_accel_cos: 0.00
+[2026-09-14 21:31:36] Ep 12770 [NEUTRAL] rwd=0.0 gems=0pts oob=0 steps=1 | avg100=15625.1
+[2026-09-14 21:31:48] 
+Received interrupt, saving and shutting down...
+[2026-09-14 21:31:48] Game disconnected. Waiting for it to reconnect (training state kept in memory; Ctrl+C to stop).
+[2026-09-14 21:31:48] Server stopped.

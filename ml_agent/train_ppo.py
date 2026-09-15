@@ -39,6 +39,7 @@ from collections import deque
 from datetime import datetime
 from dashboard import DashboardServer
 from terrain_obs import TerrainMap, TERRAIN_DIM
+from demo_data import DemoSet, bc_loss
 
 # ============================================================================
 # Run defaults -- everything needed to start training with a plain
@@ -686,8 +687,15 @@ class PPOTrainer:
                     self._terrain_params.append(p)
 
     def update(self, buffer, n_epochs=4, batch_size=64, gamma=0.99, lam=0.95,
-               freeze_actor=False, last_value=0.0):
+               freeze_actor=False, last_value=0.0, bc_sampler=None, bc_coef=0.0):
         """Run PPO update with independent actor and critic steps.
+
+        bc_sampler(batch_size) -> (demo_states, demo_actions): when given with
+        bc_coef > 0, every actor minibatch also minimizes bc_coef * bc_loss on
+        a random demo minibatch (behavior-cloning regularization toward the
+        human demonstrations; see demo_data.bc_loss). The BC gradient norm is
+        measured on the first minibatch of each update (bc_grad_norm) so the
+        coefficient can be judged against the PPO gradient (grad_norm).
 
         When freeze_actor=True (warmup phase), the actor's policy weights are
         not updated — only the critic is trained. KL/grad_norm are still
@@ -705,6 +713,10 @@ class PPOTrainer:
         n_updates = 0
         max_kl = 0.0
         kl_early_stopped = False
+        total_bc_loss = 0.0
+        total_bc_cos = 0.0
+        n_bc = 0
+        bc_grad_norm = 0.0
 
         # GAE once per update (values are fixed for the whole update), then
         # refresh the PopArt value-target statistics from this rollout's returns
@@ -740,6 +752,19 @@ class PPOTrainer:
                 policy_loss = -torch.min(surr1, surr2).mean()
                 entropy_loss = -entropy.mean()
                 actor_loss = policy_loss + self.entropy_coef * entropy_loss
+
+                # Behavior-cloning auxiliary term on a demo minibatch.
+                if bc_sampler is not None and bc_coef > 0 and not freeze_actor:
+                    demo_states, demo_actions = bc_sampler(len(states))
+                    bc_l, bc_m = bc_loss(self.actor, demo_states, demo_actions)
+                    if n_bc == 0:
+                        bc_grads = torch.autograd.grad(bc_coef * bc_l, [p for p in self.actor.parameters() if p.requires_grad],
+                                                       retain_graph=True, allow_unused=True)
+                        bc_grad_norm = sum(g.norm().item() ** 2 for g in bc_grads if g is not None) ** 0.5
+                    actor_loss = actor_loss + bc_coef * bc_l
+                    total_bc_loss += bc_m['loss']
+                    total_bc_cos += bc_m['dir_cos']
+                    n_bc += 1
 
                 if not freeze_actor:
                     self.actor_optimizer.zero_grad()
@@ -797,6 +822,10 @@ class PPOTrainer:
             'max_kl': max_kl,
             'value_std': v_std,    # PopArt scale: VL above is in units of this
             'value_mean': v_mean,
+            'bc_loss': total_bc_loss / max(n_bc, 1),
+            'bc_dir_cos': total_bc_cos / max(n_bc, 1),
+            'bc_grad_norm': bc_grad_norm,
+            'bc_coef': bc_coef if n_bc else 0.0,
         }
 
 
@@ -917,6 +946,45 @@ class PPOServer:
         #          (SAC-style adaptive). If entropy collapses below ~1.0 fast,
         #          back off to -0.0005 — too much pressure killing exploration.
         self.buffer = RolloutBuffer()
+
+        # === Human demonstrations: BC auxiliary loss (2026-09-14) ===
+        # Every demos/demo_*.npz (record_demos.py) is loaded at startup. When
+        # any exist, each PPO actor minibatch also minimizes
+        # bc_coef * bc_loss(actor, demo minibatch)  (demo_data.bc_loss: direction
+        # cosine + throttle/jump/brake BCE). bc_coef starts at BC_COEF_START on
+        # the first non-warmup update after bc_pretrain.py, decays linearly to
+        # BC_COEF_FLOOR over BC_DECAY_UPDATES updates and stays there: the floor
+        # keeps a light anchor to human behaviour so PPO cannot drift back into
+        # the learned speed cap (the exploration dead end that capped the score
+        # at ~100 vs the human's ~166) while the critic relearns. bc_updates_done
+        # persists in the checkpoint. Why demos at all: PPO's own exploration (21-35 deg noise on
+        # a policy that reverses above 7 u/s) never visits fast, human-like
+        # play, so the critic never learns that it pays. Map-independent: the
+        # demos are (obs, action) pairs in the agent's own frame; nothing about
+        # this map's layout is baked into the loss.
+        # Coefficient scale: the actor's raw PPO gradient norm is ~6 (median of the
+        # last 300 updates before BC; clipped to 0.3), and bc_loss at the demo
+        # optimum has norm ~1.5 per unit coefficient (it grows as the policy
+        # drifts). 1.0 makes BC ~20% of the update at the start; the 0.2 floor
+        # ~5%. The Upd line prints both norms (GN= and gn= inside BC=). The
+        # floor is a light anchor for this bootstrap phase only: set it to 0
+        # once the agent matches the human (~166/round) so the game reward
+        # alone shapes the policy from there (the goal is superhuman play).
+        self.BC_COEF_START = 1.0
+        self.BC_COEF_FLOOR = 0.2
+        self.BC_DECAY_UPDATES = 400
+        self.bc_updates_done = 0
+        self.demos = None
+        try:
+            demos = DemoSet(self.obs_dim, log=self.log)
+            if demos.n_train > 0:
+                self.demos = demos
+                self.log(f"Demonstrations loaded: {demos.describe()}")
+                self.log(f"  BC aux loss: coef {self.BC_COEF_START} -> {self.BC_COEF_FLOOR} over {self.BC_DECAY_UPDATES} updates")
+            else:
+                self.log("No demonstrations found (demos/): PPO only")
+        except Exception as e:
+            self.log(f"Demonstrations not loaded ({type(e).__name__}: {e}): PPO only")
 
         # Critic warmup: when transitioning to a new map, the critic's V(s)
         # predictions are wildly wrong for the new state distribution. PPO
@@ -1117,6 +1185,10 @@ class PPOServer:
 
             # Restore warmup state (None if checkpoint pre-dates warmup feature)
             self.warmup_start_update = checkpoint.get('warmup_start_update', None)
+            self.bc_updates_done = int(checkpoint.get('bc_updates_done', 0))
+            if checkpoint.get('bc_pretrained_from'):
+                self.log(f"  BC-pretrained checkpoint (from {checkpoint['bc_pretrained_from']}); "
+                         f"BC aux updates done: {self.bc_updates_done}")
 
             # Restore the direction noise cap (anneal state). Checkpoints that
             # predate the anneal start from the class default (-0.5, 35 deg).
@@ -1267,6 +1339,23 @@ class PPOServer:
         self.game_brakes = 0             # brake DECISIONS this game
         self.game_decisions = 0          # decisions this game (jump/brake rate denominator)
         self.game_steps = 0              # total ticks this game
+        # Frame check: ticks at floor height whose (x, y) lies outside the terrain
+        # map's footprint. In a world-fixed frame this is ~0; a rotated frame
+        # (the 2026-09-14 spawn-yaw bug) puts most of a game off the map.
+        self.game_offmap = 0
+        # Action-frame self-check: mean cosine between the world-frame command
+        # sent on the previous tick and the world-frame acceleration observed on
+        # this tick (floor ticks only). Right frame: ~0.5-0.9 (human recordings:
+        # 0.86). Wrong frame or rotation: ~0 or negative. On the GAME END line
+        # as cmd_accel_cos; analyze_log flags it.
+        self.game_cmd_cos_sum = 0.0
+        self.game_cmd_cos_n = 0
+        self._last_cmd = None          # (wx, wy) of the last joystick sent
+        self._last_vel = None          # (vx, vy) of the last observation
+        # Per-decision trace of the game in progress; written to
+        # logs/last_game_trace.csv at GAME END (overwritten every game) so a
+        # bad game can be inspected decision by decision.
+        self.game_trace = []
         self.game_gem_steps_sum = 0      # sum of steps_since_gem at each pickup
         self.recent_jump_rate = deque(maxlen=100)        # jump % per game
         self.recent_brake_rate = deque(maxlen=100)       # brake % per game
@@ -1422,6 +1511,10 @@ class PPOServer:
         self.game_brakes = 0
         self.game_decisions = 0
         self.game_steps = 0
+        self.game_offmap = 0
+        self.game_cmd_cos_sum = 0.0
+        self.game_cmd_cos_n = 0
+        self.game_trace = []
         self.game_gem_steps_sum = 0
         self.game_freefall_penalty_sum = 0.0
         self.game_freefall_frames = 0
@@ -1595,12 +1688,15 @@ class PPOServer:
             # Parse: obs_json|gem_delta|oob|done
             parts = message.split('|')
 
-            if len(parts) != 4:
+            if len(parts) < 4:
                 if self.total_steps < 3:
                     self.log(f"Malformed message (expected 4 parts, got {len(parts)}): {message[:100]}")
                 return [0, 0, 0, 0, 0]
 
-            obs_json, gem_delta_str, oob_str, done_str = parts
+            # Extra fields (the human-input block a game in recording mode appends)
+            # are ignored; the game switches recording off when it sees our
+            # numeric actions.
+            obs_json, gem_delta_str, oob_str, done_str = parts[:4]
 
             # Parse fields
             obs = json.loads(obs_json)
@@ -1661,7 +1757,25 @@ class PPOServer:
                 self.recent_slow_pickup_bonus.append(round(self.game_slow_pickup_bonus_sum, 1))
 
                 freefall_pct = (self.game_freefall_frames / max(self.game_steps, 1)) * 100
-                self.log(f"[GAME END] total gems this game: {total_game_gems}pts (best: {self.best_game_gems}) avg_gap_penalty: {avg_gap:.1f} jump_rate: {jump_rate:.1f}% brake_rate: {brake_rate:.1f}% avg_steps/gem: {avg_steps_per_gem:.0f} overshoot: {self.game_overshoot_penalty_sum:.0f} ({overshoot_pct:.1f}% of steps, avg {avg_overshoot_per_frame:.2f}/frame) pickup_speed: {avg_pickup_speed:.1f} brakes_near_pickup: {avg_brakes_near_pickup:.2f}/gem slow_pickup_bonus: {self.game_slow_pickup_bonus_sum:.0f} freefall: {self.game_freefall_penalty_sum:.0f} ({freefall_pct:.1f}% of steps) gems_by_pts: {breakdown_str}")
+                self.log(f"[GAME END] total gems this game: {total_game_gems}pts (best: {self.best_game_gems}) avg_gap_penalty: {avg_gap:.1f} jump_rate: {jump_rate:.1f}% brake_rate: {brake_rate:.1f}% avg_steps/gem: {avg_steps_per_gem:.0f} overshoot: {self.game_overshoot_penalty_sum:.0f} ({overshoot_pct:.1f}% of steps, avg {avg_overshoot_per_frame:.2f}/frame) pickup_speed: {avg_pickup_speed:.1f} brakes_near_pickup: {avg_brakes_near_pickup:.2f}/gem slow_pickup_bonus: {self.game_slow_pickup_bonus_sum:.0f} freefall: {self.game_freefall_penalty_sum:.0f} ({freefall_pct:.1f}% of steps) gems_by_pts: {breakdown_str} offmap: {self.game_offmap} cmd_accel_cos: {self.game_cmd_cos_sum / max(self.game_cmd_cos_n, 1):.2f}")
+                if self.game_cmd_cos_n > 500 and self.game_cmd_cos_sum / self.game_cmd_cos_n < 0.2:
+                    self.log(f"  *** ACTION FRAME CHECK: commands and accelerations agree at only "
+                             f"{self.game_cmd_cos_sum / self.game_cmd_cos_n:.2f} (expect > 0.4). The joystick is not moving the marble "
+                             f"in the commanded world direction (see MLAgent::executeAction). ***")
+                try:
+                  if len(self.game_trace) >= 200:      # skip stub games (a round-end right after a start)
+                    with open('logs/last_game_trace.csv', 'w') as tf:
+                        tf.write('tick,x,y,z,vx,vy,vz,gem_dist,gem_dx,gem_dy,dx,dy,throttle,jump,brake\n')
+                        for row in self.game_trace:
+                            tf.write(','.join(f'{v:.3f}' if isinstance(v, float) else str(v) for v in row) + '\n')
+                except Exception as e:
+                    self.log(f"  (trace not written: {e})")
+                self.game_trace = []
+                self.game_cmd_cos_sum = 0.0
+                self.game_cmd_cos_n = 0
+                if self.terrain is not None and self.game_offmap > 0.05 * max(self.game_steps, 1):
+                    self.log(f"  *** FRAME CHECK: {100 * self.game_offmap / max(self.game_steps, 1):.0f}% of this game's ticks were at floor height "
+                             f"outside the terrain map. The observation frame is not the world frame (see mlAgent.cs $AIObserver::ForceYaw). ***")
 
                 # Refresh the dashboard's jump-probability heatmap in a background
                 # thread. Probe takes ~1s on a snapshot of actor weights — never
@@ -1692,6 +1806,10 @@ class PPOServer:
                 self.game_brakes = 0
                 self.game_decisions = 0
                 self.game_steps = 0
+                self.game_offmap = 0
+                self.game_cmd_cos_sum = 0.0
+                self.game_cmd_cos_n = 0
+                self.game_trace = []
                 self.game_gem_steps_sum = 0
                 self.game_overshoot_penalty_sum = 0.0
                 self.game_overshoot_frames = 0
@@ -1799,6 +1917,16 @@ class PPOServer:
             self.rollout_steps += 1
             self.episode_step += 1
             self.game_steps += 1
+            if self.terrain is not None and obs[5] > -3.0 and not self.terrain.contains(obs[0], obs[1]):
+                self.game_offmap += 1
+            if self._last_cmd is not None and self._last_vel is not None and obs[5] > -3.0:
+                ax, ay = obs[3] - self._last_vel[0], obs[4] - self._last_vel[1]
+                cx, cy = self._last_cmd
+                na, nc = math.hypot(ax, ay), math.hypot(cx, cy)
+                if na > 0.02 and nc > 0.3:
+                    self.game_cmd_cos_sum += (ax * cx + ay * cy) / (na * nc)
+                    self.game_cmd_cos_n += 1
+            self._last_vel = (obs[3], obs[4])
             self.total_steps += 1
             self.current_episode_reward += reward
 
@@ -1831,6 +1959,8 @@ class PPOServer:
                 self.steps_since_gem = 0
                 self.near_gem = False
                 self.frame_history.clear()  # Fresh history for new episode
+                self._last_cmd = None
+                self._last_vel = None
                 self._frame_hist_logged = False
                 self._frame_hist_log_end = 999999
                 self.camera_yaw = 0.0  # fixed orientation (see __init__ for rationale)
@@ -1901,6 +2031,8 @@ class PPOServer:
                 self.pending_reward = 0.0
                 self.tick_in_window = 0
                 self.cached_action = action_game
+                self.game_trace.append((self.game_steps, obs[0], obs[1], obs[2], obs[3], obs[4], obs[5],
+                                        obs[10], obs[6], obs[7], dx, dy, throttle, jump, brake))
                 if jump > 0.5:
                     self.game_jumps += 1
                     # Per-decision physical cost of a jump, charged once per held
@@ -1925,7 +2057,9 @@ class PPOServer:
             # brake keeps decelerating as the velocity vector changes.
             vx_raw = obs[3] if len(obs) > 5 else 0.0
             vy_raw = obs[4] if len(obs) > 5 else 0.0
-            return list(Actor.action_to_joystick(dx, dy, throttle, jump, brake, vx_raw, vy_raw))
+            js = list(Actor.action_to_joystick(dx, dy, throttle, jump, brake, vx_raw, vy_raw))
+            self._last_cmd = (js[3] - js[2], js[0] - js[1])     # world (x, y) = (right - left, fwd - back)
+            return js
 
         except Exception as e:
             # Never let a failure here disappear: an exception inside
@@ -1974,6 +2108,7 @@ class PPOServer:
                      f"Actor frozen during this window.")
 
         warmup_active = (self.total_updates - self.warmup_start_update) < self.WARMUP_ROLLOUTS
+        bc_coef = 0.0 if warmup_active else self.current_bc_coef()
 
         stats = self.trainer.update(
             self.buffer,
@@ -1983,8 +2118,12 @@ class PPOServer:
             lam=self.lam,
             freeze_actor=warmup_active,
             last_value=last_value,
+            bc_sampler=self.demos.sample if self.demos is not None else None,
+            bc_coef=bc_coef,
         )
         self.total_updates += 1
+        if self.demos is not None and not warmup_active:
+            self.bc_updates_done += 1
 
         # Log warmup-end transition once
         if warmup_active and (self.total_updates - self.warmup_start_update) >= self.WARMUP_ROLLOUTS:
@@ -2052,12 +2191,15 @@ class PPOServer:
         # FF=<frames>(-<penalty>) shows how many frames triggered it and total cost.
         # minVz= shows the most-negative vz seen — confirms the threshold is reached.
         ff_str = f" FF={self.rollout_freefall_frames}(-{self.rollout_freefall_penalty:.0f}) minVz={self.rollout_min_vz:.1f}"
+        # BC=<demo loss>/cos<direction agreement>(c=<coef>,gn=<BC grad norm>)
+        bc_str = (f" BC={stats['bc_loss']:.3f}/cos{stats['bc_dir_cos']:.2f}(c={stats['bc_coef']:.3f},gn={stats['bc_grad_norm']:.3f})"
+                  if stats.get('bc_coef', 0.0) > 0 else "")
         self.log(
             f"Upd {self.total_updates:4d} | "
             f"PL={stats['policy_loss']:.4f} VL={stats['value_loss']:.4f} "
             f"Ent={stats['entropy']:.3f} GN={stats['grad_norm']:.3f} CGN={stats['critic_grad_norm']:.3f} KL={stats['max_kl']:.4f} | "
             f"AvgRwd={avg_reward:.1f} AvgLen={avg_ep_len:.0f}{collapse_warn} |"
-            f"{gems_str}{oob_str}{ff_str} Vstd={stats.get('value_std', 0.0):.1f}{dry_warn}{kl_warn}"
+            f"{gems_str}{oob_str}{ff_str} Vstd={stats.get('value_std', 0.0):.1f}{bc_str}{dry_warn}{kl_warn}"
         )
         self.log(f"       {act_str}")
 
@@ -2124,6 +2266,13 @@ class PPOServer:
         # Clear buffer for next rollout
         self.buffer.clear()
 
+    def current_bc_coef(self):
+        """BC auxiliary coefficient for the next update (0 without demos)."""
+        if self.demos is None:
+            return 0.0
+        frac = min(1.0, self.bc_updates_done / max(1, self.BC_DECAY_UPDATES))
+        return max(self.BC_COEF_FLOOR, self.BC_COEF_START * (1.0 - frac))
+
     def save_model(self, path):
         """Save model checkpoint."""
         torch.save({
@@ -2139,6 +2288,7 @@ class PPOServer:
             'throttle_floor_active': self.throttle_floor_active,
             'warmup_start_update': self.warmup_start_update,
             'log_std_max': float(self.actor.LOG_STD_MAX),   # direction noise cap (anneal state)
+            'bc_updates_done': self.bc_updates_done,        # BC aux-loss decay position
         }, path)
         self.log(f"  Model saved to {path}")
 

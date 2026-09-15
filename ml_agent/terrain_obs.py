@@ -67,6 +67,11 @@ class TerrainMap:
         self.name = str(d['map_name']) if 'map_name' in d.files else os.path.basename(path)
         self.z_bounds = tuple(float(v) for v in d['z_bounds']) if 'z_bounds' in d.files else None
 
+    def contains(self, x, y):
+        """True if (x, y) lies within the map's grid footprint."""
+        return (self.xs[0] - self.res <= x <= self.xs[-1] + self.res
+                and self.ys[0] - self.res <= y <= self.ys[-1] + self.res)
+
     # ------------------------------------------------------------------ resolution
     @staticmethod
     def resolve(name_or_path):

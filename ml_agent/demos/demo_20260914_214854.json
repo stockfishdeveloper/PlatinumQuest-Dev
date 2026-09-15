@@ -1,0 +1,48 @@
+{
+  "ticks": 68208,
+  "seconds_of_play": 1091.3,
+  "games_completed": 6,
+  "game_totals_from_game": [
+    163,
+    177,
+    172,
+    121,
+    119,
+    109
+  ],
+  "gem_points": 861,
+  "pickups": 682,
+  "oob": 4,
+  "move_input_pct": 90.1,
+  "jump_pct": 1.809999942779541,
+  "use_powerup_pct": 0.06,
+  "derived_brake_pct": 14.329999923706055,
+  "mean_speed": 8.05,
+  "p90_speed": 12.18,
+  "pickup_speed": 7.75,
+  "ticks_per_pickup": 100.0,
+  "malformed_messages": 0,
+  "pre_record_ticks": 0,
+  "frame_check_cos": 0.271,
+  "frame_check_cos_mirrored_yaw": -0.003,
+  "frame_check_samples": 58381,
+  "frame_check_accel_cos": 0.855,
+  "frame_check_accel_cos_mirrored_yaw": -0.007,
+  "terrain_present_at_2u_pct_when_grounded": 86.9,
+  "pos_range_x": [
+    -47.3,
+    3.6
+  ],
+  "pos_range_y": [
+    -6.3,
+    37.0
+  ],
+  "terrain_map_x": [
+    -49.7,
+    -0.7
+  ],
+  "terrain_map_y": [
+    -9.5,
+    39.5
+  ]
+}

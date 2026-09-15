@@ -69438,3 +69438,6 @@ Game connected from ('127.0.0.1', 57919)
 [2026-09-14 15:52:45] [GAME END] total gems this game: 20pts (best: 102) avg_gap_penalty: 0.0 jump_rate: 0.6% brake_rate: 24.3% avg_steps/gem: 384 overshoot: 0 (3.6% of steps, avg 0.00/frame) pickup_speed: 6.7 brakes_near_pickup: 1.47/gem slow_pickup_bonus: 0 freefall: 1280 (27.5% of steps) gems_by_pts: 1x10 2x5
 [2026-09-14 15:52:45] Ep 12773 [SUCCESS] rwd=2641.9 gems=20pts oob=12 steps=6231 | avg100=15665.7
 [2026-09-14 15:55:10] Game disconnected. Waiting for it to reconnect (training state kept in memory; Ctrl+C to stop).
+[2026-09-14 16:24:50] 
+Received interrupt, saving and shutting down...
+[2026-09-14 16:24:50] Server stopped.

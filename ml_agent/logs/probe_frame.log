@@ -1,0 +1,49 @@
+[21:13:42] probe_frame: waiting for the game (host the map and start the round)
+[21:13:45] game connected ('127.0.0.1', 54705)
+[21:13:45] cycle 1: at rest at [-25.  -5.  22.] (expected spawn yaw 0 deg); commanding world +x
+[21:13:45]    measured velocity [ 0.   -7.97] (|v|=8.0), moved [ 0.  -6.4]: commanded 0 deg, measured -90 deg, ERROR -90 deg
+[21:13:45] cycle 2: at rest at [-45.2  27.   22. ] (expected spawn yaw 90 deg); commanding world +y
+[21:13:45]    measured velocity [7.97 0.  ] (|v|=8.0), moved [6.4 0. ]: commanded 90 deg, measured 0 deg, ERROR -90 deg
+[21:13:45] cycle 3: at rest at [-45.2  27.   22. ] (expected spawn yaw 90 deg); commanding world -x
+[21:13:45]    measured velocity [-0.    7.97] (|v|=8.0), moved [0.  6.4]: commanded 180 deg, measured 90 deg, ERROR -90 deg
+[21:13:45] game disconnected
+[21:13:45] SUMMARY (expected spawn yaw, command, error):
+[21:13:45]    yaw     0  cmd +x  error -90 deg
+[21:13:45]    yaw    90  cmd +y  error -90 deg
+[21:13:45]    yaw    90  cmd -x  error -90 deg
+[21:14:33] probe_frame: waiting for the game (host the map and start the round)
+[21:15:08] game connected ('127.0.0.1', 54772)
+[21:15:10] cycle 1: at rest at [-13.2   4.1  20.8] (expected spawn yaw None deg); commanding world +x
+[21:15:11]    measured velocity [7.72 0.07] (|v|=7.7), moved [4.7 0.1]: commanded 0 deg, measured 0 deg, ERROR +0 deg
+[21:15:13] cycle 2: at rest at [-36.   27.   20.8] (expected spawn yaw None deg); commanding world +y
+[21:15:13]    measured velocity [0.07 7.69] (|v|=7.7), moved [0.1 4.7]: commanded 90 deg, measured 90 deg, ERROR -0 deg
+[21:15:16] cycle 3: at rest at [-37.   25.7  20.8] (expected spawn yaw None deg); commanding world -x
+[21:15:16]    measured velocity [-7.79 -0.07] (|v|=7.8), moved [-4.7 -0.1]: commanded 180 deg, measured -180 deg, ERROR +0 deg
+[21:15:19] cycle 4: at rest at [-36.   27.   20.8] (expected spawn yaw None deg); commanding world -y
+[21:15:19]    measured velocity [ 0.07 -8.61] (|v|=8.6), moved [ 0.1 -4.8]: commanded -90 deg, measured -90 deg, ERROR +0 deg
+[21:15:21] cycle 5: at rest at [-14.4  27.   20.8] (expected spawn yaw None deg); commanding world +x
+[21:15:21]    measured velocity [8.35 0.  ] (|v|=8.4), moved [4.7 0. ]: commanded 0 deg, measured 0 deg, ERROR +0 deg
+[21:15:24] cycle 6: at rest at [-13.   25.7  20.8] (expected spawn yaw None deg); commanding world +y
+[21:15:24]    measured velocity [0.   8.36] (|v|=8.4), moved [0.  4.7]: commanded 90 deg, measured 90 deg, ERROR +0 deg
+[21:15:27] cycle 7: at rest at [-14.4  27.   20.8] (expected spawn yaw None deg); commanding world -x
+[21:15:27]    measured velocity [-8.66  0.  ] (|v|=8.7), moved [-4.9  0. ]: commanded 180 deg, measured 180 deg, ERROR +0 deg
+[21:15:30] cycle 8: at rest at [-25.   25.8  20.8] (expected spawn yaw None deg); commanding world -y
+[21:15:30]    measured velocity [ 0.   -8.68] (|v|=8.7), moved [ 0. -5.]: commanded -90 deg, measured -90 deg, ERROR +0 deg
+[21:15:32] cycle 9: at rest at [-13.2   4.2  20.8] (expected spawn yaw None deg); commanding world +x
+[21:15:33]    measured velocity [7.71 0.07] (|v|=7.7), moved [4.7 0.1]: commanded 0 deg, measured 0 deg, ERROR +0 deg
+[21:15:35] cycle 10: at rest at [-14.4   3.   20.8] (expected spawn yaw None deg); commanding world +y
+[21:15:36]    measured velocity [-0.07  8.59] (|v|=8.6), moved [-0.1  4.8]: commanded 90 deg, measured 90 deg, ERROR +0 deg
+[21:15:38] cycle 11: at rest at [-14.4  15.   20.8] (expected spawn yaw None deg); commanding world -x
+[21:15:39]    measured velocity [-8.67  0.  ] (|v|=8.7), moved [-4.9  0. ]: commanded 180 deg, measured 180 deg, ERROR +0 deg
+[21:15:52] SUMMARY (expected spawn yaw, command, error):
+[21:15:52]    yaw  None  cmd +x  error +0 deg
+[21:15:52]    yaw  None  cmd +y  error -0 deg
+[21:15:52]    yaw  None  cmd -x  error +0 deg
+[21:15:52]    yaw  None  cmd -y  error +0 deg
+[21:15:52]    yaw  None  cmd +x  error +0 deg
+[21:15:52]    yaw  None  cmd +y  error +0 deg
+[21:15:52]    yaw  None  cmd -x  error +0 deg
+[21:15:52]    yaw  None  cmd -y  error +0 deg
+[21:15:52]    yaw  None  cmd +x  error +0 deg
+[21:15:52]    yaw  None  cmd +y  error +0 deg
+[21:15:52]    yaw  None  cmd -x  error +0 deg

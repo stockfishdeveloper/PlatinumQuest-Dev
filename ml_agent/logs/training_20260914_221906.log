@@ -1,0 +1,29 @@
+[2026-09-14 22:19:07] Demonstrations loaded: 68,208 ticks (18.2 min) in 6 rounds from 1 file(s); train 56,834 / val 11,374 (val = round 5); moving 90% jump 1.8% brake 14.3%
+[2026-09-14 22:19:07]   BC aux loss: coef 1.0 -> 0.2 over 400 updates
+[2026-09-14 22:19:07] Loading model from models/checkpoints\update_84690.pth
+[2026-09-14 22:19:07]   Critic restored from checkpoint
+[2026-09-14 22:19:07]   Actor optimizer restored
+[2026-09-14 22:19:07]   Critic optimizer restored
+[2026-09-14 22:19:07]   LR set: actor=3e-05, critic=0.0001
+[2026-09-14 22:19:07]   PolicyStd: raw 51.7 deg, cap 21.1 deg -> effective 21.1 deg (log_std_max=-1.00, target -1.00 = 21.1 deg)
+[2026-09-14 22:19:07]   ThrottleStd: 0.174 (bounds: -3.0 to -0.9)
+[2026-09-14 22:19:07] Model loaded successfully!
+[2026-09-14 22:19:07] Resuming from: 198936611 steps, 84690 updates, 12767 episodes
+[2026-09-14 22:19:07] Best avg reward restored: 17184.53
+[2026-09-14 22:19:07]   Throttle floor: disabled (mature)
+[2026-09-14 22:19:08] Dashboard: http://0.0.0.0:8889 (accessible on WiFi)
+[2026-09-14 22:19:08] Action repeat: 4 ticks/decision | gamma=0.996 | reward clip=+/-100
+[2026-09-14 22:19:08] ============================================================
+[2026-09-14 22:19:08] PPO Training Server
+[2026-09-14 22:19:08] ============================================================
+[2026-09-14 22:19:08] Listening on 127.0.0.1:8888
+[2026-09-14 22:19:08] Obs dim: 123 (base=35 + 4x6 history, skip=8 + 64 terrain)
+[2026-09-14 22:19:08] Terrain: C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\terrain_maps\terrain_KingOfTheMarble_Hunt.npz (99x99 cells at 0.5u, 4-level stack, z bounds (16.0, 91.0))
+[2026-09-14 22:19:08] Terrain LR multiplier: off (1.0x)
+[2026-09-14 22:19:08] Direction noise cap: 21.1 deg now, annealing 0.02/update to 21.1 deg | KL early stop at 0.30
+[2026-09-14 22:19:08] Rollout size: 2048 steps
+[2026-09-14 22:19:08] PPO epochs: 4
+[2026-09-14 22:19:08] Batch size: 256
+[2026-09-14 22:19:08] Press Ctrl+C to stop
+[2026-09-14 22:19:08] ============================================================
+[2026-09-14 22:19:08] Waiting for game to connect...
