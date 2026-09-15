@@ -189,6 +189,12 @@ def parse_log(filepath):
                 summaries[-1]['terrain_brake'] = float(m.group(2))
                 summaries[-1]['terrain_jump'] = float(m.group(3))
                 summaries[-1]['terrain_critic'] = float(m.group(4))
+            m = re.search(r'EdgeCols: actor=([\d.]+) brake=([\d.]+) jump=([\d.]+) critic=([\d.]+)', line)   # 2026-09-15+
+            if m and summaries:
+                summaries[-1]['edge_actor'] = float(m.group(1))
+                summaries[-1]['edge_brake'] = float(m.group(2))
+                summaries[-1]['edge_jump'] = float(m.group(3))
+                summaries[-1]['edge_critic'] = float(m.group(4))
 
     return {
         'updates': updates,
@@ -678,6 +684,8 @@ def print_analysis(data, last_n=None):
         print(f"  Best avg:   {s.get('best_reward', 0):.1f}")
         if 'terrain_actor' in s:
             print(f"  TerrainCols: actor={s['terrain_actor']:.3f} brake={s['terrain_brake']:.3f} jump={s['terrain_jump']:.3f} critic={s['terrain_critic']:.3f}  (terrain-column weight magnitude / original columns)")
+            if s.get('edge_actor') is not None:
+                print(f"  EdgeCols:    actor={s['edge_actor']:.3f} brake={s['edge_brake']:.3f} jump={s['edge_jump']:.3f} critic={s['edge_critic']:.3f}  (edge-ray columns; start at 0 after the 2026-09-15 widening)")
     if games:
         g = games[-1]
         recent_gap = sum(x['avg_gap_penalty'] for x in games[-10:]) / min(10, len(games))

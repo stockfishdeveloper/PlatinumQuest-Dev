@@ -104,8 +104,9 @@ def make_obs(marble_xyz, marble_vel, gem_xyz):
         obs[35 + i*6 + 2] = mz / 100.0
         obs[35 + i*6 + 3] = vx / 20.0
         obs[35 + i*6 + 4] = vy / 20.0
+    raw35 = obs[:35].copy()                       # observe() wants the raw (unnormalized) obs
     base = normalize_obs(obs)
-    terrain = TERRAIN.sample(mx, my, mz, 0.0) if TERRAIN is not None else TerrainMap.flat_sample()
+    terrain = TERRAIN.observe(raw35) if TERRAIN is not None else TerrainMap.flat_observe()
     return np.concatenate([base, terrain])
 
 

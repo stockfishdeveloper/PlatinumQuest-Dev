@@ -17,7 +17,7 @@ What is recorded, per 16 ms game tick, from the message
     obs_json|gemDelta|oob|done|forward,backward,left,right,jump,usePowerup,cameraYaw
   obs_raw   (35)  the raw observation, in the agent's FIXED frame (yaw 0 = world),
                   because MLAgent::enableRecording() pins the observer's yaw
-  obs_model (123) exactly what the policy network sees: normalized obs + tick
+  obs_model (161) exactly what the policy network sees: normalized obs + tick
                   frame history + terrain sample, built with the same code as
                   training (play.normalize_obs, terrain_obs.TerrainMap)
   action    (5)   the agent's action format: dx, dy (unit vector of the human's
@@ -142,7 +142,7 @@ class DemoRecorder:
         for i in range(1, FRAME_HISTORY_COUNT + 1):
             idx = len(self.frame_history) - 1 - i * FRAME_SKIP
             hist.append(self.frame_history[idx] if idx >= 0 else np.zeros(FRAME_HISTORY_DIMS, dtype=np.float32))
-        terrain = self.terrain.sample(float(raw[0]), float(raw[1]), float(raw[2]), 0.0) if self.terrain else TerrainMap.flat_sample()
+        terrain = self.terrain.observe(raw) if self.terrain else TerrainMap.flat_observe()   # point samples + edge rays
         obs_model = np.concatenate([norm] + hist + [terrain]).astype(np.float32)
 
         r = self.rows
@@ -272,7 +272,7 @@ class DemoRecorder:
             with open(tmp, 'wb') as f:
                 np.savez_compressed(f, **a,
                                     terrain_map=np.array(self.terrain.path if self.terrain else ''),
-                                    obs_layout=np.array('35 raw normalized | 24 frame history (t-8,16,24,32 ticks) | 64 terrain'),
+                                    obs_layout=np.array('35 raw normalized | 24 frame history (t-8,16,24,32 ticks) | 64 terrain | 38 edge rays'),
                                     action_layout=np.array('dx, dy (fixed frame unit vector), throttle, jump, brake(derived)'))
             with np.load(tmp, allow_pickle=False) as chk:          # verify before replacing anything
                 if len(chk['tick']) != len(a['tick']):

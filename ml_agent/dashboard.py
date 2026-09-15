@@ -128,7 +128,7 @@ def compute_heatmap(actor):
     # observation take 64 extra dims after the frame history; this flat-map
     # probe feeds them the flat-floor sample.
     from terrain_obs import TerrainMap
-    flat_terrain = TerrainMap.flat_sample()
+    flat_terrain = TerrainMap.flat_observe()      # 64 point samples + 38 edge rays, all clear
     all_obs = np.zeros((n_cells * n_gems, obs_dim), dtype=np.float32)
     idx = 0
     for j, y in enumerate(ys):

@@ -33,6 +33,8 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 
+from terrain_obs import EDGE_DIM, gem_rels_from_raw
+
 DEMO_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'demos')
 MIN_HOLDOUT_TICKS = 5000       # the validation round must be (most of) a full round
 HIST = slice(35, 59)           # frame-history block of obs_model (4 x pos+vel, t-8..t-32 ticks)
@@ -67,20 +69,26 @@ def augment(states, p_zero=AUG_P_ZERO_HIST, p_swap=AUG_P_SWAP_HIST, noise_sd=AUG
 
 
 class DemoSet:
-    def __init__(self, obs_dim, demo_dir=DEMO_DIR, holdout=True, log=print):
+    def __init__(self, obs_dim, demo_dir=DEMO_DIR, holdout=True, log=print, terrain=None):
         files = sorted(glob.glob(os.path.join(demo_dir, 'demo_*.npz')))
         obs, act, gid = [], [], []
         self.files = []
         next_game = 0
         for f in files:
             try:
-                a = np.load(f, allow_pickle=False)
-                om, ac, g = a['obs_model'], a['action'], a['game'].astype(np.int64)
+                with np.load(f, allow_pickle=False) as npz:       # read everything, then close:
+                    a = {k: npz[k] for k in npz.files}            # the file must be closed before
+                om, ac, g = a['obs_model'], a['action'], a['game'].astype(np.int64)   # an upgrade can replace it
             except Exception as e:
                 log(f"  demos: skipping {os.path.basename(f)} ({e})")
                 continue
             if len(om) == 0:
                 continue
+            if om.shape[1] == obs_dim - EDGE_DIM and 'obs_raw' in a and terrain is not None:
+                # Recording made before the edge rays existed: the point-sample
+                # part is unchanged, so append the rays computed from the raw
+                # obs and cache the result back into the file (atomic replace).
+                om = upgrade_with_edges(f, a, terrain, log)
             if om.shape[1] != obs_dim:
                 log(f"  demos: skipping {os.path.basename(f)}: obs dim {om.shape[1]} != {obs_dim}")
                 continue
@@ -145,6 +153,24 @@ class DemoSet:
         for s in range(0, len(idx), batch_size):
             pick = idx[s:s + batch_size]
             yield self.obs[pick], self.act[pick]
+
+
+def upgrade_with_edges(path, archive, terrain, log=print):
+    raw = archive['obs_raw']
+    edges = np.stack([terrain.edge_rays(float(r[0]), float(r[1]), float(r[2]), gem_rels_from_raw(r)) for r in raw]).astype(np.float32)
+    om = np.concatenate([archive['obs_model'].astype(np.float32), edges], axis=1)
+    try:
+        data = dict(archive)
+        data['obs_model'] = om
+        data['obs_layout'] = np.array('35 raw normalized | 24 frame history (t-8,16,24,32 ticks) | 64 terrain | 38 edge rays')
+        tmp = path + '.tmp'
+        with open(tmp, 'wb') as fh:
+            np.savez_compressed(fh, **data)
+        os.replace(tmp, path)
+        log(f"  demos: {os.path.basename(path)} upgraded with edge rays ({len(raw):,} ticks) and cached")
+    except Exception as e:
+        log(f"  demos: {os.path.basename(path)} upgraded with edge rays in memory only ({e})")
+    return om
 
 
 def bc_loss(actor, states, actions):

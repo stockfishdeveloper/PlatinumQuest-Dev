@@ -21,7 +21,7 @@ from collections import deque
 
 # Reuse the model definition from the training script
 from train_ppo import Actor, widen_state_dict, DEFAULT_TERRAIN_MAP, resolve_terrain_path
-from terrain_obs import TerrainMap, TERRAIN_DIM
+from terrain_obs import TerrainMap, TERRAIN_DIM, PERCEPTION_DIM
 
 
 def normalize_obs(obs):
@@ -66,7 +66,7 @@ def main():
     FRAME_SKIP = 8
     FRAME_HISTORY_DIMS = 6  # pos(3) + vel(3)
     OBS_DIM_BASE = 35
-    OBS_DIM = OBS_DIM_BASE + FRAME_HISTORY_COUNT * FRAME_HISTORY_DIMS + TERRAIN_DIM  # 59 + 64 = 123
+    OBS_DIM = OBS_DIM_BASE + FRAME_HISTORY_COUNT * FRAME_HISTORY_DIMS + PERCEPTION_DIM  # 59 + 64 + 38 = 161
     frame_history_size = FRAME_HISTORY_COUNT * FRAME_SKIP + 1  # 33
     frame_history = deque(maxlen=frame_history_size)
     # Action repeat (must match train_ppo.py ACTION_REPEAT): the policy was
@@ -188,9 +188,9 @@ def main():
                             else:
                                 history_frames.append(np.zeros(FRAME_HISTORY_DIMS, dtype=np.float32))
                         if terrain is not None:
-                            terrain_vec = terrain.sample(float(obs_raw[0]), float(obs_raw[1]), float(obs_raw[2]), 0.0)
+                            terrain_vec = terrain.observe(obs_raw)       # point samples + edge rays
                         else:
-                            terrain_vec = TerrainMap.flat_sample()
+                            terrain_vec = TerrainMap.flat_observe()
                         obs_augmented = np.concatenate([obs] + history_frames + [terrain_vec])
 
                         tick_in_window += 1

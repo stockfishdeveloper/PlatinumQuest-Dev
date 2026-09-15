@@ -32,7 +32,8 @@ import torch
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 os.chdir(HERE)
-from train_ppo import Actor, widen_state_dict, TERRAIN_DIM
+from train_ppo import Actor, widen_state_dict, resolve_terrain_path
+from terrain_obs import TerrainMap, PERCEPTION_DIM
 from demo_data import DemoSet, bc_loss, evaluate, augment
 
 EPOCHS = 30
@@ -79,7 +80,7 @@ def main():
         print("No checkpoint found in models/checkpoints/."); return
     ck = torch.load(path, weights_only=False)
     saved = ck.get('actor_state_dict', ck.get('model_state_dict'))
-    obs_dim = saved['features.0.weight'].shape[1]
+    obs_dim = 35 + 24 + PERCEPTION_DIM          # current layout; older checkpoints are widened
     actor = Actor(obs_dim=obs_dim)
     actor.load_state_dict(widen_state_dict(actor, saved), strict=False)
     actor.LOG_STD_MAX = float(ck.get('log_std_max', Actor.LOG_STD_MAX))
@@ -88,7 +89,8 @@ def main():
     n_upd = int(ck.get('total_updates', 0))
     print(f"Checkpoint: {os.path.basename(path)} (update {n_upd}, obs_dim {obs_dim})")
 
-    demos = DemoSet(obs_dim)
+    terrain = TerrainMap(resolve_terrain_path())
+    demos = DemoSet(obs_dim, terrain=terrain)
     print(f"Demos: {demos.describe()}")
     if demos.n_train == 0:
         print("Nothing to train on."); return
@@ -130,7 +132,7 @@ def main():
 
     actor.to('cpu')
     with torch.no_grad():
-        split = obs_dim - TERRAIN_DIM
+        split = obs_dim - PERCEPTION_DIM
         w = actor.features[0].weight
         print(f"Terrain-column weight ratio (actor trunk): {(w[:, split:].abs().mean() / w[:, :split].abs().mean()).item():.3f}")
 

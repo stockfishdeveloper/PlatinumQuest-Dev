@@ -38,7 +38,7 @@ import math
 from collections import deque
 from datetime import datetime
 from dashboard import DashboardServer
-from terrain_obs import TerrainMap, TERRAIN_DIM
+from terrain_obs import TerrainMap, TERRAIN_DIM, EDGE_DIM, PERCEPTION_DIM
 from demo_data import DemoSet, bc_loss
 
 # ============================================================================
@@ -862,8 +862,12 @@ class PPOServer:
         # map-independent pattern instead of a table of this map's coordinates.
         # terrain=None (--no-terrain) feeds the flat-floor placeholder sample.
         self.terrain = TerrainMap(terrain) if terrain else None
+        # + edge rays (2026-09-15, terrain_obs.EDGE_DIM = 38): per heading, how far
+        # the floor continues and what lies beyond; per nearest gem, whether the
+        # floor runs all the way to it. Old checkpoints are widened with zero
+        # columns for the new inputs, so behaviour is unchanged at the switch.
         self.obs_dim = (self.obs_dim_base + self.FRAME_HISTORY_COUNT * self.FRAME_HISTORY_DIMS
-                        + TERRAIN_DIM)  # 35 + 24 + 64 = 123
+                        + PERCEPTION_DIM)  # 35 + 24 + 64 + 38 = 161
 
         # Ring buffer of recent normalized obs (pos+vel only, indices 0:6).
         # Need current frame + FRAME_HISTORY_COUNT * FRAME_SKIP historical frames.
@@ -913,7 +917,7 @@ class PPOServer:
                                    target_kl=0.2, clip_epsilon=0.1,
                                    max_grad_norm=0.3, entropy_coef=-0.001,
                                    terrain_lr_mult=self.TERRAIN_LR_MULT,
-                                   terrain_split=self.obs_dim - TERRAIN_DIM,
+                                   terrain_split=self.obs_dim - PERCEPTION_DIM,
                                    obs_dim=self.obs_dim)
 
         # Direction noise cap anneal (2026-09-13). The raw log_std parameter sits
@@ -970,17 +974,26 @@ class PPOServer:
         # floor is a light anchor for this bootstrap phase only: set it to 0
         # once the agent matches the human (~166/round) so the game reward
         # alone shapes the policy from there (the goal is superhuman play).
-        self.BC_COEF_START = 1.0
-        self.BC_COEF_FLOOR = 0.2
+        # 2026-09-15: OFF (both 0). The overnight run with coef 1.0 -> 0.2 regressed
+        # the policy from 80 pts / 7 OOB to 47 / 16 (ablation without demos: 79 / 7),
+        # because pulling directions toward the human's lines drags a policy that
+        # cannot yet route around holes into them. Demos stay in demos/ for
+        # bc_pretrain.py and for a later, lighter use once hole avoidance is solid
+        # (edge rays, 2026-09-15). Set BC_COEF_START > 0 to re-enable the aux term.
+        self.BC_COEF_START = 0.0
+        self.BC_COEF_FLOOR = 0.0
         self.BC_DECAY_UPDATES = 400
         self.bc_updates_done = 0
         self.demos = None
         try:
-            demos = DemoSet(self.obs_dim, log=self.log)
+            demos = DemoSet(self.obs_dim, terrain=self.terrain, log=self.log)
             if demos.n_train > 0:
                 self.demos = demos
                 self.log(f"Demonstrations loaded: {demos.describe()}")
-                self.log(f"  BC aux loss: coef {self.BC_COEF_START} -> {self.BC_COEF_FLOOR} over {self.BC_DECAY_UPDATES} updates")
+                if self.BC_COEF_START > 0:
+                    self.log(f"  BC aux loss: coef {self.BC_COEF_START} -> {self.BC_COEF_FLOOR} over {self.BC_DECAY_UPDATES} updates")
+                else:
+                    self.log("  BC aux loss: off (BC_COEF_START = 0); demos are loaded for bc_pretrain.py only")
             else:
                 self.log("No demonstrations found (demos/): PPO only")
         except Exception as e:
@@ -1397,7 +1410,7 @@ class PPOServer:
         self.log(f"PPO Training Server")
         self.log(f"=" * 60)
         self.log(f"Listening on {self.host}:{self.port}")
-        self.log(f"Obs dim: {self.obs_dim} (base={self.obs_dim_base} + {self.FRAME_HISTORY_COUNT}x{self.FRAME_HISTORY_DIMS} history, skip={self.FRAME_SKIP} + {TERRAIN_DIM} terrain)")
+        self.log(f"Obs dim: {self.obs_dim} (base={self.obs_dim_base} + {self.FRAME_HISTORY_COUNT}x{self.FRAME_HISTORY_DIMS} history, skip={self.FRAME_SKIP} + {TERRAIN_DIM} terrain + {EDGE_DIM} edge rays)")
         if self.terrain is not None:
             self.log(f"Terrain: {self.terrain.path} ({self.terrain.W}x{self.terrain.H} cells at {self.terrain.res}u, "
                      f"{self.terrain.K}-level stack, z bounds {self.terrain.z_bounds})")
@@ -1986,9 +1999,9 @@ class PPOServer:
                 # Terrain observation from the RAW (world/camera-frame) position;
                 # yaw is locked at 0 so the sample star is axis-aligned in world.
                 if self.terrain is not None:
-                    terrain_vec = self.terrain.sample(obs[0], obs[1], obs[2], self.camera_yaw)
+                    terrain_vec = self.terrain.observe(obs)          # point samples + edge rays
                 else:
-                    terrain_vec = TerrainMap.flat_sample()
+                    terrain_vec = TerrainMap.flat_observe()
                 obs_augmented = np.concatenate([obs_array] + history_frames + [terrain_vec])
 
                 # Debug: log frame history to file only, after 5s of game time
@@ -2248,13 +2261,20 @@ class PPOServer:
             # How much the networks use the terrain input: mean |w| of the terrain
             # columns relative to the original columns, first layer of each trunk.
             with torch.no_grad():
-                split = self.obs_dim - TERRAIN_DIM
+                split = self.obs_dim - PERCEPTION_DIM
+                esplit = self.obs_dim - EDGE_DIM
                 def _ratio(w):
-                    return (w[:, split:].abs().mean() / w[:, :split].abs().mean().clamp(min=1e-8)).item()
+                    return (w[:, split:esplit].abs().mean() / w[:, :split].abs().mean().clamp(min=1e-8)).item()
+                def _eratio(w):
+                    return (w[:, esplit:].abs().mean() / w[:, :split].abs().mean().clamp(min=1e-8)).item()
                 self.log(f"  TerrainCols: actor={_ratio(self.actor.features[0].weight):.3f} "
                          f"brake={_ratio(self.actor.brake_features[0].weight):.3f} "
                          f"jump={_ratio(self.actor.jump_features[0].weight):.3f} "
-                         f"critic={_ratio(self.critic.net[0].weight):.3f}")
+                         f"critic={_ratio(self.critic.net[0].weight):.3f}"
+                         f"  EdgeCols: actor={_eratio(self.actor.features[0].weight):.3f} "
+                         f"brake={_eratio(self.actor.brake_features[0].weight):.3f} "
+                         f"jump={_eratio(self.actor.jump_features[0].weight):.3f} "
+                         f"critic={_eratio(self.critic.net[0].weight):.3f}")
             if self.recent_episode_gems:
                 nonzero = sum(1 for g in self.recent_episode_gems if g > 0)
                 self.log(f"  Last {len(self.recent_episode_gems)} eps: {nonzero} had gems")
@@ -2391,7 +2411,7 @@ def main():
         server.log(f"LOG_STD_MAX_TARGET overridden to {args.log_std_max:.2f} ({math.exp(args.log_std_max) * 180 / math.pi:.1f} deg)")
     if args.terrain_lr_mult is not None:
         server.TERRAIN_LR_MULT = args.terrain_lr_mult
-        server.trainer.configure_terrain_lr(args.terrain_lr_mult, server.obs_dim - TERRAIN_DIM, server.obs_dim)
+        server.trainer.configure_terrain_lr(args.terrain_lr_mult, server.obs_dim - PERCEPTION_DIM, server.obs_dim)
         server.log(f"TERRAIN_LR_MULT overridden to {args.terrain_lr_mult:g}")
     if args.warmup > 0:
         server.WARMUP_ROLLOUTS = args.warmup
