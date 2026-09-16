@@ -155,10 +155,12 @@ def parse_log(filepath):
                 gb_m = re.search(r'gems_by_pts: ([-0-9x ]+)', line)   # 2026-09-12+: "1x38 2x11"
                 om_m = re.search(r'offmap: (\d+)', line)                # 2026-09-14+: frame check
                 cc_m = re.search(r'cmd_accel_cos: ([-\d.]+)', line)     # 2026-09-14+: action-frame check
+                rtf_m = re.search(r'rtf: ([\d.]+)', line)                # 2026-09-15+: real-time factor
                 games.append({
                     'gems_by_pts': gb_m.group(1).strip() if gb_m else None,
                     'offmap': int(om_m.group(1)) if om_m else None,
                     'cmd_accel_cos': float(cc_m.group(1)) if cc_m else None,
+                    'rtf': float(rtf_m.group(1)) if rtf_m else None,
                     'gems': int(m.group(1)),
                     'best': int(m.group(2)),
                     'avg_gap_penalty': float(m.group(3)),
@@ -341,6 +343,13 @@ def print_analysis(data, last_n=None):
         else:
             print(f"\n  Frame check: off-map ticks per game max {max(g['offmap'] for g in offmap_games)} (world frame OK)")
 
+    rtf_games = [g['rtf'] for g in games if g.get('rtf') is not None]
+    if rtf_games:
+        ref = max(rtf_games); slow = sum(1 for v in rtf_games if v < 0.7 * ref)
+        if slow:
+            problems.append(f"GAME SLOW: {slow}/{len(rtf_games)} games ran below 70% of the run's best real-time factor ({ref:.2f}x) - window in the background?")
+        else:
+            print(f"  Game speed: real-time factor {min(rtf_games):.2f}-{ref:.2f}x over {len(rtf_games)} games (steady)")
     cc_games = [g['cmd_accel_cos'] for g in games if g.get('cmd_accel_cos') is not None]
     if cc_games:
         mean_cc = sum(cc_games) / len(cc_games)

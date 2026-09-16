@@ -904,9 +904,17 @@ class PPOServer:
         # weights; 1.0 = off). Tried at 4.0 on 2026-09-13 (updates 83410-84030):
         # the actor's terrain columns caught up with the critic's in 8 hours but
         # OOB did not improve, KL doubled with destructive spikes, and the score
-        # dipped ~5/game before recovering. Off by default; the mechanism stays
-        # available via --terrain-lr-mult for experiments.
-        self.TERRAIN_LR_MULT = 1.0
+        # dipped ~5/game before recovering. That run, it turned out, was feeding
+        # the columns garbage (spawn-yaw frame bug: terrain sampled at the wrong
+        # place in 3 of 4 games), so the multiplier was amplifying noise.
+        # 2026-09-16: applied at 4.0 to the EDGE-RAY columns only (the last
+        # EDGE_DIM inputs), on correct inputs. Rationale: after 12 h of a stable
+        # run the ray weights had only doubled (0.02 -> 0.04, a third of the
+        # point-sample columns) and OOB was drifting down 0.12 per 60 games; the
+        # multiplier is there to find out in a day, not a week, whether the rays
+        # can move the fall count. Revert to 1.0 if KL-STOPs pile up or the
+        # score sits under 75 for 50 games.
+        self.TERRAIN_LR_MULT = 4.0
         # target_kl 1.0 -> 0.2 (2026-09-13): the early stop fires at 1.5x target.
         # At 1.0 it fired at 1.5 and never once triggered while updates with
         # KL 1.29 and 0.85 went through during the terrain-LR-multiplier run and
@@ -917,7 +925,7 @@ class PPOServer:
                                    target_kl=0.2, clip_epsilon=0.1,
                                    max_grad_norm=0.3, entropy_coef=-0.001,
                                    terrain_lr_mult=self.TERRAIN_LR_MULT,
-                                   terrain_split=self.obs_dim - PERCEPTION_DIM,
+                                   terrain_split=self.obs_dim - EDGE_DIM,      # multiplier applies to the edge-ray columns only
                                    obs_dim=self.obs_dim)
 
         # Direction noise cap anneal (2026-09-13). The raw log_std parameter sits
@@ -1198,6 +1206,16 @@ class PPOServer:
 
             # Restore warmup state (None if checkpoint pre-dates warmup feature)
             self.warmup_start_update = checkpoint.get('warmup_start_update', None)
+            # Observation change => fresh critic-only warmup (2026-09-15). Every run
+            # after the world-frame fix let the actor learn at once on a critic
+            # fitted to the old rotated frames, and every one decayed (80 -> ~50
+            # pts within ~20 games, with or without demos or edge rays). A widened
+            # checkpoint is the one case the code can detect, so it always gets
+            # the warmup; a frame change without a width change needs --warmup.
+            saved_width = int(saved_state['features.0.weight'].shape[1]) if 'features.0.weight' in saved_state else self.obs_dim
+            if saved_width < self.obs_dim:
+                self.warmup_start_update = None
+                self.log(f"  Observation widened {saved_width} -> {self.obs_dim}: fresh critic-only warmup of {self.WARMUP_ROLLOUTS} rollouts (actor frozen)")
             self.bc_updates_done = int(checkpoint.get('bc_updates_done', 0))
             if checkpoint.get('bc_pretrained_from'):
                 self.log(f"  BC-pretrained checkpoint (from {checkpoint['bc_pretrained_from']}); "
@@ -1364,6 +1382,18 @@ class PPOServer:
         self.game_cmd_cos_sum = 0.0
         self.game_cmd_cos_n = 0
         self._last_cmd = None          # (wx, wy) of the last joystick sent
+        # Real-time factor guard (2026-09-15): sim seconds per wall second. At
+        # 3x it reads ~2.8 (PPO updates pause the replies briefly). When the
+        # game window loses focus the engine sleeps 200 ms per frame and the
+        # factor halves; the physics steps become coarse and the policy's
+        # 16 ms/64 ms timing no longer holds, so such rollouts are garbage.
+        # Reference = best factor seen this run; a rollout below
+        # RTF_MIN_FRACTION of it is discarded (logged), never trained on.
+        self.RTF_MIN_FRACTION = 0.7
+        self.rtf_reference = 0.0
+        self.rollout_wall_start = time.time()
+        self.rollout_ticks = 0
+        self.game_wall_start = time.time()
         self._last_vel = None          # (vx, vy) of the last observation
         # Per-decision trace of the game in progress; written to
         # logs/last_game_trace.csv at GAME END (overwritten every game) so a
@@ -1728,8 +1758,15 @@ class PPOServer:
                 # return silently included V(spawn) of the NEXT game.)
                 self._finalize_pending(done=True)
                 self.cached_action = None
-                self.recent_game_gems.append(total_game_gems)
-                if total_game_gems > self.best_game_gems:
+                # A game played while the engine was slowed (window in the
+                # background) is not the policy's fault: keep it out of every
+                # average and record (its rollouts are already discarded by the
+                # guard in run_ppo_update). It is still logged, tagged SLOW GAME.
+                game_rtf = self.game_steps * 0.016 / max(time.time() - self.game_wall_start, 1e-6)
+                slow_game = self.rtf_reference > 0 and game_rtf < self.RTF_MIN_FRACTION * self.rtf_reference
+                if not slow_game:
+                    self.recent_game_gems.append(total_game_gems)
+                if total_game_gems > self.best_game_gems and not slow_game:
                     self.best_game_gems = total_game_gems
                 breakdown = {
                     'score': total_game_gems,
@@ -1739,7 +1776,7 @@ class PPOServer:
                     'update': self.total_updates,
                 }
                 self.last_game_breakdown = breakdown
-                if self.best_game_breakdown is None or total_game_gems > self.best_game_breakdown['score']:
+                if not slow_game and (self.best_game_breakdown is None or total_game_gems > self.best_game_breakdown['score']):
                     self.best_game_breakdown = breakdown
                 breakdown_str = ' '.join(f'{k}x{v}' for k, v in breakdown['counts'].items()) or '-'
                 avg_gap = self.game_gap_penalty_sum / max(self.game_gem_pickups, 1)
@@ -1770,7 +1807,7 @@ class PPOServer:
                 self.recent_slow_pickup_bonus.append(round(self.game_slow_pickup_bonus_sum, 1))
 
                 freefall_pct = (self.game_freefall_frames / max(self.game_steps, 1)) * 100
-                self.log(f"[GAME END] total gems this game: {total_game_gems}pts (best: {self.best_game_gems}) avg_gap_penalty: {avg_gap:.1f} jump_rate: {jump_rate:.1f}% brake_rate: {brake_rate:.1f}% avg_steps/gem: {avg_steps_per_gem:.0f} overshoot: {self.game_overshoot_penalty_sum:.0f} ({overshoot_pct:.1f}% of steps, avg {avg_overshoot_per_frame:.2f}/frame) pickup_speed: {avg_pickup_speed:.1f} brakes_near_pickup: {avg_brakes_near_pickup:.2f}/gem slow_pickup_bonus: {self.game_slow_pickup_bonus_sum:.0f} freefall: {self.game_freefall_penalty_sum:.0f} ({freefall_pct:.1f}% of steps) gems_by_pts: {breakdown_str} offmap: {self.game_offmap} cmd_accel_cos: {self.game_cmd_cos_sum / max(self.game_cmd_cos_n, 1):.2f}")
+                self.log(f"[GAME END] total gems this game: {total_game_gems}pts (best: {self.best_game_gems}) avg_gap_penalty: {avg_gap:.1f} jump_rate: {jump_rate:.1f}% brake_rate: {brake_rate:.1f}% avg_steps/gem: {avg_steps_per_gem:.0f} overshoot: {self.game_overshoot_penalty_sum:.0f} ({overshoot_pct:.1f}% of steps, avg {avg_overshoot_per_frame:.2f}/frame) pickup_speed: {avg_pickup_speed:.1f} brakes_near_pickup: {avg_brakes_near_pickup:.2f}/gem slow_pickup_bonus: {self.game_slow_pickup_bonus_sum:.0f} freefall: {self.game_freefall_penalty_sum:.0f} ({freefall_pct:.1f}% of steps) gems_by_pts: {breakdown_str} offmap: {self.game_offmap} cmd_accel_cos: {self.game_cmd_cos_sum / max(self.game_cmd_cos_n, 1):.2f} rtf: {game_rtf:.2f}{' SLOW GAME (excluded from averages)' if slow_game else ''}")
                 if self.game_cmd_cos_n > 500 and self.game_cmd_cos_sum / self.game_cmd_cos_n < 0.2:
                     self.log(f"  *** ACTION FRAME CHECK: commands and accelerations agree at only "
                              f"{self.game_cmd_cos_sum / self.game_cmd_cos_n:.2f} (expect > 0.4). The joystick is not moving the marble "
@@ -1786,6 +1823,7 @@ class PPOServer:
                 self.game_trace = []
                 self.game_cmd_cos_sum = 0.0
                 self.game_cmd_cos_n = 0
+                self.game_wall_start = time.time()      # per-game rtf clock (the episode-start reset above only runs on a new connection)
                 if self.terrain is not None and self.game_offmap > 0.05 * max(self.game_steps, 1):
                     self.log(f"  *** FRAME CHECK: {100 * self.game_offmap / max(self.game_steps, 1):.0f}% of this game's ticks were at floor height "
                              f"outside the terrain map. The observation frame is not the world frame (see mlAgent.cs $AIObserver::ForceYaw). ***")
@@ -1841,11 +1879,12 @@ class PPOServer:
                 # working run -> AvgRwd appears stuck (was 12973.2 from FlatWithJump
                 # for ~5 KingOfTheMarble runs in a row).
                 self.total_episodes += 1
-                self.episode_rewards.append(self.current_episode_reward)
-                self.recent_episode_gems.append(self.episode_gem_pts)
-                self.recent_episode_lengths.append(self.episode_step)
+                if not slow_game:
+                    self.episode_rewards.append(self.current_episode_reward)
+                    self.recent_episode_gems.append(self.episode_gem_pts)
+                    self.recent_episode_lengths.append(self.episode_step)
                 avg_reward = np.mean(self.episode_rewards) if self.episode_rewards else 0
-                outcome = "SUCCESS" if self.current_episode_reward > 100 else "FAIL" if self.current_episode_reward < -20 else "NEUTRAL"
+                outcome = "SLOW-GAME" if slow_game else "SUCCESS" if self.current_episode_reward > 100 else "FAIL" if self.current_episode_reward < -20 else "NEUTRAL"
                 self.log(f"Ep {self.total_episodes} [{outcome}] rwd={self.current_episode_reward:.1f} "
                          f"gems={total_game_gems}pts oob={self.episode_oob} "
                          f"steps={self.episode_step} | avg100={avg_reward:.1f}")
@@ -1930,6 +1969,7 @@ class PPOServer:
             self.rollout_steps += 1
             self.episode_step += 1
             self.game_steps += 1
+            self.rollout_ticks += 1
             if self.terrain is not None and obs[5] > -3.0 and not self.terrain.contains(obs[0], obs[1]):
                 self.game_offmap += 1
             if self._last_cmd is not None and self._last_vel is not None and obs[5] > -3.0:
@@ -1974,6 +2014,7 @@ class PPOServer:
                 self.frame_history.clear()  # Fresh history for new episode
                 self._last_cmd = None
                 self._last_vel = None
+                self.game_wall_start = time.time()
                 self._frame_hist_logged = False
                 self._frame_hist_log_end = 999999
                 self.camera_yaw = 0.0  # fixed orientation (see __init__ for rationale)
@@ -2109,6 +2150,25 @@ class PPOServer:
         transition (rollout truncation bootstrap). 0.0 if that transition was
         terminal.
         """
+        # Real-time factor of the rollout just collected (see __init__).
+        rtf = self.rollout_ticks * 0.016 / max(time.time() - self.rollout_wall_start, 1e-6)
+        self.rollout_wall_start = time.time()
+        self.rollout_ticks = 0
+        if rtf > self.rtf_reference:
+            self.rtf_reference = rtf
+        if self.rtf_reference > 0 and rtf < self.RTF_MIN_FRACTION * self.rtf_reference:
+            self.log(f"  *** GAME SLOW: this rollout ran at {rtf:.2f}x real time (reference {self.rtf_reference:.2f}x). "
+                     f"Discarding it, not training on it. Is the game window in the background? ***")
+            self.buffer.clear()
+            self.rollout_gem_pts = 0
+            self.rollout_oob = 0
+            self.rollout_positive = 0
+            self.rollout_steps = 0
+            self.rollout_freefall_frames = 0
+            self.rollout_freefall_penalty = 0.0
+            self.rollout_min_vz = 0.0
+            return
+
         self.actor.train()
         self.critic.train()
 
@@ -2411,7 +2471,7 @@ def main():
         server.log(f"LOG_STD_MAX_TARGET overridden to {args.log_std_max:.2f} ({math.exp(args.log_std_max) * 180 / math.pi:.1f} deg)")
     if args.terrain_lr_mult is not None:
         server.TERRAIN_LR_MULT = args.terrain_lr_mult
-        server.trainer.configure_terrain_lr(args.terrain_lr_mult, server.obs_dim - PERCEPTION_DIM, server.obs_dim)
+        server.trainer.configure_terrain_lr(args.terrain_lr_mult, server.obs_dim - EDGE_DIM, server.obs_dim)
         server.log(f"TERRAIN_LR_MULT overridden to {args.terrain_lr_mult:g}")
     if args.warmup > 0:
         server.WARMUP_ROLLOUTS = args.warmup

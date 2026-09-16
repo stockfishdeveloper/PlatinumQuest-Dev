@@ -909,7 +909,7 @@ body { background: var(--bg); color: var(--text); font-family: 'Consolas', 'SF M
     <span>Score: <b id="m-gems">--</b>pts</span>
     <span>Score/hr: <b id="m-gems-hr">--</b></span>
     <span>Best Score/hr: <b id="m-best-gems-hr" style="color:#f0c040">--</b></span>
-    <span>Best Game: <b id="m-best-game-gems" style="color:#3fb950">--</b>pts <span id="m-best-game-breakdown" style="color:#8b949e"></span></span>
+    <span>Best Game (this run): <b id="m-best-game-gems" style="color:#3fb950">--</b>pts <span id="m-best-game-breakdown" style="color:#8b949e"></span></span>
     <span>OOB: <b id="m-oob">--</b></span>
     <span>Best Avg: <b id="m-best">--</b></span>
   </div>
@@ -934,7 +934,7 @@ body { background: var(--bg); color: var(--text); font-family: 'Consolas', 'SF M
 <!-- Charts -->
 <div id="charts">
   <div class="chart-card"><div class="chart-title">Avg Reward (100-episode rolling)</div><div id="c-avgrwd" style="height:220px"></div></div>
-  <div class="chart-card"><div class="chart-title">Score Per Game (last 100 games) + rolling avg</div><div id="c-epgems" style="height:220px"></div></div>
+  <div class="chart-card"><div class="chart-title">Score Per Game (last 100 games) + rolling avg &mdash; green = best of this run</div><div id="c-epgems" style="height:220px"></div></div>
   <div class="chart-card"><div class="chart-title">Score Per Hour</div><div id="c-gemshr" style="height:220px"></div></div>
   <div class="chart-card"><div class="chart-title">KL Divergence + KL-Stop % (last 100 updates)</div><div id="c-kl" style="height:220px"></div></div>
   <div class="chart-card"><div class="chart-title">Gradient Norm (actor + critic)</div><div id="c-gradnorm" style="height:220px"></div></div>
@@ -1403,9 +1403,12 @@ function updateDashboard(snap) {
   const gameGems = snap.recent_game_gems || [];
   if (gameGems.length > 0) {
     const gemIdxs = gameGems.map((_, i) => i + 1);
-    const maxGems = Math.max(...gameGems);
+    // Green = the best game of this run (only if it is still within the last
+    // 100 games shown); everything else yellow. The chart only holds the last
+    // 100 games, so the run's best can scroll out of view.
+    const runBest = snap.best_game_gems || 0;
     const colors = gameGems.map(g => {
-      if (g === maxGems && maxGems > 0) return '#3fb950';
+      if (g === runBest && runBest > 0) return '#3fb950';
       if (g > 0) return '#f0c040';
       return '#30363d';
     });

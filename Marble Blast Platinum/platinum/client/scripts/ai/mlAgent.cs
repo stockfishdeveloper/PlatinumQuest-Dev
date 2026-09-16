@@ -31,6 +31,14 @@ function MLAgent::start() {
         echo("MLAgent: Already running");
         return;
     }
+    // Never sleep when the window is in the background (2026-09-15). The
+    // default $Pref::backgroundSleepTime = 200 ms made the engine step physics
+    // in coarse chunks whenever the window lost focus: rounds took 124 s of
+    // wall time instead of 64, the marble drove drunk on the changed dynamics
+    // and the trainer learned from three hours of it. The trainer also guards
+    // itself (real-time factor per rollout), but the game must not slow down.
+    $Pref::backgroundSleepTime = 0;
+    echo("MLAgent: backgroundSleepTime set to 0 (no throttling when the window is in the background)");
 
     // Connect to Python server
     if (!AIBridge::connect("", "")) {
