@@ -157,13 +157,13 @@ def main():
                         if not line:
                             continue
 
-                        # Protocol: obs_json|gem_delta|oob|done
+                        # Protocol: obs_json|gem_delta|oob|done|tick
                         parts = line.split('|')
-                        if len(parts) != 4:
+                        if len(parts) < 4:
                             conn.sendall(b'0,0,0,0,0\n')
                             continue
 
-                        obs_json, gem_delta_str, oob_str, done_str = parts
+                        obs_json, gem_delta_str, oob_str, done_str = parts[:4]
                         obs_raw = json.loads(obs_json)
 
                         # Skip game-end signals (empty obs)

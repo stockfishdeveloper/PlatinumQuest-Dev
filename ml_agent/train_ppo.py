@@ -1513,11 +1513,16 @@ class PPOServer:
                     if not line:
                         continue
 
-                    # Parse message: obs_json|gem_delta|oob|done
+                    # Parse message: obs_json|gem_delta|oob|done|tick
                     action = self.process_message(line)
 
-                    # Send action back (5th field = camera yaw for randomization)
-                    action_str = ','.join(map(str, action)) + f',{self.camera_yaw:.6f}\n'
+                    # Send action back (6th field = camera yaw for randomization).
+                    # The trailing ",t<tick>" names the tick this reply answers;
+                    # the game applies it at tick + $MLAgent::ActionDelay, so the
+                    # control latency is the same at every game speed.
+                    parts = line.split('|')
+                    tick = parts[-1].strip() if len(parts) >= 5 and parts[-1].strip().isdigit() else ''
+                    action_str = ','.join(map(str, action)) + f',{self.camera_yaw:.6f}' + (f',t{tick}' if tick else '') + '\n'
                     conn.sendall(action_str.encode('utf-8'))
 
         except Exception as e:

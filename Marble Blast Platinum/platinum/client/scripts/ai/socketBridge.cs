@@ -50,12 +50,44 @@ function AIBridgeSocket::onConnected(%this) {
 function AIBridgeSocket::onDisconnect(%this) {
     $AIBridge::Connected = false;
     echo("AIBridge: Connection lost");
+    // Never leave the game frozen without a trainer
+    if (getTimeScale() < 0.01)
+        setTimeScale($MLAgent::TrainingSpeed > 0 ? $MLAgent::TrainingSpeed : 1);
 }
 
 function AIBridgeSocket::onLine(%this, %line) {
-    // Received response from Python server
-    // Store it for next frame's use
-    $AIBridge::LastAction = %line;
+    // Received response from Python server.
+    // A reply ending in ",t<tick>" answers the observation of that tick and is
+    // applied at tick + $MLAgent::ActionDelay (fixed delay, see mlAgent.cs);
+    // anything else (untagged actions, SPEED/TELEPORT/... control words) is
+    // stored for the next update as before.
+    %words = strreplace(%line, ",", " ");
+    %n = getWordCount(%words);
+    %last = getWord(%words, %n - 1);
+    if (%n > 1 && getSubStr(%last, 0, 1) $= "t" && $MLAgent::ActionDelay > 0) {
+        %tick = getSubStr(%last, 1, 12) + 0;
+        %action = getSubStr(%line, 0, strlen(%line) - strlen(%last) - 1);
+        %target = %tick + $MLAgent::ActionDelay;
+        $AIBridge::DelayedMode = true;
+        if (%target > $MLAgent::Tick) {
+            $AIBridge::Queue[%target] = %action;
+            $AIBridge::DelayedReplies++;
+        } else {
+            $AIBridge::LastAction = %action;
+            $AIBridge::LateReplies++;
+        }
+    } else if (strlen(%line) > 0 && strpos("0123456789-.", getSubStr(%line, 0, 1)) == -1) {
+        // Control word (SPEED, TELEPORT, SLEEPTIME, MAXFPS, RECORD, ...): its
+        // own slot, so a queued action landing on the same tick cannot
+        // overwrite it. Consumed once by the next update.
+        $AIBridge::Control = %line;
+    } else {
+        $AIBridge::LastAction = %line;
+    }
+    // Lockstep: the simulation was frozen after the observation went out;
+    // the reply is here, let the next tick run.
+    if ($MLAgent::Lockstep && $MLAgent::Enabled && !$MLAgent::DiagnosticMode && getTimeScale() < 0.01)
+        setTimeScale($MLAgent::TrainingSpeed);
 }
 
 function AIBridge::sendState(%stateJson) {

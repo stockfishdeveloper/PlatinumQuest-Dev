@@ -88,6 +88,215 @@ useless without the previous one.
 
 ### 3.1 Throughput first: N game instances
 
+**Measured 2026-09-16 (throughput_probe.py, King of the Marble, 24-core PC):**
+
+| requested speed | measured | ticks/s | duplicated physics states | trajectory drift vs 1x after a 3 s maneuver |
+|---|---|---|---|---|
+| 3x | 3.0x | 187 | 0 | 0.26 u |
+| 6x | 6.0x | 375 | 0 | 0.19 u |
+| 10x | 9.9x | 620 | 0 | 0.60 u |
+| 15x | 14.9x | 934 | 1 of 355 | 0.75 u |
+| 20x | 19.8x | 1238 | 22 % | 0.72 u |
+| 25x+ | capped ~20x | | 40 %+ | broken |
+
+- The engine advances at most about one physics tick per rendered frame, and it
+  renders ~1300 fps at 1280x720 on one saturated core, so ~20x is the hard
+  ceiling per instance and the observation schedule starts firing twice per
+  physics tick above ~15x. **Clean per-instance setting: 10x** (0 duplicates,
+  sub-unit drift that comes from reply-latency jitter, not physics). Rendering
+  is CPU-bound at that fps; window size and `setMaxFPS` did not lower CPU.
+- **Lockstep does not work** (freezing the sim via time scale 0 / 0.001 after
+  each observation): scale 0 makes the engine catch up wall time on resume
+  (2x speed), 0.001 gives no gain and the engine echoes every scale change to
+  the console (2 lines per tick). `$MLAgent::Lockstep` stays false.
+- **Background throttle**: an instance drops to ~1.5x (1 tick per ~10 ms frame)
+  when its window is deactivated AND overlapped by the active window, or
+  minimized, or off-screen. Deactivated but unoverlapped = full speed; fully
+  covered by a non-active topmost window = full speed. `backgroundSleepTime`
+  has no effect. A second monitor (or a PC nobody uses) with the instances
+  tiled and never overlapped is the only script-side arrangement that keeps N
+  windows fast. Off-screen windows still run at ~3x on 10 % CPU, but in bursts
+  of ~6 ticks per frame with one action per frame, which changes the control
+  timing; not acceptable for training.
+- **Single-instance guard**: a second marbleblast.exe on the same machine
+  exits with "Another instance of this application is already running"
+  (engine-level, a named mutex; not a script or file lock). So N instances on
+  one PC is impossible in this build without an engine change or one Windows
+  session per instance.
+- **No headless path in this build**: `-dedicated` exists but the engine has no
+  AIConnection / script-driven moves, so a marble needs a rendering client.
+  The engine is the "OpenPQ" rebuild (WebGPU); its source is not in this
+  repository. Engine changes (headless renderer, multi-tick-per-frame, no
+  throttle, script-driven moves) would remove every limit above and are the
+  first thing to pursue if the source is obtainable (README points at
+  MBExtender-Dev for engine modifications).
+- Game-side additions made for this: `-aiport N`, `-aispeed N`, `-autotrain`
+  now drives the single-player Play menu (no login), the agent auto-starts in
+  single-player hunt rounds, keeps retrying the Python connection every 2 s
+  while a round runs, and rounds auto-restart even without a trainer.
+  Probe-only control replies: `SLEEPTIME n`, `MAXFPS n` (`setMaxFPS(0)` puts
+  the engine in a different timing mode where trajectories were not
+  reproducible across speeds: do not use for training).
+- **Aggregate realistic today**: ONE instance at 10x = 620 ticks/s (155
+  decisions/s at action repeat 4), 3.3x what training used until now, and only
+  while its window is not overlapped by whatever the user is working in. More
+  than that needs engine changes (single-instance guard, headless renderer,
+  ticks decoupled from frames, no activation throttle, script-driven moves)
+  or more machines.
+
+**Engine source (2026-09-16 evening).** The engine is
+https://github.com/The-New-Platinum-Team/OpenPQ-TGEMIT (TGE 1.4.2 MIT port,
+WebGPU/dawn renderer; cloned to `C:/Users/doug/src/OpenPQ-TGEMIT`, outside
+OneDrive). It builds with CMake + Ninja + MSVC exactly as `.circleci/config.yml`
+does (dawn DLL is in `lib/webgpu-dawn`); the built exe replaces
+`marbleblast.exe`. Every limit above maps to a few lines:
+
+| limit | where in the engine | change |
+|---|---|---|
+| single instance | `engine/gui/core/guiCanvas.cc:202` `Platform::excludeOtherInstances("TorqueTest")` | skip when `-aiport`/`-headless` is given |
+| background sleep | `engine/platformWin32/winWindow.cc` ~1240 (`backgrounded` = foreground window is another process) and `TimeManager::process()` ~1899 | ignore `backgrounded` in AI mode |
+| occluded-window stall (1.5x) | WebGPU present in `engine/dgl/pipeline/webgpu` / `platformWin32/webgpu` | headless mode: no swap chain, skip `renderFrame`/present |
+| wall-clock-bound sim (~62 TimeEvents/s, `if (event.elapsedTime > 15)`) | `TimeManager::process()` | `-fastsim`: post TimeEvents with a fixed virtual elapsed (16 ms) back to back, no wall clock; sim runs as fast as the CPU allows, deterministic |
+| stale actions during PPO updates | `TimeManager::process()` + socket | `-lockstep`: block until the AI reply arrives before posting the next TimeEvent (true lockstep, exact tick<->action mapping) |
+| physics tick 32 ms (`TickMs`, `engine/game/gameBase.h:359`), marble sub-stepping in `Marble::advancePhysics` (`engine/game/marble/marble.cc:1933`) | | leave; expose a per-tick observation hook (C++ callback into script after each marble physics step) so observations are tick-exact without a 16 ms script timer |
+| no script-driven marbles | `engine/game/moveManager.h` (Move), `gameConnection` | later: server-side AI connection producing Moves from script, for headless self-play without one client per marble |
+| search-based control (RandomityGuy's suggestion) | `Marble::advancePhysics` | later: expose save/restore marble state + one physics step to script |
+
+**Where `marbleblast.exe` actually comes from (checked 2026-09-16 night).**
+The shipped exe is a private build: it is the OpenPQ-TGEMIT engine (same
+`webgpu_dawn.dll`/`dxcompiler.dll` renderer) with the MBExtender plugin code
+compiled in natively (the exe carries `RTAAS`, `Discord`, `MBPlatinum`, `add64`
+strings and links `cryptopp-shared.dll` and `libcurl.dll`; the public build has
+none of these). Neither public repo produces it: `PlatinumQuest-Dev` contains
+zero C/C++ files (scripts + data only), and `MBExtender`
+(https://github.com/RandomityGuy/MBExtender, last commit 2022-09-05, cloned to
+`C:/Users/doug/src/MBExtender`) is the *2007-engine* plugin set, injected as
+DLLs that hook the old exe by memory address (`MBX_ADDRESS` macros) - it cannot
+be loaded by the modern exe. The org's `PQBinaries` repo ships only compiled
+binaries (Windows/Mac/Linux folders).
+
+What MBExtender does give us is the source of the missing layer. Of the 232
+console functions the built engine lacks, 182 have an implementation in
+MBExtender:
+
+| plugin | missing fns | needed for headless training? |
+|---|---|---|
+| MBPlatinum | 57 | yes: powerup tuning (`set/getSuperJumpVelocity`, shock absorber, helicopter), `clientContainerRayCast`, sync objects, path nodes, radar, string utils, `traceGuard`, `setPrintTime`. Also engine hooks (host trigger override, particle fix, save-fields fix) that are *not* console functions |
+| MathExtension | 50 | yes, mechanical (vector/box/quaternion helpers, `min`/`max`/`mClamp`) |
+| GraphicsExtension | 32 | no: stubs (shaders, postFX, blur, reflective marble) |
+| FileExtension | 13 | yes, mechanical (`mkdir`, `deleteFile`, `copyFile`, base64, SHA256, zip) |
+| Disco / JoystickSupport / MBCrypt | 7 / 5 / 6 | stubs (Discord, joystick; MBCrypt = `.mbpak` loading, only `marbleland.cs` references it) |
+| FrameRateUnlock | 5 | yes: `setTimeScale`/`getTimeScale`/`onNextFrame` + the `Timeskip` hook on `TimeManager::process` |
+| JSONSupport / others | 4 / 3 | yes, mechanical (`Array`, `jsonParse`, `regexMatch`, `textLen`, `getTransform`, `setVisibleDistance`) |
+
+The remaining 50 are not in MBExtender at all (written after 2022 for the
+modern engine): 14 `RTAAS_*` speedrun-timer setters (stub), 20 `*64`
+64-bit-int math functions (trivial), date/time functions (trivial),
+`anticheatDetect`/`cheat_joj` (stub), `setMaxFPS`, `cancelScheduleIgnorePause`,
+`setSimulatingPathedInteriors` (gameplay: moving platforms), `replaceDiffuseTexture`,
+`onMarbleDataPreSend/PostSend`, `Clone`, `HcJ`.
+
+The real risk is not the console functions but the engine-behaviour hooks the
+private layer also carries: MBExtender's `MarbleGhostingFix` hooks
+`cMarbleSetPosition`/`cSetGravityDir`/`cSetTransform`, `MovingPlatformsFix`,
+`Timeskip` hooks `TimeManager::process`, `MBPlatinum` hooks host triggers and
+particle emitters - none of these names appear anywhere in the public engine
+source. A ported engine could therefore run the scripts and still differ from
+the real game in physics-adjacent behaviour (moving platforms, gravity changes,
+trigger ordering), which would break the "train here, play there" contract.
+
+Decision: (1) ask RandomityGuy for the private engine tree (or a build with
+`-headless`/`-fastsim`/`-lockstep` flags); the shipped exe proves it is
+OpenPQ-TGEMIT plus a PQ layer, so this is a zero-port path. (2) Meanwhile
+develop and verify the engine mods on the public build using its bundled
+OpenMBG game, where every change is testable with `throughput_probe.py`; the
+mods live in engine files the private layer shares, so they carry over as a
+patch. (3) Porting the 232 functions ourselves (MBExtender sources as the
+reference, ~2-4 days for a running game, stubs for graphics/Discord/RTAAS) is
+the fallback only if (1) fails, and it must be validated against the real exe
+tick-for-tick (teleport + scripted maneuver comparison, as in the probe) before
+any training on it counts.
+
+**Physics identity 3x vs 10x (Sprawl, 2026-09-16, `physics_identity_probe.py`).**
+Six alternating trials, same teleport pose, same 150-tick key script
+(forward/back/left/right), rest position recorded:
+
+| speed | rest positions (x, y) | spread within speed |
+|---|---|---|
+| 3x | (-26.045, -51.752), (-26.089, -51.744), (-26.044, -51.710) | 0.056 u |
+| 10x | (-26.088, -51.749), (-26.088, -51.749), (-26.088, -51.749) | 0.0005 u |
+
+Distance between the 3x and 10x means: 0.032 u, inside the 3x spread; one 3x
+trial landed on the 10x point to 1 mm. Peak trajectory deviation between any
+two trials 0.10 u. Per-tick physics are the same at both speeds.
+
+A 21 s script (1342 ticks, direction pairs, diagonals, jumps; same probe)
+diverges completely: 3x trials ended ~24 u north of the start (one fell off),
+10x trials ~12 u west; 3x-vs-3x differed by 6 u and 10x-vs-10x by 4 u. The
+maneuver is chaotic (jumps, edges, wall bounces), so it amplifies the bridge's
+timing jitter and cannot separate physics from control timing. The cause is
+measured by `action_latency_probe.py` (ticks from sending FORWARD to the
+marble moving, 12 reps per speed, random frame phase):
+
+| speed | latency (ticks) |
+|---|---|
+| 1x | 2, always |
+| 3x | 2-3 (mean 2.5) |
+| 10x | 3-6 (mean 4.3) |
+
+The game reads socket replies only when the engine processes network events,
+so at higher time scales several script updates run on a stale action. Physics
+is identical; the *control loop* is not: at 10x the policy's command lands
+1-4 ticks later than at 1x and the delay varies tick to tick. Options:
+(a) engine lockstep (needs the engine source; exact tick<->action mapping at any
+speed); (b) script-only fixed delay: stamp every observation with its tick,
+have the game apply the reply for tick t exactly at tick t+K (K=6 covers the
+10x maximum), so latency is a constant 96 ms at every speed and the policy
+learns one deterministic delay; (c) accept it and train at the speed you play
+at (3x).
+
+**Fixed delay implemented and tested (2026-09-16 night).** Every observation
+now ends in `|<tick>`; a reply ending in `,t<tick>` is applied at tick +
+`$MLAgent::ActionDelay` (queue in `socketBridge.cs`/`mlAgent.cs`; control
+words SPEED/TELEPORT/STATS/DELAY have their own slot). With K=6 the
+message-level latency became exactly 7 ticks at 1x, 3x and 10x (0 late
+replies), and a 2.4 s script landed 3x and 10x within 0.0008 u. But the 21 s
+script still diverged at 10x, so two more probes were run
+(`action_granularity_probe.py`):
+
+| test | 3x | 10x |
+|---|---|---|
+| 6 single-tick FORWARD pulses, displacement | 0.42, 0.43 u | 0.54 u, then **0.00 u** (all pulses lost) |
+| FORWARD/BACK alternating every tick, 200 ticks | drifts 0.07-0.16 u | drifts **0.26-0.99 u**, peak speed 1.27 |
+
+Root cause, confirmed in the engine source (`engine/game/main.cc`,
+`DemoGame::processElapsedTime`): per wall-clock frame the engine runs
+`serverProcess(elapsed)`, then `Sim::advanceTime(elapsed)` (ALL script timers
+due in the frame, back to back), then `clientProcess(elapsed)`. At 10x a
+16 ms wall frame is 160 ms of sim: the 10 `MLAgent::update` calls run in one
+batch between physics batches, so 9 of the 10 observations are ghost
+interpolations of the same physics state and only the last of the 10 actions
+is in force for the 5 physics ticks that follow. Which update is "last"
+depends on wall-clock frame boundaries, hence the nondeterminism. At 3x it is
+3 updates per 48 ms chunk (1.5 physics ticks); at 1x, 1 update per 16 ms
+chunk (0.5 tick), i.e. per-tick control only exists at <= 2x. **No script-side
+scheme can give per-tick control above ~2x**; the fixed delay is therefore
+OFF by default (`$MLAgent::ActionDelay = 0`, `DELAY n` control for
+experiments). The engine change (fixed-step TimeEvents + lockstep: advance
+one physics tick, run the script, read the socket, repeat) is the only real
+fix and moves to the top of the engine list. Interim for the existing 3x
+trainer: its 64 ms decisions span ~1.3 frames, so most decisions do reach the
+physics, with 1-frame jitter; do not train at 10x with the script bridge.
+
+Toolchain on this PC (checked 2026-09-16): no Visual Studio, no CMake, no
+Ninja; winget is available. Install: `winget install Microsoft.VisualStudio.2022.BuildTools`
+(with the C++ workload), `winget install Kitware.CMake`, `winget install Ninja-build.Ninja`,
+then the CI recipe: `cmake -S buildFiles -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+-DCMAKE_POLICY_VERSION_MINIMUM=3.5` inside a VS dev shell, `cmake --build build`.
+First milestone: an unmodified build that runs King of the Marble identically
+(throughput_probe.py at 1x/3x/10x must match the tables above). Then the
+changes in the order of the table, each verified with the probe.
+
 Prerequisite for everything else. Machine: 24 logical cores.
 
 - Run **4-6 game instances**, each with its own `mlAgent.cs` bridge, all

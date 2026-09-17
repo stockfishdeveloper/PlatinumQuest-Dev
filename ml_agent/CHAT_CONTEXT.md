@@ -207,6 +207,45 @@ Training runs at **3x game speed**. One game tick is 16 ms of game time, so a 3-
 
 The per-map MLP policy is the King-of-the-Marble baseline only. The plan to reach multiplayer, all maps, powerups and offense is in `ROADMAP_NAVIGATOR_PLANNER.md`: N game instances first, then a map-independent navigator (egocentric height crops + GRU, waypoint task across many maps, demo bootstrap), then a planner (heuristic A*-based v0, learned v1) with all gems, opponents and powerups, then self-play for blast/mega. Read it before starting any new training campaign.
 
+## Engine, throughput and physics status (2026-09-16)
+
+- **Throughput measured** (`throughput_probe.py`): the async bridge is clean
+  up to 10x per instance (620 ticks/s, no duplicated states), 15x borderline,
+  20x ceiling. Lockstep via time scale 0/0.001 and `setMaxFPS(0)` both fail
+  (catch-up / non-reproducible). One instance per machine (engine mutex).
+  Background window = 1.5x slowdown when deactivated AND covered; the trainer's
+  rtf guard discards those rollouts.
+- **Physics identity** (`physics_identity_probe.py`, Sprawl): a 2.4 s script
+  lands 3x and 10x on the same rest position (0.03 u apart). A 21 s script
+  with jumps diverges completely, even 3x vs 3x, because the maneuver is
+  chaotic and amplifies bridge timing jitter. `action_latency_probe.py`:
+  command-to-motion latency is 2 ticks at 1x, 2-3 at 3x, 3-6 at 10x. Per-tick
+  physics identical; control latency grows and jitters with speed.
+- **Fixed K-tick delay** (obs carry `|tick`, replies end `,t<tick>`) made the
+  message latency a constant K+1 at every speed, but the engine frame loop
+  (`processElapsedTime`: server physics, then ALL script timers of the frame,
+  then client physics) means only the LAST script update per wall frame
+  reaches the physics: at 10x, 9 of 10 actions are discarded and 9 of 10
+  observations are ghost interpolations (`action_granularity_probe.py`).
+  Delay is OFF by default (`$MLAgent::ActionDelay = 0`). Per-tick control
+  needs the engine change (fixed-step + lockstep). Do not train at 10x with
+  the script bridge; at 3x a 64 ms decision spans ~1.3 frames (mostly OK).
+- **Engine source**: `marbleblast.exe` = OpenPQ-TGEMIT (public,
+  https://github.com/The-New-Platinum-Team/OpenPQ-TGEMIT, cloned and built at
+  `C:/Users/doug/src/OpenPQ-TGEMIT`, `build-engine.ps1`) + a PRIVATE layer
+  (MBExtender plugins compiled in). The public build runs its own OpenMBG game
+  but crashes on PQ scripts: 232 console functions missing, 182 of which have
+  source in https://github.com/RandomityGuy/MBExtender (cloned to
+  `C:/Users/doug/src/MBExtender`; old-engine DLL plugins, not loadable).
+  Plan: ask RandomityGuy for the private tree; develop headless/fastsim/
+  lockstep mods on the public build meanwhile; self-port is the fallback.
+  Full table in `ROADMAP_NAVIGATOR_PLANNER.md` 3.1.
+- **Decision**: proceed on the GUI PQ build at 10x per instance.
+- **Launching for tests**: `marbleblast.exe -autotrain Sprawl_Hunt` (mission
+  FILE base name, one word; Hunt missions are selected from the "Hunt" list).
+  `-aiport N` / `-aispeed N` also exist. Probes reply `SPEED n`, `TELEPORT x y
+  z vx vy vz`, `SLEEPTIME n`, `MAXFPS n` before the RECORD handshake.
+
 ## Key Files
 
 - `ml_agent/ROADMAP_NAVIGATOR_PLANNER.md` — the plan for the navigator/planner architecture and multi-instance training (2026-09-16)

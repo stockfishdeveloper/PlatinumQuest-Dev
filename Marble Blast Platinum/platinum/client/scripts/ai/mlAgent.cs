@@ -11,6 +11,18 @@ $MLAgent::AutoStart = true;  // Auto-start when Hunt mode begins
 $MLAgent::TrainingSpeed = 3.0;  // Game speed multiplier (1.0 = normal, 3.0 = 3x speed, etc.)
 $MLAgent::DiagnosticMode = false; // When true: send obs but don't execute actions or change speed
 $MLAgent::RecordMode = false;     // When true (with DiagnosticMode): append the human's inputs to each message
+// Lockstep experiment (2026-09-16), OFF. Idea: freeze the simulation (tiny
+// time scale) after each observation until the reply arrives, so physics
+// never runs on a stale action. Measured: time scale 0 made the engine catch
+// up the frozen wall time on resume (sim ran at 2x the request); 0.001 gave
+// no benefit over the plain async bridge (duplicated observation states
+// still appear above 15x, trajectory drift was worse at 20x) and the engine
+// echoes every time-scale change to the console log, two lines per tick.
+// The clean operating point is the async bridge at <= 10x per instance
+// (throughput_probe.py: 0 duplicated states, 0.43 u drift after a 3 s
+// maneuver vs 1x). Kept for reference; do not enable for training.
+$MLAgent::Lockstep = false;
+$MLAgent::LockstepScale = 0.001;
 // Observation frame is ALWAYS the world frame (yaw 0), for training, play and
 // recording alike (2026-09-14). Before this the observer rotated everything by
 // $MP::MyMarble.getCameraYaw(), which is set by the spawn trigger's rotation
@@ -21,6 +33,30 @@ $MLAgent::RecordMode = false;     // When true (with DiagnosticMode): append the
 // The engine still applies F/B/L/R relative to the marble camera, so
 // MLAgent::executeAction rotates the world-frame command into the camera frame.
 $AIObserver::ForceYaw = 0;
+
+// Fixed action delay (2026-09-16). The bridge is asynchronous: the engine
+// reads socket replies only when it services network events, so the number
+// of ticks between an observation going out and its reply being applied
+// depended on the time scale (measured with action_latency_probe.py: 2 ticks
+// at 1x, 2-3 at 3x, 3-6 at 10x) and jittered tick to tick. Now every
+// observation carries its tick number (last "|" field) and a reply that ends
+// in ",t<tick>" is applied exactly at tick <tick> + ActionDelay, whatever the
+// speed. Replies without the tag (probes, recorder, control words) apply on
+// the next update as before. ActionDelay must exceed the worst reply lag at
+// the training speed (5 ticks at 10x), or replies land late and apply at once
+// (counted in $AIBridge::LateReplies, echoed at each game end).
+// OFF by default (0): verified 2026-09-16 that it makes the message-level
+// latency a constant K+1 at every speed, but the engine's frame loop
+// (main.cc processElapsedTime: serverProcess, then ALL script timers of the
+// frame, then clientProcess) means only the LAST script update of a wall
+// frame reaches the physics anyway, so the delay adds latency without adding
+// determinism. Kept for experiments: the Python side may send "DELAY n".
+$MLAgent::ActionDelay = 0;
+$MLAgent::Tick = 0;                 // monotonic across rounds and reconnects
+$AIBridge::DelayedMode = false;     // true once a tagged reply has arrived
+$AIBridge::DelayedReplies = 0;
+$AIBridge::LateReplies = 0;
+$AIBridge::HeldTicks = 0;
 
 // State tracking (reward computation is in Python)
 $MLAgent::LastGemScore = 0;
@@ -52,9 +88,20 @@ function MLAgent::start() {
 
 function MLAgent::startLoop() {
     if (!$AIBridge::Connected) {
-        error("MLAgent: Not connected to Python server");
+        // Python server not up yet (or restarting): keep trying every 2 s for
+        // as long as the round runs. Rounds restart by themselves (onGameEnd),
+        // so a game launched before its trainer connects as soon as it appears.
+        $MLAgent::ConnectAttempts++;
+        if ($MLAgent::ConnectAttempts == 1 || $MLAgent::ConnectAttempts % 15 == 0)
+            echo("MLAgent: Python server not reachable on " @ $AIBridge::Host @ ":" @ $AIBridge::Port @ ", retrying (attempt " @ $MLAgent::ConnectAttempts @ ")");
+        if ($Game::Running) {
+            AIBridge::disconnect();
+            AIBridge::connect("", "");
+            schedule(2000, 0, "MLAgent::startLoop");
+        }
         return;
     }
+    $MLAgent::ConnectAttempts = 0;
 
     echo("MLAgent: Starting update loop at " @ (1000 / $MLAgent::UpdateInterval) @ " Hz");
     $MLAgent::Enabled = true;
@@ -180,9 +227,28 @@ function MLAgent::update() {
                     @ ($MP::MyMarble.getCameraYaw() + 0);
     }
 
+    // Tick number: always the last field, so the reply can name the tick it
+    // answers (fixed action delay, see $MLAgent::ActionDelay).
+    $MLAgent::Tick++;
+    %msg = %msg @ "|" @ $MLAgent::Tick;
+
     // 6. Send to Python server and get action
     AIBridge::sendState(%msg);
+    // Fixed delay: the reply queued for this tick becomes the action now;
+    // with nothing queued the previous action stays in force (held).
+    if ($AIBridge::Queue[$MLAgent::Tick] !$= "") {
+        $AIBridge::LastAction = $AIBridge::Queue[$MLAgent::Tick];
+        $AIBridge::Queue[$MLAgent::Tick] = "";
+    } else if ($AIBridge::DelayedMode) {
+        $AIBridge::HeldTicks++;
+    }
     %actionStr = $AIBridge::LastAction;
+    if ($AIBridge::Control !$= "") {
+        %actionStr = $AIBridge::Control;      // control reply takes this tick (see socketBridge.cs)
+        $AIBridge::Control = "";
+    }
+    if ($MLAgent::Lockstep && !$MLAgent::DiagnosticMode && $AIBridge::Connected)
+        setTimeScale($MLAgent::LockstepScale);   // near-frozen until onLine() delivers the reply
 
     // Control replies from the Python side (not actions; consumed once):
     //   "SPEED n"                       set the game speed (the trainer can now
@@ -200,6 +266,19 @@ function MLAgent::update() {
         }
         $AIBridge::LastAction = "";
         %actionStr = "";
+    } else if (getWord(%actionStr, 0) $= "SLEEPTIME") {
+        // Probe control: background sleep pref (ms per frame when unfocused)
+        $Pref::backgroundSleepTime = getWord(%actionStr, 1) + 0;
+        echo("MLAgent: backgroundSleepTime set to " @ $Pref::backgroundSleepTime @ " by the Python server");
+        $AIBridge::LastAction = "";
+        %actionStr = "";
+    } else if (getWord(%actionStr, 0) $= "MAXFPS") {
+        // Probe control: frame-rate cap (setMaxFPS takes a frame period in ms; 0 = uncapped)
+        %fps = getWord(%actionStr, 1) + 0;
+        setMaxFPS(%fps > 0 ? 1000 / %fps : 0);
+        echo("MLAgent: setMaxFPS for " @ %fps @ " fps by the Python server");
+        $AIBridge::LastAction = "";
+        %actionStr = "";
     } else if (getWord(%actionStr, 0) $= "TELEPORT") {
         if (isObject($MP::MyMarble)) {
             %tp = getWord(%actionStr, 1) SPC getWord(%actionStr, 2) SPC getWord(%actionStr, 3) SPC "1 0 0 0";
@@ -208,6 +287,23 @@ function MLAgent::update() {
                 $MP::MyMarble.setVelocity(getWord(%actionStr, 4) SPC getWord(%actionStr, 5) SPC getWord(%actionStr, 6));
             echo("MLAgent: teleported to " @ %tp @ " by the Python server");
         }
+        $AIBridge::LastAction = "";
+        %actionStr = "";
+    }
+
+    //   "STATS"                        send "STATS|onTime,late,held,delay,tick"
+    //                                   back on the socket and reset the
+    //                                   fixed-delay counters (probes use it)
+    //   "DELAY n"                       set $MLAgent::ActionDelay (ticks)
+    if (getWord(%actionStr, 0) $= "STATS") {
+        AIBridge::sendState("STATS|" @ $AIBridge::DelayedReplies @ "," @ $AIBridge::LateReplies @ ","
+                            @ $AIBridge::HeldTicks @ "," @ $MLAgent::ActionDelay @ "," @ $MLAgent::Tick);
+        $AIBridge::DelayedReplies = 0; $AIBridge::LateReplies = 0; $AIBridge::HeldTicks = 0;
+        $AIBridge::LastAction = "";
+        %actionStr = "";
+    } else if (getWord(%actionStr, 0) $= "DELAY") {
+        $MLAgent::ActionDelay = getWord(%actionStr, 1) + 0;
+        echo("MLAgent: action delay set to " @ $MLAgent::ActionDelay @ " ticks by the Python server");
         $AIBridge::LastAction = "";
         %actionStr = "";
     }
@@ -395,7 +491,9 @@ function MLAgent::restoreTimeScale() {
 
 function MLAgent::onGameStart() {
     // Called when entering a Hunt mode game
-    if (!$MLAgent::AutoStart || !mp() || !$Game::isMode["hunt"])
+    // Any hunt round, single-player (Play > Hunt > map) or multiplayer host:
+    // the offline path is what automated tests use (2026-09-16).
+    if (!$MLAgent::AutoStart || !$Game::isMode["hunt"])
         return;
 
     $MPPref::AllowQuickRespawn = true;
@@ -419,6 +517,11 @@ function MLAgent::onTimerStart() {
 }
 
 function MLAgent::onGameEnd() {
+    if ($AIBridge::DelayedMode) {
+        echo("MLAgent: action delay " @ $MLAgent::ActionDelay @ " ticks: " @ $AIBridge::DelayedReplies
+             @ " replies on time, " @ $AIBridge::LateReplies @ " late, " @ $AIBridge::HeldTicks @ " ticks held");
+        $AIBridge::DelayedReplies = 0; $AIBridge::LateReplies = 0; $AIBridge::HeldTicks = 0;
+    }
     // Send game-end signal with the TOTAL gems collected this entire game.
     // Uses GameStartGemScore (set at round start, never reset by resetEpisode)
     // so the Python side gets the accurate full-game gem count.
@@ -432,8 +535,10 @@ function MLAgent::onGameEnd() {
         AIBridge::sendState(%msg);
     }
 
-    // Don't fully stop - just flag ready to restart
-    if ($MLAgent::Enabled) {
+    // Don't fully stop - just flag ready to restart. Restart whenever
+    // auto-start is on, even if the trainer never connected this round, so an
+    // unattended game keeps cycling rounds until a trainer shows up.
+    if ($MLAgent::Enabled || $MLAgent::AutoStart) {
         echo("MLAgent: Round ended, auto-restarting in 2 seconds...");
         $MLAgent::Enabled = false;  // Temporarily disable updates
 
@@ -444,7 +549,7 @@ function MLAgent::onGameEnd() {
 
 function MLAgent::autoRestart() {
     // Auto-restart the level for continuous training
-    if (mp() && $Game::isMode["hunt"]) {
+    if ($Game::isMode["hunt"]) {
         echo("MLAgent: Restarting Hunt round...");
 
         // Close end game dialog if open
@@ -536,9 +641,9 @@ function MLAgent::enableDiagnostic() {
 // ml_agent/run_game_loop.ps1 launches the game with "-autotrain <MissionName>".
 // (The engine's own -mission argument does nothing on the client in this build:
 // the mod's argument handler is activated after the arguments were parsed.)
-// This replays exactly what a person does: Multiplayer > Host, pick the map,
-// Play, then Ready and Start in the pregame dialog. Every step waits for the
-// game state it needs rather than a fixed delay. Once the round is running,
+// This replays what a person does offline: Play, pick the map, Play (single
+// player; hosting/joining lobbies for self-play is future work). Every step
+// waits for the game state it needs rather than a fixed delay. Once the round is running,
 // the existing auto-start (onTimerStart) and round-end auto-restart take over.
 //------------------------------------------------------------------------------
 
@@ -546,6 +651,17 @@ $MLAgent::AutoTrainMission = "";
 for ($MLAgent::_argi = 1; $MLAgent::_argi < $Game::argc; $MLAgent::_argi++) {
     if ($Game::argv[$MLAgent::_argi] $= "-autotrain" && $MLAgent::_argi + 1 < $Game::argc) {
         $MLAgent::AutoTrainMission = $Game::argv[$MLAgent::_argi + 1];
+    }
+    // -aiport N: TCP port of the Python server (default 8888). Lets several
+    // game instances feed one trainer, each on its own port (2026-09-16).
+    if ($Game::argv[$MLAgent::_argi] $= "-aiport" && $MLAgent::_argi + 1 < $Game::argc) {
+        $AIBridge::Port = $Game::argv[$MLAgent::_argi + 1] + 0;
+        echo("MLAgent: -aiport " @ $AIBridge::Port);
+    }
+    // -aispeed N: training time scale (default $MLAgent::TrainingSpeed).
+    if ($Game::argv[$MLAgent::_argi] $= "-aispeed" && $MLAgent::_argi + 1 < $Game::argc) {
+        $MLAgent::TrainingSpeed = $Game::argv[$MLAgent::_argi + 1] + 0;
+        echo("MLAgent: -aispeed " @ $MLAgent::TrainingSpeed);
     }
 }
 if ($MLAgent::AutoTrainMission !$= "") {
@@ -557,24 +673,22 @@ function MLAgent::autoTrainStage(%stage) {
     %mission = $MLAgent::AutoTrainMission;
     if (%mission $= "")
         return;
-
-    // Stage 1: wait for the main menu, then host (what Multiplayer > Host does)
+    // Stage 1: main menu loaded -> "Play" (single-player level select; no
+    // login, no hosting). This is the offline path used for training and tests.
     if (%stage == 1) {
-        if (!$Server::Hosting) {
-            if (!$Menu::Loaded) {
-                schedule(1000, 0, "MLAgent::autoTrainStage", 1);
-                return;
-            }
-            echo("MLAgent: autotrain: hosting a server");
-            PlayMissionGui.startServer();
+        if (!$Menu::Loaded) {
+            schedule(1000, 0, "MLAgent::autoTrainStage", 1);
+            return;
         }
-        schedule(2000, 0, "MLAgent::autoTrainStage", 2);
+        echo("MLAgent: autotrain: opening the level select");
+        PlayMissionGui.open();
+        schedule(1500, 0, "MLAgent::autoTrainStage", 2);
         return;
     }
-
-    // Stage 2: lobby is open -> select the mission and press Play
+    // Stage 2: level select is up -> select the mission (game mode and
+    // difficulty are resolved from the file) and press Play
     if (%stage == 2) {
-        if (!$Server::Lobby || !isObject(ServerConnection) || RootGui.getContent().getName() !$= "PlayMissionGui") {
+        if (RootGui.getContent().getName() !$= "PlayMissionGui") {
             schedule(1000, 0, "MLAgent::autoTrainStage", 2);
             return;
         }
@@ -590,38 +704,56 @@ function MLAgent::autoTrainStage(%stage) {
             $MLAgent::AutoTrainMission = "";
             return;
         }
-        PlayMissionGui.setSelectedMission(%info);
-        echo("MLAgent: autotrain: selected " @ %file @ ", loading");
-        PlayMissionGui.play();
-        schedule(3000, 0, "MLAgent::autoTrainStage", 3);
-        return;
-    }
-
-    // Stage 3: pregame dialog is up -> Ready
-    if (%stage == 3) {
-        if (!isObject(MPPreGameDlg) || !MPPreGameDlg.isAwake()) {
-            schedule(1000, 0, "MLAgent::autoTrainStage", 3);
+        // PlayMissionGui::setSelectedMission compares the full file string
+        // against the list entries, which use a different path form, so it
+        // silently keeps the default selection (King of the Marble). Select
+        // by file base name instead.
+        // Hunt missions carry game = "Ultra" in their info block, but the
+        // level select lists them under the "Hunt" game (with the difficulty
+        // as the type), so pick the list by game mode.
+        %game = (%info.gameMode $= "Hunt") ? "Hunt" : resolveMissionGame(%info);
+        %type = resolveMissionType(%info);
+        PlayMissionGui.setGame(%game);
+        PlayMissionGui.setMissionType(%type);
+        PlayMissionGui.showMissionList();
+        %list = PlayMissionGui.getMissionList(%game, %type);
+        %found = -1;
+        for (%i = 0; %i < %list.getSize(); %i++) {
+            if (strlwr(fileBase(%list.getEntry(%i).file)) $= strlwr(fileBase(%file))) {
+                %found = %i;
+                break;
+            }
+        }
+        if (%found < 0) {
+            error("MLAgent: autotrain: " @ %file @ " is not in the " @ %game @ "/" @ %type @ " level list");
+            $MLAgent::AutoTrainMission = "";
             return;
         }
-        echo("MLAgent: autotrain: ready");
-        commandToServer('Ready', 1);
-        schedule(1500, 0, "MLAgent::autoTrainStage", 4);
+        PlayMissionGui.setMissionByIndex(%found);
+        echo("MLAgent: autotrain: selected " @ %file @ " (list index " @ %found @ ")");
+        // First Play preloads the mission behind the menu ($Menu::Loaded goes
+        // false); the round only starts from a Play once it is loaded again,
+        // so wait for that in stage 4.
+        PlayMissionGui.play();
+        schedule(500, 0, "MLAgent::autoTrainStage", 4);
         return;
     }
-
-    // Stage 4: Start (host override, so it does not wait on anyone)
+    // Stage 4: mission preloaded behind the menu -> Play starts the round
     if (%stage == 4) {
-        echo("MLAgent: autotrain: starting the round");
-        commandToServer('PreGamePlay', 1);
-        schedule(15000, 0, "MLAgent::autoTrainStage", 5);
+        if (!$Menu::Loaded || $Menu::Loading) {
+            schedule(500, 0, "MLAgent::autoTrainStage", 4);
+            return;
+        }
+        echo("MLAgent: autotrain: mission preloaded, playing");
+        PlayMissionGui.play();
+        schedule(20000, 0, "MLAgent::autoTrainStage", 3);
         return;
     }
-
-    // Stage 5: if the dialog is still up and nothing is running, try again
-    if (%stage == 5) {
-        if (isObject(MPPreGameDlg) && MPPreGameDlg.isAwake() && !$Game::Running) {
+    // Stage 3: if nothing is running after 20 s, try the menu again
+    if (%stage == 3) {
+        if (!$Game::Running) {
             echo("MLAgent: autotrain: round did not start, retrying");
-            schedule(0, 0, "MLAgent::autoTrainStage", 3);
+            schedule(0, 0, "MLAgent::autoTrainStage", 1);
         }
     }
 }

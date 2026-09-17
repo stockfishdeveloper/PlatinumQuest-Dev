@@ -115,7 +115,8 @@ class DemoRecorder:
         if len(obs) != OBS_BASE:
             self.malformed += 1
             return
-        if len(parts) < 5:
+        # Fields: obs|gemDelta|oob|done|<human inputs, recording mode only>|tick
+        if len(parts) < 6:
             self.pre_record_ticks += 1        # handshake in flight: game not yet in recording mode
             if self.pre_record_ticks == 50:
                 print("  WARNING: 50 ticks without the human-input block. Is the game script up to date (mlAgent.cs handshake)?")
