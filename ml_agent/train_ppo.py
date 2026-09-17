@@ -1402,6 +1402,14 @@ class PPOServer:
         self.game_gem_steps_sum = 0      # sum of steps_since_gem at each pickup
         self.recent_jump_rate = deque(maxlen=100)        # jump % per game
         self.recent_brake_rate = deque(maxlen=100)       # brake % per game
+        # Per-game series for the dashboard (2026-09-16): falls, free-fall share,
+        # command/acceleration agreement, real-time factor; slow-game counters.
+        self.recent_game_oob = deque(maxlen=100)
+        self.recent_freefall_pct = deque(maxlen=100)
+        self.recent_cmd_cos = deque(maxlen=100)
+        self.recent_rtf = deque(maxlen=100)
+        self.slow_games = 0
+        self.slow_rollouts = 0
         self.recent_avg_steps_per_gem = deque(maxlen=100) # avg steps between gems per game
 
         # Brake-effectiveness diagnostics (added to verify the brake action is doing
@@ -1807,6 +1815,13 @@ class PPOServer:
                 self.recent_slow_pickup_bonus.append(round(self.game_slow_pickup_bonus_sum, 1))
 
                 freefall_pct = (self.game_freefall_frames / max(self.game_steps, 1)) * 100
+                self.recent_rtf.append(round(game_rtf, 2))
+                if slow_game:
+                    self.slow_games += 1
+                else:
+                    self.recent_game_oob.append(self.episode_oob)
+                    self.recent_freefall_pct.append(round(freefall_pct, 1))
+                    self.recent_cmd_cos.append(round(self.game_cmd_cos_sum / max(self.game_cmd_cos_n, 1), 2))
                 self.log(f"[GAME END] total gems this game: {total_game_gems}pts (best: {self.best_game_gems}) avg_gap_penalty: {avg_gap:.1f} jump_rate: {jump_rate:.1f}% brake_rate: {brake_rate:.1f}% avg_steps/gem: {avg_steps_per_gem:.0f} overshoot: {self.game_overshoot_penalty_sum:.0f} ({overshoot_pct:.1f}% of steps, avg {avg_overshoot_per_frame:.2f}/frame) pickup_speed: {avg_pickup_speed:.1f} brakes_near_pickup: {avg_brakes_near_pickup:.2f}/gem slow_pickup_bonus: {self.game_slow_pickup_bonus_sum:.0f} freefall: {self.game_freefall_penalty_sum:.0f} ({freefall_pct:.1f}% of steps) gems_by_pts: {breakdown_str} offmap: {self.game_offmap} cmd_accel_cos: {self.game_cmd_cos_sum / max(self.game_cmd_cos_n, 1):.2f} rtf: {game_rtf:.2f}{' SLOW GAME (excluded from averages)' if slow_game else ''}")
                 if self.game_cmd_cos_n > 500 and self.game_cmd_cos_sum / self.game_cmd_cos_n < 0.2:
                     self.log(f"  *** ACTION FRAME CHECK: commands and accelerations agree at only "
@@ -2159,6 +2174,7 @@ class PPOServer:
         if self.rtf_reference > 0 and rtf < self.RTF_MIN_FRACTION * self.rtf_reference:
             self.log(f"  *** GAME SLOW: this rollout ran at {rtf:.2f}x real time (reference {self.rtf_reference:.2f}x). "
                      f"Discarding it, not training on it. Is the game window in the background? ***")
+            self.slow_rollouts += 1
             self.buffer.clear()
             self.rollout_gem_pts = 0
             self.rollout_oob = 0
@@ -2210,6 +2226,19 @@ class PPOServer:
             if new_max <= self.LOG_STD_MAX_TARGET + 1e-9:
                 self.log(f"  [NOISE CAP] Direction std cap reached its target: "
                          f"{math.exp(new_max) * 180 / math.pi:.1f} deg (log_std_max={new_max:.2f})")
+        # Perception uptake for the dashboard: mean |w| of the terrain / edge-ray
+        # input columns relative to the original columns (first layer of each
+        # trunk). Same numbers as the TerrainCols/EdgeCols summary line.
+        with torch.no_grad():
+            split = self.obs_dim - PERCEPTION_DIM
+            esplit = self.obs_dim - EDGE_DIM
+            def _cols(w):
+                base = w[:, :split].abs().mean().clamp(min=1e-8)
+                return (round((w[:, split:esplit].abs().mean() / base).item(), 4),
+                        round((w[:, esplit:].abs().mean() / base).item(), 4))
+            trunks = {'actor': self.actor.features[0].weight, 'brake': self.actor.brake_features[0].weight,
+                      'jump': self.actor.jump_features[0].weight, 'critic': self.critic.net[0].weight}
+            stats['cols'] = {k: {'terrain': t, 'edge': e} for k, (t, e) in ((k, _cols(w)) for k, w in trunks.items())}
         self.entropy_history.append(stats['entropy'])
 
         avg_reward = np.mean(self.episode_rewards) if self.episode_rewards else 0

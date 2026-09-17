@@ -461,6 +461,8 @@ class DashboardServer:
             'throttle_min': [],
             'throttle_max': [],
             'throttle_std': [],
+            'edge_actor': [], 'edge_brake': [], 'edge_jump': [], 'edge_critic': [],
+            'terrain_actor': [], 'terrain_critic': [],
         }
         self._server = None
         self._thread = None
@@ -579,6 +581,16 @@ class DashboardServer:
             'dwell_steps': round(avg_dwell_steps, 0),
             'jump_rate': round(avg_jump_rate, 2),
             'brake_rate': round(avg_brake_rate, 2),
+            # 2026-09-16: ray uptake + per-game health series
+            'cols': stats.get('cols'),
+            'edge_lr_mult': getattr(s, 'TERRAIN_LR_MULT', 1.0),
+            'recent_game_oob': list(getattr(s, 'recent_game_oob', [])),
+            'recent_freefall': list(getattr(s, 'recent_freefall_pct', [])),
+            'recent_cmd_cos': list(getattr(s, 'recent_cmd_cos', [])),
+            'recent_rtf': list(getattr(s, 'recent_rtf', [])),
+            'rtf_reference': round(float(getattr(s, 'rtf_reference', 0.0)), 2),
+            'slow_games': getattr(s, 'slow_games', 0),
+            'slow_rollouts': getattr(s, 'slow_rollouts', 0),
             'avg_steps_per_gem': round(avg_steps_per_gem, 1),
             'rollout_size': s.rollout_size,
             'batch_size': s.batch_size,
@@ -623,6 +635,10 @@ class DashboardServer:
             h['dwell_steps'].append(snap['dwell_steps'])
             h['jump_rate'].append(snap['jump_rate'])
             h['brake_rate'].append(snap['brake_rate'])
+            c = snap.get('cols') or {}
+            h['edge_actor'].append(c.get('actor', {}).get('edge', 0)); h['edge_brake'].append(c.get('brake', {}).get('edge', 0))
+            h['edge_jump'].append(c.get('jump', {}).get('edge', 0)); h['edge_critic'].append(c.get('critic', {}).get('edge', 0))
+            h['terrain_actor'].append(c.get('actor', {}).get('terrain', 0)); h['terrain_critic'].append(c.get('critic', {}).get('terrain', 0))
             h['avg_steps_per_gem'].append(snap['avg_steps_per_gem'])
             h['mean_angle'].append(snap['mean_angle'])
             h['policy_std'].append(snap['policy_std'])
@@ -929,12 +945,18 @@ body { background: var(--bg); color: var(--text); font-family: 'Consolas', 'SF M
   <div class="gauge"><div class="label">Grad Norm</div><div class="value" id="g-gradnorm">--</div></div>
   <div class="gauge"><div class="label">Last Game Score</div><div class="value" id="g-lastgems" style="color:#f0c040">--</div><div class="label" id="g-lastgems-breakdown"></div></div>
   <div class="gauge"><div class="label">Dry Rollouts</div><div class="value" id="g-dry">--</div></div>
+  <div class="gauge"><div class="label">Falls/Game (last 20)</div><div class="value" id="g-oobgame">--</div><div class="label" id="g-oobgame-sub">target &lt; 5</div></div>
+  <div class="gauge"><div class="label">Ray Weight (actor / brake)</div><div class="value" id="g-edge">--</div><div class="label" id="g-edge-sub">vs terrain --</div></div>
+  <div class="gauge"><div class="label">Cmd/Accel Agreement</div><div class="value" id="g-cmdcos">--</div><div class="label">frame check, expect &gt; 0.7</div></div>
 </div>
 
 <!-- Charts -->
 <div id="charts">
   <div class="chart-card"><div class="chart-title">Avg Reward (100-episode rolling)</div><div id="c-avgrwd" style="height:220px"></div></div>
   <div class="chart-card"><div class="chart-title">Score Per Game (last 100 games) + rolling avg &mdash; green = best of this run</div><div id="c-epgems" style="height:220px"></div></div>
+  <div class="chart-card"><div class="chart-title">Falls (OOB) Per Game (last 100 games) + rolling avg &mdash; the number the rays must move</div><div id="c-oobgame" style="height:220px"></div></div>
+  <div class="chart-card"><div class="chart-title">Ray Uptake: edge-ray input weight / original inputs, per network (dashed = old terrain samples)</div><div id="c-raycols" style="height:220px"></div></div>
+  <div class="chart-card"><div class="chart-title">Free-fall % of Ticks Per Game (falling time; tracks OOB)</div><div id="c-freefall" style="height:220px"></div></div>
   <div class="chart-card"><div class="chart-title">Score Per Hour</div><div id="c-gemshr" style="height:220px"></div></div>
   <div class="chart-card"><div class="chart-title">KL Divergence + KL-Stop % (last 100 updates)</div><div id="c-kl" style="height:220px"></div></div>
   <div class="chart-card"><div class="chart-title">Gradient Norm (actor + critic)</div><div id="c-gradnorm" style="height:220px"></div></div>
@@ -1118,6 +1140,16 @@ Plotly.newPlot('c-brakerate', [
   { x: [], y: [], type: 'scatter', mode: 'lines', line: { color: '#79c0ff', width: 2 } }
 ], darkLayout(), plotConfig);
 
+// 10c. Ray uptake (edge-ray column weight ratio per trunk) + old terrain columns for scale
+Plotly.newPlot('c-raycols', [
+  { x: [], y: [], type: 'scatter', mode: 'lines', name: 'edge: actor', line: { color: '#3fb950', width: 2 } },
+  { x: [], y: [], type: 'scatter', mode: 'lines', name: 'edge: brake', line: { color: '#79c0ff', width: 2 } },
+  { x: [], y: [], type: 'scatter', mode: 'lines', name: 'edge: jump', line: { color: '#f0c040', width: 2 } },
+  { x: [], y: [], type: 'scatter', mode: 'lines', name: 'edge: critic', line: { color: '#bc8cff', width: 2 } },
+  { x: [], y: [], type: 'scatter', mode: 'lines', name: 'terrain: actor', line: { color: '#3fb950', width: 1, dash: 'dot' } },
+  { x: [], y: [], type: 'scatter', mode: 'lines', name: 'terrain: critic', line: { color: '#bc8cff', width: 1, dash: 'dot' } }
+], darkLayout({ showlegend: true, legend: { x: 0, y: 1, font: { size: 9 } } }), plotConfig);
+
 // 11. Avg Steps Between Gem Pickups
 Plotly.newPlot('c-stepspergem', [
   { x: [], y: [], type: 'scatter', mode: 'lines', line: { color: '#d29922', width: 2 } }
@@ -1216,6 +1248,12 @@ async function loadHistory() {
     // Brake Rate
     if (h.brake_rate) {
       Plotly.extendTraces('c-brakerate', { x: [xs], y: [h.brake_rate] }, [0]);
+    }
+
+    // Ray uptake
+    if (h.edge_actor && h.edge_actor.length === xs.length) {
+      Plotly.extendTraces('c-raycols', { x: [xs, xs, xs, xs, xs, xs],
+        y: [h.edge_actor, h.edge_brake, h.edge_jump, h.edge_critic, h.terrain_actor, h.terrain_critic] }, [0, 1, 2, 3, 4, 5]);
     }
 
     // Avg Steps Per Gem
@@ -1344,6 +1382,34 @@ function updateDashboard(snap) {
   gnEl.textContent = gn.toFixed(2);
   gnEl.style.color = gn > 10 ? '#f85149' : gn > 2 ? '#d29922' : '#3fb950';
 
+  // Falls per game (last 20 full-speed games)
+  const oobArr = snap.recent_game_oob || [];
+  const oobEl = document.getElementById('g-oobgame');
+  if (oobArr.length > 0) {
+    const last20 = oobArr.slice(-20);
+    const avgOob = last20.reduce((a, b) => a + b, 0) / last20.length;
+    oobEl.textContent = avgOob.toFixed(1);
+    oobEl.style.color = avgOob < 5 ? '#3fb950' : avgOob < 7 ? '#d29922' : '#f85149';
+    document.getElementById('g-oobgame-sub').textContent = 'baseline 6.9, target < 5';
+  } else { oobEl.textContent = '--'; }
+
+  // Ray weight uptake (edge-ray columns vs original inputs)
+  const edgeEl = document.getElementById('g-edge');
+  if (snap.cols) {
+    edgeEl.textContent = snap.cols.actor.edge.toFixed(3) + ' / ' + snap.cols.brake.edge.toFixed(3);
+    edgeEl.style.color = snap.cols.actor.edge >= 0.08 ? '#3fb950' : snap.cols.actor.edge >= 0.04 ? '#d29922' : '#e6edf3';
+    document.getElementById('g-edge-sub').textContent = 'vs terrain ' + snap.cols.actor.terrain.toFixed(3) + ' (' + (snap.edge_lr_mult || 1) + 'x lr)';
+  } else { edgeEl.textContent = '--'; }
+
+  // Command/acceleration agreement (last full-speed game)
+  const ccArr = snap.recent_cmd_cos || [];
+  const ccEl = document.getElementById('g-cmdcos');
+  if (ccArr.length > 0) {
+    const cc = ccArr[ccArr.length - 1];
+    ccEl.textContent = cc.toFixed(2);
+    ccEl.style.color = cc >= 0.7 ? '#3fb950' : cc >= 0.4 ? '#d29922' : '#f85149';
+  } else { ccEl.textContent = '--'; }
+
   const dryEl = document.getElementById('g-dry');
   dryEl.textContent = snap.dry_rollouts;
   dryEl.style.color = snap.dry_warning ? '#f85149' : snap.dry_rollouts > 0 ? '#d29922' : '#3fb950';
@@ -1378,6 +1444,13 @@ function updateDashboard(snap) {
 
   // Brake Rate
   Plotly.extendTraces('c-brakerate', { x: [[x]], y: [[snap.brake_rate || 0]] }, [0]);
+
+  // Ray uptake
+  if (snap.cols) {
+    const c = snap.cols;
+    Plotly.extendTraces('c-raycols', { x: [[x], [x], [x], [x], [x], [x]],
+      y: [[c.actor.edge], [c.brake.edge], [c.jump.edge], [c.critic.edge], [c.actor.terrain], [c.critic.terrain]] }, [0, 1, 2, 3, 4, 5]);
+  }
 
   // Avg Steps Per Gem
   Plotly.extendTraces('c-stepspergem', { x: [[x]], y: [[snap.avg_steps_per_gem || 0]] }, [0]);
@@ -1424,6 +1497,29 @@ function updateDashboard(snap) {
         line: { color: '#f85149', width: 2 }, name: `Avg (${window})` }
     ], darkLayout({ bargap: 0.15, showlegend: true, legend: { x: 0, y: 1, font: { size: 9 } } }), plotConfig);
   }
+
+  // Falls per game (last 100 full-speed games) — bars + rolling avg
+  const oobGames = snap.recent_game_oob || [];
+  if (oobGames.length > 0) {
+    const idx = oobGames.map((_, i) => i + 1);
+    const w10 = 10;
+    const avg = oobGames.map((_, i) => { const sl = oobGames.slice(Math.max(0, i - w10 + 1), i + 1); return sl.reduce((a, b) => a + b, 0) / sl.length; });
+    Plotly.react('c-oobgame', [
+      { x: idx, y: oobGames, type: 'bar', marker: { color: oobGames.map(v => v >= 10 ? '#f85149' : v >= 5 ? '#d29922' : '#3fb950') }, name: 'Falls' },
+      { x: idx, y: avg, type: 'scatter', mode: 'lines', line: { color: '#79c0ff', width: 2 }, name: `Avg (${w10})` },
+      { x: idx, y: idx.map(() => 6.9), type: 'scatter', mode: 'lines', line: { color: '#8b949e', width: 1, dash: 'dot' }, name: 'pre-ray baseline' }
+    ], darkLayout({ bargap: 0.15, showlegend: true, legend: { x: 0, y: 1, font: { size: 9 } } }), plotConfig);
+  }
+
+  // Free-fall % per game
+  const ffGames = snap.recent_freefall || [];
+  if (ffGames.length > 0) {
+    const idx = ffGames.map((_, i) => i + 1);
+    Plotly.react('c-freefall', [
+      { x: idx, y: ffGames, type: 'scatter', mode: 'lines+markers', marker: { size: 4 }, line: { color: '#f85149', width: 1.5 }, name: 'free-fall %' }
+    ], darkLayout(), plotConfig);
+  }
+
 }
 
 // ============================================================
