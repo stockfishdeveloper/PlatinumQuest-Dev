@@ -1,0 +1,68 @@
+[23:47:09] fresh model (808,504 params), obs NAV_OBS_V1, device cuda
+[23:47:09] [env:8888] waiting for the game
+[23:48:10] [env:8888] game connected (1)
+[23:48:11] mission FlatGemTraining_Hunt: terrain 255x255 @ 0.5 u, walk grid 128x128, walkable 15750 cells, edge 498
+[23:48:16] marble still off the map after 120 decisions at [ 63.4 100.6 -94.8]
+[23:48:19] marble still off the map after 120 decisions at [111.1 126.9 -99.5]
+[23:48:19] no reachable goal from (111.1, 126.9, -99.5); teleporting
+[23:48:23] marble still off the map after 120 decisions at [119.2 131.9 -98.4]
+[23:48:23] no reachable goal from (119.2, 131.9, -98.4); teleporting
+[23:48:29] marble still off the map after 120 decisions at [119.5 133.  -97.8]
+[23:48:29] no reachable goal from (119.5, 133.0, -97.8); teleporting
+[23:48:32] marble still off the map after 120 decisions at [ 98.2 120.7 -93. ]
+[23:48:32] no reachable goal from (98.2, 120.7, -93.0); teleporting
+[23:48:36] marble still off the map after 120 decisions at [-36.7  90.9 -94.8]
+[23:48:40] marble still off the map after 120 decisions at [112.5 135.3 -94.4]
+[23:48:43] marble still off the map after 120 decisions at [101.5 124.  -97.1]
+[23:48:49] marble still off the map after 120 decisions at [116.3 157.3 -94.4]
+[23:48:49] no reachable goal from (116.3, 157.3, -94.4); teleporting
+[23:48:52] marble still off the map after 120 decisions at [ 99.8 139.  -97.1]
+[23:48:58] marble still off the map after 120 decisions at [112.7 124.7 -95.9]
+[23:48:58] no reachable goal from (112.7, 124.7, -95.9); teleporting
+[23:49:01] marble still off the map after 120 decisions at [106.6 133.3 -93. ]
+[23:49:01] no reachable goal from (106.6, 133.3, -93.0); teleporting
+[23:49:04]   KL early stop at epoch 1
+[23:49:04] NAV upd=1 steps=2,048 segs=18 arrive=6% falls100=0.99 speed=13.8 rew=-104.0 pl=0.233 vl=3.440 ent=1.04 kl=0.701 clip=0.46 gn=87.11 ep=1 dstd=0.22 upd_s=0.7 wall_s=52
+[23:49:05] SEG n=20 last=fell arrive=5% falls100=1.02 speed=13.6 timeout=0% rew=-100.1 rtf=3.00
+[23:49:06] marble still off the map after 120 decisions at [  67.8  102.4 -103.7]
+[23:49:09] marble still off the map after 120 decisions at [ 94.5 152.8 -95.7]
+[23:49:09] no reachable goal from (94.5, 152.8, -95.7); teleporting
+[23:49:12] marble still off the map after 120 decisions at [ 86.9 125.8 -97.9]
+[23:49:12] no reachable goal from (86.9, 125.8, -97.9); teleporting
+[23:49:18] marble still off the map after 120 decisions at [  94.2  130.1 -101.1]
+[23:49:18] no reachable goal from (94.2, 130.1, -101.1); teleporting
+[23:49:22] marble still off the map after 120 decisions at [ 81.5 148.  -93. ]
+[23:49:22] no reachable goal from (81.5, 148.0, -93.0); teleporting
+[23:49:27] marble still off the map after 120 decisions at [  99.1  146.1 -100.9]
+[23:49:27] no reachable goal from (99.1, 146.1, -100.9); teleporting
+[23:49:31] marble still off the map after 120 decisions at [ 101.5  135.1 -100.9]
+[23:49:31] no reachable goal from (101.5, 135.1, -100.9); teleporting
+[23:49:36] marble still off the map after 120 decisions at [114.6 111.7 -96.7]
+[23:49:36] no reachable goal from (114.6, 111.7, -96.7); teleporting
+[23:49:40] marble still off the map after 120 decisions at [104.5 141.3 -96.9]
+[23:49:45] marble still off the map after 120 decisions at [ 105.9  114.2 -102.1]
+[23:49:45] no reachable goal from (105.9, 114.2, -102.1); teleporting
+[23:49:49] marble still off the map after 120 decisions at [102.9 152.6 -96.9]
+[23:51:45] new round (game connection 1); rtf 2.89
+[23:51:47]   KL early stop at epoch 1
+[23:51:47] NAV upd=2 steps=4,096 segs=35 arrive=3% falls100=0.97 speed=13.9 rew=-104.8 pl=0.110 vl=2.739 ent=1.04 kl=1.510 clip=0.48 gn=330.65 ep=1 dstd=0.22 upd_s=0.4 wall_s=163
+[23:51:49] marble still off the map after 120 decisions at [ 78.6  87.1 -96.4]
+[23:51:49] no reachable goal from (78.6, 87.1, -96.4); teleporting
+[23:51:52] marble still off the map after 120 decisions at [145.4  40.3 -97.4]
+[23:51:52] no reachable goal from (145.4, 40.3, -97.4); teleporting
+[23:51:55] marble still off the map after 120 decisions at [ 121.8   33.6 -101.1]
+[23:51:55] no reachable goal from (121.8, 33.6, -101.1); teleporting
+[23:51:57] SEG n=40 last=fell arrive=2% falls100=0.99 speed=13.8 timeout=0% rew=-101.0 rtf=2.99
+[23:52:00] marble still off the map after 120 decisions at [127.8  39.3 -98.6]
+[23:52:00] no reachable goal from (127.8, 39.3, -98.6); teleporting
+[23:52:03] marble still off the map after 120 decisions at [149.8  30.  -95.9]
+[23:52:06] marble still off the map after 120 decisions at [ 124.4   28.2 -105.2]
+[23:52:10] marble still off the map after 120 decisions at [105.8  53.2 -97.1]
+[23:52:13] marble still off the map after 120 decisions at [127.1  45.6 -96.9]
+[23:52:16] marble still off the map after 120 decisions at [131.9  56.9 -94.5]
+[23:52:22] marble still off the map after 120 decisions at [131.4  93.4 -96.9]
+[23:52:26] marble still off the map after 120 decisions at [134.7  36.6 -98.6]
+[23:52:26] no reachable goal from (134.7, 36.6, -98.6); teleporting
+[23:52:31] marble still off the map after 120 decisions at [ 145.9   41.1 -100.9]
+[23:52:34] marble still off the map after 120 decisions at [119.   24.9 -96.9]
+[23:52:34] no reachable goal from (119.0, 24.9, -96.9); teleporting

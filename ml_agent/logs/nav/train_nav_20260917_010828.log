@@ -1,0 +1,14 @@
+[01:08:29] fresh model (808,504 params), obs NAV_OBS_V1, device cuda
+[01:08:29] [env:8888] waiting for the game
+[01:08:29] [env:8888] game connected (1)
+[01:08:33] mission FlatGemTraining_Hunt: terrain 255x255 @ 0.5 u, walk grid 128x128, walkable 15750 cells, edge 498
+[01:10:09] NAV upd=1 steps=2,048 segs=6 arrive=0% falls100=0.00 speed=0.2 rew=-38.5 pl=-0.002 vl=2.563 ent=1.03 kl=0.004 clip=0.06 gn=1.37 ep=4 dstd=0.22 upd_s=2.4 wall_s=96
+[01:11:42] NAV upd=2 steps=4,096 segs=13 arrive=0% falls100=1.63 speed=0.2 rew=-38.1 pl=0.005 vl=4.111 ent=1.02 kl=0.019 clip=0.19 gn=2.23 ep=4 dstd=0.22 upd_s=2.8 wall_s=93
+[01:17:18] new round (game connection 1); rtf 1.49
+[01:18:29] SEG n=20 last=timeout arrive=0% falls100=2.90 speed=0.4 timeout=80% rew=-40.1 rtf=1.51
+[01:18:38] NAV upd=3 steps=6,144 segs=20 arrive=0% falls100=2.90 speed=0.4 rew=-40.1 pl=0.009 vl=4.925 ent=1.05 kl=0.016 clip=0.18 gn=2.64 ep=4 dstd=0.22 upd_s=2.8 wall_s=416
+[01:24:04] new round (game connection 1); rtf 1.48
+[01:30:51] new round (game connection 1); rtf 1.48
+[01:30:58] NAV upd=4 steps=8,192 segs=27 arrive=0% falls100=4.08 speed=0.4 rew=-41.3 pl=0.011 vl=4.067 ent=1.05 kl=0.023 clip=0.28 gn=3.89 ep=4 dstd=0.22 upd_s=2.2 wall_s=740
+[01:37:38] new round (game connection 1); rtf 1.48
+[01:37:55] NAV upd=5 steps=10,240 segs=34 arrive=0% falls100=3.90 speed=0.4 rew=-42.5 pl=0.029 vl=3.089 ent=1.11 kl=0.037 clip=0.38 gn=4.43 ep=4 dstd=0.22 upd_s=2.5 wall_s=418

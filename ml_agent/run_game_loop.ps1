@@ -21,9 +21,11 @@
 # Ctrl+C in this window stops the loop (and leaves the current game running).
 
 param(
-    [string]$Mission = "KingOfTheMarble_Hunt",
-    [double]$RestartEveryHours = 0
+    [string]$Mission = "KingOfTheMarble_Hunt",     # one mission, or a comma-separated list to rotate through
+    [double]$RestartEveryHours = 0                 # with a list: how long each mission runs before the next
 )
+$missions = $Mission -split "," | ForEach-Object { $_.Trim() } | Where-Object { $_ -ne "" }
+$missionIndex = 0
 
 $exe = Join-Path $PSScriptRoot "..\Marble Blast Platinum\marbleblast.exe"
 $exe = [System.IO.Path]::GetFullPath($exe)
@@ -32,8 +34,21 @@ $workdir = Split-Path $exe
 
 while ($true) {
     $started = Get-Date
+    $Mission = $missions[$missionIndex % $missions.Count]
+    $missionIndex++
     Write-Host ("[{0}] launching {1} -autotrain {2}" -f $started.ToString("HH:mm:ss"), $exe, $Mission)
     $p = Start-Process -FilePath $exe -ArgumentList @("-autotrain", $Mission) -WorkingDirectory $workdir -PassThru
+
+    # Bring the game window to the foreground once it is up: behind other windows
+    # the engine runs at half speed (rtf 1.5 instead of 3, 2026-09-17). Plain
+    # SetForegroundWindow is refused for a background caller; an ALT keypress
+    # followed by AppActivate is not.
+    Start-Sleep -Seconds 25
+    try {
+        Add-Type -AssemblyName System.Windows.Forms
+        [System.Windows.Forms.SendKeys]::SendWait('%')
+        (New-Object -ComObject WScript.Shell).AppActivate($p.Id) | Out-Null
+    } catch { Write-Host "could not activate the game window: $($_.Exception.Message)" }
 
     if ($RestartEveryHours -gt 0) {
         $deadline = $started.AddHours($RestartEveryHours)

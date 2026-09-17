@@ -1,0 +1,20 @@
+[23:41:12] fresh model (808,504 params), obs NAV_OBS_V1, device cuda
+[23:41:12] [env:8888] waiting for the game
+[23:41:12] [env:8888] game connected (1)
+[23:41:12] mission FlatGemTraining_Hunt: terrain 255x255 @ 0.5 u, walk grid 128x128, walkable 15750 cells, edge 498
+[23:41:20] no reachable goal from (85.5, 86.3, -12.9); teleporting
+[23:41:24] no reachable goal from (69.9, 91.5, -6.7); teleporting
+[23:41:29] no reachable goal from (77.9, 93.1, -13.1); teleporting
+[23:41:32] no reachable goal from (70.0, 90.6, -14.4); teleporting
+[23:41:35]   KL early stop at epoch 1
+[23:41:35] NAV upd=1 steps=2,048 segs=7 arrive=0% falls100=0.69 speed=7.7 rew=-132.5 pl=0.135 vl=2.910 ent=1.04 kl=1.404 clip=0.47 gn=84.49 ep=1 dstd=0.22 upd_s=0.6 wall_s=23
+[23:41:47] no reachable goal from (86.8, 75.6, -11.4); teleporting
+[23:41:56] no reachable goal from (90.7, 74.1, -12.9); teleporting
+[23:41:58]   KL early stop at epoch 2
+[23:41:58] NAV upd=2 steps=4,096 segs=17 arrive=6% falls100=0.73 speed=7.4 rew=-119.4 pl=0.138 vl=3.116 ent=1.04 kl=0.196 clip=0.44 gn=221.70 ep=2 dstd=0.22 upd_s=1.3 wall_s=23
+[23:42:00] no reachable goal from (87.7, 64.0, -11.9); teleporting
+[23:42:00] no reachable goal from (88.3, 64.5, -12.5); teleporting
+[23:42:00] no reachable goal from (88.8, 64.9, -13.0); teleporting
+[23:42:00] no reachable goal from (89.5, 65.3, -13.7); teleporting
+[23:42:00] no reachable goal from (90.0, 65.7, -14.2); teleporting
+[23:42:00] no reachable goal from (90.7, 66.2, -14.9); teleporting

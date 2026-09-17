@@ -1,0 +1,355 @@
+[02:15:51] fresh model (808,504 params), obs NAV_OBS_V1, device cuda
+[02:15:51] [env:8888] waiting for the game
+[02:17:11] [env:8888] game connected (1)
+[02:17:12] mission FlatGemTraining_Hunt: terrain 255x255 @ 0.5 u, walk grid 128x128, walkable 15750 cells, edge 498
+[02:18:03] NAV upd=1 steps=2,048 segs=6 arrive=0% falls100=0.00 speed=1.1 rew=-18.3 pl=-0.007 vl=1.354 ent=0.63 kl=0.004 clip=0.07 gn=0.81 ep=4 dstd=0.22 upd_s=4.2 wall_s=50
+[02:18:04] marble off the map for 60 decisions at [-37.1 104.  -45.8] (time left 147s); forcing a respawn
+[02:18:04] marble off the map for 120 decisions at [ -48.7  136.5 -119.4] (time left 146s); forcing a respawn
+[02:18:50] NAV upd=2 steps=4,096 segs=14 arrive=0% falls100=0.57 speed=1.3 rew=-29.3 pl=0.002 vl=8.250 ent=0.60 kl=0.015 clip=0.17 gn=1.79 ep=4 dstd=0.22 upd_s=3.4 wall_s=48
+[02:18:51] teleport to (5.4, 8.6) ignored; marble at [19.3  4.1  0.6]
+[02:18:55] [env:8888] round over (time left 300s); waiting for the next round
+[02:18:55] [env:8888] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[02:18:55] new round (game connection 1); rtf 2.92
+[02:19:31] SEG n=20 last=timeout arrive=0% falls100=0.58 speed=1.4 timeout=85% rew=-27.9 rtf=3.00
+[02:19:41] NAV upd=3 steps=6,144 segs=20 arrive=0% falls100=0.58 speed=1.4 rew=-27.9 pl=0.000 vl=3.548 ent=0.57 kl=0.010 clip=0.16 gn=1.94 ep=4 dstd=0.22 upd_s=3.9 wall_s=51
+[02:19:42] teleport to (-31.6, -12.4) ignored; marble at [22.5 36.   0.6]
+[02:20:29] NAV upd=4 steps=8,192 segs=28 arrive=0% falls100=0.52 speed=1.5 rew=-27.2 pl=-0.003 vl=2.618 ent=0.56 kl=0.011 clip=0.16 gn=2.01 ep=4 dstd=0.22 upd_s=3.5 wall_s=47
+[02:20:30] teleport to (35.4, 38.6) ignored; marble at [0.9 1.1 0.7]
+[02:20:39] [env:8888] round over (time left 300s); waiting for the next round
+[02:20:39] [env:8888] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[02:20:39] new round (game connection 1); rtf 2.87
+[02:21:01] marble off the map for 60 decisions at [ 52.9  70.2 -45.9] (time left 234s); forcing a respawn
+[02:21:19] NAV upd=5 steps=10,240 segs=35 arrive=0% falls100=0.76 speed=1.7 rew=-32.5 pl=0.017 vl=5.207 ent=0.59 kl=0.030 clip=0.33 gn=4.20 ep=4 dstd=0.22 upd_s=3.8 wall_s=50
+[02:21:20] teleport to (18.4, -23.4) ignored; marble at [-0.1 19.   0.6]
+[02:21:42] SEG n=40 last=timeout arrive=0% falls100=0.80 speed=1.8 timeout=75% rew=-31.5 rtf=3.00
+[02:22:06] NAV upd=6 steps=12,288 segs=42 arrive=0% falls100=0.76 speed=1.8 rew=-31.3 pl=0.011 vl=2.650 ent=0.63 kl=0.029 clip=0.29 gn=3.48 ep=4 dstd=0.22 upd_s=3.6 wall_s=47
+[02:22:22] [env:8888] round over (time left 300s); waiting for the next round
+[02:22:22] [env:8888] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[02:22:22] new round (game connection 1)
+[02:22:55] NAV upd=7 steps=14,336 segs=50 arrive=0% falls100=0.69 speed=1.8 rew=-31.6 pl=0.005 vl=2.475 ent=0.63 kl=0.014 clip=0.17 gn=3.28 ep=4 dstd=0.22 upd_s=3.8 wall_s=49
+[02:22:56] teleport to (-29.6, -25.4) ignored; marble at [-4.1 19.2  0.6]
+[02:23:40] NAV upd=8 steps=16,384 segs=57 arrive=0% falls100=0.72 speed=1.8 rew=-32.1 pl=0.009 vl=1.712 ent=0.64 kl=0.018 clip=0.25 gn=3.11 ep=4 dstd=0.22 upd_s=2.8 wall_s=45
+[02:23:41] teleport to (43.4, 8.6) ignored; marble at [ 9.5 15.   0.6]
+[02:23:54] SEG n=60 last=timeout arrive=0% falls100=0.73 speed=1.8 timeout=77% rew=-31.8 rtf=2.94
+[02:24:06] [env:8888] round over (time left 300s); waiting for the next round
+[02:24:06] [env:8888] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[02:24:06] new round (game connection 1); rtf 2.31
+[02:24:31] NAV upd=9 steps=18,432 segs=64 arrive=0% falls100=0.75 speed=1.8 rew=-30.8 pl=0.004 vl=1.080 ent=0.69 kl=0.013 clip=0.21 gn=2.20 ep=4 dstd=0.22 upd_s=3.4 wall_s=51
+[02:25:19] NAV upd=10 steps=20,480 segs=72 arrive=1% falls100=0.71 speed=1.8 rew=-30.2 pl=-0.001 vl=1.588 ent=0.64 kl=0.003 clip=0.09 gn=2.14 ep=4 dstd=0.22 upd_s=3.9 wall_s=48
+[02:25:49] [env:8888] round over (time left 300s); waiting for the next round
+[02:25:49] [env:8888] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[02:25:49] new round (game connection 1); rtf 2.92
+[02:26:09] NAV upd=11 steps=22,528 segs=79 arrive=3% falls100=0.68 speed=1.8 rew=-30.6 pl=0.001 vl=2.266 ent=0.61 kl=0.011 clip=0.14 gn=3.86 ep=4 dstd=0.22 upd_s=3.9 wall_s=50
+[02:26:10] SEG n=80 last=fell arrive=2% falls100=0.69 speed=1.8 timeout=75% rew=-31.7 rtf=2.74
+[02:26:55] NAV upd=12 steps=24,576 segs=86 arrive=2% falls100=0.65 speed=1.8 rew=-30.3 pl=-0.001 vl=1.531 ent=0.59 kl=0.008 clip=0.07 gn=3.35 ep=4 dstd=0.22 upd_s=3.8 wall_s=46
+[02:26:56] teleport to (-63.6, 62.6) ignored; marble at [-0.5  2.5  0.7]
+[02:26:58] marble off the map for 60 decisions at [-71.1  69.1 -48.7] (time left 93s); forcing a respawn
+[02:27:33] [env:8888] round over (time left 300s); waiting for the next round
+[02:27:33] [env:8888] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[02:27:33] new round (game connection 1); rtf 2.96
+[02:27:45] NAV upd=13 steps=26,624 segs=93 arrive=2% falls100=0.66 speed=1.8 rew=-30.4 pl=-0.005 vl=1.370 ent=0.59 kl=0.004 clip=0.07 gn=3.66 ep=4 dstd=0.22 upd_s=3.7 wall_s=50
+[02:27:46] teleport to (-32.6, -15.4) ignored; marble at [-10.9 -17.6   0.6]
+[02:28:10] marble off the map for 60 decisions at [-70.2  33.4 -47.6] (time left 189s); forcing a respawn
+[02:28:17] SEG n=100 last=timeout arrive=3% falls100=0.70 speed=1.9 timeout=74% rew=-30.0 rtf=3.00
+[02:28:33] NAV upd=14 steps=28,672 segs=102 arrive=3% falls100=0.72 speed=1.9 rew=-29.9 pl=-0.000 vl=1.669 ent=0.57 kl=0.006 clip=0.07 gn=2.81 ep=4 dstd=0.22 upd_s=3.6 wall_s=48
+[02:28:35] marble off the map for 60 decisions at [-76.3  24.  -41.6] (time left 115s); forcing a respawn
+[02:29:16] [env:8888] round over (time left 300s); waiting for the next round
+[02:29:16] [env:8888] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[02:29:16] new round (game connection 1); rtf 2.86
+[02:29:22] NAV upd=15 steps=30,720 segs=110 arrive=3% falls100=0.78 speed=1.9 rew=-30.2 pl=-0.003 vl=1.349 ent=0.57 kl=0.011 clip=0.12 gn=3.17 ep=4 dstd=0.23 upd_s=2.7 wall_s=49
+[02:30:09] NAV upd=16 steps=32,768 segs=117 arrive=3% falls100=0.75 speed=1.9 rew=-29.7 pl=0.003 vl=0.959 ent=0.57 kl=0.013 clip=0.18 gn=2.63 ep=4 dstd=0.23 upd_s=4.0 wall_s=47
+[02:30:10] teleport to (-37.6, 17.6) ignored; marble at [ 9.3 15.7  0.6]
+[02:30:23] SEG n=120 last=timeout arrive=2% falls100=0.74 speed=1.9 timeout=72% rew=-29.7 rtf=3.00
+[02:30:55] NAV upd=17 steps=34,816 segs=124 arrive=2% falls100=0.72 speed=1.9 rew=-28.8 pl=-0.001 vl=0.914 ent=0.57 kl=0.005 clip=0.05 gn=2.55 ep=4 dstd=0.23 upd_s=3.8 wall_s=46
+[02:30:56] teleport to (-38.6, -2.4) ignored; marble at [-16.4 -12.3   0.6]
+[02:31:00] [env:8888] round over (time left 300s); waiting for the next round
+[02:31:00] [env:8888] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[02:31:00] new round (game connection 1); rtf 2.77
+[02:31:46] NAV upd=18 steps=36,864 segs=131 arrive=2% falls100=0.71 speed=2.0 rew=-28.1 pl=0.001 vl=1.089 ent=0.56 kl=0.009 clip=0.10 gn=2.79 ep=4 dstd=0.23 upd_s=3.8 wall_s=50
+[02:31:47] marble off the map for 60 decisions at [ 50.8 -94.3 -45.1] (time left 162s); forcing a respawn
+[02:31:47] marble off the map for 120 decisions at [  63.3 -117.  -117.3] (time left 161s); forcing a respawn
+[02:32:33] NAV upd=19 steps=38,912 segs=139 arrive=4% falls100=0.71 speed=2.0 rew=-27.0 pl=0.001 vl=1.062 ent=0.55 kl=0.015 clip=0.20 gn=2.27 ep=4 dstd=0.23 upd_s=3.4 wall_s=48
+[02:32:34] SEG n=140 last=fell arrive=4% falls100=0.72 speed=2.0 timeout=71% rew=-27.1 rtf=2.92
+[02:32:34] teleport to (-10.6, -55.4) ignored; marble at [  2.7 -20.5   0.6]
+[02:32:34] marble off the map for 60 decisions at [ 13.  -99.7 -46.2] (time left 19s); forcing a respawn
+[02:32:43] [env:8888] round over (time left 300s); waiting for the next round
+[02:32:43] [env:8888] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[02:32:43] new round (game connection 1); rtf 2.93
+[02:33:26] NAV upd=20 steps=40,960 segs=148 arrive=5% falls100=0.73 speed=2.0 rew=-25.9 pl=0.005 vl=0.957 ent=0.55 kl=0.009 clip=0.12 gn=2.19 ep=4 dstd=0.23 upd_s=3.8 wall_s=52
+[02:33:27] teleport to (-2.6, -6.4) ignored; marble at [-15.1  16.4   0.6]
+[02:34:13] NAV upd=21 steps=43,008 segs=155 arrive=6% falls100=0.71 speed=2.0 rew=-25.4 pl=-0.002 vl=1.233 ent=0.54 kl=0.009 clip=0.09 gn=1.47 ep=4 dstd=0.23 upd_s=3.6 wall_s=47
+[02:34:22] [env:8888] game disconnected
+[02:34:22] [env:8888] waiting for the game
+[02:34:40] [env:8888] game connected (2)
+[02:34:41] new round (game connection 2); rtf 2.53
+[02:34:54] SEG n=160 last=timeout arrive=6% falls100=0.70 speed=2.1 timeout=70% rew=-25.2 rtf=3.00
+[02:35:18] NAV upd=22 steps=45,056 segs=162 arrive=6% falls100=0.69 speed=2.1 rew=-25.1 pl=-0.002 vl=0.672 ent=0.55 kl=0.006 clip=0.05 gn=2.02 ep=4 dstd=0.23 upd_s=3.8 wall_s=65
+[02:35:18] marble off the map for 60 decisions at [ 39.5 -89.6 -44.1] (time left 195s); forcing a respawn
+[02:35:18] marble off the map for 120 decisions at [  57.4 -116.4 -115.7] (time left 194s); forcing a respawn
+[02:35:42] marble off the map for 60 decisions at [-68.   35.5 -43.6] (time left 116s); forcing a respawn
+[02:36:06] NAV upd=23 steps=47,104 segs=171 arrive=7% falls100=0.68 speed=2.1 rew=-24.1 pl=0.001 vl=0.899 ent=0.55 kl=0.015 clip=0.21 gn=1.46 ep=4 dstd=0.23 upd_s=4.1 wall_s=49
+[02:36:07] marble off the map for 60 decisions at [ 36.3 103.  -43.1] (time left 46s); forcing a respawn
+[02:36:07] marble off the map for 120 decisions at [  36.3  135.6 -114.1] (time left 45s); forcing a respawn
+[02:36:07] teleport to (-61.6, -49.4) ignored; marble at [ 0.  20.4  0.6]
+[02:36:15] marble off the map for 60 decisions at [-71.8 -33.4 -48.3] (time left 17s); forcing a respawn
+[02:36:16] marble off the map for 60 decisions at [-69.3  61.2 -43.8] (time left 13s); forcing a respawn
+[02:36:19] marble off the map for 60 decisions at [ 63.1  -8.9 -43.4] (time left 4s); forcing a respawn
+[02:36:24] [env:8888] round over (time left 300s); waiting for the next round
+[02:36:24] [env:8888] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[02:36:24] new round (game connection 2); rtf 2.90
+[02:36:44] SEG n=180 last=timeout arrive=8% falls100=0.72 speed=2.1 timeout=67% rew=-23.3 rtf=3.00
+[02:37:01] NAV upd=24 steps=49,152 segs=182 arrive=8% falls100=0.72 speed=2.1 rew=-22.9 pl=0.000 vl=0.760 ent=0.55 kl=0.007 clip=0.08 gn=1.66 ep=4 dstd=0.23 upd_s=4.1 wall_s=54
+[02:37:02] marble off the map for 60 decisions at [-45.9  99.5 -42.2] (time left 190s); forcing a respawn
+[02:37:02] marble off the map for 120 decisions at [ -58.5  127.4 -112.6] (time left 188s); forcing a respawn
+[02:37:49] NAV upd=25 steps=51,200 segs=191 arrive=9% falls100=0.74 speed=2.1 rew=-22.2 pl=-0.002 vl=1.009 ent=0.55 kl=0.016 clip=0.14 gn=2.82 ep=4 dstd=0.23 upd_s=4.0 wall_s=48
+[02:37:49] saved C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\models\nav\nav_000025.pth
+[02:37:50] teleport to (19.4, 1.6) ignored; marble at [17.2  6.5  0.6]
+[02:38:08] [env:8888] round over (time left 300s); waiting for the next round
+[02:38:08] [env:8888] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[02:38:08] new round (game connection 2); rtf 2.90
+[02:38:38] NAV upd=26 steps=53,248 segs=197 arrive=10% falls100=0.72 speed=2.1 rew=-21.8 pl=-0.004 vl=0.979 ent=0.56 kl=0.010 clip=0.13 gn=1.49 ep=4 dstd=0.23 upd_s=3.7 wall_s=49
+[02:38:38] teleport to (57.4, -43.4) ignored; marble at [-40.  -21.5   0.6]
+[02:38:38] teleport to (-3.6, -2.4) ignored; marble at [-16.6  12.5   0.6]
+[02:38:44] SEG n=200 last=timeout arrive=10% falls100=0.72 speed=2.1 timeout=65% rew=-21.7 rtf=3.00
+[02:39:27] NAV upd=27 steps=55,296 segs=206 arrive=10% falls100=0.71 speed=2.1 rew=-20.7 pl=-0.005 vl=0.629 ent=0.57 kl=0.008 clip=0.14 gn=1.19 ep=4 dstd=0.23 upd_s=4.0 wall_s=49
+[02:39:27] teleport to (-5.6, 62.6) ignored; marble at [-20.3  -4.2   0.6]
+[02:39:28] marble off the map for 60 decisions at [-97.9 -21.2 -45.8] (time left 61s); forcing a respawn
+[02:39:28] teleport to (20.4, 0.6) ignored; marble at [0.  0.  2.6]
+[02:39:51] [env:8888] round over (time left 300s); waiting for the next round
+[02:39:51] [env:8888] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[02:39:51] new round (game connection 2); rtf 2.87
+[02:40:20] NAV upd=28 steps=57,344 segs=217 arrive=14% falls100=0.70 speed=2.1 rew=-19.0 pl=0.002 vl=1.084 ent=0.56 kl=0.005 clip=0.07 gn=1.91 ep=4 dstd=0.23 upd_s=3.8 wall_s=53
+[02:40:32] SEG n=220 last=arrived arrive=14% falls100=0.69 speed=2.2 timeout=61% rew=-19.2 rtf=3.00
+[02:41:08] NAV upd=29 steps=59,392 segs=226 arrive=16% falls100=0.67 speed=2.2 rew=-18.1 pl=-0.001 vl=1.207 ent=0.53 kl=0.005 clip=0.09 gn=1.32 ep=4 dstd=0.23 upd_s=3.9 wall_s=48
+[02:41:35] [env:8888] round over (time left 300s); waiting for the next round
+[02:41:35] [env:8888] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[02:41:35] new round (game connection 2); rtf 2.86
+[02:41:59] NAV upd=30 steps=61,440 segs=235 arrive=17% falls100=0.67 speed=2.2 rew=-17.3 pl=-0.003 vl=0.949 ent=0.51 kl=0.010 clip=0.10 gn=3.30 ep=4 dstd=0.23 upd_s=4.2 wall_s=51
+[02:42:00] marble off the map for 60 decisions at [-81.5 -67.7 -46.6] (time left 229s); forcing a respawn
+[02:42:00] marble off the map for 120 decisions at [-116.9  -74.8 -119.6] (time left 227s); forcing a respawn
+[02:42:09] SEG n=240 last=arrived arrive=18% falls100=0.66 speed=2.2 timeout=58% rew=-16.9 rtf=3.00
+[02:42:50] NAV upd=31 steps=63,488 segs=248 arrive=21% falls100=0.65 speed=2.3 rew=-15.5 pl=-0.001 vl=0.695 ent=0.48 kl=0.013 clip=0.13 gn=1.54 ep=4 dstd=0.22 upd_s=3.4 wall_s=50
+[02:42:50] marble off the map for 60 decisions at [-27.4 101.  -47.2] (time left 80s); forcing a respawn
+[02:42:50] marble off the map for 120 decisions at [ -41.5  131.1 -120.7] (time left 79s); forcing a respawn
+[02:43:18] [env:8888] round over (time left 300s); waiting for the next round
+[02:43:18] [env:8888] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[02:43:18] new round (game connection 2); rtf 2.88
+[02:43:42] NAV upd=32 steps=65,536 segs=258 arrive=22% falls100=0.65 speed=2.3 rew=-14.3 pl=-0.006 vl=0.514 ent=0.49 kl=0.010 clip=0.10 gn=2.21 ep=4 dstd=0.22 upd_s=3.9 wall_s=53
+[02:43:43] teleport to (30.4, -28.4) ignored; marble at [2.2 0.5 1.2]
+[02:43:46] SEG n=260 last=arrived arrive=23% falls100=0.63 speed=2.3 timeout=54% rew=-14.3 rtf=3.00
+[02:44:33] NAV upd=33 steps=67,584 segs=272 arrive=26% falls100=0.61 speed=2.4 rew=-12.2 pl=0.001 vl=0.725 ent=0.47 kl=0.011 clip=0.15 gn=2.27 ep=4 dstd=0.22 upd_s=3.9 wall_s=51
+[02:44:34] teleport to (9.4, 27.6) ignored; marble at [19.1 -2.7  0.6]
+[02:44:40] marble off the map for 60 decisions at [-77.4  34.3 -44.4] (time left 55s); forcing a respawn
+[02:45:02] [env:8888] round over (time left 300s); waiting for the next round
+[02:45:02] [env:8888] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[02:45:02] new round (game connection 2); rtf 2.89
+[02:45:04] SEG n=280 last=arrived arrive=28% falls100=0.60 speed=2.4 timeout=50% rew=-11.6 rtf=3.00
+[02:45:28] NAV upd=34 steps=69,632 segs=287 arrive=29% falls100=0.59 speed=2.4 rew=-10.5 pl=-0.002 vl=0.759 ent=0.45 kl=0.006 clip=0.09 gn=2.16 ep=4 dstd=0.22 upd_s=3.8 wall_s=55
+[02:45:29] teleport to (-56.6, -41.4) ignored; marble at [19.  -2.8  0.6]
+[02:45:29] marble off the map for 60 decisions at [ 98.1 -14.1 -46.5] (time left 220s); forcing a respawn
+[02:46:18] NAV upd=35 steps=71,680 segs=299 arrive=31% falls100=0.58 speed=2.5 rew=-9.3 pl=-0.004 vl=0.666 ent=0.44 kl=0.009 clip=0.09 gn=2.89 ep=4 dstd=0.22 upd_s=3.7 wall_s=50
+[02:46:19] SEG n=300 last=fell arrive=31% falls100=0.58 speed=2.5 timeout=47% rew=-9.6 rtf=2.94
+[02:46:45] [env:8888] round over (time left 300s); waiting for the next round
+[02:46:45] [env:8888] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[02:46:45] new round (game connection 2); rtf 2.85
+[02:47:13] NAV upd=36 steps=73,728 segs=314 arrive=35% falls100=0.56 speed=2.6 rew=-6.7 pl=-0.002 vl=0.680 ent=0.45 kl=0.008 clip=0.12 gn=2.55 ep=4 dstd=0.22 upd_s=4.0 wall_s=55
+[02:47:14] teleport to (20.4, -33.4) ignored; marble at [ 3.8 -2.8  0.7]
+[02:47:30] SEG n=320 last=arrived arrive=37% falls100=0.55 speed=2.7 timeout=42% rew=-6.0 rtf=3.00
+[02:48:03] NAV upd=37 steps=75,776 segs=327 arrive=39% falls100=0.55 speed=2.8 rew=-4.7 pl=-0.002 vl=0.427 ent=0.43 kl=0.010 clip=0.08 gn=2.52 ep=4 dstd=0.22 upd_s=4.1 wall_s=50
+[02:48:03] teleport to (37.4, -30.4) ignored; marble at [0.  4.4 0.7]
+[02:48:04] marble off the map for 60 decisions at [  0.  104.  -45.9] (time left 67s); forcing a respawn
+[02:48:04] marble off the map for 120 decisions at [  -0.3  135.5 -118.6] (time left 66s); forcing a respawn
+[02:48:29] [env:8888] round over (time left 300s); waiting for the next round
+[02:48:29] [env:8888] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[02:48:29] new round (game connection 2); rtf 2.85
+[02:48:44] SEG n=340 last=arrived arrive=42% falls100=0.50 speed=2.8 timeout=38% rew=-2.2 rtf=3.00
+[02:48:58] NAV upd=38 steps=77,824 segs=342 arrive=43% falls100=0.50 speed=2.8 rew=-1.8 pl=-0.001 vl=0.517 ent=0.42 kl=0.010 clip=0.14 gn=3.30 ep=4 dstd=0.22 upd_s=3.9 wall_s=55
+[02:48:59] marble off the map for 60 decisions at [-71.1  36.3 -47.3] (time left 208s); forcing a respawn
+[02:49:50] NAV upd=39 steps=79,872 segs=358 arrive=47% falls100=0.51 speed=3.0 rew=0.6 pl=0.003 vl=0.519 ent=0.42 kl=0.009 clip=0.14 gn=2.99 ep=4 dstd=0.22 upd_s=4.0 wall_s=51
+[02:49:50] marble off the map for 60 decisions at [-104.4   78.4  -46.1] (time left 60s); forcing a respawn
+[02:49:50] marble off the map for 120 decisions at [-137.5   92.6 -119.1] (time left 59s); forcing a respawn
+[02:49:50] teleport to (-1.6, 40.6) ignored; marble at [-7.3 -0.9  0.6]
+[02:49:55] SEG n=360 last=arrived arrive=47% falls100=0.51 speed=3.0 timeout=33% rew=0.5 rtf=3.00
+[02:50:12] [env:8888] round over (time left 300s); waiting for the next round
+[02:50:12] [env:8888] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[02:50:12] new round (game connection 2); rtf 2.51
+[02:50:44] NAV upd=40 steps=81,920 segs=372 arrive=50% falls100=0.50 speed=3.1 rew=2.4 pl=-0.003 vl=0.551 ent=0.41 kl=0.010 clip=0.11 gn=2.34 ep=4 dstd=0.22 upd_s=3.7 wall_s=55
+[02:51:14] SEG n=380 last=arrived arrive=52% falls100=0.49 speed=3.2 timeout=29% rew=3.9 rtf=3.00
+[02:51:33] NAV upd=41 steps=83,968 segs=383 arrive=53% falls100=0.49 speed=3.2 rew=4.4 pl=-0.002 vl=0.449 ent=0.42 kl=0.016 clip=0.14 gn=2.61 ep=4 dstd=0.22 upd_s=3.9 wall_s=49
+[02:51:33] teleport to (-22.6, -53.4) ignored; marble at [15.  13.6  0.6]
+[02:51:56] [env:8888] round over (time left 300s); waiting for the next round
+[02:51:56] [env:8888] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[02:51:56] new round (game connection 2); rtf 2.80
+[02:52:19] SEG n=400 last=arrived arrive=57% falls100=0.47 speed=3.4 timeout=24% rew=6.9 rtf=3.00
+[02:52:29] NAV upd=42 steps=86,016 segs=401 arrive=57% falls100=0.46 speed=3.4 rew=7.2 pl=-0.001 vl=0.450 ent=0.41 kl=0.012 clip=0.19 gn=1.86 ep=4 dstd=0.22 upd_s=3.8 wall_s=56
+[02:52:30] marble off the map for 60 decisions at [-82.9 -74.1 -43.2] (time left 199s); forcing a respawn
+[02:53:21] NAV upd=43 steps=88,064 segs=418 arrive=62% falls100=0.43 speed=3.5 rew=10.2 pl=-0.004 vl=0.361 ent=0.41 kl=0.007 clip=0.13 gn=1.87 ep=4 dstd=0.22 upd_s=3.4 wall_s=52
+[02:53:21] SEG n=420 last=fell arrive=63% falls100=0.44 speed=3.5 timeout=20% rew=10.1 rtf=2.87
+[02:53:21] teleport to (-24.6, 54.6) ignored; marble at [-18.9   5.3   0.6]
+[02:53:39] [env:8888] round over (time left 300s); waiting for the next round
+[02:53:39] [env:8888] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[02:53:39] new round (game connection 2); rtf 2.95
+[02:54:18] NAV upd=44 steps=90,112 segs=437 arrive=67% falls100=0.45 speed=3.7 rew=11.9 pl=-0.001 vl=0.266 ent=0.44 kl=0.012 clip=0.18 gn=2.38 ep=4 dstd=0.22 upd_s=4.1 wall_s=58
+[02:54:19] SEG n=440 last=fell arrive=67% falls100=0.46 speed=3.7 timeout=15% rew=11.6 rtf=2.89
+[02:54:19] marble off the map for 60 decisions at [-53.6  99.6 -42.3] (time left 183s); forcing a respawn
+[02:54:19] marble off the map for 120 decisions at [ -68.5  127.9 -112.8] (time left 182s); forcing a respawn
+[02:55:12] NAV upd=45 steps=92,160 segs=456 arrive=71% falls100=0.43 speed=3.9 rew=14.0 pl=0.003 vl=0.295 ent=0.43 kl=0.008 clip=0.14 gn=2.46 ep=4 dstd=0.22 upd_s=4.0 wall_s=53
+[02:55:23] [env:8888] round over (time left 300s); waiting for the next round
+[02:55:23] [env:8888] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[02:55:23] new round (game connection 2); rtf 2.93
+[02:55:28] SEG n=460 last=arrived arrive=72% falls100=0.43 speed=3.9 timeout=11% rew=14.3 rtf=3.00
+[02:56:04] NAV upd=46 steps=94,208 segs=467 arrive=73% falls100=0.42 speed=4.0 rew=15.1 pl=0.000 vl=0.244 ent=0.44 kl=0.011 clip=0.15 gn=2.12 ep=4 dstd=0.22 upd_s=3.9 wall_s=52
+[02:56:04] teleport to (21.4, 21.6) ignored; marble at [ 2.5 -4.   0.7]
+[02:56:38] SEG n=480 last=arrived arrive=75% falls100=0.40 speed=4.1 timeout=9% rew=16.1 rtf=3.00
+[02:56:56] NAV upd=47 steps=96,256 segs=485 arrive=76% falls100=0.39 speed=4.2 rew=16.6 pl=0.004 vl=0.435 ent=0.43 kl=0.014 clip=0.22 gn=2.51 ep=4 dstd=0.22 upd_s=3.9 wall_s=53
+[02:57:06] [env:8888] round over (time left 300s); waiting for the next round
+[02:57:06] [env:8888] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[02:57:06] new round (game connection 2); rtf 2.70
+[02:57:47] NAV upd=48 steps=98,304 segs=494 arrive=77% falls100=0.37 speed=4.2 rew=17.0 pl=-0.003 vl=0.268 ent=0.42 kl=0.020 clip=0.18 gn=2.01 ep=4 dstd=0.22 upd_s=3.9 wall_s=50
+[02:57:47] teleport to (35.4, -27.4) ignored; marble at [-19.3   5.5   0.6]
+[02:58:01] SEG n=500 last=arrived arrive=78% falls100=0.37 speed=4.3 timeout=7% rew=17.1 rtf=3.00
+[02:58:38] NAV upd=49 steps=100,352 segs=509 arrive=80% falls100=0.35 speed=4.4 rew=18.1 pl=-0.001 vl=0.227 ent=0.43 kl=0.009 clip=0.14 gn=1.52 ep=4 dstd=0.22 upd_s=3.8 wall_s=51
+[02:58:50] [env:8888] round over (time left 300s); waiting for the next round
+[02:58:50] [env:8888] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[02:58:50] new round (game connection 2); rtf 2.83
+[02:59:20] SEG n=520 last=arrived arrive=80% falls100=0.35 speed=4.6 timeout=6% rew=18.6 rtf=3.00
+[02:59:31] NAV upd=50 steps=102,400 segs=522 arrive=80% falls100=0.35 speed=4.6 rew=18.6 pl=0.000 vl=0.283 ent=0.43 kl=0.009 clip=0.13 gn=2.10 ep=4 dstd=0.22 upd_s=3.0 wall_s=52
+[02:59:31] saved C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\models\nav\nav_000050.pth
+[02:59:31] teleport to (39.4, 43.6) ignored; marble at [-1.2  4.3  0.7]
+[02:59:55] marble off the map for 60 decisions at [-22.7  77.6 -48.8] (time left 104s); forcing a respawn
+[03:00:22] NAV upd=51 steps=104,448 segs=536 arrive=81% falls100=0.35 speed=4.7 rew=19.5 pl=-0.001 vl=0.237 ent=0.43 kl=0.012 clip=0.17 gn=1.97 ep=4 dstd=0.22 upd_s=3.7 wall_s=51
+[03:00:22] teleport to (-41.6, 18.6) ignored; marble at [-17.7  10.9   0.6]
+[03:00:27] SEG n=540 last=arrived arrive=81% falls100=0.35 speed=4.7 timeout=5% rew=19.2 rtf=3.00
+[03:00:33] [env:8888] round over (time left 300s); waiting for the next round
+[03:00:33] [env:8888] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[03:00:33] new round (game connection 2); rtf 1.65
+[03:01:19] NAV upd=52 steps=106,496 segs=556 arrive=81% falls100=0.35 speed=4.8 rew=19.7 pl=-0.003 vl=0.182 ent=0.42 kl=0.008 clip=0.11 gn=1.92 ep=4 dstd=0.22 upd_s=3.9 wall_s=58
+[03:01:20] teleport to (39.4, -24.4) ignored; marble at [4.9 0.6 0.7]
+[03:01:20] marble off the map for 60 decisions at [ 99.5  13.3 -44.4] (time left 162s); forcing a respawn
+[03:01:20] marble off the map for 120 decisions at [ 133.7   18.  -116.1] (time left 161s); forcing a respawn
+[03:01:22] SEG n=560 last=arrived arrive=81% falls100=0.36 speed=4.8 timeout=4% rew=19.6 rtf=3.00
+[03:02:11] SEG n=580 last=arrived arrive=82% falls100=0.35 speed=4.9 timeout=4% rew=20.1 rtf=3.00
+[03:02:16] NAV upd=53 steps=108,544 segs=580 arrive=82% falls100=0.35 speed=4.9 rew=20.1 pl=-0.001 vl=0.226 ent=0.40 kl=0.013 clip=0.12 gn=1.43 ep=4 dstd=0.22 upd_s=4.1 wall_s=57
+[03:02:17] [env:8888] round over (time left 300s); waiting for the next round
+[03:02:17] [env:8888] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[03:02:17] new round (game connection 2); rtf 1.47
+[03:03:12] NAV upd=54 steps=110,592 segs=599 arrive=82% falls100=0.34 speed=5.0 rew=20.6 pl=-0.000 vl=0.114 ent=0.41 kl=0.018 clip=0.21 gn=1.79 ep=4 dstd=0.22 upd_s=4.0 wall_s=56
+[03:03:15] SEG n=600 last=timeout arrive=82% falls100=0.33 speed=4.9 timeout=4% rew=20.9 rtf=3.00
+[03:04:00] [env:8888] round over (time left 300s); waiting for the next round
+[03:04:00] [env:8888] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[03:04:00] new round (game connection 2); rtf 2.81
+[03:04:07] NAV upd=55 steps=112,640 segs=616 arrive=83% falls100=0.33 speed=4.9 rew=21.1 pl=0.002 vl=0.127 ent=0.44 kl=0.008 clip=0.15 gn=1.75 ep=4 dstd=0.22 upd_s=3.7 wall_s=55
+[03:04:07] marble off the map for 60 decisions at [-12.9 -99.4 -45.5] (time left 285s); forcing a respawn
+[03:04:07] marble off the map for 120 decisions at [ -10.8 -134.1 -117.9] (time left 284s); forcing a respawn
+[03:04:07] teleport to (18.4, 1.6) ignored; marble at [  1.5 -22.    0.6]
+[03:04:15] SEG n=620 last=arrived arrive=83% falls100=0.34 speed=4.9 timeout=4% rew=20.6 rtf=3.00
+[03:05:00] NAV upd=56 steps=114,688 segs=633 arrive=83% falls100=0.35 speed=4.9 rew=20.9 pl=-0.001 vl=0.262 ent=0.44 kl=0.024 clip=0.21 gn=1.97 ep=4 dstd=0.22 upd_s=4.1 wall_s=53
+[03:05:01] marble off the map for 60 decisions at [ 80.8 -77.2 -44. ] (time left 122s); forcing a respawn
+[03:05:01] marble off the map for 120 decisions at [  99.4 -107.5 -115.5] (time left 121s); forcing a respawn
+[03:05:01] teleport to (-60.6, -47.4) ignored; marble at [-0.2 -8.3  0.6]
+[03:05:03] marble off the map for 60 decisions at [-67.2 -34.5 -42.6] (time left 113s); forcing a respawn
+[03:05:15] SEG n=640 last=fell arrive=82% falls100=0.38 speed=5.0 timeout=3% rew=20.1 rtf=3.00
+[03:05:16] marble off the map for 60 decisions at [-72.5 -18.7 -47.7] (time left 74s); forcing a respawn
+[03:05:44] [env:8888] round over (time left 300s); waiting for the next round
+[03:05:44] [env:8888] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[03:05:44] new round (game connection 2); rtf 2.70
+[03:05:58] NAV upd=57 steps=116,736 segs=651 arrive=83% falls100=0.36 speed=5.0 rew=21.1 pl=-0.002 vl=0.313 ent=0.47 kl=0.014 clip=0.17 gn=2.20 ep=4 dstd=0.22 upd_s=4.1 wall_s=58
+[03:06:20] SEG n=660 last=arrived arrive=83% falls100=0.36 speed=5.0 timeout=3% rew=21.0 rtf=3.00
+[03:06:25] marble off the map for 60 decisions at [ 62.2  54.2 -42. ] (time left 178s); forcing a respawn
+[03:06:52] NAV upd=58 steps=118,784 segs=673 arrive=83% falls100=0.36 speed=5.0 rew=21.4 pl=-0.002 vl=0.319 ent=0.47 kl=0.014 clip=0.19 gn=1.62 ep=4 dstd=0.22 upd_s=4.0 wall_s=55
+[03:06:53] teleport to (-54.6, 0.6) ignored; marble at [-15.   13.7   0.6]
+[03:06:53] marble off the map for 60 decisions at [-97.5  88.7 -49.6] (time left 95s); forcing a respawn
+[03:07:04] SEG n=680 last=arrived arrive=82% falls100=0.39 speed=5.1 timeout=3% rew=20.7 rtf=3.00
+[03:07:27] [env:8888] round over (time left 300s); waiting for the next round
+[03:07:27] [env:8888] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[03:07:27] new round (game connection 2); rtf 2.64
+[03:07:50] NAV upd=59 steps=120,832 segs=694 arrive=83% falls100=0.37 speed=5.1 rew=21.4 pl=0.002 vl=0.142 ent=0.49 kl=0.019 clip=0.20 gn=1.86 ep=4 dstd=0.22 upd_s=3.9 wall_s=58
+[03:07:50] teleport to (22.4, -8.4) ignored; marble at [-51.  -25.4   0.6]
+[03:07:51] marble off the map for 60 decisions at [-107.4  -17.9  -47.2] (time left 236s); forcing a respawn
+[03:07:51] marble off the map for 120 decisions at [-142.8  -13.1 -120.6] (time left 234s); forcing a respawn
+[03:07:51] teleport to (-7.6, 7.6) ignored; marble at [-22.3   3.    0.6]
+[03:08:00] SEG n=700 last=arrived arrive=83% falls100=0.38 speed=5.1 timeout=3% rew=21.2 rtf=3.00
+[03:08:46] NAV upd=60 steps=122,880 segs=715 arrive=83% falls100=0.38 speed=5.1 rew=21.7 pl=0.000 vl=0.097 ent=0.49 kl=0.012 clip=0.14 gn=1.50 ep=4 dstd=0.22 upd_s=3.8 wall_s=56
+[03:08:46] marble off the map for 60 decisions at [-63.4 -98.  -42.1] (time left 70s); forcing a respawn
+[03:08:46] marble off the map for 120 decisions at [ -72.6 -132.4 -112.4] (time left 68s); forcing a respawn
+[03:08:54] SEG n=720 last=arrived arrive=83% falls100=0.37 speed=5.2 timeout=3% rew=21.8 rtf=3.00
+[03:09:11] [env:8888] round over (time left 300s); waiting for the next round
+[03:09:11] [env:8888] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[03:09:11] new round (game connection 2); rtf 2.49
+[03:09:44] NAV upd=61 steps=124,928 segs=736 arrive=84% falls100=0.36 speed=5.2 rew=22.2 pl=-0.002 vl=0.111 ent=0.50 kl=0.010 clip=0.13 gn=1.53 ep=4 dstd=0.22 upd_s=3.8 wall_s=58
+[03:09:45] teleport to (-5.6, 50.6) ignored; marble at [ 10.9 -17.7   0.6]
+[03:09:54] SEG n=740 last=arrived arrive=84% falls100=0.34 speed=5.2 timeout=3% rew=22.6 rtf=3.00
+[03:10:36] NAV upd=62 steps=126,976 segs=753 arrive=84% falls100=0.34 speed=5.2 rew=22.6 pl=-0.005 vl=0.220 ent=0.47 kl=0.007 clip=0.08 gn=2.07 ep=4 dstd=0.22 upd_s=3.9 wall_s=52
+[03:10:37] teleport to (44.4, -37.4) ignored; marble at [ 2.7 -3.6  0.7]
+[03:10:54] [env:8888] round over (time left 300s); waiting for the next round
+[03:10:54] [env:8888] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[03:10:54] new round (game connection 2); rtf 2.86
+[03:10:57] SEG n=760 last=arrived arrive=83% falls100=0.35 speed=5.2 timeout=3% rew=22.6 rtf=3.00
+[03:11:33] NAV upd=63 steps=129,024 segs=773 arrive=85% falls100=0.34 speed=5.3 rew=23.6 pl=0.000 vl=0.183 ent=0.46 kl=0.011 clip=0.10 gn=1.86 ep=4 dstd=0.22 upd_s=3.0 wall_s=56
+[03:11:33] teleport to (-27.6, 19.6) ignored; marble at [-3.8  2.2  0.7]
+[03:11:51] SEG n=780 last=arrived arrive=84% falls100=0.35 speed=5.3 timeout=3% rew=23.0 rtf=2.99
+[03:12:25] NAV upd=64 steps=131,072 segs=792 arrive=85% falls100=0.35 speed=5.3 rew=24.2 pl=-0.002 vl=0.173 ent=0.47 kl=0.010 clip=0.12 gn=2.18 ep=4 dstd=0.22 upd_s=3.1 wall_s=52
+[03:12:25] teleport to (48.4, -8.4) ignored; marble at [  9.3 -68.7 -11.6]
+[03:12:25] no reachable goal from (9.3, -68.7, -11.6); teleporting
+[03:12:25] teleport to (18.4, 4.6) ignored; marble at [ 3.4 -2.5  0.6]
+[03:12:38] [env:8888] round over (time left 300s); waiting for the next round
+[03:12:38] [env:8888] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[03:12:38] new round (game connection 2); rtf 2.82
+[03:12:51] SEG n=800 last=arrived arrive=86% falls100=0.34 speed=5.4 timeout=2% rew=24.7 rtf=3.00
+[03:13:23] NAV upd=65 steps=133,120 segs=810 arrive=86% falls100=0.33 speed=5.4 rew=25.1 pl=-0.001 vl=0.151 ent=0.48 kl=0.005 clip=0.09 gn=1.29 ep=4 dstd=0.22 upd_s=4.0 wall_s=58
+[03:13:23] teleport to (10.4, 64.6) ignored; marble at [20.7  1.4  0.6]
+[03:13:46] SEG n=820 last=arrived arrive=86% falls100=0.35 speed=5.4 timeout=2% rew=24.4 rtf=3.00
+[03:14:17] NAV upd=66 steps=135,168 segs=831 arrive=87% falls100=0.33 speed=5.4 rew=25.0 pl=-0.001 vl=0.158 ent=0.47 kl=0.009 clip=0.10 gn=1.52 ep=4 dstd=0.22 upd_s=3.8 wall_s=54
+[03:14:18] teleport to (-47.6, -44.4) ignored; marble at [4.3 8.  0.6]
+[03:14:22] [env:8888] round over (time left 300s); waiting for the next round
+[03:14:22] [env:8888] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[03:14:22] new round (game connection 2); rtf 2.76
+[03:14:46] SEG n=840 last=arrived arrive=87% falls100=0.33 speed=5.5 timeout=1% rew=25.0 rtf=3.00
+[03:15:13] NAV upd=67 steps=137,216 segs=848 arrive=87% falls100=0.33 speed=5.5 rew=25.0 pl=-0.002 vl=0.134 ent=0.45 kl=0.012 clip=0.13 gn=1.54 ep=4 dstd=0.22 upd_s=4.0 wall_s=56
+[03:15:14] teleport to (-54.6, -20.4) ignored; marble at [19.  -2.7  0.6]
+[03:15:43] SEG n=860 last=arrived arrive=87% falls100=0.31 speed=5.5 timeout=1% rew=25.5 rtf=3.00
+[03:16:05] [env:8888] round over (time left 300s); waiting for the next round
+[03:16:05] [env:8888] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[03:16:05] new round (game connection 2); rtf 2.62
+[03:16:10] NAV upd=68 steps=139,264 segs=867 arrive=87% falls100=0.31 speed=5.5 rew=25.5 pl=-0.001 vl=0.156 ent=0.46 kl=0.016 clip=0.16 gn=2.22 ep=4 dstd=0.22 upd_s=3.6 wall_s=56
+[03:16:10] teleport to (39.4, 62.6) ignored; marble at [-4.7 -1.3  0.7]
+[03:16:38] SEG n=880 last=arrived arrive=87% falls100=0.32 speed=5.6 timeout=1% rew=25.3 rtf=3.00
+[03:17:04] NAV upd=69 steps=141,312 segs=889 arrive=87% falls100=0.32 speed=5.6 rew=25.2 pl=-0.005 vl=0.204 ent=0.46 kl=0.009 clip=0.11 gn=2.68 ep=4 dstd=0.22 upd_s=4.0 wall_s=55
+[03:17:06] marble off the map for 60 decisions at [-16.6  97.7 -45.8] (time left 120s); forcing a respawn
+[03:17:06] marble off the map for 120 decisions at [ -22.2  116.3 -118.4] (time left 119s); forcing a respawn
+[03:17:25] SEG n=900 last=arrived arrive=87% falls100=0.33 speed=5.6 timeout=1% rew=24.8 rtf=3.00
+[03:17:49] [env:8888] round over (time left 300s); waiting for the next round
+[03:17:49] [env:8888] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[03:17:49] new round (game connection 2); rtf 2.64
+[03:18:03] NAV upd=70 steps=143,360 segs=912 arrive=87% falls100=0.34 speed=5.6 rew=24.9 pl=-0.001 vl=0.183 ent=0.48 kl=0.014 clip=0.11 gn=3.06 ep=4 dstd=0.22 upd_s=4.1 wall_s=58
+[03:18:03] teleport to (18.4, 17.6) ignored; marble at [-55.9  -7.    0.6]
+[03:18:04] marble off the map for 60 decisions at [-108.7  -13.6  -44.7] (time left 260s); forcing a respawn
+[03:18:04] marble off the map for 120 decisions at [-146.   -18.3 -116.7] (time left 258s); forcing a respawn
+[03:18:04] teleport to (9.4, 41.6) ignored; marble at [18.3 17.7  0.6]
+[03:18:16] SEG n=920 last=arrived arrive=87% falls100=0.34 speed=5.7 timeout=1% rew=25.0 rtf=3.00
+[03:19:00] NAV upd=71 steps=145,408 segs=936 arrive=88% falls100=0.31 speed=5.7 rew=26.1 pl=-0.005 vl=0.078 ent=0.50 kl=0.004 clip=0.08 gn=1.33 ep=4 dstd=0.22 upd_s=4.0 wall_s=57
+[03:19:01] teleport to (20.4, -21.4) ignored; marble at [14.2  8.2  0.6]
+[03:19:07] SEG n=940 last=arrived arrive=89% falls100=0.30 speed=5.7 timeout=1% rew=25.9 rtf=3.00
+[03:19:32] [env:8888] round over (time left 300s); waiting for the next round
+[03:19:32] [env:8888] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[03:19:32] new round (game connection 2); rtf 2.66
+[03:19:58] NAV upd=72 steps=147,456 segs=957 arrive=89% falls100=0.28 speed=5.7 rew=26.5 pl=-0.003 vl=0.097 ent=0.52 kl=0.013 clip=0.15 gn=1.66 ep=4 dstd=0.22 upd_s=3.9 wall_s=58
+[03:20:00] SEG n=960 last=arrived arrive=89% falls100=0.28 speed=5.7 timeout=1% rew=26.2 rtf=3.00
+[03:20:46] SEG n=980 last=arrived arrive=90% falls100=0.25 speed=5.7 timeout=1% rew=26.8 rtf=3.00
+[03:20:47] marble off the map for 60 decisions at [ 34.5 -60.1 -42.2] (time left 76s); forcing a respawn
+[03:20:54] NAV upd=73 steps=149,504 segs=982 arrive=90% falls100=0.26 speed=5.7 rew=26.6 pl=-0.000 vl=0.080 ent=0.52 kl=0.011 clip=0.07 gn=1.77 ep=4 dstd=0.22 upd_s=3.9 wall_s=56
+[03:20:55] teleport to (3.4, -6.4) ignored; marble at [11.4  4.9  0.6]
+[03:21:16] [env:8888] round over (time left 300s); waiting for the next round
+[03:21:16] [env:8888] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[03:21:16] new round (game connection 2); rtf 2.72
+[03:21:35] SEG n=1000 last=arrived arrive=90% falls100=0.25 speed=5.7 timeout=1% rew=26.5 rtf=3.00
+[03:21:52] NAV upd=74 steps=151,552 segs=1005 arrive=90% falls100=0.26 speed=5.7 rew=26.4 pl=-0.001 vl=0.097 ent=0.54 kl=0.009 clip=0.11 gn=1.66 ep=4 dstd=0.22 upd_s=3.8 wall_s=58
+[03:21:52] marble off the map for 60 decisions at [ 87.8  -8.7 -44.6] (time left 199s); forcing a respawn
+[03:21:52] marble off the map for 120 decisions at [ 114.1  -27.  -116.5] (time left 198s); forcing a respawn
+[03:22:24] SEG n=1020 last=arrived arrive=90% falls100=0.26 speed=5.7 timeout=1% rew=26.2 rtf=3.00
+[03:22:47] NAV upd=75 steps=153,600 segs=1028 arrive=90% falls100=0.27 speed=5.7 rew=26.1 pl=-0.004 vl=0.162 ent=0.53 kl=0.008 clip=0.10 gn=1.45 ep=4 dstd=0.22 upd_s=3.7 wall_s=56
+[03:22:48] saved C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\models\nav\nav_000075.pth
+[03:22:49] marble off the map for 60 decisions at [-94.8  14.  -47.3] (time left 22s); forcing a respawn
+[03:22:59] [env:8888] round over (time left 300s); waiting for the next round
+[03:22:59] [env:8888] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[03:22:59] new round (game connection 2); rtf 2.76

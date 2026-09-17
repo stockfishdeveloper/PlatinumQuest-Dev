@@ -1,0 +1,23 @@
+[02:05:52] fresh model (808,504 params), obs NAV_OBS_V1, device cuda
+[02:05:52] [env:8888] waiting for the game
+[02:05:55] [env:8888] game connected (1)
+[02:05:57] mission FlatGemTraining_Hunt: terrain 255x255 @ 0.5 u, walk grid 128x128, walkable 15750 cells, edge 498
+[02:07:33] NAV upd=1 steps=2,048 segs=6 arrive=0% falls100=0.00 speed=0.2 rew=-33.1 pl=-0.003 vl=2.005 ent=1.03 kl=0.004 clip=0.07 gn=1.16 ep=4 dstd=0.22 upd_s=2.5 wall_s=95
+[02:09:06] NAV upd=2 steps=4,096 segs=13 arrive=0% falls100=1.55 speed=0.3 rew=-40.4 pl=0.001 vl=3.756 ent=1.03 kl=0.013 clip=0.16 gn=1.74 ep=4 dstd=0.22 upd_s=2.3 wall_s=93
+[02:09:20] [env:8888] round over (time left 300s); waiting for the next round
+[02:09:20] [env:8888] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[02:09:21] new round (game connection 1); rtf 1.49
+[02:10:38] SEG n=20 last=timeout arrive=0% falls100=2.25 speed=0.4 timeout=85% rew=-38.9 rtf=1.52
+[02:10:43] NAV upd=3 steps=6,144 segs=20 arrive=0% falls100=2.25 speed=0.4 rew=-38.9 pl=0.001 vl=3.600 ent=1.05 kl=0.008 clip=0.10 gn=2.51 ep=4 dstd=0.22 upd_s=2.2 wall_s=97
+[02:12:16] NAV upd=4 steps=8,192 segs=27 arrive=0% falls100=2.02 speed=0.4 rew=-41.2 pl=0.007 vl=3.119 ent=1.05 kl=0.013 clip=0.17 gn=3.32 ep=4 dstd=0.22 upd_s=2.3 wall_s=93
+[02:12:44] [env:8888] round over (time left 300s); waiting for the next round
+[02:12:44] [env:8888] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[02:12:44] new round (game connection 1); rtf 1.46
+[02:13:55] NAV upd=5 steps=10,240 segs=34 arrive=0% falls100=1.89 speed=0.4 rew=-41.4 pl=0.010 vl=2.292 ent=1.07 kl=0.019 clip=0.26 gn=3.68 ep=4 dstd=0.22 upd_s=2.3 wall_s=98
+[02:13:57] marble off the map for 60 decisions at [-16.6 113.5 -44.1] (time left 189s); forcing a respawn
+[02:14:58] SEG n=40 last=timeout arrive=0% falls100=2.10 speed=0.4 timeout=85% rew=-39.8 rtf=1.64
+[02:15:11] NAV upd=6 steps=12,288 segs=41 arrive=0% falls100=2.08 speed=0.4 rew=-39.9 pl=0.010 vl=2.838 ent=1.12 kl=0.028 clip=0.32 gn=3.12 ep=4 dstd=0.22 upd_s=3.8 wall_s=76
+[02:15:13] marble off the map for 60 decisions at [-98.1 -74.4 -45.1] (time left 36s); forcing a respawn
+[02:15:28] [env:8888] round over (time left 300s); waiting for the next round
+[02:15:28] [env:8888] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[02:15:28] new round (game connection 1); rtf 2.72

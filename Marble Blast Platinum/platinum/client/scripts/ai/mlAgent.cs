@@ -53,6 +53,8 @@ $AIObserver::ForceYaw = 0;
 // determinism. Kept for experiments: the Python side may send "DELAY n".
 $MLAgent::ActionDelay = 0;
 $MLAgent::Tick = 0;                 // monotonic across rounds and reconnects
+$MLAgent::LoopGen = 0;              // update-loop generation (see MLAgent::start)
+$MLAgent::StartPending = false;
 $AIBridge::DelayedMode = false;     // true once a tagged reply has arrived
 $AIBridge::DelayedReplies = 0;
 $AIBridge::LateReplies = 0;
@@ -67,6 +69,14 @@ function MLAgent::start() {
         echo("MLAgent: Already running");
         return;
     }
+    // A second start() while startLoop was still pending (GO and autoRestart both
+    // call start) used to create a SECOND update loop: twice the messages per sim
+    // second, so a 4-message decision was 32 ms instead of 64 (found 2026-09-17).
+    if ($MLAgent::StartPending) {
+        echo("MLAgent: start already pending");
+        return;
+    }
+    $MLAgent::StartPending = true;
     // Never sleep when the window is in the background (2026-09-15). The
     // default $Pref::backgroundSleepTime = 200 ms made the engine step physics
     // in coarse chunks whenever the window lost focus: rounds took 124 s of
@@ -98,10 +108,20 @@ function MLAgent::startLoop() {
             AIBridge::disconnect();
             AIBridge::connect("", "");
             schedule(2000, 0, "MLAgent::startLoop");
+        } else {
+            $MLAgent::StartPending = false;
         }
         return;
     }
     $MLAgent::ConnectAttempts = 0;
+    $MLAgent::StartPending = false;
+    // One loop only: a new generation invalidates every update() still scheduled
+    // by an older loop, and any pending schedule is cancelled.
+    $MLAgent::LoopGen++;
+    if ($MLAgent::UpdateSchedule !$= "") {
+        cancel($MLAgent::UpdateSchedule);
+        $MLAgent::UpdateSchedule = "";
+    }
 
     echo("MLAgent: Starting update loop at " @ (1000 / $MLAgent::UpdateInterval) @ " Hz");
     $MLAgent::Enabled = true;
@@ -123,7 +143,7 @@ function MLAgent::startLoop() {
     $MLAgent::EpisodeShouldEnd = false;
     $MLAgent::TimerStarted = false;
 
-    MLAgent::update();
+    MLAgent::update($MLAgent::LoopGen);
 }
 
 function MLAgent::stop() {
@@ -151,7 +171,10 @@ function MLAgent::stop() {
     AIBridge::disconnect();
 }
 
-function MLAgent::update() {
+function MLAgent::update(%gen) {
+    if (%gen !$= $MLAgent::LoopGen) {
+        return;                  // an update from a superseded loop
+    }
     if (!$MLAgent::Enabled) {
         return;
     }
@@ -165,7 +188,7 @@ function MLAgent::update() {
     // Check if we're in a valid game state
     if (!isObject($MP::MyMarble) || !$Game::Running) {
         // Not in game, try again later
-        $MLAgent::UpdateSchedule = schedule($MLAgent::UpdateInterval, 0, "MLAgent::update");
+        $MLAgent::UpdateSchedule = schedule($MLAgent::UpdateInterval, 0, "MLAgent::update", $MLAgent::LoopGen);
         return;
     }
 
@@ -178,7 +201,7 @@ function MLAgent::update() {
     // the episode run to natural completion and send done=1 normally.
     if (!$MLAgent::TimerStarted && isObject(MissionInfo) && MissionInfo.time > 0) {
         if (PlayGui.currentTime >= MissionInfo.time) {
-            $MLAgent::UpdateSchedule = schedule($MLAgent::UpdateInterval, 0, "MLAgent::update");
+            $MLAgent::UpdateSchedule = schedule($MLAgent::UpdateInterval, 0, "MLAgent::update", $MLAgent::LoopGen);
             return;
         }
         $MLAgent::TimerStarted = true;
@@ -295,10 +318,41 @@ function MLAgent::update() {
     //                                   back on the socket and reset the
     //                                   fixed-delay counters (probes use it)
     //   "DELAY n"                       set $MLAgent::ActionDelay (ticks)
+    //   "RESPAWN"                      force a server-side respawn of the marble
     if (getWord(%actionStr, 0) $= "STATS") {
         AIBridge::sendState("STATS|" @ $AIBridge::DelayedReplies @ "," @ $AIBridge::LateReplies @ ","
                             @ $AIBridge::HeldTicks @ "," @ $MLAgent::ActionDelay @ "," @ $MLAgent::Tick);
         $AIBridge::DelayedReplies = 0; $AIBridge::LateReplies = 0; $AIBridge::HeldTicks = 0;
+        $AIBridge::LastAction = "";
+        %actionStr = "";
+    } else if (getWord(%actionStr, 0) $= "INFO") {
+        // "INFO" -> "INFO|<mission file>|<round ms>|<time scale>" on the socket
+        // (the navigator trainer picks the terrain map from the mission file)
+        %mf = isObject(MissionInfo) && MissionInfo.file !$= "" ? MissionInfo.file : $Server::MissionFile;
+        AIBridge::sendState("INFO|" @ fileBase(%mf) @ "|" @ (isObject(MissionInfo) ? MissionInfo.time : 0) @ "|" @ getTimeScale());
+        $AIBridge::LastAction = "";
+        %actionStr = "";
+    } else if (getWord(%actionStr, 0) $= "RESPAWN") {
+        // Force a respawn on the (listen) server: after some falls the game's own
+        // OOB respawn never comes and TELEPORT is ignored while the marble is in
+        // the OOB state (seen 2026-09-17 on the flat training map).
+        if (isObject(ClientGroup) && ClientGroup.getCount() > 0) {
+            %cl = ClientGroup.getObject(0);
+            if (isObject(%cl) && isObject(%cl.player)) {
+                // respawnPlayer() refuses ("Spawning blocked") for 300 ms after any
+                // respawn; clear that and the OOB respawn still scheduled by the game so
+                // it cannot yank the marble back to the spawn during the next segment.
+                cancel(%cl.respawnSchedule);
+                %cl.unblockSpawning();
+                %cl.player.setOOB(false);
+                %cl.isOOB = false;
+                %before = %cl.player.getPosition();
+                %cl.respawnPlayer();
+                echo("MLAgent: forced respawn by the Python server: server marble " @ %cl.player @ " " @ %before
+                     @ " -> " @ %cl.player.getPosition() @ "; client marble " @ $MP::MyMarble @ " " @ $MP::MyMarble.getPosition()
+                     @ "; blocked " @ %cl.spawningBlocked @ " state " @ $Game::State);
+            }
+        }
         $AIBridge::LastAction = "";
         %actionStr = "";
     } else if (getWord(%actionStr, 0) $= "DELAY") {
@@ -337,7 +391,7 @@ function MLAgent::update() {
     }
 
     // 10. Schedule next update
-    $MLAgent::UpdateSchedule = schedule($MLAgent::UpdateInterval, 0, "MLAgent::update");
+    $MLAgent::UpdateSchedule = schedule($MLAgent::UpdateInterval, 0, "MLAgent::update", $MLAgent::LoopGen);
 }
 
 //------------------------------------------------------------------------------

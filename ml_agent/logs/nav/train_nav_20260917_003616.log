@@ -1,0 +1,3 @@
+[00:36:17] fresh model (808,504 params), obs NAV_OBS_V1, device cuda
+[00:36:17] [env:8888] waiting for the game
+[00:36:27] [env:8888] game connected (1)

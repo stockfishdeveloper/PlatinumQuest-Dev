@@ -1,0 +1,6 @@
+[23:39:01] fresh model (808,504 params), obs NAV_OBS_V1, device cuda
+[23:39:01] [env:8888] waiting for the game
+[23:39:25] [env:8888] game connected (1)
+[23:39:25] mission FlatGemTraining_Hunt: terrain 255x255 @ 0.5 u, walk grid 128x128, walkable 15750 cells, edge 498
+[23:40:10]   KL early stop at epoch 1
+[23:40:10] NAV upd=1 steps=2,048 segs=14 arrive=0% falls100=0.67 speed=17.1 rew=-124.7 pl=0.169 vl=3.533 ent=1.04 kl=2.585 clip=0.46 gn=502.00 ep=1 dstd=0.22 upd_s=0.9 wall_s=45

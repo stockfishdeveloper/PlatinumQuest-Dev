@@ -1,0 +1,19 @@
+[00:19:46] fresh model (808,504 params), obs NAV_OBS_V1, device cuda
+[00:19:46] [env:8888] waiting for the game
+[00:19:46] [env:8888] game connected (1)
+[00:19:46] mission FlatGemTraining_Hunt: terrain 255x255 @ 0.5 u, walk grid 128x128, walkable 15750 cells, edge 498
+[00:20:13] NAV upd=1 steps=2,048 segs=6 arrive=0% falls100=0.00 speed=0.0 rew=-36.2 pl=-0.003 vl=10.270 ent=1.03 kl=0.001 clip=0.01 gn=4.19 ep=4 dstd=0.22 upd_s=4.0 wall_s=26
+[00:20:13] fall without OOB flag: 30 decisions off the map at [-31.1  82.3  -9.8] (round t=213s)
+[00:20:16] teleport to (-27.6, -42.4) ignored; marble at [-8.8 -3.7  1.6]
+[00:20:36] NAV upd=2 steps=4,096 segs=13 arrive=0% falls100=8.15 speed=0.0 rew=-42.6 pl=-0.004 vl=16.489 ent=1.03 kl=0.007 clip=0.06 gn=2.88 ep=4 dstd=0.22 upd_s=3.6 wall_s=23
+[00:20:37] fall without OOB flag: 30 decisions off the map at [ 75.8   2.4 -10.8] (round t=139s)
+[00:20:38] fall without OOB flag: 30 decisions off the map at [74.8 20.2 -9.7] (round t=132s)
+[00:20:38] marble off the map for 120 decisions at [ 89.9  23.1 -40.4] (round t=131s); forcing a teleport
+[00:20:38] marble off the map for 240 decisions at [ 109.2   26.3 -105.8] (round t=130s); forcing a teleport
+[00:20:55] SEG n=20 last=timeout arrive=0% falls100=4.07 speed=0.2 timeout=85% rew=-43.9 rtf=5.73
+[00:21:01] NAV upd=3 steps=6,144 segs=20 arrive=0% falls100=4.07 speed=0.2 rew=-43.9 pl=-0.002 vl=13.409 ent=1.01 kl=0.007 clip=0.10 gn=3.34 ep=4 dstd=0.22 upd_s=3.7 wall_s=24
+[00:21:01] teleport to (-31.6, -12.4) ignored; marble at [0.1 0.2 2.1]
+[00:21:02] marble off the map for 120 decisions at [ 28.8  95.  -42.6] (round t=59s); forcing a teleport
+[00:21:25] NAV upd=4 steps=8,192 segs=27 arrive=0% falls100=3.38 speed=0.2 rew=-42.7 pl=-0.001 vl=5.648 ent=1.03 kl=0.004 clip=0.04 gn=3.82 ep=4 dstd=0.22 upd_s=3.9 wall_s=24
+[00:23:01] new round (game connection 1); rtf 3.50
+[00:24:45] new round (game connection 1); rtf 2.92

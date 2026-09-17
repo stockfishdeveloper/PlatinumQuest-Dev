@@ -1,0 +1,12 @@
+[23:54:01] fresh model (808,504 params), obs NAV_OBS_V1, device cuda
+[23:54:01] [env:8888] waiting for the game
+[23:54:01] [env:8888] game connected (1)
+[23:54:02] mission FlatGemTraining_Hunt: terrain 255x255 @ 0.5 u, walk grid 128x128, walkable 15750 cells, edge 498
+[23:54:27] NAV upd=1 steps=2,048 segs=6 arrive=0% falls100=0.00 speed=0.1 rew=-34.2 pl=-0.004 vl=8.961 ent=1.03 kl=0.001 clip=0.02 gn=3.93 ep=4 dstd=0.22 upd_s=3.8 wall_s=26
+[23:55:43] new round (game connection 1); rtf 5.41
+[23:55:58] NAV upd=2 steps=4,096 segs=12 arrive=0% falls100=5.82 speed=0.1 rew=-44.9 pl=-0.002 vl=18.264 ent=1.03 kl=0.006 clip=0.04 gn=2.90 ep=4 dstd=0.22 upd_s=3.8 wall_s=91
+[23:56:00] marble off the map for 120 decisions at [  53.8 -105.4  -99.9]; waiting for a respawn
+[23:56:39] SEG n=20 last=fell arrive=0% falls100=1.93 speed=0.4 timeout=85% rew=-46.7 rtf=3.00
+[23:56:43] NAV upd=3 steps=6,144 segs=20 arrive=0% falls100=1.93 speed=0.4 rew=-46.7 pl=0.000 vl=13.840 ent=1.02 kl=0.008 clip=0.07 gn=3.10 ep=4 dstd=0.22 upd_s=3.7 wall_s=45
+[23:56:44] marble off the map for 120 decisions at [121.9  20.8 -97.6]; waiting for a respawn
+[23:58:42] new round (game connection 1); rtf 2.93

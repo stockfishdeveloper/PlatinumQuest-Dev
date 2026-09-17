@@ -1,0 +1,19 @@
+[01:39:07] fresh model (808,504 params), obs NAV_OBS_V1, device cuda
+[01:39:07] [env:8888] waiting for the game
+[01:42:17] [env:8888] game connected (1)
+[01:42:19] mission FlatGemTraining_Hunt: terrain 255x255 @ 0.5 u, walk grid 128x128, walkable 15750 cells, edge 498
+[01:43:55] NAV upd=1 steps=2,048 segs=6 arrive=0% falls100=0.00 speed=0.2 rew=-34.2 pl=-0.003 vl=2.402 ent=1.03 kl=0.007 clip=0.12 gn=1.41 ep=4 dstd=0.22 upd_s=2.8 wall_s=96
+[01:45:28] NAV upd=2 steps=4,096 segs=14 arrive=7% falls100=2.65 speed=0.3 rew=-38.1 pl=0.001 vl=7.020 ent=1.01 kl=0.015 clip=0.16 gn=2.52 ep=4 dstd=0.22 upd_s=2.8 wall_s=93
+[01:45:43] [env:8888] round over (time left 300s); waiting for the next round
+[01:51:04] [env:8888] next round after 30000 ticks / 321 s wall (time left 122s, reconnected False)
+[01:51:04] new round (game connection 1); rtf 1.49
+[01:52:04] SEG n=20 last=timeout arrive=5% falls100=2.95 speed=0.4 timeout=75% rew=-43.7 rtf=1.52
+[01:52:25] NAV upd=3 steps=6,144 segs=21 arrive=5% falls100=2.85 speed=0.4 rew=-43.6 pl=0.003 vl=5.465 ent=1.04 kl=0.008 clip=0.10 gn=2.62 ep=4 dstd=0.22 upd_s=2.2 wall_s=417
+[01:52:29] [env:8888] round over (time left 300s); waiting for the next round
+[01:57:50] [env:8888] next round after 30000 ticks / 321 s wall (time left 122s, reconnected False)
+[01:57:50] new round (game connection 1); rtf 1.48
+[01:59:05] marble off the map for 60 decisions at [-75.6  -2.1 -46.2] (time left 8s); forcing a respawn
+[01:59:16] [env:8888] round over (time left 300s); waiting for the next round
+[02:04:37] [env:8888] next round after 30000 ticks / 321 s wall (time left 122s, reconnected False)
+[02:04:37] new round (game connection 1); rtf 1.48
+[02:04:47] NAV upd=4 steps=8,192 segs=27 arrive=4% falls100=3.67 speed=0.3 rew=-44.4 pl=0.012 vl=2.782 ent=1.05 kl=0.019 clip=0.26 gn=3.63 ep=4 dstd=0.22 upd_s=2.2 wall_s=742

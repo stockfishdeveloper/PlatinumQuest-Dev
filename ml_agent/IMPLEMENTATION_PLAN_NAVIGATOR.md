@@ -4,7 +4,7 @@ Written 2026-09-16 (late). Companion to `ROADMAP_NAVIGATOR_PLANNER.md` (the
 "why" and the architecture) and `CHAT_CONTEXT.md` (the current stack). This
 document is the "how": work packages, file layout, data contracts, numbers,
 tests and acceptance criteria, in the order they should be built. Status:
-**planning; nothing below is implemented.** The old per-map trainer
+**status 2026-09-17: WP1-WP4 implemented as `nav/` (see CHAT_CONTEXT.md), stage-0 training started; WP5+ pending.** The old per-map trainer
 (`train_ppo.py`) is left untouched as the King-of-the-Marble baseline; all new
 code goes in a new package so the two never interfere.
 

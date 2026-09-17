@@ -1,0 +1,11 @@
+[05:19:33] resumed C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\models\nav\nav_latest.pth: update 150, steps 307,200, trained on KingOfTheMarble_Hunt
+[05:19:33] [env:8888] waiting for the game
+[05:19:45] [env:8888] game connected (1)
+[05:19:46] mission FlatIslands_Hunt: terrain 165x165 @ 0.5 u, walk grid 83x83, walkable 5775 cells, edge 876
+[05:20:13] marble off the map for 60 decisions at [ -6.8  13.5 -43.5] (time left 218s); forcing a respawn
+[05:20:37] NAV upd=151 map=FlatIslands_Hunt steps=309,248 segs=10 arrive=50% falls100=0.74 speed=1.1 rew=-12.2 pl=-0.006 vl=0.061 ent=0.86 kl=0.011 clip=0.18 gn=1.39 ep=4 dstd=0.22 upd_s=3.9 wall_s=51
+[05:20:38] marble off the map for 60 decisions at [-21.8  42.2 -48.7] (time left 153s); forcing a respawn
+[05:20:38] marble off the map for 120 decisions at [ -29.7   70.8 -123. ] (time left 152s); forcing a respawn
+[05:20:38] marble off the map for 60 decisions at [-12.5  13.4 -48.1] (time left 147s); forcing a respawn
+[05:20:38] marble off the map for 120 decisions at [ -19.9   22.4 -121.9] (time left 146s); forcing a respawn
+[05:20:43] marble off the map for 60 decisions at [-13.4 -17.1 -49.8] (time left 129s); forcing a respawn

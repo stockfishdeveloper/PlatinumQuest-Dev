@@ -85,15 +85,54 @@ def parse_interiors(mis_path):
         else:
             dif = os.path.join(os.path.dirname(mis_path), rel)
         dif = os.path.normpath(dif)
-        if abs(rot[3]) > 1e-6 or any(abs(s - 1.0) > 1e-6 for s in scl):
-            print(f'  WARNING: interior {os.path.basename(dif)} has rotation {rot} / scale {scl}; '
-                  f'only translation is applied')
         if not os.path.exists(dif):
             print(f'  WARNING: interior file not found, skipped: {dif}')
             continue
-        out.append((dif, pos))
+        out.append((dif, pos, rot, scl))
     if not out:
         raise RuntimeError(f'No InteriorInstance with an existing .dif in {mis_path}')
+    return out
+
+
+def _axis_angle_matrix(rot):
+    """3x3 rotation matrix for a Torque "x y z angle_deg" axis-angle."""
+    ax = np.array(rot[0:3], dtype=np.float64)
+    n = np.linalg.norm(ax)
+    ang = math.radians(rot[3])
+    if n < 1e-9 or abs(ang) < 1e-9:
+        return np.eye(3)
+    x, y, z = ax / n
+    c, s = math.cos(ang), math.sin(ang)
+    C = 1.0 - c
+    return np.array([[c + x * x * C, x * y * C - z * s, x * z * C + y * s],
+                     [y * x * C + z * s, c + y * y * C, y * z * C - x * s],
+                     [z * x * C - y * s, z * y * C + x * s, c + z * z * C]])
+
+
+def transform_surfaces(surfaces, pos, rot, scl):
+    """Apply the InteriorInstance transform (scale, then rotate, then translate)
+    to surfaces extracted at the origin. Normals are recomputed from the
+    transformed vertices (non-uniform scale changes slopes), keeping the
+    original facing."""
+    R = _axis_angle_matrix(rot)
+    S = np.array(scl, dtype=np.float64)
+    T = np.array(pos, dtype=np.float64)
+    out = []
+    for verts, n in surfaces:
+        v = (np.array(verts, dtype=np.float64) * S) @ R.T + T
+        n_rot = R @ np.array(n, dtype=np.float64)
+        if len(v) >= 3:
+            # Newell normal of the transformed polygon
+            nn = np.zeros(3)
+            for i in range(len(v)):
+                a, b = v[i], v[(i + 1) % len(v)]
+                nn += np.cross(a, b)
+            if np.linalg.norm(nn) > 1e-9:
+                nn /= np.linalg.norm(nn)
+                if np.dot(nn, n_rot) < 0:
+                    nn = -nn
+                n_rot = nn
+        out.append(([tuple(p) for p in v], tuple(n_rot)))
     return out
 
 
@@ -271,9 +310,9 @@ def main():
           'In-bounds trigger not found: no z filtering (pass --z-min if the map has decorative geometry below)')
 
     surfaces = []
-    for dif_path, pos in parse_interiors(mis_path):
+    for dif_path, pos, rot, scl in parse_interiors(mis_path):
         dif = hxDif.Dif.Load(dif_path)
-        s = extract_surfaces(dif, interior_offset=pos)
+        s = transform_surfaces(extract_surfaces(dif), pos, rot, scl)
         print(f'  interior {os.path.basename(dif_path)} at {pos}: {len(s)} surfaces')
         surfaces += s
 

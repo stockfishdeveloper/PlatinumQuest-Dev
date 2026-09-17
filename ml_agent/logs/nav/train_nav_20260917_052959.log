@@ -1,0 +1,63 @@
+[05:30:00] resumed C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\models\nav\nav_latest.pth: update 150, steps 307,200, trained on KingOfTheMarble_Hunt
+[05:30:00] [env:8888] waiting for the game
+[05:30:26] [env:8888] game connected (1)
+[05:30:26] mission FlatIslands_Hunt: terrain 165x165 @ 0.5 u, walk grid 83x83, walkable 5775 cells, edge 876
+[05:30:43] fall without OOB flag: 10 decisions off the map at [-7.4 41.2 -8.6] (time left 251s)
+[05:31:18] NAV upd=151 map=FlatIslands_Hunt steps=309,248 segs=10 arrive=60% falls100=0.88 speed=1.0 rew=-11.1 pl=-0.004 vl=0.057 ent=0.80 kl=0.016 clip=0.16 gn=1.21 ep=4 dstd=0.22 upd_s=4.0 wall_s=51
+[05:31:18] fall without OOB flag: 10 decisions off the map at [-23.1  28.2 -34. ] (time left 155s)
+[05:31:18] marble still off the map after 30 decisions at [-30.2  41.8 -72.6] (time left 154s); forcing a respawn again
+[05:31:18] marble still off the map after 60 decisions at [ -38.5   58.  -123.4] (time left 153s); forcing a respawn again
+[05:31:18] teleport to (-11.6, -18.4) ignored; marble at [-9.7 13.2 -1.4]
+[05:31:18] marble still off the map after 30 decisions at [-19.3  12.3 -35.4] (time left 149s); forcing a respawn again
+[05:31:18] marble still off the map after 60 decisions at [-26.6  16.  -72.9] (time left 148s); forcing a respawn again
+[05:31:18] marble still off the map after 90 decisions at [ -35.3   22.6 -123.7] (time left 147s); forcing a respawn again
+[05:31:47] fall without OOB flag: 10 decisions off the map at [-13.4  11.3  -8.6] (time left 59s)
+[05:32:00] SEG n=20 last=timeout arrive=30% falls100=1.53 speed=1.0 timeout=50% rew=-19.8 rtf=3.00
+[05:32:06] NAV upd=152 map=FlatIslands_Hunt steps=311,296 segs=20 arrive=30% falls100=1.53 speed=1.0 rew=-19.8 pl=-0.004 vl=0.026 ent=0.85 kl=0.013 clip=0.15 gn=1.61 ep=4 dstd=0.22 upd_s=3.7 wall_s=48
+[05:32:06] teleport to (5.4, 20.6) ignored; marble at [  9.5 -17.9 -27.5]
+[05:32:06] fall without OOB flag: 10 decisions off the map at [ 11.2 -24.2 -53. ] (time left 7s)
+[05:32:06] marble still off the map after 30 decisions at [ 16.3 -34.3 -99.4] (time left 6s); forcing a respawn again
+[05:32:06] teleport to (-7.6, -8.4) ignored; marble at [ 4.3 -2.5  0.7]
+[05:32:07] fall without OOB flag: 10 decisions off the map at [ 10.7 -13.2  -7.7] (time left 2s)
+[05:32:07] marble still off the map after 30 decisions at [ 10.9 -19.7 -29.8] (time left 1s); forcing a respawn again
+[05:32:07] marble still off the map after 60 decisions at [ 13.8 -27.6 -64.7] (time left 0s); forcing a respawn again
+[05:32:10] [env:8888] round over (time left 300s of 300s); waiting for the next round
+[05:32:10] [env:8888] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[05:32:10] new round (game connection 1); rtf 2.11
+[05:32:57] NAV upd=153 map=FlatIslands_Hunt steps=313,344 segs=31 arrive=32% falls100=1.40 speed=1.1 rew=-17.8 pl=-0.001 vl=0.060 ent=0.84 kl=0.014 clip=0.16 gn=1.38 ep=4 dstd=0.22 upd_s=3.9 wall_s=51
+[05:32:58] fall without OOB flag: 10 decisions off the map at [10.1 37.7 -8.4] (time left 166s)
+[05:32:58] fall without OOB flag: 10 decisions off the map at [10.7  9.9 -7.6] (time left 162s)
+[05:32:58] marble still off the map after 30 decisions at [ 10.9  14.7 -29.7] (time left 162s); forcing a respawn again
+[05:32:58] marble still off the map after 60 decisions at [ 14.1  20.7 -64.6] (time left 161s); forcing a respawn again
+[05:32:58] marble still off the map after 90 decisions at [  20.2   27.9 -112.8] (time left 160s); forcing a respawn again
+[05:32:58] teleport to (-1.6, 31.6) ignored; marble at [11.8  7.4 -1.3]
+[05:32:58] fall without OOB flag: 10 decisions off the map at [  7.3   9.2 -10.3] (time left 156s)
+[05:33:31] SEG n=40 last=timeout arrive=30% falls100=1.68 speed=1.1 timeout=48% rew=-19.4 rtf=3.00
+[05:33:47] NAV upd=154 map=FlatIslands_Hunt steps=315,392 segs=42 arrive=33% falls100=1.59 speed=1.1 rew=-17.8 pl=-0.005 vl=0.060 ent=0.81 kl=0.009 clip=0.13 gn=1.25 ep=4 dstd=0.22 upd_s=3.7 wall_s=49
+[05:33:47] fall without OOB flag: 10 decisions off the map at [-19.8 -11.2  -7.5] (time left 16s)
+[05:33:47] marble still off the map after 30 decisions at [-29.2 -10.9 -29.5] (time left 15s); forcing a respawn again
+[05:33:47] marble still off the map after 60 decisions at [-40.5 -13.1 -64.2] (time left 14s); forcing a respawn again
+[05:33:47] marble still off the map after 90 decisions at [ -54.1  -17.8 -112.2] (time left 13s); forcing a respawn again
+[05:33:47] fall without OOB flag: 10 decisions off the map at [-19.9 -11.2  -7.6] (time left 10s)
+[05:33:53] [env:8888] round over (time left 300s of 300s); waiting for the next round
+[05:33:53] [env:8888] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[05:33:53] new round (game connection 1); rtf 2.62
+[05:34:38] NAV upd=155 map=FlatIslands_Hunt steps=317,440 segs=53 arrive=36% falls100=1.55 speed=1.1 rew=-18.0 pl=-0.004 vl=0.064 ent=0.78 kl=0.009 clip=0.13 gn=1.35 ep=4 dstd=0.22 upd_s=3.7 wall_s=51
+[05:34:38] fall without OOB flag: 10 decisions off the map at [-42.6  21.5  -8. ] (time left 176s)
+[05:34:38] fall without OOB flag: 10 decisions off the map at [-8.9 11.8 -8.2] (time left 173s)
+[05:34:38] marble still off the map after 30 decisions at [-13.   12.  -30.8] (time left 172s); forcing a respawn again
+[05:34:38] marble still off the map after 60 decisions at [-18.   15.3 -66.2] (time left 171s); forcing a respawn again
+[05:34:38] marble still off the map after 90 decisions at [ -24.1   21.4 -115. ] (time left 170s); forcing a respawn again
+[05:34:38] fall without OOB flag: 10 decisions off the map at [-8.8 11.8 -8. ] (time left 167s)
+[05:34:56] SEG n=60 last=arrived arrive=35% falls100=1.75 speed=1.1 timeout=42% rew=-18.5 rtf=3.00
+[05:34:56] [env:8888] game disconnected
+[05:34:56] [env:8888] waiting for the game
+[05:35:21] [env:8888] game connected (2)
+[05:35:22] [env:8888] round over (time left 299s of 300s); waiting for the next round
+[05:35:22] [env:8888] next round after 0 ticks / 0 s wall (time left 299s, reconnected True)
+[05:35:22] new round (game connection 2)
+[05:35:50] NAV upd=156 map=FlatIslands_Hunt steps=319,488 segs=63 arrive=33% falls100=1.69 speed=1.1 rew=-19.8 pl=0.002 vl=0.040 ent=0.74 kl=0.016 clip=0.18 gn=1.81 ep=4 dstd=0.22 upd_s=3.2 wall_s=73
+[05:35:51] teleport to (-32.6, -0.4) ignored; marble at [-22.8  29.1   0.6]
+[05:35:51] fall without OOB flag: 10 decisions off the map at [-38.   49.2   0.6] (time left 215s)
+[05:35:51] marble still off the map after 30 decisions at [-45.8  59.5   0.6] (time left 214s); forcing a respawn again
+[05:35:51] marble still off the map after 60 decisions at [-52.   67.8  -0.1] (time left 213s); forcing a respawn again

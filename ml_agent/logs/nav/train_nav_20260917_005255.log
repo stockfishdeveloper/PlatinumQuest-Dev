@@ -1,0 +1,21 @@
+[00:52:56] fresh model (808,504 params), obs NAV_OBS_V1, device cuda
+[00:52:56] [env:8888] waiting for the game
+[00:53:04] [env:8888] game connected (1)
+[00:53:05] mission FlatGemTraining_Hunt: terrain 255x255 @ 0.5 u, walk grid 128x128, walkable 15750 cells, edge 498
+[00:53:27] marble off the map for 60 decisions at [  4.5  68.7 -43.3] (time left 234s); forcing a respawn
+[00:53:54] NAV upd=1 steps=2,048 segs=7 arrive=0% falls100=5.20 speed=0.2 rew=-38.3 pl=-0.005 vl=2.286 ent=1.04 kl=0.004 clip=0.05 gn=1.25 ep=4 dstd=0.22 upd_s=4.2 wall_s=49
+[00:53:54] marble off the map for 60 decisions at [-48.1  98.7 -48.7] (time left 160s); forcing a respawn
+[00:53:54] marble off the map for 120 decisions at [ -58.4  129.2 -123.8] (time left 159s); forcing a respawn
+[00:53:54] teleport to (-27.6, -42.4) ignored; marble at [-3.   8.4  1.9]
+[00:53:55] marble off the map for 60 decisions at [-45.9 128.5 -45.2] (time left 152s); forcing a respawn
+[00:53:55] teleport to (-46.6, -10.4) ignored; marble at [-46.6 -10.4   0.8]
+[00:54:41] NAV upd=2 steps=4,096 segs=15 arrive=0% falls100=6.39 speed=0.2 rew=-45.7 pl=0.010 vl=7.119 ent=1.03 kl=0.029 clip=0.34 gn=2.32 ep=4 dstd=0.22 upd_s=3.6 wall_s=46
+[00:54:41] marble off the map for 60 decisions at [ 98.1  34.7 -46.8] (time left 15s); forcing a respawn
+[00:54:41] marble off the map for 120 decisions at [ 131.1   42.1 -120. ] (time left 14s); forcing a respawn
+[00:57:31] new round (game connection 1); rtf 2.94
+[00:57:52] SEG n=20 last=timeout arrive=0% falls100=4.31 speed=0.4 timeout=75% rew=-45.8 rtf=3.00
+[00:58:12] NAV upd=3 steps=6,144 segs=22 arrive=0% falls100=3.96 speed=0.3 rew=-44.8 pl=0.007 vl=3.842 ent=1.01 kl=0.018 clip=0.21 gn=3.44 ep=4 dstd=0.22 upd_s=3.8 wall_s=211
+[00:58:13] marble off the map for 60 decisions at [ 97.6 -20.9 -45.2] (time left 1s); forcing a respawn
+[00:58:13] marble off the map for 120 decisions at [ 126.3  -27.  -107.4] (time left 0s); forcing a respawn
+[00:58:13] marble off the map for 180 decisions at [ 126.3  -27.  -107.5] (time left 0s); forcing a respawn
+[01:00:58] new round (game connection 1)

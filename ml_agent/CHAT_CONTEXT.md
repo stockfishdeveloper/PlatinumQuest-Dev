@@ -246,6 +246,44 @@ The per-map MLP policy is the King-of-the-Marble baseline only. The plan to reac
   `-aiport N` / `-aispeed N` also exist. Probes reply `SPEED n`, `TELEPORT x y
   z vx vy vz`, `SLEEPTIME n`, `MAXFPS n` before the RECORD handshake.
 
+## Navigator package `nav/` (built 2026-09-17, first stage-0 run started overnight)
+
+- `python -m nav.train_nav` with the game launched by `marbleblast.exe -autotrain FlatGemTraining_Hunt`
+  (mission FILE base name). The trainer asks the game which mission is loaded (`INFO` control
+  reply), loads `terrain_maps/terrain_<mission>.npz`, and runs waypoint segments at 3x.
+  Logs `logs/nav/train_nav_*.log` (+ per-decision `trace_*.csv`), checkpoints `models/nav/`
+  (`nav_latest.pth` auto-resumed). `python -m nav.eval_nav` = greedy evaluation, seeded.
+- Modules: `protocol.py` (line format), `env.py` (HuntEnv: 4 messages = one 64 ms decision,
+  TELEPORT/SPEED/INFO/STATS/RESPAWN controls, round-end handling), `terrain.py` (TerrainGrid:
+  6x32x32 crops, walk grid, Dijkstra goal fields, start/goal sampling), `obs.py` (NAV_OBS_V1:
+  crops + 48-vector incl. edge rays with ray 1 = line to the waypoint), `model.py` (CNN+GRU
+  actor-critic, PopArt value, direction mean is the tanh output itself, NOT unit-normalized),
+  `waypoints.py` (segments, reward: path-distance progress, +10 arrive, -20 fall, -0.02/decision,
+  -0.1 airborne), `ppo_recurrent.py` (32-step sequences, stored GRU states, LR 3e-4).
+- Game-side facts learned the hard way (all fixed in mlAgent.cs / the env):
+  - obs[31] (`timeElapsed`) is really the time LEFT (counts down); obs[32] is elapsed.
+  - `done` in the obs message is the old trainer's 15000-step cap, NOT the round end; the round
+    end is the `[]|-score|0|1` message, the socket usually persists across rounds.
+  - A second `MLAgent::start()` while `startLoop` was pending created TWO update loops (2x
+    messages per sim second). Fixed with `$MLAgent::StartPending` + loop generation tags.
+  - TELEPORT is ignored while the marble is mid-respawn (wait until it rests) and while it
+    is in the OOB state; some falls never respawn (esp. at round end) -> `RESPAWN` control
+    forces `ClientGroup.getObject(0).respawnPlayer()`; the env also counts a fall itself
+    after 90 decisions off the map without the OOB flag.
+  - `generate_terrain_map.py` now applies InteriorInstance scale/rotation (the flat custom
+    maps are 125x125 u, not 5x5).
+  - Respawn while falling: the server-side `respawnPlayer()` moves the SERVER marble but the
+    client marble (what the observer reads) sometimes keeps falling; the env retries RESPAWN
+    every 30 ticks and the game's own OOB respawn usually lands within ~3 s. Costs wall time
+    only (the segment has already ended). Unsolved root cause; a candidate for the engine work.
+- **Overnight run 2026-09-17 (one 3x instance, ~41 decisions/s):** stage 0 flat map reached
+  90 % arrivals / 0.27 falls per 100 u / 5.7 u/s at update 75 (`models/nav/nav_stage0_flat_upd75.pth`).
+  Rotation then FlatWithJump / JumpOnly (~85-95 %), King of the Marble (0-9 %: the policy froze
+  and braked 73 % of the time; FALL lowered 20->10, TIME 0.02->0.05, BRAKE cost 0.1, KOTM taken
+  out of the rotation), new curriculum map `FlatIslands_Hunt` (3x3 islands, 2.5 u gaps; ~38 %
+  arrivals at update 190 and climbing). Game loop: `run_game_loop.ps1 -Mission "A,B,C" -RestartEveryHours 0.33`
+  rotates maps; the trainer reloads terrain on every reconnect (`MAP <name>` log line).
+
 ## Key Files
 
 - `IMPLEMENTATION_PLAN_NAVIGATOR.md`: work packages WP1-WP10 for the navigator + planner agent (new `nav/` package), what can start now vs what needs the engine.
