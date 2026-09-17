@@ -203,8 +203,13 @@ Training runs at **3x game speed**. One game tick is 16 ms of game time, so a 3-
 
 ---
 
+## Direction (2026-09-16)
+
+The per-map MLP policy is the King-of-the-Marble baseline only. The plan to reach multiplayer, all maps, powerups and offense is in `ROADMAP_NAVIGATOR_PLANNER.md`: N game instances first, then a map-independent navigator (egocentric height crops + GRU, waypoint task across many maps, demo bootstrap), then a planner (heuristic A*-based v0, learned v1) with all gems, opponents and powerups, then self-play for blast/mega. Read it before starting any new training campaign.
+
 ## Key Files
 
+- `ml_agent/ROADMAP_NAVIGATOR_PLANNER.md` — the plan for the navigator/planner architecture and multi-instance training (2026-09-16)
 - `ml_agent/train_ppo.py` — PPO training server (port 8888)
 - `ml_agent/dashboard.py` — this dashboard (port 8889, SSE + Plotly)
 - `ml_agent/play.py` — inference-only server for watching the model play
