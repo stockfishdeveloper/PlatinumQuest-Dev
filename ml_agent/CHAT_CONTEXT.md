@@ -248,6 +248,8 @@ The per-map MLP policy is the King-of-the-Marble baseline only. The plan to reac
 
 ## Key Files
 
+- `IMPLEMENTATION_PLAN_NAVIGATOR.md`: work packages WP1-WP10 for the navigator + planner agent (new `nav/` package), what can start now vs what needs the engine.
+
 - `ml_agent/ROADMAP_NAVIGATOR_PLANNER.md` — the plan for the navigator/planner architecture and multi-instance training (2026-09-16)
 - `ml_agent/train_ppo.py` — PPO training server (port 8888)
 - `ml_agent/dashboard.py` — this dashboard (port 8889, SSE + Plotly)

@@ -438,6 +438,9 @@ group size, distance from the leader). Nothing map-specific is memorized.
 
 ## 4. Order of work and milestones
 
+Detailed work packages, file layout, data contracts and acceptance numbers:
+`IMPLEMENTATION_PLAN_NAVIGATOR.md` (2026-09-16).
+
 1. **Instancing** (3.1). Milestone: 4 instances, one trainer, per-instance
    guards, aggregate >= 150 decisions/s. Nothing else starts before this.
 2. **Height stacks for the stage-1/2 maps** + `TerrainMap.crop()`.
