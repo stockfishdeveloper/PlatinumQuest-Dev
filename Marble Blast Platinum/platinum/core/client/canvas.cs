@@ -32,6 +32,13 @@
 
 function initCanvas(%windowName) {
 	//videoSetGammaCorrection($pref::OpenGL::gammaCorrection);
+	// AI training (built engine): "-aiport N" on the command line lets several game instances
+	// run on one machine; the engine skips its single-instance mutex when this flag is set
+	// before the canvas exists (engine/gui/core/guiCanvas.cc).
+	for (%ai = 1; %ai < $Game::argc; %ai++) {
+		if ($Game::argv[%ai] $= "-aiport")
+			$AI::MultiInstance = true;
+	}
 	if (!createCanvas(%windowName)) {
 		quit();
 		return;

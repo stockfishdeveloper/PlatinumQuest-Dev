@@ -283,6 +283,74 @@ The per-map MLP policy is the King-of-the-Marble baseline only. The plan to reac
   out of the rotation), new curriculum map `FlatIslands_Hunt` (3x3 islands, 2.5 u gaps; ~38 %
   arrivals at update 190 and climbing). Game loop: `run_game_loop.ps1 -Mission "A,B,C" -RestartEveryHours 0.33`
   rotates maps; the trainer reloads terrain on every reconnect (`MAP <name>` log line).
+- **Gap crossing (2026-09-17 morning):** the marble jittered (braking) at edges and never
+  jumped gaps because (a) the walk graph had no jump edges, so crossing was never progress and
+  goals were never across a gap, and (b) every airborne decision cost 0.1, so jumping never
+  paid. Now: `TerrainGrid` adds jump edges (gap <= 4 u, landing within -6/+1.5 u, cost x3),
+  `sample_goal` picks half its goals across a gap (`cross_gap_p`) via connected components
+  without jump edges, and the airborne cost applies only beyond a 1 s grace (`AIR_GRACE`).
+- **Jump prior + brake off (2026-09-17 late morning):** the learned jump logit was pinned at
+  its -7 clamp, so gaps were never jumped. `NavActorCritic.gap_prior(crop, vec)` is a fixed,
+  map-independent detector: goal-line edge ray ends within 2.5 u with a drop beyond, the fine
+  crop shows floor at the current level within 4.5 u past the edge, marble on the floor and
+  moving > 1.5 u/s. While active it adds +6 to the jump logit (27 %/decision) and -6 to the
+  brake. Separately the brake action is switched off (`BRAKE_ENABLED = False`): it preceded
+  85 % of island falls. Islands went 53 % -> 62 % arrivals, falls/100u 3.9 -> 2.8 in ~3 h.
+- **Arrival ratchet:** measured gem pickup = 0.6 u centre-to-centre collected, 0.7 not; the
+  arrival radius (1.5 u) shrinks by 0.15 whenever the map's rolling arrival rate >= 75 %
+  (300 segments), down to 0.65 u / dz 0.8; saved in checkpoints, shown as `r=` on NAV lines.
+- **Waypoint marker:** `MARK x y z` control places an `AIMarkerGem` item (black gem look,
+  className AIMarker so hunt spawn/hide/observer/pickup ignore it; datablock + `AIMarker::onPickup`
+  in server/scripts/gems.cs). Client-side `datablock` declarations do NOT register.
+- **Dashboard:** `python -m nav.dashboard_nav` -> http://localhost:8990 (tails logs/nav/*.log).
+- `run_game_loop.ps1`: a single mission is now wrapped in @() (a scalar indexed its first letter).
+- **Stale-observation backlog (found 23:00 2026-09-17, the real cause of the "hallucination" /
+  wrong-direction segments, ignored TELEPORTs, refused RESPAWNs and after-fall failure streaks):**
+  the game never waits for a reply; it sends one observation per frame and keeps the last keys
+  pressed. Every PPO update (~4 s wall = 12 s sim at 3x) left ~375 observations in the socket, and
+  the trainer then answered them one by one, driving the live marble from observations seconds
+  old (every flip cluster sat one second after a `NAV upd=` line). Fix: `HuntEnv` keeps its own
+  line buffer, sends a NOOP before the update, `drain()`s the backlog after it and starts a
+  fresh segment; NAV lines carry `lag=` (share of observations already waiting when read; ~0 %
+  is healthy). Any new pause inside the loop (eval, slow saves) must drain the same way.
+- After a fall, RESPAWN/TELEPORT themselves are clean (probe 2026-09-17 23:00: 0.0-0.15 u/s
+  uncommanded motion after natural and forced respawns and after a teleport).
+
+- **Engine source resolved (2026-09-18):** marbleblast.exe = OpenPQ-TGEMIT branch `mbx` (RandomityGuy);
+  worktree C:/Users/doug/src/OpenPQ-TGEMIT-mbx, `build-engine.ps1` builds it in ~12 min, and the
+  built exe matched the shipped one tick for tick in the physics identity probe (0.000 u on 3 of 4
+  trials). Engine changes for training (fixed step + lockstep in
+  engine/mbx/FrameRateUnlock/FrameRateUnlock.cpp, multi-instance, headless) are unblocked;
+  hook points in ROADMAP_NAVIGATOR_PLANNER.md 3.1 and WP7.
+- **Overnight 2026-09-17/18 (stale-obs fix + KOTM rotation):** islands hold ~90 % at r=0.65 after
+  each islands hour; KOTM sits at 50-59 % arrivals, 3-5.5 falls/100 u across five hourly sessions
+  with no clear trend; each KOTM hour costs the islands a temporary dip (to ~76-80 %) that
+  recovers within the next islands hour. Log: logs/nav/overnight_notes.txt. Training stopped
+  09:40 at update 1460 (nav_latest.pth).
+
+- **Engine training mode (2026-09-18):** branch `ai-training-mode` off `mbx` adds $AI::FixedStepMs,
+  $AI::Lockstep/$AI::WaitReply, $AI::RenderEvery, $AI::MultiInstance (script: FIXEDSTEP/LOCKSTEP/
+  RENDEREVERY control words, control-word queue, canvas.cs sets MultiInstance from -aiport).
+  Measured: 64-73x per instance at one 64 ms decision per observation with physics identical to
+  0.4 mm; 8 concurrent instances ~560x aggregate at ~1 core each. Test exe: marbleblast_mbx.exe;
+  probes fixedstep_probe.py (+ scratch launchers). Next: HuntEnv/VecEnv on the new mode.
+
+- **Multi-instance trainer (2026-09-18 midday):** `python -m nav.train_nav` now drives N_INSTANCES=8
+  built-engine instances (run_game_loop.ps1 launches them with -aiport 8888..8895, relaunches
+  any that exit). One torch-free worker subprocess per instance (nav/vec_worker.py: socket, map,
+  observation, segment logic, frame check, round handling) talks to the trainer over a local
+  multiprocessing.connection socket; the trainer does one batched forward per decision on a CPU
+  copy of the policy (the GPU copy does PPO; a GPU forward took 25 ms with 8 games on the card),
+  pools the 8 rollouts (ppo_recurrent.ppo_update takes a list), 3 epochs x 2 minibatches.
+  Env: TRAINING_MODE sends FIXEDSTEP 64 / LOCKSTEP 1 / RENDEREVERY 100 on every (re)connect;
+  step_async/step_wait; lockstep means no stale observations, so the post-update drain is moot.
+  Measured: ~470-500 decisions/s overall (13 s collection + 3.5 s update per 8192 samples) vs 47
+  before = 10x; per iteration fwd 5 ms, worker game round trip ~2.4 ms, obs build ~1.1 ms
+  (terrain_obs._march vectorised fast path, exact). NAV lines carry inst=, dps=, prof=.
+  Limits on this PC: 16 GB RAM (8 games ~3.2 GB, trainer 1.6 GB), GPU ~40 % busy with the
+  8 game windows; 16 instances do not fit. Lessons: a burst of control words needs the queue
+  (socketBridge.cs), the lockstep wait must sleep (a spinning game starves the trainer), INFO
+  can need retries on a just-started instance.
 
 ## Key Files
 

@@ -1,0 +1,3 @@
+[11:33:54] resumed C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\models\nav\nav_latest.pth: update 1460, steps 2,990,674, trained on KingOfTheMarble_Hunt
+[11:33:54] 8 instance(s) on ports 8888..8895; training mode True (64 ms per decision); device cuda
+[11:33:54] [env:8888] waiting for the game

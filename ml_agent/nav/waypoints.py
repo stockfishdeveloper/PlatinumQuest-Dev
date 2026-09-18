@@ -25,16 +25,29 @@ FALL = 10.0                    # was 20: twice the arrival bonus made the policy
                                # the time on King of the Marble rather than move (2026-09-17)
 TIME = 0.05                    # was 0.02: on King of the Marble the policy sat still (timeouts) rather
                                # than risk a fall; a 20 s timeout must cost more than a fall (2026-09-17)
-AIR = 0.1
+AIR = 0.1                      # per decision airborne BEYOND the grace period below
+AIR_GRACE = 16                 # ~1 s: a purposeful jump is free; tumbling / falling still costs
+                               # (2026-09-17: charging every airborne decision taught the policy that
+                               # jumping never pays, so it never jumped gaps)
 BRAKE = 0.1                    # per decision with the brake held: on King of the Marble the policy
                                # settled into braking 52 % of the time (1 u/s, 5 % arrivals) because
                                # braking was free (2026-09-17)
-ARRIVE_R = 1.5
-ARRIVE_DZ = 2.0
+ARRIVE_R = 1.5                 # initial horizontal arrival radius (u, marble centre to waypoint)
+ARRIVE_DZ = 2.0                # initial vertical tolerance
+# Measured gem pickup (2026-09-17, FlatGemTraining, marble resting beside a gem): collected at
+# 0.6 u centre-to-centre, not at 0.7 -> the real hitbox is ~0.65 u (marble radius 0.2 + gem box).
+ARRIVE_R_FINAL = 0.65
+ARRIVE_DZ_FINAL = 0.8
+# Ratchet: whenever the rolling arrival rate is >= ARRIVE_TIGHTEN_AT the radius shrinks by
+# ARRIVE_STEP (never grows), so the requirement ends up as strict as a real gem pickup.
+ARRIVE_TIGHTEN_AT = 75.0       # percent, over the last 300 segments of the current map
+ARRIVE_STEP = 0.15
+ARRIVE_MIN_SEGMENTS = 150      # segments on the current map before the ratchet may act
 TIMEOUT_DECISIONS = 312        # 20 s at 64 ms
 PROGRESS_CLIP = 3.0            # per decision, guards against teleports / respawns
 TRAVEL_CLIP = 1.5              # u per decision counted as travel (8 u/s = 0.5 u); respawn jumps are not travel
-TELEPORT_P = 0.5
+TELEPORT_P = 1.0               # every segment starts with a verified teleport: it is the only way to clear the
+                               # spin the game leaves on a respawned or arriving marble (2026-09-17)
 GOAL_DMIN, GOAL_DMAX = 8.0, 40.0
 TELEPORT_Z = 0.6               # above the floor
 RESPAWN_WAIT_DECISIONS = 120   # ~8 s of sim time before we start forcing teleports
@@ -63,17 +76,36 @@ class Segment:
 
 
 class SegmentManager:
-    def __init__(self, terrain, rng, log=print):
+    def __init__(self, terrain, rng, log=print, arrive_r=ARRIVE_R, arrive_dz=ARRIVE_DZ):
         self.terrain = terrain
         self.rng = rng
         self.log = log
         self.seg = None
         self.history = []          # recent outcomes: dicts
+        self.last_outcome = None
+        self.arrive_r = float(arrive_r)
+        self.arrive_dz = float(arrive_dz)
+
+    def maybe_tighten(self):
+        """Shrink the arrival radius one step if the policy is reliably arriving. Returns True if it did."""
+        s = self.stats()
+        if s['segments'] >= ARRIVE_MIN_SEGMENTS and s['arrive_pct'] >= ARRIVE_TIGHTEN_AT and self.arrive_r > ARRIVE_R_FINAL + 1e-6:
+            self.arrive_r = max(ARRIVE_R_FINAL, self.arrive_r - ARRIVE_STEP)
+            self.arrive_dz = max(ARRIVE_DZ_FINAL, self.arrive_dz - ARRIVE_STEP)
+            self.history = []      # the stat must be re-earned at the new radius
+            self.log(f'ARRIVE radius tightened to {self.arrive_r:.2f} u (dz {self.arrive_dz:.2f})')
+            return True
+        return False
 
     def begin(self, env, teleport=None):
         """Start a segment. Returns the goal (x, y, z). Teleports first with probability TELEPORT_P
         (or always/never if `teleport` is given)."""
         do_tp = self.rng.random() < TELEPORT_P if teleport is None else teleport
+        # After an arrival always teleport: a waypoint near an edge reached at speed otherwise
+        # carried the marble over the edge on momentum and booked a false fall against the next
+        # segment (2026-09-17). Chained waypoints along a path are the planner's job later.
+        if self.last_outcome == 'arrived':
+            do_tp = True
         t_begin = time.perf_counter(); ticks_begin = env.ticks
         # A fresh observation (after a fall the last message carried the pre-fall edge
         # position), then wait until the marble is back on the map: while it is still
@@ -98,12 +130,11 @@ class SegmentManager:
                              f'{np.round(env.pos(), 1)} (time left {env.time_left_s():.0f}s)')
             self._step_checked(env, 1)
             waited += 1
-        # TELEPORT is ignored while a respawned marble is still dropping in: wait until it rests
-        for _ in range(REST_WAIT_TICKS):
-            v = env.vel()
-            if abs(float(v[2])) < 0.05 and float(np.hypot(v[0], v[1])) < 0.5:
-                break
-            self._step_checked(env, 1)
+        # A marble that is not rolling (fresh respawn drop-in, or after a teleport) must be
+        # settled on the floor before the segment starts: segments that began while the
+        # respawned marble was still dropping/bouncing failed 73 % vs 27 % (2026-09-17).
+        # A rolling marble is NOT held here (it would roll off uncontrolled).
+        self._settle(env)
         g = None
         for attempt in range(6):
             if do_tp or attempt > 0:
@@ -111,6 +142,8 @@ class SegmentManager:
                 ok = self._teleport_checked(env, sx, sy, sz + TELEPORT_Z)
                 if not ok:
                     self.log(f'teleport to {(round(sx, 1), round(sy, 1))} ignored; marble at {np.round(env.pos(), 1)}')
+            if do_tp or attempt > 0:
+                self._settle(env)
             x, y, z = (float(v) for v in env.pos())
             g = self.terrain.sample_goal(x, y, self.rng, GOAL_DMIN, GOAL_DMAX)
             if g is not None:
@@ -119,6 +152,7 @@ class SegmentManager:
         if g is None:
             raise RuntimeError('no reachable goal after 6 teleports; check the terrain map')
         gx, gy, gz, path_len = g
+        env.mark(gx, gy, gz)
         dt = time.perf_counter() - t_begin
         if dt > 5.0:
             self.log(f'segment start took {dt:.0f} s wall / {env.ticks - ticks_begin} ticks (teleport {do_tp}, waited {waited})')
@@ -127,6 +161,17 @@ class SegmentManager:
         self.seg.prev_d = self.terrain.dist_at(field, x, y, (gx, gy))
         self.seg.last_pos = np.array([x, y, z])
         return self.seg.goal
+
+    def _settle(self, env, max_ticks=REST_WAIT_TICKS):
+        """If the marble is not rolling, wait until it rests on the floor (bounces finished)."""
+        for _ in range(max_ticks):
+            p = env.pos(); v = env.vel()
+            if float(np.hypot(v[0], v[1])) > 1.0:
+                return                                   # rolling: do not hold it uncontrolled
+            floor = self.terrain.floor_z(float(p[0]), float(p[1]), float(p[2]))
+            if abs(float(v[2])) < 0.05 and abs(float(p[2]) - floor) < 0.6:
+                return
+            self._step_checked(env, 1)
 
     def _teleport_checked(self, env, x, y, z, tries=3):
         """Teleport and verify; the game drops TELEPORT for a few ticks after a respawn."""
@@ -149,13 +194,15 @@ class SegmentManager:
     def abandon(self):
         """Drop the current segment without recording an outcome (round ended)."""
         self.seg = None
+        self.last_outcome = None
 
     def _on_map(self, pos):
         x, y, z = (float(v) for v in pos)
         return self.terrain.contains(x, y) and z >= self.terrain.z_floor_min - 1.0
 
-    def step(self, pos, fell, airborne, round_ended, elapsed_s=0.0, braked=False):
-        """Reward and (done, outcome) for the decision that led to `pos`."""
+    def step(self, pos, fell, airborne, round_ended, elapsed_s=0.0, braked=False, airborne_decisions=0):
+        """Reward and (done, outcome) for the decision that led to `pos`. `airborne` is the flag
+        for this decision, `airborne_decisions` how many consecutive decisions it has been airborne."""
         s = self.seg
         self._elapsed = elapsed_s
         x, y, z = (float(v) for v in pos)
@@ -168,7 +215,8 @@ class SegmentManager:
         d = self.terrain.dist_at(s.field, x, y, (gx, gy))
         progress = max(-PROGRESS_CLIP, min(PROGRESS_CLIP, s.prev_d - d))
         s.prev_d = d
-        r = PROGRESS * progress - TIME - (AIR if airborne else 0.0) - (BRAKE if braked else 0.0)
+        air_cost = AIR if (airborne and airborne_decisions > AIR_GRACE) else 0.0
+        r = PROGRESS * progress - TIME - air_cost - (BRAKE if braked else 0.0)
         done, outcome = False, None
         # off the map (below the lowest floor / outside the grid) without the game's OOB flag:
         # after OFFMAP_FALL_DECISIONS decisions count it as a fall ourselves
@@ -181,7 +229,7 @@ class SegmentManager:
             self.log(f'fall without OOB flag: {s.offmap} decisions off the map at {np.round(p, 1)} (time left {self._elapsed:.0f}s)')
         if fell:
             r -= FALL; done, outcome = True, 'fell'
-        elif math.hypot(gx - x, gy - y) < ARRIVE_R and abs(gz - z) < ARRIVE_DZ:
+        elif math.hypot(gx - x, gy - y) < self.arrive_r and abs(gz - z) < self.arrive_dz:
             r += ARRIVE; done, outcome = True, 'arrived'
         elif s.decisions >= TIMEOUT_DECISIONS:
             done, outcome = True, 'timeout'
@@ -189,6 +237,7 @@ class SegmentManager:
             done, outcome = True, 'round'
         if done:
             s.outcome = outcome
+            self.last_outcome = outcome
             self.history.append({'outcome': outcome, 'decisions': s.decisions, 'path_len': s.path_len,
                                  'travelled': s.travelled, 'speed': s.travelled / (s.decisions * 0.064)})
             if len(self.history) > 2000:

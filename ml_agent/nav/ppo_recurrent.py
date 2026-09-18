@@ -18,7 +18,7 @@ SEQ_LEN = 32
 GAMMA = 0.99
 LAMBDA = 0.95
 CLIP = 0.2
-EPOCHS = 4
+EPOCHS = 3             # was 4: with 8 instances the update, not collection, bounds throughput (2026-09-18)
 MINIBATCH_SEQS = 16
 ENTROPY_COEF = 0.005
 VALUE_COEF = 0.5
@@ -54,6 +54,10 @@ class Rollout:
     def clear(self):
         self.n = 0
 
+    def truncate(self, k):
+        """Drop the last k stored steps (a segment whose game state turned out to be corrupted)."""
+        self.n = max(0, self.n - k)
+
     def gae(self, last_value):
         T = self.n
         adv = np.zeros(T, dtype=np.float32)
@@ -67,35 +71,50 @@ class Rollout:
         return adv, adv + self.value[:T]
 
 
-def ppo_update(model, opt, roll, last_value, log=print):
-    """One PPO update over the rollout. Returns a dict of stats."""
-    dev = roll.device
-    T = roll.n - (roll.n % SEQ_LEN)
-    if T < SEQ_LEN:
+def ppo_update(model, opt, rolls, last_values, log=print):
+    """One PPO update over one rollout or a list of them (one per game instance). Each rollout is
+    cut into SEQ_LEN sequences on its own (its own GAE bootstrap), then all sequences are pooled.
+    Returns a dict of stats."""
+    if not isinstance(rolls, (list, tuple)):
+        rolls, last_values = [rolls], [last_values]
+    dev = rolls[0].device
+    parts = []
+    for roll, lv in zip(rolls, last_values):
+        T = roll.n - (roll.n % SEQ_LEN)
+        if T < SEQ_LEN:
+            continue
+        adv, ret = roll.gae(lv)
+        parts.append((roll, T, adv[:T], ret[:T]))
+    if not parts:
         return {}
-    adv, ret = roll.gae(last_value)
-    adv, ret = adv[:T], ret[:T]
+    cat = lambda f: np.concatenate([f(r)[:T] for r, T, _, _ in parts])
+    adv = np.concatenate([a for _, _, a, _ in parts]); ret = np.concatenate([r for _, _, _, r in parts])
+    T = len(adv)
     ret_t = torch.as_tensor(ret, device=dev)
     model.update_value_stats(ret_t)
     ret_norm = (ret_t - model.value_mean) / model.value_std
     adv_t = torch.as_tensor(adv, device=dev)
     adv_t = (adv_t - adv_t.mean()) / (adv_t.std() + 1e-8)
     nseq = T // SEQ_LEN
-    to = lambda a: torch.as_tensor(a[:T], device=dev)
-    crop = to(roll.crop).view(nseq, SEQ_LEN, *CROP_SHAPE)
-    vec = to(roll.vec).view(nseq, SEQ_LEN, VEC_DIM)
-    act = to(roll.action).view(nseq, SEQ_LEN, ACTION_DIM)
-    old_logp = to(roll.logp).view(nseq, SEQ_LEN)
-    old_vn = ((to(roll.value) - model.value_mean) / model.value_std).view(nseq, SEQ_LEN)
-    resets = to(roll.reset).view(nseq, SEQ_LEN)
-    h0 = to(roll.h).view(nseq, SEQ_LEN, HIDDEN)[:, 0, :]
+    to = lambda a: torch.as_tensor(a, device=dev)
+    crop = to(cat(lambda r: r.crop)).view(nseq, SEQ_LEN, *CROP_SHAPE)
+    vec = to(cat(lambda r: r.vec)).view(nseq, SEQ_LEN, VEC_DIM)
+    act = to(cat(lambda r: r.action)).view(nseq, SEQ_LEN, ACTION_DIM)
+    old_logp = to(cat(lambda r: r.logp)).view(nseq, SEQ_LEN)
+    old_vn = ((to(cat(lambda r: r.value)) - model.value_mean) / model.value_std).view(nseq, SEQ_LEN)
+    resets = to(cat(lambda r: r.reset)).view(nseq, SEQ_LEN)
+    h0 = to(cat(lambda r: r.h)).view(nseq, SEQ_LEN, HIDDEN)[:, 0, :]
     adv_s = adv_t.view(nseq, SEQ_LEN); ret_s = ret_norm.view(nseq, SEQ_LEN)
+    # two minibatches per epoch however large the pooled rollout is: each optimizer step is a
+    # 32-step GRU unroll and costs the same whatever the batch, and the GPU is shared with the
+    # game instances (16 s per 8192-sample update at 8 minibatches x 4 epochs, 2026-09-18)
+    mb = max(MINIBATCH_SEQS, nseq // 2)
     stats = {'pl': 0.0, 'vl': 0.0, 'ent': 0.0, 'kl': 0.0, 'clipfrac': 0.0, 'gn': 0.0, 'n': 0}
     stop = False
     for epoch in range(EPOCHS):
         perm = torch.randperm(nseq, device=dev)
-        for start in range(0, nseq, MINIBATCH_SEQS):
-            idx = perm[start:start + MINIBATCH_SEQS]
+        for start in range(0, nseq, mb):
+            idx = perm[start:start + mb]
             # (B, T, ...) -> (T, B, ...)
             logp, ent, vn = model.evaluate_seq(crop[idx].transpose(0, 1), vec[idx].transpose(0, 1), h0[idx],
                                                act[idx].transpose(0, 1), resets[idx].transpose(0, 1))

@@ -1,0 +1,26 @@
+[11:36:20] resumed C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\models\nav\nav_latest.pth: update 1460, steps 2,990,674, trained on KingOfTheMarble_Hunt
+[11:36:20] 8 instance(s) on ports 8888..8895; training mode True (64 ms per decision); device cuda
+[11:36:20] [env:8888] waiting for the game
+[11:36:21] [env:8888] game connected (1)
+[11:36:21] mission FlatIslands_Hunt: terrain 165x165 @ 0.5 u, walk grid 83x83, walkable 5775 cells, edge 876; arrive radius 0.65 u
+[11:36:21] [0] connected on 8888, mission FlatIslands_Hunt
+[11:36:21] [env:8889] waiting for the game
+[11:37:55] [env:8889] game connected (1)
+[11:37:57] [1] connected on 8889, mission FlatIslands_Hunt
+[11:37:57] [env:8890] waiting for the game
+[11:37:57] [env:8890] game connected (1)
+[11:37:57] [2] connected on 8890, mission FlatIslands_Hunt
+[11:37:57] [env:8891] waiting for the game
+[11:37:57] [env:8891] game connected (1)
+[11:37:57] [3] connected on 8891, mission FlatIslands_Hunt
+[11:37:58] [env:8892] waiting for the game
+[11:37:58] [env:8892] game connected (1)
+[11:37:59] [4] connected on 8892, mission FlatIslands_Hunt
+[11:37:59] [env:8893] waiting for the game
+[11:37:59] [env:8893] game connected (1)
+[11:38:01] [5] connected on 8893, mission FlatIslands_Hunt
+[11:38:01] [env:8894] waiting for the game
+[11:38:02] [env:8894] game connected (1)
+[11:38:04] [6] connected on 8894, mission FlatIslands_Hunt
+[11:38:04] [env:8895] waiting for the game
+[11:38:04] [env:8895] game connected (1)

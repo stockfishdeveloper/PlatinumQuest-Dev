@@ -50,6 +50,8 @@ def parse_message(line: str) -> GameMessage:
         return GameMessage('stats', fields=parts[1:], raw=line)
     if head == 'INFO':
         return GameMessage('info', fields=parts[1:], raw=line)
+    if head == 'DEBUG':
+        return GameMessage('debug', fields=parts[1:], raw=line)
     if len(parts) < 4:
         return GameMessage('other', fields=parts, raw=line)
     try:

@@ -1,0 +1,456 @@
+[22:19:59] resumed C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\models\nav\nav_latest.pth: update 790, steps 1,618,173, trained on FlatIslands_Hunt
+[22:19:59] [env:8888] waiting for the game
+[22:21:13] [env:8888] game connected (1)
+[22:21:15] mission FlatIslands_Hunt: terrain 165x165 @ 0.5 u, walk grid 83x83, walkable 5775 cells, edge 876; arrive radius 0.65 u
+[22:21:25] fall without OOB flag: 4 decisions off the map at [12.1  6.6 -3.2] (time left 270s)
+[22:21:27] fall without OOB flag: 4 decisions off the map at [ 5.8 11.1 -3.2] (time left 263s)
+[22:21:37] SEG n=20 last=arrived arrive=90% falls100=0.66 speed=5.2 timeout=0% rew=25.8 rtf=3.01
+[22:21:40] fall without OOB flag: 4 decisions off the map at [15.3 25.4 -3.6] (time left 223s)
+[22:21:50] fall without OOB flag: 4 decisions off the map at [11.7  4.5 -3.6] (time left 195s)
+[22:21:55] fall without OOB flag: 4 decisions off the map at [11.9 -9.1 -3.8] (time left 178s)
+[22:22:01] SEG n=40 last=arrived arrive=88% falls100=0.82 speed=5.2 timeout=0% rew=25.3 rtf=3.00
+[22:22:10] NAV upd=791 map=FlatIslands_Hunt r=0.65 steps=1,620,221 segs=43 arrive=88% falls100=0.76 speed=5.1 rew=25.6 pl=-0.013 vl=0.113 ent=0.49 kl=0.018 clip=0.22 gn=3.09 ep=4 dstd=0.23 flips=0 upd_s=3.9 wall_s=55
+[22:22:11] fall without OOB flag: 4 decisions off the map at [-15.9 -31.3  -2.2] (time left 142s)
+[22:22:11] RESPAWN did not take: before [-16.  -31.2  -2.5] -> next obs [-16.1 -31.2  -2.7] -> after 20 ticks [-16.8 -30.8  -7.2] (time left 142s)
+[22:22:11] teleport to (15.4, -16.4) ignored; marble at [6.5 0.9 0.6]
+[22:22:11] FRAME FLIP: command/acceleration cosine -0.94 over the first 12 decisions at [13.9  1.9  0.2]; forcing a respawn and restarting the segment (flips so far 1) | None | recent non-obs lines: ['2:info:INFO|FlatIslands_Hunt|300000|3']
+[22:22:11] RESPAWN did not take: before [11.8  2.5 -1.3] -> next obs [11.7  2.5 -1.5] -> after 20 ticks [10.8  2.9 -5.1] (time left 139s)
+[22:22:11] marble still off the map after 30 decisions at [ 10.3   3.7 -14.5] (time left 138s); forcing a respawn again
+[22:22:11] RESPAWN did not take: before [ 10.3   3.7 -14.5] -> next obs [ 10.3   3.8 -14.9] -> after 20 ticks [ 10.6   4.4 -23.8] (time left 138s)
+[22:22:11] marble still off the map after 60 decisions at [ 12.    5.4 -41. ] (time left 137s); forcing a respawn again
+[22:22:11] RESPAWN did not take: before [ 12.    5.4 -41. ] -> next obs [ 12.1   5.5 -41.7] -> after 20 ticks [ 13.6   6.2 -55.7] (time left 137s)
+[22:22:11] marble still off the map after 90 decisions at [ 16.8   7.5 -80.6] (time left 137s); forcing a respawn again
+[22:22:11] RESPAWN did not take: before [ 16.8   7.5 -80.6] -> next obs [ 16.9   7.6 -81.8] -> after 20 ticks [  19.7    8.5 -101. ] (time left 136s)
+[22:22:11] fall without OOB flag: 4 decisions off the map at [11.4  2.6 -2.4] (time left 133s)
+[22:22:11] RESPAWN did not take: before [11.3  2.6 -2.7] -> next obs [11.2  2.7 -2.9] -> after 20 ticks [10.5  3.3 -7.5] (time left 133s)
+[22:22:11] marble still off the map after 30 decisions at [  9.2   4.8 -18.2] (time left 132s); forcing a respawn again
+[22:22:19] fall without OOB flag: 4 decisions off the map at [-13.3 -10.2  -3.6] (time left 108s)
+[22:22:20] fall without OOB flag: 4 decisions off the map at [ 17.4 -15.4  -3.6] (time left 104s)
+[22:22:25] fall without OOB flag: 4 decisions off the map at [18.8 13.5 -4. ] (time left 89s)
+[22:22:30] SEG n=60 last=arrived arrive=83% falls100=1.07 speed=5.1 timeout=0% rew=24.8 rtf=3.00
+[22:22:40] fall without OOB flag: 4 decisions off the map at [-14.7  -6.8  -3.3] (time left 44s)
+[22:22:51] SEG n=80 last=arrived arrive=86% falls100=0.88 speed=5.2 timeout=0% rew=25.1 rtf=3.00
+[22:22:53] fall without OOB flag: 4 decisions off the map at [-13.3   3.8  -3.2] (time left 6s)
+[22:22:58] [env:8888] round over (time left 300s of 300s); waiting for the next round
+[22:22:58] [env:8888] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[22:22:58] new round (game connection 1); rtf 1.76
+[22:22:59] fall without OOB flag: 4 decisions off the map at [-19.2  15.   -3.2] (time left 297s)
+[22:23:03] fall without OOB flag: 4 decisions off the map at [ 21.  -15.8  -3.2] (time left 284s)
+[22:23:08] NAV upd=792 map=FlatIslands_Hunt r=0.65 steps=1,622,280 segs=85 arrive=84% falls100=1.07 speed=5.1 rew=24.8 pl=-0.010 vl=0.258 ent=0.51 kl=0.016 clip=0.21 gn=3.24 ep=4 dstd=0.23 flips=1 upd_s=3.9 wall_s=58
+[22:23:08] fall without OOB flag: 4 decisions off the map at [ 15.2 -16.6  -3. ] (time left 281s)
+[22:23:08] RESPAWN did not take: before [ 15.4 -16.9  -3.4] -> next obs [ 15.5 -17.1  -3.6] -> after 20 ticks [ 18.3 -20.2  -8.8] (time left 280s)
+[22:23:08] teleport to (34.4, -23.4) ignored; marble at [ 4.3 -4.9  0.6]
+[22:23:08] FRAME FLIP: command/acceleration cosine -0.44 over the first 12 decisions at [  9.9 -11.    0.6]; forcing a respawn and restarting the segment (flips so far 2) | None | recent non-obs lines: ['2:info:INFO|FlatIslands_Hunt|300000|3', '10501:debug:DEBUG|client=20643|clientYaw=0|server=20576|serverYaw=0|cameraYaw=0|mvYaw=0|clientPos=15.109914 -16.549860 1.129612|serverPos=15.109914 -16.549860 1.129612|cont', '18874:end:[]|-11|0|1', '18877:info:INFO|FlatIslands_Hunt|300000|3']
+[22:23:08] RESPAWN did not take: before [ 13.6 -15.2  -0.7] -> next obs [ 13.8 -15.3  -0.8] -> after 20 ticks [ 16.9 -18.7  -4.1] (time left 277s)
+[22:23:08] marble still off the map after 30 decisions at [ 22.1 -24.5 -13. ] (time left 277s); forcing a respawn again
+[22:23:08] RESPAWN did not take: before [ 22.1 -24.5 -13. ] -> next obs [ 22.3 -24.7 -13.4] -> after 20 ticks [ 26.2 -29.  -22. ] (time left 276s)
+[22:23:08] marble still off the map after 60 decisions at [ 32.6 -36.1 -38.7] (time left 276s); forcing a respawn again
+[22:23:08] RESPAWN did not take: before [ 32.6 -36.1 -38.7] -> next obs [ 32.8 -36.3 -39.3] -> after 20 ticks [ 37.6 -41.5 -53.1] (time left 276s)
+[22:23:08] marble still off the map after 90 decisions at [ 45.2 -50.  -77.7] (time left 275s); forcing a respawn again
+[22:23:08] RESPAWN did not take: before [ 45.2 -50.  -77.7] -> next obs [ 45.5 -50.3 -78.5] -> after 20 ticks [ 51.  -56.4 -97.6] (time left 275s)
+[22:23:08] marble still off the map after 120 decisions at [  59.9  -66.2 -130. ] (time left 274s); forcing a respawn again
+[22:23:08] teleport to (-37.6, 32.6) ignored; marble at [ 4.8 -5.3  0.6]
+[22:23:08] FRAME FLIP: command/acceleration cosine -0.93 over the first 12 decisions at [ 10.5 -11.6   0.6]; forcing a respawn and restarting the segment (flips so far 3) | None | recent non-obs lines: ['2:info:INFO|FlatIslands_Hunt|300000|3', '10501:debug:DEBUG|client=20643|clientYaw=0|server=20576|serverYaw=0|cameraYaw=0|mvYaw=0|clientPos=15.109914 -16.549860 1.129612|serverPos=15.109914 -16.549860 1.129612|cont', '18874:end:[]|-11|0|1', '18877:info:INFO|FlatIslands_Hunt|300000|3']
+[22:23:09] RESPAWN did not take: before [ 14.4 -15.8  -1.1] -> next obs [ 14.5 -16.   -1.3] -> after 20 ticks [ 17.7 -19.4  -5. ] (time left 271s)
+[22:23:09] marble still off the map after 30 decisions at [ 23.  -25.3 -14.5] (time left 271s); forcing a respawn again
+[22:23:09] RESPAWN did not take: before [ 23.  -25.3 -14.5] -> next obs [ 23.2 -25.5 -14.9] -> after 20 ticks [ 27.1 -29.9 -23.8] (time left 271s)
+[22:23:09] marble still off the map after 60 decisions at [ 33.7 -37.  -41.1] (time left 270s); forcing a respawn again
+[22:23:13] fall without OOB flag: 4 decisions off the map at [-12.7  29.3  -3.6] (time left 256s)
+[22:23:14] fall without OOB flag: 4 decisions off the map at [14.1 19.1 -3.6] (time left 252s)
+[22:23:23] fall without OOB flag: 4 decisions off the map at [-11.7 -33.5  -3.6] (time left 225s)
+[22:23:25] SEG n=100 last=arrived arrive=82% falls100=1.19 speed=5.1 timeout=0% rew=24.2 rtf=2.99
+[22:23:44] fall without OOB flag: 4 decisions off the map at [-11.7 -15.7  -2.9] (time left 164s)
+[22:23:48] SEG n=120 last=arrived arrive=84% falls100=1.04 speed=5.1 timeout=0% rew=24.5 rtf=3.00
+[22:23:49] fall without OOB flag: 4 decisions off the map at [-26.7 -14.   -3.5] (time left 149s)
+[22:23:56] fall without OOB flag: 4 decisions off the map at [ 34.7 -13.7  -3. ] (time left 128s)
+[22:24:05] NAV upd=793 map=FlatIslands_Hunt r=0.65 steps=1,624,350 segs=130 arrive=84% falls100=1.07 speed=5.1 rew=24.3 pl=-0.006 vl=0.150 ent=0.50 kl=0.023 clip=0.25 gn=3.24 ep=4 dstd=0.23 flips=3 upd_s=4.2 wall_s=57
+[22:24:05] fall without OOB flag: 4 decisions off the map at [ 43.7 -31.2  -0.7] (time left 110s)
+[22:24:05] RESPAWN did not take: before [ 44.1 -31.4  -0.9] -> next obs [ 44.4 -31.6  -1.1] -> after 20 ticks [ 48.8 -34.2  -4.7] (time left 110s)
+[22:24:05] teleport to (28.4, -19.4) ignored; marble at [ 5.6 -3.4  0.6]
+[22:24:06] FRAME FLIP: command/acceleration cosine -0.81 over the first 12 decisions at [12.8 -7.8  0.5]; forcing a respawn and restarting the segment (flips so far 4) | None | recent non-obs lines: ['2:info:INFO|FlatIslands_Hunt|300000|3', '10501:debug:DEBUG|client=20643|clientYaw=0|server=20576|serverYaw=0|cameraYaw=0|mvYaw=0|clientPos=15.109914 -16.549860 1.129612|serverPos=15.109914 -16.549860 1.129612|cont', '18874:end:[]|-11|0|1', '18877:info:INFO|FlatIslands_Hunt|300000|3', '20771:debug:DEBUG|client=20643|clientYaw=0|server=20576|serverYaw=0|cameraYaw=0|mvYaw=0|clientPos=34.491375 -23.059149 0.662067|serverPos=34.491375 -23.059149 0.662067|cont', '20789:debug:DEBUG|client=20643|clientYaw=0|server=20576|serverYaw=0|cameraYaw=0|mvYaw=0|clientPos=-0.022948 0.116010 2.521120|serverPos=-0.022948 0.116010 2.521120|control=']
+[22:24:06] fall without OOB flag: 4 decisions off the map at [ 11.7 -11.7  -2.8] (time left 106s)
+[22:24:06] RESPAWN did not take: before [ 11.6 -11.9  -3.2] -> next obs [ 11.5 -12.   -3.4] -> after 20 ticks [ 10.8 -14.   -8.3] (time left 106s)
+[22:24:06] marble still off the map after 30 decisions at [ 10.6 -17.6 -19.4] (time left 106s); forcing a respawn again
+[22:24:06] RESPAWN did not take: before [ 10.6 -17.6 -19.4] -> next obs [ 10.6 -17.7 -19.8] -> after 20 ticks [ 10.9 -20.4 -29.9] (time left 105s)
+[22:24:06] marble still off the map after 60 decisions at [ 12.3 -24.9 -48.8] (time left 105s); forcing a respawn again
+[22:24:06] RESPAWN did not take: before [ 12.3 -24.9 -48.8] -> next obs [ 12.3 -25.1 -49.5] -> after 20 ticks [ 13.7 -28.4 -64.8] (time left 104s)
+[22:24:06] marble still off the map after 90 decisions at [ 16.6 -34.  -91.6] (time left 104s); forcing a respawn again
+[22:24:06] RESPAWN did not take: before [ 16.6 -34.  -91.6] -> next obs [ 16.7 -34.1 -92.5] -> after 20 ticks [  19.2  -38.2 -113.1] (time left 104s)
+[22:24:06] fall without OOB flag: 4 decisions off the map at [ 12.  -11.2  -2.1] (time left 101s)
+[22:24:06] RESPAWN did not take: before [ 11.9 -11.4  -2.4] -> next obs [ 11.8 -11.5  -2.5] -> after 20 ticks [ 11.  -13.5  -6.8] (time left 100s)
+[22:24:06] marble still off the map after 30 decisions at [ 10.5 -16.9 -17.1] (time left 100s); forcing a respawn again
+[22:24:06] RESPAWN did not take: before [ 10.5 -16.9 -17.1] -> next obs [ 10.5 -17.1 -17.5] -> after 20 ticks [ 10.7 -19.6 -27. ] (time left 100s)
+[22:24:06] marble still off the map after 60 decisions at [ 11.3 -22.8 -45.1] (time left 99s); forcing a respawn again
+[22:24:14] SEG n=140 last=arrived arrive=83% falls100=1.13 speed=5.1 timeout=0% rew=23.7 rtf=2.99
+[22:24:23] fall without OOB flag: 4 decisions off the map at [32.4 14.3 -2.6] (time left 45s)
+[22:24:25] fall without OOB flag: 4 decisions off the map at [-15.   20.9  -3. ] (time left 40s)
+[22:24:32] fall without OOB flag: 4 decisions off the map at [12.1 32.7 -3.9] (time left 18s)
+[22:24:34] SEG n=160 last=arrived arrive=83% falls100=1.13 speed=5.2 timeout=0% rew=23.4 rtf=3.00
+[22:24:42] [env:8888] round over (time left 300s of 300s); waiting for the next round
+[22:24:42] [env:8888] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[22:24:42] new round (game connection 1); rtf 1.97
+[22:25:02] NAV upd=794 map=FlatIslands_Hunt r=0.65 steps=1,626,409 segs=175 arrive=85% falls100=1.02 speed=5.2 rew=23.9 pl=-0.014 vl=0.201 ent=0.49 kl=0.017 clip=0.22 gn=2.70 ep=4 dstd=0.23 flips=4 upd_s=3.9 wall_s=56
+[22:25:02] fall without OOB flag: 4 decisions off the map at [42.1 37.5 -2.1] (time left 252s)
+[22:25:02] RESPAWN did not take: before [42.3 37.3 -2.5] -> next obs [42.4 37.3 -2.7] -> after 20 ticks [44.5 35.6 -7.3] (time left 252s)
+[22:25:02] fall without OOB flag: 4 decisions off the map at [ 13.3 -12.3  -2. ] (time left 248s)
+[22:25:02] RESPAWN did not take: before [ 13.5 -12.2  -2.3] -> next obs [ 13.6 -12.1  -2.4] -> after 20 ticks [ 15.9 -11.3  -6.6] (time left 248s)
+[22:25:02] marble still off the map after 30 decisions at [ 19.9 -10.7 -16.7] (time left 248s); forcing a respawn again
+[22:25:02] RESPAWN did not take: before [ 19.9 -10.7 -16.7] -> next obs [ 20.  -10.7 -17.1] -> after 20 ticks [ 23.  -10.8 -26.6] (time left 247s)
+[22:25:02] marble still off the map after 60 decisions at [ 28.1 -11.7 -44.5] (time left 247s); forcing a respawn again
+[22:25:02] RESPAWN did not take: before [ 28.1 -11.7 -44.5] -> next obs [ 28.3 -11.7 -45.2] -> after 20 ticks [ 32.  -12.8 -59.7] (time left 246s)
+[22:25:02] marble still off the map after 90 decisions at [ 38.2 -15.1 -85.6] (time left 246s); forcing a respawn again
+[22:25:02] RESPAWN did not take: before [ 38.2 -15.1 -85.6] -> next obs [ 38.4 -15.2 -86.5] -> after 20 ticks [  42.7  -17.2 -105.6] (time left 246s)
+[22:25:02] fall without OOB flag: 4 decisions off the map at [ 13.3 -12.2  -2.1] (time left 242s)
+[22:25:02] RESPAWN did not take: before [ 13.5 -12.1  -2.4] -> next obs [ 13.6 -12.1  -2.5] -> after 20 ticks [ 15.9 -11.2  -6.8] (time left 242s)
+[22:25:02] marble still off the map after 30 decisions at [ 19.9 -10.7 -17. ] (time left 242s); forcing a respawn again
+[22:25:02] RESPAWN did not take: before [ 19.9 -10.7 -17. ] -> next obs [ 20.  -10.7 -17.4] -> after 20 ticks [ 23.  -10.8 -26.9] (time left 241s)
+[22:25:02] marble still off the map after 60 decisions at [ 27.6 -11.5 -45. ] (time left 241s); forcing a respawn again
+[22:25:02] RESPAWN did not take: before [ 27.6 -11.5 -45. ] -> next obs [ 27.7 -11.6 -45.7] -> after 20 ticks [ 30.8 -12.  -60.4] (time left 240s)
+[22:25:02] marble still off the map after 90 decisions at [ 36.  -12.3 -86.3] (time left 240s); forcing a respawn again
+[22:25:04] SEG n=180 last=arrived arrive=83% falls100=1.10 speed=5.2 timeout=0% rew=23.4 rtf=3.00
+[22:25:06] fall without OOB flag: 4 decisions off the map at [14.6 33.7 -3.6] (time left 228s)
+[22:25:28] SEG n=200 last=arrived arrive=84% falls100=1.01 speed=5.2 timeout=0% rew=23.9 rtf=3.00
+[22:25:29] fall without OOB flag: 4 decisions off the map at [-13.1  14.6  -2.7] (time left 157s)
+[22:25:55] NAV upd=795 map=FlatIslands_Hunt r=0.65 steps=1,628,457 segs=219 arrive=85% falls100=0.94 speed=5.3 rew=24.3 pl=-0.016 vl=0.136 ent=0.49 kl=0.004 clip=0.16 gn=2.89 ep=4 dstd=0.23 flips=4 upd_s=4.1 wall_s=53
+[22:25:55] fall without OOB flag: 4 decisions off the map at [-44.8 -12.6  -0.9] (time left 92s)
+[22:25:55] SEG n=220 last=fell arrive=85% falls100=0.97 speed=5.3 timeout=0% rew=24.1 rtf=2.58
+[22:25:55] RESPAWN did not take: before [-45.1 -12.3  -1.2] -> next obs [-45.3 -12.2  -1.3] -> after 20 ticks [-49.2  -9.2  -5.2] (time left 92s)
+[22:25:55] teleport to (25.4, -21.4) ignored; marble at [-5.2  3.9  0.6]
+[22:25:55] FRAME FLIP: command/acceleration cosine -0.89 over the first 12 decisions at [-11.8   8.9   0.6]; forcing a respawn and restarting the segment (flips so far 5) | None | recent non-obs lines: ['18874:end:[]|-11|0|1', '18877:info:INFO|FlatIslands_Hunt|300000|3', '20771:debug:DEBUG|client=20643|clientYaw=0|server=20576|serverYaw=0|cameraYaw=0|mvYaw=0|clientPos=34.491375 -23.059149 0.662067|serverPos=34.491375 -23.059149 0.662067|cont', '20789:debug:DEBUG|client=20643|clientYaw=0|server=20576|serverYaw=0|cameraYaw=0|mvYaw=0|clientPos=-0.022948 0.116010 2.521120|serverPos=-0.022948 0.116010 2.521120|control=', '37748:end:[]|-13|0|1', '37751:info:INFO|FlatIslands_Hunt|300000|3']
+[22:25:55] teleport to (37.4, -9.4) ignored; marble at [-11.8  20.  -14. ]
+[22:25:55] fall without OOB flag: 4 decisions off the map at [-11.8  22.4 -21.2] (time left 88s)
+[22:25:55] RESPAWN did not take: before [-11.8  22.7 -22.2] -> next obs [-11.8  22.9 -22.6] -> after 20 ticks [-12.1  26.1 -33.3] (time left 87s)
+[22:25:55] marble still off the map after 30 decisions at [-13.3  31.5 -53.1] (time left 87s); forcing a respawn again
+[22:25:55] RESPAWN did not take: before [-13.3  31.5 -53.1] -> next obs [-13.4  31.6 -53.8] -> after 20 ticks [-14.7  35.6 -69.7] (time left 87s)
+[22:25:55] marble still off the map after 60 decisions at [-17.3  42.1 -97.4] (time left 86s); forcing a respawn again
+[22:25:55] RESPAWN did not take: before [-17.3  42.1 -97.4] -> next obs [-17.4  42.3 -98.3] -> after 20 ticks [ -19.7   47.  -119.5] (time left 86s)
+[22:25:55] teleport to (-27.6, -28.4) ignored; marble at [-5.2  3.9  0.6]
+[22:25:55] FRAME FLIP: command/acceleration cosine -0.86 over the first 12 decisions at [-11.8   8.9   0.6]; forcing a respawn and restarting the segment (flips so far 6) | None | recent non-obs lines: ['18874:end:[]|-11|0|1', '18877:info:INFO|FlatIslands_Hunt|300000|3', '20771:debug:DEBUG|client=20643|clientYaw=0|server=20576|serverYaw=0|cameraYaw=0|mvYaw=0|clientPos=34.491375 -23.059149 0.662067|serverPos=34.491375 -23.059149 0.662067|cont', '20789:debug:DEBUG|client=20643|clientYaw=0|server=20576|serverYaw=0|cameraYaw=0|mvYaw=0|clientPos=-0.022948 0.116010 2.521120|serverPos=-0.022948 0.116010 2.521120|control=', '37748:end:[]|-13|0|1', '37751:info:INFO|FlatIslands_Hunt|300000|3']
+[22:25:55] fall without OOB flag: 4 decisions off the map at [-13.3  14.5  -2.2] (time left 83s)
+[22:25:55] RESPAWN did not take: before [-13.2  14.7  -2.5] -> next obs [-13.2  14.8  -2.7] -> after 20 ticks [-12.   18.6 -10.3] (time left 82s)
+[22:25:55] marble still off the map after 30 decisions at [-11.4  22.9 -22.4] (time left 82s); forcing a respawn again
+[22:25:55] RESPAWN did not take: before [-11.4  22.9 -22.4] -> next obs [-11.4  23.1 -22.9] -> after 20 ticks [-10.6  26.1 -33.5] (time left 81s)
+[22:25:55] marble still off the map after 60 decisions at [ -8.8  30.1 -53.5] (time left 81s); forcing a respawn again
+[22:25:59] fall without OOB flag: 4 decisions off the map at [10.2 16.9 -3.6] (time left 69s)
+[22:26:14] SEG n=240 last=arrived arrive=85% falls100=0.98 speed=5.3 timeout=0% rew=23.8 rtf=3.56
+[22:26:25] [env:8888] round over (time left 300s of 300s); waiting for the next round
+[22:26:25] [env:8888] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[22:26:26] new round (game connection 1); rtf 2.25
+[22:26:41] SEG n=260 last=arrived arrive=86% falls100=0.90 speed=5.3 timeout=0% rew=24.1 rtf=3.00
+[22:26:43] fall without OOB flag: 4 decisions off the map at [-13.3   8.1  -3.7] (time left 249s)
+[22:26:52] NAV upd=796 map=FlatIslands_Hunt r=0.65 steps=1,630,527 segs=266 arrive=86% falls100=0.91 speed=5.3 rew=24.1 pl=-0.010 vl=0.098 ent=0.49 kl=0.021 clip=0.20 gn=3.25 ep=4 dstd=0.23 flips=6 upd_s=3.9 wall_s=58
+[22:26:52] fall without OOB flag: 4 decisions off the map at [26.3 10.6 -2.9] (time left 230s)
+[22:26:52] RESPAWN did not take: before [26.6 10.3 -3.3] -> next obs [26.7 10.2 -3.5] -> after 20 ticks [29.5  7.  -8.7] (time left 230s)
+[22:26:52] teleport to (-0.6, 5.6) ignored; marble at [ 5.2 -3.5  0.6]
+[22:26:52] FRAME FLIP: command/acceleration cosine -0.97 over the first 12 decisions at [11.9 -7.9  0.6]; forcing a respawn and restarting the segment (flips so far 7) | None | recent non-obs lines: ['20789:debug:DEBUG|client=20643|clientYaw=0|server=20576|serverYaw=0|cameraYaw=0|mvYaw=0|clientPos=-0.022948 0.116010 2.521120|serverPos=-0.022948 0.116010 2.521120|control=', '37748:end:[]|-13|0|1', '37751:info:INFO|FlatIslands_Hunt|300000|3', '51425:debug:DEBUG|client=20643|clientYaw=0|server=20576|serverYaw=0|cameraYaw=0|mvYaw=0|clientPos=-9.045680 29.626965 -50.578045|serverPos=-9.045680 29.626965 -50.578045|co', '56611:end:[]|-20|0|1', '56614:info:INFO|FlatIslands_Hunt|300000|3']
+[22:26:52] teleport to (-5.6, -32.4) ignored; marble at [ 10.7 -17.8 -17.6]
+[22:26:53] fall without OOB flag: 4 decisions off the map at [ 10.7 -20.1 -25.5] (time left 226s)
+[22:26:53] RESPAWN did not take: before [ 10.8 -20.4 -26.5] -> next obs [ 10.8 -20.5 -27. ] -> after 20 ticks [ 11.3 -23.4 -38.6] (time left 225s)
+[22:26:53] marble still off the map after 30 decisions at [ 12.8 -28.3 -59.8] (time left 225s); forcing a respawn again
+[22:26:53] RESPAWN did not take: before [ 12.8 -28.3 -59.8] -> next obs [ 12.9 -28.5 -60.5] -> after 20 ticks [ 14.4 -32.1 -77.4] (time left 225s)
+[22:26:53] marble still off the map after 60 decisions at [  17.3  -37.9 -106.4] (time left 224s); forcing a respawn again
+[22:26:53] fall without OOB flag: 4 decisions off the map at [ 12.2 -11.9  -2.1] (time left 221s)
+[22:26:53] RESPAWN did not take: before [ 12.1 -12.1  -2.5] -> next obs [ 12.  -12.2  -2.6] -> after 20 ticks [ 11.2 -14.2  -6.9] (time left 221s)
+[22:26:53] marble still off the map after 30 decisions at [ 10.7 -17.7 -17.2] (time left 220s); forcing a respawn again
+[22:26:53] RESPAWN did not take: before [ 10.7 -17.7 -17.2] -> next obs [ 10.6 -17.8 -17.6] -> after 20 ticks [ 10.8 -20.5 -27.2] (time left 220s)
+[22:26:53] marble still off the map after 60 decisions at [ 11.5 -25.  -45.3] (time left 219s); forcing a respawn again
+[22:26:55] fall without OOB flag: 4 decisions off the map at [12.9  9.6 -3.6] (time left 212s)
+[22:26:58] fall without OOB flag: 4 decisions off the map at [-1.  13.9 -3.6] (time left 201s)
+[22:27:07] SEG n=280 last=arrived arrive=85% falls100=0.98 speed=5.3 timeout=0% rew=23.8 rtf=2.99
+[22:27:11] fall without OOB flag: 4 decisions off the map at [-16.5 -13.5  -2.8] (time left 163s)
+[22:27:20] fall without OOB flag: 4 decisions off the map at [13.9 16.4 -2.9] (time left 138s)
+[22:27:22] fall without OOB flag: 4 decisions off the map at [-40.9  39.7  -2.8] (time left 129s)
+[22:27:27] fall without OOB flag: 4 decisions off the map at [ -8.  -11.4  -2.5] (time left 115s)
+[22:27:32] SEG n=300 last=arrived arrive=85% falls100=1.00 speed=5.3 timeout=0% rew=23.9 rtf=3.00
+[22:27:33] fall without OOB flag: 4 decisions off the map at [-28.1 -14.3  -3. ] (time left 97s)
+[22:27:48] NAV upd=797 map=FlatIslands_Hunt r=0.65 steps=1,632,586 segs=312 arrive=85% falls100=0.98 speed=5.3 rew=23.7 pl=-0.014 vl=0.195 ent=0.52 kl=0.016 clip=0.19 gn=3.33 ep=4 dstd=0.23 flips=7 upd_s=4.1 wall_s=56
+[22:27:48] fall without OOB flag: 4 decisions off the map at [44.   9.5 -0.8] (time left 63s)
+[22:27:48] RESPAWN did not take: before [44.4  9.5 -1. ] -> next obs [44.7  9.6 -1.1] -> after 20 ticks [49.3 10.5 -4.8] (time left 62s)
+[22:27:48] teleport to (-36.6, 6.6) ignored; marble at [6.5 1.3 0.6]
+[22:27:48] FRAME FLIP: command/acceleration cosine -0.85 over the first 12 decisions at [13.9  2.9  0.2]; forcing a respawn and restarting the segment (flips so far 8) | None | recent non-obs lines: ['20789:debug:DEBUG|client=20643|clientYaw=0|server=20576|serverYaw=0|cameraYaw=0|mvYaw=0|clientPos=-0.022948 0.116010 2.521120|serverPos=-0.022948 0.116010 2.521120|control=', '37748:end:[]|-13|0|1', '37751:info:INFO|FlatIslands_Hunt|300000|3', '51425:debug:DEBUG|client=20643|clientYaw=0|server=20576|serverYaw=0|cameraYaw=0|mvYaw=0|clientPos=-9.045680 29.626965 -50.578045|serverPos=-9.045680 29.626965 -50.578045|co', '56611:end:[]|-20|0|1', '56614:info:INFO|FlatIslands_Hunt|300000|3']
+[22:27:48] RESPAWN did not take: before [11.7  3.7 -1.4] -> next obs [11.7  3.7 -1.5] -> after 20 ticks [10.8  4.4 -5.3] (time left 59s)
+[22:27:48] marble still off the map after 30 decisions at [ 10.3   5.6 -14.8] (time left 58s); forcing a respawn again
+[22:27:48] RESPAWN did not take: before [ 10.3   5.6 -14.8] -> next obs [ 10.3   5.7 -15.1] -> after 20 ticks [ 10.6   6.6 -24.1] (time left 58s)
+[22:27:48] marble still off the map after 60 decisions at [ 12.    8.2 -41.4] (time left 58s); forcing a respawn again
+[22:27:48] RESPAWN did not take: before [ 12.    8.2 -41.4] -> next obs [ 12.1   8.2 -42. ] -> after 20 ticks [ 13.6   9.4 -56.3] (time left 57s)
+[22:27:48] marble still off the map after 90 decisions at [ 16.9  11.3 -81.4] (time left 57s); forcing a respawn again
+[22:27:48] RESPAWN did not take: before [ 16.9  11.3 -81.4] -> next obs [ 17.   11.4 -82.2] -> after 20 ticks [  19.8   12.8 -101.7] (time left 57s)
+[22:27:49] fall without OOB flag: 4 decisions off the map at [11.4  3.9 -2.4] (time left 54s)
+[22:27:49] RESPAWN did not take: before [11.3  4.  -2.7] -> next obs [11.2  4.  -2.9] -> after 20 ticks [10.5  4.7 -7.5] (time left 53s)
+[22:27:49] marble still off the map after 30 decisions at [ 10.4   6.  -18.3] (time left 53s); forcing a respawn again
+[22:27:49] RESPAWN did not take: before [ 10.4   6.  -18.3] -> next obs [ 10.4   6.1 -18.8] -> after 20 ticks [ 10.9   7.  -28.6] (time left 52s)
+[22:27:49] marble still off the map after 60 decisions at [ 11.9   8.  -47.2] (time left 52s); forcing a respawn again
+[22:27:49] teleport to (25.4, -23.4) ignored; marble at [ 25.4 -23.4   0.8]
+[22:27:57] SEG n=320 last=arrived arrive=84% falls100=1.02 speed=5.3 timeout=0% rew=23.6 rtf=2.99
+[22:28:09] [env:8888] round over (time left 300s of 300s); waiting for the next round
+[22:28:09] [env:8888] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[22:28:09] new round (game connection 1); rtf 2.32
+[22:28:13] fall without OOB flag: 4 decisions off the map at [  4.8 -11.3  -2.7] (time left 289s)
+[22:28:20] fall without OOB flag: 4 decisions off the map at [-28.9  12.8  -3.6] (time left 267s)
+[22:28:23] fall without OOB flag: 4 decisions off the map at [ 22.5 -40.7  -3.6] (time left 259s)
+[22:28:25] SEG n=340 last=arrived arrive=84% falls100=1.03 speed=5.2 timeout=0% rew=23.5 rtf=3.00
+[22:28:44] NAV upd=798 map=FlatIslands_Hunt r=0.65 steps=1,634,645 segs=354 arrive=86% falls100=0.95 speed=5.3 rew=23.7 pl=-0.013 vl=0.197 ent=0.50 kl=0.008 clip=0.19 gn=2.93 ep=4 dstd=0.23 flips=8 upd_s=3.7 wall_s=56
+[22:28:45] fall without OOB flag: 4 decisions off the map at [24.6 44.5 -0.9] (time left 204s)
+[22:28:45] RESPAWN did not take: before [24.4 44.9 -1.2] -> next obs [24.2 45.1 -1.3] -> after 20 ticks [21.5 48.8 -5.2] (time left 204s)
+[22:28:45] fall without OOB flag: 4 decisions off the map at [-14.7  13.2  -2.6] (time left 200s)
+[22:28:45] RESPAWN did not take: before [-14.9  13.1  -2.9] -> next obs [-15.   13.1  -3.1] -> after 20 ticks [-17.4  12.3  -7.7] (time left 200s)
+[22:28:45] marble still off the map after 30 decisions at [-21.5  11.8 -18.5] (time left 199s); forcing a respawn again
+[22:28:45] RESPAWN did not take: before [-21.5  11.8 -18.5] -> next obs [-21.7  11.8 -18.9] -> after 20 ticks [-24.8  11.9 -28.7] (time left 199s)
+[22:28:45] marble still off the map after 60 decisions at [-30.   12.9 -47.3] (time left 199s); forcing a respawn again
+[22:28:45] RESPAWN did not take: before [-30.   12.9 -47.3] -> next obs [-30.1  12.9 -48. ] -> after 20 ticks [-34.   14.1 -63.1] (time left 198s)
+[22:28:45] marble still off the map after 90 decisions at [-40.3  16.5 -89.5] (time left 198s); forcing a respawn again
+[22:28:45] RESPAWN did not take: before [-40.3  16.5 -89.5] -> next obs [-40.5  16.6 -90.4] -> after 20 ticks [ -45.1   18.8 -110.8] (time left 197s)
+[22:28:45] teleport to (-36.6, 5.6) ignored; marble at [-3.9  5.3  0.6]
+[22:28:45] FRAME FLIP: command/acceleration cosine -0.96 over the first 12 decisions at [-8.9 12.   0.6]; forcing a respawn and restarting the segment (flips so far 9) | None | recent non-obs lines: ['37751:info:INFO|FlatIslands_Hunt|300000|3', '51425:debug:DEBUG|client=20643|clientYaw=0|server=20576|serverYaw=0|cameraYaw=0|mvYaw=0|clientPos=-9.045680 29.626965 -50.578045|serverPos=-9.045680 29.626965 -50.578045|co', '56611:end:[]|-20|0|1', '56614:info:INFO|FlatIslands_Hunt|300000|3', '75485:end:[]|-17|0|1', '75488:info:INFO|FlatIslands_Hunt|300000|3']
+[22:28:45] fall without OOB flag: 4 decisions off the map at [-14.5  13.3  -2.5] (time left 194s)
+[22:28:45] RESPAWN did not take: before [-14.8  13.2  -2.8] -> next obs [-14.9  13.1  -3. ] -> after 20 ticks [-17.2  12.3  -7.5] (time left 194s)
+[22:28:50] SEG n=360 last=arrived arrive=85% falls100=0.99 speed=5.3 timeout=0% rew=23.5 rtf=3.00
+[22:29:10] fall without OOB flag: 4 decisions off the map at [-13.4 -30.1  -3.6] (time left 118s)
+[22:29:15] SEG n=380 last=arrived arrive=85% falls100=0.99 speed=5.2 timeout=0% rew=23.8 rtf=3.00
+[22:29:36] NAV upd=799 map=FlatIslands_Hunt r=0.65 steps=1,636,704 segs=396 arrive=87% falls100=0.84 speed=5.3 rew=24.1 pl=-0.009 vl=0.163 ent=0.50 kl=0.020 clip=0.23 gn=3.06 ep=4 dstd=0.23 flips=9 upd_s=2.9 wall_s=52
+[22:29:36] teleport to (-18.6, -0.4) ignored; marble at [-21.3 -13.3  -3.8]
+[22:29:37] fall without OOB flag: 4 decisions off the map at [-20.7 -14.6  -8.3] (time left 45s)
+[22:29:37] teleport to (-11.6, -31.4) ignored; marble at [ 1.7 -6.4  0.6]
+[22:29:37] FRAME FLIP: command/acceleration cosine -0.95 over the first 12 decisions at [  3.9 -13.9   0.2]; forcing a respawn and restarting the segment (flips so far 10) | None | recent non-obs lines: ['51425:debug:DEBUG|client=20643|clientYaw=0|server=20576|serverYaw=0|cameraYaw=0|mvYaw=0|clientPos=-9.045680 29.626965 -50.578045|serverPos=-9.045680 29.626965 -50.578045|co', '56611:end:[]|-20|0|1', '56614:info:INFO|FlatIslands_Hunt|300000|3', '75485:end:[]|-17|0|1', '75488:info:INFO|FlatIslands_Hunt|300000|3', '82222:debug:DEBUG|client=20643|clientYaw=0|server=20576|serverYaw=0|cameraYaw=0|mvYaw=0|clientPos=0.065642 -0.117797 2.567320|serverPos=0.065642 -0.117797 2.567320|control=']
+[22:29:37] RESPAWN did not take: before [  4.9 -11.8  -1.3] -> next obs [  4.9 -11.8  -1.4] -> after 20 ticks [  5.8 -10.8  -5. ] (time left 41s)
+[22:29:37] marble still off the map after 30 decisions at [  7.5 -10.3 -14.4] (time left 41s); forcing a respawn again
+[22:29:37] RESPAWN did not take: before [  7.5 -10.3 -14.4] -> next obs [  7.5 -10.3 -14.8] -> after 20 ticks [  8.7 -10.6 -23.7] (time left 41s)
+[22:29:37] marble still off the map after 60 decisions at [ 10.8 -12.  -40.8] (time left 40s); forcing a respawn again
+[22:29:37] RESPAWN did not take: before [ 10.8 -12.  -40.8] -> next obs [ 10.9 -12.  -41.4] -> after 20 ticks [ 12.5 -13.5 -55.6] (time left 40s)
+[22:29:37] marble still off the map after 90 decisions at [ 15.  -16.7 -80.5] (time left 39s); forcing a respawn again
+[22:29:37] RESPAWN did not take: before [ 15.  -16.7 -80.5] -> next obs [ 15.1 -16.8 -81.4] -> after 20 ticks [  17.   -19.6 -100.6] (time left 39s)
+[22:29:39] fall without OOB flag: 4 decisions off the map at [-37.8  15.4  -3. ] (time left 31s)
+[22:29:39] SEG n=400 last=fell arrive=87% falls100=0.87 speed=5.3 timeout=0% rew=24.0 rtf=3.00
+[22:29:53] [env:8888] round over (time left 300s of 300s); waiting for the next round
+[22:29:53] [env:8888] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[22:29:53] new round (game connection 1); rtf 2.38
+[22:30:00] fall without OOB flag: 4 decisions off the map at [-13.2   8.4  -3.9] (time left 279s)
+[22:30:01] fall without OOB flag: 4 decisions off the map at [11.3 12.3 -2.5] (time left 275s)
+[22:30:07] SEG n=420 last=arrived arrive=86% falls100=0.89 speed=5.3 timeout=0% rew=24.0 rtf=3.00
+[22:30:25] fall without OOB flag: 4 decisions off the map at [  7.  -12.6  -3.2] (time left 203s)
+[22:30:28] SEG n=440 last=arrived arrive=88% falls100=0.80 speed=5.3 timeout=0% rew=24.4 rtf=3.00
+[22:30:35] NAV upd=800 map=FlatIslands_Hunt r=0.65 steps=1,638,763 segs=442 arrive=88% falls100=0.80 speed=5.3 rew=24.5 pl=-0.021 vl=0.086 ent=0.50 kl=0.021 clip=0.20 gn=2.60 ep=4 dstd=0.23 flips=10 upd_s=3.6 wall_s=58
+[22:30:35] saved C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\models\nav\nav_000800.pth
+[22:30:35] fall without OOB flag: 4 decisions off the map at [-2.  16.3 -2.2] (time left 183s)
+[22:30:35] RESPAWN did not take: before [-2.1 16.4 -2.5] -> next obs [-2.2 16.5 -2.7] -> after 20 ticks [-3.6 17.4 -7.2] (time left 182s)
+[22:30:35] fall without OOB flag: 4 decisions off the map at [ -8.3 -11.6  -2.6] (time left 179s)
+[22:30:35] RESPAWN did not take: before [ -8.4 -11.5  -2.9] -> next obs [ -8.5 -11.4  -3.1] -> after 20 ticks [-10.  -10.7  -7.8] (time left 179s)
+[22:30:35] marble still off the map after 30 decisions at [-12.5 -10.5 -18.7] (time left 179s); forcing a respawn again
+[22:30:35] RESPAWN did not take: before [-12.5 -10.5 -18.7] -> next obs [-12.6 -10.5 -19.2] -> after 20 ticks [-14.6 -10.9 -29. ] (time left 178s)
+[22:30:35] marble still off the map after 60 decisions at [-17.9 -12.3 -47.7] (time left 178s); forcing a respawn again
+[22:30:35] RESPAWN did not take: before [-17.9 -12.3 -47.7] -> next obs [-18.  -12.4 -48.1] -> after 20 ticks [-20.5 -14.  -63.6] (time left 177s)
+[22:30:35] marble still off the map after 90 decisions at [-24.6 -17.1 -89.9] (time left 177s); forcing a respawn again
+[22:30:35] RESPAWN did not take: before [-24.6 -17.1 -89.9] -> next obs [-24.7 -17.3 -91.2] -> after 20 ticks [ -27.7  -20.  -111.4] (time left 177s)
+[22:30:35] teleport to (3.4, 11.6) ignored; marble at [-2.6 -6.1  0.6]
+[22:30:35] FRAME FLIP: command/acceleration cosine -0.64 over the first 12 decisions at [ -5.9 -13.9   0.2]; forcing a respawn and restarting the segment (flips so far 11) | None | recent non-obs lines: ['56614:info:INFO|FlatIslands_Hunt|300000|3', '75485:end:[]|-17|0|1', '75488:info:INFO|FlatIslands_Hunt|300000|3', '82222:debug:DEBUG|client=20643|clientYaw=0|server=20576|serverYaw=0|cameraYaw=0|mvYaw=0|clientPos=0.065642 -0.117797 2.567320|serverPos=0.065642 -0.117797 2.567320|control=', '94359:end:[]|-19|0|1', '94362:info:INFO|FlatIslands_Hunt|300000|3']
+[22:30:35] RESPAWN did not take: before [ -6.8 -11.7  -1.2] -> next obs [ -6.8 -11.6  -1.3] -> after 20 ticks [-7.  -9.4 -4.7] (time left 173s)
+[22:30:35] marble still off the map after 30 decisions at [ -7.4  -5.6 -13.7] (time left 173s); forcing a respawn again
+[22:30:35] RESPAWN did not take: before [ -7.4  -5.6 -13.7] -> next obs [ -7.4  -5.4 -14.2] -> after 20 ticks [ -7.8  -2.4 -22.8] (time left 173s)
+[22:30:46] fall without OOB flag: 4 decisions off the map at [15.2  7.6 -3.2] (time left 141s)
+[22:30:56] SEG n=460 last=arrived arrive=88% falls100=0.80 speed=5.3 timeout=0% rew=24.6 rtf=3.00
+[22:31:06] fall without OOB flag: 4 decisions off the map at [-16.3  -8.6  -3. ] (time left 79s)
+[22:31:18] SEG n=480 last=arrived arrive=88% falls100=0.75 speed=5.3 timeout=0% rew=25.0 rtf=3.00
+[22:31:28] NAV upd=801 map=FlatIslands_Hunt r=0.65 steps=1,640,822 segs=484 arrive=89% falls100=0.73 speed=5.3 rew=24.9 pl=-0.009 vl=0.135 ent=0.52 kl=0.021 clip=0.23 gn=3.31 ep=4 dstd=0.23 flips=11 upd_s=4.1 wall_s=54
+[22:31:28] fall without OOB flag: 4 decisions off the map at [-14.2  24.4  -2.7] (time left 24s)
+[22:31:28] RESPAWN did not take: before [-14.3  24.4  -3.1] -> next obs [-14.3  24.4  -3.3] -> after 20 ticks [-15.8  24.2  -8.6] (time left 24s)
+[22:31:28] teleport to (24.4, 37.6) ignored; marble at [-6.2 -0.9  0.6]
+[22:31:29] FRAME FLIP: command/acceleration cosine -0.45 over the first 12 decisions at [-14.1  -2.    0.5]; forcing a respawn and restarting the segment (flips so far 12) | None | recent non-obs lines: ['56614:info:INFO|FlatIslands_Hunt|300000|3', '75485:end:[]|-17|0|1', '75488:info:INFO|FlatIslands_Hunt|300000|3', '82222:debug:DEBUG|client=20643|clientYaw=0|server=20576|serverYaw=0|cameraYaw=0|mvYaw=0|clientPos=0.065642 -0.117797 2.567320|serverPos=0.065642 -0.117797 2.567320|control=', '94359:end:[]|-19|0|1', '94362:info:INFO|FlatIslands_Hunt|300000|3']
+[22:31:29] fall without OOB flag: 4 decisions off the map at [-12.7  -2.9  -2.4] (time left 21s)
+[22:31:29] RESPAWN did not take: before [-12.6  -3.   -2.7] -> next obs [-12.5  -3.   -2.9] -> after 20 ticks [-11.8  -3.5  -7.5] (time left 20s)
+[22:31:29] marble still off the map after 30 decisions at [-11.5  -4.4 -18.3] (time left 20s); forcing a respawn again
+[22:31:29] RESPAWN did not take: before [-11.5  -4.4 -18.3] -> next obs [-11.5  -4.4 -18.7] -> after 20 ticks [-11.9  -5.1 -28.5] (time left 20s)
+[22:31:29] marble still off the map after 60 decisions at [-13.3  -6.2 -47.1] (time left 19s); forcing a respawn again
+[22:31:29] RESPAWN did not take: before [-13.3  -6.2 -47.1] -> next obs [-13.4  -6.2 -47.9] -> after 20 ticks [-14.9  -7.  -62.8] (time left 19s)
+[22:31:29] marble still off the map after 90 decisions at [-18.1  -8.4 -89.3] (time left 18s); forcing a respawn again
+[22:31:29] RESPAWN did not take: before [-18.1  -8.4 -89.3] -> next obs [-18.2  -8.4 -90.3] -> after 20 ticks [ -20.9   -9.4 -110.5] (time left 18s)
+[22:31:29] teleport to (-39.6, 10.6) ignored; marble at [-6.2 -0.9  0.6]
+[22:31:29] FRAME FLIP: command/acceleration cosine -0.92 over the first 12 decisions at [-14.   -2.    0.5]; forcing a respawn and restarting the segment (flips so far 13) | None | recent non-obs lines: ['56614:info:INFO|FlatIslands_Hunt|300000|3', '75485:end:[]|-17|0|1', '75488:info:INFO|FlatIslands_Hunt|300000|3', '82222:debug:DEBUG|client=20643|clientYaw=0|server=20576|serverYaw=0|cameraYaw=0|mvYaw=0|clientPos=0.065642 -0.117797 2.567320|serverPos=0.065642 -0.117797 2.567320|control=', '94359:end:[]|-19|0|1', '94362:info:INFO|FlatIslands_Hunt|300000|3']
+[22:31:29] teleport to (23.4, -30.4) ignored; marble at [-11.5  -4.3 -17.7]
+[22:31:29] fall without OOB flag: 4 decisions off the map at [-11.5  -4.7 -25.7] (time left 14s)
+[22:31:29] RESPAWN did not take: before [-11.5  -4.7 -26.7] -> next obs [-11.4  -4.7 -27.3] -> after 20 ticks [-11.1  -5.  -38.9] (time left 13s)
+[22:31:29] marble still off the map after 30 decisions at [-10.1  -5.5 -60.1] (time left 13s); forcing a respawn again
+[22:31:36] [env:8888] round over (time left 300s of 300s); waiting for the next round
+[22:31:36] [env:8888] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[22:31:36] new round (game connection 1); rtf 2.52
+[22:31:37] fall without OOB flag: 4 decisions off the map at [-15.3  15.6  -2.8] (time left 298s)
+[22:31:47] SEG n=500 last=arrived arrive=87% falls100=0.82 speed=5.3 timeout=0% rew=24.5 rtf=3.00
+[22:31:48] fall without OOB flag: 4 decisions off the map at [ 18.4 -13.1  -2.7] (time left 265s)
+[22:31:51] fall without OOB flag: 4 decisions off the map at [ 12.4 -10.3  -3.6] (time left 257s)
+[22:32:10] SEG n=520 last=arrived arrive=87% falls100=0.83 speed=5.3 timeout=0% rew=24.5 rtf=3.00
+[22:32:19] fall without OOB flag: 4 decisions off the map at [-33.9 -13.   -2.7] (time left 170s)
+[22:32:27] NAV upd=802 map=FlatIslands_Hunt r=0.65 steps=1,642,892 segs=530 arrive=88% falls100=0.79 speed=5.2 rew=24.9 pl=-0.008 vl=0.158 ent=0.52 kl=0.017 clip=0.21 gn=3.38 ep=4 dstd=0.23 flips=13 upd_s=3.9 wall_s=58
+[22:32:27] teleport to (-24.6, 32.6) ignored; marble at [-33.2  -7.4   1.9]
+[22:32:27] fall without OOB flag: 4 decisions off the map at [-45.8 -17.6   1.8] (time left 158s)
+[22:32:27] RESPAWN did not take: before [-46.3 -18.    1.7] -> next obs [-46.6 -18.3   1.7] -> after 20 ticks [-52.3 -23.3  -0.3] (time left 158s)
+[22:32:27] marble still off the map after 30 decisions at [-61.4 -31.8  -7.3] (time left 157s); forcing a respawn again
+[22:32:27] fall without OOB flag: 4 decisions off the map at [ -9.6 -16.9  -3.2] (time left 155s)
+[22:32:27] RESPAWN did not take: before [ -9.8 -17.4  -3.6] -> next obs [ -9.9 -17.5  -3.9] -> after 20 ticks [-12.4 -21.9  -9.8] (time left 155s)
+[22:32:27] marble still off the map after 30 decisions at [-16.6 -29.3 -22.5] (time left 154s); forcing a respawn again
+[22:32:27] RESPAWN did not take: before [-16.6 -29.3 -22.5] -> next obs [-16.8 -29.6 -23. ] -> after 20 ticks [-19.9 -35.1 -34.1] (time left 154s)
+[22:32:27] marble still off the map after 60 decisions at [-25.1 -44.2 -54.7] (time left 153s); forcing a respawn again
+[22:32:27] RESPAWN did not take: before [-25.1 -44.2 -54.7] -> next obs [-25.3 -44.5 -55.4] -> after 20 ticks [-29.1 -51.1 -71.8] (time left 153s)
+[22:32:27] marble still off the map after 90 decisions at [ -35.3  -61.9 -100.2] (time left 152s); forcing a respawn again
+[22:32:27] RESPAWN did not take: before [ -35.3  -61.9 -100.2] -> next obs [ -35.5  -62.3 -101.1] -> after 20 ticks [ -39.9  -70.1 -122.8] (time left 152s)
+[22:32:27] fall without OOB flag: 4 decisions off the map at [ -9.6 -16.9  -3. ] (time left 150s)
+[22:32:27] RESPAWN did not take: before [ -9.9 -17.3  -3.5] -> next obs [-10.  -17.5  -3.7] -> after 20 ticks [-12.5 -21.8  -9.6] (time left 149s)
+[22:32:27] teleport to (20.4, 24.6) ignored; marble at [-0.1 -0.   2.9]
+[22:32:36] SEG n=540 last=arrived arrive=87% falls100=0.85 speed=5.2 timeout=0% rew=24.6 rtf=3.00
+[22:32:40] fall without OOB flag: 4 decisions off the map at [-12.5  10.2  -3.6] (time left 110s)
+[22:32:48] fall without OOB flag: 4 decisions off the map at [  2.8 -15.2  -3. ] (time left 84s)
+[22:32:51] fall without OOB flag: 4 decisions off the map at [11.6 26.6 -2.7] (time left 76s)
+[22:32:53] fall without OOB flag: 4 decisions off the map at [-16.3 -32.4  -3. ] (time left 71s)
+[22:32:54] fall without OOB flag: 4 decisions off the map at [-12.4  16.8  -2.8] (time left 66s)
+[22:32:56] fall without OOB flag: 4 decisions off the map at [ 14.4 -23.5  -3.2] (time left 61s)
+[22:33:02] SEG n=560 last=arrived arrive=85% falls100=0.98 speed=5.2 timeout=0% rew=24.5 rtf=2.99
+[22:33:05] fall without OOB flag: 4 decisions off the map at [ 14.3 -27.7  -3.8] (time left 35s)
+[22:33:13] fall without OOB flag: 4 decisions off the map at [-14.1  18.7  -2.6] (time left 9s)
+[22:33:20] [env:8888] round over (time left 300s of 300s); waiting for the next round
+[22:33:20] [env:8888] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[22:33:20] new round (game connection 1); rtf 2.53
+[22:33:24] NAV upd=803 map=FlatIslands_Hunt r=0.65 steps=1,644,940 segs=571 arrive=86% falls100=0.91 speed=5.2 rew=24.9 pl=-0.003 vl=0.222 ent=0.54 kl=0.026 clip=0.32 gn=3.91 ep=4 dstd=0.23 flips=13 upd_s=3.9 wall_s=57
+[22:33:24] fall without OOB flag: 4 decisions off the map at [ 11.8 -14.3  -2.4] (time left 297s)
+[22:33:24] RESPAWN did not take: before [ 11.7 -14.5  -2.7] -> next obs [ 11.6 -14.5  -2.9] -> after 20 ticks [ 10.8 -16.5  -7.4] (time left 297s)
+[22:33:25] fall without OOB flag: 4 decisions off the map at [12.  -9.8 -2.1] (time left 294s)
+[22:33:25] RESPAWN did not take: before [ 11.9 -10.   -2.5] -> next obs [ 11.8 -10.1  -2.6] -> after 20 ticks [ 11.  -11.8  -7. ] (time left 293s)
+[22:33:25] marble still off the map after 30 decisions at [ 10.5 -14.8 -17.3] (time left 293s); forcing a respawn again
+[22:33:25] RESPAWN did not take: before [ 10.5 -14.8 -17.3] -> next obs [ 10.5 -15.  -17.7] -> after 20 ticks [ 10.8 -17.3 -27.3] (time left 293s)
+[22:33:25] marble still off the map after 60 decisions at [ 11.9 -21.1 -45.5] (time left 292s); forcing a respawn again
+[22:33:25] RESPAWN did not take: before [ 11.9 -21.1 -45.5] -> next obs [ 12.  -21.3 -46.1] -> after 20 ticks [ 13.3 -24.2 -61. ] (time left 292s)
+[22:33:25] marble still off the map after 90 decisions at [ 16.  -28.9 -87. ] (time left 291s); forcing a respawn again
+[22:33:25] RESPAWN did not take: before [ 16.  -28.9 -87. ] -> next obs [ 16.1 -29.1 -87.9] -> after 20 ticks [  18.5  -32.5 -108. ] (time left 291s)
+[22:33:25] teleport to (21.4, -0.4) ignored; marble at [ 5.6 -3.   0.6]
+[22:33:25] fall without OOB flag: 4 decisions off the map at [11.9 -9.9 -2.3] (time left 288s)
+[22:33:25] RESPAWN did not take: before [ 11.8 -10.1  -2.6] -> next obs [ 11.8 -10.2  -2.7] -> after 20 ticks [ 10.6 -11.9  -7.1] (time left 288s)
+[22:33:25] marble still off the map after 30 decisions at [  8.2 -14.8 -17.6] (time left 287s); forcing a respawn again
+[22:33:32] SEG n=580 last=arrived arrive=85% falls100=0.96 speed=5.2 timeout=0% rew=24.5 rtf=2.99
+[22:33:37] fall without OOB flag: 4 decisions off the map at [-12.9  -4.2  -3.6] (time left 250s)
+[22:33:48] fall without OOB flag: 4 decisions off the map at [ 14.5 -20.4  -3.6] (time left 216s)
+[22:33:51] fall without OOB flag: 4 decisions off the map at [13.9 10.6 -3.6] (time left 205s)
+[22:33:53] fall without OOB flag: 4 decisions off the map at [23.2 13.6 -2.8] (time left 200s)
+[22:33:56] SEG n=600 last=arrived arrive=85% falls100=0.97 speed=5.1 timeout=0% rew=24.3 rtf=3.00
+[22:34:06] fall without OOB flag: 4 decisions off the map at [  4.2 -13.3  -2.6] (time left 163s)
+[22:34:13] fall without OOB flag: 4 decisions off the map at [-30.6  17.9  -3.2] (time left 140s)
+[22:34:18] NAV upd=804 map=FlatIslands_Hunt r=0.65 steps=1,646,988 segs=614 arrive=86% falls100=0.93 speed=5.1 rew=24.8 pl=-0.011 vl=0.235 ent=0.52 kl=0.023 clip=0.26 gn=3.65 ep=4 dstd=0.23 flips=13 upd_s=3.5 wall_s=54
+[22:34:18] fall without OOB flag: 4 decisions off the map at [-14.   -9.7  -3.1] (time left 133s)
+[22:34:18] RESPAWN did not take: before [-14.3  -9.4  -3.5] -> next obs [-14.5  -9.3  -3.7] -> after 20 ticks [-17.5  -6.5  -8.6] (time left 133s)
+[22:34:19] fall without OOB flag: 4 decisions off the map at [-17.7  17.7  -2.3] (time left 130s)
+[22:34:19] RESPAWN did not take: before [-17.9  17.9  -2.7] -> next obs [-18.1  18.1  -2.9] -> after 20 ticks [-21.2  21.2  -7.6] (time left 129s)
+[22:34:19] marble still off the map after 30 decisions at [-26.5  26.5 -18.6] (time left 129s); forcing a respawn again
+[22:34:19] RESPAWN did not take: before [-26.5  26.5 -18.6] -> next obs [-26.7  26.7 -19.1] -> after 20 ticks [-30.5  30.5 -29. ] (time left 128s)
+[22:34:19] marble still off the map after 60 decisions at [-36.8  36.8 -47.9] (time left 128s); forcing a respawn again
+[22:34:19] RESPAWN did not take: before [-36.8  36.8 -47.9] -> next obs [-37.1  37.1 -48.7] -> after 20 ticks [-41.7  41.7 -63.8] (time left 128s)
+[22:34:19] marble still off the map after 90 decisions at [-49.1  49.1 -90.4] (time left 127s); forcing a respawn again
+[22:34:19] RESPAWN did not take: before [-49.1  49.1 -90.4] -> next obs [-49.4  49.4 -91.5] -> after 20 ticks [ -54.7   54.7 -111.8] (time left 127s)
+[22:34:19] teleport to (9.4, 18.6) ignored; marble at [ 0.4 -0.8  1. ]
+[22:34:21] fall without OOB flag: 4 decisions off the map at [-13.   -5.3  -3.6] (time left 116s)
+[22:34:24] SEG n=620 last=arrived arrive=85% falls100=1.00 speed=5.1 timeout=0% rew=24.2 rtf=2.99
+[22:34:29] fall without OOB flag: 4 decisions off the map at [12.  -5.5 -2.5] (time left 93s)
+[22:34:34] fall without OOB flag: 4 decisions off the map at [  2.2 -12.   -2.9] (time left 78s)
+[22:34:44] fall without OOB flag: 4 decisions off the map at [-0.3 12.4 -3.4] (time left 48s)
+[22:34:44] SEG n=640 last=fell arrive=85% falls100=1.00 speed=5.2 timeout=0% rew=24.1 rtf=3.00
+[22:34:46] fall without OOB flag: 4 decisions off the map at [14.7 20.9 -3.5] (time left 42s)
+[22:35:00] fall without OOB flag: 4 decisions off the map at [-13.3   9.4  -1.1] (time left 0s)
+[22:35:04] [env:8888] round over (time left 300s of 300s); waiting for the next round
+[22:35:04] [env:8888] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[22:35:04] new round (game connection 1)
+[22:35:15] NAV upd=805 map=FlatIslands_Hunt r=0.65 steps=1,649,036 segs=659 arrive=85% falls100=0.98 speed=5.2 rew=24.3 pl=-0.010 vl=0.287 ent=0.53 kl=0.026 clip=0.21 gn=2.97 ep=4 dstd=0.23 flips=13 upd_s=3.9 wall_s=57
+[22:35:15] fall without OOB flag: 4 decisions off the map at [  9.3 -15.9  -2.4] (time left 276s)
+[22:35:15] SEG n=660 last=fell arrive=85% falls100=1.00 speed=5.2 timeout=0% rew=24.3 rtf=2.37
+[22:35:15] RESPAWN did not take: before [  9.  -16.3  -2.8] -> next obs [  8.8 -16.5  -3. ] -> after 20 ticks [  5.3 -20.4  -7.8] (time left 276s)
+[22:35:15] fall without OOB flag: 4 decisions off the map at [-14.7 -12.3  -2. ] (time left 273s)
+[22:35:15] RESPAWN did not take: before [-14.9 -12.2  -2.3] -> next obs [-15.1 -12.1  -2.5] -> after 20 ticks [-17.6 -11.3  -6.7] (time left 273s)
+[22:35:15] marble still off the map after 30 decisions at [-22.  -10.7 -16.8] (time left 272s); forcing a respawn again
+[22:35:15] RESPAWN did not take: before [-22.  -10.7 -16.8] -> next obs [-22.2 -10.7 -17.3] -> after 20 ticks [-25.5 -10.8 -26.6] (time left 272s)
+[22:35:15] marble still off the map after 60 decisions at [-31.2 -11.6 -44.6] (time left 271s); forcing a respawn again
+[22:35:15] RESPAWN did not take: before [-31.2 -11.6 -44.6] -> next obs [-31.4 -11.7 -45.4] -> after 20 ticks [-35.6 -12.8 -59.9] (time left 271s)
+[22:35:15] marble still off the map after 90 decisions at [-42.4 -15.1 -85.7] (time left 270s); forcing a respawn again
+[22:35:15] RESPAWN did not take: before [-42.4 -15.1 -85.7] -> next obs [-42.7 -15.2 -86.8] -> after 20 ticks [ -47.7  -17.2 -106.5] (time left 270s)
+[22:35:16] fall without OOB flag: 4 decisions off the map at [-14.8 -12.3  -2.1] (time left 267s)
+[22:35:16] RESPAWN did not take: before [-15.  -12.2  -2.4] -> next obs [-15.1 -12.1  -2.5] -> after 20 ticks [-17.7 -11.2  -6.8] (time left 267s)
+[22:35:16] marble still off the map after 30 decisions at [-22.1 -10.7 -17. ] (time left 266s); forcing a respawn again
+[22:35:16] RESPAWN did not take: before [-22.1 -10.7 -17. ] -> next obs [-22.3 -10.7 -17.4] -> after 20 ticks [-25.6 -10.7 -26.9] (time left 266s)
+[22:35:17] fall without OOB flag: 4 decisions off the map at [-18.7 -15.9  -3.6] (time left 260s)
+[22:35:29] fall without OOB flag: 4 decisions off the map at [-17.  -40.3  -2.6] (time left 223s)
+[22:35:36] fall without OOB flag: 4 decisions off the map at [ 6.4 15.7 -2.5] (time left 204s)
+[22:35:36] SEG n=680 last=fell arrive=83% falls100=1.10 speed=5.1 timeout=0% rew=23.5 rtf=3.52
+[22:35:39] fall without OOB flag: 4 decisions off the map at [14.3 14.2 -3.9] (time left 194s)
+[22:35:41] fall without OOB flag: 4 decisions off the map at [ 22.4 -15.   -3.2] (time left 189s)
+[22:35:45] fall without OOB flag: 4 decisions off the map at [-24.3  15.1  -3.7] (time left 175s)
+[22:35:50] fall without OOB flag: 4 decisions off the map at [-14.9 -42.1   1.1] (time left 162s)
+[22:35:57] fall without OOB flag: 4 decisions off the map at [ 15.4 -12.2  -2.6] (time left 140s)
+[22:36:01] SEG n=700 last=arrived arrive=82% falls100=1.18 speed=5.1 timeout=0% rew=23.5 rtf=2.99
+[22:36:10] NAV upd=806 map=FlatIslands_Hunt r=0.65 steps=1,651,084 segs=704 arrive=82% falls100=1.17 speed=5.1 rew=23.5 pl=-0.011 vl=0.164 ent=0.55 kl=0.025 clip=0.22 gn=3.06 ep=4 dstd=0.23 flips=13 upd_s=4.1 wall_s=55
+[22:36:10] fall without OOB flag: 4 decisions off the map at [-13.  -19.2  -2.4] (time left 111s)
+[22:36:10] RESPAWN did not take: before [-12.9 -19.1  -2.7] -> next obs [-12.8 -18.9  -2.9] -> after 20 ticks [-12.  -16.9  -7.4] (time left 111s)
+[22:36:11] fall without OOB flag: 4 decisions off the map at [-13.4  12.8  -2.1] (time left 108s)
+[22:36:11] RESPAWN did not take: before [-13.3  13.   -2.4] -> next obs [-13.2  13.1  -2.6] -> after 20 ticks [-12.4  15.1  -6.9] (time left 107s)
+[22:36:11] marble still off the map after 30 decisions at [-11.8  18.7 -17.1] (time left 107s); forcing a respawn again
+[22:36:11] RESPAWN did not take: before [-11.8  18.7 -17.1] -> next obs [-11.8  18.8 -17.5] -> after 20 ticks [-11.9  21.5 -27.1] (time left 106s)
+[22:36:11] marble still off the map after 60 decisions at [-12.8  26.  -45.2] (time left 106s); forcing a respawn again
+[22:36:11] RESPAWN did not take: before [-12.8  26.  -45.2] -> next obs [-12.8  26.2 -45.8] -> after 20 ticks [-13.9  29.6 -60.6] (time left 106s)
+[22:36:11] marble still off the map after 90 decisions at [-16.2  35.1 -86.5] (time left 105s); forcing a respawn again
+[22:36:11] RESPAWN did not take: before [-16.2  35.1 -86.5] -> next obs [-16.3  35.3 -87.4] -> after 20 ticks [ -18.4   39.3 -107.4] (time left 105s)
+[22:36:11] teleport to (38.4, -23.4) ignored; marble at [-5.3  3.5  0.6]
+[22:36:11] FRAME FLIP: command/acceleration cosine -0.68 over the first 12 decisions at [-12.    8.    0.6]; forcing a respawn and restarting the segment (flips so far 14) | None | recent non-obs lines: ['113233:end:[]|-14|0|1', '113236:info:INFO|FlatIslands_Hunt|300000|3', '132107:end:[]|-10|0|1', '132110:info:INFO|FlatIslands_Hunt|300000|3', '150981:end:[]|-15|0|1', '150984:info:INFO|FlatIslands_Hunt|300000|3']
+[22:36:11] fall without OOB flag: 4 decisions off the map at [-13.3  12.9  -2.3] (time left 102s)
+[22:36:11] RESPAWN did not take: before [-13.2  13.1  -2.7] -> next obs [-13.1  13.2  -2.8] -> after 20 ticks [-12.3  15.3  -7.3] (time left 101s)
+[22:36:11] marble still off the map after 30 decisions at [-11.8  18.4 -17.8] (time left 101s); forcing a respawn again
+[22:36:11] RESPAWN did not take: before [-11.8  18.4 -17.8] -> next obs [-11.8  18.5 -18.2] -> after 20 ticks [-11.6  20.1 -27.9] (time left 100s)
+[22:36:11] teleport to (-37.6, -8.4) ignored; marble at [ 38.5 -23.6   0.7]
+[22:36:25] fall without OOB flag: 4 decisions off the map at [-30.5 -13.5  -2.4] (time left 55s)
+[22:36:28] SEG n=720 last=arrived arrive=82% falls100=1.21 speed=5.1 timeout=0% rew=23.2 rtf=3.00
+[22:36:35] fall without OOB flag: 4 decisions off the map at [-12.   18.3  -3.6] (time left 27s)
+[22:36:36] fall without OOB flag: 4 decisions off the map at [ 12.8 -11.1  -2.2] (time left 22s)
+[22:36:42] fall without OOB flag: 4 decisions off the map at [ 12.5 -28.4  -3.6] (time left 5s)
+[22:36:47] [env:8888] round over (time left 300s of 300s); waiting for the next round
+[22:36:47] [env:8888] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[22:36:47] new round (game connection 1); rtf 2.56
+[22:36:56] SEG n=740 last=arrived arrive=81% falls100=1.25 speed=5.1 timeout=0% rew=23.2 rtf=3.00
+[22:37:07] NAV upd=807 map=FlatIslands_Hunt r=0.65 steps=1,653,143 segs=746 arrive=82% falls100=1.20 speed=5.1 rew=23.6 pl=-0.015 vl=0.198 ent=0.52 kl=0.018 clip=0.18 gn=3.13 ep=4 dstd=0.23 flips=14 upd_s=4.0 wall_s=57
+[22:37:07] fall without OOB flag: 4 decisions off the map at [-44.   24.   -0.7] (time left 250s)
+[22:37:07] RESPAWN did not take: before [-44.3  23.8  -0.9] -> next obs [-44.5  23.7  -1.1] -> after 20 ticks [-48.   21.5  -4.6] (time left 250s)
+[22:37:07] teleport to (38.4, 34.6) ignored; marble at [-5.  -3.2  0.6]
+[22:37:07] FRAME FLIP: command/acceleration cosine -0.98 over the first 12 decisions at [-11.1  -7.1   0.6]; forcing a respawn and restarting the segment (flips so far 15) | None | recent non-obs lines: ['132110:info:INFO|FlatIslands_Hunt|300000|3', '150981:end:[]|-15|0|1', '150984:info:INFO|FlatIslands_Hunt|300000|3', '163556:debug:DEBUG|client=20643|clientYaw=0|server=20576|serverYaw=0|cameraYaw=0|mvYaw=0|clientPos=38.501713 -23.663065 0.649269|serverPos=38.501713 -23.663065 0.649269|cont', '169855:end:[]|-13|0|1', '169858:info:INFO|FlatIslands_Hunt|300000|3']
+[22:37:07] teleport to (35.4, 23.6) ignored; marble at [-12.1 -15.7 -11.9]
+[22:37:07] fall without OOB flag: 4 decisions off the map at [-11.9 -17.6 -18.9] (time left 246s)
+[22:37:07] RESPAWN did not take: before [-11.9 -17.9 -19.9] -> next obs [-11.9 -18.  -20.3] -> after 20 ticks [-12.  -20.5 -30.4] (time left 245s)
+[22:37:07] marble still off the map after 30 decisions at [-12.9 -24.6 -49.5] (time left 245s); forcing a respawn again
+[22:37:07] RESPAWN did not take: before [-12.9 -24.6 -49.5] -> next obs [-13.  -24.7 -50.2] -> after 20 ticks [-14.  -27.8 -65.6] (time left 244s)
+[22:37:07] marble still off the map after 60 decisions at [-16.2 -32.7 -92.4] (time left 244s); forcing a respawn again
+[22:37:07] RESPAWN did not take: before [-16.2 -32.7 -92.4] -> next obs [-16.3 -32.9 -93.4] -> after 20 ticks [ -18.3  -36.5 -114. ] (time left 244s)
+[22:37:08] fall without OOB flag: 4 decisions off the map at [-13.6 -11.9  -2. ] (time left 240s)
+[22:37:08] RESPAWN did not take: before [-13.5 -12.   -2.2] -> next obs [-13.4 -12.1  -2.4] -> after 20 ticks [-11.9 -14.1  -6.5] (time left 240s)
+[22:37:08] teleport to (-7.6, 10.6) ignored; marble at [ 1.  -1.5  1.1]
+[22:37:16] fall without OOB flag: 4 decisions off the map at [10.5 15.8 -3.6] (time left 214s)
+[22:37:20] SEG n=760 last=arrived arrive=81% falls100=1.28 speed=5.1 timeout=0% rew=23.1 rtf=3.00
+[22:37:30] fall without OOB flag: 4 decisions off the map at [-15.8  10.3  -3.6] (time left 173s)
+[22:37:37] fall without OOB flag: 4 decisions off the map at [ -4.6 -11.4  -3.9] (time left 151s)
+[22:37:43] SEG n=780 last=arrived arrive=80% falls100=1.31 speed=5.1 timeout=0% rew=22.9 rtf=3.00
+[22:37:48] fall without OOB flag: 4 decisions off the map at [11.6 -7.3 -3.6] (time left 118s)
+[22:38:01] NAV upd=808 map=FlatIslands_Hunt r=0.65 steps=1,655,202 segs=790 arrive=81% falls100=1.26 speed=5.1 rew=23.2 pl=-0.013 vl=0.138 ent=0.53 kl=0.012 clip=0.17 gn=2.93 ep=4 dstd=0.23 flips=15 upd_s=4.0 wall_s=54
+[22:38:02] fall without OOB flag: 4 decisions off the map at [ 22.5 -44.4  -0.6] (time left 87s)
+[22:38:02] RESPAWN did not take: before [ 22.3 -44.9  -0.8] -> next obs [ 22.3 -45.1  -0.9] -> after 20 ticks [ 20.4 -50.4  -4.5] (time left 87s)
+[22:38:02] teleport to (1.4, 2.6) ignored; marble at [-2.5 -6.3  0.6]
+[22:38:02] FRAME FLIP: command/acceleration cosine -0.96 over the first 12 decisions at [ -5.8 -14.    0.2]; forcing a respawn and restarting the segment (flips so far 16) | None | recent non-obs lines: ['132110:info:INFO|FlatIslands_Hunt|300000|3', '150981:end:[]|-15|0|1', '150984:info:INFO|FlatIslands_Hunt|300000|3', '163556:debug:DEBUG|client=20643|clientYaw=0|server=20576|serverYaw=0|cameraYaw=0|mvYaw=0|clientPos=38.501713 -23.663065 0.649269|serverPos=38.501713 -23.663065 0.649269|cont', '169855:end:[]|-13|0|1', '169858:info:INFO|FlatIslands_Hunt|300000|3']
+[22:38:02] RESPAWN did not take: before [ -7.3 -11.8  -1.3] -> next obs [ -7.4 -11.8  -1.4] -> after 20 ticks [ -8.8 -10.8  -5.1] (time left 84s)
+[22:38:02] marble still off the map after 30 decisions at [-11.2 -10.3 -14.4] (time left 83s); forcing a respawn again
+[22:38:02] RESPAWN did not take: before [-11.2 -10.3 -14.4] -> next obs [-11.3 -10.3 -14.7] -> after 20 ticks [-13.1 -10.6 -23.6] (time left 83s)
+[22:38:02] marble still off the map after 60 decisions at [-16.3 -12.  -40.7] (time left 82s); forcing a respawn again
+[22:38:02] RESPAWN did not take: before [-16.3 -12.  -40.7] -> next obs [-16.4 -12.  -41.4] -> after 20 ticks [-18.7 -13.5 -55.5] (time left 82s)
+[22:38:02] marble still off the map after 90 decisions at [-22.6 -16.7 -80.4] (time left 82s); forcing a respawn again
+[22:38:02] RESPAWN did not take: before [-22.6 -16.7 -80.4] -> next obs [-22.7 -16.8 -81.3] -> after 20 ticks [ -25.6  -19.6 -100.7] (time left 81s)
+[22:38:02] fall without OOB flag: 4 decisions off the map at [ -7.8 -11.5  -2.3] (time left 78s)
+[22:38:02] RESPAWN did not take: before [ -7.9 -11.4  -2.6] -> next obs [ -8.  -11.3  -2.8] -> after 20 ticks [ -9.5 -10.6  -7.4] (time left 78s)
+[22:38:02] marble still off the map after 30 decisions at [-11.9  -9.8 -18. ] (time left 77s); forcing a respawn again
+[22:38:02] RESPAWN did not take: before [-11.9  -9.8 -18. ] -> next obs [-11.9  -9.7 -18.5] -> after 20 ticks [-13.3  -8.8 -28.3] (time left 77s)
+[22:38:02] teleport to (4.4, 18.6) ignored; marble at [ 4.4 18.6  0.8]
+[22:38:10] SEG n=800 last=arrived arrive=81% falls100=1.28 speed=5.0 timeout=0% rew=22.9 rtf=3.00
+[22:38:15] fall without OOB flag: 4 decisions off the map at [ 23.8 -12.4  -3.6] (time left 37s)
+[22:38:24] fall without OOB flag: 4 decisions off the map at [ 19.9 -13.4  -2.7] (time left 11s)
+[22:38:25] fall without OOB flag: 4 decisions off the map at [-7.4 15.6 -3.2] (time left 6s)
+[22:38:31] [env:8888] round over (time left 300s of 300s); waiting for the next round
+[22:38:31] [env:8888] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[22:38:31] new round (game connection 1); rtf 2.58
+[22:38:39] SEG n=820 last=arrived arrive=80% falls100=1.30 speed=5.1 timeout=0% rew=22.9 rtf=3.00
+[22:38:44] fall without OOB flag: 4 decisions off the map at [-12.4   7.8  -3.6] (time left 262s)
+[22:38:52] fall without OOB flag: 4 decisions off the map at [12.  19.4 -3.2] (time left 236s)

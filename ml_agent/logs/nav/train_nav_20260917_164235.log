@@ -1,0 +1,4 @@
+[16:42:35] resumed C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\models\nav\nav_latest.pth: update 780, steps 1,597,605, trained on FlatIslands_Hunt
+[16:42:35] [env:8888] waiting for the game
+[16:43:05] [env:8888] game connected (1)
+[16:43:06] mission FlatIslands_Hunt: terrain 165x165 @ 0.5 u, walk grid 83x83, walkable 5775 cells, edge 876; arrive radius 0.65 u

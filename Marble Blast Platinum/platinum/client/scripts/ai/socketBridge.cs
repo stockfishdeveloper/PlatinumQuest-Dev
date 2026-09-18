@@ -39,6 +39,7 @@ function AIBridge::disconnect() {
         AIBridgeSocket.delete();
     }
     $AIBridge::Connected = false;
+    $AI::WaitReply = false;
     echo("AIBridge: Disconnected");
 }
 
@@ -49,6 +50,7 @@ function AIBridgeSocket::onConnected(%this) {
 
 function AIBridgeSocket::onDisconnect(%this) {
     $AIBridge::Connected = false;
+    $AI::WaitReply = false;
     echo("AIBridge: Connection lost");
     // Never leave the game frozen without a trainer
     if (getTimeScale() < 0.01)
@@ -80,7 +82,12 @@ function AIBridgeSocket::onLine(%this, %line) {
         // Control word (SPEED, TELEPORT, SLEEPTIME, MAXFPS, RECORD, ...): its
         // own slot, so a queued action landing on the same tick cannot
         // overwrite it. Consumed once by the next update.
-        $AIBridge::Control = %line;
+        // A queue, not a slot: when replies arrive in a burst (the trainer answering a
+        // backlog) several control words can land between two updates and only the last
+        // one survived a single slot (2026-09-18, FIXEDSTEP lost behind TELEPORT).
+        $AIBridge::ControlQueue[$AIBridge::ControlTail] = %line;
+        $AIBridge::ControlTail++;
+        echo("AIBridge: control word received: " @ %line);
     } else {
         $AIBridge::LastAction = %line;
     }
@@ -88,6 +95,8 @@ function AIBridgeSocket::onLine(%this, %line) {
     // the reply is here, let the next tick run.
     if ($MLAgent::Lockstep && $MLAgent::Enabled && !$MLAgent::DiagnosticMode && getTimeScale() < 0.01)
         setTimeScale($MLAgent::TrainingSpeed);
+    // Engine lockstep (built engine, $AI::Lockstep): the reply is here, the sim may advance.
+    $AI::WaitReply = false;
 }
 
 function AIBridge::sendState(%stateJson) {

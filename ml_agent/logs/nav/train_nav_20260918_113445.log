@@ -1,0 +1,5 @@
+[11:34:45] resumed C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\models\nav\nav_latest.pth: update 1460, steps 2,990,674, trained on KingOfTheMarble_Hunt
+[11:34:45] 8 instance(s) on ports 8888..8895; training mode True (64 ms per decision); device cuda
+[11:34:45] [env:8888] waiting for the game
+[11:34:49] [env:8888] game connected (1)
+[11:34:49] mission FlatIslands_Hunt: terrain 165x165 @ 0.5 u, walk grid 83x83, walkable 5775 cells, edge 876; arrive radius 0.65 u

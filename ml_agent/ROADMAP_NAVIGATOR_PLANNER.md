@@ -319,6 +319,72 @@ Prerequisite for everything else. Machine: 24 logical cores.
     run >2 instances usefully, fall back to section 6 (surrogate physics).
 - Later: instances joining one lobby = self-play opponents for free (3.4).
 
+**Engine source resolved (2026-09-18).** RandomityGuy: the repo is right, the shipped
+engine is the **`mbx` branch** of OpenPQ-TGEMIT (the local clone was single-branch, so only
+master was visible). `mbx` is 632 commits past master (last commit 2026-08-30) and carries
+`engine/mbx/` (the MBExtender plugins compiled in: MBPlatinum, MathExtension, FrameRateUnlock,
+RTAAutosplitter, MBCrypt, Disco...), lib/cryptopp, lib/curl, discord-presence. It has 1522
+console definitions vs 1167 on master; the built exe's identifier strings are a superset of
+the shipped marbleblast.exe (5 cosmetic names missing, 164 newer ones added). Worktree
+`C:/Users/doug/src/OpenPQ-TGEMIT-mbx`, built with `build-engine.ps1` (CMake + Ninja + MSVC,
+same recipe as CI, ~12 min) -> `game/TGEMit_Demo.exe` (7.2 MB). The "private tree" caveat
+above is void: every engine change in the table lands on a branch off `mbx`.
+
+**Physics identity verified (2026-09-18 09:44, flat map, `physics_identity_probe.py` on each exe,
+`compare_physics_runs.py`):** the self-built `mbx` exe reproduces the shipped marbleblast.exe
+tick for tick: 3 of 4 trials 0.000 u apart over 1342 ticks, the 4th 0.10 u (10x, the async
+bridge's reply-timing noise). The build is a drop-in replacement for training.
+
+Frame-loop facts from the `mbx` source that change the plan above:
+- `TimeManager::process()` is overridden by `engine/mbx/FrameRateUnlock/FrameRateUnlock.cpp`
+  (`TimeManagerProcessOverride`): high-resolution timer, `accumulator += timeScale * elapsedMs`,
+  one `TimeEvent` per frame with `frameTime = min(accumulator, 50 ms)`. That 50 ms cap is the
+  ~20x ceiling measured on 2026-09-16, and the "one action per wall frame" comes from the
+  script bridge running inside `Sim::advanceTime` of that single event.
+- `setTimeScale`, `setMaxFPS`, `setTickInterval`, `scheduleIgnorePause` live in the same file;
+  the unfocused-window throttle is the `windowActive` sleep there (33 ms), not
+  `backgroundSleepTime`.
+- Main loop order (`engine/game/main.cc:849 DemoGame::mainLoop`): `Net::process()` ->
+  `Platform::process()` -> `TimeManager::process()` -> `processEvents()`; `processElapsedTime`
+  = `serverProcess`, `GNet->processServer`, `Sim::advanceTime`, `clientProcess`,
+  `GNet->processClient`. So a lockstep flag can simply make the override post NO time event
+  while `$AI::WaitingForReply` is set: the loop keeps servicing the socket (`Net::process`)
+  and the sim stands still until the reply lands, with no time-scale tricks.
+- Fixed step: with `$AI::FixedStepMs = 32` the override posts exactly one 32 ms event per
+  frame (one physics tick), never sleeps and ignores the wall clock; combined with lockstep
+  that gives one observation and one action per tick at CPU-bound speed.
+- The single-instance mutex is `Platform::excludeOtherInstances("TorqueTest")` in
+  `engine/gui/core/guiCanvas.cc:205` (SDL2 platform layer on Windows: `platformSDL2/sdlCore.cc`).
+
+**Training mode measured (2026-09-18, branch `ai-training-mode` off `mbx`, `fixedstep_probe.py`,
+flat map, 24-core PC).** Engine flags (console vars, default off): `$AI::FixedStepMs` (exactly N ms
+of sim per frame, no wall clock, no focus throttle), `$AI::Lockstep` (the sim stands still while
+`$AI::WaitReply` is set; the script sets it after each observation, the reply clears it; 5 s
+safety timeout), `$AI::RenderEvery` (render 1 frame in N), `$AI::MultiInstance` (mutex skip, set
+by canvas.cs when `-aiport` is on the command line). Script control words FIXEDSTEP n / LOCKSTEP
+0|1 / RENDEREVERY n; control words are now a queue (a burst of them used to overwrite each other).
+
+| setting | speed (1 instance) | physics ticks/s | integrity vs the shipped exe's async 3x |
+|---|---|---|---|
+| normal timing 3x (today) | 3.0x | 94 | reference |
+| fixed 32 ms + lockstep, render every frame | 34-36x | ~1100 | 2.7 u after a 20 s key script = the async bridge's own reply-timing noise (3x vs 10x differ by 2.9 u); bit-identical across render settings and repeats |
+| fixed 32 ms + lockstep, render 1/100 | 36x | ~1130 | identical to the row above (rendering is not the bottleneck) |
+| fixed 64 ms (1 obs/action per 2 ticks = one 64 ms decision) + lockstep | 64-73x | ~2100-2300 | rest position 0.0004 u from the 32 ms run with aligned key changes; the only difference is the coarser action timing |
+| fixed 128 ms (4 ticks per action) | 114-125x | ~3600-3900 | 1.5 u off: jump presses per observation change the outcome; do not use |
+
+The per-frame cost is the observation (TorqueScript observer + JSON + socket + Python), ~0.9 ms;
+physics ticks are nearly free. Concurrent instances (mutex bypass), fixed 64 + lockstep,
+synchronised 20 s windows: 2 instances 65-68x each; 4 instances 64-73x each at 0.97-1.00 core
+each (aggregate ~280x, ~8,800 ticks/s, ~4,400 decisions/s); 8 instances: 7 at 72-74x and 1 at
+48x, 0.92-0.98 core each (aggregate ~560x, ~17,500 ticks/s, ~8,750 decisions/s). The Python probe
+loop costs about one more core per instance, so on 24 cores 8-10 instances is the sweet spot.
+Against today's one instance at 3x (47 decisions/s) that is ~190x more experience per hour, and
+lockstep removes the stale-observation bug class entirely (the sim waits for every reply).
+What the trainer needs to use it: HuntEnv sends FIXEDSTEP 64 / LOCKSTEP 1 / RENDEREVERY 100 on
+connect and steps one message per decision; a vector env over N ports; run_game_loop.ps1
+launching N instances with `-aiport`; per-instance console.log/prefs (the second instance cannot
+open console.log; harmless so far).
+
 ### 3.2 The navigator (map-independent locomotion skill)
 
 **Task.** Given a waypoint, reach it fast without falling. One network for all

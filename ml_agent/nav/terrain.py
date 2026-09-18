@@ -26,6 +26,10 @@ MAX_SLOPE = 0.6       # rise/run above which a cell is not walkable (31 deg); a 
                       # 45-deg edge bevel slid straight off (King of the Marble, 2026-09-17)
 EDGE_COST = 2.0       # path cost multiplier for cells bordering a drop
 DROP_EDGE = 2.0       # a neighbour more than this far below counts as a drop (edge)
+JUMP_GAP = 4.0        # gaps up to this wide (u) get a "jump edge" in the walk graph
+JUMP_DROP = 6.0       # landing may be this far below the take-off cell ...
+JUMP_RISE = 1.5       # ... or this far above
+JUMP_COST = 3.0       # path cost multiplier for a jump edge (per unit of gap)
 
 
 def _crop_offsets(res):
@@ -44,6 +48,7 @@ class TerrainGrid(TerrainMap):
         self.walk_res = float(walk_res)
         self.z_floor_min = float(np.nanmin(self.heights))
         self._build_walk_grid()
+        self._build_graph()          # walk graph, jump edges and floor components, once per map
 
     # ------------------------------------------------------------------ crops
     def _crop_one(self, x, y, z, offsets):
@@ -132,8 +137,40 @@ class TerrainGrid(TerrainMap):
             dz = np.abs(self.walk_top[b[:, 0], b[:, 1]] - self.walk_top[a[:, 0], a[:, 1]])
             cost = d * (1.0 + dz / d) * np.where(self.edge[a[:, 0], a[:, 1]] | self.edge[b[:, 0], b[:, 1]], EDGE_COST, 1.0)
             rows.append(ia); cols.append(ib); w.append(cost)
+        # Jump edges (2026-09-17): from every edge cell, look across the gap in the 8
+        # directions for the first walkable cell within JUMP_GAP; the cells between must be
+        # non-walkable (a real gap) and the landing height within [-JUMP_DROP, +JUMP_RISE].
+        # Without these, crossing a gap was never "progress" and goals were never sampled
+        # across one, so the policy learned to brake at edges instead of jumping.
+        max_cells = int(round(JUMP_GAP / self.walk_res))
+        jr, jc, jw = [], [], []
+        for (j, i) in np.argwhere(self.edge):
+            for dy, dx in ((0, 1), (1, 0), (0, -1), (-1, 0), (1, 1), (1, -1), (-1, 1), (-1, -1)):
+                for k in range(2, max_cells + 1):
+                    jj, ii = j + dy * k, i + dx * k
+                    if not self.in_walk_grid(jj, ii):
+                        break
+                    if self.walkable[jj, ii]:
+                        if k >= 2 and not any(self.walkable[j + dy * m, i + dx * m] for m in range(1, k)):
+                            dz = self.walk_top[jj, ii] - self.walk_top[j, i]
+                            if -JUMP_DROP <= dz <= JUMP_RISE:
+                                d = self.walk_res * k * math.hypot(dx, dy)
+                                jr.append(idx[j, i]); jc.append(idx[jj, ii]); jw.append(d * JUMP_COST)
+                        break
+        self.jump_edges = len(jr)
         rows = np.concatenate(rows); cols = np.concatenate(cols); w = np.concatenate(w)
         n = len(nodes)
+        # connected components WITHOUT jump edges: "same island" test for goal sampling
+        from scipy.sparse.csgraph import connected_components
+        comp = np.full((H, W), -1, dtype=np.int64)
+        if n:
+            g0 = coo_matrix((np.concatenate([w, w]), (np.concatenate([rows, cols]), np.concatenate([cols, rows]))), shape=(n, n)).tocsr()
+            _, labels = connected_components(g0, directed=False)
+            comp[nodes[:, 0], nodes[:, 1]] = labels
+        self.component = comp
+        if jr:
+            rows = np.concatenate([rows, np.array(jr)]); cols = np.concatenate([cols, np.array(jc)])
+            w = np.concatenate([w, np.array(jw, dtype=np.float64)])
         g = coo_matrix((np.concatenate([w, w]), (np.concatenate([rows, cols]), np.concatenate([cols, rows]))), shape=(n, n)).tocsr()
         self._graph = g
         self._node_idx = idx
@@ -184,14 +221,24 @@ class TerrainGrid(TerrainMap):
         j, i = cells[rng.integers(len(cells))]
         return float(self.wxs[i]), float(self.wys[j]), float(self.walk_top[j, i])
 
-    def sample_goal(self, x, y, rng, dmin=8.0, dmax=40.0, tries=50):
+    def sample_goal(self, x, y, rng, dmin=8.0, dmax=40.0, tries=50, cross_gap_p=0.5):
         """A walkable, non-edge cell between dmin and dmax (straight line) from (x, y) that is
-        reachable (finite path). Returns (gx, gy, gz, path_len) or None."""
+        reachable (finite path, jump edges included). With probability 1 - cross_gap_p the goal
+        is restricted to the marble's own connected floor (no gap to cross), so half the
+        segments train plain locomotion and half train gap crossing.
+        Returns (gx, gy, gz, path_len) or None."""
         field = self.goal_field(x, y)          # distances from the marble to everything
         cells = self._interior_cells()
         cx = self.wxs[cells[:, 1]]; cy = self.wys[cells[:, 0]]
         d = np.hypot(cx - x, cy - y)
         ok = (d >= dmin) & (d <= dmax) & np.isfinite(field[cells[:, 0], cells[:, 1]])
+        if rng.random() >= cross_gap_p:
+            j0, i0 = self.cell_of(x, y)
+            src = self._nearest_walkable(j0, i0, radius=3)
+            if src is not None and self.component[src] >= 0:
+                same = self.component[cells[:, 0], cells[:, 1]] == self.component[src]
+                if (ok & same).any():
+                    ok = ok & same
         if not ok.any():
             ok = (d >= 2.0) & np.isfinite(field[cells[:, 0], cells[:, 1]])
             if not ok.any():

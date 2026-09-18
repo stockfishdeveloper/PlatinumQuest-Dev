@@ -214,6 +214,30 @@ class TerrainMap:
         edge_dz = np.zeros(R, dtype=np.float32)
         active = max_steps > 0
         ar = np.arange(R)
+        # Fast path (2026-09-18, the per-step loop below cost 0.85 ms per observation): where every
+        # cell along a ray holds at most one floor level, "follow the level nearest to the current
+        # height" is simply "compare each step with the previous step", which vectorises exactly.
+        finite = ~np.isnan(h)                                              # (K, R, S)
+        count = finite.sum(axis=0)                                         # (R, S)
+        lev = np.where(count == 1, np.nansum(np.where(finite, h, 0.0), axis=0), np.nan).astype(np.float32)
+        steps_idx = np.arange(RAY_STEPS)[None, :]
+        considered = steps_idx < max_steps[:, None]                        # (R, S) steps this ray looks at
+        simple = ~((count > 1) & considered).any(axis=1)                   # rays with no stacked levels in range
+        if simple.any():
+            prev = np.concatenate([np.full((R, 1), float(z0), dtype=np.float32), lev[:, :-1]], axis=1)
+            diff = np.where(np.isnan(lev), np.inf, np.abs(lev - prev))
+            stop = (diff > FOLLOW_TOL) & considered                        # first True along S = the edge
+            hit_any = stop.any(axis=1)
+            first = np.where(hit_any, stop.argmax(axis=1), 0)
+            sel = simple & hit_any
+            if sel.any():
+                edge_dist[sel] = _RAY_S[first[sel]]
+                level = lev[sel, first[sel]]; base = prev[sel, first[sel]]
+                beyond = ~np.isnan(level)
+                edge_dz[sel] = np.where(beyond, np.clip(np.nan_to_num(level - base) / DZ_SCALE, -1.0, 1.0), -1.0)
+            active = active & ~simple
+        if not active.any():
+            return edge_dist, edge_dz
         for sidx in range(RAY_STEPS):
             if not active.any():
                 break

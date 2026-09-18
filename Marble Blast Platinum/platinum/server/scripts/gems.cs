@@ -67,6 +67,8 @@ function Gem::onAdd(%this,%obj) {
 
 // TODO: allow fancy gem to have points in hunt/gem madness in PQ
 function Gem::onPickup(%this,%obj,%user,%amount) {
+	if (%obj.aiMarker)
+		return false;   // the AI trainer's waypoint marker gem (mlAgent.cs MARK): never collected
 	%pickup = Mode::callback("shouldPickupGem", true, new ScriptObject() {
 		this = %this;
 		obj = %obj;
@@ -374,6 +376,17 @@ datablock ItemData(GemItemBlack_PQ: GemItem_PQ) {
 	skin = "black";
 	customField[1, "disable"] = 1;
 };
+
+// The AI trainer's waypoint marker (client/scripts/ai/mlAgent.cs, MARK control): looks like a
+// black gem but is NOT a Gem (className AIMarker), so the hunt spawn/hide logic and the
+// observer ignore it, and it is never collected.
+datablock ItemData(AIMarkerGem : GemItemBlack_PQ) {
+	className = "AIMarker";
+};
+
+function AIMarker::onPickup(%this, %obj, %user, %amount) {
+	return false;
+}
 
 datablock ItemData(GemItemPlatinum_PQ: GemItem_PQ) {
 	superCategory = "gems";

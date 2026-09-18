@@ -52,6 +52,7 @@ $AIObserver::ForceYaw = 0;
 // frame reaches the physics anyway, so the delay adds latency without adding
 // determinism. Kept for experiments: the Python side may send "DELAY n".
 $MLAgent::ActionDelay = 0;
+
 $MLAgent::Tick = 0;                 // monotonic across rounds and reconnects
 $MLAgent::LoopGen = 0;              // update-loop generation (see MLAgent::start)
 $MLAgent::StartPending = false;
@@ -257,6 +258,10 @@ function MLAgent::update(%gen) {
 
     // 6. Send to Python server and get action
     AIBridge::sendState(%msg);
+    // Engine lockstep (built engine only, $AI::Lockstep): the simulation now stands still
+    // until the reply to this observation arrives (socketBridge.cs clears the flag).
+    if ($AI::Lockstep && $AI::FixedStepMs > 0 && $AIBridge::Connected)
+        $AI::WaitReply = true;
     // Fixed delay: the reply queued for this tick becomes the action now;
     // with nothing queued the previous action stays in force (held).
     if ($AIBridge::Queue[$MLAgent::Tick] !$= "") {
@@ -266,9 +271,11 @@ function MLAgent::update(%gen) {
         $AIBridge::HeldTicks++;
     }
     %actionStr = $AIBridge::LastAction;
-    if ($AIBridge::Control !$= "") {
-        %actionStr = $AIBridge::Control;      // control reply takes this tick (see socketBridge.cs)
-        $AIBridge::Control = "";
+    if ($AIBridge::ControlHead < $AIBridge::ControlTail) {
+        // one queued control word per tick, in arrival order (see socketBridge.cs)
+        %actionStr = $AIBridge::ControlQueue[$AIBridge::ControlHead];
+        $AIBridge::ControlQueue[$AIBridge::ControlHead] = "";
+        $AIBridge::ControlHead++;
     }
     if ($MLAgent::Lockstep && !$MLAgent::DiagnosticMode && $AIBridge::Connected)
         setTimeScale($MLAgent::LockstepScale);   // near-frozen until onLine() delivers the reply
@@ -279,7 +286,29 @@ function MLAgent::update(%gen) {
     //   "TELEPORT x y z [vx vy vz]"     move the marble (listen server: the same
     //                                   call cannon.cs uses); replay_demo.py uses
     //                                   it to start from a recorded position
-    if (getWord(%actionStr, 0) $= "SPEED") {
+    //   "FIXEDSTEP n"    built engine: advance the sim exactly n ms per frame (0 = normal timing);
+    //                    the observation interval follows it (one observation per step)
+    //   "LOCKSTEP 0|1"   built engine: hold the sim until each observation is answered
+    //   "RENDEREVERY n"  built engine: render one frame in n while in fixed-step mode
+    if (getWord(%actionStr, 0) $= "FIXEDSTEP") {
+        %n = getWord(%actionStr, 1) + 0;
+        $AI::FixedStepMs = %n;
+        $MLAgent::UpdateInterval = %n > 0 ? %n : 16;
+        echo("MLAgent: AI::FixedStepMs = " @ $AI::FixedStepMs @ ", update interval " @ $MLAgent::UpdateInterval @ " ms (Python server)");
+        $AIBridge::LastAction = "";
+        %actionStr = "";
+    } else if (getWord(%actionStr, 0) $= "LOCKSTEP") {
+        $AI::Lockstep = (getWord(%actionStr, 1) + 0) > 0;
+        $AI::WaitReply = false;
+        echo("MLAgent: AI::Lockstep = " @ $AI::Lockstep @ " (Python server)");
+        $AIBridge::LastAction = "";
+        %actionStr = "";
+    } else if (getWord(%actionStr, 0) $= "RENDEREVERY") {
+        $AI::RenderEvery = getWord(%actionStr, 1) + 0;
+        echo("MLAgent: AI::RenderEvery = " @ $AI::RenderEvery @ " (Python server)");
+        $AIBridge::LastAction = "";
+        %actionStr = "";
+    } else if (getWord(%actionStr, 0) $= "SPEED") {
         %spd = getWord(%actionStr, 1) + 0;
         if (%spd > 0) {
             $MLAgent::TrainingSpeed = %spd;
@@ -308,6 +337,18 @@ function MLAgent::update(%gen) {
             $MP::MyMarble.setTransform(%tp);
             if (getWord(%actionStr, 4) !$= "")
                 $MP::MyMarble.setVelocity(getWord(%actionStr, 4) SPC getWord(%actionStr, 5) SPC getWord(%actionStr, 6));
+            // a teleported marble kept its SPIN, which turned into a roll in an arbitrary
+            // direction on landing (the navigator's "wrong direction" segments, 2026-09-17).
+            // Reset both the client marble and the server-side player object.
+            $MP::MyMarble.setAngularVelocity("0 0 0");
+            if (isObject(ClientGroup) && ClientGroup.getCount() > 0) {
+                %scl = ClientGroup.getObject(0);
+                if (isObject(%scl) && isObject(%scl.player) && %scl.player != $MP::MyMarble) {
+                    %scl.player.setTransform(%tp);
+                    %scl.player.setVelocity(getWord(%actionStr, 4) !$= "" ? (getWord(%actionStr, 4) SPC getWord(%actionStr, 5) SPC getWord(%actionStr, 6)) : "0 0 0");
+                    %scl.player.setAngularVelocity("0 0 0");
+                }
+            }
             echo("MLAgent: teleported to " @ %tp @ " by the Python server");
         }
         $AIBridge::LastAction = "";
@@ -319,6 +360,7 @@ function MLAgent::update(%gen) {
     //                                   fixed-delay counters (probes use it)
     //   "DELAY n"                       set $MLAgent::ActionDelay (ticks)
     //   "RESPAWN"                      force a server-side respawn of the marble
+    //   "MARK x y z"                   show the navigator's waypoint as a pad (cosmetic)
     if (getWord(%actionStr, 0) $= "STATS") {
         AIBridge::sendState("STATS|" @ $AIBridge::DelayedReplies @ "," @ $AIBridge::LateReplies @ ","
                             @ $AIBridge::HeldTicks @ "," @ $MLAgent::ActionDelay @ "," @ $MLAgent::Tick);
@@ -353,6 +395,49 @@ function MLAgent::update(%gen) {
                      @ "; blocked " @ %cl.spawningBlocked @ " state " @ $Game::State);
             }
         }
+        $AIBridge::LastAction = "";
+        %actionStr = "";
+    } else if (getWord(%actionStr, 0) $= "MARK") {
+        // "MARK x y z": show the navigator's current waypoint as a start pad (cosmetic,
+        // for watching training). Server-side object in the listen server; recreated
+        // after every level restart.
+        %mx = getWord(%actionStr, 1); %my = getWord(%actionStr, 2); %mz = getWord(%actionStr, 3);
+        if (!isObject($MLAgent::Marker)) {
+            // a real black gem item (registered datablock), same size as the map's gems;
+            // Gem::onPickup (server/scripts/gems.cs) ignores items flagged aiMarker
+            $MLAgent::Marker = new Item() {
+                dataBlock = "AIMarkerGem";       // black gem look, className AIMarker (gems.cs)
+                position = %mx SPC %my SPC (%mz + 0.3);
+                rotation = "1 0 0 0";
+                scale = "1 1 1";
+                collideable = "0";
+                static = "1";
+                rotate = "1";
+                aiMarker = "1";
+            };
+            if (isObject(MissionGroup))
+                MissionGroup.add($MLAgent::Marker);
+            echo("MLAgent: waypoint marker " @ $MLAgent::Marker @ " created at " @ %mx SPC %my SPC %mz);
+        } else {
+            $MLAgent::Marker.setTransform(%mx SPC %my SPC (%mz + 0.3) SPC "1 0 0 0");
+        }
+        $MLAgent::Marker.hide(false);         // in case anything hid it
+        $AIBridge::LastAction = "";
+        %actionStr = "";
+    } else if (getWord(%actionStr, 0) $= "DEBUG") {
+        // "DEBUG" -> frame diagnostics on the socket: client marble yaw vs server marble yaw,
+        // $cameraYaw, $mvYaw, gravity, ids (used when the trainer detects a flipped frame)
+        %cl = (isObject(ClientGroup) && ClientGroup.getCount() > 0) ? ClientGroup.getObject(0) : 0;
+        %sp = (isObject(%cl) && isObject(%cl.player)) ? %cl.player : 0;
+        %d = "DEBUG|client=" @ $MP::MyMarble @ "|clientYaw=" @ (isObject($MP::MyMarble) ? $MP::MyMarble.getCameraYaw() : "?")
+           @ "|server=" @ %sp @ "|serverYaw=" @ (isObject(%sp) ? %sp.getCameraYaw() : "?")
+           @ "|cameraYaw=" @ $cameraYaw @ "|mvYaw=" @ $mvYaw
+           @ "|clientPos=" @ (isObject($MP::MyMarble) ? $MP::MyMarble.getPosition() : "?")
+           @ "|serverPos=" @ (isObject(%sp) ? %sp.getPosition() : "?")
+           @ "|control=" @ (isObject(ServerConnection) ? ServerConnection.getControlObject() : "?")
+           @ "|gravRot=" @ $Game::GravityRot @ "|oob=" @ (isObject(%cl) ? %cl.isOOB : "?");
+        echo("MLAgent: DEBUG requested -> " @ %d);
+        AIBridge::sendState(%d);
         $AIBridge::LastAction = "";
         %actionStr = "";
     } else if (getWord(%actionStr, 0) $= "DELAY") {

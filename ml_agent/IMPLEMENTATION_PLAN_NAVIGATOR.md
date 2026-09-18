@@ -246,6 +246,21 @@ With lockstep the `HuntEnv.step()` becomes exact (2 ticks per decision) and
 `VecHuntEnv` runs N processes; the trainer code does not change. Target:
 >= 150 decisions/s aggregate (roadmap milestone 1).
 
+Update 2026-09-18: the source is available (OpenPQ-TGEMIT branch `mbx`, worktree
+`C:/Users/doug/src/OpenPQ-TGEMIT-mbx`, builds in ~12 min). Hook points found: the time
+manager override in `engine/mbx/FrameRateUnlock/FrameRateUnlock.cpp` (fixed step + lockstep
+go here: post one 32 ms event per frame, post nothing while a reply is pending), the main loop
+in `engine/game/main.cc:849` (Net::process runs before TimeManager::process every frame, so
+the socket keeps being read while the sim waits), the mutex in `guiCanvas.cc:205`. First
+milestone: an exe that passes `physics_identity_probe.py` against the shipped one at 1x, then
+the fixed-step + lockstep flags. Details in ROADMAP_NAVIGATOR_PLANNER.md 3.1.
+
+Status 2026-09-18: fixed step, lockstep, render skipping and the multi-instance mutex skip are
+implemented on branch `ai-training-mode` (worktree C:/Users/doug/src/OpenPQ-TGEMIT-mbx) and measured:
+64-73x per instance at one 64 ms decision per observation, 8 instances ~560x aggregate, physics
+identical to 0.4 mm. Remaining in WP7: headless (not needed now; rendering is cheap when skipped),
+per-instance log/prefs paths, and the trainer-side vector env. Numbers in ROADMAP 3.1.
+
 ### WP8 `[now]` Heuristic planner v0 (4 days)
 
 - Observer extension (game side, `observer.cs`): send ALL spawned gems

@@ -18,6 +18,26 @@ from nav.terrain import CROP_SHAPE
 HIDDEN = 256
 ACTION_DIM = 5
 
+# Jump prior (2026-09-17): a fixed, non-learned bonus on the jump logit when the edge ray
+# toward the waypoint shows a drop within JUMP_PRIOR_DIST u, the marble is on the floor and
+# moving. Without it the learned jump logit sat at its -7 clamp (0.1 %) after the flat maps,
+# so a jump at a gap edge was never sampled and could never be learned. The learned head can
+# cancel the bonus where jumping is bad. Map-independent: it only reads the rays.
+JUMP_PRIOR = 6.0            # logit bonus (-7 -> -1 = 27 % per decision at a gap edge)
+JUMP_PRIOR_DIST = 2.5       # edge within this many u along the line to the waypoint
+JUMP_PRIOR_DROP = -0.15     # ray "beyond" value below this = a drop of > 1.5 u or void
+JUMP_PRIOR_SPEED = 1.5      # u/s (was 2.0: braking dropped the marble under the gate and it rolled off)
+JUMP_LANDING_MAX = 4.5      # a landing within this many u beyond the edge (fine crop, 0.5 u cells) = crossable
+JUMP_LANDING_DZ = 0.15      # landing height within +/-1.5 u of the current floor (crop units are /10)
+BRAKE_SUPPRESS = 6.0        # brake logit penalty while the gap prior is active (2026-09-17: 96 % of falls
+                            # at gaps came after braking, 77 % without any jump)
+BRAKE_ENABLED = False       # 2026-09-17: the brake (full-throttle anti-velocity kick, inherited from the old
+                            # trainer) preceded 85 % of falls on the islands and was used 4.7x per segment;
+                            # the direction head can decelerate by steering, so the action is switched off
+                            # (logit pinned at -20). The head stays in the model for checkpoint compatibility.
+VEC_GOAL_DIST, VEC_SPEED, VEC_ON_FLOOR = 2, 7, 8
+VEC_GOAL_RAY_CLEAR, VEC_GOAL_RAY_BEYOND = 10 + 32, 10 + 33
+
 
 class NavActorCritic(nn.Module):
     LOG_STD_MIN, LOG_STD_MAX = -2.0, -0.5
@@ -66,11 +86,35 @@ class NavActorCritic(nn.Module):
         x = torch.cat([self.conv(crop), self.vec(vec)], dim=1)
         return self.gru(self.pre(x), h)
 
-    def heads(self, h):
+    @staticmethod
+    def gap_prior(crop, vec):
+        """(B,) 1.0 where a crossable gap lies just ahead along the line to the waypoint:
+        the edge ray ends within JUMP_PRIOR_DIST u with a drop beyond it, AND the fine crop
+        shows floor at about the current height within JUMP_LANDING_MAX u past the edge, AND
+        the marble is on the floor and moving. Fixed, map-independent (rays + crop only)."""
+        B = vec.shape[0]
+        ux, uy = vec[:, 0], vec[:, 1]
+        edge_u = vec[:, VEC_GOAL_RAY_CLEAR] * vec[:, VEC_GOAL_DIST] * 50.0
+        at_edge = (edge_u < JUMP_PRIOR_DIST) & (vec[:, VEC_GOAL_RAY_CLEAR] < 0.999) & (vec[:, VEC_GOAL_RAY_BEYOND] < JUMP_PRIOR_DROP)
+        ready = (vec[:, VEC_ON_FLOOR] > 0.5) & (vec[:, VEC_SPEED] * 20.0 > JUMP_PRIOR_SPEED)
+        # sample the fine crop (channel 0 rel height /10, channel 1 present; 0.5 u cells, centre 15.5)
+        ds = edge_u.unsqueeze(1) + torch.arange(0.5, JUMP_LANDING_MAX + 0.01, 0.5, device=vec.device).unsqueeze(0)   # (B, K)
+        ix = (15.5 + ux.unsqueeze(1) * ds / 0.5).round().long().clamp(0, 31)
+        iy = (15.5 + uy.unsqueeze(1) * ds / 0.5).round().long().clamp(0, 31)
+        bi = torch.arange(B, device=vec.device).unsqueeze(1).expand_as(ix)
+        present = crop[:, 1][bi, iy, ix] > 0.5
+        level = crop[:, 0][bi, iy, ix].abs() < JUMP_LANDING_DZ
+        landing = (present & level).any(dim=1)
+        return (at_edge & ready & landing).float()
+
+    def heads(self, h, vec, crop=None):
         mean_xy = self.dir_head(h)
         thr = self.throttle_head(h).squeeze(-1)
-        jump = torch.clamp(self.jump_head(h).squeeze(-1), -7.0, 3.0)
-        brake = torch.clamp(self.brake_head(h).squeeze(-1), -7.0, 3.0)
+        gp = self.gap_prior(crop, vec) if crop is not None else torch.zeros_like(thr)
+        jump = torch.clamp(self.jump_head(h).squeeze(-1) + gp * JUMP_PRIOR, -7.0, 3.0)
+        brake = torch.clamp(self.brake_head(h).squeeze(-1) - gp * BRAKE_SUPPRESS, -7.0, 3.0)
+        if not BRAKE_ENABLED:
+            brake = torch.full_like(brake, -20.0)
         vn = self.value_head(h).squeeze(-1)
         return mean_xy, thr, jump, brake, vn
 
@@ -94,7 +138,7 @@ class NavActorCritic(nn.Module):
         """crop (B,6,32,32), vec (B,48), h (B,H). Returns dict with action_buf (B,5), action_game (B,5),
         logp (B,), value (B,), h_next (B,H)."""
         h1 = self.core(crop, vec, h)
-        mean_xy, thr, jump, brake, vn = self.heads(h1)
+        mean_xy, thr, jump, brake, vn = self.heads(h1, vec, crop)
         d_dir, d_thr, d_jump, d_brake = self.dists(mean_xy, thr, jump, brake)
         if deterministic:
             direction = d_dir.mean; thr_s = thr; j = (torch.sigmoid(jump) > 0.5).float(); b = (torch.sigmoid(brake) > 0.5).float()
@@ -118,7 +162,7 @@ class NavActorCritic(nn.Module):
         for t in range(T):
             h = h * (1.0 - resets[t]).unsqueeze(-1)
             h = self.core(crops[t], vecs[t], h)
-            mean_xy, thr, jump, brake, vn = self.heads(h)
+            mean_xy, thr, jump, brake, vn = self.heads(h, vecs[t], crops[t])
             d_dir, d_thr, d_jump, d_brake = self.dists(mean_xy, thr, jump, brake)
             a = actions[t]
             logp = d_dir.log_prob(a[:, 0:2]).sum(-1) + d_thr.log_prob(a[:, 2]) + d_jump.log_prob(a[:, 3]) + d_brake.log_prob(a[:, 4])
@@ -143,16 +187,4 @@ class NavActorCritic(nn.Module):
         last.bias.copy_((last.bias * old_std + old_mean - self.value_mean) / self.value_std)
 
 
-def action_to_joystick(dx, dy, throttle, jump=0, brake=0, vx=0.0, vy=0.0):
-    """(dx, dy) world direction (+x right/east, +y forward/north), throttle [0,1]; brake overrides
-    the direction to anti-velocity at full throttle. Returns (fwd, back, left, right, jump)."""
-    if brake > 0.5:
-        speed_xy = math.sqrt(vx * vx + vy * vy)
-        if speed_xy > 0.1:
-            dx, dy, throttle = -vx / speed_xy, -vy / speed_xy, 1.0
-    else:
-        n = math.sqrt(dx * dx + dy * dy)
-        if n > 1e-6:
-            dx, dy = dx / n, dy / n
-    mx, my = dx * throttle, dy * throttle
-    return (round(max(my, 0.0), 6), round(max(-my, 0.0), 6), round(max(-mx, 0.0), 6), round(max(mx, 0.0), 6), int(jump))
+from nav.joystick import action_to_joystick   # noqa: E402,F401  (moved to a torch-free module; still importable from here)

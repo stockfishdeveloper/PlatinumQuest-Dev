@@ -95,3 +95,25 @@ Marble Blast Platinum/platinum/client/ui/search/marblelandpacks/*.jpg
 #   git add -f ml_agent/models/checkpoints/update_NNNNN.pth
 ml_agent/models/checkpoints/**/*.pth
 ml_agent/__pycache__/
+
+# Engine shader/pipeline cache written by the WebGPU build at runtime (hundreds of .bin files)
+Marble Blast Platinum/cache/
+
+# Python bytecode anywhere
+__pycache__/
+*.pyc
+
+# Navigator trainer: auto-saved numbered checkpoints (~3 MB each, one every 25 updates);
+# nav_latest.pth stays tracked as the resume point. Keep a milestone with git add -f.
+ml_agent/models/nav/nav_0*.pth
+ml_agent/models/nav/*.tmp
+
+# Navigator runtime outputs: per-decision traces (tens of MB), process stdout/stderr,
+# game-loop and dashboard output, probe scratch. The train_nav_*.log files stay committable.
+ml_agent/logs/nav/trace_*.csv
+ml_agent/logs/nav/stdout.txt
+ml_agent/logs/nav/stderr.txt
+ml_agent/logs/nav/game_loop.txt
+ml_agent/logs/nav/dashboard*.txt
+ml_agent/logs/probe_sync/
+ml_agent/logs/multi_probe_*.txt

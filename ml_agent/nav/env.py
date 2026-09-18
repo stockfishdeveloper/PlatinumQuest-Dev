@@ -14,6 +14,7 @@ import os
 import sys
 import time
 import socket
+import select
 import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -22,6 +23,14 @@ from nav.protocol import (GameMessage, parse_message, format_action, format_tele
 
 ACTION_REPEAT = 4
 TICK_S = 0.016
+# Built-engine training mode (2026-09-18, marbleblast_mbx.exe): the game advances exactly OBS_MS
+# of simulation per observation and stands still until we reply (lockstep), so one observation
+# is one decision, nothing is ever stale, and the sim runs as fast as the round trip allows
+# (~70x per instance). With the shipped exe these control words are ignored and the old
+# 16 ms / 4-message decision applies.
+TRAINING_MODE = True
+OBS_MS = 64
+RENDER_EVERY = 100
 NEW_ROUND_MIN_LEFT_S = 200.0     # fallback when the round length is unknown (5-min rounds)
 NEW_ROUND_FRACTION = 0.8         # clock >= this fraction of the round length = the next round has started
 
@@ -30,15 +39,19 @@ class HuntEnv:
     def __init__(self, port=8888, speed=3, action_repeat=ACTION_REPEAT, log=print):
         self.port = port
         self.speed = speed
-        self.repeat = action_repeat
+        self.repeat = 1 if TRAINING_MODE else action_repeat
+        self.obs_ms = OBS_MS if TRAINING_MODE else 16
         self.log = log
         self.srv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.srv.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.srv.bind(('127.0.0.1', port)); self.srv.listen(1)
-        self.conn = None; self.f = None
+        self.conn = None; self.buf = b''
+        self.reads = 0; self.stale_reads = 0   # lines served from the buffer without waiting = we were late
         self.msg = None                   # the observation awaiting our reply
         self.info = {}                    # from the INFO control word
         self.stats = None
+        self.debug = None
+        self.recent_lines = []            # last non-observation lines, for diagnostics
         self.round_ended = False
         self.reconnected = False
         self.ticks = 0
@@ -54,7 +67,7 @@ class HuntEnv:
                 pass
         self.log(f'[env:{self.port}] waiting for the game')
         self.conn, addr = self.srv.accept()
-        self.f = self.conn.makefile('r')
+        self.buf = b''
         self.connections += 1
         self.reconnected = self.connections > 1
         self.log(f'[env:{self.port}] game connected ({self.connections})')
@@ -69,15 +82,78 @@ class HuntEnv:
             self._accept()
 
     def _readline(self):
+        waited = False
         while True:
+            i = self.buf.find(b'\n')
+            if i >= 0:
+                line, self.buf = self.buf[:i + 1], self.buf[i + 1:]
+                self.reads += 1
+                if not waited:
+                    self.stale_reads += 1
+                return line.decode('utf-8', 'replace')
             try:
-                line = self.f.readline()
+                data = self.conn.recv(65536)
             except OSError:
-                line = ''
-            if line:
-                return line
+                data = b''
+            if data:
+                self.buf += data; waited = True
+                continue
             self.log(f'[env:{self.port}] game disconnected')
             self._accept()
+
+    def lag_pct(self):
+        """Share of observations since the last call that were already waiting in the socket when we
+        asked for them (0 = we answer every game frame as it happens; high = we run behind)."""
+        r, st = self.reads, self.stale_reads
+        self.reads = self.stale_reads = 0
+        return 100.0 * st / r if r else 0.0
+
+    def drain(self):
+        """Discard the observations that piled up while we were busy. The game never waits for a
+        reply: it sends one observation per frame and keeps the last keys pressed, so after any
+        pause on our side (a PPO update = ~12 s of sim at 3x) the socket holds hundreds of stale
+        observations. Answering those one by one drove the marble from observations seconds in
+        the past (the 'wrong direction' segments, ignored TELEPORTs and refused RESPAWNs of
+        2026-09-17). Returns the number of observations dropped; the newest one becomes the
+        pending observation. Non-observation lines in the backlog are processed as usual
+        (a round end sets round_ended)."""
+        n = 0; last = None
+        while True:
+            i = self.buf.find(b'\n')
+            if i >= 0:
+                line, self.buf = self.buf[:i + 1], self.buf[i + 1:]
+                m = parse_message(line.decode('utf-8', 'replace'))
+                if m.kind == 'obs':
+                    n += 1; last = m; self.ticks += 1
+                else:
+                    self.recent_lines.append(f'{self.ticks}:{m.kind}:{m.raw[:160]}')
+                    self.recent_lines = self.recent_lines[-20:]
+                    if m.kind == 'end':
+                        self.round_ended = True
+                    elif m.kind == 'info':
+                        self.info = {'mission': m.fields[0] if m.fields else '',
+                                     'round_ms': float(m.fields[1]) if len(m.fields) > 1 else 0.0,
+                                     'time_scale': float(m.fields[2]) if len(m.fields) > 2 else 0.0}
+                    elif m.kind == 'stats':
+                        self.stats = m.fields
+                    elif m.kind == 'debug':
+                        self.debug = m.fields
+                continue
+            ready, _, _ = select.select([self.conn], [], [], 0.0)
+            if not ready:
+                break
+            try:
+                data = self.conn.recv(65536)
+            except OSError:
+                data = b''
+            if not data:
+                self.log(f'[env:{self.port}] game disconnected (found while draining)')
+                self._accept(); last = self._recv_obs(); self.reconnected = True
+                break
+            self.buf += data
+        if last is not None:
+            self.msg = last
+        return n
 
     def _recv_obs(self, reply_to_extra=NOOP_ACTION):
         """Next 'obs' message; stats/info are stored; a round-end message sets round_ended."""
@@ -86,8 +162,12 @@ class HuntEnv:
             if m.kind == 'obs':
                 self.ticks += 1
                 return m
+            self.recent_lines.append(f'{self.ticks}:{m.kind}:{m.raw[:160]}')
+            self.recent_lines = self.recent_lines[-20:]
             if m.kind == 'stats':
                 self.stats = m.fields
+            elif m.kind == 'debug':
+                self.debug = m.fields
             elif m.kind == 'info':
                 self.info = {'mission': m.fields[0] if m.fields else '',
                              'round_ms': float(m.fields[1]) if len(m.fields) > 1 else 0.0,
@@ -122,9 +202,28 @@ class HuntEnv:
         self._send(word)
         self.msg = self._recv_obs()
 
+    def request_debug(self, wait_ticks=24):
+        """Ask the game for frame diagnostics (DEBUG control); returns the fields or None."""
+        self.debug = None
+        self.control('DEBUG')
+        for _ in range(wait_ticks):
+            if self.debug is not None:
+                break
+            self.step(NOOP_ACTION, repeat=1)
+        return self.debug
+
     def set_speed(self, n):
         self.speed = n
         self.control(f'SPEED {n:g}')
+        if TRAINING_MODE:
+            # on every (re)connect path: fixed step, lockstep, render 1 frame in RENDER_EVERY
+            self.control(f'FIXEDSTEP {OBS_MS}')
+            self.control('LOCKSTEP 1')
+            self.control(f'RENDEREVERY {RENDER_EVERY}')
+
+    def mark(self, x, y, z):
+        """Show the current waypoint in the game (a small start pad); cosmetic."""
+        self.control(f'MARK {x:.3f} {y:.3f} {z:.3f}')
 
     def teleport(self, x, y, z, vx=0.0, vy=0.0, vz=0.0, settle_ticks=2):
         self.control(format_teleport(x, y, z, vx, vy, vz))
@@ -151,6 +250,19 @@ class HuntEnv:
                 break
         self.msg = m
         return m, {'fell': fell, 'gem_delta': gems, 'round_ended': self.round_ended,
+                   'reconnected': self.reconnected, 'ticks': self.ticks}
+
+    def step_async(self, joystick, use_pow=0):
+        """Send the reply to the pending observation without waiting for the next one (vector env:
+        send to every instance first, then collect; the lockstepped games run in parallel)."""
+        self.round_ended = False; self.reconnected = False
+        self._send(format_action(*joystick, use_pow=use_pow, tick=self.msg.tick))
+
+    def step_wait(self):
+        """Second half of step_async: the next observation and the same info dict as step()."""
+        m = self._recv_obs()
+        self.msg = m
+        return m, {'fell': bool(m.oob), 'gem_delta': m.gem_delta, 'round_ended': self.round_ended,
                    'reconnected': self.reconnected, 'ticks': self.ticks}
 
     def time_left_s(self):
@@ -194,7 +306,7 @@ class HuntEnv:
         now = time.perf_counter()
         dt = now - self._t0; dticks = self.ticks - self._ticks0
         self._t0, self._ticks0 = now, self.ticks
-        return (dticks * TICK_S / dt) if dt > 0 else 0.0
+        return (dticks * self.obs_ms / 1000.0 / dt) if dt > 0 else 0.0
 
     def pos(self):
         return self.msg.obs[RAW_POS]
