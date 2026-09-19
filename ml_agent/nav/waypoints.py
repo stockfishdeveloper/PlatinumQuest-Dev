@@ -29,6 +29,17 @@ AIR = 0.1                      # per decision airborne BEYOND the grace period b
 AIR_GRACE = 16                 # ~1 s: a purposeful jump is free; tumbling / falling still costs
                                # (2026-09-17: charging every airborne decision taught the policy that
                                # jumping never pays, so it never jumped gaps)
+JUMP_TAKEOFF = 0.4             # per jump COMMANDED WHILE ON THE FLOOR (an actual takeoff; a jump
+                               # pressed in mid-air does nothing in the engine and is not charged).
+                               # 2026-09-18: on King of the Marble the policy jumped on 32 % of
+                               # decisions and was airborne 51 % of the time with the gap prior
+                               # active on only 0.5 % -- compulsive bouncing, not gap crossing.
+                               # Airborne = almost no control, so it fell: segments with a
+                               # below-median jump rate arrived 96 % of the time, above-median 11 %.
+                               # AIR alone could not stop it because 71 % of airborne stretches are
+                               # shorter than AIR_GRACE and cost nothing. Charging the takeoff
+                               # instead of the airtime keeps a real gap jump cheap (one fee that
+                               # the progress reward covers) while bouncing pays on every hop.
 BRAKE = 0.1                    # per decision with the brake held: on King of the Marble the policy
                                # settled into braking 52 % of the time (1 u/s, 5 % arrivals) because
                                # braking was free (2026-09-17)
@@ -200,9 +211,12 @@ class SegmentManager:
         x, y, z = (float(v) for v in pos)
         return self.terrain.contains(x, y) and z >= self.terrain.z_floor_min - 1.0
 
-    def step(self, pos, fell, airborne, round_ended, elapsed_s=0.0, braked=False, airborne_decisions=0):
+    def step(self, pos, fell, airborne, round_ended, elapsed_s=0.0, braked=False, airborne_decisions=0,
+             jumped=False):
         """Reward and (done, outcome) for the decision that led to `pos`. `airborne` is the flag
-        for this decision, `airborne_decisions` how many consecutive decisions it has been airborne."""
+        for this decision, `airborne_decisions` how many consecutive decisions it has been airborne,
+        `jumped` whether a jump was commanded (charged only when it was a real takeoff, i.e. the
+        marble was on the floor)."""
         s = self.seg
         self._elapsed = elapsed_s
         x, y, z = (float(v) for v in pos)
@@ -216,7 +230,8 @@ class SegmentManager:
         progress = max(-PROGRESS_CLIP, min(PROGRESS_CLIP, s.prev_d - d))
         s.prev_d = d
         air_cost = AIR if (airborne and airborne_decisions > AIR_GRACE) else 0.0
-        r = PROGRESS * progress - TIME - air_cost - (BRAKE if braked else 0.0)
+        takeoff_cost = JUMP_TAKEOFF if (jumped and not airborne) else 0.0
+        r = PROGRESS * progress - TIME - air_cost - takeoff_cost - (BRAKE if braked else 0.0)
         done, outcome = False, None
         # off the map (below the lowest floor / outside the grid) without the game's OOB flag:
         # after OFFMAP_FALL_DECISIONS decisions count it as a fall ourselves

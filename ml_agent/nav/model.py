@@ -29,6 +29,18 @@ JUMP_PRIOR_DROP = -0.15     # ray "beyond" value below this = a drop of > 1.5 u 
 JUMP_PRIOR_SPEED = 1.5      # u/s (was 2.0: braking dropped the marble under the gate and it rolled off)
 JUMP_LANDING_MAX = 4.5      # a landing within this many u beyond the edge (fine crop, 0.5 u cells) = crossable
 JUMP_LANDING_DZ = 0.15      # landing height within +/-1.5 u of the current floor (crop units are /10)
+JUMP_DAMP = 2.0             # constant subtracted from the jump logit, the mirror of BRAKE_SUPPRESS.
+                            # 2026-09-18: measured on King of the Marble, a takeoff ends in a fall
+                            # 40.7 % of the time (islands 12.0 %) and 83 % of its takeoffs happen with
+                            # NO gap prior active, i.e. no gap to cross. Segments with no takeoff
+                            # arrive 87 %, with any takeoff 29 %, and 70 % of arrivals need no jump at
+                            # all. The residual takeoffs are exploration noise from the Bernoulli jump
+                            # head (the policy had already pushed itself below its own -3 bias), so a
+                            # reward penalty is the wrong lever -- the implicit cost is already
+                            # 0.407 x FALL = 4.07 per takeoff. Damping the logit takes the stray base
+                            # rate 4.7 % -> 0.7 % while a real gap edge still fires at 73 % per
+                            # decision (near-certain over the several decisions spent at an edge).
+                            # Map-independent: nothing about King of the Marble is baked in.
 BRAKE_SUPPRESS = 6.0        # brake logit penalty while the gap prior is active (2026-09-17: 96 % of falls
                             # at gaps came after braking, 77 % without any jump)
 BRAKE_ENABLED = False       # 2026-09-17: the brake (full-throttle anti-velocity kick, inherited from the old
@@ -111,7 +123,7 @@ class NavActorCritic(nn.Module):
         mean_xy = self.dir_head(h)
         thr = self.throttle_head(h).squeeze(-1)
         gp = self.gap_prior(crop, vec) if crop is not None else torch.zeros_like(thr)
-        jump = torch.clamp(self.jump_head(h).squeeze(-1) + gp * JUMP_PRIOR, -7.0, 3.0)
+        jump = torch.clamp(self.jump_head(h).squeeze(-1) - JUMP_DAMP + gp * JUMP_PRIOR, -7.0, 3.0)
         brake = torch.clamp(self.brake_head(h).squeeze(-1) - gp * BRAKE_SUPPRESS, -7.0, 3.0)
         if not BRAKE_ENABLED:
             brake = torch.full_like(brake, -20.0)

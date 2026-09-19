@@ -3,15 +3,19 @@
 # Launches N copies of the game with "-autotrain <MissionName> -aiport <port>"; the hook at the
 # end of platinum/client/scripts/ai/mlAgent.cs reads those flags and hosts, loads and starts a
 # round of that mission by itself, connecting to the trainer on its port (8888, 8889, ...).
-# Any instance that exits (crash or close) is relaunched on the same port. The engine prints one
-# harmless "Unkown command line argument: -autotrain" line at startup.
+# Any instance that exits (crash or close) is relaunched on the same port with the same mission.
+# The engine prints one harmless "Unkown command line argument: -autotrain" line at startup.
 #
 # Start the trainer first: python -m nav.train_nav keeps its networks, optimizer and counters in
 # memory across game disconnects, so a relaunched instance simply resumes on its port.
 #
-#   .\run_game_loop.ps1                                   # 8 instances of the built engine on FlatIslands_Hunt
-#   .\run_game_loop.ps1 -Instances 1 -Exe marbleblast.exe # the shipped exe (one instance only: its mutex)
-#   .\run_game_loop.ps1 -Mission "FlatIslands_Hunt,KingOfTheMarble_Hunt" -RestartEveryHours 1
+#   .\run_game_loop.ps1                                             # 8 instances, all FlatIslands_Hunt
+#   .\run_game_loop.ps1 -Mission "FlatIslands_Hunt,KingOfTheMarble_Hunt" -Split "6,2"
+#                                                                   # instances 0-5 islands, 6-7 KOTM (a map mix,
+#                                                                   #  every update sees both maps; no forgetting)
+#   .\run_game_loop.ps1 -Mission "A,B,C"                            # no -Split: round-robin A,B,C,A,B,C,...
+#   .\run_game_loop.ps1 -Instances 1 -Exe marbleblast.exe           # the shipped exe (one instance only: its mutex)
+#   .\run_game_loop.ps1 -RestartEveryHours 6                        # also relaunch everything every 6 h
 #
 # The built engine (marbleblast_mbx.exe, OpenPQ-TGEMIT branch ai-training-mode) runs several
 # instances at once and in fixed-step lockstep does not care whether its windows are focused.
@@ -23,22 +27,34 @@
 # Ctrl+C in this window stops the loop (and leaves the current games running).
 
 param(
-    [string]$Mission = "FlatIslands_Hunt",         # one mission, or a comma-separated list to rotate through
-    [double]$RestartEveryHours = 0,                # with a list: how long each mission runs before the next
+    [string]$Mission = "FlatIslands_Hunt",         # one mission, or a comma-separated list spread over the instances
+    [string]$Split = "",                           # how many instances per mission, e.g. "6,2" (default: round-robin)
+    [double]$RestartEveryHours = 0,                # relaunch every instance this often (0 = only when one exits)
     [int]$Instances = 8,                           # must match N_INSTANCES in nav/train_nav.py
     [string]$Exe = "marbleblast_mbx.exe",          # built engine; marbleblast.exe = the shipped one
     [int]$Port0 = 8888
 )
 $missions = @($Mission -split "," | ForEach-Object { $_.Trim() } | Where-Object { $_ -ne "" })   # @() keeps a single mission an array (a scalar would index its first LETTER)
-$missionIndex = 0
+
+# mission per instance index
+$assign = @()
+if ($Split -ne "") {
+    $counts = @($Split -split "," | ForEach-Object { [int]$_.Trim() })
+    if ($counts.Count -ne $missions.Count) { Write-Error "-Split needs one count per mission ($($missions.Count) missions, $($counts.Count) counts)"; exit 1 }
+    for ($m = 0; $m -lt $missions.Count; $m++) { for ($k = 0; $k -lt $counts[$m]; $k++) { $assign += $missions[$m] } }
+    if ($assign.Count -ne $Instances) { Write-Error "-Split adds up to $($assign.Count) instances, -Instances is $Instances"; exit 1 }
+} else {
+    for ($i = 0; $i -lt $Instances; $i++) { $assign += $missions[$i % $missions.Count] }
+}
 
 $exe = Join-Path $PSScriptRoot "..\Marble Blast Platinum\$Exe"
 $exe = [System.IO.Path]::GetFullPath($exe)
 if (-not (Test-Path $exe)) { Write-Error "Game executable not found: $exe"; exit 1 }
 $workdir = Split-Path $exe
 
-function Launch-Instance([int]$i, [string]$mission) {
+function Launch-Instance([int]$i) {
     $port = $Port0 + $i
+    $mission = $assign[$i]
     $p = Start-Process -FilePath $exe -ArgumentList @("-autotrain", $mission, "-aiport", "$port") -WorkingDirectory $workdir -PassThru
     Write-Host ("[{0}] instance {1} launched: {2} -autotrain {3} -aiport {4} (pid {5})" -f (Get-Date).ToString("HH:mm:ss"), $i, $Exe, $mission, $port, $p.Id)
     return $p
@@ -46,11 +62,10 @@ function Launch-Instance([int]$i, [string]$mission) {
 
 while ($true) {
     $started = Get-Date
-    $current = $missions[$missionIndex % $missions.Count]
-    $missionIndex++
+    Write-Host ("[{0}] mission per instance: {1}" -f $started.ToString("HH:mm:ss"), ($assign -join ", "))
     $procs = @()
     for ($i = 0; $i -lt $Instances; $i++) {
-        $procs += Launch-Instance $i $current
+        $procs += Launch-Instance $i
         Start-Sleep -Seconds 2
     }
 
@@ -73,7 +88,7 @@ while ($true) {
             if ($procs[$i].HasExited) {
                 Write-Host ("[{0}] instance {1} exited (code {2}); relaunching in 10 s" -f (Get-Date).ToString("HH:mm:ss"), $i, $procs[$i].ExitCode)
                 Start-Sleep -Seconds 10
-                $procs[$i] = Launch-Instance $i $current
+                $procs[$i] = Launch-Instance $i
             }
         }
     }

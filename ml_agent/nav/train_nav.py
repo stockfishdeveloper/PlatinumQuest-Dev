@@ -105,9 +105,10 @@ class WorkerProxy:
         self.listener.close()
 
 
-def pooled_stats(workers):
-    """SegmentManager.stats() pooled over the instances (each reports its own last 300 segments)."""
-    st = [w.stats for w in workers if w.stats and w.stats.get('segments', 0) > 0]
+def pooled_stats(workers, mission=None):
+    """SegmentManager.stats() pooled over the instances (each reports its own last 300 segments),
+    optionally only those on one mission."""
+    st = [w.stats for w in workers if w.stats and w.stats.get('segments', 0) > 0 and (mission is None or w.mission == mission)]
     if not st:
         return {'segments': 0, 'arrive_pct': 0.0, 'falls_per_100u': 0.0, 'speed': 0.0, 'timeout_pct': 0.0}
     n = sum(s['segments'] for s in st)
@@ -243,6 +244,10 @@ def main():
                 wall = time.perf_counter() - t_last
                 flips = sum(w.flips for w in workers)
                 missions = sorted(set(w.mission for w in workers))
+                if len(missions) > 1:
+                    # a map mix across instances: per-map arrival / fall numbers on their own line
+                    log('MAPS ' + ' | '.join(f'{m}: n={sum(1 for w in workers if w.mission == m)} arrive={pooled_stats(workers, m)["arrive_pct"]:.0f}% '
+                                             f'falls100={pooled_stats(workers, m)["falls_per_100u"]:.2f} speed={pooled_stats(workers, m)["speed"]:.1f}' for m in missions))
                 log(f'NAV upd={update} map={"+".join(missions)} r={arrive["r"]:.2f} steps={steps:,} segs={seg_total} arrive={s["arrive_pct"]:.0f}% '
                     f'falls100={s["falls_per_100u"]:.2f} speed={s["speed"]:.1f} rew={np.mean(recent_rewards) if recent_rewards else 0:.1f} '
                     f'pl={st.get("pl", 0):.3f} vl={st.get("vl", 0):.3f} ent={st.get("ent", 0):.2f} kl={st.get("kl", 0):.3f} '

@@ -149,7 +149,8 @@ class InstanceWorker:
             return self._reply(skip=True, truncate=0)
         airborne = not self.on_floor
         r, done, outcome = self.segs.step(msg.obs[:3], info['fell'], airborne, info['round_ended'], self.env.time_left_s(),
-                                          braked=a[4] > 0.5, airborne_decisions=self.obs_b.airborne)
+                                          braked=a[4] > 0.5, airborne_decisions=self.obs_b.airborne,
+                                          jumped=a[3] > 0.5)
         self.ep_reward += r
         o = msg.obs
         trace = (f'{self.seg_count},{self.env.time_left_s():.2f},{o[0]:.2f},{o[1]:.2f},{o[2]:.2f},{o[3]:.2f},{o[4]:.2f},{o[5]:.2f},'
