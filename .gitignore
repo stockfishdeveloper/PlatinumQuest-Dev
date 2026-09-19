@@ -111,6 +111,7 @@ ml_agent/models/nav/*.tmp
 # Navigator runtime outputs: per-decision traces (tens of MB), process stdout/stderr,
 # game-loop and dashboard output, probe scratch. The train_nav_*.log files stay committable.
 ml_agent/logs/nav/trace_*.csv
+ml_agent/logs/nav/trace_*.csv.gz
 ml_agent/logs/nav/stdout.txt
 ml_agent/logs/nav/stderr.txt
 ml_agent/logs/nav/game_loop.txt

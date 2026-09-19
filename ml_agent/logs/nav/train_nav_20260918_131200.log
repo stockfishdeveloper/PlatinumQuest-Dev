@@ -1,0 +1,1293 @@
+[13:12:02] resumed C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\models\nav\nav_latest.pth: update 1725, steps 5,161,036, trained on FlatIslands_Hunt
+[13:12:03] 8 instance worker(s) on ports 8888..8895; training mode True (64 ms per decision); arrive radius 0.65 u; device cuda
+[13:12:03] [0] [env:8888] waiting for the game
+[13:12:03] [0] [env:8888] game connected (1)
+[13:12:03] [0] mission FlatIslands_Hunt: terrain 165x165 @ 0.5 u, walkable 5775 cells
+[13:12:03] [0] ready on 8888, mission FlatIslands_Hunt
+[13:12:03] [1] [env:8889] waiting for the game
+[13:12:03] [1] [env:8889] game connected (1)
+[13:12:03] [1] mission FlatIslands_Hunt: terrain 165x165 @ 0.5 u, walkable 5775 cells
+[13:12:03] [1] ready on 8889, mission FlatIslands_Hunt
+[13:12:03] [2] [env:8890] waiting for the game
+[13:12:03] [2] [env:8890] game connected (1)
+[13:12:03] [2] mission FlatIslands_Hunt: terrain 165x165 @ 0.5 u, walkable 5775 cells
+[13:12:03] [2] ready on 8890, mission FlatIslands_Hunt
+[13:12:03] [3] [env:8891] waiting for the game
+[13:12:03] [3] [env:8891] game connected (1)
+[13:12:03] [3] mission FlatIslands_Hunt: terrain 165x165 @ 0.5 u, walkable 5775 cells
+[13:12:03] [3] ready on 8891, mission FlatIslands_Hunt
+[13:12:03] [4] [env:8892] waiting for the game
+[13:12:03] [4] [env:8892] game connected (1)
+[13:12:03] [4] mission FlatIslands_Hunt: terrain 165x165 @ 0.5 u, walkable 5775 cells
+[13:12:03] [4] ready on 8892, mission FlatIslands_Hunt
+[13:12:03] [5] [env:8893] waiting for the game
+[13:12:03] [5] [env:8893] game connected (1)
+[13:12:03] [5] mission FlatIslands_Hunt: terrain 165x165 @ 0.5 u, walkable 5775 cells
+[13:12:03] [5] ready on 8893, mission FlatIslands_Hunt
+[13:12:03] [6] [env:8894] waiting for the game
+[13:12:03] [6] [env:8894] game connected (1)
+[13:12:03] [6] mission KingOfTheMarble_Hunt: terrain 99x99 @ 0.5 u, walkable 1082 cells
+[13:12:03] [6] ready on 8894, mission KingOfTheMarble_Hunt
+[13:12:03] [7] [env:8895] waiting for the game
+[13:12:03] [7] [env:8895] game connected (1)
+[13:12:03] [7] mission KingOfTheMarble_Hunt: terrain 99x99 @ 0.5 u, walkable 1082 cells
+[13:12:03] [7] ready on 8895, mission KingOfTheMarble_Hunt
+[13:12:05] [5] fall without OOB flag: 4 decisions off the map at [-16.4  15.9  -3.3] (time left 36s)
+[13:12:06] [2] fall without OOB flag: 4 decisions off the map at [24.7 43.  -2.4] (time left 129s)
+[13:12:06] [3] fall without OOB flag: 4 decisions off the map at [15.3 -8.4 -3.3] (time left 179s)
+[13:12:06] [5] fall without OOB flag: 4 decisions off the map at [-11.3  -9.5  -3.3] (time left 28s)
+[13:12:07] [4] [env:8892] round over (time left 300s of 300s); waiting for the next round
+[13:12:07] [4] [env:8892] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[13:12:07] [4] new round (game connection 1); rtf 6.1
+[13:12:09] [2] fall without OOB flag: 4 decisions off the map at [-13.1 -12.9  -3.3] (time left 109s)
+[13:12:11] [6] [env:8894] round over (time left 180s of 180s); waiting for the next round
+[13:12:11] [6] [env:8894] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[13:12:11] [6] new round (game connection 1); rtf 5.6
+[13:12:11] [1] fall without OOB flag: 4 decisions off the map at [-12.  -11.2  -3.3] (time left 82s)
+[13:12:11] [5] [env:8893] round over (time left 300s of 300s); waiting for the next round
+[13:12:11] [5] [env:8893] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[13:12:11] [5] new round (game connection 1); rtf 6.5
+[13:12:12] SEG n=100 last=arrived arrive=87% falls100=0.98 speed=5.1 timeout=0% rew=25.5 dps=591
+[13:12:13] [5] fall without OOB flag: 4 decisions off the map at [-11.3  -6.   -3.8] (time left 290s)
+[13:12:14] [2] fall without OOB flag: 4 decisions off the map at [ 13.6 -12.6  -2.9] (time left 73s)
+[13:12:15] [4] fall without OOB flag: 4 decisions off the map at [12.8 20.5 -2.5] (time left 250s)
+[13:12:17] [0] fall without OOB flag: 4 decisions off the map at [  8.3 -12.6  -3.3] (time left 145s)
+[13:12:17] [3] fall without OOB flag: 4 decisions off the map at [ 11.3 -32.3  -3. ] (time left 114s)
+[13:12:17] [4] fall without OOB flag: 4 decisions off the map at [  2.4 -13.   -3. ] (time left 237s)
+[13:12:17] [0] fall without OOB flag: 4 decisions off the map at [40.4 -6.8 -3.8] (time left 140s)
+[13:12:23] MAPS FlatIslands_Hunt: n=6 arrive=90% falls100=0.62 speed=5.5 | KingOfTheMarble_Hunt: n=2 arrive=53% falls100=4.27 speed=3.4
+[13:12:23] NAV upd=1726 map=FlatIslands_Hunt+KingOfTheMarble_Hunt r=0.65 steps=5,169,225 segs=171 arrive=82% falls100=1.43 speed=5.1 rew=23.5 pl=0.125 vl=0.252 ent=0.35 kl=0.017 clip=0.20 gn=6.40 ep=3 dstd=0.22 flips=0 upd_s=5.6 wall_s=20 inst=8 dps=415 prof=fwd:5,send:0,recv:9,handle:0,w_game:21,w_obs:11,w_begin:4
+[13:12:24] [1] fall without OOB flag: 4 decisions off the map at [  0.6 -11.   -2.7] (time left 34s)
+[13:12:24] [1] fall without OOB flag: 4 decisions off the map at [ 11.3 -28.3  -3.1] (time left 30s)
+[13:12:24] [3] fall without OOB flag: 4 decisions off the map at [16.8 15.8 -3.8] (time left 101s)
+[13:12:25] [1] fall without OOB flag: 4 decisions off the map at [-17.1  15.6  -3.5] (time left 22s)
+[13:12:25] SEG n=200 last=fell arrive=82% falls100=1.48 speed=5.0 timeout=0% rew=23.5 dps=600
+[13:12:26] [4] fall without OOB flag: 4 decisions off the map at [  8.3 -12.4  -3.3] (time left 216s)
+[13:12:27] [7] [env:8895] round over (time left 180s of 180s); waiting for the next round
+[13:12:27] [7] [env:8895] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[13:12:27] [7] new round (game connection 1); rtf 5.0
+[13:12:28] [2] fall without OOB flag: 4 decisions off the map at [-1.3 13.4 -2.9] (time left 26s)
+[13:12:29] [1] [env:8889] round over (time left 300s of 300s); waiting for the next round
+[13:12:29] [1] [env:8889] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[13:12:29] [1] new round (game connection 1); rtf 4.9
+[13:12:30] [3] fall without OOB flag: 4 decisions off the map at [17.6 12.9 -2.5] (time left 64s)
+[13:12:30] [5] fall without OOB flag: 4 decisions off the map at [-14.5  37.7  -2.8] (time left 213s)
+[13:12:31] [2] fall without OOB flag: 4 decisions off the map at [-16.6 -32.   -3.3] (time left 7s)
+[13:12:31] [1] fall without OOB flag: 4 decisions off the map at [18.5 -9.8 -3.3] (time left 287s)
+[13:12:32] [2] [env:8890] round over (time left 300s of 300s); waiting for the next round
+[13:12:32] [2] [env:8890] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[13:12:32] [2] new round (game connection 1); rtf 4.9
+[13:12:33] [2] fall without OOB flag: 4 decisions off the map at [11.7 21.1 -3.3] (time left 293s)
+[13:12:33] SEG n=300 last=arrived arrive=82% falls100=1.54 speed=4.9 timeout=0% rew=23.9 dps=580
+[13:12:35] [3] fall without OOB flag: 4 decisions off the map at [42.3 21.4 -3.8] (time left 35s)
+[13:12:35] [5] fall without OOB flag: 4 decisions off the map at [-43.4 -27.7  -1.3] (time left 181s)
+[13:12:42] MAPS FlatIslands_Hunt: n=6 arrive=90% falls100=0.63 speed=5.4 | KingOfTheMarble_Hunt: n=2 arrive=55% falls100=4.34 speed=3.3
+[13:12:42] NAV upd=1727 map=FlatIslands_Hunt+KingOfTheMarble_Hunt r=0.65 steps=5,177,414 segs=342 arrive=82% falls100=1.50 speed=4.9 rew=24.2 pl=0.038 vl=0.153 ent=0.35 kl=0.033 clip=0.22 gn=3.85 ep=3 dstd=0.22 flips=0 upd_s=4.6 wall_s=19 inst=8 dps=441 prof=fwd:5,send:0,recv:9,handle:0,w_game:20,w_obs:11,w_begin:4
+[13:12:42] [3] fall without OOB flag: 4 decisions off the map at [-15.7  11.1  -3.3] (time left 17s)
+[13:12:42] [5] fall without OOB flag: 4 decisions off the map at [-13.6  36.9  -2.4] (time left 167s)
+[13:12:43] [2] fall without OOB flag: 4 decisions off the map at [ -1.8 -12.4  -2.8] (time left 263s)
+[13:12:43] [5] fall without OOB flag: 4 decisions off the map at [10.4  1.7 -3.1] (time left 157s)
+[13:12:44] [3] fall without OOB flag: 4 decisions off the map at [20.5 11.9 -3.3] (time left 3s)
+[13:12:44] [3] [env:8891] round over (time left 300s of 300s); waiting for the next round
+[13:12:44] [3] [env:8891] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[13:12:44] [3] new round (game connection 1); rtf 4.8
+[13:12:45] [2] fall without OOB flag: 4 decisions off the map at [  7.6 -12.5  -3.4] (time left 246s)
+[13:12:46] SEG n=400 last=fell arrive=82% falls100=1.47 speed=5.0 timeout=0% rew=23.6 dps=585
+[13:12:47] [2] fall without OOB flag: 4 decisions off the map at [-11.5  20.9  -2.9] (time left 234s)
+[13:12:49] [3] fall without OOB flag: 4 decisions off the map at [-27.7 -12.6  -3.8] (time left 270s)
+[13:12:50] [1] fall without OOB flag: 4 decisions off the map at [14.  22.8 -3.3] (time left 198s)
+[13:12:50] [6] [env:8894] round over (time left 180s of 180s); waiting for the next round
+[13:12:50] [6] [env:8894] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[13:12:50] [6] new round (game connection 1); rtf 4.6
+[13:12:51] [0] [env:8888] round over (time left 300s of 300s); waiting for the next round
+[13:12:51] [0] [env:8888] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[13:12:51] [0] new round (game connection 1); rtf 4.7
+[13:12:51] [4] fall without OOB flag: 4 decisions off the map at [ 24.6 -13.7  -3.8] (time left 90s)
+[13:12:54] [4] fall without OOB flag: 4 decisions off the map at [-34.4 -14.1  -3.5] (time left 75s)
+[13:12:54] SEG n=500 last=arrived arrive=83% falls100=1.45 speed=5.0 timeout=0% rew=24.6 dps=575
+[13:12:55] [1] fall without OOB flag: 4 decisions off the map at [-10.8 -12.8  -3.4] (time left 166s)
+[13:12:55] [4] fall without OOB flag: 4 decisions off the map at [ 11.5 -24.2  -3. ] (time left 67s)
+[13:12:56] [4] fall without OOB flag: 4 decisions off the map at [-11.2  17.9  -3.3] (time left 61s)
+[13:13:00] MAPS FlatIslands_Hunt: n=6 arrive=90% falls100=0.63 speed=5.5 | KingOfTheMarble_Hunt: n=2 arrive=57% falls100=4.26 speed=3.2
+[13:13:00] NAV upd=1728 map=FlatIslands_Hunt+KingOfTheMarble_Hunt r=0.65 steps=5,185,603 segs=518 arrive=82% falls100=1.47 speed=5.0 rew=24.5 pl=-0.024 vl=0.142 ent=0.38 kl=0.003 clip=0.14 gn=8.67 ep=3 dstd=0.22 flips=0 upd_s=4.5 wall_s=19 inst=8 dps=438 prof=fwd:5,send:0,recv:9,handle:1,w_game:22,w_obs:11,w_begin:4
+[13:13:01] [3] fall without OOB flag: 4 decisions off the map at [ 25.6 -14.1  -3.8] (time left 227s)
+[13:13:02] [4] fall without OOB flag: 4 decisions off the map at [ 31.6 -13.6  -3.3] (time left 49s)
+[13:13:02] [3] fall without OOB flag: 4 decisions off the map at [12.7 17.2 -3. ] (time left 215s)
+[13:13:04] [1] fall without OOB flag: 4 decisions off the map at [10.1  3.7 -2.7] (time left 138s)
+[13:13:04] [7] [env:8895] round over (time left 180s of 180s); waiting for the next round
+[13:13:04] [7] [env:8895] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[13:13:04] [7] new round (game connection 1); rtf 5.0
+[13:13:05] [5] fall without OOB flag: 4 decisions off the map at [13.8 -7.7 -2.5] (time left 53s)
+[13:13:06] [3] fall without OOB flag: 4 decisions off the map at [11.9 28.9 -3.3] (time left 191s)
+[13:13:07] [2] fall without OOB flag: 4 decisions off the map at [12.6 18.8 -2.9] (time left 133s)
+[13:13:07] SEG n=600 last=arrived arrive=82% falls100=1.46 speed=5.0 timeout=0% rew=24.3 dps=567
+[13:13:08] [0] fall without OOB flag: 4 decisions off the map at [40.3 21.3 -3.8] (time left 219s)
+[13:13:09] [5] fall without OOB flag: 4 decisions off the map at [-13.7   8.8  -3.5] (time left 31s)
+[13:13:09] [0] fall without OOB flag: 4 decisions off the map at [34.  16.2 -3.1] (time left 215s)
+[13:13:10] [4] fall without OOB flag: 4 decisions off the map at [15.8  9.7 -3.3] (time left 0s)
+[13:13:10] [4] [env:8892] round over (time left 300s of 300s); waiting for the next round
+[13:13:10] [4] [env:8892] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[13:13:10] [4] new round (game connection 1)
+[13:13:10] [2] fall without OOB flag: 4 decisions off the map at [13.9 19.8 -2.4] (time left 112s)
+[13:13:12] [1] fall without OOB flag: 4 decisions off the map at [ 2.4 16.3 -3.8] (time left 86s)
+[13:13:12] [4] fall without OOB flag: 4 decisions off the map at [ 13.8 -19.3  -2.8] (time left 284s)
+[13:13:14] [5] [env:8893] round over (time left 300s of 300s); waiting for the next round
+[13:13:14] [5] [env:8893] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[13:13:14] [5] new round (game connection 1); rtf 4.8
+[13:13:18] MAPS FlatIslands_Hunt: n=6 arrive=90% falls100=0.64 speed=5.5 | KingOfTheMarble_Hunt: n=2 arrive=58% falls100=4.03 speed=3.3
+[13:13:18] NAV upd=1729 map=FlatIslands_Hunt+KingOfTheMarble_Hunt r=0.65 steps=5,193,793 segs=694 arrive=83% falls100=1.40 speed=5.0 rew=24.0 pl=-0.006 vl=0.154 ent=0.36 kl=0.008 clip=0.10 gn=2.26 ep=3 dstd=0.22 flips=0 upd_s=3.3 wall_s=18 inst=8 dps=466 prof=fwd:5,send:0,recv:9,handle:0,w_game:22,w_obs:11,w_begin:4
+[13:13:18] SEG n=700 last=arrived arrive=83% falls100=1.39 speed=5.0 timeout=0% rew=24.0 dps=659
+[13:13:21] [5] fall without OOB flag: 4 decisions off the map at [-15.2   6.5  -3.3] (time left 275s)
+[13:13:21] [1] fall without OOB flag: 4 decisions off the map at [ 17.8 -15.4  -3.3] (time left 46s)
+[13:13:23] [5] fall without OOB flag: 4 decisions off the map at [-32.4  15.6  -2.9] (time left 263s)
+[13:13:23] [5] fall without OOB flag: 4 decisions off the map at [-17.4 -11.3  -3.8] (time left 259s)
+[13:13:26] SEG n=800 last=fell arrive=83% falls100=1.38 speed=5.0 timeout=0% rew=24.2 dps=607
+[13:13:26] [6] [env:8894] round over (time left 180s of 180s); waiting for the next round
+[13:13:26] [6] [env:8894] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[13:13:26] [6] new round (game connection 1); rtf 5.0
+[13:13:27] [3] fall without OOB flag: 4 decisions off the map at [13.  -0.6 -3.3] (time left 85s)
+[13:13:27] [1] fall without OOB flag: 4 decisions off the map at [10.5 -5.6 -3.3] (time left 10s)
+[13:13:28] [5] fall without OOB flag: 4 decisions off the map at [-14.2  26.5  -2.9] (time left 229s)
+[13:13:28] [3] fall without OOB flag: 4 decisions off the map at [ 15.6 -34.2  -3.1] (time left 76s)
+[13:13:28] [4] fall without OOB flag: 4 decisions off the map at [ 16.3 -15.   -3.3] (time left 202s)
+[13:13:29] [1] [env:8889] round over (time left 300s of 300s); waiting for the next round
+[13:13:29] [1] [env:8889] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[13:13:29] [1] new round (game connection 1); rtf 5.1
+[13:13:35] MAPS FlatIslands_Hunt: n=6 arrive=91% falls100=0.60 speed=5.5 | KingOfTheMarble_Hunt: n=2 arrive=58% falls100=4.19 speed=3.1
+[13:13:35] NAV upd=1730 map=FlatIslands_Hunt+KingOfTheMarble_Hunt r=0.65 steps=5,201,983 segs=859 arrive=83% falls100=1.40 speed=4.9 rew=24.6 pl=-0.008 vl=0.159 ent=0.37 kl=0.009 clip=0.09 gn=1.92 ep=3 dstd=0.22 flips=0 upd_s=3.2 wall_s=17 inst=8 dps=480 prof=fwd:5,send:0,recv:8,handle:0,w_game:22,w_obs:11,w_begin:3
+[13:13:35] [2] [env:8890] round over (time left 300s of 300s); waiting for the next round
+[13:13:35] [2] [env:8890] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[13:13:35] [2] new round (game connection 1); rtf 4.8
+[13:13:36] [0] fall without OOB flag: 4 decisions off the map at [14.1 -4.4 -2.5] (time left 90s)
+[13:13:36] [1] fall without OOB flag: 4 decisions off the map at [-32.1  16.4  -3.8] (time left 274s)
+[13:13:38] [1] fall without OOB flag: 4 decisions off the map at [-12.2  25.5  -3.3] (time left 262s)
+[13:13:38] [2] fall without OOB flag: 4 decisions off the map at [ -0.  -13.   -2.8] (time left 285s)
+[13:13:38] SEG n=900 last=arrived arrive=83% falls100=1.41 speed=4.9 timeout=0% rew=24.4 dps=548
+[13:13:39] [3] fall without OOB flag: 4 decisions off the map at [12.  -0.3 -4.1] (time left 30s)
+[13:13:39] [7] [env:8895] round over (time left 180s of 180s); waiting for the next round
+[13:13:39] [7] [env:8895] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[13:13:39] [7] new round (game connection 1); rtf 5.2
+[13:13:40] [3] fall without OOB flag: 4 decisions off the map at [14.5  5.8 -3. ] (time left 24s)
+[13:13:40] [4] fall without OOB flag: 4 decisions off the map at [12.7 -6.5 -2.6] (time left 152s)
+[13:13:41] [1] fall without OOB flag: 4 decisions off the map at [  2.1 -12.7  -2.7] (time left 238s)
+[13:13:42] [2] fall without OOB flag: 4 decisions off the map at [-22.6 -12.   -2.9] (time left 259s)
+[13:13:42] [5] fall without OOB flag: 4 decisions off the map at [-25.9 -12.   -3. ] (time left 159s)
+[13:13:43] [4] fall without OOB flag: 4 decisions off the map at [-12.7  12.7  -3.8] (time left 137s)
+[13:13:44] [3] [env:8891] round over (time left 300s of 300s); waiting for the next round
+[13:13:44] [3] [env:8891] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[13:13:44] [3] new round (game connection 1); rtf 5.1
+[13:13:44] [2] fall without OOB flag: 4 decisions off the map at [-27.6  15.9  -2.2] (time left 244s)
+[13:13:46] [1] fall without OOB flag: 4 decisions off the map at [-26.7 -12.   -3.1] (time left 206s)
+[13:13:47] [2] fall without OOB flag: 4 decisions off the map at [16.3 11.3 -3.8] (time left 224s)
+[13:13:47] SEG n=1000 last=fell arrive=83% falls100=1.39 speed=4.9 timeout=0% rew=24.8 dps=560
+[13:13:49] [5] fall without OOB flag: 4 decisions off the map at [-14.6  25.9  -2.5] (time left 120s)
+[13:13:49] [3] fall without OOB flag: 4 decisions off the map at [-2.7 14.2 -3.6] (time left 271s)
+[13:13:54] MAPS FlatIslands_Hunt: n=6 arrive=90% falls100=0.63 speed=5.4 | KingOfTheMarble_Hunt: n=2 arrive=58% falls100=4.12 speed=3.1
+[13:13:54] NAV upd=1731 map=FlatIslands_Hunt+KingOfTheMarble_Hunt r=0.65 steps=5,210,172 segs=1024 arrive=83% falls100=1.41 speed=4.9 rew=24.4 pl=0.455 vl=0.594 ent=0.37 kl=0.039 clip=0.14 gn=8.71 ep=3 dstd=0.22 flips=0 upd_s=4.5 wall_s=19 inst=8 dps=429 prof=fwd:5,send:0,recv:9,handle:0,w_game:22,w_obs:11,w_begin:4
+[13:13:54] [3] fall without OOB flag: 4 decisions off the map at [-12.  -17.6  -3.3] (time left 264s)
+[13:13:55] [4] fall without OOB flag: 4 decisions off the map at [-18.  -13.4  -2.6] (time left 93s)
+[13:13:55] [3] fall without OOB flag: 4 decisions off the map at [-11.8 -31.4  -3.8] (time left 256s)
+[13:13:56] [2] fall without OOB flag: 4 decisions off the map at [30.2 13.  -2.1] (time left 201s)
+[13:13:56] [3] fall without OOB flag: 4 decisions off the map at [-14.4 -19.4  -3.1] (time left 252s)
+[13:13:56] [0] [env:8888] round over (time left 300s of 300s); waiting for the next round
+[13:13:56] [0] [env:8888] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[13:13:56] [0] new round (game connection 1); rtf 4.7
+[13:13:57] [5] fall without OOB flag: 4 decisions off the map at [14.9 22.4 -3.8] (time left 98s)
+[13:13:57] [1] fall without OOB flag: 4 decisions off the map at [-37.   14.8  -3. ] (time left 169s)
+[13:13:58] [4] fall without OOB flag: 4 decisions off the map at [-16.6  -4.2  -3.3] (time left 70s)
+[13:13:59] [2] fall without OOB flag: 4 decisions off the map at [-20.1 -12.   -3.5] (time left 178s)
+[13:13:59] [5] fall without OOB flag: 4 decisions off the map at [13.3 -5.8 -2.5] (time left 79s)
+[13:14:00] [1] fall without OOB flag: 4 decisions off the map at [23.6 43.  -1.7] (time left 151s)
+[13:14:00] SEG n=1100 last=arrived arrive=82% falls100=1.45 speed=4.9 timeout=0% rew=23.9 dps=565
+[13:14:01] [2] fall without OOB flag: 4 decisions off the map at [ 7.6 13.4 -3.5] (time left 167s)
+[13:14:01] [0] fall without OOB flag: 4 decisions off the map at [-12.1  -2.3  -3.3] (time left 262s)
+[13:14:02] [3] fall without OOB flag: 4 decisions off the map at [ 14.3 -40.   -3.3] (time left 212s)
+[13:14:02] [0] fall without OOB flag: 4 decisions off the map at [-13.4 -31.5  -3.8] (time left 254s)
+[13:14:03] [2] fall without OOB flag: 4 decisions off the map at [10.5 17.5 -2.6] (time left 149s)
+[13:14:04] [2] fall without OOB flag: 4 decisions off the map at [ 17.8 -11.   -3.3] (time left 141s)
+[13:14:05] [6] [env:8894] round over (time left 180s of 180s); waiting for the next round
+[13:14:05] [6] [env:8894] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[13:14:05] [6] new round (game connection 1); rtf 4.8
+[13:14:05] [3] fall without OOB flag: 4 decisions off the map at [14.6 -4.4 -3.8] (time left 194s)
+[13:14:07] [3] fall without OOB flag: 4 decisions off the map at [-13.9 -17.   -2.4] (time left 182s)
+[13:14:07] [5] fall without OOB flag: 4 decisions off the map at [14.  -6.3 -3. ] (time left 31s)
+[13:14:08] SEG n=1200 last=arrived arrive=82% falls100=1.42 speed=4.9 timeout=0% rew=23.6 dps=566
+[13:14:09] [2] fall without OOB flag: 4 decisions off the map at [ 5.4 11.2 -3.8] (time left 115s)
+[13:14:12] MAPS FlatIslands_Hunt: n=6 arrive=89% falls100=0.68 speed=5.4 | KingOfTheMarble_Hunt: n=2 arrive=57% falls100=4.06 speed=3.2
+[13:14:12] NAV upd=1732 map=FlatIslands_Hunt+KingOfTheMarble_Hunt r=0.65 steps=5,218,362 segs=1207 arrive=82% falls100=1.43 speed=4.9 rew=23.7 pl=-0.006 vl=0.187 ent=0.37 kl=0.015 clip=0.14 gn=2.12 ep=3 dstd=0.22 flips=0 upd_s=3.2 wall_s=18 inst=8 dps=465 prof=fwd:5,send:0,recv:9,handle:0,w_game:22,w_obs:11,w_begin:4
+[13:14:12] [3] fall without OOB flag: 4 decisions off the map at [-12.5 -15.9  -3.8] (time left 166s)
+[13:14:12] [4] [env:8892] round over (time left 300s of 300s); waiting for the next round
+[13:14:12] [4] [env:8892] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[13:14:12] [4] new round (game connection 1)
+[13:14:13] [3] fall without OOB flag: 4 decisions off the map at [-19.3  13.3  -3.6] (time left 158s)
+[13:14:13] [2] fall without OOB flag: 4 decisions off the map at [15.4 15.3 -3.3] (time left 104s)
+[13:14:15] [2] fall without OOB flag: 4 decisions off the map at [  7.9 -11.3  -3.8] (time left 92s)
+[13:14:16] [5] [env:8893] round over (time left 300s of 300s); waiting for the next round
+[13:14:16] [5] [env:8893] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[13:14:16] [5] new round (game connection 1); rtf 4.9
+[13:14:16] [4] fall without OOB flag: 4 decisions off the map at [11.2 16.7 -3.3] (time left 279s)
+[13:14:16] [7] [env:8895] round over (time left 180s of 180s); waiting for the next round
+[13:14:16] [7] [env:8895] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[13:14:16] [7] new round (game connection 1)
+[13:14:17] [1] fall without OOB flag: 4 decisions off the map at [ 13.  -11.8  -2.6] (time left 66s)
+[13:14:17] [5] fall without OOB flag: 4 decisions off the map at [ 5.2 13.1 -3.4] (time left 292s)
+[13:14:18] [5] fall without OOB flag: 4 decisions off the map at [-28.4 -11.4  -3.3] (time left 284s)
+[13:14:20] SEG n=1300 last=arrived arrive=82% falls100=1.45 speed=4.9 timeout=0% rew=23.1 dps=555
+[13:14:20] [0] fall without OOB flag: 4 decisions off the map at [-17.3 -11.4  -3. ] (time left 170s)
+[13:14:20] [0] fall without OOB flag: 4 decisions off the map at [ 23.1 -14.7  -3.3] (time left 166s)
+[13:14:20] [3] fall without OOB flag: 4 decisions off the map at [-4.6 41.9 -2.9] (time left 116s)
+[13:14:21] [3] fall without OOB flag: 4 decisions off the map at [  8.4 -16.4  -3.3] (time left 108s)
+[13:14:22] [0] fall without OOB flag: 4 decisions off the map at [14.5 14.8 -3. ] (time left 155s)
+[13:14:23] [5] fall without OOB flag: 4 decisions off the map at [ 15.5 -13.1  -3.3] (time left 254s)
+[13:14:25] [2] fall without OOB flag: 4 decisions off the map at [11.   1.8 -3.3] (time left 32s)
+[13:14:25] [2] fall without OOB flag: 4 decisions off the map at [-15.6  -7.1  -3.3] (time left 27s)
+[13:14:31] MAPS FlatIslands_Hunt: n=6 arrive=89% falls100=0.69 speed=5.4 | KingOfTheMarble_Hunt: n=2 arrive=58% falls100=4.03 speed=3.2
+[13:14:31] NAV upd=1733 map=FlatIslands_Hunt+KingOfTheMarble_Hunt r=0.65 steps=5,226,553 segs=1385 arrive=82% falls100=1.43 speed=4.9 rew=23.8 pl=0.177 vl=0.223 ent=0.39 kl=0.034 clip=0.26 gn=7.36 ep=3 dstd=0.22 flips=0 upd_s=4.5 wall_s=19 inst=8 dps=432 prof=fwd:5,send:0,recv:9,handle:0,w_game:22,w_obs:11,w_begin:4
+[13:14:31] [5] fall without OOB flag: 4 decisions off the map at [19.6 -9.5 -2.5] (time left 228s)
+[13:14:31] [3] fall without OOB flag: 4 decisions off the map at [-17.5 -10.1  -3.3] (time left 75s)
+[13:14:31] [1] fall without OOB flag: 4 decisions off the map at [15.5 -8.4 -3.3] (time left 6s)
+[13:14:32] SEG n=1400 last=arrived arrive=82% falls100=1.46 speed=4.9 timeout=0% rew=23.6 dps=582
+[13:14:32] [1] [env:8889] round over (time left 300s of 300s); waiting for the next round
+[13:14:32] [1] [env:8889] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[13:14:32] [1] new round (game connection 1); rtf 4.7
+[13:14:33] [3] fall without OOB flag: 4 decisions off the map at [-19.4  12.6  -3.3] (time left 62s)
+[13:14:35] [2] [env:8890] round over (time left 300s of 300s); waiting for the next round
+[13:14:35] [2] [env:8890] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[13:14:35] [2] new round (game connection 1); rtf 5.1
+[13:14:35] [2] fall without OOB flag: 4 decisions off the map at [-13.5   8.8  -3.8] (time left 297s)
+[13:14:36] [2] fall without OOB flag: 4 decisions off the map at [ 17.5 -14.5  -3.3] (time left 292s)
+[13:14:36] [2] fall without OOB flag: 4 decisions off the map at [-16.4  21.9  -3.8] (time left 286s)
+[13:14:36] [3] fall without OOB flag: 4 decisions off the map at [-15.4 -16.8  -3.2] (time left 39s)
+[13:14:37] [0] fall without OOB flag: 4 decisions off the map at [-13.5   4.7  -3.3] (time left 91s)
+[13:14:37] [2] fall without OOB flag: 4 decisions off the map at [-40.7 -20.5  -2.4] (time left 280s)
+[13:14:37] [4] fall without OOB flag: 4 decisions off the map at [  4.  -11.3  -3.6] (time left 175s)
+[13:14:38] [0] fall without OOB flag: 4 decisions off the map at [-15.7  -1.   -3.7] (time left 82s)
+[13:14:38] [3] fall without OOB flag: 4 decisions off the map at [ 27.2 -13.   -3.1] (time left 25s)
+[13:14:39] [2] fall without OOB flag: 4 decisions off the map at [-14.1 -34.3  -3.1] (time left 270s)
+[13:14:40] [5] fall without OOB flag: 4 decisions off the map at [ 15.3 -12.7  -3.3] (time left 174s)
+[13:14:41] SEG n=1500 last=arrived arrive=82% falls100=1.51 speed=4.9 timeout=0% rew=23.7 dps=579
+[13:14:42] [4] fall without OOB flag: 4 decisions off the map at [-13.    9.8  -3.8] (time left 146s)
+[13:14:42] [1] fall without OOB flag: 4 decisions off the map at [11.9 23.9 -3.3] (time left 237s)
+[13:14:43] [6] [env:8894] round over (time left 180s of 180s); waiting for the next round
+[13:14:43] [6] [env:8894] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[13:14:43] [6] new round (game connection 1); rtf 4.8
+[13:14:43] [3] [env:8891] round over (time left 300s of 300s); waiting for the next round
+[13:14:43] [3] [env:8891] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[13:14:43] [3] new round (game connection 1); rtf 5.1
+[13:14:43] [1] fall without OOB flag: 4 decisions off the map at [ 14.1 -11.   -3.1] (time left 231s)
+[13:14:44] [1] fall without OOB flag: 4 decisions off the map at [12.  27.7 -3.1] (time left 225s)
+[13:14:45] [3] fall without OOB flag: 4 decisions off the map at [ 10.7 -14.7  -3.3] (time left 287s)
+[13:14:48] MAPS FlatIslands_Hunt: n=6 arrive=89% falls100=0.73 speed=5.4 | KingOfTheMarble_Hunt: n=2 arrive=57% falls100=4.16 speed=3.1
+[13:14:48] NAV upd=1734 map=FlatIslands_Hunt+KingOfTheMarble_Hunt r=0.65 steps=5,234,741 segs=1548 arrive=82% falls100=1.49 speed=4.9 rew=23.9 pl=-0.009 vl=0.186 ent=0.39 kl=0.006 clip=0.10 gn=1.59 ep=3 dstd=0.22 flips=0 upd_s=3.3 wall_s=18 inst=8 dps=467 prof=fwd:5,send:0,recv:9,handle:0,w_game:21,w_obs:10,w_begin:4
+[13:14:50] [1] fall without OOB flag: 4 decisions off the map at [41.6 -2.9 -3.8] (time left 208s)
+[13:14:52] [0] fall without OOB flag: 4 decisions off the map at [ -4.6 -11.3  -3. ] (time left 19s)
+[13:14:52] [5] fall without OOB flag: 4 decisions off the map at [-15.3   5.   -2.7] (time left 120s)
+[13:14:52] [7] [env:8895] round over (time left 180s of 180s); waiting for the next round
+[13:14:52] [7] [env:8895] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[13:14:52] [7] new round (game connection 1); rtf 5.0
+[13:14:53] SEG n=1600 last=arrived arrive=82% falls100=1.49 speed=4.9 timeout=0% rew=24.1 dps=592
+[13:14:53] [3] fall without OOB flag: 4 decisions off the map at [26.1 16.3 -3.8] (time left 256s)
+[13:14:55] [0] [env:8888] round over (time left 300s of 300s); waiting for the next round
+[13:14:55] [0] [env:8888] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[13:14:55] [0] new round (game connection 1); rtf 5.1
+[13:14:55] [3] fall without OOB flag: 4 decisions off the map at [ 2.7 15.3 -3.5] (time left 240s)
+[13:14:55] [0] fall without OOB flag: 4 decisions off the map at [-30.7  12.6  -3.3] (time left 295s)
+[13:14:56] [1] fall without OOB flag: 4 decisions off the map at [12.4 34.8 -2.2] (time left 167s)
+[13:14:57] [1] fall without OOB flag: 4 decisions off the map at [-14.4  35.4  -3. ] (time left 163s)
+[13:14:58] [4] fall without OOB flag: 4 decisions off the map at [-14.6 -22.7  -3.8] (time left 68s)
+[13:14:59] [2] fall without OOB flag: 4 decisions off the map at [ 10.3 -16.4  -3.1] (time left 165s)
+[13:15:01] SEG n=1700 last=arrived arrive=82% falls100=1.50 speed=4.9 timeout=0% rew=24.2 dps=577
+[13:15:06] MAPS FlatIslands_Hunt: n=6 arrive=89% falls100=0.70 speed=5.4 | KingOfTheMarble_Hunt: n=2 arrive=56% falls100=4.26 speed=3.1
+[13:15:06] NAV upd=1735 map=FlatIslands_Hunt+KingOfTheMarble_Hunt r=0.65 steps=5,242,931 segs=1715 arrive=82% falls100=1.50 speed=4.9 rew=24.1 pl=-0.007 vl=0.160 ent=0.38 kl=0.011 clip=0.13 gn=1.99 ep=3 dstd=0.22 flips=0 upd_s=3.7 wall_s=18 inst=8 dps=458 prof=fwd:5,send:0,recv:9,handle:0,w_game:22,w_obs:11,w_begin:4
+[13:15:07] [3] fall without OOB flag: 4 decisions off the map at [13.1  7.2 -3.9] (time left 196s)
+[13:15:08] [4] fall without OOB flag: 4 decisions off the map at [15.7 12.4 -3.8] (time left 25s)
+[13:15:09] [0] fall without OOB flag: 4 decisions off the map at [ -1.5 -12.   -2.9] (time left 233s)
+[13:15:09] [3] fall without OOB flag: 4 decisions off the map at [37.4 14.9 -2.8] (time left 178s)
+[13:15:10] [2] fall without OOB flag: 4 decisions off the map at [-13.4 -16.7  -3.8] (time left 118s)
+[13:15:12] [4] [env:8892] round over (time left 300s of 300s); waiting for the next round
+[13:15:12] [4] [env:8892] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[13:15:12] [4] new round (game connection 1); rtf 4.9
+[13:15:14] [5] fall without OOB flag: 4 decisions off the map at [-12.4   7.9  -3.3] (time left 13s)
+[13:15:14] SEG n=1800 last=fell arrive=82% falls100=1.50 speed=4.8 timeout=0% rew=24.7 dps=591
+[13:15:16] [5] [env:8893] round over (time left 300s of 300s); waiting for the next round
+[13:15:16] [5] [env:8893] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[13:15:16] [5] new round (game connection 1); rtf 5.0
+[13:15:17] [6] [env:8894] round over (time left 180s of 180s); waiting for the next round
+[13:15:17] [6] [env:8894] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[13:15:17] [6] new round (game connection 1); rtf 5.4
+[13:15:18] [0] fall without OOB flag: 4 decisions off the map at [-15.4   6.5  -3.2] (time left 182s)
+[13:15:20] [2] fall without OOB flag: 4 decisions off the map at [12.  12.  -3.3] (time left 58s)
+[13:15:20] [2] fall without OOB flag: 4 decisions off the map at [-12.7   9.7  -3.8] (time left 54s)
+[13:15:25] MAPS FlatIslands_Hunt: n=6 arrive=89% falls100=0.68 speed=5.4 | KingOfTheMarble_Hunt: n=2 arrive=57% falls100=4.19 speed=3.1
+[13:15:25] NAV upd=1736 map=FlatIslands_Hunt+KingOfTheMarble_Hunt r=0.65 steps=5,251,120 segs=1879 arrive=82% falls100=1.46 speed=4.9 rew=24.7 pl=-0.153 vl=0.179 ent=0.37 kl=0.004 clip=0.20 gn=4.26 ep=3 dstd=0.22 flips=0 upd_s=5.1 wall_s=19 inst=8 dps=430 prof=fwd:5,send:0,recv:9,handle:0,w_game:22,w_obs:11,w_begin:3
+[13:15:25] [1] fall without OOB flag: 4 decisions off the map at [-16.5  11.4  -3.3] (time left 43s)
+[13:15:26] [5] fall without OOB flag: 4 decisions off the map at [ 37.7 -10.4  -2.7] (time left 269s)
+[13:15:27] SEG n=1900 last=arrived arrive=82% falls100=1.47 speed=4.9 timeout=0% rew=24.5 dps=575
+[13:15:27] [1] fall without OOB flag: 4 decisions off the map at [-12.4  -7.6  -3.8] (time left 32s)
+[13:15:28] [0] fall without OOB flag: 4 decisions off the map at [-16.5  -8.7  -3.8] (time left 146s)
+[13:15:29] [5] fall without OOB flag: 4 decisions off the map at [-17.3  -4.5  -2.6] (time left 250s)
+[13:15:31] [7] [env:8895] round over (time left 180s of 180s); waiting for the next round
+[13:15:31] [7] [env:8895] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[13:15:31] [7] new round (game connection 1); rtf 4.7
+[13:15:31] [2] fall without OOB flag: 4 decisions off the map at [-11.7 -14.1  -3.1] (time left 15s)
+[13:15:32] [0] fall without OOB flag: 4 decisions off the map at [-16.3 -22.   -3.8] (time left 124s)
+[13:15:32] [1] [env:8889] round over (time left 300s of 300s); waiting for the next round
+[13:15:32] [1] [env:8889] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[13:15:32] [1] new round (game connection 1); rtf 5.0
+[13:15:34] [2] [env:8890] round over (time left 300s of 300s); waiting for the next round
+[13:15:34] [2] [env:8890] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[13:15:34] [2] new round (game connection 1); rtf 5.1
+[13:15:35] SEG n=2000 last=arrived arrive=82% falls100=1.49 speed=4.9 timeout=0% rew=24.2 dps=566
+[13:15:36] [2] fall without OOB flag: 4 decisions off the map at [ 11.9 -15.8  -3.8] (time left 283s)
+[13:15:37] [3] fall without OOB flag: 4 decisions off the map at [-23.4  14.4  -3.1] (time left 40s)
+[13:15:37] [1] fall without OOB flag: 4 decisions off the map at [-15.8  18.3  -3. ] (time left 274s)
+[13:15:39] [1] fall without OOB flag: 4 decisions off the map at [11.   1.6 -2.9] (time left 264s)
+[13:15:45] MAPS FlatIslands_Hunt: n=6 arrive=90% falls100=0.67 speed=5.4 | KingOfTheMarble_Hunt: n=2 arrive=55% falls100=4.52 speed=3.0
+[13:15:45] NAV upd=1737 map=FlatIslands_Hunt+KingOfTheMarble_Hunt r=0.65 steps=5,259,309 segs=2053 arrive=82% falls100=1.53 speed=4.8 rew=23.9 pl=-0.126 vl=0.131 ent=0.38 kl=0.009 clip=0.15 gn=3.77 ep=3 dstd=0.22 flips=0 upd_s=4.7 wall_s=19 inst=8 dps=423 prof=fwd:5,send:0,recv:9,handle:0,w_game:22,w_obs:10,w_begin:4
+[13:15:46] [5] fall without OOB flag: 4 decisions off the map at [12.1 -7.7 -3.3] (time left 176s)
+[13:15:48] [0] fall without OOB flag: 4 decisions off the map at [-12.7  24.1  -3.3] (time left 59s)
+[13:15:48] [3] [env:8891] round over (time left 300s of 300s); waiting for the next round
+[13:15:48] [3] [env:8891] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[13:15:48] [3] new round (game connection 1); rtf 4.6
+[13:15:48] SEG n=2100 last=arrived arrive=82% falls100=1.53 speed=4.8 timeout=0% rew=23.6 dps=572
+[13:15:49] [2] fall without OOB flag: 4 decisions off the map at [-18.4 -12.2  -3.3] (time left 236s)
+[13:15:51] [4] fall without OOB flag: 4 decisions off the map at [ 11.6 -21.2  -3.8] (time left 126s)
+[13:15:52] [2] fall without OOB flag: 4 decisions off the map at [33.  17.  -3.8] (time left 219s)
+[13:15:53] [1] fall without OOB flag: 4 decisions off the map at [14.6 18.  -3.3] (time left 206s)
+[13:15:53] [3] fall without OOB flag: 4 decisions off the map at [-13.5  15.3  -2.4] (time left 268s)
+[13:15:54] [5] fall without OOB flag: 4 decisions off the map at [-28.4 -13.1  -3.9] (time left 122s)
+[13:15:55] [6] [env:8894] round over (time left 180s of 180s); waiting for the next round
+[13:15:55] [6] [env:8894] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[13:15:55] [6] new round (game connection 1); rtf 4.8
+[13:15:56] [4] fall without OOB flag: 4 decisions off the map at [ 11.1 -15.5  -3.3] (time left 98s)
+[13:15:56] [0] fall without OOB flag: 4 decisions off the map at [ -7.  -12.5  -3.3] (time left 4s)
+[13:15:56] SEG n=2200 last=arrived arrive=82% falls100=1.51 speed=4.8 timeout=0% rew=23.8 dps=584
+[13:15:57] [0] [env:8888] round over (time left 300s of 300s); waiting for the next round
+[13:15:57] [0] [env:8888] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[13:15:57] [0] new round (game connection 1)
+[13:15:57] [3] fall without OOB flag: 4 decisions off the map at [13.7 30.4 -2.3] (time left 246s)
+[13:15:59] [4] fall without OOB flag: 4 decisions off the map at [12.  10.8 -3.3] (time left 78s)
+[13:16:02] MAPS FlatIslands_Hunt: n=6 arrive=90% falls100=0.66 speed=5.4 | KingOfTheMarble_Hunt: n=2 arrive=55% falls100=4.48 speed=3.0
+[13:16:02] NAV upd=1738 map=FlatIslands_Hunt+KingOfTheMarble_Hunt r=0.65 steps=5,267,499 segs=2229 arrive=82% falls100=1.51 speed=4.9 rew=23.8 pl=-0.007 vl=0.160 ent=0.38 kl=0.010 clip=0.10 gn=2.11 ep=3 dstd=0.22 flips=0 upd_s=3.3 wall_s=18 inst=8 dps=468 prof=fwd:5,send:0,recv:9,handle:0,w_game:22,w_obs:10,w_begin:4
+[13:16:03] [5] fall without OOB flag: 4 decisions off the map at [10.7 13.5 -3.3] (time left 88s)
+[13:16:03] [4] fall without OOB flag: 4 decisions off the map at [11.3 -6.5 -3.3] (time left 69s)
+[13:16:05] [3] fall without OOB flag: 4 decisions off the map at [15.7 15.7 -3.3] (time left 215s)
+[13:16:06] [4] fall without OOB flag: 4 decisions off the map at [-22.7 -14.2  -3.3] (time left 49s)
+[13:16:08] SEG n=2300 last=arrived arrive=82% falls100=1.51 speed=4.9 timeout=0% rew=24.2 dps=595
+[13:16:08] [7] [env:8895] round over (time left 180s of 180s); waiting for the next round
+[13:16:08] [7] [env:8895] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[13:16:08] [7] new round (game connection 1); rtf 4.8
+[13:16:10] [1] fall without OOB flag: 4 decisions off the map at [26.9 16.3 -3.3] (time left 126s)
+[13:16:11] [4] fall without OOB flag: 4 decisions off the map at [14.5 -3.9 -2.3] (time left 13s)
+[13:16:11] [0] fall without OOB flag: 4 decisions off the map at [  4.  -12.6  -2.4] (time left 229s)
+[13:16:13] [3] fall without OOB flag: 4 decisions off the map at [-25.3  13.   -3.8] (time left 161s)
+[13:16:13] [4] fall without OOB flag: 4 decisions off the map at [-13.   -2.8  -3.8] (time left 2s)
+[13:16:14] [4] [env:8892] round over (time left 300s of 300s); waiting for the next round
+[13:16:14] [4] [env:8892] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[13:16:14] [4] new round (game connection 1); rtf 4.9
+[13:16:14] [1] fall without OOB flag: 4 decisions off the map at [  9.  -13.1  -3. ] (time left 101s)
+[13:16:16] SEG n=2400 last=arrived arrive=82% falls100=1.53 speed=4.8 timeout=0% rew=24.4 dps=578
+[13:16:16] [3] fall without OOB flag: 4 decisions off the map at [-11.5  11.7  -2.8] (time left 141s)
+[13:16:20] MAPS FlatIslands_Hunt: n=6 arrive=90% falls100=0.65 speed=5.4 | KingOfTheMarble_Hunt: n=2 arrive=55% falls100=4.52 speed=3.0
+[13:16:20] NAV upd=1739 map=FlatIslands_Hunt+KingOfTheMarble_Hunt r=0.65 steps=5,275,689 segs=2407 arrive=82% falls100=1.54 speed=4.8 rew=24.4 pl=-0.009 vl=0.132 ent=0.38 kl=0.009 clip=0.09 gn=1.65 ep=3 dstd=0.22 flips=0 upd_s=3.5 wall_s=18 inst=8 dps=461 prof=fwd:5,send:0,recv:9,handle:0,w_game:22,w_obs:11,w_begin:4
+[13:16:20] [4] fall without OOB flag: 4 decisions off the map at [-16.3 -10.1  -3.8] (time left 281s)
+[13:16:21] [5] [env:8893] round over (time left 300s of 300s); waiting for the next round
+[13:16:21] [5] [env:8893] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[13:16:21] [5] new round (game connection 1); rtf 4.7
+[13:16:21] [0] fall without OOB flag: 4 decisions off the map at [-20.  -11.9  -3.8] (time left 192s)
+[13:16:24] [2] fall without OOB flag: 4 decisions off the map at [12.  17.2 -3.4] (time left 64s)
+[13:16:24] [5] fall without OOB flag: 4 decisions off the map at [ 12.1 -28.6  -2.5] (time left 278s)
+[13:16:25] [0] fall without OOB flag: 4 decisions off the map at [-30.3 -11.7  -3.3] (time left 168s)
+[13:16:26] [5] fall without OOB flag: 4 decisions off the map at [-26.2  13.   -3.1] (time left 268s)
+[13:16:27] [2] fall without OOB flag: 4 decisions off the map at [ 4.7 16.6 -3.3] (time left 43s)
+[13:16:27] [5] fall without OOB flag: 4 decisions off the map at [-12.7 -19.9  -3.3] (time left 257s)
+[13:16:27] [1] fall without OOB flag: 4 decisions off the map at [-15.5  17.8  -3.3] (time left 37s)
+[13:16:28] SEG n=2500 last=arrived arrive=81% falls100=1.59 speed=4.8 timeout=0% rew=23.8 dps=574
+[13:16:28] [3] fall without OOB flag: 4 decisions off the map at [-15.9 -40.5  -2.4] (time left 92s)
+[13:16:28] [1] fall without OOB flag: 4 decisions off the map at [-14.8  15.4  -3.3] (time left 31s)
+[13:16:29] [5] fall without OOB flag: 4 decisions off the map at [-15.9 -12.   -3.1] (time left 247s)
+[13:16:29] [4] fall without OOB flag: 4 decisions off the map at [-26.1 -14.7  -3.3] (time left 226s)
+[13:16:29] [6] [env:8894] round over (time left 180s of 180s); waiting for the next round
+[13:16:29] [6] [env:8894] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[13:16:29] [6] new round (game connection 1); rtf 5.2
+[13:16:30] [4] fall without OOB flag: 4 decisions off the map at [ 14.9 -10.2  -2.9] (time left 221s)
+[13:16:32] [5] fall without OOB flag: 4 decisions off the map at [-13.7 -12.9  -3.8] (time left 230s)
+[13:16:32] [2] fall without OOB flag: 4 decisions off the map at [-10.3 -12.3  -3.4] (time left 14s)
+[13:16:34] [1] [env:8889] round over (time left 300s of 300s); waiting for the next round
+[13:16:34] [1] [env:8889] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[13:16:34] [1] new round (game connection 1); rtf 4.9
+[13:16:34] [2] [env:8890] round over (time left 300s of 300s); waiting for the next round
+[13:16:34] [2] [env:8890] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[13:16:34] [2] new round (game connection 1)
+[13:16:39] MAPS FlatIslands_Hunt: n=6 arrive=90% falls100=0.65 speed=5.4 | KingOfTheMarble_Hunt: n=2 arrive=54% falls100=4.75 speed=2.9
+[13:16:39] NAV upd=1740 map=FlatIslands_Hunt+KingOfTheMarble_Hunt r=0.65 steps=5,283,878 segs=2573 arrive=81% falls100=1.65 speed=4.8 rew=23.8 pl=-0.243 vl=0.174 ent=0.39 kl=0.012 clip=0.18 gn=8.22 ep=3 dstd=0.22 flips=0 upd_s=4.6 wall_s=19 inst=8 dps=428 prof=fwd:5,send:0,recv:9,handle:0,w_game:22,w_obs:11,w_begin:4
+[13:16:41] SEG n=2600 last=arrived arrive=81% falls100=1.64 speed=4.8 timeout=0% rew=23.7 dps=615
+[13:16:43] [1] fall without OOB flag: 4 decisions off the map at [-26.8  16.   -2.2] (time left 273s)
+[13:16:44] [0] fall without OOB flag: 4 decisions off the map at [-11.7 -20.5  -2.9] (time left 80s)
+[13:16:44] [7] [env:8895] round over (time left 180s of 180s); waiting for the next round
+[13:16:44] [7] [env:8895] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[13:16:44] [7] new round (game connection 1); rtf 5.1
+[13:16:45] [5] fall without OOB flag: 4 decisions off the map at [ 42.8 -17.4   0.3] (time left 176s)
+[13:16:46] [0] fall without OOB flag: 4 decisions off the map at [-19.   16.4  -3.3] (time left 68s)
+[13:16:46] [5] fall without OOB flag: 4 decisions off the map at [-11.   -7.6  -3.3] (time left 166s)
+[13:16:47] [2] fall without OOB flag: 4 decisions off the map at [ 11.1 -29.4  -3.3] (time left 251s)
+[13:16:48] [3] [env:8891] round over (time left 300s of 300s); waiting for the next round
+[13:16:48] [3] [env:8891] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[13:16:48] [3] new round (game connection 1)
+[13:16:48] [4] fall without OOB flag: 4 decisions off the map at [27.1 12.6 -2.3] (time left 140s)
+[13:16:49] SEG n=2700 last=fell arrive=81% falls100=1.67 speed=4.8 timeout=0% rew=23.6 dps=582
+[13:16:51] [4] fall without OOB flag: 4 decisions off the map at [12.1 31.7 -3.6] (time left 116s)
+[13:16:52] [5] fall without OOB flag: 4 decisions off the map at [-32.3 -14.6  -3.3] (time left 132s)
+[13:16:52] [2] fall without OOB flag: 4 decisions off the map at [-15.4  26.9  -3.6] (time left 219s)
+[13:16:53] [4] fall without OOB flag: 4 decisions off the map at [11.7  4.3 -3.3] (time left 106s)
+[13:16:58] MAPS FlatIslands_Hunt: n=6 arrive=90% falls100=0.64 speed=5.4 | KingOfTheMarble_Hunt: n=2 arrive=54% falls100=4.87 speed=2.9
+[13:16:58] NAV upd=1741 map=FlatIslands_Hunt+KingOfTheMarble_Hunt r=0.65 steps=5,292,069 segs=2749 arrive=81% falls100=1.70 speed=4.8 rew=23.2 pl=-0.032 vl=0.114 ent=0.37 kl=0.007 clip=0.23 gn=2.89 ep=3 dstd=0.22 flips=0 upd_s=4.6 wall_s=19 inst=8 dps=435 prof=fwd:5,send:0,recv:9,handle:0,w_game:22,w_obs:10,w_begin:4
+[13:16:58] [2] fall without OOB flag: 4 decisions off the map at [ 11.6 -10.5  -3.3] (time left 211s)
+[13:17:02] SEG n=2800 last=fell arrive=81% falls100=1.71 speed=4.8 timeout=0% rew=23.3 dps=591
+[13:17:02] [0] [env:8888] round over (time left 300s of 300s); waiting for the next round
+[13:17:02] [0] [env:8888] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[13:17:02] [0] new round (game connection 1); rtf 4.7
+[13:17:02] [0] fall without OOB flag: 4 decisions off the map at [-15.1  12.2  -3.3] (time left 297s)
+[13:17:02] [2] fall without OOB flag: 4 decisions off the map at [-42.    9.3  -3.3] (time left 182s)
+[13:17:03] [1] fall without OOB flag: 4 decisions off the map at [20.9 41.2 -3.3] (time left 180s)
+[13:17:05] [1] fall without OOB flag: 4 decisions off the map at [ 11.3 -17.7  -3.3] (time left 166s)
+[13:17:06] [6] [env:8894] round over (time left 180s of 180s); waiting for the next round
+[13:17:06] [6] [env:8894] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[13:17:06] [6] new round (game connection 1); rtf 4.9
+[13:17:07] [1] fall without OOB flag: 4 decisions off the map at [14.6 -6.  -3.3] (time left 151s)
+[13:17:07] [0] fall without OOB flag: 4 decisions off the map at [ 17.6 -14.3  -2.7] (time left 266s)
+[13:17:08] [2] fall without OOB flag: 4 decisions off the map at [-19.1  13.6  -3.3] (time left 144s)
+[13:17:09] [0] fall without OOB flag: 4 decisions off the map at [-14.5 -18.2  -3.3] (time left 255s)
+[13:17:10] SEG n=2900 last=arrived arrive=81% falls100=1.74 speed=4.8 timeout=0% rew=22.5 dps=568
+[13:17:11] [5] fall without OOB flag: 4 decisions off the map at [13.2  0.9 -3.3] (time left 47s)
+[13:17:11] [1] fall without OOB flag: 4 decisions off the map at [-11.2  14.9  -3.3] (time left 125s)
+[13:17:12] [3] fall without OOB flag: 4 decisions off the map at [-15.9 -28.4  -3.3] (time left 181s)
+[13:17:12] [3] fall without OOB flag: 4 decisions off the map at [-15.9 -16.8  -3.3] (time left 175s)
+[13:17:16] MAPS FlatIslands_Hunt: n=6 arrive=90% falls100=0.64 speed=5.4 | KingOfTheMarble_Hunt: n=2 arrive=53% falls100=4.98 speed=2.9
+[13:17:16] NAV upd=1742 map=FlatIslands_Hunt+KingOfTheMarble_Hunt r=0.65 steps=5,300,259 segs=2932 arrive=81% falls100=1.73 speed=4.8 rew=22.4 pl=-0.009 vl=0.163 ent=0.38 kl=0.009 clip=0.09 gn=1.68 ep=3 dstd=0.22 flips=0 upd_s=3.3 wall_s=18 inst=8 dps=463 prof=fwd:5,send:0,recv:9,handle:0,w_game:22,w_obs:10,w_begin:4
+[13:17:17] [4] fall without OOB flag: 4 decisions off the map at [11.2  9.9 -3.3] (time left 8s)
+[13:17:17] [0] fall without OOB flag: 4 decisions off the map at [ 6.2 11.7 -3.4] (time left 224s)
+[13:17:18] [5] fall without OOB flag: 4 decisions off the map at [11.  28.3 -3.8] (time left 19s)
+[13:17:18] [4] [env:8892] round over (time left 300s of 300s); waiting for the next round
+[13:17:18] [4] [env:8892] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[13:17:18] [4] new round (game connection 1); rtf 4.7
+[13:17:18] [3] fall without OOB flag: 4 decisions off the map at [12.4  7.8 -2.8] (time left 157s)
+[13:17:19] [7] [env:8895] round over (time left 180s of 180s); waiting for the next round
+[13:17:19] [7] [env:8895] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[13:17:19] [7] new round (game connection 1); rtf 5.3
+[13:17:21] [5] [env:8893] round over (time left 300s of 300s); waiting for the next round
+[13:17:21] [5] [env:8893] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[13:17:21] [5] new round (game connection 1); rtf 5.0
+[13:17:22] SEG n=3000 last=arrived arrive=81% falls100=1.73 speed=4.8 timeout=0% rew=23.1 dps=591
+[13:17:22] [4] fall without OOB flag: 4 decisions off the map at [10.5  1.6 -2.7] (time left 276s)
+[13:17:22] [3] fall without OOB flag: 4 decisions off the map at [  9.7 -23.6  -2.6] (time left 130s)
+[13:17:23] [4] fall without OOB flag: 4 decisions off the map at [-11.8  16.5  -3.3] (time left 270s)
+[13:17:28] [2] fall without OOB flag: 4 decisions off the map at [-14.2 -27.9  -2.4] (time left 40s)
+[13:17:29] [4] fall without OOB flag: 4 decisions off the map at [14.9  5.4 -2.6] (time left 231s)
+[13:17:34] MAPS FlatIslands_Hunt: n=6 arrive=90% falls100=0.63 speed=5.4 | KingOfTheMarble_Hunt: n=2 arrive=53% falls100=4.99 speed=2.9
+[13:17:34] NAV upd=1743 map=FlatIslands_Hunt+KingOfTheMarble_Hunt r=0.65 steps=5,308,448 segs=3095 arrive=81% falls100=1.72 speed=4.8 rew=23.6 pl=0.049 vl=0.148 ent=0.39 kl=0.026 clip=0.19 gn=6.11 ep=3 dstd=0.22 flips=0 upd_s=4.5 wall_s=18 inst=8 dps=444 prof=fwd:5,send:0,recv:9,handle:0,w_game:21,w_obs:11,w_begin:3
+[13:17:34] SEG n=3100 last=arrived arrive=81% falls100=1.72 speed=4.8 timeout=0% rew=23.8 dps=594
+[13:17:35] [5] fall without OOB flag: 4 decisions off the map at [-19.4 -12.6  -3.3] (time left 242s)
+[13:17:35] [0] fall without OOB flag: 4 decisions off the map at [12.2  4.2 -3.8] (time left 142s)
+[13:17:36] [0] fall without OOB flag: 4 decisions off the map at [-11.6   4.4  -2.6] (time left 133s)
+[13:17:39] [2] [env:8890] round over (time left 300s of 300s); waiting for the next round
+[13:17:39] [2] [env:8890] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[13:17:39] [2] new round (game connection 1); rtf 4.8
+[13:17:40] [1] [env:8889] round over (time left 300s of 300s); waiting for the next round
+[13:17:40] [1] [env:8889] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[13:17:40] [1] new round (game connection 1); rtf 4.5
+[13:17:42] [2] fall without OOB flag: 4 decisions off the map at [-11.   27.9  -2.9] (time left 283s)
+[13:17:42] [6] [env:8894] round over (time left 180s of 180s); waiting for the next round
+[13:17:42] [6] [env:8894] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[13:17:42] [6] new round (game connection 1); rtf 5.1
+[13:17:43] SEG n=3200 last=arrived arrive=81% falls100=1.71 speed=4.8 timeout=0% rew=25.1 dps=579
+[13:17:43] [2] fall without OOB flag: 4 decisions off the map at [-14.6  16.2  -2.9] (time left 272s)
+[13:17:44] [2] fall without OOB flag: 4 decisions off the map at [-15.4 -35.3  -3.4] (time left 266s)
+[13:17:45] [2] fall without OOB flag: 4 decisions off the map at [ 13.9 -10.6  -3.3] (time left 260s)
+[13:17:46] [5] fall without OOB flag: 4 decisions off the map at [-15.2 -25.4  -3.8] (time left 176s)
+[13:17:46] [4] fall without OOB flag: 4 decisions off the map at [24.5 14.  -3.8] (time left 158s)
+[13:17:46] [0] fall without OOB flag: 4 decisions off the map at [14.9 11.2 -3.3] (time left 71s)
+[13:17:47] [3] fall without OOB flag: 4 decisions off the map at [-16.3  11.1  -3.1] (time left 4s)
+[13:17:47] [5] fall without OOB flag: 4 decisions off the map at [  0.4 -14.3  -2.6] (time left 167s)
+[13:17:48] [3] [env:8891] round over (time left 300s of 300s); waiting for the next round
+[13:17:48] [3] [env:8891] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[13:17:48] [3] new round (game connection 1); rtf 5.0
+[13:17:48] [2] fall without OOB flag: 4 decisions off the map at [12.   3.5 -3. ] (time left 243s)
+[13:17:52] MAPS FlatIslands_Hunt: n=6 arrive=90% falls100=0.64 speed=5.4 | KingOfTheMarble_Hunt: n=2 arrive=52% falls100=5.09 speed=2.9
+[13:17:52] NAV upd=1744 map=FlatIslands_Hunt+KingOfTheMarble_Hunt r=0.65 steps=5,316,636 segs=3262 arrive=81% falls100=1.75 speed=4.8 rew=24.7 pl=-0.008 vl=0.149 ent=0.39 kl=0.009 clip=0.10 gn=1.75 ep=3 dstd=0.22 flips=0 upd_s=3.7 wall_s=18 inst=8 dps=456 prof=fwd:5,send:0,recv:9,handle:0,w_game:22,w_obs:11,w_begin:4
+[13:17:52] [4] fall without OOB flag: 4 decisions off the map at [-14.4 -16.3  -3.1] (time left 141s)
+[13:17:54] [4] fall without OOB flag: 4 decisions off the map at [-24.   40.8  -2.7] (time left 128s)
+[13:17:55] [1] fall without OOB flag: 4 decisions off the map at [ 21.5 -14.8  -3.3] (time left 237s)
+[13:17:55] SEG n=3300 last=fell arrive=81% falls100=1.76 speed=4.8 timeout=0% rew=24.6 dps=587
+[13:17:55] [5] fall without OOB flag: 4 decisions off the map at [-15.1  17.3  -2.7] (time left 140s)
+[13:17:55] [7] [env:8895] round over (time left 180s of 180s); waiting for the next round
+[13:17:55] [7] [env:8895] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[13:17:55] [7] new round (game connection 1); rtf 5.0
+[13:17:58] [2] fall without OOB flag: 4 decisions off the map at [11.3 -8.2 -3.3] (time left 205s)
+[13:17:58] [1] fall without OOB flag: 4 decisions off the map at [20.7 42.5 -3.3] (time left 215s)
+[13:17:58] [3] fall without OOB flag: 4 decisions off the map at [-25.2 -11.   -3.8] (time left 258s)
+[13:17:58] [2] fall without OOB flag: 4 decisions off the map at [41.7 -1.9 -3.8] (time left 198s)
+[13:18:00] [0] fall without OOB flag: 4 decisions off the map at [-13.8  12.5  -2.9] (time left 10s)
+[13:18:01] [0] [env:8888] round over (time left 300s of 300s); waiting for the next round
+[13:18:01] [0] [env:8888] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[13:18:01] [0] new round (game connection 1)
+[13:18:03] [2] fall without OOB flag: 4 decisions off the map at [-12.3 -22.1  -3.3] (time left 165s)
+[13:18:03] SEG n=3400 last=arrived arrive=81% falls100=1.72 speed=4.8 timeout=0% rew=25.0 dps=587
+[13:18:04] [3] fall without OOB flag: 4 decisions off the map at [17.5 13.6 -3.3] (time left 224s)
+[13:18:10] MAPS FlatIslands_Hunt: n=6 arrive=90% falls100=0.60 speed=5.4 | KingOfTheMarble_Hunt: n=2 arrive=52% falls100=5.03 speed=2.9
+[13:18:10] NAV upd=1745 map=FlatIslands_Hunt+KingOfTheMarble_Hunt r=0.65 steps=5,324,827 segs=3431 arrive=81% falls100=1.71 speed=4.8 rew=24.7 pl=0.228 vl=0.221 ent=0.38 kl=0.009 clip=0.14 gn=8.02 ep=3 dstd=0.22 flips=0 upd_s=4.5 wall_s=19 inst=8 dps=443 prof=fwd:5,send:0,recv:9,handle:0,w_game:21,w_obs:10,w_begin:4
+[13:18:11] [5] fall without OOB flag: 4 decisions off the map at [-14.7  10.3  -3.4] (time left 68s)
+[13:18:13] [1] fall without OOB flag: 4 decisions off the map at [13.8 -7.8 -3.8] (time left 152s)
+[13:18:14] [3] fall without OOB flag: 4 decisions off the map at [-13.4   9.7  -3.4] (time left 189s)
+[13:18:14] [2] fall without OOB flag: 4 decisions off the map at [-15.4  27.6  -3. ] (time left 127s)
+[13:18:14] [4] fall without OOB flag: 4 decisions off the map at [-10.6  12.2  -3.3] (time left 34s)
+[13:18:15] [3] fall without OOB flag: 4 decisions off the map at [13.3 17.2 -3.3] (time left 177s)
+[13:18:16] SEG n=3500 last=arrived arrive=81% falls100=1.74 speed=4.8 timeout=0% rew=23.9 dps=592
+[13:18:19] [0] fall without OOB flag: 4 decisions off the map at [ -7.3 -13.8  -3.3] (time left 221s)
+[13:18:19] [5] fall without OOB flag: 4 decisions off the map at [-12.3  23.3  -3.8] (time left 16s)
+[13:18:19] [4] [env:8892] round over (time left 300s of 300s); waiting for the next round
+[13:18:19] [4] [env:8892] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[13:18:19] [4] new round (game connection 1); rtf 4.9
+[13:18:19] [2] fall without OOB flag: 4 decisions off the map at [13.2  7.  -3. ] (time left 92s)
+[13:18:20] [6] [env:8894] round over (time left 180s of 180s); waiting for the next round
+[13:18:20] [6] [env:8894] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[13:18:20] [6] new round (game connection 1); rtf 4.8
+[13:18:21] [0] fall without OOB flag: 4 decisions off the map at [ 9.9 12.1 -3.3] (time left 203s)
+[13:18:22] [5] [env:8893] round over (time left 300s of 300s); waiting for the next round
+[13:18:22] [5] [env:8893] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[13:18:22] [5] new round (game connection 1); rtf 5.0
+[13:18:24] [4] fall without OOB flag: 4 decisions off the map at [-14.4  14.1  -3.3] (time left 275s)
+[13:18:29] MAPS FlatIslands_Hunt: n=6 arrive=91% falls100=0.57 speed=5.4 | KingOfTheMarble_Hunt: n=2 arrive=52% falls100=5.17 speed=2.9
+[13:18:29] NAV upd=1746 map=FlatIslands_Hunt+KingOfTheMarble_Hunt r=0.65 steps=5,333,016 segs=3596 arrive=81% falls100=1.72 speed=4.8 rew=24.4 pl=-0.229 vl=0.197 ent=0.40 kl=0.017 clip=0.26 gn=7.03 ep=3 dstd=0.22 flips=0 upd_s=4.4 wall_s=18 inst=8 dps=449 prof=fwd:5,send:0,recv:9,handle:0,w_game:21,w_obs:10,w_begin:3
+[13:18:29] SEG n=3600 last=fell arrive=81% falls100=1.73 speed=4.8 timeout=0% rew=24.5 dps=527
+[13:18:29] [0] fall without OOB flag: 4 decisions off the map at [-17.2  -8.4  -3.3] (time left 179s)
+[13:18:31] [7] [env:8895] round over (time left 180s of 180s); waiting for the next round
+[13:18:31] [7] [env:8895] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[13:18:31] [7] new round (game connection 1)
+[13:18:31] [5] fall without OOB flag: 4 decisions off the map at [-12.8  12.3  -3.3] (time left 268s)
+[13:18:32] [2] fall without OOB flag: 4 decisions off the map at [39.4 23.9 -3.1] (time left 44s)
+[13:18:33] [5] fall without OOB flag: 4 decisions off the map at [13.5 19.4 -3. ] (time left 257s)
+[13:18:33] [2] fall without OOB flag: 4 decisions off the map at [ 16.5 -14.3  -3.8] (time left 34s)
+[13:18:34] [5] fall without OOB flag: 4 decisions off the map at [13.   8.8 -3.8] (time left 250s)
+[13:18:35] [2] fall without OOB flag: 4 decisions off the map at [-13.6  -4.9  -3.4] (time left 22s)
+[13:18:37] [1] fall without OOB flag: 4 decisions off the map at [11.2 22.7 -3.8] (time left 30s)
+[13:18:37] SEG n=3700 last=arrived arrive=81% falls100=1.77 speed=4.8 timeout=0% rew=23.6 dps=588
+[13:18:37] [0] fall without OOB flag: 4 decisions off the map at [-14.9  -9.4  -2.7] (time left 129s)
+[13:18:38] [3] fall without OOB flag: 4 decisions off the map at [ 14.3 -25.4  -3.2] (time left 69s)
+[13:18:38] [1] fall without OOB flag: 4 decisions off the map at [13.1 -7.  -3.8] (time left 24s)
+[13:18:38] [2] [env:8890] round over (time left 300s of 300s); waiting for the next round
+[13:18:38] [2] [env:8890] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[13:18:38] [2] new round (game connection 1); rtf 5.1
+[13:18:40] [0] fall without OOB flag: 4 decisions off the map at [  4.  -15.2  -3.5] (time left 110s)
+[13:18:41] [3] fall without OOB flag: 4 decisions off the map at [  4.8 -13.   -3.1] (time left 45s)
+[13:18:41] [2] fall without OOB flag: 4 decisions off the map at [14.5 -6.6 -3.8] (time left 281s)
+[13:18:42] [1] [env:8889] round over (time left 300s of 300s); waiting for the next round
+[13:18:42] [1] [env:8889] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[13:18:42] [1] new round (game connection 1); rtf 4.9
+[13:18:42] [1] fall without OOB flag: 4 decisions off the map at [-5.8 16.7 -3.3] (time left 295s)
+[13:18:46] MAPS FlatIslands_Hunt: n=6 arrive=91% falls100=0.57 speed=5.4 | KingOfTheMarble_Hunt: n=2 arrive=51% falls100=5.29 speed=2.8
+[13:18:46] NAV upd=1747 map=FlatIslands_Hunt+KingOfTheMarble_Hunt r=0.65 steps=5,341,206 segs=3765 arrive=81% falls100=1.75 speed=4.8 rew=23.6 pl=-0.006 vl=0.127 ent=0.39 kl=0.011 clip=0.14 gn=2.33 ep=3 dstd=0.22 flips=0 upd_s=3.1 wall_s=17 inst=8 dps=474 prof=fwd:5,send:0,recv:9,handle:0,w_game:21,w_obs:10,w_begin:4
+[13:18:47] [4] fall without OOB flag: 4 decisions off the map at [ -6.4 -12.1  -3.8] (time left 177s)
+[13:18:48] [4] fall without OOB flag: 4 decisions off the map at [ 15.5 -17.4  -3.3] (time left 168s)
+[13:18:49] SEG n=3800 last=arrived arrive=81% falls100=1.75 speed=4.8 timeout=0% rew=24.0 dps=628
+[13:18:50] [3] fall without OOB flag: 4 decisions off the map at [13.7 -9.7 -3.3] (time left 7s)
+[13:18:50] [0] fall without OOB flag: 4 decisions off the map at [ 41.2 -10.3  -2.4] (time left 67s)
+[13:18:50] [1] fall without OOB flag: 4 decisions off the map at [13.5 -7.6 -2.6] (time left 264s)
+[13:18:51] [3] [env:8891] round over (time left 300s of 300s); waiting for the next round
+[13:18:51] [3] [env:8891] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[13:18:51] [3] new round (game connection 1)
+[13:18:52] [1] fall without OOB flag: 4 decisions off the map at [-12.8  12.7  -3.3] (time left 254s)
+[13:18:53] [1] fall without OOB flag: 4 decisions off the map at [ 23.  -14.4  -2.9] (time left 245s)
+[13:18:53] [4] fall without OOB flag: 4 decisions off the map at [-31.4  13.2  -2.9] (time left 137s)
+[13:18:56] [5] fall without OOB flag: 4 decisions off the map at [-13.8  22.9  -2.8] (time left 132s)
+[13:18:56] [6] [env:8894] round over (time left 180s of 180s); waiting for the next round
+[13:18:56] [6] [env:8894] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[13:18:56] [6] new round (game connection 1); rtf 5.0
+[13:18:57] [1] fall without OOB flag: 4 decisions off the map at [-30.  -11.7  -2.4] (time left 223s)
+[13:18:57] SEG n=3900 last=arrived arrive=81% falls100=1.76 speed=4.8 timeout=0% rew=23.1 dps=582
+[13:18:57] [7] fall without OOB flag: 4 decisions off the map at [ 1.9 15.2 14.9] (time left 28s)
+[13:18:57] [0] fall without OOB flag: 4 decisions off the map at [-12.9  16.1  -3.4] (time left 24s)
+[13:18:58] [3] fall without OOB flag: 4 decisions off the map at [18.8 17.  -3.3] (time left 259s)
+[13:18:58] [2] fall without OOB flag: 4 decisions off the map at [-17.   20.6  -2.7] (time left 198s)
+[13:18:58] [0] fall without OOB flag: 4 decisions off the map at [ 24.  -14.1  -3.1] (time left 18s)
+[13:19:00] [4] fall without OOB flag: 4 decisions off the map at [-18.9 -11.6  -3.8] (time left 98s)
+[13:19:00] [1] fall without OOB flag: 4 decisions off the map at [42.8  5.8 -1.2] (time left 206s)
+[13:19:05] MAPS FlatIslands_Hunt: n=6 arrive=91% falls100=0.59 speed=5.4 | KingOfTheMarble_Hunt: n=2 arrive=50% falls100=5.48 speed=2.8
+[13:19:05] NAV upd=1748 map=FlatIslands_Hunt+KingOfTheMarble_Hunt r=0.65 steps=5,349,397 segs=3943 arrive=80% falls100=1.81 speed=4.8 rew=22.4 pl=-0.198 vl=0.216 ent=0.40 kl=0.010 clip=0.22 gn=6.54 ep=3 dstd=0.22 flips=0 upd_s=4.6 wall_s=19 inst=8 dps=433 prof=fwd:5,send:0,recv:9,handle:0,w_game:21,w_obs:10,w_begin:4
+[13:19:05] [3] fall without OOB flag: 4 decisions off the map at [15.6 10.2 -3.8] (time left 241s)
+[13:19:06] [0] [env:8888] round over (time left 300s of 300s); waiting for the next round
+[13:19:06] [0] [env:8888] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[13:19:06] [0] new round (game connection 1); rtf 4.9
+[13:19:06] [7] [env:8895] round over (time left 180s of 180s); waiting for the next round
+[13:19:06] [7] [env:8895] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[13:19:06] [7] new round (game connection 1); rtf 5.1
+[13:19:07] [3] fall without OOB flag: 4 decisions off the map at [ -8.7 -11.6  -3.3] (time left 228s)
+[13:19:08] [1] fall without OOB flag: 4 decisions off the map at [-22.2  15.7  -3.8] (time left 184s)
+[13:19:09] [3] fall without OOB flag: 4 decisions off the map at [-32.4 -10.4  -3.8] (time left 213s)
+[13:19:09] [5] fall without OOB flag: 4 decisions off the map at [-22.5  13.1  -3.5] (time left 75s)
+[13:19:10] SEG n=4000 last=arrived arrive=80% falls100=1.80 speed=4.8 timeout=0% rew=22.7 dps=588
+[13:19:10] [2] fall without OOB flag: 4 decisions off the map at [  8.  -15.2  -3.8] (time left 149s)
+[13:19:11] [3] fall without OOB flag: 4 decisions off the map at [-12.6   9.6  -3.3] (time left 200s)
+[13:19:11] [0] fall without OOB flag: 4 decisions off the map at [11.5  0.4 -3.3] (time left 268s)
+[13:19:11] [1] fall without OOB flag: 4 decisions off the map at [19.2 16.8 -3.3] (time left 159s)
+[13:19:12] [3] fall without OOB flag: 4 decisions off the map at [11.5 15.8 -3.3] (time left 194s)
+[13:19:12] [2] fall without OOB flag: 4 decisions off the map at [  6.5 -11.2  -3.3] (time left 137s)
+[13:19:13] [3] fall without OOB flag: 4 decisions off the map at [-20.7 -14.2  -3.3] (time left 182s)
+[13:19:15] [0] fall without OOB flag: 4 decisions off the map at [-28.2 -15.4  -3.3] (time left 241s)
+[13:19:16] [5] fall without OOB flag: 4 decisions off the map at [-16.5 -32.5  -3.4] (time left 34s)
+[13:19:17] [2] fall without OOB flag: 4 decisions off the map at [-17.2  14.3  -2.5] (time left 102s)
+[13:19:18] SEG n=4100 last=arrived arrive=80% falls100=1.78 speed=4.8 timeout=0% rew=23.3 dps=593
+[13:19:22] MAPS FlatIslands_Hunt: n=6 arrive=91% falls100=0.59 speed=5.4 | KingOfTheMarble_Hunt: n=2 arrive=50% falls100=5.35 speed=2.8
+[13:19:22] NAV upd=1749 map=FlatIslands_Hunt+KingOfTheMarble_Hunt r=0.65 steps=5,357,587 segs=4111 arrive=80% falls100=1.78 speed=4.8 rew=23.2 pl=-0.001 vl=0.117 ent=0.39 kl=0.019 clip=0.22 gn=2.65 ep=3 dstd=0.22 flips=0 upd_s=3.4 wall_s=17 inst=8 dps=475 prof=fwd:4,send:0,recv:9,handle:0,w_game:21,w_obs:10,w_begin:3
+[13:19:23] [4] fall without OOB flag: 4 decisions off the map at [16.2 17.2 -3.3] (time left 3s)
+[13:19:23] [1] fall without OOB flag: 4 decisions off the map at [28.  15.9 -3.8] (time left 107s)
+[13:19:23] [4] [env:8892] round over (time left 300s of 300s); waiting for the next round
+[13:19:23] [4] [env:8892] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[13:19:23] [4] new round (game connection 1); rtf 4.7
+[13:19:25] [5] [env:8893] round over (time left 300s of 300s); waiting for the next round
+[13:19:25] [5] [env:8893] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[13:19:25] [5] new round (game connection 1); rtf 4.8
+[13:19:25] [0] fall without OOB flag: 4 decisions off the map at [19.8 17.  -3.3] (time left 197s)
+[13:19:26] [0] fall without OOB flag: 4 decisions off the map at [ 13.1 -33.6  -3.2] (time left 193s)
+[13:19:26] [4] fall without OOB flag: 4 decisions off the map at [ -2.9 -10.9  -2.7] (time left 281s)
+[13:19:30] SEG n=4200 last=arrived arrive=80% falls100=1.78 speed=4.8 timeout=0% rew=24.6 dps=605
+[13:19:31] [0] fall without OOB flag: 4 decisions off the map at [ 0.9 12.9 -3.3] (time left 157s)
+[13:19:32] [0] fall without OOB flag: 4 decisions off the map at [-11.7 -13.7  -3.8] (time left 147s)
+[13:19:32] [1] fall without OOB flag: 4 decisions off the map at [-16.  -18.2  -3.3] (time left 47s)
+[13:19:33] [6] [env:8894] round over (time left 180s of 180s); waiting for the next round
+[13:19:33] [6] [env:8894] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[13:19:33] [6] new round (game connection 1)
+[13:19:33] [1] fall without OOB flag: 4 decisions off the map at [ 14.8 -13.7  -3.1] (time left 43s)
+[13:19:34] [4] fall without OOB flag: 4 decisions off the map at [ 13.  -12.8  -3. ] (time left 230s)
+[13:19:35] [2] fall without OOB flag: 4 decisions off the map at [ 14.2 -14.5  -3.3] (time left 11s)
+[13:19:40] MAPS FlatIslands_Hunt: n=6 arrive=91% falls100=0.59 speed=5.4 | KingOfTheMarble_Hunt: n=2 arrive=50% falls100=5.44 speed=2.8
+[13:19:40] NAV upd=1750 map=FlatIslands_Hunt+KingOfTheMarble_Hunt r=0.65 steps=5,365,777 segs=4276 arrive=80% falls100=1.80 speed=4.8 rew=25.0 pl=-0.008 vl=0.153 ent=0.40 kl=0.005 clip=0.06 gn=1.68 ep=3 dstd=0.22 flips=0 upd_s=3.5 wall_s=17 inst=8 dps=470 prof=fwd:5,send:0,recv:9,handle:0,w_game:21,w_obs:10,w_begin:3
+[13:19:40] saved C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\models\nav\nav_001750.pth
+[13:19:40] [0] fall without OOB flag: 4 decisions off the map at [-35.  -41.6  -3.1] (time left 120s)
+[13:19:40] [3] fall without OOB flag: 4 decisions off the map at [ 9.5 11.3 -3.3] (time left 59s)
+[13:19:41] [2] [env:8890] round over (time left 300s of 300s); waiting for the next round
+[13:19:41] [2] [env:8890] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[13:19:41] [2] new round (game connection 1); rtf 4.8
+[13:19:41] [4] fall without OOB flag: 4 decisions off the map at [-15.1 -10.4  -3.3] (time left 209s)
+[13:19:41] [3] fall without OOB flag: 4 decisions off the map at [ -6.4 -12.1  -3.3] (time left 53s)
+[13:19:42] SEG n=4300 last=arrived arrive=80% falls100=1.80 speed=4.8 timeout=0% rew=24.8 dps=540
+[13:19:43] [7] [env:8895] round over (time left 180s of 180s); waiting for the next round
+[13:19:43] [7] [env:8895] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[13:19:43] [7] new round (game connection 1); rtf 5.0
+[13:19:44] [3] fall without OOB flag: 4 decisions off the map at [11.7 -6.3 -3.3] (time left 34s)
+[13:19:44] [1] [env:8889] round over (time left 300s of 300s); waiting for the next round
+[13:19:44] [1] [env:8889] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[13:19:44] [1] new round (game connection 1); rtf 4.8
+[13:19:46] [3] fall without OOB flag: 4 decisions off the map at [13.5 14.  -2.7] (time left 21s)
+[13:19:46] [2] fall without OOB flag: 4 decisions off the map at [-6.2 15.6 -3.5] (time left 269s)
+[13:19:47] [0] fall without OOB flag: 4 decisions off the map at [-16.5   8.4  -3.3] (time left 75s)
+[13:19:47] [3] fall without OOB flag: 4 decisions off the map at [11.5 19.7 -3.2] (time left 10s)
+[13:19:48] [3] fall without OOB flag: 4 decisions off the map at [10.6 13.8 -3.3] (time left 1s)
+[13:19:48] [3] [env:8891] round over (time left 300s of 300s); waiting for the next round
+[13:19:48] [3] [env:8891] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[13:19:48] [3] new round (game connection 1)
+[13:19:49] [2] fall without OOB flag: 4 decisions off the map at [-20.1  15.2  -3.3] (time left 250s)
+[13:19:50] SEG n=4400 last=arrived arrive=80% falls100=1.78 speed=4.8 timeout=0% rew=24.7 dps=581
+[13:19:51] [0] fall without OOB flag: 4 decisions off the map at [10.3 -8.1 -3.3] (time left 50s)
+[13:19:52] [5] fall without OOB flag: 4 decisions off the map at [ 26.9 -14.9  -3.8] (time left 157s)
+[13:19:52] [2] fall without OOB flag: 4 decisions off the map at [ 8.2 12.5 -3.8] (time left 227s)
+[13:19:59] MAPS FlatIslands_Hunt: n=6 arrive=90% falls100=0.61 speed=5.4 | KingOfTheMarble_Hunt: n=2 arrive=50% falls100=5.39 speed=2.8
+[13:19:59] NAV upd=1751 map=FlatIslands_Hunt+KingOfTheMarble_Hunt r=0.65 steps=5,373,966 segs=4436 arrive=80% falls100=1.80 speed=4.8 rew=24.8 pl=-0.235 vl=0.184 ent=0.40 kl=0.021 clip=0.21 gn=5.51 ep=3 dstd=0.22 flips=0 upd_s=5.1 wall_s=19 inst=8 dps=430 prof=fwd:5,send:0,recv:9,handle:0,w_game:21,w_obs:10,w_begin:3
+[13:19:59] [2] fall without OOB flag: 4 decisions off the map at [-8.2 13.4 -3.3] (time left 215s)
+[13:20:00] [3] fall without OOB flag: 4 decisions off the map at [-28.1  13.8  -2.6] (time left 262s)
+[13:20:01] [1] fall without OOB flag: 4 decisions off the map at [-41.5 -20.7  -2.7] (time left 228s)
+[13:20:03] [2] fall without OOB flag: 4 decisions off the map at [-28.2 -13.   -2.5] (time left 188s)
+[13:20:03] [2] fall without OOB flag: 4 decisions off the map at [  8.2 -14.1  -3.6] (time left 184s)
+[13:20:04] [0] [env:8888] round over (time left 300s of 300s); waiting for the next round
+[13:20:04] [0] [env:8888] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[13:20:04] [0] new round (game connection 1); rtf 5.2
+[13:20:04] SEG n=4500 last=arrived arrive=80% falls100=1.79 speed=4.8 timeout=0% rew=24.3 dps=607
+[13:20:04] [0] fall without OOB flag: 4 decisions off the map at [-29.8 -14.2  -3.3] (time left 295s)
+[13:20:05] [5] fall without OOB flag: 4 decisions off the map at [ 1.6 13.9 -3.8] (time left 107s)
+[13:20:07] [4] fall without OOB flag: 4 decisions off the map at [12.1 24.8 -3.5] (time left 82s)
+[13:20:07] [3] fall without OOB flag: 4 decisions off the map at [ 24.8 -12.9  -3.2] (time left 214s)
+[13:20:08] [2] fall without OOB flag: 4 decisions off the map at [  9.4 -14.9  -3.4] (time left 155s)
+[13:20:09] [0] fall without OOB flag: 4 decisions off the map at [17.  42.3 -2.4] (time left 267s)
+[13:20:10] [2] fall without OOB flag: 4 decisions off the map at [-16.  -23.5  -2.5] (time left 141s)
+[13:20:10] [4] fall without OOB flag: 4 decisions off the map at [-12.5  14.2  -3.3] (time left 60s)
+[13:20:10] [5] fall without OOB flag: 4 decisions off the map at [-14.  -35.9  -3.3] (time left 74s)
+[13:20:10] [6] [env:8894] round over (time left 180s of 180s); waiting for the next round
+[13:20:10] [6] [env:8894] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[13:20:10] [6] new round (game connection 1); rtf 4.9
+[13:20:11] [1] fall without OOB flag: 4 decisions off the map at [14.4  6.8 -3.7] (time left 160s)
+[13:20:12] [1] fall without OOB flag: 4 decisions off the map at [-15.8   0.8  -3.8] (time left 154s)
+[13:20:12] SEG n=4600 last=arrived arrive=80% falls100=1.78 speed=4.7 timeout=0% rew=24.3 dps=596
+[13:20:16] MAPS FlatIslands_Hunt: n=6 arrive=90% falls100=0.63 speed=5.4 | KingOfTheMarble_Hunt: n=2 arrive=50% falls100=5.22 speed=2.8
+[13:20:16] NAV upd=1752 map=FlatIslands_Hunt+KingOfTheMarble_Hunt r=0.65 steps=5,382,156 segs=4603 arrive=80% falls100=1.78 speed=4.7 rew=24.2 pl=-0.007 vl=0.146 ent=0.39 kl=0.011 clip=0.11 gn=1.88 ep=3 dstd=0.22 flips=0 upd_s=3.5 wall_s=17 inst=8 dps=475 prof=fwd:5,send:0,recv:8,handle:0,w_game:21,w_obs:10,w_begin:3
+[13:20:18] [4] fall without OOB flag: 4 decisions off the map at [  9.4 -13.6  -2.6] (time left 26s)
+[13:20:19] [5] fall without OOB flag: 4 decisions off the map at [ 12.9 -14.9  -3.3] (time left 36s)
+[13:20:20] [1] fall without OOB flag: 4 decisions off the map at [ -7.5 -40.7  -2.6] (time left 124s)
+[13:20:20] [0] fall without OOB flag: 4 decisions off the map at [ 32.1 -15.3  -3.5] (time left 216s)
+[13:20:21] [2] fall without OOB flag: 4 decisions off the map at [-16.8 -32.5  -3.1] (time left 90s)
+[13:20:21] [2] fall without OOB flag: 4 decisions off the map at [-11.2 -14.8  -3.3] (time left 86s)
+[13:20:22] [7] [env:8895] round over (time left 180s of 180s); waiting for the next round
+[13:20:22] [7] [env:8895] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[13:20:22] [7] new round (game connection 1); rtf 4.7
+[13:20:22] [3] fall without OOB flag: 4 decisions off the map at [-21.5  13.3  -3.3] (time left 135s)
+[13:20:22] [4] [env:8892] round over (time left 300s of 300s); waiting for the next round
+[13:20:22] [4] [env:8892] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[13:20:22] [4] new round (game connection 1); rtf 5.1
+[13:20:24] SEG n=4700 last=arrived arrive=80% falls100=1.76 speed=4.8 timeout=0% rew=23.6 dps=584
+[13:20:24] [1] fall without OOB flag: 4 decisions off the map at [-3.2 42.3 -3.8] (time left 102s)
+[13:20:25] [2] fall without OOB flag: 4 decisions off the map at [-27.1 -12.5  -3.8] (time left 63s)
+[13:20:26] [0] fall without OOB flag: 4 decisions off the map at [ 20.8 -15.6  -3.8] (time left 182s)
+[13:20:26] [5] [env:8893] round over (time left 300s of 300s); waiting for the next round
+[13:20:26] [5] [env:8893] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[13:20:26] [5] new round (game connection 1); rtf 4.9
+[13:20:28] [1] fall without OOB flag: 4 decisions off the map at [39.3 23.3 -3.1] (time left 78s)
+[13:20:28] [1] fall without OOB flag: 4 decisions off the map at [ 8.  11.4 -3.1] (time left 74s)
+[13:20:28] [2] fall without OOB flag: 4 decisions off the map at [12.7 -7.1 -3.8] (time left 41s)
+[13:20:30] [1] fall without OOB flag: 4 decisions off the map at [14.9 -7.3 -3.3] (time left 62s)
+[13:20:35] MAPS FlatIslands_Hunt: n=6 arrive=90% falls100=0.63 speed=5.4 | KingOfTheMarble_Hunt: n=2 arrive=51% falls100=5.13 speed=2.8
+[13:20:35] NAV upd=1753 map=FlatIslands_Hunt+KingOfTheMarble_Hunt r=0.65 steps=5,390,345 segs=4789 arrive=80% falls100=1.76 speed=4.8 rew=22.5 pl=0.286 vl=0.259 ent=0.41 kl=0.025 clip=0.16 gn=8.88 ep=3 dstd=0.22 flips=0 upd_s=5.2 wall_s=20 inst=8 dps=419 prof=fwd:5,send:0,recv:9,handle:0,w_game:22,w_obs:10,w_begin:4
+[13:20:36] [4] fall without OOB flag: 4 decisions off the map at [-15.8 -18.1  -3.3] (time left 252s)
+[13:20:36] SEG n=4800 last=arrived arrive=80% falls100=1.75 speed=4.8 timeout=0% rew=22.3 dps=619
+[13:20:38] [5] fall without OOB flag: 4 decisions off the map at [-29.3  15.3  -1.9] (time left 259s)
+[13:20:39] [1] fall without OOB flag: 4 decisions off the map at [13.5  9.7 -2.7] (time left 33s)
+[13:20:39] [1] fall without OOB flag: 4 decisions off the map at [-15.8 -17.6  -3.8] (time left 28s)
+[13:20:40] [2] [env:8890] round over (time left 300s of 300s); waiting for the next round
+[13:20:40] [2] [env:8890] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[13:20:40] [2] new round (game connection 1); rtf 5.1
+[13:20:41] [1] fall without OOB flag: 4 decisions off the map at [40.6 -4.2 -3.4] (time left 13s)
+[13:20:44] [1] [env:8889] round over (time left 300s of 300s); waiting for the next round
+[13:20:44] [1] [env:8889] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[13:20:44] [1] new round (game connection 1); rtf 5.1
+[13:20:44] SEG n=4900 last=arrived arrive=80% falls100=1.77 speed=4.8 timeout=0% rew=22.7 dps=593
+[13:20:45] [0] fall without OOB flag: 4 decisions off the map at [15.8 29.2 -3.3] (time left 93s)
+[13:20:47] [6] [env:8894] round over (time left 180s of 180s); waiting for the next round
+[13:20:47] [6] [env:8894] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[13:20:47] [6] new round (game connection 1); rtf 5.0
+[13:20:49] [3] [env:8891] round over (time left 300s of 300s); waiting for the next round
+[13:20:49] [3] [env:8891] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[13:20:49] [3] new round (game connection 1); rtf 5.0
+[13:20:53] MAPS FlatIslands_Hunt: n=6 arrive=90% falls100=0.60 speed=5.4 | KingOfTheMarble_Hunt: n=2 arrive=50% falls100=5.19 speed=2.9
+[13:20:53] NAV upd=1754 map=FlatIslands_Hunt+KingOfTheMarble_Hunt r=0.65 steps=5,398,533 segs=4967 arrive=80% falls100=1.75 speed=4.8 rew=23.0 pl=-0.006 vl=0.126 ent=0.39 kl=0.008 clip=0.11 gn=2.08 ep=3 dstd=0.22 flips=0 upd_s=3.6 wall_s=17 inst=8 dps=468 prof=fwd:5,send:0,recv:9,handle:0,w_game:21,w_obs:10,w_begin:3
+[13:20:54] [2] fall without OOB flag: 4 decisions off the map at [-14.2 -18.8  -3. ] (time left 233s)
+[13:20:54] [0] fall without OOB flag: 4 decisions off the map at [ 11.8 -18.4  -3.3] (time left 58s)
+[13:20:54] [2] fall without OOB flag: 4 decisions off the map at [-10.7  12.7  -3.3] (time left 228s)
+[13:20:55] [4] fall without OOB flag: 4 decisions off the map at [ 42.5 -10.4  -1.3] (time left 154s)
+[13:20:55] [5] fall without OOB flag: 4 decisions off the map at [ 15.1 -11.2  -3.3] (time left 169s)
+[13:20:55] SEG n=5000 last=fell arrive=80% falls100=1.74 speed=4.8 timeout=0% rew=22.9 dps=567
+[13:20:55] [1] fall without OOB flag: 4 decisions off the map at [ 26.  -15.6  -3.1] (time left 249s)
+[13:20:56] [1] fall without OOB flag: 4 decisions off the map at [-14.9 -16.3  -2.3] (time left 243s)
+[13:20:57] [3] fall without OOB flag: 4 decisions off the map at [ 28.5 -13.1  -2.4] (time left 276s)
+[13:20:59] [5] fall without OOB flag: 4 decisions off the map at [  2.7 -11.   -3.4] (time left 146s)
+[13:21:00] [7] [env:8895] round over (time left 180s of 180s); waiting for the next round
+[13:21:00] [7] [env:8895] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[13:21:00] [7] new round (game connection 1)
+[13:21:00] [6] fall without OOB flag: 4 decisions off the map at [ 2.5 11.4 16.4] (time left 123s)
+[13:21:01] [2] fall without OOB flag: 4 decisions off the map at [12.9 15.  -3.8] (time left 185s)
+[13:21:01] [0] fall without OOB flag: 4 decisions off the map at [11.2 14.7 -2.8] (time left 11s)
+[13:21:02] [2] fall without OOB flag: 4 decisions off the map at [12.  32.6 -3.5] (time left 178s)
+[13:21:03] [0] [env:8888] round over (time left 300s of 300s); waiting for the next round
+[13:21:03] [0] [env:8888] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[13:21:03] [0] new round (game connection 1); rtf 5.1
+[13:21:04] SEG n=5100 last=arrived arrive=80% falls100=1.72 speed=4.8 timeout=0% rew=24.3 dps=582
+[13:21:06] [1] fall without OOB flag: 4 decisions off the map at [14.4  8.3 -3.3] (time left 183s)
+[13:21:06] [7] fall without OOB flag: 4 decisions off the map at [-19.5 -11.6  13.8] (time left 136s)
+[13:21:12] MAPS FlatIslands_Hunt: n=6 arrive=90% falls100=0.61 speed=5.4 | KingOfTheMarble_Hunt: n=2 arrive=50% falls100=5.09 speed=2.9
+[13:21:12] NAV upd=1755 map=FlatIslands_Hunt+KingOfTheMarble_Hunt r=0.65 steps=5,406,724 segs=5142 arrive=80% falls100=1.73 speed=4.8 rew=24.7 pl=-0.044 vl=0.117 ent=0.40 kl=0.012 clip=0.12 gn=3.79 ep=3 dstd=0.22 flips=0 upd_s=5.1 wall_s=19 inst=8 dps=430 prof=fwd:4,send:0,recv:9,handle:0,w_game:21,w_obs:10,w_begin:4
+[13:21:13] [4] fall without OOB flag: 4 decisions off the map at [19.9 12.3 -3.8] (time left 71s)
+[13:21:16] [4] fall without OOB flag: 4 decisions off the map at [-13.  -14.1  -3.4] (time left 51s)
+[13:21:16] [0] fall without OOB flag: 4 decisions off the map at [13.1  4.9 -2.8] (time left 247s)
+[13:21:17] SEG n=5200 last=arrived arrive=81% falls100=1.69 speed=4.8 timeout=0% rew=24.9 dps=599
+[13:21:18] [1] fall without OOB flag: 4 decisions off the map at [-17.2   8.9  -3.3] (time left 137s)
+[13:21:20] [5] fall without OOB flag: 4 decisions off the map at [-13.3  11.   -3.6] (time left 47s)
+[13:21:21] [1] fall without OOB flag: 4 decisions off the map at [-13.6  19.5  -2.7] (time left 121s)
+[13:21:23] [0] fall without OOB flag: 4 decisions off the map at [-27.9  -9.7  -2.7] (time left 205s)
+[13:21:24] [4] [env:8892] round over (time left 300s of 300s); waiting for the next round
+[13:21:24] [4] [env:8892] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[13:21:24] [4] new round (game connection 1); rtf 4.9
+[13:21:24] [6] [env:8894] round over (time left 180s of 180s); waiting for the next round
+[13:21:24] [6] [env:8894] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[13:21:24] [6] new round (game connection 1); rtf 4.9
+[13:21:25] SEG n=5300 last=arrived arrive=81% falls100=1.67 speed=4.8 timeout=0% rew=25.2 dps=589
+[13:21:26] [4] fall without OOB flag: 4 decisions off the map at [15.  19.5 -3.3] (time left 289s)
+[13:21:29] MAPS FlatIslands_Hunt: n=6 arrive=91% falls100=0.59 speed=5.5 | KingOfTheMarble_Hunt: n=2 arrive=52% falls100=4.91 speed=2.9
+[13:21:29] NAV upd=1756 map=FlatIslands_Hunt+KingOfTheMarble_Hunt r=0.65 steps=5,414,914 segs=5315 arrive=81% falls100=1.67 speed=4.8 rew=25.2 pl=-0.007 vl=0.123 ent=0.39 kl=0.011 clip=0.11 gn=2.10 ep=3 dstd=0.22 flips=0 upd_s=3.6 wall_s=18 inst=8 dps=468 prof=fwd:5,send:0,recv:9,handle:0,w_game:20,w_obs:10,w_begin:3
+[13:21:30] [0] fall without OOB flag: 4 decisions off the map at [-42.  -15.7  -2.5] (time left 187s)
+[13:21:30] [2] fall without OOB flag: 4 decisions off the map at [ 28.3 -15.7  -3.3] (time left 51s)
+[13:21:31] [5] [env:8893] round over (time left 300s of 300s); waiting for the next round
+[13:21:31] [5] [env:8893] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[13:21:31] [5] new round (game connection 1); rtf 4.7
+[13:21:33] [3] fall without OOB flag: 4 decisions off the map at [-13.3   1.7  -3.1] (time left 106s)
+[13:21:33] [1] fall without OOB flag: 4 decisions off the map at [12.8 16.1 -3.3] (time left 61s)
+[13:21:35] [4] fall without OOB flag: 4 decisions off the map at [-16.4   6.8  -3.1] (time left 255s)
+[13:21:35] [7] [env:8895] round over (time left 180s of 180s); waiting for the next round
+[13:21:35] [7] [env:8895] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[13:21:35] [7] new round (game connection 1)
+[13:21:37] SEG n=5400 last=arrived arrive=81% falls100=1.68 speed=4.8 timeout=0% rew=25.2 dps=584
+[13:21:39] [0] fall without OOB flag: 4 decisions off the map at [16.2 -9.3 -3.3] (time left 134s)
+[13:21:39] [2] [env:8890] round over (time left 300s of 300s); waiting for the next round
+[13:21:39] [2] [env:8890] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[13:21:39] [2] new round (game connection 1); rtf 5.1
+[13:21:39] [0] fall without OOB flag: 4 decisions off the map at [12.8 -8.9 -3.3] (time left 129s)
+[13:21:41] [3] fall without OOB flag: 4 decisions off the map at [  9.4 -10.4  -3.8] (time left 62s)
+[13:21:43] [4] fall without OOB flag: 4 decisions off the map at [-27.7 -11.2  -3.8] (time left 208s)
+[13:21:43] [1] fall without OOB flag: 4 decisions off the map at [-28.  -15.4  -2.9] (time left 1s)
+[13:21:43] [1] [env:8889] round over (time left 300s of 300s); waiting for the next round
+[13:21:43] [1] [env:8889] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[13:21:43] [1] new round (game connection 1)
+[13:21:47] MAPS FlatIslands_Hunt: n=6 arrive=91% falls100=0.58 speed=5.5 | KingOfTheMarble_Hunt: n=2 arrive=52% falls100=4.91 speed=2.9
+[13:21:47] NAV upd=1757 map=FlatIslands_Hunt+KingOfTheMarble_Hunt r=0.65 steps=5,423,104 segs=5487 arrive=81% falls100=1.66 speed=4.8 rew=25.2 pl=-0.004 vl=0.147 ent=0.40 kl=0.010 clip=0.15 gn=2.43 ep=3 dstd=0.22 flips=0 upd_s=3.5 wall_s=18 inst=8 dps=461 prof=fwd:5,send:0,recv:9,handle:0,w_game:21,w_obs:10,w_begin:4
+[13:21:48] [0] fall without OOB flag: 4 decisions off the map at [-14.1  -1.8  -3. ] (time left 98s)
+[13:21:48] SEG n=5500 last=arrived arrive=81% falls100=1.66 speed=4.8 timeout=0% rew=24.9 dps=574
+[13:21:49] [1] fall without OOB flag: 4 decisions off the map at [ 14.8 -17.   -2.6] (time left 285s)
+[13:21:51] [4] fall without OOB flag: 4 decisions off the map at [ 25.4 -14.9  -3.8] (time left 173s)
+[13:21:52] [0] fall without OOB flag: 4 decisions off the map at [-14.3 -30.9  -3.5] (time left 67s)
+[13:21:53] [1] fall without OOB flag: 4 decisions off the map at [-16.   23.3  -3.3] (time left 258s)
+[13:21:54] [3] [env:8891] round over (time left 300s of 300s); waiting for the next round
+[13:21:54] [3] [env:8891] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[13:21:54] [3] new round (game connection 1); rtf 4.6
+[13:21:55] [4] fall without OOB flag: 4 decisions off the map at [10.8 28.4 -3.3] (time left 150s)
+[13:21:56] [0] fall without OOB flag: 4 decisions off the map at [11.9 17.6 -3.8] (time left 41s)
+[13:21:56] SEG n=5600 last=arrived arrive=81% falls100=1.63 speed=4.8 timeout=0% rew=24.6 dps=591
+[13:21:56] [3] fall without OOB flag: 4 decisions off the map at [ 0.2 -9.9 -2.7] (time left 288s)
+[13:21:57] [2] fall without OOB flag: 4 decisions off the map at [-23.9  14.5  -3.3] (time left 209s)
+[13:21:57] [1] fall without OOB flag: 4 decisions off the map at [11.2 14.7 -3.3] (time left 232s)
+[13:21:59] [6] [env:8894] round over (time left 180s of 180s); waiting for the next round
+[13:21:59] [6] [env:8894] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[13:21:59] [6] new round (game connection 1); rtf 5.3
+[13:22:05] MAPS FlatIslands_Hunt: n=6 arrive=91% falls100=0.57 speed=5.5 | KingOfTheMarble_Hunt: n=2 arrive=52% falls100=4.70 speed=2.9
+[13:22:05] NAV upd=1758 map=FlatIslands_Hunt+KingOfTheMarble_Hunt r=0.65 steps=5,431,294 segs=5659 arrive=81% falls100=1.60 speed=4.8 rew=24.5 pl=-0.008 vl=0.163 ent=0.39 kl=0.010 clip=0.10 gn=1.82 ep=3 dstd=0.22 flips=0 upd_s=3.5 wall_s=17 inst=8 dps=470 prof=fwd:5,send:0,recv:9,handle:0,w_game:21,w_obs:10,w_begin:3
+[13:22:05] [1] fall without OOB flag: 4 decisions off the map at [ -2.4 -11.6  -3.4] (time left 202s)
+[13:22:05] [3] fall without OOB flag: 4 decisions off the map at [-33.1  17.   -2.7] (time left 250s)
+[13:22:06] [0] [env:8888] round over (time left 300s of 300s); waiting for the next round
+[13:22:06] [0] [env:8888] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[13:22:06] [0] new round (game connection 1); rtf 4.8
+[13:22:07] [1] fall without OOB flag: 4 decisions off the map at [ 39.1 -11.2  -3.3] (time left 190s)
+[13:22:08] SEG n=5700 last=arrived arrive=81% falls100=1.63 speed=4.8 timeout=0% rew=24.4 dps=572
+[13:22:11] [7] [env:8895] round over (time left 180s of 180s); waiting for the next round
+[13:22:11] [7] [env:8895] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[13:22:11] [7] new round (game connection 1); rtf 5.0
+[13:22:12] [1] fall without OOB flag: 4 decisions off the map at [16.1 25.7 -3.3] (time left 160s)
+[13:22:15] [0] fall without OOB flag: 4 decisions off the map at [-11.1  18.6  -3.3] (time left 244s)
+[13:22:15] [5] fall without OOB flag: 4 decisions off the map at [-5.8 15.4 -2.4] (time left 72s)
+[13:22:16] SEG n=5800 last=arrived arrive=81% falls100=1.63 speed=4.8 timeout=0% rew=24.2 dps=575
+[13:22:16] [3] fall without OOB flag: 4 decisions off the map at [-16.6  13.9  -3.3] (time left 184s)
+[13:22:17] [5] fall without OOB flag: 4 decisions off the map at [ 5.  14.7 -2.6] (time left 57s)
+[13:22:22] MAPS FlatIslands_Hunt: n=6 arrive=91% falls100=0.56 speed=5.5 | KingOfTheMarble_Hunt: n=2 arrive=51% falls100=4.89 speed=2.9
+[13:22:22] NAV upd=1759 map=FlatIslands_Hunt+KingOfTheMarble_Hunt r=0.65 steps=5,439,484 segs=5844 arrive=81% falls100=1.64 speed=4.8 rew=24.0 pl=-0.006 vl=0.141 ent=0.39 kl=0.012 clip=0.14 gn=1.96 ep=3 dstd=0.22 flips=0 upd_s=3.3 wall_s=18 inst=8 dps=466 prof=fwd:5,send:0,recv:9,handle:0,w_game:22,w_obs:10,w_begin:4
+[13:22:22] [2] fall without OOB flag: 4 decisions off the map at [-13.7   9.4  -2.4] (time left 96s)
+[13:22:25] [4] fall without OOB flag: 4 decisions off the map at [ 19.5 -40.5  -2.8] (time left 2s)
+[13:22:25] [4] [env:8892] round over (time left 300s of 300s); waiting for the next round
+[13:22:25] [4] [env:8892] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[13:22:25] [4] new round (game connection 1)
+[13:22:25] [5] fall without OOB flag: 4 decisions off the map at [13.6 17.8 -3.3] (time left 28s)
+[13:22:25] [4] fall without OOB flag: 4 decisions off the map at [-15.3   7.6  -3.8] (time left 297s)
+[13:22:26] [7] fall without OOB flag: 4 decisions off the map at [ 2.  12.6 14.9] (time left 101s)
+[13:22:26] [1] fall without OOB flag: 4 decisions off the map at [-42.4  31.3  -2.4] (time left 93s)
+[13:22:27] SEG n=5900 last=arrived arrive=81% falls100=1.65 speed=4.8 timeout=0% rew=23.7 dps=578
+[13:22:28] [2] fall without OOB flag: 4 decisions off the map at [28.6 11.9 -3.3] (time left 55s)
+[13:22:30] [2] fall without OOB flag: 4 decisions off the map at [14.7 10.4 -3.8] (time left 44s)
+[13:22:30] [1] fall without OOB flag: 4 decisions off the map at [10.3 14.8 -3.3] (time left 67s)
+[13:22:30] [5] [env:8893] round over (time left 300s of 300s); waiting for the next round
+[13:22:30] [5] [env:8893] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[13:22:30] [5] new round (game connection 1); rtf 5.1
+[13:22:31] [4] fall without OOB flag: 4 decisions off the map at [12.8 10.7 -2.8] (time left 263s)
+[13:22:31] [1] fall without OOB flag: 4 decisions off the map at [13.  16.1 -3.2] (time left 60s)
+[13:22:33] [3] fall without OOB flag: 4 decisions off the map at [-11.9   3.3  -3.8] (time left 96s)
+[13:22:33] [1] fall without OOB flag: 4 decisions off the map at [-15.5 -16.9  -3.4] (time left 45s)
+[13:22:34] [6] [env:8894] round over (time left 180s of 180s); waiting for the next round
+[13:22:34] [6] [env:8894] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[13:22:34] [6] new round (game connection 1); rtf 5.2
+[13:22:34] [5] fall without OOB flag: 4 decisions off the map at [26.9 13.  -3.8] (time left 276s)
+[13:22:35] [1] fall without OOB flag: 4 decisions off the map at [-16.3  19.1  -3.3] (time left 36s)
+[13:22:35] SEG n=6000 last=arrived arrive=81% falls100=1.65 speed=4.9 timeout=0% rew=23.6 dps=568
+[13:22:35] [0] fall without OOB flag: 4 decisions off the map at [ 11.6 -33.4  -3.8] (time left 144s)
+[13:22:36] [1] fall without OOB flag: 4 decisions off the map at [ 4.9 13.5 -3.3] (time left 26s)
+[13:22:36] [3] fall without OOB flag: 4 decisions off the map at [ -8.9 -13.   -3.8] (time left 77s)
+[13:22:40] MAPS FlatIslands_Hunt: n=6 arrive=91% falls100=0.57 speed=5.5 | KingOfTheMarble_Hunt: n=2 arrive=51% falls100=4.90 speed=2.9
+[13:22:40] NAV upd=1760 map=FlatIslands_Hunt+KingOfTheMarble_Hunt r=0.65 steps=5,447,674 segs=6019 arrive=81% falls100=1.66 speed=4.9 rew=23.7 pl=-0.005 vl=0.120 ent=0.39 kl=0.013 clip=0.12 gn=2.18 ep=3 dstd=0.22 flips=0 upd_s=3.2 wall_s=17 inst=8 dps=468 prof=fwd:5,send:0,recv:9,handle:0,w_game:21,w_obs:10,w_begin:4
+[13:22:40] [2] fall without OOB flag: 4 decisions off the map at [-16.5  20.6  -3.3] (time left 1s)
+[13:22:40] [2] [env:8890] round over (time left 300s of 300s); waiting for the next round
+[13:22:40] [2] [env:8890] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[13:22:40] [2] new round (game connection 1)
+[13:22:41] [5] fall without OOB flag: 4 decisions off the map at [-12.3 -12.9  -3.1] (time left 256s)
+[13:22:41] [0] fall without OOB flag: 4 decisions off the map at [ 30.3 -10.7  -3.8] (time left 128s)
+[13:22:41] [1] fall without OOB flag: 4 decisions off the map at [ 8.2 43.1 -3.3] (time left 12s)
+[13:22:42] [5] fall without OOB flag: 4 decisions off the map at [ 9.9 11.4 -3.3] (time left 245s)
+[13:22:43] [5] fall without OOB flag: 4 decisions off the map at [-24.6  12.   -2.7] (time left 239s)
+[13:22:44] [1] [env:8889] round over (time left 300s of 300s); waiting for the next round
+[13:22:44] [1] [env:8889] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[13:22:44] [1] new round (game connection 1); rtf 5.0
+[13:22:44] [4] fall without OOB flag: 4 decisions off the map at [-14.7 -39.2  -3.3] (time left 207s)
+[13:22:44] [5] fall without OOB flag: 4 decisions off the map at [ 15.3 -12.6  -3. ] (time left 230s)
+[13:22:45] [0] fall without OOB flag: 4 decisions off the map at [-21.6  15.9  -2.5] (time left 103s)
+[13:22:45] [6] fall without OOB flag: 4 decisions off the map at [ 1.3 21.7 20.4] (time left 125s)
+[13:22:46] [7] [env:8895] round over (time left 180s of 180s); waiting for the next round
+[13:22:46] [7] [env:8895] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[13:22:46] [7] new round (game connection 1); rtf 5.1
+[13:22:47] [4] fall without OOB flag: 4 decisions off the map at [-42.5  31.3  -2.4] (time left 188s)
+[13:22:47] [5] fall without OOB flag: 4 decisions off the map at [-12.1  15.7  -3.1] (time left 212s)
+[13:22:47] [2] fall without OOB flag: 4 decisions off the map at [12.5 35.  -3.1] (time left 260s)
+[13:22:47] SEG n=6100 last=fell arrive=81% falls100=1.69 speed=4.8 timeout=0% rew=22.9 dps=557
+[13:22:48] [1] fall without OOB flag: 4 decisions off the map at [-13.6  -3.1  -1.9] (time left 276s)
+[13:22:50] [4] fall without OOB flag: 4 decisions off the map at [-15.5  -3.4  -2.5] (time left 164s)
+[13:22:51] [4] fall without OOB flag: 4 decisions off the map at [15.7 -5.6 -3.3] (time left 158s)
+[13:22:51] [0] fall without OOB flag: 4 decisions off the map at [-14.5 -37.4  -2.9] (time left 59s)
+[13:22:52] [2] fall without OOB flag: 4 decisions off the map at [12.1 -9.5 -3.3] (time left 225s)
+[13:22:52] [3] [env:8891] round over (time left 300s of 300s); waiting for the next round
+[13:22:52] [3] [env:8891] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[13:22:52] [3] new round (game connection 1); rtf 5.2
+[13:22:59] MAPS FlatIslands_Hunt: n=6 arrive=91% falls100=0.59 speed=5.5 | KingOfTheMarble_Hunt: n=2 arrive=51% falls100=4.98 speed=2.9
+[13:22:59] NAV upd=1761 map=FlatIslands_Hunt+KingOfTheMarble_Hunt r=0.65 steps=5,455,863 segs=6176 arrive=81% falls100=1.69 speed=4.8 rew=23.7 pl=0.019 vl=0.141 ent=0.40 kl=0.011 clip=0.14 gn=3.65 ep=3 dstd=0.22 flips=0 upd_s=4.8 wall_s=19 inst=8 dps=436 prof=fwd:5,send:0,recv:9,handle:0,w_game:21,w_obs:11,w_begin:3
+[13:22:59] [2] fall without OOB flag: 4 decisions off the map at [40.1 -9.2 -3.8] (time left 213s)
+[13:22:59] [2] fall without OOB flag: 4 decisions off the map at [-12.7  20.4  -3.5] (time left 206s)
+[13:23:01] SEG n=6200 last=arrived arrive=81% falls100=1.70 speed=4.8 timeout=0% rew=24.0 dps=584
+[13:23:01] [3] fall without OOB flag: 4 decisions off the map at [12.7 -5.  -2.9] (time left 273s)
+[13:23:02] [1] fall without OOB flag: 4 decisions off the map at [-7.  16.2 -3.3] (time left 219s)
+[13:23:02] [2] fall without OOB flag: 4 decisions off the map at [ 15.2 -18.8  -3.3] (time left 190s)
+[13:23:05] [2] fall without OOB flag: 4 decisions off the map at [-16.2  -3.9  -3.8] (time left 167s)
+[13:23:05] [5] fall without OOB flag: 4 decisions off the map at [-12.5  35.1  -2.9] (time left 125s)
+[13:23:06] [0] [env:8888] round over (time left 300s of 300s); waiting for the next round
+[13:23:06] [0] [env:8888] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[13:23:06] [0] new round (game connection 1); rtf 5.1
+[13:23:08] SEG n=6300 last=arrived arrive=81% falls100=1.64 speed=4.8 timeout=0% rew=24.6 dps=600
+[13:23:09] [1] fall without OOB flag: 4 decisions off the map at [11.2  1.  -3.8] (time left 173s)
+[13:23:09] [3] fall without OOB flag: 4 decisions off the map at [-12.4 -14.8  -3.3] (time left 217s)
+[13:23:10] [6] [env:8894] round over (time left 180s of 180s); waiting for the next round
+[13:23:10] [6] [env:8894] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[13:23:10] [6] new round (game connection 1); rtf 5.0
+[13:23:11] [2] fall without OOB flag: 4 decisions off the map at [-22.2 -12.7  -2.5] (time left 131s)
+[13:23:11] [3] fall without OOB flag: 4 decisions off the map at [-15.6 -17.3  -3.3] (time left 206s)
+[13:23:16] MAPS FlatIslands_Hunt: n=6 arrive=91% falls100=0.56 speed=5.5 | KingOfTheMarble_Hunt: n=2 arrive=52% falls100=4.90 speed=2.8
+[13:23:16] NAV upd=1762 map=FlatIslands_Hunt+KingOfTheMarble_Hunt r=0.65 steps=5,464,053 segs=6347 arrive=81% falls100=1.64 speed=4.8 rew=24.5 pl=-0.008 vl=0.123 ent=0.39 kl=0.009 clip=0.10 gn=2.14 ep=3 dstd=0.22 flips=0 upd_s=3.2 wall_s=17 inst=8 dps=474 prof=fwd:5,send:0,recv:9,handle:0,w_game:21,w_obs:10,w_begin:3
+[13:23:17] [4] fall without OOB flag: 4 decisions off the map at [-42.1  27.5  -2.7] (time left 47s)
+[13:23:17] [6] fall without OOB flag: 4 decisions off the map at [ 0.8  1.  21.5] (time left 156s)
+[13:23:19] SEG n=6400 last=arrived arrive=82% falls100=1.62 speed=4.8 timeout=0% rew=25.3 dps=618
+[13:23:21] [0] fall without OOB flag: 4 decisions off the map at [-11.7  -8.5  -3.3] (time left 224s)
+[13:23:23] [4] fall without OOB flag: 4 decisions off the map at [-13.6  -7.7  -2.4] (time left 8s)
+[13:23:23] [7] [env:8895] round over (time left 180s of 180s); waiting for the next round
+[13:23:23] [7] [env:8895] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[13:23:23] [7] new round (game connection 1); rtf 4.9
+[13:23:24] [4] [env:8892] round over (time left 300s of 300s); waiting for the next round
+[13:23:24] [4] [env:8892] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[13:23:24] [4] new round (game connection 1); rtf 5.0
+[13:23:25] [5] fall without OOB flag: 4 decisions off the map at [ 9.4 13.3 -3.3] (time left 21s)
+[13:23:25] [2] fall without OOB flag: 4 decisions off the map at [19.2 15.3 -2.8] (time left 60s)
+[13:23:27] [2] fall without OOB flag: 4 decisions off the map at [14.   7.5 -2.6] (time left 51s)
+[13:23:27] [3] fall without OOB flag: 4 decisions off the map at [-19.  -14.9  -3.8] (time left 125s)
+[13:23:28] SEG n=6500 last=arrived arrive=82% falls100=1.61 speed=4.9 timeout=0% rew=24.3 dps=587
+[13:23:28] [0] fall without OOB flag: 4 decisions off the map at [14.4  7.1 -2.6] (time left 181s)
+[13:23:29] [2] fall without OOB flag: 4 decisions off the map at [  7.  -12.8  -3.8] (time left 37s)
+[13:23:29] [3] fall without OOB flag: 4 decisions off the map at [-11.7 -20.9  -3.3] (time left 113s)
+[13:23:29] [5] [env:8893] round over (time left 300s of 300s); waiting for the next round
+[13:23:29] [5] [env:8893] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[13:23:29] [5] new round (game connection 1); rtf 5.1
+[13:23:35] MAPS FlatIslands_Hunt: n=6 arrive=91% falls100=0.55 speed=5.5 | KingOfTheMarble_Hunt: n=2 arrive=53% falls100=4.82 speed=2.8
+[13:23:35] NAV upd=1763 map=FlatIslands_Hunt+KingOfTheMarble_Hunt r=0.65 steps=5,472,242 segs=6525 arrive=82% falls100=1.62 speed=4.9 rew=24.1 pl=0.377 vl=0.366 ent=0.40 kl=0.039 clip=0.19 gn=11.93 ep=3 dstd=0.22 flips=0 upd_s=5.1 wall_s=19 inst=8 dps=426 prof=fwd:5,send:0,recv:9,handle:0,w_game:21,w_obs:10,w_begin:3
+[13:23:36] [3] fall without OOB flag: 4 decisions off the map at [ -3.3 -14.3  -2.6] (time left 100s)
+[13:23:39] [5] fall without OOB flag: 4 decisions off the map at [12.2 -4.7 -3.3] (time left 272s)
+[13:23:40] [4] fall without OOB flag: 4 decisions off the map at [11.6 -9.9 -3.3] (time left 232s)
+[13:23:40] [1] fall without OOB flag: 4 decisions off the map at [-16.3  14.5  -3.8] (time left 32s)
+[13:23:40] [2] [env:8890] round over (time left 300s of 300s); waiting for the next round
+[13:23:40] [2] [env:8890] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[13:23:40] [2] new round (game connection 1); rtf 5.0
+[13:23:40] [3] fall without OOB flag: 4 decisions off the map at [ -6.1 -11.5  -3.3] (time left 68s)
+[13:23:41] SEG n=6600 last=arrived arrive=82% falls100=1.60 speed=4.9 timeout=0% rew=23.6 dps=598
+[13:23:41] [0] fall without OOB flag: 4 decisions off the map at [-15.7  -5.3  -3.3] (time left 135s)
+[13:23:43] [0] fall without OOB flag: 4 decisions off the map at [-12.7 -10.2  -3.8] (time left 122s)
+[13:23:43] [0] fall without OOB flag: 4 decisions off the map at [11.8  9.7 -3.3] (time left 117s)
+[13:23:45] [5] fall without OOB flag: 4 decisions off the map at [-14.2 -12.7  -3.3] (time left 228s)
+[13:23:45] [1] [env:8889] round over (time left 300s of 300s); waiting for the next round
+[13:23:45] [1] [env:8889] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[13:23:45] [1] new round (game connection 1); rtf 4.9
+[13:23:46] [3] fall without OOB flag: 4 decisions off the map at [-27.5 -16.1  -3.3] (time left 32s)
+[13:23:46] [5] fall without OOB flag: 4 decisions off the map at [-18.2 -14.3  -3.8] (time left 223s)
+[13:23:47] [6] [env:8894] round over (time left 180s of 180s); waiting for the next round
+[13:23:47] [6] [env:8894] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[13:23:47] [6] new round (game connection 1); rtf 5.0
+[13:23:48] [2] fall without OOB flag: 4 decisions off the map at [11.  -7.1 -3.3] (time left 251s)
+[13:23:49] SEG n=6700 last=arrived arrive=82% falls100=1.57 speed=4.9 timeout=0% rew=23.6 dps=586
+[13:23:53] MAPS FlatIslands_Hunt: n=6 arrive=92% falls100=0.54 speed=5.5 | KingOfTheMarble_Hunt: n=2 arrive=54% falls100=4.66 speed=2.9
+[13:23:53] NAV upd=1764 map=FlatIslands_Hunt+KingOfTheMarble_Hunt r=0.65 steps=5,480,431 segs=6702 arrive=82% falls100=1.57 speed=4.9 rew=23.7 pl=0.235 vl=0.205 ent=0.41 kl=0.016 clip=0.11 gn=8.06 ep=3 dstd=0.22 flips=0 upd_s=4.5 wall_s=18 inst=8 dps=445 prof=fwd:5,send:0,recv:9,handle:0,w_game:21,w_obs:10,w_begin:3
+[13:23:54] [5] fall without OOB flag: 4 decisions off the map at [14.3 31.1 -3.6] (time left 200s)
+[13:23:55] [3] [env:8891] round over (time left 300s of 300s); waiting for the next round
+[13:23:55] [3] [env:8891] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[13:23:55] [3] new round (game connection 1); rtf 4.8
+[13:23:56] [4] fall without OOB flag: 4 decisions off the map at [ 12.2 -21.6  -3.3] (time left 162s)
+[13:23:56] [1] fall without OOB flag: 4 decisions off the map at [13.8 30.3 -3.3] (time left 259s)
+[13:23:57] [5] fall without OOB flag: 4 decisions off the map at [11.1 -9.6 -3.3] (time left 179s)
+[13:23:58] [0] fall without OOB flag: 4 decisions off the map at [12.8  9.7 -3.6] (time left 53s)
+[13:23:59] [3] fall without OOB flag: 4 decisions off the map at [ -6.9 -14.9  -3.8] (time left 277s)
+[13:23:59] [0] fall without OOB flag: 4 decisions off the map at [-16.    2.   -3.8] (time left 42s)
+[13:24:01] SEG n=6800 last=arrived arrive=82% falls100=1.55 speed=4.9 timeout=0% rew=24.3 dps=605
+[13:24:02] [4] fall without OOB flag: 4 decisions off the map at [-13.2  -2.   -3.6] (time left 118s)
+[13:24:02] [7] [env:8895] round over (time left 180s of 180s); waiting for the next round
+[13:24:02] [7] [env:8895] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[13:24:02] [7] new round (game connection 1)
+[13:24:03] [0] fall without OOB flag: 4 decisions off the map at [-19.9 -14.4  -3.8] (time left 22s)
+[13:24:03] [2] fall without OOB flag: 4 decisions off the map at [12.  10.1 -3.3] (time left 186s)
+[13:24:03] [0] fall without OOB flag: 4 decisions off the map at [ 17.7 -11.1  -3.8] (time left 17s)
+[13:24:03] [4] fall without OOB flag: 4 decisions off the map at [-39.7  43.1  -1.6] (time left 112s)
+[13:24:05] [3] fall without OOB flag: 4 decisions off the map at [  6.4 -15.4  -2.3] (time left 241s)
+[13:24:05] [0] fall without OOB flag: 4 decisions off the map at [-16.8  19.9  -3.3] (time left 5s)
+[13:24:06] [0] [env:8888] round over (time left 300s of 300s); waiting for the next round
+[13:24:06] [0] [env:8888] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[13:24:06] [0] new round (game connection 1); rtf 5.0
+[13:24:06] [5] fall without OOB flag: 4 decisions off the map at [14.3  4.2 -2.5] (time left 125s)
+[13:24:06] [2] fall without OOB flag: 4 decisions off the map at [-40.5  42.   -3. ] (time left 166s)
+[13:24:11] MAPS FlatIslands_Hunt: n=6 arrive=91% falls100=0.55 speed=5.5 | KingOfTheMarble_Hunt: n=2 arrive=54% falls100=4.58 speed=2.9
+[13:24:11] NAV upd=1765 map=FlatIslands_Hunt+KingOfTheMarble_Hunt r=0.65 steps=5,488,621 segs=6872 arrive=82% falls100=1.56 speed=4.9 rew=24.5 pl=-0.008 vl=0.139 ent=0.39 kl=0.010 clip=0.12 gn=2.01 ep=3 dstd=0.22 flips=0 upd_s=3.2 wall_s=17 inst=8 dps=477 prof=fwd:5,send:0,recv:9,handle:0,w_game:21,w_obs:10,w_begin:4
+[13:24:12] [5] fall without OOB flag: 4 decisions off the map at [16.8 -5.8 -3.3] (time left 105s)
+[13:24:13] SEG n=6900 last=arrived arrive=82% falls100=1.56 speed=4.9 timeout=0% rew=24.8 dps=587
+[13:24:16] [4] fall without OOB flag: 4 decisions off the map at [ 25.9 -11.9  -2.3] (time left 51s)
+[13:24:17] [1] fall without OOB flag: 4 decisions off the map at [-41.   18.9  -2.9] (time left 149s)
+[13:24:17] [3] fall without OOB flag: 4 decisions off the map at [ 1.9 16.7 -3.8] (time left 179s)
+[13:24:20] [4] fall without OOB flag: 4 decisions off the map at [-15.7 -12.4  -3.8] (time left 27s)
+[13:24:20] [5] fall without OOB flag: 4 decisions off the map at [ 8.  13.8 -3.3] (time left 55s)
+[13:24:21] SEG n=7000 last=fell arrive=82% falls100=1.58 speed=4.9 timeout=0% rew=24.7 dps=585
+[13:24:22] [3] fall without OOB flag: 4 decisions off the map at [-30.1  12.2  -2.4] (time left 152s)
+[13:24:22] [2] fall without OOB flag: 4 decisions off the map at [13.4 -8.5 -2.7] (time left 91s)
+[13:24:24] [1] fall without OOB flag: 4 decisions off the map at [-12.1 -27.1  -3.5] (time left 109s)
+[13:24:24] [0] fall without OOB flag: 4 decisions off the map at [13.1  7.7 -3.1] (time left 208s)
+[13:24:24] [4] [env:8892] round over (time left 300s of 300s); waiting for the next round
+[13:24:24] [4] [env:8892] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[13:24:24] [4] new round (game connection 1); rtf 5.0
+[13:24:24] [6] [env:8894] round over (time left 180s of 180s); waiting for the next round
+[13:24:24] [6] [env:8894] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[13:24:24] [6] new round (game connection 1); rtf 4.8
+[13:24:28] MAPS FlatIslands_Hunt: n=6 arrive=91% falls100=0.54 speed=5.5 | KingOfTheMarble_Hunt: n=2 arrive=53% falls100=4.76 speed=2.9
+[13:24:28] NAV upd=1766 map=FlatIslands_Hunt+KingOfTheMarble_Hunt r=0.65 steps=5,496,811 segs=7042 arrive=82% falls100=1.59 speed=4.9 rew=24.8 pl=-0.007 vl=0.152 ent=0.39 kl=0.009 clip=0.11 gn=1.89 ep=3 dstd=0.22 flips=0 upd_s=3.1 wall_s=17 inst=8 dps=478 prof=fwd:5,send:0,recv:9,handle:0,w_game:21,w_obs:10,w_begin:4
+[13:24:28] [5] fall without OOB flag: 4 decisions off the map at [23.7 13.9 -2.9] (time left 24s)
+[13:24:29] [0] fall without OOB flag: 4 decisions off the map at [14.6 21.  -3.3] (time left 192s)
+[13:24:29] [4] fall without OOB flag: 4 decisions off the map at [-15.2  -8.9  -3.8] (time left 289s)
+[13:24:32] [5] [env:8893] round over (time left 300s of 300s); waiting for the next round
+[13:24:32] [5] [env:8893] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[13:24:32] [5] new round (game connection 1); rtf 4.8
+[13:24:32] [4] fall without OOB flag: 4 decisions off the map at [  5.  -15.6  -3.8] (time left 268s)
+[13:24:33] SEG n=7100 last=arrived arrive=82% falls100=1.57 speed=4.9 timeout=0% rew=24.9 dps=543
+[13:24:34] [5] fall without OOB flag: 4 decisions off the map at [-14.7  16.1  -3.3] (time left 291s)
+[13:24:35] [0] fall without OOB flag: 4 decisions off the map at [-11.9 -39.2  -3.1] (time left 159s)
+[13:24:35] [3] fall without OOB flag: 4 decisions off the map at [ 16.4 -16.8  -3.3] (time left 89s)
+[13:24:35] [4] fall without OOB flag: 4 decisions off the map at [ 20.1 -12.5  -3.5] (time left 251s)
+[13:24:36] [5] fall without OOB flag: 4 decisions off the map at [-14.9   5.7  -2.9] (time left 280s)
+[13:24:37] [1] fall without OOB flag: 4 decisions off the map at [ 23.7 -11.8  -3.3] (time left 49s)
+[13:24:37] [5] fall without OOB flag: 4 decisions off the map at [  3.9 -41.9   1.6] (time left 272s)
+[13:24:38] [0] fall without OOB flag: 4 decisions off the map at [-16.6  -0.9  -3.3] (time left 139s)
+[13:24:38] [7] [env:8895] round over (time left 180s of 180s); waiting for the next round
+[13:24:38] [7] [env:8895] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[13:24:38] [7] new round (game connection 1)
+[13:24:39] [5] fall without OOB flag: 4 decisions off the map at [-42.   -2.3  -2.9] (time left 259s)
+[13:24:39] [5] fall without OOB flag: 4 decisions off the map at [  7.5 -13.1  -3.8] (time left 254s)
+[13:24:40] [0] fall without OOB flag: 4 decisions off the map at [ 21.3 -15.1  -2.7] (time left 125s)
+[13:24:40] [1] fall without OOB flag: 4 decisions off the map at [-16.  -19.6  -3.8] (time left 26s)
+[13:24:41] [2] [env:8890] round over (time left 300s of 300s); waiting for the next round
+[13:24:41] [2] [env:8890] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[13:24:41] [2] new round (game connection 1); rtf 5.0
+[13:24:41] [3] fall without OOB flag: 4 decisions off the map at [14.  15.1 -3.3] (time left 51s)
+[13:24:42] SEG n=7200 last=fell arrive=82% falls100=1.59 speed=4.9 timeout=0% rew=24.3 dps=552
+[13:24:42] [4] fall without OOB flag: 4 decisions off the map at [ 17.1 -12.6  -2.9] (time left 211s)
+[13:24:42] [1] fall without OOB flag: 4 decisions off the map at [12.2  3.6 -3.3] (time left 15s)
+[13:24:46] MAPS FlatIslands_Hunt: n=6 arrive=91% falls100=0.57 speed=5.5 | KingOfTheMarble_Hunt: n=2 arrive=53% falls100=4.68 speed=2.9
+[13:24:46] NAV upd=1767 map=FlatIslands_Hunt+KingOfTheMarble_Hunt r=0.65 steps=5,505,001 segs=7217 arrive=82% falls100=1.60 speed=4.9 rew=24.0 pl=-0.006 vl=0.169 ent=0.40 kl=0.008 clip=0.09 gn=2.22 ep=3 dstd=0.22 flips=0 upd_s=3.3 wall_s=18 inst=8 dps=451 prof=fwd:5,send:0,recv:9,handle:0,w_game:23,w_obs:11,w_begin:4
+[13:24:47] [3] fall without OOB flag: 4 decisions off the map at [16.8  6.7 -3.8] (time left 34s)
+[13:24:48] [1] [env:8889] round over (time left 300s of 300s); waiting for the next round
+[13:24:48] [1] [env:8889] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[13:24:48] [1] new round (game connection 1); rtf 4.8
+[13:24:48] [3] fall without OOB flag: 4 decisions off the map at [  9.8 -15.   -2.7] (time left 28s)
+[13:24:49] [5] fall without OOB flag: 4 decisions off the map at [-25.4  11.3  -3.1] (time left 213s)
+[13:24:50] [1] fall without OOB flag: 4 decisions off the map at [ 16.  -12.9  -2.9] (time left 288s)
+[13:24:53] [0] fall without OOB flag: 4 decisions off the map at [-13.   -0.8  -3.1] (time left 80s)
+[13:24:54] [4] fall without OOB flag: 4 decisions off the map at [-14.3   5.5  -3.3] (time left 167s)
+[13:24:55] [3] [env:8891] round over (time left 300s of 300s); waiting for the next round
+[13:24:55] [3] [env:8891] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[13:24:55] [3] new round (game connection 1); rtf 5.1
+[13:24:55] SEG n=7300 last=arrived arrive=82% falls100=1.59 speed=4.9 timeout=0% rew=24.3 dps=458
+[13:24:56] [2] fall without OOB flag: 4 decisions off the map at [-12.   36.   -3.3] (time left 238s)
+[13:24:59] [1] fall without OOB flag: 4 decisions off the map at [ 19.6 -13.7  -2.4] (time left 243s)
+[13:24:59] [4] fall without OOB flag: 4 decisions off the map at [ 42.1 -24.7  -1.9] (time left 134s)
+[13:24:59] [0] fall without OOB flag: 4 decisions off the map at [14.6  9.4 -2.5] (time left 37s)
+[13:25:00] [5] fall without OOB flag: 4 decisions off the map at [-10.3  13.8  -3.5] (time left 161s)
+[13:25:01] [4] fall without OOB flag: 4 decisions off the map at [-15.5 -13.2  -3.7] (time left 123s)
+[13:25:05] MAPS FlatIslands_Hunt: n=6 arrive=91% falls100=0.57 speed=5.5 | KingOfTheMarble_Hunt: n=2 arrive=54% falls100=4.58 speed=3.0
+[13:25:05] NAV upd=1768 map=FlatIslands_Hunt+KingOfTheMarble_Hunt r=0.65 steps=5,513,191 segs=7384 arrive=82% falls100=1.57 speed=4.9 rew=24.3 pl=-0.009 vl=0.128 ent=0.39 kl=0.008 clip=0.08 gn=1.66 ep=3 dstd=0.22 flips=0 upd_s=3.2 wall_s=19 inst=8 dps=429 prof=fwd:5,send:0,recv:11,handle:0,w_game:24,w_obs:10,w_begin:3
+[13:25:06] [6] [env:8894] round over (time left 180s of 180s); waiting for the next round
+[13:25:06] [6] [env:8894] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[13:25:06] [6] new round (game connection 1); rtf 4.4
+[13:25:06] SEG n=7400 last=arrived arrive=82% falls100=1.58 speed=4.9 timeout=0% rew=24.4 dps=593
+[13:25:07] [3] fall without OOB flag: 4 decisions off the map at [-15.1 -18.8  -2.9] (time left 241s)
+[13:25:08] [5] fall without OOB flag: 4 decisions off the map at [12.4 -3.1 -3.3] (time left 127s)
+[13:25:09] [0] [env:8888] round over (time left 300s of 300s); waiting for the next round
+[13:25:09] [0] [env:8888] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[13:25:09] [0] new round (game connection 1); rtf 4.8
+[13:25:09] [5] fall without OOB flag: 4 decisions off the map at [ 41.8 -36.4  -2.8] (time left 121s)
+[13:25:10] [0] fall without OOB flag: 4 decisions off the map at [ 5.3 11.9 -3.4] (time left 287s)
+[13:25:10] [3] fall without OOB flag: 4 decisions off the map at [-27.5  13.4  -3.4] (time left 221s)
+[13:25:10] [2] fall without OOB flag: 4 decisions off the map at [41.4  0.1 -2.7] (time left 163s)
+[13:25:12] [2] fall without OOB flag: 4 decisions off the map at [-15.3 -12.3  -3.3] (time left 154s)
+[13:25:13] [4] fall without OOB flag: 4 decisions off the map at [-10.7 -23.3  -3.3] (time left 66s)
+[13:25:13] [3] fall without OOB flag: 4 decisions off the map at [-13.8  12.7  -3.3] (time left 199s)
+[13:25:14] [0] fall without OOB flag: 4 decisions off the map at [-15.1  13.5  -3.3] (time left 265s)
+[13:25:14] [5] fall without OOB flag: 4 decisions off the map at [-15.7  -6.2  -3.3] (time left 90s)
+[13:25:15] [1] fall without OOB flag: 4 decisions off the map at [-9.3 12.5 -3.3] (time left 168s)
+[13:25:15] SEG n=7500 last=arrived arrive=81% falls100=1.57 speed=4.9 timeout=0% rew=25.0 dps=591
+[13:25:16] [5] fall without OOB flag: 4 decisions off the map at [ -4.9 -15.5  -3.3] (time left 78s)
+[13:25:16] [4] fall without OOB flag: 4 decisions off the map at [ -6.5 -13.3  -3.6] (time left 44s)
+[13:25:17] [4] fall without OOB flag: 4 decisions off the map at [-39.7  14.2  -2.4] (time left 38s)
+[13:25:17] [7] [env:8895] round over (time left 180s of 180s); waiting for the next round
+[13:25:17] [7] [env:8895] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[13:25:17] [7] new round (game connection 1); rtf 4.8
+[13:25:18] [2] fall without OOB flag: 4 decisions off the map at [ -3.3 -14.4  -3.8] (time left 118s)
+[13:25:18] [1] fall without OOB flag: 4 decisions off the map at [10.4 19.7 -2.9] (time left 147s)
+[13:25:18] [5] fall without OOB flag: 4 decisions off the map at [-15.7 -24.6  -3.6] (time left 64s)
+[13:25:19] [2] fall without OOB flag: 4 decisions off the map at [-26.8 -15.5  -3.8] (time left 108s)
+[13:25:25] MAPS FlatIslands_Hunt: n=6 arrive=90% falls100=0.61 speed=5.5 | KingOfTheMarble_Hunt: n=2 arrive=54% falls100=4.43 speed=3.0
+[13:25:25] NAV upd=1769 map=FlatIslands_Hunt+KingOfTheMarble_Hunt r=0.65 steps=5,521,380 segs=7550 arrive=81% falls100=1.57 speed=4.9 rew=24.9 pl=-0.031 vl=0.165 ent=0.39 kl=0.021 clip=0.21 gn=5.53 ep=3 dstd=0.22 flips=0 upd_s=5.2 wall_s=19 inst=8 dps=421 prof=fwd:5,send:0,recv:9,handle:0,w_game:22,w_obs:10,w_begin:4
+[13:25:25] [1] fall without OOB flag: 4 decisions off the map at [10.8 -2.3 -2.8] (time left 134s)
+[13:25:25] [2] fall without OOB flag: 4 decisions off the map at [28.2 16.1 -2.6] (time left 102s)
+[13:25:25] [1] fall without OOB flag: 4 decisions off the map at [ -5.6 -13.7  -2.7] (time left 129s)
+[13:25:26] [0] fall without OOB flag: 4 decisions off the map at [-19.7  13.   -3.3] (time left 224s)
+[13:25:26] [1] fall without OOB flag: 4 decisions off the map at [18.  16.1 -3.3] (time left 121s)
+[13:25:26] [5] fall without OOB flag: 4 decisions off the map at [14.6 -3.2 -3.8] (time left 42s)
+[13:25:27] [4] fall without OOB flag: 4 decisions off the map at [ 8.  15.1 -3.5] (time left 10s)
+[13:25:28] [4] fall without OOB flag: 4 decisions off the map at [ 11.8 -15.4  -3.3] (time left 2s)
+[13:25:28] [4] [env:8892] round over (time left 300s of 300s); waiting for the next round
+[13:25:28] [4] [env:8892] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[13:25:28] [4] new round (game connection 1)
+[13:25:28] SEG n=7600 last=arrived arrive=81% falls100=1.58 speed=4.9 timeout=0% rew=24.3 dps=555
+[13:25:29] [3] fall without OOB flag: 4 decisions off the map at [12.7 34.5 -3.3] (time left 134s)
+[13:25:30] [0] fall without OOB flag: 4 decisions off the map at [11.7 -6.  -3.3] (time left 195s)
+[13:25:31] [2] fall without OOB flag: 4 decisions off the map at [ 6.7 16.1 -3.4] (time left 68s)
+[13:25:33] [5] [env:8893] round over (time left 300s of 300s); waiting for the next round
+[13:25:33] [5] [env:8893] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[13:25:33] [5] new round (game connection 1); rtf 5.0
+[13:25:34] [5] fall without OOB flag: 4 decisions off the map at [-16.1  24.5  -3.3] (time left 294s)
+[13:25:34] [4] fall without OOB flag: 4 decisions off the map at [ -0.8 -14.9  -2.3] (time left 258s)
+[13:25:35] [3] fall without OOB flag: 4 decisions off the map at [12.1 42.6  0.3] (time left 98s)
+[13:25:36] [0] fall without OOB flag: 4 decisions off the map at [ 11.4 -15.7  -3.3] (time left 157s)
+[13:25:36] SEG n=7700 last=arrived arrive=81% falls100=1.57 speed=4.9 timeout=0% rew=24.3 dps=582
+[13:25:38] [3] fall without OOB flag: 4 decisions off the map at [-16.3 -13.7  -2.6] (time left 80s)
+[13:25:44] MAPS FlatIslands_Hunt: n=6 arrive=90% falls100=0.63 speed=5.5 | KingOfTheMarble_Hunt: n=2 arrive=54% falls100=4.38 speed=3.0
+[13:25:44] NAV upd=1770 map=FlatIslands_Hunt+KingOfTheMarble_Hunt r=0.65 steps=5,529,571 segs=7726 arrive=81% falls100=1.57 speed=4.9 rew=24.2 pl=-0.191 vl=0.198 ent=0.41 kl=0.017 clip=0.24 gn=5.40 ep=3 dstd=0.22 flips=0 upd_s=5.2 wall_s=19 inst=8 dps=427 prof=fwd:5,send:0,recv:9,handle:0,w_game:21,w_obs:10,w_begin:4
+[13:25:44] [3] fall without OOB flag: 4 decisions off the map at [-3.4 13.  -2.5] (time left 70s)
+[13:25:45] [6] [env:8894] round over (time left 180s of 180s); waiting for the next round
+[13:25:45] [6] [env:8894] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[13:25:45] [6] new round (game connection 1); rtf 4.6
+[13:25:45] [1] fall without OOB flag: 4 decisions off the map at [-7.7 16.2 -3.3] (time left 36s)
+[13:25:47] [2] fall without OOB flag: 4 decisions off the map at [ 12.5 -23.8  -3.1] (time left 1s)
+[13:25:47] [2] [env:8890] round over (time left 300s of 300s); waiting for the next round
+[13:25:47] [2] [env:8890] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[13:25:47] [2] new round (game connection 1)
+[13:25:48] [0] fall without OOB flag: 4 decisions off the map at [11.4 -5.5 -3.5] (time left 117s)
+[13:25:48] [0] fall without OOB flag: 4 decisions off the map at [-14.3 -14.7  -3.3] (time left 109s)
+[13:25:50] SEG n=7800 last=arrived arrive=81% falls100=1.60 speed=4.9 timeout=0% rew=24.3 dps=597
+[13:25:51] [1] [env:8889] round over (time left 300s of 300s); waiting for the next round
+[13:25:51] [1] [env:8889] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[13:25:51] [1] new round (game connection 1); rtf 4.8
+[13:25:54] [4] fall without OOB flag: 4 decisions off the map at [-8.8 16.1 -3.3] (time left 164s)
+[13:25:55] [2] fall without OOB flag: 4 decisions off the map at [ 11.  -10.7  -3.3] (time left 248s)
+[13:25:55] [3] [env:8891] round over (time left 300s of 300s); waiting for the next round
+[13:25:55] [3] [env:8891] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[13:25:55] [3] new round (game connection 1); rtf 5.0
+[13:25:56] [3] fall without OOB flag: 4 decisions off the map at [42.4 -4.  -1.3] (time left 294s)
+[13:25:57] [7] [env:8895] round over (time left 180s of 180s); waiting for the next round
+[13:25:57] [7] [env:8895] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[13:25:57] [7] new round (game connection 1); rtf 4.6
+[13:25:57] [2] fall without OOB flag: 4 decisions off the map at [-14.7  11.4  -2.8] (time left 235s)
+[13:26:01] MAPS FlatIslands_Hunt: n=6 arrive=90% falls100=0.63 speed=5.5 | KingOfTheMarble_Hunt: n=2 arrive=55% falls100=4.36 speed=3.0
+[13:26:01] NAV upd=1771 map=FlatIslands_Hunt+KingOfTheMarble_Hunt r=0.65 steps=5,537,759 segs=7897 arrive=81% falls100=1.56 speed=4.9 rew=25.5 pl=-0.008 vl=0.132 ent=0.39 kl=0.005 clip=0.07 gn=1.99 ep=3 dstd=0.22 flips=0 upd_s=3.2 wall_s=17 inst=8 dps=476 prof=fwd:5,send:0,recv:9,handle:0,w_game:21,w_obs:10,w_begin:3
+[13:26:01] SEG n=7900 last=arrived arrive=81% falls100=1.57 speed=4.9 timeout=0% rew=25.4 dps=386
+[13:26:01] [1] fall without OOB flag: 4 decisions off the map at [38.8 14.  -2.2] (time left 259s)
+[13:26:02] [7] fall without OOB flag: 4 decisions off the map at [ 1.6 -1.1 22.5] (time left 166s)
+[13:26:02] [3] fall without OOB flag: 4 decisions off the map at [41.9 32.  -3.1] (time left 275s)
+[13:26:02] [5] fall without OOB flag: 4 decisions off the map at [-15.4 -10.9  -3.8] (time left 171s)
+[13:26:07] [4] fall without OOB flag: 4 decisions off the map at [-16.3  25.6  -3.8] (time left 104s)
+[13:26:07] [1] fall without OOB flag: 4 decisions off the map at [18.  17.6 -3.3] (time left 222s)
+[13:26:08] [5] fall without OOB flag: 4 decisions off the map at [-30.7 -14.2  -3.6] (time left 131s)
+[13:26:09] SEG n=8000 last=arrived arrive=81% falls100=1.55 speed=4.9 timeout=0% rew=25.2 dps=600
+[13:26:09] [3] fall without OOB flag: 4 decisions off the map at [-10.8  13.   -3.3] (time left 227s)
+[13:26:09] [2] fall without OOB flag: 4 decisions off the map at [-14.4 -14.9  -3.3] (time left 175s)
+[13:26:10] [0] [env:8888] round over (time left 300s of 300s); waiting for the next round
+[13:26:10] [0] [env:8888] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[13:26:10] [0] new round (game connection 1); rtf 4.9
+[13:26:11] [5] fall without OOB flag: 4 decisions off the map at [  0.4 -13.4  -2.8] (time left 110s)
+[13:26:12] [3] fall without OOB flag: 4 decisions off the map at [ 9.8 -9.1 -3.3] (time left 210s)
+[13:26:12] [4] fall without OOB flag: 4 decisions off the map at [ 18.8 -14.   -3.3] (time left 73s)
+[13:26:14] [1] fall without OOB flag: 4 decisions off the map at [-11.9 -21.5  -3.8] (time left 182s)
+[13:26:15] [0] fall without OOB flag: 4 decisions off the map at [-21.3 -14.9  -2.1] (time left 269s)
+[13:26:20] MAPS FlatIslands_Hunt: n=6 arrive=90% falls100=0.65 speed=5.5 | KingOfTheMarble_Hunt: n=2 arrive=55% falls100=4.29 speed=3.1
+[13:26:20] NAV upd=1772 map=FlatIslands_Hunt+KingOfTheMarble_Hunt r=0.65 steps=5,545,950 segs=8074 arrive=81% falls100=1.56 speed=4.9 rew=25.3 pl=-0.049 vl=0.104 ent=0.38 kl=0.012 clip=0.14 gn=4.49 ep=3 dstd=0.22 flips=0 upd_s=4.5 wall_s=19 inst=8 dps=439 prof=fwd:5,send:0,recv:9,handle:0,w_game:22,w_obs:10,w_begin:4
+[13:26:21] [5] fall without OOB flag: 4 decisions off the map at [41.   5.5 -2.7] (time left 79s)
+[13:26:22] [5] fall without OOB flag: 4 decisions off the map at [-42.6  32.5  -2.8] (time left 74s)
+[13:26:22] SEG n=8100 last=arrived arrive=81% falls100=1.56 speed=4.9 timeout=0% rew=25.2 dps=608
+[13:26:22] [3] fall without OOB flag: 4 decisions off the map at [42.4 10.2  0.8] (time left 173s)
+[13:26:23] [6] [env:8894] round over (time left 180s of 180s); waiting for the next round
+[13:26:23] [6] [env:8894] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[13:26:23] [6] new round (game connection 1); rtf 4.8
+[13:26:23] [2] fall without OOB flag: 4 decisions off the map at [ 15.  -12.2  -3.3] (time left 117s)
+[13:26:24] [0] fall without OOB flag: 4 decisions off the map at [ 22.2 -11.2  -3.3] (time left 238s)
+[13:26:25] [2] fall without OOB flag: 4 decisions off the map at [-11.7  21.   -3.3] (time left 108s)
+[13:26:25] [5] fall without OOB flag: 4 decisions off the map at [-13.1   8.1  -3.3] (time left 51s)
+[13:26:26] [5] fall without OOB flag: 4 decisions off the map at [ -6.  -10.6  -3.3] (time left 45s)
+[13:26:26] [0] fall without OOB flag: 4 decisions off the map at [-17.  -10.8  -3.3] (time left 222s)
+[13:26:28] [0] fall without OOB flag: 4 decisions off the map at [-16.1  13.5  -3.3] (time left 211s)
+[13:26:29] [4] [env:8892] round over (time left 300s of 300s); waiting for the next round
+[13:26:29] [4] [env:8892] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[13:26:29] [4] new round (game connection 1); rtf 4.8
+[13:26:30] SEG n=8200 last=arrived arrive=81% falls100=1.52 speed=4.9 timeout=0% rew=24.9 dps=583
+[13:26:30] [1] fall without OOB flag: 4 decisions off the map at [ 12.2 -27.7  -3.3] (time left 105s)
+[13:26:31] [0] fall without OOB flag: 4 decisions off the map at [-13.  -27.1  -3.3] (time left 188s)
+[13:26:32] [0] fall without OOB flag: 4 decisions off the map at [-13.5   2.5  -3.3] (time left 181s)
+[13:26:32] [6] fall without OOB flag: 4 decisions off the map at [ 1.2  1.4 21.7] (time left 117s)
+[13:26:33] [7] [env:8895] round over (time left 180s of 180s); waiting for the next round
+[13:26:33] [7] [env:8895] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[13:26:33] [7] new round (game connection 1); rtf 5.0
+[13:26:34] [5] [env:8893] round over (time left 300s of 300s); waiting for the next round
+[13:26:34] [5] [env:8893] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[13:26:34] [5] new round (game connection 1); rtf 5.0
+[13:26:34] [4] fall without OOB flag: 4 decisions off the map at [ 29.6 -15.   -3.8] (time left 273s)
+[13:26:37] MAPS FlatIslands_Hunt: n=6 arrive=89% falls100=0.66 speed=5.5 | KingOfTheMarble_Hunt: n=2 arrive=56% falls100=4.15 speed=3.1
+[13:26:37] NAV upd=1773 map=FlatIslands_Hunt+KingOfTheMarble_Hunt r=0.65 steps=5,554,138 segs=8245 arrive=81% falls100=1.53 speed=4.9 rew=24.5 pl=0.000 vl=0.117 ent=0.39 kl=0.018 clip=0.19 gn=3.24 ep=3 dstd=0.22 flips=0 upd_s=3.6 wall_s=18 inst=8 dps=458 prof=fwd:5,send:0,recv:9,handle:0,w_game:22,w_obs:10,w_begin:4
+[13:26:40] [1] fall without OOB flag: 4 decisions off the map at [24.8 15.9 -3.8] (time left 65s)
+[13:26:41] [3] fall without OOB flag: 4 decisions off the map at [ 11.7 -13.6  -2.9] (time left 81s)
+[13:26:41] [0] fall without OOB flag: 4 decisions off the map at [11.8 37.6 -2.8] (time left 149s)
+[13:26:41] [4] fall without OOB flag: 4 decisions off the map at [ 32.7 -13.9  -3.3] (time left 242s)
+[13:26:42] SEG n=8300 last=arrived arrive=81% falls100=1.52 speed=4.9 timeout=0% rew=24.3 dps=588
+[13:26:42] [2] fall without OOB flag: 4 decisions off the map at [ 24.8 -12.6  -3.3] (time left 21s)
+[13:26:43] [3] fall without OOB flag: 4 decisions off the map at [-42.6 -28.8  -2.5] (time left 69s)
+[13:26:43] [2] fall without OOB flag: 4 decisions off the map at [ 7.1 12.4 -3.3] (time left 15s)
+[13:26:43] [4] fall without OOB flag: 4 decisions off the map at [12.1 10.2 -3.6] (time left 229s)
+[13:26:46] [2] [env:8890] round over (time left 300s of 300s); waiting for the next round
+[13:26:46] [2] [env:8890] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[13:26:46] [2] new round (game connection 1); rtf 4.8
+[13:26:46] [4] fall without OOB flag: 4 decisions off the map at [15.4 19.9 -3.3] (time left 213s)
+[13:26:47] [2] fall without OOB flag: 4 decisions off the map at [-16.5  32.4  -2.2] (time left 290s)
+[13:26:48] [1] fall without OOB flag: 4 decisions off the map at [ 12.3 -22.9  -2.4] (time left 16s)
+[13:26:48] [0] fall without OOB flag: 4 decisions off the map at [-14.6 -17.2  -3.3] (time left 107s)
+[13:26:49] [5] fall without OOB flag: 4 decisions off the map at [16.3  5.7 -3.8] (time left 230s)
+[13:26:50] [3] fall without OOB flag: 4 decisions off the map at [-15.9  -3.9  -3.3] (time left 27s)
+[13:26:50] [5] fall without OOB flag: 4 decisions off the map at [42.  21.8  1.3] (time left 225s)
+[13:26:50] SEG n=8400 last=arrived arrive=81% falls100=1.51 speed=4.9 timeout=0% rew=23.8 dps=565
+[13:26:51] [1] [env:8889] round over (time left 300s of 300s); waiting for the next round
+[13:26:51] [1] [env:8889] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[13:26:51] [1] new round (game connection 1); rtf 5.1
+[13:26:51] [3] fall without OOB flag: 4 decisions off the map at [-17.8  14.6  -3.1] (time left 20s)
+[13:26:52] [0] fall without OOB flag: 4 decisions off the map at [-4.6 15.2 -3.4] (time left 85s)
+[13:26:56] MAPS FlatIslands_Hunt: n=6 arrive=90% falls100=0.64 speed=5.6 | KingOfTheMarble_Hunt: n=2 arrive=56% falls100=4.13 speed=3.1
+[13:26:56] NAV upd=1774 map=FlatIslands_Hunt+KingOfTheMarble_Hunt r=0.65 steps=5,562,328 segs=8421 arrive=81% falls100=1.51 speed=5.0 rew=23.8 pl=-0.008 vl=0.173 ent=0.39 kl=0.008 clip=0.08 gn=2.12 ep=3 dstd=0.22 flips=0 upd_s=3.9 wall_s=18 inst=8 dps=445 prof=fwd:5,send:0,recv:9,handle:0,w_game:22,w_obs:11,w_begin:4
+[13:26:57] [4] fall without OOB flag: 4 decisions off the map at [ 29.8 -13.9  -3.5] (time left 170s)
+[13:26:58] [1] fall without OOB flag: 4 decisions off the map at [  2.7 -11.9  -3.3] (time left 280s)
+[13:26:58] [3] [env:8891] round over (time left 300s of 300s); waiting for the next round
+[13:26:58] [3] [env:8891] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[13:26:58] [3] new round (game connection 1); rtf 4.8
+[13:26:59] [6] [env:8894] round over (time left 180s of 180s); waiting for the next round
+[13:26:59] [6] [env:8894] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[13:26:59] [6] new round (game connection 1); rtf 4.9
+[13:27:00] [1] fall without OOB flag: 4 decisions off the map at [ 30.1 -11.8  -2.4] (time left 267s)
+[13:27:01] [0] fall without OOB flag: 4 decisions off the map at [-17.2 -17.2  -3.3] (time left 52s)
+[13:27:01] [3] fall without OOB flag: 4 decisions off the map at [-22.5  11.6  -3.8] (time left 283s)
+[13:27:02] [1] fall without OOB flag: 4 decisions off the map at [15.8  2.2 -2.6] (time left 253s)
+[13:27:02] SEG n=8500 last=arrived arrive=82% falls100=1.48 speed=5.0 timeout=0% rew=23.8 dps=574
+[13:27:03] [4] fall without OOB flag: 4 decisions off the map at [-11.6  16.9  -3.3] (time left 130s)
+[13:27:04] [0] fall without OOB flag: 4 decisions off the map at [  2.8 -12.6  -3.8] (time left 35s)
+[13:27:04] [3] fall without OOB flag: 4 decisions off the map at [-28.2 -14.9  -3.3] (time left 265s)
+[13:27:06] [0] fall without OOB flag: 4 decisions off the map at [ 25.3 -13.2  -2.4] (time left 17s)
+[13:27:06] [4] fall without OOB flag: 4 decisions off the map at [12.1 14.3 -3.3] (time left 110s)
+[13:27:07] [4] fall without OOB flag: 4 decisions off the map at [ 30.6 -14.1  -2.4] (time left 105s)
