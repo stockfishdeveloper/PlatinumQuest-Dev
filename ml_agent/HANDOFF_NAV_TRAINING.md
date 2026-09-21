@@ -1975,3 +1975,203 @@ ALSO RULED OUT while investigating the speed gap (both measured, not assumed):
   4 decisions against the agent's 1, but at MATCHED persistence the agent is still ~2.7 u/s slower
   in every bucket (1-2 held: 12.98 vs 10.04; 9+ held: 12.72 vs 10.28), and likewise at matched
   force-vs-travel alignment. Neither explains the gap; it remains open.
+
+## 20. FlatGemTraining: the agent uses proportional control, the human uses bang-bang (2026-09-21)
+
+The flat map strips out holes so the pace problem can be studied alone. Agent 15.7 gems/min against
+a human 21.5 recorded on the same map the same day (demos/demo_20260921_105710.npz, 102 pickups,
+frame check 0.885 against a mirrored 0.008).
+
+WHERE THE TIME GOES. Splitting a round by whether a gem is even on the map:
+
+                            agent     human
+    waiting for a spawn     1.02 s    1.01 s   per gem  <- IDENTICAL, not the problem
+    chasing a visible gem   2.81 s    1.79 s   per gem  <- the entire gap
+    total                   3.83 s    2.80 s
+
+Match the human on chasing alone and the agent scores 21.4 gems/min, i.e. human parity. The spawn
+delay is the game's and both pay it equally.
+
+FACTORISING THE 1.44x CHASE GAP (236 agent chases, 97 human):
+
+    speed                          9.78 vs 11.74 u/s   1.20x
+    path ratio (travelled/straight) 1.08 vs 1.03       1.04x   <- NOT route curvature
+    straight-line distance to the
+    gem chosen                     24.8 vs 21.2 u      1.17x   <- worse position when it spawns
+
+Note 225 of 236 agent chases (and 96 of 97 human) are the FIRST gem after a blind gap: on this map
+gems are collected one at a time, so there is no multi-gem ordering to get wrong and no planner to
+build. The distance factor is about where the marble is standing when the gem appears.
+
+THE MECHANISM, and it is the cleanest result of the day. Alignment of the commanded direction with
+the direction of travel, during a chase:
+
+    cos bucket                      agent   human
+    < -0.5   hard braking            21 %    33 %
+    -0.5..0  mostly against          10 %     3 %
+    0..0.5   sideways                12 %     3 %
+    0.5..0.8 partly pushing          13 %     5 %
+    0.8..0.95 mostly pushing         16 %    13 %
+    > 0.95   PURE ACCELERATION       27 %    43 %
+    mushy middle (0..0.8)            26 %     9 %
+    decisive (<0 or >0.95)           59 %    78 %
+
+The human is either flooring it or hard on the brakes 78 % of the time. The agent spends a quarter
+of every chase applying partial thrust at an intermediate angle, which neither accelerates nor
+turns efficiently. For minimum-time arrival with bounded acceleration the optimal control IS
+bang-bang; the human is doing textbook time-optimal control and the agent is doing proportional
+control, which is smooth and slower.
+
+This ties together what survived the day:
+* the approach profile (section 19): the human sprints to 14.4 u/s mid-leg then brakes to 8.7,
+  which is bang-bang. The agent's flat ~10 u/s cruise is proportional control.
+* why smoothing failed: NAV_SMOOTH 0.3 cut command swing 38 deg -> 10.6 but the ALIGNED share FELL
+  27 % -> 21 % and speed did not move. Smoothing removes command changes, not the mushy middle.
+* CORRECTION (2026-09-21, user challenged this and was right): the claim "human brakes 23 %,
+  agent 0.1 %" was a CATEGORY ERROR and is withdrawn. The 23 % comes from the demo recorder, whose
+  own docstring says "brake is DERIVED: 1 when the intent opposes the velocity" -- it is a physics
+  measure, not a key. The 0.1 % is the agent's DISCRETE BRAKE FLAG, a different mechanism. Measured
+  like for like, the agent brakes by commanding against its own momentum at close to the human rate:
+
+      force against momentum      agent   human
+      within 25 deg of opposite   13.9 %  17.0 %
+      within 45 deg of opposite   22.2 %  26.2 %
+      within 60 deg of opposite   26.6 %  30.9 %
+      any component against       36.4 %  37.4 %
+
+  So the agent CAN and DOES decelerate, and "it cannot do the second half of bang-bang" is false.
+  The candidate fix that followed from it (give the discrete brake head more exploration) is
+  withdrawn with it.
+
+WHAT IS RULED OUT for the speed gap, all by measurement:
+* input magnitude: agent median 1.409 of a 1.414 maximum, at the square's corner on 77 % of active
+  decisions, the same share as the human's two-key holds.
+* impulse vs hold: a 64 ms decision reaches 99.6 % of what four 16 ms ticks reach
+  (step_size_probe.py); single-axis target 15.00 u/s at every step size.
+* effective target velocity: human 21.84 u/s, matching the probe's 21.8 exactly; agent 20.43
+  (94 %), with throttle pinned at 0.99. Only 6 % is lost at the input.
+* powerups: the human used one in 4.8 min, 0.7 % of ticks; their speed without it is 9.98 vs 10.00.
+* heading jitter, command persistence, frame error, route curvature: all measured and refuted
+  (sections 19 and above).
+
+WHAT SURVIVES THE CORRECTION. Braking is NOT the difference. The difference is at the other end
+of the distribution and in the middle:
+
+      during a chase          agent   human
+      PURE ACCELERATION       27 %    43 %    <- the agent accelerates decisively far less often
+      mushy middle (0..0.8)   26 %     9 %    <- and dithers at partial thrust far more
+      braking (cos < -0.5)    21 %    33 %    <- real but smaller, and the whole-trace figures
+                                                 (26.6 vs 30.9) are closer still
+
+So the agent's deficit is that it spends a quarter of each chase applying partial thrust at an
+intermediate angle instead of committing to full acceleration. It decelerates about as often as
+the human; it ACCELERATES decisively much less often.
+
+NO CANDIDATE FIX IS PROPOSED HERE. Three reward changes failed today (time pricing, PBRS,
+smoothing) and two mechanism theories were withdrawn after measurement (dead brake action, pure
+pursuit). Whatever comes next should start from why a policy at 13,000 updates sits at partial
+thrust when full thrust in the same direction is available and better, which is not yet answered.
+
+## 21. THE FLAT SPEED CURVE IS AIM SCATTER (2026-09-21, FlatGemTraining)
+
+The question: the human's speed-vs-distance profile is a smooth arc peaking at 14.9 u/s around
+7-9 u from the gem; the agent's is flat at 8.4-11.0 across the whole approach. That difference is
+the entire 85 vs 104 gem gap on this map.
+
+Second human recording taken deliberately WITHOUT JUMPING (demo_20260921_155130.npz, 18,744 ticks,
+104 gems, 0 % jump, frame check 0.897): jumping is NOT the lever on this map, and the arc shape
+reproduced exactly, so it is not a stylistic artefact of the first run.
+
+THE MEASUREMENT. Decompose the commanded direction against the direction to the gem, signed, so
+systematic aiming error can be told apart from scatter:
+
+    dist     AGENT bias  conc.   HUMAN bias  conc.
+    21 u        +8.4     0.736      +0.9    0.997
+    17 u        +7.1     0.615      +1.0    0.993
+    13 u        -3.0     0.604      +2.5    0.939
+    11 u        +1.6     0.487      -2.0    0.941
+    10 u        +7.4     0.412      -1.0    0.891
+     8 u        +3.8     0.263     -10.0    0.499
+     4 u        +0.3     0.138    -163.5    0.552   <- human braking, a CLEAN reversal
+
+BIAS IS NEAR ZERO FOR BOTH: the agent does aim at the gem on average. The difference is entirely
+CONCENTRATION. The human holds within a few degrees from 22 u down to ~8 u (0.93-0.99), then flips
+deliberately to -160..-170 deg to brake. The agent's command oscillates around the correct
+direction with concentration 0.74 far out, falling to 0.41 at 10 u and 0.14 at 4 u. Concentration
+0.5 is an angular spread of about 68 deg.
+
+WHY THAT FLATTENS THE CURVE. Force at angle theta contributes cos(theta) toward the gem, so the
+USEFUL fraction of thrust IS the concentration:
+
+    useful thrust fraction, 8-22 u:  agent 0.57   human 0.91   = 1.60x
+    observed mid-leg speed (7-12 u): 10.4 vs 14.5              = 1.39x
+    observed peak speed:             11.05 vs 14.94            = 1.35x
+
+A 1.60x force advantage yielding 1.35-1.39x speed is the right relationship for a saturating
+system. The agent has full magnitude (1.40 of 1.414) and correct average aim, and still only half
+the useful thrust, because the other half cancels itself out.
+
+THIS IS THE POLICY'S MEAN OUTPUT, not exploration: real_run acts with deterministic=True.
+
+IT EXPLAINS THE FAILED EXPERIMENTS:
+* forced throttle 100 % (section 20 follow-up): +5 % gems, and the alignment distribution did not
+  move at all. Full magnitude scattered over +-68 deg still averages to half.
+* NAV_SMOOTH: raised concentration only 15 % (0.502 -> 0.579 over 10-20 u) against the 81 % needed
+  to reach the human's 0.91, while costing 14 % of gems to lag. It barely touched the quantity that
+  matters, so it is NOT evidence against this explanation.
+* time pricing, PBRS: neither addresses aim steadiness at all.
+
+CAUTION BEFORE ACTING. Section 9 traced heading jitter to the RECURRENT STATE rather than the
+input, and section 11 then declared the jitter thesis dead on the grounds that throttle was the
+real constraint. That verdict now looks wrong, but sections 8-11 contain measurements that any new
+attempt must be reconciled with rather than ignored. Read them first.
+
+### 21a. WHY the aim scatters: the dir_head skip connection was switched off by training
+
+Measured on nav_eval_flatgem_1208.pth.
+
+MECHANISM.
+    dir_head first layer, weight norm on the HIDDEN state (256) : 9.810  (0.613 per unit)
+    dir_head first layer, weight norm on the OBS VECTOR (53)    : 1.320  (0.181 per unit)
+    weight norm on vec[0:2], the exact smooth GOAL UNIT VECTOR  : 0.333
+
+    output sensitivity, median over 300 random states:
+      hidden state perturbed by one step's worth  ->  8.6 deg of commanded-direction change
+      goal direction rotated by 5 deg             ->  0.1 deg
+      => the hidden state moves the output 65x more than the goal bearing does.
+
+    versus a FRESH initialisation (no weight decay in the optimiser):
+      hidden columns    0.0285 -> 0.0598   GREW 2.10x
+      vec columns       0.0288 -> 0.0157   SHRANK to 0.55x
+      vec[0:2] goal     0.0279 -> 0.0231   SHRANK to 0.83x, BELOW random init
+
+    synthetic constant-input approach (gem dead ahead, 10 u/s, 60 decisions; the observation is
+    off-distribution so absolute angles are meaningless, but the contrast is not):
+      hidden evolving : the command sweeps +41 -> -129 deg on a CONSTANT goal bearing
+      hidden zeroed   : flat at -85/-86 deg for all 60 decisions
+    All of the output variation is generated inside the network, none by the input.
+
+WHY TRAINING DID THAT. The skip was added 2026-09-20 (section 9a) to a policy with ~11,000 updates
+that had ALREADY learned to compute direction from the hidden state, and whose MEAN direction was
+already correct (measured bias today: +1 to +8 deg, the same as the human's). So:
+
+  1. The skip was redundant for the MEAN. Adding its contribution on top of an already-correct mean
+     overshoots the target, which is a positive gradient reason to shrink those weights. The
+     observed 0.83x is consistent with exactly that.
+  2. The only thing the skip could improve is VARIANCE, and variance is nearly free: aim scatter
+     costs ~1.6x useful thrust -> ~1.35x speed, but 98 % of a leg's reward is speed-independent
+     (section 19), so a perfectly steady aim is worth a few percent of return.
+  3. A few percent of return cannot rewire a head that already works.
+
+So the policy did not learn jitter as a strategy. It learned a direction function that is right on
+average and noisy, and nothing in the objective pays enough to clean it up. The fix that was
+supposed to address this was added in a form the gradient had every reason to switch off.
+
+RECONCILING WITH SECTIONS 10 AND 11. Section 10 estimated jitter at 10-12 % of speed by correlating
+jitter against speed ACROSS SEGMENTS WITHIN one policy (9 deg of difference -> 0.25 u/s) and
+extrapolating linearly to the human's 2.67 deg; its own caveat says the causal effect "is not
+pinned down by this". The geometric measurement in section 21 is not a correlation: useful thrust
+IS the cosine of the aim error, 0.57 vs 0.91, and that 1.60x predicts the observed 1.35-1.39x speed
+ratio. Section 11 then concluded throttle was the real constraint on the basis that KOTM ran at
+88 % throttle; that is now falsified directly (throttle measures 0.99, and pegging it to 100 %
+moved the alignment distribution not at all).

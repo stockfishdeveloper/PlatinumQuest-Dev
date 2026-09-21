@@ -1,0 +1,8 @@
+[dirskip] NAV_DIRSKIP=1, model left unmodified
+warm-up: model ready in 0.20 s, terrain "FlatGemTraining_Hunt" pre-built
+[env:8920] waiting for the game
+[env:8920] game connected (1)
+real run: nav_eval_flatgem_1208.pth (update 13255) on FlatGemTraining_Hunt, 1 round(s), port 8920
+  round 1: {'round': 1, 'gems': 83, 'points': 83.0, 'minutes': 5.02, 'decisions': 4706, 'gems_per_min': 16.5, 'points_per_min': 16.5, 'falls': 0, 'falls_per_100u': 0.0, 'travelled_u': 2493.5, 'speed': 8.28, 'blind_pct': 27.8, 'snapped_pct': 0.0, 'pathed_pct': 0.0, 'smooth': 1.0}
+REAL RUN {"gems_per_min": 16.5, "points_per_min": 16.5, "falls_per_100u": 0.0, "speed": 8.28, "blind_pct": 27.8} vs human {"gems_per_min": 0.44, "points_per_min": 0.35, "speed": 1.03, "falls_ratio": 0.0}
+wrote C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\logs\nav\real_run_FlatGemTraining_Hunt_nav_eval_flatgem_1208.json

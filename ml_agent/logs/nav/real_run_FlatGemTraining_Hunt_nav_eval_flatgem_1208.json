@@ -5,62 +5,28 @@
  "rounds": [
   {
    "round": 1,
-   "gems": 65,
-   "points": 65.0,
+   "gems": 84,
+   "points": 84.0,
    "minutes": 5.02,
    "decisions": 4706,
-   "gems_per_min": 12.9,
-   "points_per_min": 12.9,
+   "gems_per_min": 16.7,
+   "points_per_min": 16.7,
    "falls": 0,
    "falls_per_100u": 0.0,
-   "travelled_u": 2650.6,
-   "speed": 8.8,
-   "blind_pct": 24.1,
+   "travelled_u": 2841.2,
+   "speed": 9.43,
+   "blind_pct": 28.6,
    "snapped_pct": 0.0,
    "pathed_pct": 0.0,
-   "smooth": 0.3
-  },
-  {
-   "round": 2,
-   "gems": 69,
-   "points": 69.0,
-   "minutes": 5.02,
-   "decisions": 4708,
-   "gems_per_min": 13.7,
-   "points_per_min": 13.7,
-   "falls": 0,
-   "falls_per_100u": 0.0,
-   "travelled_u": 2639.1,
-   "speed": 8.76,
-   "blind_pct": 22.7,
-   "snapped_pct": 0.0,
-   "pathed_pct": 0.0,
-   "smooth": 0.3
-  },
-  {
-   "round": 3,
-   "gems": 68,
-   "points": 68.0,
-   "minutes": 5.02,
-   "decisions": 4708,
-   "gems_per_min": 13.5,
-   "points_per_min": 13.5,
-   "falls": 0,
-   "falls_per_100u": 0.0,
-   "travelled_u": 2675.7,
-   "speed": 8.88,
-   "blind_pct": 25.7,
-   "snapped_pct": 0.0,
-   "pathed_pct": 0.0,
-   "smooth": 0.3
+   "smooth": 1.0
   }
  ],
  "mean": {
-  "gems_per_min": 13.367,
-  "points_per_min": 13.367,
+  "gems_per_min": 16.7,
+  "points_per_min": 16.7,
   "falls_per_100u": 0.0,
-  "speed": 8.813,
-  "blind_pct": 24.167
+  "speed": 9.43,
+  "blind_pct": 28.6
  },
  "human": {
   "gems_per_min": 37.5,
@@ -69,12 +35,12 @@
   "falls_per_100u": 0.046
  },
  "vs_human": {
-  "gems_per_min": 0.36,
-  "points_per_min": 0.28,
-  "speed": 1.09,
+  "gems_per_min": 0.45,
+  "points_per_min": 0.35,
+  "speed": 1.17,
   "falls_ratio": 0.0
  },
  "value_weight": 0.0,
  "h_reset": "never",
- "when": "2026-09-21T13:48:44.422381"
+ "when": "2026-09-21T16:21:41.000034"
 }

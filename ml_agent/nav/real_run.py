@@ -38,6 +38,12 @@ from nav.model import NavActorCritic, action_to_joystick             # noqa: E40
 
 PORT = int(os.environ.get('NAV_PORT', '8920'))
 GAME_SPEED = int(os.environ.get('NAV_SPEED', '3'))   # NAV_SPEED=1 to watch it play in real time
+FORCE_THROTTLE = os.environ.get('NAV_FORCE_THROTTLE', '0') == '1'   # peg output strength to 100 %:
+                               # the policy still chooses DIRECTION, but throttle is pinned at 1.0
+                               # whatever it asks for. Note the model already runs at a measured
+                               # mean throttle of 0.99 (THROTTLE_FLOOR = 0.90 caps how low it can
+                               # go), so this is expected to be close to a null; it is run to find
+                               # out whether the residual 1 % is hiding anything.
 ROUNDS = int(os.environ.get('NAV_ROUNDS', '1'))
 ABSENT = -500.0                # RAW_GEMS pads missing slots with value/dist <= -500
 STICKY_TOL = 0.75              # u: a gem within this of the current target counts as the same gem
@@ -427,6 +433,8 @@ def main():
                         sn = math.hypot(sx, sy)
                         smooth_dir = (sx / sn, sy / sn) if sn > 1e-6 else smooth_dir
                     a[0], a[1] = smooth_dir
+            if FORCE_THROTTLE:
+                a[2] = 1.0                        # direction is the policy's, strength is pegged
             js_cmd = action_to_joystick(a[0], a[1], a[2], a[3], a[4], float(vel[0]), float(vel[1]))
             msg, info = paced_step(js_cmd)
             for _ in range(VIEW_SUBSTEPS - 1):     # same action across the remaining slices

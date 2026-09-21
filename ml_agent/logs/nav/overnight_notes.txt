@@ -562,3 +562,36 @@
   FLAT for nine checks / 200 updates: a one-off distributional step, not relearning. Both
   pre-registered revert triggers fired. Checkpoint restored from nav_before_pbrs_1400.pth, code
   back to progress = prev_d - d. Training restarting immediately on the reverted config.
+[15:35] FLATGEM DEEP DIVE. Waiting time per gem is IDENTICAL (1.02 vs 1.01 s); the whole gap is the
+  chase (2.81 vs 1.79 s). Factorised: speed 1.20x, path curvature only 1.04x, distance to the chosen
+  gem 1.17x. KEY FINDING: the human's control is BANG-BANG (78 % of chase decisions are either full
+  thrust or hard brake, 9 % in between); the agent is PROPORTIONAL (59 % decisive, 26 % in the mushy
+  middle). Bang-bang IS the time-optimal control for bounded acceleration. The agent brakes on 0.1 %
+  of ticks vs the human's 23 %, so it cannot execute the second half of it. Ruled out by measurement:
+  input magnitude, impulse-vs-hold, target velocity (94 %), powerups, jitter, persistence, frame
+  error, route curvature. CANDIDATE: the brake is a dead action (no exploration -> no gradient).
+  HANDOFF section 20.
+[15:45] CORRECTION to the 15:35 entry. "Human brakes 23 %, agent 0.1 %" was a CATEGORY ERROR: the
+  23 % is the demo recorder's DERIVED brake (intent opposes velocity), the 0.1 % is the agent's
+  discrete brake FLAG. Like for like, the agent commands force against its momentum on 22.2 % of
+  decisions (within 45 deg) vs the human's 26.2 %, and 36.4 % vs 37.4 % for any opposing component.
+  The agent DOES brake. The "dead brake action" candidate is withdrawn. What survives: the agent is
+  in PURE ACCELERATION 27 % of a chase vs the human's 43 %, and in the mushy middle 26 % vs 9 %.
+[16:10] ROOT CAUSE FOUND (FlatGem): the flat speed curve is AIM SCATTER. The agent's commanded
+  direction points at the gem ON AVERAGE (bias +1..+8 deg, same as the human) but oscillates around
+  it: concentration 0.74 at 20 u, 0.41 at 10 u, 0.14 at 4 u, vs the human's 0.99/0.89/0.55. Useful
+  thrust = cos(scatter) = 0.57 agent vs 0.91 human = 1.60x, which yields the observed 1.35-1.39x
+  speed gap. Deterministic eval, so this is the policy's MEAN output, not exploration noise.
+  Explains the forced-throttle null (+5 %, distribution unmoved) and the smoothing null (raised
+  concentration only 15 % of the way). Human's 2nd recording had 0 % jumping and 104 gems: jumping
+  is not the lever. HANDOFF section 21. Sections 8-11 hold the prior jitter work; read before acting.
+[16:30] WHY THE AIM SCATTERS, concretely. dir_head is 65x more sensitive to the hidden state than to
+  the goal bearing wired straight into it (8.6 deg vs 0.1 deg). Training GREW the hidden columns to
+  2.10x init and SHRANK the goal-bearing columns to 0.83x init (no weight decay - gradient did it).
+  On a constant input the command sweeps 170 deg with the hidden state evolving and is flat with it
+  zeroed. WHY: the skip was added 09-20 to a policy that had already solved the MEAN direction, so
+  it was redundant for the mean (adding it overshoots -> gradient shrinks it) and could only help
+  VARIANCE, which is worth a few % of return because 98 % of reward is speed-independent.
+  Sections 10/11 reconciled: 10 was a within-policy correlation with a linear extrapolation, 11's
+  throttle conclusion is falsified by today's 0.99 throttle and the null forced-throttle test.
+  HANDOFF section 21a.

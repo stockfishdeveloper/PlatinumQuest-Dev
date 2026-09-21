@@ -1,0 +1,5 @@
+warm-up: model ready in 0.19 s, terrain "Sprawl_Hunt" pre-built
+[env:8920] waiting for the game
+[env:8920] game connected (1)
+WATCH mode: every frame drawn, 1 sim slice(s) per 64 ms decision, real time
+real run: nav_eval_edge1v2_0956.pth (update 13035) on Sprawl_Hunt, 3 round(s), port 8920

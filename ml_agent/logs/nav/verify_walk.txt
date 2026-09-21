@@ -1,0 +1,21 @@
+[verify] listening on 8920; launch the game with -autotrain Sprawl_Hunt -aiport 8920
+[env:8920] waiting for the game
+[env:8920] game connected (1)
+[verify] connected on Sprawl_Hunt, walk grid 135x129, 11242 walkable
+
+  population                                n   stands   slides    falls
+  walkable (control)                       60      66%      20%      13%
+       unexpected: [(-20.0, -12.0, 2.7, 'falls', -2.48, 10.42), (-56.0, -71.0, 4.7, 'slides', -0.48, 5.26), (-23.0, -22.0, 2.7, 'slides', -0.48, 5.26), (-40.0, 41.0, 3.7, 'falls', -1.48, 8.61), (-21.0, 0.0, 5.0, 'slides', -0.74, 2.81), (43.0, -71.0, 3.7, 'falls', -1.48, 8.03), (31.0, -55.0, 0.3, 'slides', -0.14, 3.72), (8.0, -67.0, 5.3, 'slides', -1.01, 4.37)]
+  NO floor at all (true void)              60      26%      38%      35%
+       unexpected: [(49.0, -40.0, 0.0, 'slides', 4.19, 25.08), (15.0, -78.0, 0.0, 'slides', 0.19, 40.8), (-13.0, 49.0, 0.0, 'slides', 0.19, 41.23), (49.0, 49.0, 0.0, 'slides', 4.19, 31.11), (62.0, 6.0, 0.0, 'stands', -0.31, 0.0), (63.0, 6.0, 0.0, 'stands', -0.31, 0.0), (49.0, -63.0, 0.0, 'slides', 4.19, 48.04), (-52.0, -78.0, 0.0, 'stands', -0.31, 0.0)]
+  has floor, excluded as too steep         60      80%       8%      11%
+  GEM SPAWN cells (goals go here)         179      96%       0%       2%
+       not standing: [(-3.0, -15.0, 5.0, 'falls', -3.42), (-59.0, -77.0, 5.7, 'falls', -1.48), (-47.0, 41.0, 3.7, 'falls', -1.48), (47.0, -71.0, 3.7, 'falls', -1.48), (3.0, -75.0, 6.0, 'falls', -5.81), (-15.0, -31.0, 0.5, 'slides', 3.69)]
+
+VERDICT
+  control: walkable cells that did NOT hold the marble: 20 of 60
+  PHANTOM FLOOR: void cells the grid called walkable:    (see control above)
+  true void cells that did NOT drop the marble:          39 of 60
+  slope-excluded ground that HOLDS the marble: 48 of 60 (80%) -> usable ground being discarded
+  gem spawns not standing: 6 of 179
+  wrote C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\logs\nav\verify_walk_grid_Sprawl_Hunt.json

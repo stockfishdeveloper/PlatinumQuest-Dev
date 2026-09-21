@@ -1,0 +1,47 @@
+Recording demos to C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\demos\demo_20260921_155130.npz
+Terrain map: C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\terrain_maps\terrain_FlatGemTraining_Hunt.npz
+Listening on 127.0.0.1:8888. Now host the map and play; recording starts by itself at GO. Ctrl+C to stop.
+Game connected from ('127.0.0.1', 51232)
+  [15:51:45] game switched to recording mode after 2 tick(s); recording.
+  [15:51:45] 1 ticks so far...
+  [15:51:55] 627 ticks (10s) | games 0 | 3 pts / 3 pickups (209.0 ticks each) | OOB 0 | move 91.5% jump 0.0% brake 21.049999237060547% | speed mean 9.64 p90 15.63 pickup 8.93 | frame check 0.904 vs mirrored -0.201 OK | terrain@2u 100.0%
+  saved C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\demos\demo_20260921_155130.npz (935 ticks)
+  [15:52:05] 1,252 ticks (20s) | games 0 | 7 pts / 7 pickups (178.9 ticks each) | OOB 0 | move 94.0% jump 0.0% brake 23.639999389648438% | speed mean 8.88 p90 14.73 pickup 8.17 | frame check 0.871 vs mirrored -0.039 OK | terrain@2u 100.0%
+  [15:52:15] 1,877 ticks (30s) | games 0 | 11 pts / 11 pickups (170.6 ticks each) | OOB 0 | move 95.2% jump 0.0% brake 25.889999389648438% | speed mean 8.77 p90 14.12 pickup 7.82 | frame check 0.873 vs mirrored -0.007 OK | terrain@2u 100.0%
+  [15:52:25] 2,503 ticks (40s) | games 0 | 14 pts / 14 pickups (178.8 ticks each) | OOB 0 | move 95.2% jump 0.0% brake 25.889999389648438% | speed mean 8.97 p90 14.71 pickup 7.73 | frame check 0.88 vs mirrored -0.088 OK | terrain@2u 100.0%
+  saved C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\demos\demo_20260921_155130.npz (2,810 ticks)
+  [15:52:35] 3,128 ticks (50s) | games 0 | 18 pts / 18 pickups (173.8 ticks each) | OOB 0 | move 95.9% jump 0.0% brake 25.219999313354492% | speed mean 9.15 p90 14.96 pickup 7.54 | frame check 0.884 vs mirrored -0.101 OK | terrain@2u 100.0%
+  [15:52:45] 3,754 ticks (60s) | games 0 | 22 pts / 22 pickups (170.6 ticks each) | OOB 0 | move 96.2% jump 0.0% brake 24.639999389648438% | speed mean 9.31 p90 15.13 pickup 7.73 | frame check 0.884 vs mirrored -0.103 OK | terrain@2u 100.0%
+  [15:52:55] 4,373 ticks (70s) | games 0 | 25 pts / 25 pickups (174.9 ticks each) | OOB 0 | move 96.3% jump 0.0% brake 25.56999969482422% | speed mean 9.4 p90 15.39 pickup 7.59 | frame check 0.888 vs mirrored -0.084 OK | terrain@2u 100.0%
+  saved C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\demos\demo_20260921_155130.npz (4,679 ticks)
+  [15:53:05] 4,998 ticks (80s) | games 0 | 28 pts / 28 pickups (178.5 ticks each) | OOB 0 | move 95.6% jump 0.0% brake 25.149999618530273% | speed mean 9.24 p90 15.29 pickup 7.4 | frame check 0.888 vs mirrored -0.081 OK | terrain@2u 100.0%
+  [15:53:15] 5,624 ticks (90s) | games 0 | 32 pts / 32 pickups (175.8 ticks each) | OOB 0 | move 95.6% jump 0.0% brake 25.200000762939453% | speed mean 9.45 p90 15.49 pickup 7.48 | frame check 0.888 vs mirrored -0.049 OK | terrain@2u 100.0%
+  [15:53:25] 6,250 ticks (100s) | games 0 | 35 pts / 35 pickups (178.6 ticks each) | OOB 0 | move 95.8% jump 0.0% brake 25.360000610351562% | speed mean 9.5 p90 15.56 pickup 7.4 | frame check 0.89 vs mirrored -0.056 OK | terrain@2u 100.0%
+  saved C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\demos\demo_20260921_155130.npz (6,554 ticks)
+  [15:53:35] 6,875 ticks (110s) | games 0 | 39 pts / 39 pickups (176.3 ticks each) | OOB 0 | move 95.9% jump 0.0% brake 25.280000686645508% | speed mean 9.44 p90 15.52 pickup 7.27 | frame check 0.89 vs mirrored -0.07 OK | terrain@2u 100.0%
+  [15:53:45] 7,500 ticks (120s) | games 0 | 43 pts / 43 pickups (174.4 ticks each) | OOB 0 | move 96.1% jump 0.0% brake 25.1200008392334% | speed mean 9.45 p90 15.48 pickup 7.37 | frame check 0.89 vs mirrored -0.069 OK | terrain@2u 100.0%
+  [15:53:55] 8,126 ticks (130s) | games 0 | 46 pts / 46 pickups (176.7 ticks each) | OOB 0 | move 95.9% jump 0.0% brake 25.1299991607666% | speed mean 9.55 p90 15.68 pickup 7.49 | frame check 0.89 vs mirrored -0.077 OK | terrain@2u 100.0%
+  saved C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\demos\demo_20260921_155130.npz (8,429 ticks)
+  [15:54:05] 8,751 ticks (140s) | games 0 | 50 pts / 50 pickups (175.0 ticks each) | OOB 0 | move 96.1% jump 0.0% brake 25.68000030517578% | speed mean 9.61 p90 15.75 pickup 7.57 | frame check 0.892 vs mirrored -0.078 OK | terrain@2u 100.0%
+  [15:54:15] 9,377 ticks (150s) | games 0 | 53 pts / 53 pickups (176.9 ticks each) | OOB 0 | move 96.2% jump 0.0% brake 25.579999923706055% | speed mean 9.64 p90 15.8 pickup 7.61 | frame check 0.894 vs mirrored -0.057 OK | terrain@2u 100.0%
+  [15:54:25] 10,002 ticks (160s) | games 0 | 56 pts / 56 pickups (178.6 ticks each) | OOB 0 | move 96.2% jump 0.0% brake 25.469999313354492% | speed mean 9.68 p90 15.87 pickup 7.67 | frame check 0.894 vs mirrored -0.047 OK | terrain@2u 100.0%
+  saved C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\demos\demo_20260921_155130.npz (10,305 ticks)
+  WARNING: 50 ticks without the human-input block. Is the game script up to date (mlAgent.cs handshake)?
+  [15:54:35] 10,609 ticks (170s) | games 0 | 58 pts / 58 pickups (182.9 ticks each) | OOB 0 | move 96.2% jump 0.0% brake 25.770000457763672% | speed mean 9.68 p90 15.96 pickup 7.62 | frame check 0.893 vs mirrored -0.044 OK | terrain@2u 100.0%
+  [15:54:45] 11,235 ticks (180s) | games 0 | 62 pts / 62 pickups (181.2 ticks each) | OOB 0 | move 96.2% jump 0.0% brake 26.049999237060547% | speed mean 9.65 p90 15.93 pickup 7.62 | frame check 0.894 vs mirrored -0.034 OK | terrain@2u 100.0%
+  [15:54:55] 11,861 ticks (190s) | games 0 | 66 pts / 66 pickups (179.7 ticks each) | OOB 0 | move 96.3% jump 0.0% brake 26.459999084472656% | speed mean 9.71 p90 15.99 pickup 7.62 | frame check 0.896 vs mirrored -0.009 OK | terrain@2u 100.0%
+  saved C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\demos\demo_20260921_155130.npz (12,163 ticks)
+  [15:55:05] 12,486 ticks (200s) | games 0 | 69 pts / 69 pickups (181.0 ticks each) | OOB 0 | move 96.3% jump 0.0% brake 26.549999237060547% | speed mean 9.72 p90 16.04 pickup 7.57 | frame check 0.896 vs mirrored -0.007 OK | terrain@2u 100.0%
+  [15:55:15] 13,112 ticks (210s) | games 0 | 73 pts / 73 pickups (179.6 ticks each) | OOB 0 | move 96.4% jump 0.0% brake 26.399999618530273% | speed mean 9.68 p90 16.01 pickup 7.61 | frame check 0.896 vs mirrored -0.009 OK | terrain@2u 100.0%
+  [15:55:25] 13,738 ticks (220s) | games 0 | 76 pts / 76 pickups (180.8 ticks each) | OOB 0 | move 96.5% jump 0.0% brake 26.309999465942383% | speed mean 9.69 p90 16.03 pickup 7.54 | frame check 0.897 vs mirrored -0.015 OK | terrain@2u 100.0%
+  saved C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\demos\demo_20260921_155130.npz (14,039 ticks)
+  [15:55:35] 14,364 ticks (230s) | games 0 | 80 pts / 80 pickups (179.6 ticks each) | OOB 0 | move 96.5% jump 0.0% brake 26.739999771118164% | speed mean 9.66 p90 15.98 pickup 7.52 | frame check 0.898 vs mirrored -0.012 OK | terrain@2u 100.0%
+  [15:55:45] 14,990 ticks (240s) | games 0 | 84 pts / 84 pickups (178.5 ticks each) | OOB 0 | move 96.6% jump 0.0% brake 27.030000686645508% | speed mean 9.65 p90 15.96 pickup 7.59 | frame check 0.898 vs mirrored -0.022 OK | terrain@2u 100.0%
+  [15:55:55] 15,616 ticks (250s) | games 0 | 87 pts / 87 pickups (179.5 ticks each) | OOB 0 | move 96.7% jump 0.0% brake 26.969999313354492% | speed mean 9.67 p90 15.96 pickup 7.59 | frame check 0.898 vs mirrored -0.018 OK | terrain@2u 100.0%
+  saved C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\demos\demo_20260921_155130.npz (15,915 ticks)
+  [15:56:05] 16,241 ticks (260s) | games 0 | 91 pts / 91 pickups (178.5 ticks each) | OOB 0 | move 96.7% jump 0.0% brake 27.3700008392334% | speed mean 9.67 p90 15.98 pickup 7.59 | frame check 0.899 vs mirrored -0.004 OK | terrain@2u 100.0%
+  [15:56:15] 16,866 ticks (270s) | games 0 | 94 pts / 94 pickups (179.4 ticks each) | OOB 0 | move 96.5% jump 0.0% brake 27.389999389648438% | speed mean 9.67 p90 16.0 pickup 7.56 | frame check 0.899 vs mirrored -0.012 OK | terrain@2u 100.0%
+  [15:56:25] 17,492 ticks (280s) | games 0 | 97 pts / 97 pickups (180.3 ticks each) | OOB 0 | move 96.5% jump 0.0% brake 27.479999542236328% | speed mean 9.71 p90 16.05 pickup 7.56 | frame check 0.9 vs mirrored -0.006 OK | terrain@2u 100.0%
+  saved C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\demos\demo_20260921_155130.npz (17,790 ticks)
+  [15:56:35] 18,118 ticks (290s) | games 0 | 100 pts / 100 pickups (181.2 ticks each) | OOB 0 | move 96.6% jump 0.0% brake 27.40999984741211% | speed mean 9.77 p90 16.1 pickup 7.6 | frame check 0.9 vs mirrored -0.017 OK | terrain@2u 100.0%
+  [15:56:45] 18,744 ticks (300s) | games 0 | 104 pts / 104 pickups (180.2 ticks each) | OOB 0 | move 96.3% jump 0.0% brake 26.969999313354492% | speed mean 9.76 p90 16.13 pickup 7.68 | frame check 0.897 vs mirrored -0.002 OK | terrain@2u 100.0%
