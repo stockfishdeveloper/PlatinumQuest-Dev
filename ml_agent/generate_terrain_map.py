@@ -33,7 +33,15 @@ import hxDif
 from generate_map_topdown import extract_surfaces, parse_mission_items
 from terrain_obs import TerrainMap
 
-FLOOR_NORMAL_Z = 0.5
+# Minimum upward component of a surface normal for it to count as FLOOR.
+# 0.5 admitted anything up to 60 deg from horizontal, which kept the 45 deg BEVELS that
+# chamfer the edges of holes. Rasterised, a bevel becomes an innocent-looking height 0.5 u
+# below the floor, the walk grid calls it walkable, and the marble slides straight into the
+# hole -- measured at the centre of KingOfTheMarble, where the true 2x2 void read as a 2x1
+# void with two false-floor cells on its lower edge (2026-09-19).
+# 0.85 is ~32 deg, matching nav/terrain.py MAX_SLOPE = 0.6 (~31 deg): we no longer STORE as
+# floor anything the navigator would refuse to WALK on.
+FLOOR_NORMAL_Z = float(os.environ.get('NAV_FLOOR_NORMAL_Z', '0.85'))
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO_ROOT = os.path.dirname(HERE)
 PLATINUM_ROOT = os.path.join(REPO_ROOT, 'Marble Blast Platinum', 'platinum')

@@ -1,0 +1,5 @@
+# Restore training exactly as it was before the transfer test (2026-09-19 ~15:40, update 6775):
+# 1. games:
+powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\run_game_loop.ps1" -Mission FlatIslands_Hunt,KingOfTheMarble_Hunt -Split 4,4 -Instances 8
+# 2. then (after ~30 s) the trainer, which auto-resumes from models/nav/nav_latest.pth:
+#    python -u -m nav.train_nav   (cwd ml_agent, stdout->logs/nav/stdout.txt, stderr->logs/nav/stderr.txt)

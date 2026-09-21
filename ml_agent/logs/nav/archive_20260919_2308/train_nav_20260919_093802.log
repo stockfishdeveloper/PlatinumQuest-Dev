@@ -1,0 +1,61 @@
+[09:38:04] resumed C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\models\nav\nav_latest.pth: update 5560, steps 36,583,315, trained on FlatIslands_Hunt
+[09:38:05] 8 instance worker(s) on ports 8888..8895; training mode True (64 ms per decision); arrive radius 0.65 u; device cuda
+[09:38:05] [0] [env:8888] waiting for the game
+[09:38:05] [0] [env:8888] game connected (1)
+[09:38:05] [0] mission FlatIslands_Hunt: terrain 165x165 @ 0.5 u, walkable 5775 cells
+[09:38:05] [0] ready on 8888, mission FlatIslands_Hunt
+[09:38:05] [1] [env:8889] waiting for the game
+[09:38:05] [1] [env:8889] game connected (1)
+[09:38:05] [1] mission FlatIslands_Hunt: terrain 165x165 @ 0.5 u, walkable 5775 cells
+[09:38:05] [1] ready on 8889, mission FlatIslands_Hunt
+[09:38:05] [2] [env:8890] waiting for the game
+[09:38:05] [2] [env:8890] game connected (1)
+[09:38:05] [2] mission FlatIslands_Hunt: terrain 165x165 @ 0.5 u, walkable 5775 cells
+[09:38:05] [2] ready on 8890, mission FlatIslands_Hunt
+[09:38:05] [3] [env:8891] waiting for the game
+[09:38:05] [3] [env:8891] game connected (1)
+[09:38:05] [3] mission FlatIslands_Hunt: terrain 165x165 @ 0.5 u, walkable 5775 cells
+[09:38:05] [3] ready on 8891, mission FlatIslands_Hunt
+[09:38:05] [4] [env:8892] waiting for the game
+[09:38:05] [4] [env:8892] game connected (1)
+[09:38:05] [4] mission KingOfTheMarble_Hunt: terrain 99x99 @ 0.5 u, walkable 1082 cells
+[09:38:05] [4] ready on 8892, mission KingOfTheMarble_Hunt
+[09:38:05] [5] [env:8893] waiting for the game
+[09:38:05] [5] [env:8893] game connected (1)
+[09:38:05] [5] mission KingOfTheMarble_Hunt: terrain 99x99 @ 0.5 u, walkable 1082 cells
+[09:38:05] [5] ready on 8893, mission KingOfTheMarble_Hunt
+[09:38:05] [6] [env:8894] waiting for the game
+[09:38:05] [6] [env:8894] game connected (1)
+[09:38:05] [6] mission KingOfTheMarble_Hunt: terrain 99x99 @ 0.5 u, walkable 1082 cells
+[09:38:05] [6] ready on 8894, mission KingOfTheMarble_Hunt
+[09:38:05] [7] [env:8895] waiting for the game
+[09:38:05] [7] [env:8895] game connected (1)
+[09:38:05] [7] mission KingOfTheMarble_Hunt: terrain 99x99 @ 0.5 u, walkable 1082 cells
+[09:38:05] [7] ready on 8895, mission KingOfTheMarble_Hunt
+[09:38:06] [6] [env:8894] round over (time left 180s of 180s); waiting for the next round
+[09:38:06] [6] [env:8894] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[09:38:06] [6] new round (game connection 1); rtf 4.5
+[09:38:06] [0] fall without OOB flag: 4 decisions off the map at [15.5 21.1 -2.5] (time left 91s)
+[09:38:06] [1] [env:8889] round over (time left 300s of 300s); waiting for the next round
+[09:38:06] [1] [env:8889] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+[09:38:06] [1] new round (game connection 1); rtf 3.0
+[09:38:06] [3] fall without OOB flag: 4 decisions off the map at [-32.3 -15.   -2.7] (time left 248s)
+[09:38:07] [3] fall without OOB flag: 4 decisions off the map at [-13.7 -35.4  -2.7] (time left 242s)
+[09:38:07] [1] fall without OOB flag: 4 decisions off the map at [-10.1  41.8  -2.7] (time left 294s)
+[09:38:08] [1] fall without OOB flag: 4 decisions off the map at [ 12.8 -10.4  -2.8] (time left 288s)
+[09:38:09] [0] fall without OOB flag: 4 decisions off the map at [-41.1  -6.9  -2.5] (time left 74s)
+[09:38:09] [2] fall without OOB flag: 4 decisions off the map at [-12.2  11.1  -3.1] (time left 283s)
+[09:38:10] [0] fall without OOB flag: 4 decisions off the map at [-14.9  28.6  -2.5] (time left 67s)
+[09:38:12] [3] fall without OOB flag: 4 decisions off the map at [-43.3  10.1  -2.1] (time left 217s)
+[09:38:12] [0] fall without OOB flag: 4 decisions off the map at [  9.5 -14.5  -2.5] (time left 56s)
+[09:38:12] [2] fall without OOB flag: 4 decisions off the map at [-42.6   8.2  -2.6] (time left 263s)
+[09:38:13] [0] fall without OOB flag: 4 decisions off the map at [24.5 13.6 -2.6] (time left 47s)
+[09:38:14] [1] fall without OOB flag: 4 decisions off the map at [-1.6 44.7 -0.9] (time left 256s)
+[09:38:14] [3] fall without OOB flag: 4 decisions off the map at [-41.8 -21.   -2.7] (time left 202s)
+[09:38:15] [2] fall without OOB flag: 4 decisions off the map at [ 12.  -28.2  -2.4] (time left 250s)
+[09:38:15] [3] fall without OOB flag: 4 decisions off the map at [-10.2  17.   -2.8] (time left 196s)
+[09:38:16] [1] fall without OOB flag: 4 decisions off the map at [ -0.5 -13.9  -2.2] (time left 246s)
+[09:38:16] [3] fall without OOB flag: 4 decisions off the map at [34.2 42.4 -2.8] (time left 189s)
+[09:38:17] [3] fall without OOB flag: 4 decisions off the map at [-43.3 -30.4  -2.1] (time left 184s)
+[09:38:18] [3] fall without OOB flag: 4 decisions off the map at [11.2  2.1 -2.1] (time left 178s)
+[09:38:18] [0] fall without OOB flag: 4 decisions off the map at [15.4 -7.8 -2.4] (time left 24s)

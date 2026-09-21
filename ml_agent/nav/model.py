@@ -29,7 +29,15 @@ JUMP_PRIOR_DROP = -0.15     # ray "beyond" value below this = a drop of > 1.5 u 
 JUMP_PRIOR_SPEED = 1.5      # u/s (was 2.0: braking dropped the marble under the gate and it rolled off)
 JUMP_LANDING_MAX = 4.5      # a landing within this many u beyond the edge (fine crop, 0.5 u cells) = crossable
 JUMP_LANDING_DZ = 0.15      # landing height within +/-1.5 u of the current floor (crop units are /10)
-JUMP_DAMP = 2.0             # constant subtracted from the jump logit, the mirror of BRAKE_SUPPRESS.
+JUMP_DAMP = 3.0             # 2.0 -> 3.0 on 2026-09-19 02:00, chasing the fall gap against the human
+                            # baseline (section 3c: human 0.046 falls per 100 u and 0.11 jumps/s;
+                            # agent 0.46-0.53 and, per map, islands 0.52 takeoffs/s with 59 % at a
+                            # real gap, KOTM 0.17/s with only 32 % at a real gap). Stray takeoffs
+                            # still cause most remaining falls. 3.0 takes the stray base rate from
+                            # 0.7 % to 0.25 % while a real gap edge still fires at ~50 % per
+                            # decision, which stays near-certain over the several decisions spent
+                            # at an edge. Before-snapshot: models/nav/nav_both90_20260919_0158.pth
+                            # Constant subtracted from the jump logit, the mirror of BRAKE_SUPPRESS.
                             # 2026-09-18: measured on King of the Marble, a takeoff ends in a fall
                             # 40.7 % of the time (islands 12.0 %) and 83 % of its takeoffs happen with
                             # NO gap prior active, i.e. no gap to cross. Segments with no takeoff
@@ -41,9 +49,23 @@ JUMP_DAMP = 2.0             # constant subtracted from the jump logit, the mirro
                             # rate 4.7 % -> 0.7 % while a real gap edge still fires at 73 % per
                             # decision (near-certain over the several decisions spent at an edge).
                             # Map-independent: nothing about King of the Marble is baked in.
-BRAKE_SUPPRESS = 6.0        # brake logit penalty while the gap prior is active (2026-09-17: 96 % of falls
+BRAKE_SUPPRESS = 1.0   # 6.0 -> 1.0 on 2026-09-20 11:55. This penalises the brake logit WHILE THE GAP
+                       # PRIOR IS ACTIVE, i.e. at edges. Measured on KOTM: 78 % of takeoffs are edge
+                       # roll-offs rather than jumps, and 76 % of falls follow one, so braking was
+                       # suppressed precisely where the falls happen. The agent brakes on 0.22 % of
+                       # decisions against a human 14.3 %. The degenerate 'sit at the edge and brake'
+                       # policy this guard was added for (2026-09-17) is now separately priced by
+                       # BRAKE = 0.05 per decision and FALL = 10, so the suppression looks redundant.
+                       # Not set to 0: a little suppression still discourages braking mid-gap.
                             # at gaps came after braking, 77 % without any jump)
-BRAKE_ENABLED = False       # 2026-09-17: the brake (full-throttle anti-velocity kick, inherited from the old
+BRAKE_ENABLED = True   # re-enabled 2026-09-19 03:05. Disabled long ago because an early policy
+                       # learned to sit still and brake for free; braking now costs BRAKE = 0.1 per
+                       # decision and is suppressed at gap edges (BRAKE_SUPPRESS), so that strategy
+                       # cannot pay. Motivation: 39-43 % of remaining falls are now ROLL-OFFS (the
+                       # marble drives off an edge without jumping) at 7.5-8.0 u/s, and the human
+                       # baseline brakes on 14.3 % of ticks. Braking is the control for arriving at
+                       # an edge too fast. Snapshot: models/nav/nav_before_brake_0305.pth
+                       # ABORT if brake share > ~30 % of decisions or mean speed drops > 15 %.       # 2026-09-17: the brake (full-throttle anti-velocity kick, inherited from the old
                             # trainer) preceded 85 % of falls on the islands and was used 4.7x per segment;
                             # the direction head can decelerate by steering, so the action is switched off
                             # (logit pinned at -20). The head stays in the model for checkpoint compatibility.
@@ -54,7 +76,18 @@ VEC_GOAL_RAY_CLEAR, VEC_GOAL_RAY_BEYOND = 10 + 32, 10 + 33
 class NavActorCritic(nn.Module):
     LOG_STD_MIN, LOG_STD_MAX = -2.0, -0.5
     THROTTLE_LOG_STD_MIN, THROTTLE_LOG_STD_MAX = -3.0, -0.9
-    THROTTLE_FLOOR = 0.15
+    # 0.15 -> 0.90 on 2026-09-20 15:10. throttle = FLOOR + (1-FLOOR)*sigmoid(thr), so this
+    # forces throttle into [0.90, 1.0]. MEASURED CHAIN: acceleration scales almost linearly
+    # with input magnitude (0.5 -> +1.66 u/s^2, 0.7 -> +3.07, 0.9 -> +5.52, 1.0 -> +6.36 at
+    # 4-7 u/s), and at full throttle the agent accelerates nearly as well as the human
+    # (+6.36 vs +6.86-7.34). But it runs at 0.85 throttle on KOTM and 0.94 on Islands, and
+    # its acceleration at speed is HALF the human's (8-9 u/s: +3.64 vs +6.00).
+    # The floor must sit ABOVE the 0.85 the policy currently chooses or it is nullified:
+    # the policy can hit any target below the floor by lowering its sigmoid output.
+    # A keyboard player is pinned at 1.0 and still arrives at gems at 7.37 u/s against the
+    # agent 5.4, so the caution is not buying precision they need. If arrivals collapse,
+    # low throttle IS load-bearing for this policy and the floor goes back.
+    THROTTLE_FLOOR = 0.90
     POPART_BETA = 0.05
     POPART_MIN_STD = 1e-2
 
@@ -71,7 +104,12 @@ class NavActorCritic(nn.Module):
         self.vec = nn.Sequential(nn.Linear(VEC_DIM, 64), nn.ReLU())
         self.pre = nn.Sequential(nn.Linear(128 + 64, HIDDEN), nn.ReLU())
         self.gru = nn.GRUCell(HIDDEN, HIDDEN)
-        self.dir_head = nn.Sequential(nn.Linear(HIDDEN, 64), nn.ReLU(), nn.Linear(64, 2), nn.Tanh())
+        # dir_head reads [hidden state, observation vector], NOT the hidden state alone.
+        # The unit vector to the waypoint is vec[0:2]: exact and perfectly smooth. Routing it
+        # through a GRU that rewrites 26 % of itself every decision made the commanded heading
+        # inherit that churn (37 deg/decision against a human 0.4; zeroing h cut the median 5x).
+        # See HANDOFF sections 8, 9, 9a for the measurements and for what was ruled out.
+        self.dir_head = nn.Sequential(nn.Linear(HIDDEN + VEC_DIM, 64), nn.ReLU(), nn.Linear(64, 2), nn.Tanh())
         nn.init.uniform_(self.dir_head[2].weight, -0.1, 0.1); nn.init.zeros_(self.dir_head[2].bias)
         self.throttle_head = nn.Sequential(nn.Linear(HIDDEN, 64), nn.ReLU(), nn.Linear(64, 1))
         nn.init.constant_(self.throttle_head[-1].bias, 2.0)
@@ -120,7 +158,7 @@ class NavActorCritic(nn.Module):
         return (at_edge & ready & landing).float()
 
     def heads(self, h, vec, crop=None):
-        mean_xy = self.dir_head(h)
+        mean_xy = self.dir_head(torch.cat([h, vec], dim=-1))
         thr = self.throttle_head(h).squeeze(-1)
         gp = self.gap_prior(crop, vec) if crop is not None else torch.zeros_like(thr)
         jump = torch.clamp(self.jump_head(h).squeeze(-1) - JUMP_DAMP + gp * JUMP_PRIOR, -7.0, 3.0)
@@ -161,16 +199,19 @@ class NavActorCritic(nn.Module):
         action_buf = torch.stack([direction[:, 0], direction[:, 1], thr_s, j, b], dim=1)
         action_game = torch.stack([direction[:, 0], direction[:, 1], throttle, j, b], dim=1)
         return {'action_buf': action_buf, 'action_game': action_game, 'logp': logp,
+                'mean_dir': mean_xy,          # pre-sampling mean: TURN_COST is charged on THIS,
+                                              # so it prices steering and not exploration noise
                 'value': self.value_from_norm(vn), 'h_next': h1}
 
     # ------------------------------------------------------------------ training
     def evaluate_seq(self, crops, vecs, h0, actions, resets):
         """crops (T,B,6,32,32), vecs (T,B,48), h0 (B,H), actions (T,B,5),
         resets (T,B) float: 1 where the hidden state must be zeroed BEFORE step t
-        (first step of a new segment). Returns logp (T,B), entropy (T,B), value_norm (T,B)."""
+        (first step of a new segment). Returns logp (T,B), continuous entropy (T,B),
+        discrete entropy (T,B), value_norm (T,B)."""
         T, B = actions.shape[:2]
         h = h0
-        logps, ents, vns = [], [], []
+        logps, ents, ents_d, vns = [], [], [], []
         for t in range(T):
             h = h * (1.0 - resets[t]).unsqueeze(-1)
             h = self.core(crops[t], vecs[t], h)
@@ -178,9 +219,18 @@ class NavActorCritic(nn.Module):
             d_dir, d_thr, d_jump, d_brake = self.dists(mean_xy, thr, jump, brake)
             a = actions[t]
             logp = d_dir.log_prob(a[:, 0:2]).sum(-1) + d_thr.log_prob(a[:, 2]) + d_jump.log_prob(a[:, 3]) + d_brake.log_prob(a[:, 4])
-            ent = d_dir.entropy().sum(-1) + d_thr.entropy() + d_jump.entropy() + d_brake.entropy()
-            logps.append(logp); ents.append(ent); vns.append(vn)
-        return torch.stack(logps), torch.stack(ents), torch.stack(vns)
+            # Entropy is returned SPLIT (2026-09-20). Lumping all four distributions together and
+            # paying one coefficient on the sum let the entropy bonus buy its entropy from the
+            # CHEAPEST head instead of the useful one: Bernoulli entropy rises very steeply from
+            # p near 0, so raising the coefficient to widen steering instead randomised braking,
+            # which went 0.34 % -> 17.25 % of decisions in 90 updates while direction std moved
+            # 0.18 -> 0.25. Speed fell 4.9 -> 4.7 and arrivals 86 % -> 83 %. The caller now prices
+            # the continuous heads (where exploration is wanted) and the discrete ones (which have
+            # their own deliberate priors, JUMP_DAMP and BRAKE_SUPPRESS) separately.
+            ent_cont = d_dir.entropy().sum(-1) + d_thr.entropy()
+            ent_disc = d_jump.entropy() + d_brake.entropy()
+            logps.append(logp); ents.append(ent_cont); ents_d.append(ent_disc); vns.append(vn)
+        return torch.stack(logps), torch.stack(ents), torch.stack(ents_d), torch.stack(vns)
 
     @torch.no_grad()
     def update_value_stats(self, returns):

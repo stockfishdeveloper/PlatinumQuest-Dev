@@ -29,7 +29,13 @@ TICK_S = 0.016
 # (~70x per instance). With the shipped exe these control words are ignored and the old
 # 16 ms / 4-message decision applies.
 TRAINING_MODE = True
-OBS_MS = 64
+OBS_MS = int(os.environ.get('NAV_OBS_MS', '64'))   # ms of sim advanced per decision. 64 is the
+                              # trained default; NAV_OBS_MS lets an EVAL run at a finer step
+                              # without retraining, to test whether control bandwidth is the
+                              # constraint on arrival speed. NOTE: TIME, GEM_SPEED_REF,
+                              # TIMEOUT_PER_GEM and the airborne counters are all denominated
+                              # in DECISIONS, so changing this for TRAINING requires rescaling
+                              # them all. For eval only it is safe.
 RENDER_EVERY = 100
 NEW_ROUND_MIN_LEFT_S = 200.0     # fallback when the round length is unknown (5-min rounds)
 NEW_ROUND_FRACTION = 0.8         # clock >= this fraction of the round length = the next round has started
@@ -224,6 +230,10 @@ class HuntEnv:
     def mark(self, x, y, z):
         """Show the current waypoint in the game (a small start pad); cosmetic."""
         self.control(f'MARK {x:.3f} {y:.3f} {z:.3f}')
+
+    def mark_off(self):
+        """Hide the waypoint marker (between gem groups nothing may be drawn off a gem)."""
+        self.control('MARK off')
 
     def teleport(self, x, y, z, vx=0.0, vy=0.0, vz=0.0, settle_ticks=2):
         self.control(format_teleport(x, y, z, vx, vy, vz))

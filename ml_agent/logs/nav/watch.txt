@@ -1,0 +1,5 @@
+warm-up: model ready in 0.18 s, terrain "KingOfTheMarble_Hunt" pre-built
+[env:8920] waiting for the game
+[env:8920] game connected (1)
+WATCH mode: every frame drawn, 4 sim slice(s) per 64 ms decision, real time
+real run: nav_spawngoals_20260919_2009.pth (update 7465) on KingOfTheMarble_Hunt, 8 round(s), port 8920

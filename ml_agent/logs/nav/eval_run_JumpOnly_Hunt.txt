@@ -1,0 +1,11 @@
+[env:8920] waiting for the game
+[env:8920] game connected (1)
+eval nav_latest.pth (update 3885) on JumpOnly_Hunt: 60 segments, seed 12345
+  10/60: {'segments': 10, 'arrive_pct': 100.0, 'falls_per_100u': 0.0, 'speed': 8.859591834466766, 'timeout_pct': 0.0}
+  20/60: {'segments': 20, 'arrive_pct': 100.0, 'falls_per_100u': 0.0, 'speed': 8.646109028957348, 'timeout_pct': 0.0}
+  30/60: {'segments': 30, 'arrive_pct': 100.0, 'falls_per_100u': 0.0, 'speed': 8.791054800273967, 'timeout_pct': 0.0}
+  40/60: {'segments': 40, 'arrive_pct': 100.0, 'falls_per_100u': 0.0, 'speed': 8.819632924606767, 'timeout_pct': 0.0}
+  50/60: {'segments': 50, 'arrive_pct': 100.0, 'falls_per_100u': 0.0, 'speed': 8.866955725013328, 'timeout_pct': 0.0}
+  60/60: {'segments': 60, 'arrive_pct': 100.0, 'falls_per_100u': 0.0, 'speed': 8.930659593367478, 'timeout_pct': 0.0}
+EVAL {"map": "JumpOnly_Hunt", "ckpt": "nav_latest.pth", "update": 3885, "n": 60, "seed": 12345, "arrival_pct": 100.0, "falls_per_100u": 0.0, "speed": 8.930659593367478, "timeout_pct": 0.0, "t_per_10u_s": 1.162825096449287, "when": "2026-09-19T02:00:18.238942"}
+wrote C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\logs\nav\eval_JumpOnly_Hunt_nav_latest.json

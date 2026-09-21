@@ -193,6 +193,12 @@ function MLAgent::update(%gen) {
         return;
     }
 
+    // The marble object is recreated on spawn, so re-apply the fixed view yaw per marble.
+    if ($MLAgent::ViewYawOn && $MLAgent::ViewYawApplied !$= $MP::MyMarble.getId()) {
+        $MP::MyMarble.setViewYaw($MLAgent::ViewYaw);
+        $MLAgent::ViewYawApplied = $MP::MyMarble.getId();
+    }
+
     // Wait for the timer to actually start before collecting observations.
     // After restartLevel, there's a brief window where $Game::Running is true
     // but the timer still shows 300,000ms (expired from last round). Steps
@@ -303,6 +309,23 @@ function MLAgent::update(%gen) {
         echo("MLAgent: AI::Lockstep = " @ $AI::Lockstep @ " (Python server)");
         $AIBridge::LastAction = "";
         %actionStr = "";
+    } else if (getWord(%actionStr, 0) $= "VIEWYAW") {
+        // VIEWING ONLY (engine change 2026-09-20, Marble.setViewYaw): render the third-person
+        // camera at a FIXED yaw while the marble's own camera yaw keeps rotating every decision
+        // to align the input square with the commanded direction (the sqrt(2) "two keys" force).
+        // Render-only in the engine; physics and observations untouched. "VIEWYAW off" restores.
+        %v = getWord(%actionStr, 1);
+        if (%v $= "off") {
+            $MLAgent::ViewYawOn = false;
+            if (isObject($MP::MyMarble)) $MP::MyMarble.clearViewYaw();
+        } else {
+            $MLAgent::ViewYawOn = true;
+            $MLAgent::ViewYaw = %v + 0;
+            $MLAgent::ViewYawApplied = "";        // force re-apply on the next tick
+        }
+        echo("MLAgent: ViewYaw " @ (%v $= "off" ? "off" : $MLAgent::ViewYaw) @ " (Python server)");
+        $AIBridge::LastAction = "";
+        %actionStr = "";
     } else if (getWord(%actionStr, 0) $= "RENDEREVERY") {
         $AI::RenderEvery = getWord(%actionStr, 1) + 0;
         echo("MLAgent: AI::RenderEvery = " @ $AI::RenderEvery @ " (Python server)");
@@ -402,26 +425,33 @@ function MLAgent::update(%gen) {
         // for watching training). Server-side object in the listen server; recreated
         // after every level restart.
         %mx = getWord(%actionStr, 1); %my = getWord(%actionStr, 2); %mz = getWord(%actionStr, 3);
-        if (!isObject($MLAgent::Marker)) {
-            // a real black gem item (registered datablock), same size as the map's gems;
-            // Gem::onPickup (server/scripts/gems.cs) ignores items flagged aiMarker
-            $MLAgent::Marker = new Item() {
-                dataBlock = "AIMarkerGem";       // black gem look, className AIMarker (gems.cs)
-                position = %mx SPC %my SPC (%mz + 0.3);
-                rotation = "1 0 0 0";
-                scale = "1 1 1";
-                collideable = "0";
-                static = "1";
-                rotate = "1";
-                aiMarker = "1";
-            };
-            if (isObject(MissionGroup))
-                MissionGroup.add($MLAgent::Marker);
-            echo("MLAgent: waypoint marker " @ $MLAgent::Marker @ " created at " @ %mx SPC %my SPC %mz);
+        if (%mx $= "off") {
+            // "MARK off": hide the marker. No gem on the map means nothing is drawn anywhere,
+            // because a waypoint may only ever be shown inside a gem (user rule 2026-09-20).
+            if (isObject($MLAgent::Marker))
+                $MLAgent::Marker.hide(true);
         } else {
-            $MLAgent::Marker.setTransform(%mx SPC %my SPC (%mz + 0.3) SPC "1 0 0 0");
+            if (!isObject($MLAgent::Marker)) {
+                // a real black gem item (registered datablock), same size as the map's gems;
+                // Gem::onPickup (server/scripts/gems.cs) ignores items flagged aiMarker
+                $MLAgent::Marker = new Item() {
+                    dataBlock = "AIMarkerGem";       // black gem look, className AIMarker (gems.cs)
+                    position = %mx SPC %my SPC %mz;      // EXACTLY the waypoint: no cosmetic lift
+                    rotation = "1 0 0 0";
+                    scale = "1 1 1";
+                    collideable = "0";
+                    static = "1";
+                    rotate = "1";
+                    aiMarker = "1";
+                };
+                if (isObject(MissionGroup))
+                    MissionGroup.add($MLAgent::Marker);
+                echo("MLAgent: waypoint marker " @ $MLAgent::Marker @ " created at " @ %mx SPC %my SPC %mz);
+            } else {
+                $MLAgent::Marker.setTransform(%mx SPC %my SPC %mz SPC "1 0 0 0");
+            }
+            $MLAgent::Marker.hide(false);         // in case anything hid it
         }
-        $MLAgent::Marker.hide(false);         // in case anything hid it
         $AIBridge::LastAction = "";
         %actionStr = "";
     } else if (getWord(%actionStr, 0) $= "DEBUG") {

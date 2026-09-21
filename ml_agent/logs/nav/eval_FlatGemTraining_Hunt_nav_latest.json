@@ -1,0 +1,13 @@
+{
+ "map": "FlatGemTraining_Hunt",
+ "ckpt": "nav_latest.pth",
+ "update": 3885,
+ "n": 60,
+ "seed": 12345,
+ "arrival_pct": 100.0,
+ "falls_per_100u": 0.0,
+ "speed": 9.029048785187442,
+ "timeout_pct": 0.0,
+ "t_per_10u_s": 1.1513762980195898,
+ "when": "2026-09-19T02:01:18.012138"
+}

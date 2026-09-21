@@ -1,0 +1,27 @@
+﻿[env:8920] waiting for the game
+[env:8920] game connected (1)
+real run: nav_smoothtrained_20260919_1923.pth (update 7340) on KingOfTheMarble_Hunt, 8 round(s), port 8920
+  round 1: {'round': 1, 'gems': 21, 'points': 26.0, 'minutes': 2.72, 'decisions': 2550, 'gems_per_min': 7.7, 'points_per_min': 9.6, 'falls': 16, 'falls_per_100u': 1.561, 'travelled_u': 1024.7, 'speed': 6.28, 'blind_pct': 4.0, 'snapped_pct': 0.0, 'pathed_pct': 55.3, 'smooth': 0.3}
+[env:8920] round over (time left 180s of 180s); waiting for the next round
+[env:8920] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+  round 2: {'round': 2, 'gems': 21, 'points': 28.0, 'minutes': 3.02, 'decisions': 2834, 'gems_per_min': 6.9, 'points_per_min': 9.3, 'falls': 20, 'falls_per_100u': 1.716, 'travelled_u': 1165.4, 'speed': 6.43, 'blind_pct': 2.8, 'snapped_pct': 0.0, 'pathed_pct': 50.5, 'smooth': 0.3}
+[env:8920] round over (time left 180s of 180s); waiting for the next round
+[env:8920] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+  round 3: {'round': 3, 'gems': 24, 'points': 29.0, 'minutes': 3.02, 'decisions': 2834, 'gems_per_min': 7.9, 'points_per_min': 9.6, 'falls': 19, 'falls_per_100u': 1.704, 'travelled_u': 1115.3, 'speed': 6.15, 'blind_pct': 4.0, 'snapped_pct': 0.0, 'pathed_pct': 47.2, 'smooth': 0.3}
+[env:8920] round over (time left 180s of 180s); waiting for the next round
+[env:8920] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+  round 4: {'round': 4, 'gems': 15, 'points': 19.0, 'minutes': 3.02, 'decisions': 2834, 'gems_per_min': 5.0, 'points_per_min': 6.3, 'falls': 19, 'falls_per_100u': 1.777, 'travelled_u': 1069.3, 'speed': 5.9, 'blind_pct': 2.5, 'snapped_pct': 0.0, 'pathed_pct': 58.2, 'smooth': 0.3}
+[env:8920] round over (time left 180s of 180s); waiting for the next round
+[env:8920] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+  round 5: {'round': 5, 'gems': 30, 'points': 38.0, 'minutes': 3.02, 'decisions': 2834, 'gems_per_min': 9.9, 'points_per_min': 12.6, 'falls': 13, 'falls_per_100u': 1.248, 'travelled_u': 1041.9, 'speed': 5.74, 'blind_pct': 5.4, 'snapped_pct': 0.0, 'pathed_pct': 44.6, 'smooth': 0.3}
+[env:8920] round over (time left 180s of 180s); waiting for the next round
+[env:8920] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+  round 6: {'round': 6, 'gems': 18, 'points': 23.0, 'minutes': 3.02, 'decisions': 2834, 'gems_per_min': 6.0, 'points_per_min': 7.6, 'falls': 22, 'falls_per_100u': 2.0, 'travelled_u': 1100.0, 'speed': 6.07, 'blind_pct': 2.4, 'snapped_pct': 0.0, 'pathed_pct': 58.3, 'smooth': 0.3}
+[env:8920] round over (time left 180s of 180s); waiting for the next round
+[env:8920] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+  round 7: {'round': 7, 'gems': 20, 'points': 25.0, 'minutes': 3.02, 'decisions': 2834, 'gems_per_min': 6.6, 'points_per_min': 8.3, 'falls': 22, 'falls_per_100u': 1.926, 'travelled_u': 1142.3, 'speed': 6.3, 'blind_pct': 1.9, 'snapped_pct': 0.0, 'pathed_pct': 53.5, 'smooth': 0.3}
+[env:8920] round over (time left 180s of 180s); waiting for the next round
+[env:8920] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+  round 8: {'round': 8, 'gems': 28, 'points': 35.0, 'minutes': 3.02, 'decisions': 2834, 'gems_per_min': 9.3, 'points_per_min': 11.6, 'falls': 15, 'falls_per_100u': 1.394, 'travelled_u': 1076.3, 'speed': 5.93, 'blind_pct': 4.0, 'snapped_pct': 0.0, 'pathed_pct': 52.1, 'smooth': 0.3}
+REAL RUN {"gems_per_min": 7.412, "points_per_min": 9.362, "falls_per_100u": 1.666, "speed": 6.1, "blind_pct": 3.375} vs human {"gems_per_min": 0.2, "points_per_min": 0.2, "speed": 0.76, "falls_ratio": 36.2}
+wrote C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\logs\nav\real_run_KingOfTheMarble_Hunt_nav_smoothtrained_20260919_1923.json

@@ -1,0 +1,5 @@
+warm-up: model ready in 0.20 s, terrain "KingOfTheMarble_Hunt" pre-built
+[env:8920] waiting for the game
+[env:8920] game connected (1)
+WATCH mode: every frame drawn, 1 sim slice(s) per 64 ms decision, real time
+real run: nav_eval_fallmark_0737.pth (update 12770) on KingOfTheMarble_Hunt, 3 round(s), port 8920

@@ -2,6 +2,9 @@
 
     python -m nav.eval_nav                 (game launched with -autotrain <Map>; uses models/nav/nav_latest.pth)
     NAV_CKPT=models/nav/nav_000100.pth python -m nav.eval_nav
+    NAV_PORT=8920 python -m nav.eval_nav   (spare port, e.g. while training holds 8888..8895)
+
+`eval_heldout.ps1` drives this across several maps in one go.
 
 Runs N_SEGMENTS segments from fixed (seeded) start/goal pairs with the greedy
 policy (no sampling) and reports arrival %, falls per 100 u, mean speed and
@@ -24,7 +27,8 @@ from nav.obs import ObsBuilder, NAV_OBS_VERSION                      # noqa: E40
 from nav.model import NavActorCritic, action_to_joystick             # noqa: E402
 from nav.waypoints import SegmentManager, RoundOver                  # noqa: E402
 
-PORT = 8888
+PORT = int(os.environ.get('NAV_PORT', '8888'))   # NAV_PORT lets an eval run on a spare port while
+                                                 # training holds 8888..8895
 GAME_SPEED = 3
 N_SEGMENTS = 60
 EVAL_SEED = 12345
@@ -34,10 +38,13 @@ HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 def main():
     ckpt = os.environ.get('NAV_CKPT', os.path.join(HERE, 'models', 'nav', 'nav_latest.pth'))
     dev = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    # bind and listen BEFORE the checkpoint and CUDA, so the game is answered the moment it
+    # dials at GO rather than after our warm-up (ready-at-GO rule, 2026-09-21)
+    env = HuntEnv(PORT, speed=GAME_SPEED)
     ck = torch.load(ckpt, map_location=dev)
     assert ck.get('obs_version') == NAV_OBS_VERSION, ck.get('obs_version')
     model = NavActorCritic().to(dev); model.load_state_dict(ck['model']); model.eval()
-    env = HuntEnv(PORT, speed=GAME_SPEED); env.connect()
+    env.connect()                      # already bound and listening: this only accepts
     mission = env.info['mission']
     terrain = TerrainGrid(TerrainMap.resolve(mission))
     rng = np.random.default_rng(EVAL_SEED)
@@ -51,7 +58,7 @@ def main():
         except RoundOver:
             env.wait_new_round(); continue
         obs_b.reset(); h = model.initial_state(1, dev)
-        crop, vec, on_floor = obs_b.build(env.msg.obs, goal)
+        crop, vec, on_floor = obs_b.build(env.msg.obs, goal, segs.next_goal())
         while True:
             out = model.act(torch.as_tensor(crop, device=dev).unsqueeze(0), torch.as_tensor(vec, device=dev).unsqueeze(0), h, deterministic=True)
             a = out['action_game'][0].tolist(); vel = env.msg.obs[RAW_VEL]
@@ -60,7 +67,8 @@ def main():
                 segs.abandon(); env.wait_new_round(); break
             r, done, outcome = segs.step(msg.obs[:3], info['fell'], not on_floor, False, env.time_left_s())
             h = out['h_next']
-            crop, vec, on_floor = obs_b.build(env.msg.obs, goal)
+            goal = segs.seg.goal          # the group may have retargeted onto the next gem
+            crop, vec, on_floor = obs_b.build(env.msg.obs, goal, segs.next_goal())
             if done:
                 results.append(segs.history[-1]); n = len(results)
                 if n % 10 == 0:

@@ -1,0 +1,80 @@
+{
+ "map": "KingOfTheMarble_Hunt",
+ "ckpt": "nav_stopped_20260920_2145.pth",
+ "update": 11615,
+ "rounds": [
+  {
+   "round": 1,
+   "gems": 67,
+   "points": 83.0,
+   "minutes": 2.57,
+   "decisions": 2409,
+   "gems_per_min": 26.1,
+   "points_per_min": 32.3,
+   "falls": 2,
+   "falls_per_100u": 0.21,
+   "travelled_u": 953.9,
+   "speed": 6.19,
+   "blind_pct": 9.1,
+   "snapped_pct": 0.0,
+   "pathed_pct": 25.7,
+   "smooth": 1.0
+  },
+  {
+   "round": 2,
+   "gems": 67,
+   "points": 84.0,
+   "minutes": 2.87,
+   "decisions": 2686,
+   "gems_per_min": 23.4,
+   "points_per_min": 29.3,
+   "falls": 2,
+   "falls_per_100u": 0.186,
+   "travelled_u": 1074.7,
+   "speed": 6.25,
+   "blind_pct": 11.1,
+   "snapped_pct": 0.0,
+   "pathed_pct": 29.2,
+   "smooth": 1.0
+  },
+  {
+   "round": 3,
+   "gems": 4,
+   "points": 5.0,
+   "minutes": 0.24,
+   "decisions": 221,
+   "gems_per_min": 17.0,
+   "points_per_min": 21.2,
+   "falls": 0,
+   "falls_per_100u": 0.0,
+   "travelled_u": 78.0,
+   "speed": 5.51,
+   "blind_pct": 12.7,
+   "snapped_pct": 0.0,
+   "pathed_pct": 10.0,
+   "smooth": 1.0
+  }
+ ],
+ "mean": {
+  "gems_per_min": 22.167,
+  "points_per_min": 27.6,
+  "falls_per_100u": 0.132,
+  "speed": 5.983,
+  "blind_pct": 10.967
+ },
+ "human": {
+  "gems_per_min": 37.5,
+  "points_per_min": 47.3,
+  "speed": 8.05,
+  "falls_per_100u": 0.046
+ },
+ "vs_human": {
+  "gems_per_min": 0.59,
+  "points_per_min": 0.58,
+  "speed": 0.74,
+  "falls_ratio": 2.9
+ },
+ "value_weight": 0.0,
+ "h_reset": "never",
+ "when": "2026-09-20T22:54:55.682747"
+}

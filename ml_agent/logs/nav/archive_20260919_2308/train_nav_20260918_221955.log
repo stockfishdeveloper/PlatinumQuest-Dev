@@ -1,0 +1,75 @@
+[22:19:56] resumed C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\models\nav\nav_latest.pth: update 3325, steps 18,263,763, trained on FlatIslands_Hunt
+[22:19:58] 16 instance worker(s) on ports 8888..8903; training mode True (64 ms per decision); arrive radius 0.65 u; device cuda
+[22:20:35] [0] [env:8888] waiting for the game
+[22:20:35] [0] [env:8888] game connected (1)
+[22:20:35] [0] mission FlatIslands_Hunt: terrain 165x165 @ 0.5 u, walkable 5775 cells
+[22:20:35] [0] ready on 8888, mission FlatIslands_Hunt
+[22:20:35] [1] [env:8889] waiting for the game
+[22:20:35] [1] [env:8889] game connected (1)
+[22:20:35] [1] mission FlatIslands_Hunt: terrain 165x165 @ 0.5 u, walkable 5775 cells
+[22:20:35] [1] ready on 8889, mission FlatIslands_Hunt
+[22:20:35] [2] [env:8890] waiting for the game
+[22:20:35] [2] [env:8890] game connected (1)
+[22:20:35] [2] mission FlatIslands_Hunt: terrain 165x165 @ 0.5 u, walkable 5775 cells
+[22:20:35] [2] ready on 8890, mission FlatIslands_Hunt
+[22:20:35] [3] [env:8891] waiting for the game
+[22:20:35] [3] [env:8891] game connected (1)
+[22:20:35] [3] mission FlatIslands_Hunt: terrain 165x165 @ 0.5 u, walkable 5775 cells
+[22:20:35] [3] ready on 8891, mission FlatIslands_Hunt
+[22:20:35] [4] [env:8892] waiting for the game
+[22:20:35] [4] [env:8892] game connected (1)
+[22:20:35] [4] mission FlatIslands_Hunt: terrain 165x165 @ 0.5 u, walkable 5775 cells
+[22:20:35] [4] ready on 8892, mission FlatIslands_Hunt
+[22:20:35] [5] [env:8893] waiting for the game
+[22:20:35] [5] [env:8893] game connected (1)
+[22:20:35] [5] mission FlatIslands_Hunt: terrain 165x165 @ 0.5 u, walkable 5775 cells
+[22:20:35] [5] ready on 8893, mission FlatIslands_Hunt
+[22:20:35] [6] [env:8894] waiting for the game
+[22:20:35] [6] [env:8894] game connected (1)
+[22:20:35] [6] mission FlatIslands_Hunt: terrain 165x165 @ 0.5 u, walkable 5775 cells
+[22:20:35] [6] ready on 8894, mission FlatIslands_Hunt
+[22:20:35] [7] [env:8895] waiting for the game
+[22:20:35] [7] [env:8895] game connected (1)
+[22:20:35] [7] mission FlatIslands_Hunt: terrain 165x165 @ 0.5 u, walkable 5775 cells
+[22:20:35] [7] ready on 8895, mission FlatIslands_Hunt
+[22:20:35] [8] [env:8896] waiting for the game
+[22:20:35] [8] [env:8896] game connected (1)
+[22:20:35] [8] mission KingOfTheMarble_Hunt: terrain 99x99 @ 0.5 u, walkable 1082 cells
+[22:20:35] [8] ready on 8896, mission KingOfTheMarble_Hunt
+[22:20:35] [9] [env:8897] waiting for the game
+[22:20:35] [9] [env:8897] game connected (1)
+[22:20:35] [9] mission KingOfTheMarble_Hunt: terrain 99x99 @ 0.5 u, walkable 1082 cells
+[22:20:35] [9] ready on 8897, mission KingOfTheMarble_Hunt
+[22:20:36] [10] [env:8898] waiting for the game
+[22:20:36] [10] [env:8898] game connected (1)
+[22:20:36] [10] mission KingOfTheMarble_Hunt: terrain 99x99 @ 0.5 u, walkable 1082 cells
+[22:20:36] [10] ready on 8898, mission KingOfTheMarble_Hunt
+[22:20:37] [11] [env:8899] waiting for the game
+[22:20:37] [11] [env:8899] game connected (1)
+[22:20:37] [11] mission KingOfTheMarble_Hunt: terrain 99x99 @ 0.5 u, walkable 1082 cells
+[22:20:37] [11] ready on 8899, mission KingOfTheMarble_Hunt
+[22:20:40] [12] [env:8900] waiting for the game
+[22:20:40] [12] [env:8900] game connected (1)
+[22:20:40] [12] mission KingOfTheMarble_Hunt: terrain 99x99 @ 0.5 u, walkable 1082 cells
+[22:20:40] [12] ready on 8900, mission KingOfTheMarble_Hunt
+[22:20:41] [13] [env:8901] waiting for the game
+[22:20:41] [13] [env:8901] game connected (1)
+[22:20:41] [13] mission KingOfTheMarble_Hunt: terrain 99x99 @ 0.5 u, walkable 1082 cells
+[22:20:41] [13] ready on 8901, mission KingOfTheMarble_Hunt
+[22:20:41] [14] [env:8902] waiting for the game
+[22:20:41] [14] [env:8902] game connected (1)
+[22:20:41] [14] mission KingOfTheMarble_Hunt: terrain 99x99 @ 0.5 u, walkable 1082 cells
+[22:20:41] [14] ready on 8902, mission KingOfTheMarble_Hunt
+[22:20:43] [15] [env:8903] waiting for the game
+[22:20:43] [15] [env:8903] game connected (1)
+[22:20:43] [15] mission KingOfTheMarble_Hunt: terrain 99x99 @ 0.5 u, walkable 1082 cells
+[22:20:43] [15] ready on 8903, mission KingOfTheMarble_Hunt
+[22:20:43] [1] fall without OOB flag: 4 decisions off the map at [ 5.5 16.5 -2.7] (time left 296s)
+[22:20:46] [7] fall without OOB flag: 4 decisions off the map at [-42.8   8.8  -3.1] (time left 291s)
+[22:20:47] [5] fall without OOB flag: 4 decisions off the map at [-18.8 -11.7  -3.8] (time left 288s)
+[22:20:50] [0] fall without OOB flag: 4 decisions off the map at [-24.3  13.2  -3.3] (time left 271s)
+[22:20:50] SEG n=100 last=arrived arrive=91% falls100=0.50 speed=5.7 timeout=0% rew=27.0 dps=736
+[22:20:50] [0] fall without OOB flag: 4 decisions off the map at [ 16.3 -13.4  -2.6] (time left 266s)
+[22:20:51] [2] fall without OOB flag: 4 decisions off the map at [-14.9 -13.3  -3.3] (time left 268s)
+[22:20:56] [7] fall without OOB flag: 4 decisions off the map at [-25.3 -14.8  -3.8] (time left 260s)
+[22:20:56] [2] fall without OOB flag: 4 decisions off the map at [24.8 16.  -2.5] (time left 259s)

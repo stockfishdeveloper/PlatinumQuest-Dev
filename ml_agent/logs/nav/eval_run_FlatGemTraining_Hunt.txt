@@ -1,0 +1,11 @@
+[env:8920] waiting for the game
+[env:8920] game connected (1)
+eval nav_latest.pth (update 3885) on FlatGemTraining_Hunt: 60 segments, seed 12345
+  10/60: {'segments': 10, 'arrive_pct': 100.0, 'falls_per_100u': 0.0, 'speed': 8.859320786670436, 'timeout_pct': 0.0}
+  20/60: {'segments': 20, 'arrive_pct': 100.0, 'falls_per_100u': 0.0, 'speed': 8.923531458256836, 'timeout_pct': 0.0}
+  30/60: {'segments': 30, 'arrive_pct': 100.0, 'falls_per_100u': 0.0, 'speed': 8.988872097356156, 'timeout_pct': 0.0}
+  40/60: {'segments': 40, 'arrive_pct': 100.0, 'falls_per_100u': 0.0, 'speed': 8.971664174776205, 'timeout_pct': 0.0}
+  50/60: {'segments': 50, 'arrive_pct': 100.0, 'falls_per_100u': 0.0, 'speed': 8.985430145791474, 'timeout_pct': 0.0}
+  60/60: {'segments': 60, 'arrive_pct': 100.0, 'falls_per_100u': 0.0, 'speed': 9.029048785187442, 'timeout_pct': 0.0}
+EVAL {"map": "FlatGemTraining_Hunt", "ckpt": "nav_latest.pth", "update": 3885, "n": 60, "seed": 12345, "arrival_pct": 100.0, "falls_per_100u": 0.0, "speed": 9.029048785187442, "timeout_pct": 0.0, "t_per_10u_s": 1.1513762980195898, "when": "2026-09-19T02:01:18.012138"}
+wrote C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\logs\nav\eval_FlatGemTraining_Hunt_nav_latest.json

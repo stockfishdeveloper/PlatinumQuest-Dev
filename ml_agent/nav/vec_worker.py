@@ -42,6 +42,15 @@ from nav.waypoints import SegmentManager, RoundOver                             
 FRAME_CHECK_N = 12
 FRAME_FLIP_COS = -0.3
 GAME_SPEED = 3
+# EMA weight on the commanded DIRECTION, applied before it reaches the game so the policy trains
+# against the smoothed dynamics. 1.0 = raw output. See HANDOFF section 5b: the raw policy flips
+# heading 39.5 deg per decision and sustains thrust for 0.06 s, which caps speed at ~4 u/s.
+ACTION_SMOOTH = float(os.environ.get('NAV_ACTION_SMOOTH', '1.0'))   # 1.0 = OFF. This low-passed
+                               # the commanded direction so the policy could not twitch. It bought
+                               # speed (3.51 -> 5.26 u/s) but it is a crutch: imposed from outside,
+                               # tuned per situation, and at 0.15 it was too sluggish to hook a gem.
+                               # Replaced by GEM_SPEED_BONUS in waypoints.py, which pays for
+                               # reaching gems sooner and leaves the technique to the policy.
 
 
 class InstanceWorker:
@@ -55,6 +64,7 @@ class InstanceWorker:
         self.goal = None; self.crop = None; self.vec = None; self.on_floor = True
         self.seg_steps = 0; self.fc_num = 0.0; self.fc_den = 0.0
         self.ep_reward = 0.0; self.seg_count = 0; self.frame_flips = 0; self.steps = 0
+        self.smooth_dir = None            # EMA state for the commanded direction
         self.t0 = time.perf_counter()
         self.prof = {'game': 0.0, 'obs': 0.0, 'begin': 0.0}   # wall seconds since the last reply
 
@@ -106,14 +116,29 @@ class InstanceWorker:
                 self.sync_map()
                 self.log(f'new round (game connection {self.env.connections})')
         self.obs_b.reset()
+        self.smooth_dir = None            # the marble was just teleported: old heading is meaningless
         self.seg_steps = 0; self.fc_num = self.fc_den = 0.0
-        self.crop, self.vec, self.on_floor = self.obs_b.build(self.env.msg.obs, self.goal)
+        self.crop, self.vec, self.on_floor = self.obs_b.build(self.env.msg.obs, self.goal, self.segs.next_goal())
         self.prof['begin'] += time.perf_counter() - tb
 
     # ------------------------------------------------------------------ one decision
     def step(self, a_game):
         vel = self.env.msg.obs[RAW_VEL]
         a = [float(v) for v in a_game]
+        if ACTION_SMOOTH < 1.0:
+            n = math.hypot(a[0], a[1])
+            if n > 1e-6:
+                ux, uy = a[0] / n, a[1] / n
+                # accumulate UNNORMALISED, normalise only the output: renormalising the state
+                # every step makes an exact 180 deg reversal a fixed point (opposite unit
+                # vectors cancel) and the heading could never flip.
+                if self.smooth_dir is None:
+                    self.smooth_dir = (ux, uy)
+                else:
+                    self.smooth_dir = ((1.0 - ACTION_SMOOTH) * self.smooth_dir[0] + ACTION_SMOOTH * ux,
+                                       (1.0 - ACTION_SMOOTH) * self.smooth_dir[1] + ACTION_SMOOTH * uy)
+                sn = math.hypot(*self.smooth_dir)
+                a[0], a[1] = (self.smooth_dir[0] / sn, self.smooth_dir[1] / sn) if sn > 1e-6 else (ux, uy)
         js = action_to_joystick(a[0], a[1], a[2], a[3], a[4], float(vel[0]), float(vel[1]))
         v_before = (float(vel[0]), float(vel[1])); prev_obs = self.env.msg.obs
         tg = time.perf_counter()
@@ -150,7 +175,37 @@ class InstanceWorker:
         airborne = not self.on_floor
         r, done, outcome = self.segs.step(msg.obs[:3], info['fell'], airborne, info['round_ended'], self.env.time_left_s(),
                                           braked=a[4] > 0.5, airborne_decisions=self.obs_b.airborne,
-                                          jumped=a[3] > 0.5)
+                                          jumped=a[3] > 0.5, vel=(float(msg.obs[3]), float(msg.obs[4])),
+                                          # elements 5-6 are the policy's MEAN direction when the
+                                          # trainer supplies it. Charging TURN_COST on the SAMPLE
+                                          # billed the policy for its own exploration noise (~17 deg
+                                          # of the ~34 deg at std 0.21), which it could only reduce
+                                          # by shrinking log_std -- the one thing the entropy
+                                          # controller exists to prevent. Falls back to the sample
+                                          # for eval paths that send a bare 5-vector.
+                                          cmd_dir=(a[5], a[6]) if len(a) > 6 else (a[0], a[1]))
+        if self.segs.take_respawn():
+            # fell mid-group: get back on the map, keep the same gems, carry on
+            try:
+                self.segs.recover(self.env)
+            except RoundOver:
+                self.segs.abandon()
+                if self.env.round_ended:
+                    self.env.wait_new_round()
+                else:
+                    self.env.request_info(); self.env.set_speed(GAME_SPEED)
+                self.sync_map()
+                self.ep_reward = 0.0
+                self.start_segment()
+                return self._reply(skip=True, truncate=0)
+            self.obs_b.reset()                    # the marble teleported: frame history is stale
+        mk = self.segs.take_mark()
+        if mk is not None:
+            self.env.mark(mk[0], mk[1], mk[2])      # show the next gem of the group
+            # ...and retarget the OBSERVATION onto it. Without this the segment manager chases the
+            # new gem (reward, arrival, prev_d) while the policy still sees the one it just
+            # collected, sitting at its own feet: it orbits a dead waypoint until the timeout.
+            self.goal = self.segs.seg.goal
         self.ep_reward += r
         o = msg.obs
         trace = (f'{self.seg_count},{self.env.time_left_s():.2f},{o[0]:.2f},{o[1]:.2f},{o[2]:.2f},{o[3]:.2f},{o[4]:.2f},{o[5]:.2f},'
@@ -164,7 +219,7 @@ class InstanceWorker:
             self.start_segment()
         else:
             tg = time.perf_counter()
-            self.crop, self.vec, self.on_floor = self.obs_b.build(self.env.msg.obs, self.goal)
+            self.crop, self.vec, self.on_floor = self.obs_b.build(self.env.msg.obs, self.goal, self.segs.next_goal())
             self.prof['obs'] += time.perf_counter() - tg
         return self._reply(skip=False, r=r, done=done, outcome=outcome, new_segment=bool(done), fell=info['fell'],
                            trace=trace, stats=stats, ep_reward=ep)
