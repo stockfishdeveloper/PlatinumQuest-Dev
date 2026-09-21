@@ -1,0 +1,25 @@
+[probe] listening on 8920; start the game with -aiport 8920
+[env:8920] waiting for the game
+[env:8920] game connected (1)
+[probe] connected on FlatGemTraining_Hunt
+[probe] start pose 0.0 0.0 0.6
+  two keys (diagonal)    step  64 ms:  52 samples, reached 20.33 u/s, fitted TARGET SPEED  21.77 u/s
+  two keys (diagonal)    step  32 ms: 106 samples, reached 20.44 u/s, fitted TARGET SPEED  21.82 u/s
+  two keys (diagonal)    step  16 ms: 214 samples, reached 20.48 u/s, fitted TARGET SPEED  21.86 u/s
+  one key (single axis)  step  64 ms:  52 samples, reached 14.43 u/s, fitted TARGET SPEED  15.00 u/s
+  one key (single axis)  step  32 ms: 106 samples, reached 14.50 u/s, fitted TARGET SPEED  15.00 u/s
+  one key (single axis)  step  16 ms: 214 samples, reached 14.52 u/s, fitted TARGET SPEED  15.00 u/s
+
+VERDICT
+  TARGET SPEED (where acceleration reaches zero), two keys held:
+     64 ms step:  21.77 u/s   (99.6% of the 16 ms result)
+     32 ms step:  21.82 u/s   (99.8% of the 16 ms result)
+     16 ms step:  21.86 u/s   (100.0% of the 16 ms result)
+  diagonal / single axis at each step size (1.414 = the two-key square is intact):
+     64 ms step: 1.451
+     32 ms step: 1.455
+     16 ms step: 1.457
+
+  => a 64 ms decision delivers the SAME thrust as four 16 ms ticks. The agent is not
+     losing speed to impulse-versus-hold; the hypothesis is refuted.
+wrote C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\logs\nav\step_size_probe.json

@@ -1,0 +1,21 @@
+[10:35:26] resumed C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\models\nav\nav_latest.pth: update 13040, steps 97,900,681, trained on FlatIslands_Hunt
+[10:35:26] 1 instance worker(s) on ports 8888..8888; training mode True (64 ms per decision); arrive radius 0.65 u; device cuda
+[10:35:41] [0] [env:8888] waiting for the game
+[10:35:41] [0] [env:8888] game connected (1)
+[10:35:41] [0] mission KingOfTheMarble_Hunt: terrain 99x99 @ 0.5 u, walkable 1488 cells
+[10:35:41] [0] ready on 8888, mission KingOfTheMarble_Hunt
+[10:36:49] NAV upd=13041 map=KingOfTheMarble_Hunt r=0.65 steps=97,901,706 segs=4 arrive=100% falls100=0.99 speed=5.3 gems=6.5 pickup=4.1 carry=0.7 turn=41.5 rew=124.2 pl=-0.026 vl=0.146 ent=0.28 entd=0.03 ec=0.0100 kl=0.069 clip=0.25 gn=7.52 ep=3 dstd=0.22 flips=0 upd_s=2.0 wall_s=68 inst=1 dps=15 prof=fwd:2,send:0,recv:63,handle:0,w_game:61,w_obs:1,w_begin:0
+[10:37:56] NAV upd=13042 map=KingOfTheMarble_Hunt r=0.65 steps=97,902,731 segs=9 arrive=100% falls100=0.42 speed=5.9 gems=6.0 pickup=4.5 carry=0.6 turn=39.2 rew=137.9 pl=-0.017 vl=0.098 ent=0.28 entd=0.02 ec=0.0100 kl=0.083 clip=0.26 gn=9.22 ep=3 dstd=0.22 flips=0 upd_s=1.3 wall_s=67 inst=1 dps=15 prof=fwd:2,send:0,recv:63,handle:0,w_game:61,w_obs:1,w_begin:0
+[10:38:28] [0] [env:8888] round over (time left 180s of 180s); waiting for the next round
+[10:38:28] [0] [env:8888] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[10:38:28] [0] new round (game connection 1); rtf 1.0
+[10:39:03] NAV upd=13043 map=KingOfTheMarble_Hunt r=0.65 steps=97,903,756 segs=15 arrive=100% falls100=0.27 speed=5.9 gems=5.6 pickup=4.5 carry=0.4 turn=40.1 rew=134.1 pl=-0.024 vl=0.086 ent=0.29 entd=0.02 ec=0.0100 kl=0.091 clip=0.27 gn=6.69 ep=3 dstd=0.22 flips=0 upd_s=1.3 wall_s=67 inst=1 dps=15 prof=fwd:2,send:0,recv:63,handle:0,w_game:61,w_obs:1,w_begin:0
+[10:40:09] NAV upd=13044 map=KingOfTheMarble_Hunt r=0.65 steps=97,904,781 segs=21 arrive=100% falls100=0.27 speed=5.9 gems=5.5 pickup=4.6 carry=0.4 turn=39.5 rew=131.0 pl=-0.028 vl=0.150 ent=0.29 entd=0.02 ec=0.0100 kl=0.051 clip=0.26 gn=6.86 ep=3 dstd=0.22 flips=0 upd_s=1.3 wall_s=67 inst=1 dps=15 prof=fwd:2,send:0,recv:63,handle:0,w_game:61,w_obs:1,w_begin:0
+[10:41:14] [0] [env:8888] round over (time left 180s of 180s); waiting for the next round
+[10:41:14] [0] [env:8888] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[10:41:14] [0] new round (game connection 1); rtf 1.1
+[10:41:16]   KL early stop at epoch 3
+[10:41:16] NAV upd=13045 map=KingOfTheMarble_Hunt r=0.65 steps=97,905,806 segs=27 arrive=100% falls100=0.27 speed=5.7 gems=5.4 pickup=4.6 carry=0.6 turn=39.4 rew=127.1 pl=-0.010 vl=0.192 ent=0.29 entd=0.03 ec=0.0100 kl=0.108 clip=0.29 gn=8.72 ep=3 dstd=0.22 flips=0 upd_s=1.2 wall_s=67 inst=1 dps=15 prof=fwd:2,send:0,recv:63,handle:0,w_game:61,w_obs:1,w_begin:0
+[10:42:23] NAV upd=13046 map=KingOfTheMarble_Hunt r=0.65 steps=97,906,831 segs=32 arrive=100% falls100=0.28 speed=5.7 gems=5.5 pickup=4.6 carry=0.7 turn=39.1 rew=128.9 pl=-0.013 vl=0.111 ent=0.29 entd=0.02 ec=0.0100 kl=0.070 clip=0.28 gn=8.54 ep=3 dstd=0.22 flips=0 upd_s=1.3 wall_s=67 inst=1 dps=15 prof=fwd:2,send:0,recv:63,handle:0,w_game:61,w_obs:1,w_begin:0
+[10:43:09] [0] fall without OOB flag: 4 decisions off the map at [-24.9  15.6  13.9] (time left 56s)
+[10:43:30] NAV upd=13047 map=KingOfTheMarble_Hunt r=0.65 steps=97,907,856 segs=36 arrive=97% falls100=0.32 speed=5.7 gems=5.5 pickup=4.8 carry=0.7 turn=38.7 rew=128.7 pl=-0.012 vl=0.149 ent=0.29 entd=0.02 ec=0.0100 kl=0.044 clip=0.28 gn=9.37 ep=3 dstd=0.22 flips=0 upd_s=1.3 wall_s=67 inst=1 dps=15 prof=fwd:2,send:0,recv:63,handle:0,w_game:61,w_obs:1,w_begin:0

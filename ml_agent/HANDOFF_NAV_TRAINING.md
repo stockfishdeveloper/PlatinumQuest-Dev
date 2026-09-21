@@ -1884,3 +1884,94 @@ ALSO ANSWERED: "does it just need more training?" Before 01:45 no, because falli
 (section 17). After the fix, six hours of ordinary training took KOTM falls100 0.73 -> 0.42 and it
 was still falling when training stopped. More training is now productive; the timing defect above
 is what caps it.
+
+## 19. The policy was not failing to optimise: the reward did not pay for speed (2026-09-21)
+
+After adding FlatGemTraining to the rotation (4 FlatGem / 3 KOTM / 1 Islands, 11:07) speed there
+went 7.30 -> 8.90 u/s in 50 minutes and then PLATEAUED for five consecutive checks, short of the
+0.95-human target of 9.42. An 8-round eval on that map gave 80.75 gems, speed between pickups
+8.54 u/s against the human's 9.92 recorded on the same map that morning
+(`demos/demo_20260921_105710.npz`, 102 pickups, frame check 0.885).
+
+WHAT THE APPROACH PROFILE SHOWED (`plot_approach_profile.py`, 331 agent legs vs 101 human legs,
+median speed binned by distance-still-to-travel):
+
+    dist to gem   human   agent     gap
+      20 u         9.72   10.57   agent faster
+      15 u         8.48    9.08   agent faster
+      12.5 u      12.13   10.23   human +1.91
+       8.5 u      14.41   10.29   human +4.12
+       6.5 u      14.23   10.12   human +4.11
+       4.5 u      13.39    9.72   human +3.67
+       2.5 u      11.36    9.35   human +2.01
+       0.5 u       8.72    9.09   agent faster
+
+The agent's profile is FLAT (10.9 far out, 10.3 mid, 9.1 at the gem). The human's is an arc: they
+sprint to 14.4 in the middle of a leg and brake down to 8.7 at contact, braking on 23 % of ticks
+against the agent's 0.1 %. The loss is entirely mid-leg, 4-13 u out.
+
+RULED OUT, both measured rather than assumed:
+* "the two-key diagonal is broken": applied key-vector magnitude median 1.409, p90 1.415, at the
+  1.414 corner on 77 % of active decisions, identical to the human's 77 % two-key share. Agent max
+  speed 16.55 u/s. The human/agent p99 ratio is 1.275, not the 1.414 a lost axis would give.
+* "heading jitter is costing speed": command swing CORRELATES POSITIVELY with speed (6.92 u/s at
+  0-5 deg of swing, 10.58 at 60-120), because the bearing to a gem changes faster when moving
+  faster. Not a cause.
+
+THE ACTUAL CAUSE, arithmetic on the reward for the median 21.4 u approach:
+
+    98 % of a leg's reward is SPEED-INDEPENDENT.
+    PROGRESS pays 1.0 per unit closed, so it totals 21.4 however long the leg takes; ARRIVE is a
+    flat 10. Only ~0.7 of 32.1 responds to speed at all.
+    Going 19 % faster (8.43 -> 10.0) is worth +1.14 = +3.5 %.
+    One overshoot (3 u past the gem and back) costs ~2.15.
+    => one overshoot every 1.9 legs erases the entire benefit of going faster.
+
+The cautious cruise is the higher-expected-value policy under this reward, and PPO converged to it
+correctly. The human's sprint-and-brake is better in GEMS PER MINUTE, which is what we actually
+want, but roughly break-even under what we were optimising.
+
+THE FIX (12:47), a rebalance rather than a new term, and explicitly NOT copying the human's curve
+(that curve is a property of this map's geometry; pricing time correctly lets the policy find
+whichever curve is optimal on any map):
+
+    PROGRESS  1.0  -> 0.3      keeps the scaffold that makes the task learnable, removes its 66 %
+                               dominance of the signal
+    TIME      0.05 -> 0.20     the real opportunity cost of a decision (~16 gems/min at ~13 reward
+                               a gem is ~0.2 per decision)
+
+Effect on the same leg: +3.5 % becomes +18.5 % for the same 19 % speed gain, and 14 u/s is worth
++47 % against the plateau instead of +9 %. A slow 6 u/s leg stays net positive, so the policy is
+never paid to abandon one.
+
+NOTE ON THE 2026-09-19 FAILURE: TIME was raised to 0.12 then and made KOTM speed WORSE, concluding
+it was "a weak lever on pace". That was correct at the time and does not apply now: with PROGRESS
+at 1.0 a uniform per-decision cost shifted the value baseline without changing the ordering of fast
+and slow legs. The lever only bites once the speed-independent bulk is cut, which is why the two
+constants move together as one change.
+
+Snapshot before: `nav_before_rewardrate_1247.pth`.
+
+RESULT: REVERTED at 13:26 after ~100 updates. FlatGem speed moved 8.90 -> 9.00 (+0.1), while
+FlatIslands broke: arrivals 97 -> 84 %, falls100 1.08 -> 1.42, a monotone slide over 13 minutes
+while KOTM held flat at 96 %. Checkpoint restored from the snapshot, constants back to
+PROGRESS 1.0 / TIME 0.05.
+
+WHY IT BROKE ISLANDS, and the constraint any retry must respect: TIME is charged per DECISION
+including airborne ones, and crossing a gap is unavoidably airborne. At 0.20 a jump costs 4x what
+it did, on top of JUMP_TAKEOFF 0.4 and AIR 0.1, so the policy stopped jumping and started missing
+gaps. Islands is the only map with meaningful jump edges (1708 against KOTM's 228), so it took the
+damage alone. A correct version of this change must exempt or discount airborne decisions from the
+time cost, otherwise pricing time taxes gap-crossing out of existence.
+
+WHAT SURVIVES: the diagnosis in this section is unaffected and still needs an answer. 98 % of a
+leg's reward is speed-independent, and going 19 % faster is worth +3.5 % against an overshoot cost
+of 2x that. The measurement was right; this particular fix was not.
+
+ALSO RULED OUT while investigating the speed gap (both measured, not assumed):
+* powerups: the human used one in 4.8 min, 0.7 % of ticks; their speed excluding it is 9.98
+  against 10.00 overall.
+* command persistence as the mechanism: the human holds a direction within 30 deg for a median of
+  4 decisions against the agent's 1, but at MATCHED persistence the agent is still ~2.7 u/s slower
+  in every bucket (1-2 held: 12.98 vs 10.04; 9+ held: 12.72 vs 10.28), and likewise at matched
+  force-vs-travel alignment. Neither explains the gap; it remains open.

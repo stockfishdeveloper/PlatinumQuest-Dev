@@ -8,8 +8,14 @@
 #   .\start_training.ps1
 #   .\start_training.ps1 -Missions "FlatIslands_Hunt,KingOfTheMarble_Hunt" -Split "4,4"
 param(
-    [string]$Missions = "FlatIslands_Hunt,KingOfTheMarble_Hunt",
-    [string]$Split = "4,4",
+    [string]$Missions = "FlatGemTraining_Hunt,KingOfTheMarble_Hunt,FlatIslands_Hunt",
+    [string]$Split = "4,3,1",      # 2026-09-21: FlatGemTraining added as the SPEED map (flat, no
+                                   # holes, a recorded human baseline of 9.92 u/s between pickups
+                                   # and 2.80 s/gem to aim at). KOTM keeps a strong share because
+                                   # it is the map we are scored on. One Islands instance is kept
+                                   # purely so gap-crossing does not decay: it is the only map with
+                                   # a meaningful number of jump edges (1708 vs KOTM's 228).
+                                   # Block-assigned: inst 0-3 FlatGem, 4-6 KOTM, 7 Islands.
     [int]$Instances = 8,
     [int]$Port0 = 8888
 )

@@ -29,7 +29,7 @@ import numpy as np
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from terrain_obs import TerrainMap                                                  # noqa: E402
 from nav.protocol import RAW_VEL                                                    # noqa: E402
-from nav.env import HuntEnv                                                         # noqa: E402
+from nav.env import HuntEnv, OBS_MS                                                         # noqa: E402
 from nav.terrain import TerrainGrid                                                 # noqa: E402
 from nav.obs import ObsBuilder                                                      # noqa: E402
 from nav.joystick import action_to_joystick                                         # noqa: E402
@@ -41,7 +41,11 @@ from nav.waypoints import SegmentManager, RoundOver                             
 # stale observations after an update, is gone in lockstep; this stays as a safety net.)
 FRAME_CHECK_N = 12
 FRAME_FLIP_COS = -0.3
-GAME_SPEED = 3
+GAME_SPEED = int(os.environ.get('NAV_SPEED', '3'))
+TRAIN_WATCH = os.environ.get('NAV_TRAIN_WATCH', '0') == '1'   # pace every decision to real
+                              # time so a human can watch TRAINING (not the eval). Lockstep
+                              # means the sim advances as fast as we reply, so without this
+                              # the marble is a blur whatever the speed setting says.
 # EMA weight on the commanded DIRECTION, applied before it reaches the game so the policy trains
 # against the smoothed dynamics. 1.0 = raw output. See HANDOFF section 5b: the raw policy flips
 # heading 39.5 deg per decision and sustains thrust for 0.06 s, which caps speed at ~4 u/s.
@@ -142,6 +146,17 @@ class InstanceWorker:
         js = action_to_joystick(a[0], a[1], a[2], a[3], a[4], float(vel[0]), float(vel[1]))
         v_before = (float(vel[0]), float(vel[1])); prev_obs = self.env.msg.obs
         tg = time.perf_counter()
+        if TRAIN_WATCH:
+            # hold each decision to OBS_MS of wall clock, the same pacing real_run uses in WATCH
+            nt = getattr(self, '_next_tick', None)
+            if nt is None:
+                nt = self._next_tick = time.perf_counter()
+            self._next_tick = nt + OBS_MS / 1000.0
+            slack = self._next_tick - time.perf_counter()
+            if slack > 0:
+                time.sleep(slack)
+            else:
+                self._next_tick = time.perf_counter()
         msg, info = self.env.step(js)
         self.prof['game'] += time.perf_counter() - tg
         rolling = self.on_floor and abs(float(prev_obs[2]) - self.terrain.floor_z(float(prev_obs[0]), float(prev_obs[1]), float(prev_obs[2]))) < 0.3

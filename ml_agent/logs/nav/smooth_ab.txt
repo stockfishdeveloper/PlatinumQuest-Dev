@@ -1,0 +1,13 @@
+
+NAV_SMOOTH=1
+    round 1: {'round': 1, 'gems': 82, 'points': 82.0, 'minutes': 5.02, 'decisions': 4706, 'gems_per_min': 16.3, 'points_per_min': 16.3, 'falls': 0, 'falls_per_100u': 0.0, 'travelled_u': 2637.8, 'speed': 8.76, 'blind_pct': 26.2, 'snapped_pct': 0.0, 'pathed_pct': 0.0, 'smooth': 1.0}
+    round 2: {'round': 2, 'gems': 78, 'points': 78.0, 'minutes': 5.02, 'decisions': 4708, 'gems_per_min': 15.5, 'points_per_min': 15.5, 'falls': 0, 'falls_per_100u': 0.0, 'travelled_u': 2676.4, 'speed': 8.88, 'blind_pct': 26.6, 'snapped_pct': 0.0, 'pathed_pct': 0.0, 'smooth': 1.0}
+    round 3: {'round': 3, 'gems': 76, 'points': 76.0, 'minutes': 5.02, 'decisions': 4708, 'gems_per_min': 15.1, 'points_per_min': 15.1, 'falls': 0, 'falls_per_100u': 0.0, 'travelled_u': 2547.6, 'speed': 8.46, 'blind_pct': 27.0, 'snapped_pct': 0.0, 'pathed_pct': 0.0, 'smooth': 1.0}
+NAV_SMOOTH=0.5
+    round 1: {'round': 1, 'gems': 82, 'points': 82.0, 'minutes': 5.02, 'decisions': 4706, 'gems_per_min': 16.3, 'points_per_min': 16.3, 'falls': 0, 'falls_per_100u': 0.0, 'travelled_u': 2545.2, 'speed': 8.45, 'blind_pct': 26.9, 'snapped_pct': 0.0, 'pathed_pct': 0.0, 'smooth': 0.5}
+    round 2: {'round': 2, 'gems': 77, 'points': 77.0, 'minutes': 5.02, 'decisions': 4708, 'gems_per_min': 15.3, 'points_per_min': 15.3, 'falls': 0, 'falls_per_100u': 0.0, 'travelled_u': 2524.8, 'speed': 8.38, 'blind_pct': 28.0, 'snapped_pct': 0.0, 'pathed_pct': 0.0, 'smooth': 0.5}
+    round 3: {'round': 3, 'gems': 80, 'points': 80.0, 'minutes': 5.02, 'decisions': 4708, 'gems_per_min': 15.9, 'points_per_min': 15.9, 'falls': 0, 'falls_per_100u': 0.0, 'travelled_u': 2575.0, 'speed': 8.55, 'blind_pct': 28.5, 'snapped_pct': 0.0, 'pathed_pct': 0.0, 'smooth': 0.5}
+NAV_SMOOTH=0.3
+    round 1: {'round': 1, 'gems': 65, 'points': 65.0, 'minutes': 5.02, 'decisions': 4706, 'gems_per_min': 12.9, 'points_per_min': 12.9, 'falls': 0, 'falls_per_100u': 0.0, 'travelled_u': 2650.6, 'speed': 8.8, 'blind_pct': 24.1, 'snapped_pct': 0.0, 'pathed_pct': 0.0, 'smooth': 0.3}
+    round 2: {'round': 2, 'gems': 69, 'points': 69.0, 'minutes': 5.02, 'decisions': 4708, 'gems_per_min': 13.7, 'points_per_min': 13.7, 'falls': 0, 'falls_per_100u': 0.0, 'travelled_u': 2639.1, 'speed': 8.76, 'blind_pct': 22.7, 'snapped_pct': 0.0, 'pathed_pct': 0.0, 'smooth': 0.3}
+    round 3: {'round': 3, 'gems': 68, 'points': 68.0, 'minutes': 5.02, 'decisions': 4708, 'gems_per_min': 13.5, 'points_per_min': 13.5, 'falls': 0, 'falls_per_100u': 0.0, 'travelled_u': 2675.7, 'speed': 8.88, 'blind_pct': 25.7, 'snapped_pct': 0.0, 'pathed_pct': 0.0, 'smooth': 0.3}

@@ -30,7 +30,9 @@ from nav.waypoints import (ARRIVE_MIN_SEGMENTS, ARRIVE_TIGHTEN_AT, ARRIVE_STEP, 
                            ARRIVE_R_FINAL, ARRIVE_DZ_FINAL)
 from nav.ppo_recurrent import Rollout, ppo_update, LR                              # noqa: E402
 
-N_INSTANCES = 8                # game instances (ports PORT0 .. PORT0+N-1); run_game_loop.ps1 -Instances must match
+N_INSTANCES = int(os.environ.get('NAV_INSTANCES', '8'))   # game instances (ports PORT0 ..
+                               # PORT0+N-1); run_game_loop.ps1 -Instances must match. Set to 1
+                               # with NAV_TRAIN_WATCH=1 and NAV_NO_SAVE=1 to WATCH training.
 PORT0 = 8888
 ROLLOUT_PER_INSTANCE = 1024    # 8 x 1024 = 8192 decisions per update, within 2 % of the previous
                                # 8 x 1024 = 8192, so the PPO batch, the ~250 sequences per update and
@@ -41,7 +43,9 @@ ROLLOUT_PER_INSTANCE = 1024    # 8 x 1024 = 8192 decisions per update, within 2 
                                # ~1.9 GB. 16 instances left 329 MiB free, the update spilled into
                                # shared system memory: >8 min instead of 3 s. 12 left 1.1 GB and the
                                # update still cost 15 s, wiping out the faster collection (2026-09-18).
-PIPELINE_GROUPS = 2            # workers are stepped in this many interleaved groups so the policy
+NO_SAVE = os.environ.get('NAV_NO_SAVE', '0') == '1'   # write NO checkpoints: a watch run must
+                               # not advance or overwrite nav_latest.pth
+PIPELINE_GROUPS = 2 if N_INSTANCES > 1 else 1   # workers are stepped in this many interleaved groups so the policy
                                # forward for one group overlaps the other group's game stepping
                                # (lockstep means a game holds until its reply arrives, so without
                                # this the games idle through every forward and the trainer idles
@@ -337,7 +341,9 @@ def main():
                 for k in prof:
                     prof[k] = 0.0
                 t_last = time.perf_counter(); steps_last = steps
-                if update % CHECKPOINT_EVERY == 0:
+                if NO_SAVE:
+                    pass                      # watch run: read-only, never touch nav_latest.pth
+                elif update % CHECKPOINT_EVERY == 0:
                     pth = save_ckpt(model, opt, update, steps, s, missions[0] if missions else '', arrive_r=arrive['r'], arrive_dz=arrive['dz'])
                     log(f'saved {pth}')
                 elif update % LATEST_EVERY == 0:

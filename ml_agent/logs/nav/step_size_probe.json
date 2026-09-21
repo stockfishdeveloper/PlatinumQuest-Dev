@@ -1,0 +1,56 @@
+[
+ {
+  "label": "two keys (diagonal)",
+  "step_ms": 64,
+  "n": 52,
+  "reached": 20.33426968500236,
+  "target": 21.765563578029166,
+  "slope": -0.8511034597025434,
+  "intercept": 18.524746463636294
+ },
+ {
+  "label": "two keys (diagonal)",
+  "step_ms": 32,
+  "n": 106,
+  "reached": 20.440335432440513,
+  "target": 21.823295628608253,
+  "slope": -0.8492122725290522,
+  "intercept": 18.532610474843747
+ },
+ {
+  "label": "two keys (diagonal)",
+  "step_ms": 16,
+  "n": 214,
+  "reached": 20.476681525897156,
+  "target": 21.856827835108525,
+  "slope": -0.8478045068014186,
+  "intercept": 18.530317142987702
+ },
+ {
+  "label": "one key (single axis)",
+  "step_ms": 64,
+  "n": 52,
+  "reached": 14.432999610900879,
+  "target": 14.999994795295393,
+  "slope": -0.9724441648293812,
+  "intercept": 14.586657411156095
+ },
+ {
+  "label": "one key (single axis)",
+  "step_ms": 32,
+  "n": 106,
+  "reached": 14.501399993896484,
+  "target": 15.000019223258972,
+  "slope": -0.9880624178505942,
+  "intercept": 14.820955261538652
+ },
+ {
+  "label": "one key (single axis)",
+  "step_ms": 16,
+  "n": 214,
+  "reached": 14.524900436401367,
+  "target": 14.999974998250764,
+  "slope": -0.996003869375433,
+  "intercept": 14.940033138792513
+ }
+]

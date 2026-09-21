@@ -21,7 +21,27 @@ import numpy as np
 from nav.protocol import NOOP_ACTION
 from nav.terrain import JUMP_GAP, JUMP_DROP, JUMP_RISE   # edge_time_cost's jump exemption
 
-PROGRESS = 1.0
+PROGRESS = 1.0                 # REVERTED to 1.0 at 13:26 on 2026-09-21 after 100 updates at 0.3.
+                               # The rebalance (with TIME 0.20) bought only +0.1 u/s on FlatGem and
+                               # broke FlatIslands: arrivals 97 -> 84 %, falls 1.08 -> 1.42, a
+                               # monotone slide. Mechanism: TIME at 0.20 prices AIRBORNE decisions
+                               # 4x higher, and crossing a gap is unavoidably airborne, so the
+                               # policy stopped jumping and started missing gaps. Any future attempt
+                               # to price time properly must exempt or discount airborne decisions,
+                               # or it will tax gap-crossing out of existence.
+                               # (the diagnosis that motivated it still stands, see HANDOFF 19:
+                               # 98 % of a leg's reward is speed-independent. The fix was wrong,
+                               # the measurement was not.)
+                               # (superseded) 1.0 -> 0.3 on 2026-09-21. PROGRESS pays per unit of path closed, so
+                               # over a leg it totals the LEG LENGTH no matter how long the marble
+                               # takes: it is completely speed-independent. Measured on 331 real
+                               # approaches (median 21.4 u), it was 21.4 of a 32.1 reward, and with
+                               # ARRIVE that made 98 % of a leg speed-independent. The policy
+                               # therefore converged to a cautious cruise, correctly: going 19 %
+                               # faster was worth +3.5 % while one overshoot cost the equivalent of
+                               # two legs' worth of that gain. Cut so the time-sensitive terms can
+                               # actually drive pace. Kept non-zero because this is the scaffold
+                               # that makes the task learnable from scratch.
 ARRIVE = 10.0
 GEM_SPEED_BONUS = 8.0          # paid ON COLLECTION, scaled by how quickly THIS gem was reached:
                                # GEM_SPEED_BONUS * max(0, 1 - gem_decisions / GEM_SPEED_REF).
@@ -122,7 +142,20 @@ FALL = 25.0                    # 10 -> 25 at 01:12 on 2026-09-21. Measured on th
                                # the brake share passes 20 % of decisions.
                                # (older note) was 20: twice the arrival bonus made the policy freeze and brake 73 % of
                                # the time on King of the Marble rather than move (2026-09-17)
-TIME = 0.05                    # 0.12 reverted 2026-09-19 evening: raising it to push speed did the
+TIME = 0.05                    # REVERTED to 0.05 at 13:26 on 2026-09-21; see the PROGRESS note.
+                               # (superseded) 0.05 -> 0.20 on 2026-09-21, together with PROGRESS 1.0 -> 0.3.
+                               # This is the OPPORTUNITY COST of a decision: in a real round a
+                               # decision spent is a fraction of a gem forgone, ~16 gems/min at ~13
+                               # reward a gem = ~0.2 per decision. NOTE the 2026-09-19 failure
+                               # recorded below: 0.12 made KOTM speed WORSE. That reading was right
+                               # then and does not apply now. With PROGRESS at 1.0 a uniform
+                               # per-decision cost just shifted the value baseline without changing
+                               # the ordering of fast and slow legs; the lever only bites once the
+                               # speed-independent bulk is cut, which is why both constants move
+                               # together. Effect on the median 21.4 u leg: the reward for going
+                               # 19 % faster rises from +3.5 % to +18 %, and 14 u/s is worth +47 %
+                               # against the plateau the policy had settled on.
+                               # (superseded note) 0.12 reverted 2026-09-19 evening: raising it to push speed did the
                                # OPPOSITE on KOTM (speed 4.40 -> 4.11, gems/grp 5.44 -> 5.10 over 49
                                # updates, then flat). A constant per-decision cost mostly shifts the
                                # value baseline; it is a weak lever on pace. Do not simply retry it.
@@ -542,6 +575,23 @@ class SegmentManager:
                 progress = max(-PROGRESS_CLIP, min(PROGRESS_CLIP, s.fall_mark - d))
                 s.fall_mark = None
         else:
+            # POTENTIAL-BASED SHAPING: TRIED AND REVERTED 2026-09-21 15:00, 204 updates.
+            # The theory is sound: `prev_d - d` is not potential-based, and the difference from the
+            # policy-invariant form (Ng/Harada/Russell 1999) is -(1-gamma)*d, a standing penalty of
+            # 0.01 per unit of CURRENT distance, ~4.3 over a 21 u leg against ARRIVE 10. A penalty
+            # for being far is minimised by closing distance greedily, i.e. PURE PURSUIT, which is
+            # the measured defect (agent turns on ~50 % of decisions above 10 u/s, human 34-42 %).
+            # WHAT HAPPENED with progress = prev_d - GAMMA*d:
+            #   FlatGem   100 % arrive, 0 falls, speed 8.90 -> 9.10   (+0.10, its best)
+            #   KOTM      arrive 96 -> 92 %, speed 5.90 -> 5.50       (the map we are SCORED on)
+            #   Islands   arrive 97 -> 91 %, falls 1.29 -> 1.05
+            #   turning share above 10 u/s: 54 % -> 46-47 % in the first 20 updates, then FLAT
+            #   for nine consecutive checks over 200 updates.
+            # The indicator stepped once and stopped, which reads as the reward changing which
+            # states get visited rather than the policy relearning a straighter line. The gain was
+            # +0.1 u/s on the flat map and the cost was 8 points of arrivals and 0.8 u/s on KOTM.
+            # If retried, it needs a way to stop the shaping change from degrading the maps it was
+            # not aimed at, and a reason to expect the indicator to keep moving rather than plateau.
             progress = max(-PROGRESS_CLIP, min(PROGRESS_CLIP, s.prev_d - d))
         s.prev_d = d
         air_cost = AIR if (airborne and airborne_decisions > AIR_GRACE) else 0.0

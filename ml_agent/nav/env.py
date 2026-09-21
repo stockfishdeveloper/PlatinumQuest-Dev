@@ -36,7 +36,17 @@ OBS_MS = int(os.environ.get('NAV_OBS_MS', '64'))   # ms of sim advanced per deci
                               # TIMEOUT_PER_GEM and the airborne counters are all denominated
                               # in DECISIONS, so changing this for TRAINING requires rescaling
                               # them all. For eval only it is safe.
-RENDER_EVERY = 100
+VIEW_YAW = os.environ.get('NAV_VIEWYAW', '0')   # FIXED VIEW YAW, radians, or 'off' to let the
+                              # view follow the marble's movement camera. Applies to TRAINING as
+                              # well as eval (2026-09-21): the movement camera MUST rotate, that is
+                              # where the sqrt(2) two-key force comes from, but the engine keeps a
+                              # separate render-only yaw (Marble::setViewYaw on the ai-training-mode
+                              # branch), so the picture can stay still while the force square spins.
+                              # Render-only by construction and measured physics-neutral: per-bucket
+                              # acceleration within 1-2 % of an unfixed run (HANDOFF section 14).
+RENDER_EVERY = int(os.environ.get('NAV_RENDER_EVERY', '100'))   # 1 = draw every frame, for
+                              # watching training at 1x (NAV_TRAIN_WATCH). 100 is the training
+                              # default: the renderer is pure overhead when nobody is looking.
 NEW_ROUND_MIN_LEFT_S = 200.0     # fallback when the round length is unknown (5-min rounds)
 NEW_ROUND_FRACTION = 0.8         # clock >= this fraction of the round length = the next round has started
 
@@ -226,6 +236,7 @@ class HuntEnv:
             self.control(f'FIXEDSTEP {OBS_MS}')
             self.control('LOCKSTEP 1')
             self.control(f'RENDEREVERY {RENDER_EVERY}')
+            self.control(f'VIEWYAW {VIEW_YAW}')     # stable picture, rotating force square
 
     def mark(self, x, y, z):
         """Show the current waypoint in the game (a small start pad); cosmetic."""
