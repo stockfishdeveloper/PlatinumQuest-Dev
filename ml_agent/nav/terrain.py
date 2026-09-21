@@ -65,7 +65,15 @@ CROP_SHAPE = (2 * CROP_CHANNELS, CROP_CELLS, CROP_CELLS)
 WALK_RES = 1.0
 MAX_SLOPE = 0.6       # rise/run above which a cell is not walkable (31 deg); a marble teleported onto a
                       # 45-deg edge bevel slid straight off (King of the Marble, 2026-09-17)
-EDGE_COST = 2.0       # path cost multiplier for cells bordering a drop
+EDGE_COST = 2.0       # path cost multiplier for cells bordering a drop. NOTE (2026-09-21): on a
+                      # map with ~3 u walkways this ring is every cell, so it is close to a
+                      # constant and gives the policy no early "turn here" direction. See the
+                      # rejected inflation note below and HANDOFF section 18.
+# TRIED AND REJECTED 2026-09-21: graded costmap inflation (cost x3 at a lip decaying to x1 over
+# 3 u) to make the routing field turn the marble early. DEGENERATE ON THIS GEOMETRY: KOTM's
+# walkways are ~3 u wide, so distance-to-nearest-lip is 0.00 for essentially every walkable cell.
+# Inflation multiplied every edge by the same factor and changed no gradient DIRECTION at all.
+# self.edge_dist is kept below because it is a useful measurement, just not a useful cost.
 DROP_EDGE = 2.0       # a neighbour more than this far below counts as a drop (edge)
 JUMP_GAP = 4.0        # gaps up to this wide (u) get a "jump edge" in the walk graph
 JUMP_DROP = 6.0       # landing may be this far below the take-off cell ...
@@ -197,6 +205,14 @@ class TerrainGrid(TerrainMap):
         self.walk_top = filled
         self.walkable = present & (slope < MAX_SLOPE)
         self.edge = edge & self.walkable
+        # Graded inflation: distance from every cell to the nearest lip, turned into a routing
+        # cost multiplier. distance_transform_edt measures distance to the nearest ZERO, so feed
+        # it the complement of the lip mask. Non-walkable cells get 0 distance too, which makes
+        # the band reach round the far side of a thin wall as well -- harmless, it is all void.
+        from scipy.ndimage import distance_transform_edt
+        lip = self.edge | (~self.walkable)
+        dist_u = distance_transform_edt(~lip) * self.walk_res
+        self.edge_dist = dist_u.astype(np.float32)
         # interior: walkable, not at a drop, and every 8-neighbour walkable too (starts and
         # goals go here, so a marble is never placed on a bevel or half a cell from the void)
         padw = np.pad(self.walkable, 1, constant_values=False)

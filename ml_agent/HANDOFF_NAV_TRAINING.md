@@ -1,4 +1,50 @@
-# Navigator training: handoff (2026-09-18, midday)
+# Navigator training: handoff
+
+> ## CURRENT STATE (2026-09-21 10:05) -- READ THIS BEFORE ANYTHING ELSE
+>
+> Everything below section 2 is a dated running log. Where it disagrees with this block, this
+> block wins. Sections are appended newest-last; 14-18 are today's.
+>
+> **Verified score: 93.5 points on KOTM**, 8 deterministic rounds (92,101,98,87,90,84,95,101) on
+> `models/nav/nav_eval_edge1v2_0955.pth`, update 13,037. Human 143.5. Previous: 90.8.
+>
+> | metric | agent | human | note |
+> |---|---|---|---|
+> | points / round | 93.5 | 143.5 | 3.0 min rounds |
+> | points / min | 30.9 | 47.3 | |
+> | gems / min | 24.5 | 37.5 | **the live gap** |
+> | speed | 6.31 u/s | 8.05 | |
+> | speed at pickup | 4.90 u/s | 6.3+ | **the live mechanism** |
+> | distance per gem | 11.3 u | 12.9 u | already better than human |
+> | falls / 100 u | 0.37 | 0.046 | no longer binding |
+>
+> **FALLS ARE NOT THE BOTTLENECK ANY MORE.** They were 0.585 on 2026-09-20 and section 3c is
+> written against that. The fall-credit bug (section 17) was the cause; fixing it took KOTM
+> training falls 0.73 -> 0.40, where the curve flattened, and the 8-round eval flattened with it
+> (90.8 -> 93.5, t = 0.95, not significant). Chasing falls further is not where the points are.
+>
+> **THE LIVE PROBLEM IS PACE.** The marble travels less distance per gem than a human and still
+> takes longer, because it decelerates to 4.9 u/s at every pickup. See section 16's time budget
+> and section 18's mechanism.
+>
+> **Current config** (do not re-derive from older sections): `EDGE_K = 1.0`, `FALL = 25.0`,
+> `TIME = 0.05`, `BRAKE = 0.05`, `BRAKE_SUPPRESS = 1.0`, `JUMP_DAMP = 3.0`, `BRAKE_ENABLED = True`,
+> `THROTTLE_FLOOR = 0.90`, `CARRY = 0.0`, `TURN_COST = 0.0`, adaptive entropy in band 0.2-0.8
+> (`ENTROPY_COEF` is a starting value only, the controller owns it), `DIRECT_GEM = 1`
+> (real runs steer at the exact gem; no routing waypoints, no markers off a gem).
+>
+> **Standing rules set by the user**
+> * Waypoints may ONLY ever appear inside a real gem. No routing corner points, no marker on
+>   empty ground (2026-09-20 23:50).
+> * READY AT GO: every run that rolls the marble must be able to move the instant the round says
+>   GO. Python binds its socket before any model/CUDA/terrain work, and every launcher starts
+>   Python and waits for the port before launching the game (`nav_ready.ps1`, `start_training.ps1`).
+> * Judge only by 8-round `nav/real_run.py` evaluations. Training curves have misled repeatedly.
+> * The engine rule was lifted for the render-only view yaw, which is built and deployed.
+>
+> **Start training with `.\start_training.ps1`** (trainer first, ports bound, then the games).
+> **Evaluate with `.\eval_cycle.ps1 -Tag <name> -Rounds 8`** (stops training, evals, restarts).
+
 
 Read this first if you are picking up the navigator work. It says what exists, how to run it,
 what the numbers are, what is known to be wrong, and what comes next. Design background is in
@@ -164,6 +210,12 @@ from the 50-59 % overnight plateau to 64 %. Checkpoints `nav_pre_jumpcost.pth` a
 `nav_pre_jumpdamp.pth` are the revert points for the two changes.
 
 ## 3c. Human baseline (the yardstick) -- `demos/demo_20260914_214854.npz`
+
+> **STALE AS A TARGET (2026-09-21).** The human columns below are still correct; the AGENT
+> columns are from 2026-09-20 and the fall gap they describe has largely been closed (0.585 ->
+> 0.37 per 100 u). Do not open a "close the fall gap" work plan from this section. See the
+> CURRENT STATE block at the top: the live gap is pace, not falls.
+
 
 The user played King of the Marble for 18.2 min / 6 rounds using only direction and jump
 (recorded 2026-09-14 with `record_demos.py`; 68,208 ticks at 16 ms, 682 pickups, 4 OOBs).
@@ -1788,3 +1840,47 @@ Snapshot before: nav_before_fallmark_0133.pth (update ~12050). Edge v2 and FALL 
 
 Real-round fall anatomy for reference (63 falls): fall flag to rolling again median 3.3 s, then a
 median 16.9 u back to the group; 27 % of all round time was inside legs containing a fall.
+
+## 18. "It drives straight into the centre hole": the reward pays it to (2026-09-21)
+
+USER, after watching at 1x: "the marble simply doesn't know the centre hole exists, it drove
+straight through and fell without trying to route around it."
+
+IT CAN SEE IT. The centre hole is a 2x2 u void at (-25.2, 15.0), NaN in the height stack and
+non-walkable in the walk grid. Built the actual fine crop the policy reads at (-29, 15) and
+(-27, 15): the hole is a 4x4 block of empty cells dead ahead, 446 and 550 void cells of 1024.
+Perception is not the problem.
+
+THE ROUTE IS RIGHT TOO. The Dijkstra field goes around, north via y~16.5, and prices the crossing
+at 8.90 u against 7.00 u for the detour.
+
+THE SIGNAL ARRIVES TOO LATE. PROGRESS is paid on geodesic distance, and a shortest-path field is
+built for a point mass that turns instantly. Driving due east at the hole:
+
+    x = -30.2  d = 18.14  PROGRESS +1.00
+    x = -29.2  d = 17.14  PROGRESS +1.00
+    x = -28.2  d = 16.14  PROGRESS +1.00
+    x = -27.2  d = 14.90  PROGRESS +1.24      <- the lip is ~0.5 u further on
+
+Full reward up to the lip, then an instantaneous 90 degree turn is required. At 6-7 u/s with
+~13 u/s^2 the marble needs ~3 u to turn 90 degrees. Driving in is locally optimal, so training
+alone converges to it. The centre hole is 20 % of KOTM falls in trace_20260921_074134 (9 of 44);
+the quadrant holes are the other 80 % and fail identically.
+
+TRIED AND REJECTED: costmap inflation. Give every walkable cell a routing multiplier of
+EDGE_INFLATE_K at a lip decaying to 1.0 over EDGE_INFLATE_U = 3 u, so the field bends away early.
+DEGENERATE ON THIS GEOMETRY: KOTM's walkways are ~3 u wide, so distance-to-nearest-lip is 0.00 for
+essentially every walkable cell; the multiplier became a constant, every edge scaled by the same
+factor and no gradient DIRECTION changed (measured: PROGRESS went 1.00 -> 2.33 per unit step with
+the identical route). Reverted. The same objection applies to EDGE_COST = 2.0, which is the 1-cell
+version of the same idea and is near-constant here for the same reason. Any future attempt must be
+checked against `terrain.edge_dist` (kept, as a measurement) before it is trusted.
+
+WHAT IS IN PLACE INSTEAD: EDGE_K = 1.0, the time-to-void charge (section 14a/v2), which fires from
+EDGE_T_SAFE = 1.2 s out (~8 u at cruising speed) and is exempt when the goal itself lies before the
+drop. It was zeroed at 07:50 as an ablation that never ran, and restored at 09:05.
+
+ALSO ANSWERED: "does it just need more training?" Before 01:45 no, because falling was profitable
+(section 17). After the fix, six hours of ordinary training took KOTM falls100 0.73 -> 0.42 and it
+was still falling when training stopped. More training is now productive; the timing defect above
+is what caps it.

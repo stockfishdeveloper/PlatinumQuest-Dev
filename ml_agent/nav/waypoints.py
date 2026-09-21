@@ -78,7 +78,15 @@ CARRY_FLOOR = -0.5             # the term is TWO-SIDED: arriving aimed AWAY from
                                # meant 180 deg scored the same as 90 deg, so nothing pushed the
                                # policy out of the bad half of the distribution. CARRY also went
                                # 6.0 -> 12.0, pre-registered before the 90-update check.
-EDGE_K = 0.0                   # ABLATION 07:50 on 2026-09-21: the fall-credit bug (section 17) was the
+EDGE_K = 1.0                   # RESTORED 09:05 on 2026-09-21. I set this to 0.0 at 07:50 on the
+                               # suspicion that it was buying falls with speed, but the user stopped
+                               # training two minutes later so that ablation NEVER RAN. 1.0 is the
+                               # value that was in the configuration which actually halved KOTM
+                               # falls100 overnight (0.73 -> 0.42), and the earlier "edge term does
+                               # nothing" readings were all taken while the fall-credit bug
+                               # (section 17) still made falling profitable. Do not zero it again
+                               # without an eval behind it.
+                               # (superseded note from the ablation: the fall-credit bug (section 17) was the
                                # real cause of the falls, and with it fixed the 8-round eval showed
                                # falls 0.65 -> 0.39 (t = -2.95) but speed 6.69 -> 6.36 (t = -2.59).
                                # The edge term charges 15.7 % of KOTM floor decisions, so it is the
