@@ -28,6 +28,14 @@
 $AIObserver::MaxGems = 5;   // 5 nearest gems = 25 dims (was 50 = 250 dims)
 $AIObserver::MaxOpponents = 3;
 
+// Where collectGems() looks for gems. "server" reads the LIVE ghosted objects from
+// ServerConnection; "itemarray" restores the old cached-snapshot behaviour. See the long comment
+// in collectGems() for why the cache made the agent blind for up to 1.9 s after every pickup.
+$AIObserver::GemSource = "server";
+// While this is > 0, collectGems() also counts what the old ItemArray path WOULD have seen and
+// echoes every disagreement, decrementing once per line. Set to 0 to silence it.
+$AIObserver::GemDiag = 40;
+
 //-----------------------------------------------------------------------------
 // Main State Collection
 //-----------------------------------------------------------------------------
@@ -135,21 +143,41 @@ function AIObserver::collectGems(%obs) {
     %cosYaw = mCos(%yawRad);
     %sinYaw = mSin(%yawRad);
 
-    // Collect all gems from ItemArray
+    // WHERE GEMS COME FROM. This used to read ItemArray first and only fall back to
+    // ServerConnection when ItemArray was EMPTY. ItemArray is a client-side cached snapshot built
+    // by buildItemList() (client/scripts/mp/items.cs), which skips hidden items at build time, and
+    // in single player nothing refreshes it: its only callers there are updateClientItems(), which
+    // returns unless $Server::ServerType $= "MultiPlayer", and updateItemCollision(), which returns
+    // on "SinglePlayer". So the snapshot went stale and, being non-empty, never triggered the
+    // fallback.
+    //
+    // Measured 2026-09-21 on FlatGemTraining, which carries maxGemsPerSpawn = minGemsPerSpawn = 1,
+    // so every pickup empties the map and the server replaces the gem synchronously inside the
+    // same call (unspawnGem -> spawnHuntGemGroup -> spawnGem -> hide(false), no schedule anywhere
+    // on that path). Despite the gem existing at once, 92 % of pickups were followed by a window
+    // with NO gem in the observation: median 1.34 s, up to 1.92 s, 31 % of all decisions in the
+    // round. The navigator has no gem to steer at during that window, falls back to a spawn-point
+    // centroid a median 35 deg off the real gem, and 11 % of the round's travel closed on nothing.
+    //
+    // ServerConnection holds the LIVE ghosted objects, so a gem the server just unhid is visible
+    // immediately. The per-object !isHidden() and classname $= "Gem" filters below are unchanged,
+    // which matters because those filters are what keeps powerups and BackupGems out.
+    // Set $AIObserver::GemSource = "itemarray" to restore the old behaviour.
     %gemCount = 0;
 
     // Instead of creating array, use direct storage in observation
     // This avoids creating/deleting temporary array objects every frame
-
-    // Try ItemArray first, fallback to ServerConnection if empty
     %count = 0;
     %useServerConnection = false;
 
-    if (isObject(ItemArray)) {
+    if ($AIObserver::GemSource !$= "itemarray" && isObject(ServerConnection)) {
+        %count = ServerConnection.getCount();
+        %useServerConnection = true;
+    } else if (isObject(ItemArray)) {
         %count = ItemArray.getSize();  // Use getSize() not count()
     }
 
-    // If ItemArray is empty, use ServerConnection directly
+    // Last resort: whichever source we picked came back empty
     if (%count == 0 && isObject(ServerConnection)) {
         %count = ServerConnection.getCount();
         %useServerConnection = true;
@@ -163,6 +191,11 @@ function AIObserver::collectGems(%obs) {
     for (%i = 0; %i < %count; %i++) {
         if (%useServerConnection) {
             %obj = ServerConnection.getObject(%i);
+            // ServerConnection carries every ghosted object, not just items, so reject non-items
+            // on the cheap bitmask before touching the datablock or comparing any strings. Same
+            // pre-filter buildItemList() uses, and it keeps this loop's cost near the old one.
+            if (!(%obj.getType() & $TypeMasks::ItemObjectType))
+                continue;
         } else {
             %itemData = ItemArray.getEntryByIndex(%i);
             %objId = getField(%itemData, 0);
@@ -215,6 +248,28 @@ function AIObserver::collectGems(%obs) {
     if (!$AIObserver::FrameCount)
         $AIObserver::FrameCount = 0;
     $AIObserver::FrameCount++;
+
+    // DIAGNOSTIC, temporary. While $AIObserver::GemDiag > 0, also count what the OLD ItemArray
+    // path would have found and echo every disagreement, spending one budget line each time. A
+    // run of lines reading "server 1 itemarray 0" is the blind window being manufactured by the
+    // stale cache, and is the direct proof that reading ServerConnection removes it. Set
+    // $AIObserver::GemDiag = 0 once that is confirmed, so this second loop stops costing anything.
+    if ($AIObserver::GemDiag > 0 && %useServerConnection && isObject(ItemArray)) {
+        %altCount = 0;
+        %altSize = ItemArray.getSize();
+        for (%k = 0; %k < %altSize; %k++) {
+            %altObj = nameToID(getField(ItemArray.getEntryByIndex(%k), 0));
+            if (isObject(%altObj) && !%altObj.isHidden()) {
+                %altDb = %altObj.getDatablock();
+                if (isObject(%altDb) && %altDb.classname $= "Gem")
+                    %altCount++;
+            }
+        }
+        if (%altCount != %gemCount) {
+            echo("AIObserver GEMDIAG: server " @ %gemCount @ " itemarray " @ %altCount @ " size " @ %altSize @ " t " @ PlayGui.currentTime);
+            $AIObserver::GemDiag--;
+        }
+    }
 
     // Sort gems by distance (nearest first) - using bubble sort on temp storage
     AIObserver::sortGemsInObs(%obs, %gemCount);

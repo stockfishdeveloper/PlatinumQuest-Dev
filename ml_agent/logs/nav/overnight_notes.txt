@@ -595,3 +595,83 @@
   Sections 10/11 reconciled: 10 was a within-policy correlation with a linear extrapolation, 11's
   throttle conclusion is falsified by today's 0.99 throttle and the null forced-throttle test.
   HANDOFF section 21a.
+[16:35] EXPERIMENT: DIR_GOAL_GAIN = 30 in nav/model.py heads(). Amplifies vec[0:2] (the exact goal
+  unit vector) on the way into the direction head, structurally rather than by rescaling weights, so
+  a gradient that tries to switch it off has to shrink those columns 30x and that is logged
+  (DIRGAIN line every 20 updates).
+  BASIS: inference-only test on real rounds, 1 round per scale: aim conc 0.463 -> 0.495 -> 0.639 and
+  speed 8.29 -> 8.86 -> 9.44 u/s for gain 1/10/30, no training. Gems flat (83/82/84) and distance per
+  gem ROSE 30.0 -> 33.8 u, but that is a frozen policy running 14 % faster than the behaviour it was
+  tuned for, so it is not evidence against the idea. THE PREDICTION UNDER TEST: with training, speed
+  holds and distance per gem comes DOWN toward the human's 21.0 u.
+  Snapshot nav_before_dirgain_1635.pth. Watch: aim concentration, distance per gem, gems/min, and the
+  DIRGAIN norm (if it falls, training is switching the gain off again).
+[17:10] STANDING RULE FROM THE USER: never stop training for any reason or any metric. Only the user
+  ends a run. This OVERRIDES every revert trigger and threshold recorded in this file and in the
+  handoff. When an experiment looks like it is failing: report the numbers, say what I would do, and
+  keep training running.
+[19:39] EVAL dirgain FlatGemTraining_Hunt (nav_eval_dirgain_1934.pth): points 84,85,84,86,81,88,84,87 -> mean 84.9, gems mean 84.88 (gems-only steering, DIR_GOAL_GAIN=30)
+[19:42] EVAL dirgain KingOfTheMarble_Hunt (nav_eval_dirgain_1934.pth): points 107,90,98,90,86,98,95,103 -> mean 95.9, gems mean 76.00 (gems-only steering, DIR_GOAL_GAIN=30)
+[20:13] EVAL gemsrc FlatGemTraining_Hunt (nav_eval_dirgain_1934.pth): points 93,99,99,103,91,96,93,100 -> mean 96.8, gems mean 96.75 (gems-only steering, DIR_GOAL_GAIN=30)
+[20:15] EVAL gemsrc KingOfTheMarble_Hunt (nav_eval_dirgain_1934.pth): points 107,85,100,101,89,98,103,104 -> mean 98.4, gems mean 78.50 (gems-only steering, DIR_GOAL_GAIN=30)
+
+================================================================================
+[19:34] EVAL dirgain, nav_eval_dirgain_1934.pth (update 13,895), DIR_GOAL_GAIN = 30
+  FlatGemTraining  84,85,84,86,81,88,84,87  -> mean 84.9 gems (was 80.75)
+  KingOfTheMarble  107,90,98,90,86,98,95,103 -> mean 95.9 pts  (was 93.5)
+  Training ran 16:36-19:34, ~500 updates. Operator granted an explicit stop for this eval.
+  Aim concentration 0.46 -> 0.70-0.74 (human 0.91). Turning share above 10 u/s 54 % -> 39-41 %
+  (human 42 %). Islands lost 11 points of training arrivals (92 % -> 81 %) and is STILL
+  unevaluated on real rounds.
+  CONVERSION WAS POOR: training speed +11-15 %, real score +2.6-5 %. Diagnosed at the time as
+  "the bottleneck moved to cornering". That was WRONG. See 20:15 below.
+
+[20:06] ROOT CAUSE, found from an operator observation at 1x: "after picking up a gem the marble
+  sometimes moves in completely the wrong direction, corrects after ~2 s, then beelines".
+  The observation was telling the agent the map was EMPTY for up to 1.9 s after every pickup.
+  Measured on one FlatGem round: 92 % of pickups followed by a blind window, median 1.34 s, max
+  1.92 s, 31 % of all decisions blind, fallback goal a median 35 deg off the real gem, and 151 u
+  of 1,324 u travelled closing on nothing.
+  NOT the map (maxGemsPerSpawn = minGemsPerSpawn = 1, so one gem at a time is correct).
+  NOT the server (unspawnGem -> spawnHuntGemGroup -> spawnGem -> hide(false) is synchronous).
+  IT WAS THE OBSERVER: AIObserver::collectGems iterated ItemArray, a client-side snapshot that
+  skips hidden items, and in single player nothing refreshes it (updateClientItems returns unless
+  MultiPlayer; updateItemCollision returns on SinglePlayer). Its live ServerConnection fallback
+  only fires when ItemArray is EMPTY, and ItemArray held exactly one entry: the hidden gem.
+  FIX: $AIObserver::GemSource = "server" reads the live ghosted objects. Filters unchanged.
+  PROOF: 40 consecutive "AIObserver GEMDIAG: server 1 itemarray 0 size 1".
+
+[20:15] EVAL gemsrc, SAME checkpoint nav_eval_dirgain_1934.pth, only the gem source changed
+  FlatGemTraining  93,99,99,103,91,96,93,100  -> mean 96.8 gems  (+11.9 over 84.9)
+  KingOfTheMarble  107,85,100,101,89,98,103,104 -> mean 98.4 pts (+2.5 over 95.9)
+  blind_pct 0.0 on ALL 16 rounds. Decisions per round unchanged at 4,706, so no throughput cost.
+  KOTM gained less because it spawns groups of 5-6, so most pickups leave gems on the map; the
+  bug's cost scaled with how often the map went empty.
+  NO RETRAINING. This was pure observation plumbing.
+
+[20:25] RESEARCH, why the agent still peaks at 12.8 u/s mid-leg where the human reaches 14.94.
+  RULED OUT command magnitude: agent 1.398 mean, 73 % on the 1.414 corner; human 1.356, 86 %.
+  The agent commands HARDER. Also: the human is NOT on a single axis, so 14.94 is not the 15.00
+  single-axis wall; both share the 21.8 diagonal ceiling and neither is near it.
+  RULED OUT heading sustain, REVERSING the long-quoted figure: agent holds heading inside 20 deg
+  for a median 0.90 s, human 0.74 s. The agent holds a line LONGER. The "39.5 deg per decision,
+  sustains 0.06 s" comments in real_run.py and vec_worker.py are now annotated as stale.
+  CAUSE: thrust direction vs the marble's OWN velocity in the 9-18 u acceleration band.
+    agent 57-63 deg off velocity -> cos = 0.54 of thrust accelerates
+    human 25-31 deg off velocity -> cos = 0.91
+  A 1.7x difference, landing exactly where the human's arch takes off. The human's 144-156 deg
+  inside 6 u is deliberate braking; the agent carries 10.55 u/s through pickups vs human 8.09.
+  CANDIDATES (none run): (1) distance-dependent DIR_GOAL_GAIN, testable at inference in one round;
+  (2) a DENSE per-decision payment for cos(command, velocity) above a speed floor, which avoids
+  TURN_COST's failure mode because it never charges for turning; (3) tighten GEM_SPEED_REF.
+  DEAD: TURN_COST (tried 0.15/0.3/0.6, reverted, made the marble slower), CARRY (null twice).
+  CAVEAT: the agent already averages 10.08 u/s vs human 9.75 and still scores 100 vs 104, because
+  it covers 30.4 u per gem vs 28.3. ROUTE LENGTH is the larger remaining term.
+
+[20:30] Also fixed: plot_approach_profile.py inverted the x-axis TWICE on sharex=True subplots,
+  so both graphs produced today rendered with the gem at x=0 on the LEFT while the subtitle said
+  "far (left) to the gem (right)". Now inverts once.
+
+  STATUS AT HANDOFF: training DOWN since 20:16. Nothing has trained against the corrected
+  observation yet. KOTM 98.4 (69 % of human 143.5), FlatGem 96.8 gems (93 % of human 104).
+================================================================================

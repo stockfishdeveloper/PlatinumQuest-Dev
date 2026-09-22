@@ -203,7 +203,15 @@ Training runs at **3x game speed**. One game tick is 16 ms of game time, so a 3-
 
 ---
 
-## Direction (2026-09-16)
+## Direction (2026-09-16, status updated 2026-09-21)
+
+**The navigator in `ml_agent/nav/` is the live agent; everything in this file about `train_ppo.py`
+describes the older per-map MLP baseline, which is no longer being developed.** Navigator status
+as of 2026-09-21, verified over 8 real rounds each: **98.4 points on KingOfTheMarble** (human
+143.5) and **96.8 gems on FlatGemTraining** (human 104). Falls and pace are both solved; the
+remaining gaps are route length (30.4 u per gem vs 28.3) and mid-leg peak speed (12.8 vs 14.94
+u/s). The authoritative document is the CURRENT STATE block at the top of
+`ml_agent/HANDOFF_NAV_TRAINING.md`, which overrides this file where they disagree.
 
 The per-map MLP policy is the King-of-the-Marble baseline only. The plan to reach multiplayer, all maps, powerups and offense is in `ROADMAP_NAVIGATOR_PLANNER.md`: N game instances first, then a map-independent navigator (egocentric height crops + GRU, waypoint task across many maps, demo bootstrap), then a planner (heuristic A*-based v0, learned v1) with all gems, opponents and powerups, then self-play for blast/mega. Read it before starting any new training campaign.
 

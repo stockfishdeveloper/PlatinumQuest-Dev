@@ -1,7 +1,7 @@
-warm-up: model ready in 0.20 s, terrain "FlatGemTraining_Hunt" pre-built
+warm-up: model ready in 0.19 s, terrain "FlatGemTraining_Hunt" pre-built
 [env:8920] waiting for the game
 [env:8920] game connected (1)
-real run: nav_eval_flatgem_1208.pth (update 13255) on FlatGemTraining_Hunt, 1 round(s), port 8920
-  round 1: {'round': 1, 'gems': 85, 'points': 85.0, 'minutes': 5.02, 'decisions': 4706, 'gems_per_min': 16.9, 'points_per_min': 16.9, 'falls': 0, 'falls_per_100u': 0.0, 'travelled_u': 2525.2, 'speed': 8.38, 'blind_pct': 28.5, 'snapped_pct': 0.0, 'pathed_pct': 0.0, 'smooth': 1.0}
-REAL RUN {"gems_per_min": 16.9, "points_per_min": 16.9, "falls_per_100u": 0.0, "speed": 8.38, "blind_pct": 28.5} vs human {"gems_per_min": 0.45, "points_per_min": 0.36, "speed": 1.04, "falls_ratio": 0.0}
-wrote C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\logs\nav\real_run_FlatGemTraining_Hunt_nav_eval_flatgem_1208.json
+real run: nav_eval_dirgain_1934.pth (update 13895) on FlatGemTraining_Hunt, 1 round(s), port 8920
+  round 1: {'round': 1, 'gems': 100, 'points': 100.0, 'minutes': 5.02, 'decisions': 4706, 'gems_per_min': 19.9, 'points_per_min': 19.9, 'falls': 0, 'falls_per_100u': 0.0, 'travelled_u': 3036.5, 'speed': 10.08, 'blind_pct': 0.0, 'snapped_pct': 0.0, 'pathed_pct': 0.0, 'smooth': 1.0}
+REAL RUN {"gems_per_min": 19.9, "points_per_min": 19.9, "falls_per_100u": 0.0, "speed": 10.08, "blind_pct": 0.0} vs human {"gems_per_min": 0.53, "points_per_min": 0.42, "speed": 1.25, "falls_ratio": 0.0}
+wrote C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\logs\nav\real_run_FlatGemTraining_Hunt_nav_eval_dirgain_1934.json

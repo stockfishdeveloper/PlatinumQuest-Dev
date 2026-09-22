@@ -1,0 +1,53 @@
+[16:28:14] resumed C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\models\nav\nav_latest.pth: update 13275, steps 99,827,157, trained on FlatGemTraining_Hunt
+[16:28:28] 8 instance worker(s) on ports 8888..8895; training mode True (64 ms per decision); arrive radius 0.65 u; device cuda
+[16:28:28] [0] [env:8888] waiting for the game
+[16:28:28] [0] [env:8888] game connected (1)
+[16:28:28] [0] mission FlatGemTraining_Hunt: terrain 255x255 @ 0.5 u, walkable 15750 cells
+[16:28:28] [0] ready on 8888, mission FlatGemTraining_Hunt
+[16:28:28] [1] [env:8889] waiting for the game
+[16:28:28] [1] [env:8889] game connected (1)
+[16:28:28] [1] mission FlatGemTraining_Hunt: terrain 255x255 @ 0.5 u, walkable 15750 cells
+[16:28:28] [1] ready on 8889, mission FlatGemTraining_Hunt
+[16:28:29] [2] [env:8890] waiting for the game
+[16:28:29] [2] [env:8890] game connected (1)
+[16:28:29] [2] mission FlatGemTraining_Hunt: terrain 255x255 @ 0.5 u, walkable 15750 cells
+[16:28:29] [2] ready on 8890, mission FlatGemTraining_Hunt
+[16:28:29] [3] [env:8891] waiting for the game
+[16:28:29] [3] [env:8891] game connected (1)
+[16:28:29] [3] mission FlatGemTraining_Hunt: terrain 255x255 @ 0.5 u, walkable 15750 cells
+[16:28:29] [3] ready on 8891, mission FlatGemTraining_Hunt
+[16:28:30] [4] [env:8892] waiting for the game
+[16:28:30] [4] [env:8892] game connected (1)
+[16:28:30] [4] mission KingOfTheMarble_Hunt: terrain 99x99 @ 0.5 u, walkable 1488 cells
+[16:28:30] [4] ready on 8892, mission KingOfTheMarble_Hunt
+[16:28:31] [5] [env:8893] waiting for the game
+[16:28:31] [5] [env:8893] game connected (1)
+[16:28:31] [5] mission KingOfTheMarble_Hunt: terrain 99x99 @ 0.5 u, walkable 1488 cells
+[16:28:31] [5] ready on 8893, mission KingOfTheMarble_Hunt
+[16:28:32] [6] [env:8894] waiting for the game
+[16:28:32] [6] [env:8894] game connected (1)
+[16:28:32] [6] mission KingOfTheMarble_Hunt: terrain 99x99 @ 0.5 u, walkable 1488 cells
+[16:28:32] [6] [env:8894] round over (time left 180s of 180s); waiting for the next round
+[16:28:32] [6] [env:8894] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[16:28:32] [6] new round (game connection 1)
+[16:28:32] [6] ready on 8894, mission KingOfTheMarble_Hunt
+[16:28:32] [7] [env:8895] waiting for the game
+[16:28:32] [7] [env:8895] game connected (1)
+[16:28:32] [7] mission FlatIslands_Hunt: terrain 165x165 @ 0.5 u, walkable 5775 cells
+[16:28:32] [7] ready on 8895, mission FlatIslands_Hunt
+[16:28:35] [7] fall without OOB flag: 4 decisions off the map at [ 11.4 -15.2  -3.3] (time left 140s)
+[16:28:38] [7] fall without OOB flag: 4 decisions off the map at [ -5.3 -13.7  -3.3] (time left 132s)
+[16:28:41] [7] fall without OOB flag: 4 decisions off the map at [-10.6 -10.4  -3.8] (time left 126s)
+[16:28:44] [7] fall without OOB flag: 4 decisions off the map at [ 3.4 14.  -2.5] (time left 119s)
+[16:28:46] [4] [env:8892] round over (time left 180s of 180s); waiting for the next round
+[16:28:46] [4] [env:8892] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[16:28:46] [4] new round (game connection 1); rtf 1.6
+[16:28:49] [5] [env:8893] round over (time left 180s of 180s); waiting for the next round
+[16:28:49] [5] [env:8893] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[16:28:49] [5] new round (game connection 1); rtf 1.4
+[16:28:56] [7] fall without OOB flag: 4 decisions off the map at [  8.6 -12.1  -2.2] (time left 97s)
+[16:29:00] [4] fall without OOB flag: 4 decisions off the map at [-26.6  16.   13.8] (time left 153s)
+[16:29:01] [7] fall without OOB flag: 4 decisions off the map at [-15.1  11.2  -2.5] (time left 87s)
+[16:29:04] [7] fall without OOB flag: 4 decisions off the map at [-13.1  12.6  -2.7] (time left 80s)
+[16:29:10] [7] fall without OOB flag: 4 decisions off the map at [-13.1   7.5  -3.3] (time left 66s)
+[16:29:18] MAPS FlatGemTraining_Hunt: n=4 arrive=94% falls100=0.00 speed=9.1 gems=6.1/grp pickup=8.9 | FlatIslands_Hunt: n=1 arrive=75% falls100=2.47 speed=4.7 gems=5.2/grp pickup=4.8 | KingOfTheMarble_Hunt: n=3 arrive=64% falls100=2.17 speed=5.4 gems=5.0/grp pickup=6.2

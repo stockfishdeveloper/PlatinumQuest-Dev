@@ -128,7 +128,11 @@ def main():
     ax.plot(hm, hmed, color='#2a7fbf', lw=2.5, marker='o', ms=4, label='human (you)')
     ax.fill_between(am, alo, ahi, color='#d1495b', alpha=0.15)
     ax.plot(am, amed, color='#d1495b', lw=2.5, marker='s', ms=4, label='agent')
-    ax.invert_xaxis()                       # travel goes left to right: far -> gem
+    # Travel should read left to right, so far-from-gem on the left and the gem at the right edge.
+    # Invert ONCE: ax2 is created with sharex=True, so inverting it as well flips the axis back and
+    # silently contradicts the subtitle below (that bug shipped in the 2026-09-21 graphs, which
+    # rendered with the gem at x=0 on the LEFT).
+    ax.invert_xaxis()
     ax.set_ylabel('speed (u/s)')
     ax.set_title('Speed through a gem approach, FlatGemTraining\n'
                  'each point = median across legs; band = interquartile range; x runs from far (left) to the gem (right)')
@@ -142,7 +146,7 @@ def main():
     gx = np.array(common); gy = np.array([hmap[c] - amap[c] for c in common])
     ax2.bar(gx, gy, width=0.8, color=['#d1495b' if g > 0 else '#3a9c5c' for g in gy])
     ax2.axhline(0, color='k', lw=1)
-    ax2.invert_xaxis()
+    # NO invert here: sharex=True means ax's inversion already applies (see the note above).
     ax2.set_xlabel('distance still to travel to the gem (u)')
     ax2.set_ylabel('human minus agent (u/s)')
     ax2.grid(alpha=0.3)

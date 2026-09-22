@@ -1,0 +1,47 @@
+[16:26:26] resumed C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\models\nav\nav_latest.pth: update 13275, steps 99,827,157, trained on FlatGemTraining_Hunt
+[16:26:31] 8 instance worker(s) on ports 8888..8895; training mode True (64 ms per decision); arrive radius 0.65 u; device cuda
+[16:27:01] [0] [env:8888] waiting for the game
+[16:27:01] [0] [env:8888] game connected (1)
+[16:27:01] [0] mission FlatGemTraining_Hunt: terrain 255x255 @ 0.5 u, walkable 15750 cells
+[16:27:01] [0] ready on 8888, mission FlatGemTraining_Hunt
+[16:27:06] [1] [env:8889] waiting for the game
+[16:27:06] [1] [env:8889] game connected (1)
+[16:27:06] [1] mission FlatGemTraining_Hunt: terrain 255x255 @ 0.5 u, walkable 15750 cells
+[16:27:06] [1] ready on 8889, mission FlatGemTraining_Hunt
+[16:27:06] [2] [env:8890] waiting for the game
+[16:27:07] [2] [env:8890] game connected (1)
+[16:27:07] [2] mission FlatGemTraining_Hunt: terrain 255x255 @ 0.5 u, walkable 15750 cells
+[16:27:07] [2] ready on 8890, mission FlatGemTraining_Hunt
+[16:27:12] [3] [env:8891] waiting for the game
+[16:27:12] [3] [env:8891] game connected (1)
+[16:27:12] [3] mission FlatGemTraining_Hunt: terrain 255x255 @ 0.5 u, walkable 15750 cells
+[16:27:12] [3] ready on 8891, mission FlatGemTraining_Hunt
+[16:27:13] [4] [env:8892] waiting for the game
+[16:27:13] [4] [env:8892] game connected (1)
+[16:27:13] [4] mission KingOfTheMarble_Hunt: terrain 99x99 @ 0.5 u, walkable 1488 cells
+[16:27:13] [4] ready on 8892, mission KingOfTheMarble_Hunt
+[16:27:13] [5] [env:8893] waiting for the game
+[16:27:13] [5] [env:8893] game connected (1)
+[16:27:13] [5] mission KingOfTheMarble_Hunt: terrain 99x99 @ 0.5 u, walkable 1488 cells
+[16:27:13] [5] ready on 8893, mission KingOfTheMarble_Hunt
+[16:27:16] [6] [env:8894] waiting for the game
+[16:27:16] [6] [env:8894] game connected (1)
+[16:27:16] [6] mission KingOfTheMarble_Hunt: terrain 99x99 @ 0.5 u, walkable 1488 cells
+[16:27:16] [6] ready on 8894, mission KingOfTheMarble_Hunt
+[16:27:16] [7] [env:8895] waiting for the game
+[16:27:16] [7] [env:8895] game connected (1)
+[16:27:16] [7] mission FlatIslands_Hunt: terrain 165x165 @ 0.5 u, walkable 5775 cells
+[16:27:16] [7] ready on 8895, mission FlatIslands_Hunt
+[16:27:18] [7] fall without OOB flag: 4 decisions off the map at [ 11.4 -15.2  -3.3] (time left 293s)
+[16:27:21] [7] fall without OOB flag: 4 decisions off the map at [ -5.3 -13.7  -3.3] (time left 286s)
+[16:27:22] [5] fall without OOB flag: 4 decisions off the map at [-22.3  11.6  13.9] (time left 167s)
+[16:27:24] [7] fall without OOB flag: 4 decisions off the map at [-10.6 -10.4  -3.8] (time left 280s)
+[16:27:25] [6] fall without OOB flag: 4 decisions off the map at [-18.7  15.7  13.9] (time left 159s)
+[16:27:27] [6] fall without OOB flag: 4 decisions off the map at [-22.8  11.7  14. ] (time left 156s)
+[16:27:28] [7] fall without OOB flag: 4 decisions off the map at [ 3.4 14.  -2.5] (time left 272s)
+[16:27:39] [7] fall without OOB flag: 4 decisions off the map at [  8.7 -12.1  -2.2] (time left 250s)
+[16:27:42] [7] fall without OOB flag: 4 decisions off the map at [-14.5  16.4  -2.2] (time left 240s)
+[16:27:46] [7] fall without OOB flag: 4 decisions off the map at [-14.9  12.1  -2.7] (time left 233s)
+[16:27:49] [7] fall without OOB flag: 4 decisions off the map at [-12.1  11.1  -3.3] (time left 226s)
+[16:27:50] [7] fall without OOB flag: 4 decisions off the map at [-13.    6.3  -3.3] (time left 220s)
+[16:28:01] MAPS FlatGemTraining_Hunt: n=4 arrive=86% falls100=0.00 speed=8.9 gems=5.9/grp pickup=8.9 | FlatIslands_Hunt: n=1 arrive=50% falls100=2.88 speed=4.8 gems=4.2/grp pickup=4.3 | KingOfTheMarble_Hunt: n=3 arrive=83% falls100=1.62 speed=5.5 gems=5.8/grp pickup=5.8

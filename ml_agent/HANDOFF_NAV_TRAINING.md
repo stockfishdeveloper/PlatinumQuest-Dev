@@ -1,37 +1,76 @@
 # Navigator training: handoff
 
-> ## CURRENT STATE (2026-09-21 10:05) -- READ THIS BEFORE ANYTHING ELSE
+> ## CURRENT STATE (2026-09-21 21:00) -- READ THIS BEFORE ANYTHING ELSE
 >
-> Everything below section 2 is a dated running log. Where it disagrees with this block, this
-> block wins. Sections are appended newest-last; 14-18 are today's.
+> ### -> If you are picking this up cold, go straight to **section 25, "PICK UP HERE"**.
+> It has the KOTM gap decomposed, the blockers ranked, the ordered list of what to do first, the
+> table of everything already tried and dead, and the operating traps. This block is the summary;
+> section 25 is the brief.
 >
-> **Verified score: 93.5 points on KOTM**, 8 deterministic rounds (92,101,98,87,90,84,95,101) on
-> `models/nav/nav_eval_edge1v2_0955.pth`, update 13,037. Human 143.5. Previous: 90.8.
+> Everything below section 2 is a dated running log. Where it disagrees with this block or with
+> section 25, those two win. Sections are appended newest-last; 14-25 are 2026-09-20/21.
 >
-> | metric | agent | human | note |
+> **Goal: 150 points on KingOfTheMarble.** Human 143.5, so the target is 4.5 % above a strong
+> human. At the current 1.253 points per gem that needs 39.6 gems/min against today's 25.98,
+> a **1.52x** improvement.
+>
+> **Verified scores, 8 real rounds each on `models/nav/nav_eval_dirgain_1934.pth` (update 13,895),
+> with the observer gem-source fix live:**
+>
+> | map | score | rounds | human | share |
+> |---|---|---|---|---|
+> | KingOfTheMarble | **98.4 points** | 107,85,100,101,89,98,103,104 | 143.5 | 69 % |
+> | FlatGemTraining | **96.8 gems** | 93,99,99,103,91,96,93,100 | 104 | 93 % |
+>
+> History on KOTM: 90.8 -> 93.5 (fall-credit fix) -> 95.9 (`DIR_GOAL_GAIN = 30`) -> **98.4**
+> (observer gem source). FlatGem: 80.75 -> 84.9 -> **96.8**.
+>
+> | metric (FlatGem, 1 round, 100 gems) | agent | human | note |
 > |---|---|---|---|
-> | points / round | 93.5 | 143.5 | 3.0 min rounds |
-> | points / min | 30.9 | 47.3 | |
-> | gems / min | 24.5 | 37.5 | **the live gap** |
-> | speed | 6.31 u/s | 8.05 | |
-> | speed at pickup | 4.90 u/s | 6.3+ | **the live mechanism** |
-> | distance per gem | 11.3 u | 12.9 u | already better than human |
-> | falls / 100 u | 0.37 | 0.046 | no longer binding |
+> | gems / min | 19.9 | 20.7 | 96 % of human |
+> | mean speed | 10.08 u/s | 9.75 | **agent is already FASTER** |
+> | distance per gem | 30.4 u | 28.3 u | **the live gap: route length** |
+> | peak speed mid-leg | 12.8 u/s | 14.94 | **the live mechanism** |
+> | speed at pickup | 10.55 u/s | 8.09 | agent carries more, human brakes |
+> | blind decisions | 0.0 % | n/a | was 26-31 %, see section 22 |
+> | falls / 100 u | 0.00 | 0.046 | not binding |
 >
-> **FALLS ARE NOT THE BOTTLENECK ANY MORE.** They were 0.585 on 2026-09-20 and section 3c is
-> written against that. The fall-credit bug (section 17) was the cause; fixing it took KOTM
-> training falls 0.73 -> 0.40, where the curve flattened, and the 8-round eval flattened with it
-> (90.8 -> 93.5, t = 0.95, not significant). Chasing falls further is not where the points are.
+> **FALLS ARE NOT THE BOTTLENECK.** They were 0.585 on 2026-09-20; the fall-credit bug
+> (section 17) was the cause. FlatGem now runs entire rounds at zero falls.
 >
-> **THE LIVE PROBLEM IS PACE.** The marble travels less distance per gem than a human and still
-> takes longer, because it decelerates to 4.9 u/s at every pickup. See section 16's time budget
-> and section 18's mechanism.
+> **PACE IS NO LONGER THE BOTTLENECK EITHER, AND THE OLD PACE NUMBERS WERE MEASURED THROUGH A
+> BROKEN OBSERVATION.** The 2026-09-21 morning block claimed "gems/min is the live gap" and
+> "decelerates to 4.9 u/s at every pickup". Both were real symptoms of section 22's bug: the
+> observation reported an EMPTY MAP for up to 1.9 s after a pickup, so the marble had nothing to
+> steer at and coasted. With the live gem source the agent is now faster than the human on
+> FlatGem and still slightly behind on score, because it covers 30.4 u per gem against 28.3.
+>
+> **THE LIVE PROBLEMS ARE (a) ROUTE LENGTH and (b) MID-LEG PEAK SPEED.** Route length is the
+> larger term. Peak speed is understood and measured (section 23): thrust sits 57-63 deg off the
+> marble's own velocity in the 9-18 u acceleration band where the human holds 25-31 deg, so only
+> cos(57) = 0.54 of it adds speed against the human's 0.91.
 >
 > **Current config** (do not re-derive from older sections): `EDGE_K = 1.0`, `FALL = 25.0`,
 > `TIME = 0.05`, `BRAKE = 0.05`, `BRAKE_SUPPRESS = 1.0`, `JUMP_DAMP = 3.0`, `BRAKE_ENABLED = True`,
-> `THROTTLE_FLOOR = 0.90`, `CARRY = 0.0`, `TURN_COST = 0.0`, adaptive entropy in band 0.2-0.8
+> `THROTTLE_FLOOR = 0.90`, `CARRY = 0.0`, `TURN_COST = 0.0`, `DIR_GOAL_GAIN = 30.0`
+> (`nav/model.py`, `NAV_DIR_GOAL_GAIN`), adaptive entropy in band 0.2-0.8
 > (`ENTROPY_COEF` is a starting value only, the controller owns it), `DIRECT_GEM = 1`
-> (real runs steer at the exact gem; no routing waypoints, no markers off a gem).
+> (real runs steer at the exact gem; no routing waypoints, no markers off a gem),
+> `$AIObserver::GemSource = "server"` (observer.cs; see section 22, do NOT set back to
+> `"itemarray"` except to reproduce the bug).
+>
+> **Training rotation:** 4 FlatGemTraining / 3 KingOfTheMarble / 1 FlatIslands, block-assigned by
+> instance (0-3, 4-6, 7). `Sprawl` is generated but NOT in the rotation and its walk grid is NOT
+> verified (2,150 slope-excluded cells, 19 % of walkable area, status unknown).
+>
+> **Not yet measured:** FlatIslands has never had a real-round evaluation. It regressed from 92 %
+> to 81 % training arrivals during the `DIR_GOAL_GAIN` run and benefits from section 22's fix by
+> an unknown amount.
+>
+> **Training is DOWN as of 20:16.** The last run reached update 13,895 on the rotation above.
+> Nothing has been trained against the corrected observation yet, which is the single most
+> obvious next move: every policy to date learned to cope with a map that went blank after every
+> pickup.
 >
 > **Standing rules set by the user**
 > * Waypoints may ONLY ever appear inside a real gem. No routing corner points, no marker on
@@ -2175,3 +2214,445 @@ IS the cosine of the aim error, 0.57 vs 0.91, and that 1.60x predicts the observ
 ratio. Section 11 then concluded throttle was the real constraint on the basis that KOTM ran at
 88 % throttle; that is now falsified directly (throttle measures 0.99, and pegging it to 100 %
 moved the alignment distribution not at all).
+
+## 21b. RESULT of DIR_GOAL_GAIN = 30: real, and smaller than the training curve implied (2026-09-21)
+
+Section 21a's fix (amplify the goal bearing 30x on the way into `dir_head`, `NAV_DIR_GOAL_GAIN`
+in `nav/model.py`) trained from 16:36 to 19:34, about 500 updates. It is the first change of the
+day to survive an 8-round evaluation, and it is also a lesson in how far training metrics can
+diverge from real score.
+
+| | training arrive | training speed | 8-round real |
+|---|---|---|---|
+| FlatGem before | 99 % | 8.50 | 80.75 gems |
+| FlatGem after | 100 % | 9.80 (+15 %) | 84.9 gems (+5 %) |
+| KOTM before | 96 % | 5.40 | 93.5 pts |
+| KOTM after | 96 % | 6.00 (+11 %) | 95.9 pts (+2.6 %) |
+| Islands before | 92 % | 4.80 | never evaluated |
+| Islands after | 81 % | 5.00 | never evaluated |
+
+Aim concentration went 0.46 -> 0.70-0.74 (human 0.91) and turning share above 10 u/s went 54 %
+-> 39-41 % (human 42 %), so the mechanism did exactly what section 21a predicted. Islands paid
+for it, losing 11 points of training arrivals, and that cost is still unmeasured on real rounds.
+
+**The interesting part is the conversion.** Training speed rose 11-15 % and real score rose
+2.6-5 %. I called this "the bottleneck has moved" and guessed cornering. That guess was wrong;
+section 22 is what was actually eating it. The general lesson is that training uses synthetic
+teleport-to-waypoint segments while real rounds use the game's own gems, so a defect that lives
+in the GEM PIPELINE is invisible to every training metric by construction.
+
+Also settled during this run: the adaptive entropy controller did a full cycle unaided (0.42 ->
+0.15, coefficient driven to its -0.03 floor, then reversed and climbed back through zero). The
+fall was read as a runaway and that was wrong; `ENT_BAND_LO = 0.2` and `ENT_CUT_AT = 0.30` in
+`nav/ppo_recurrent.py` define a dead zone the controller holds, and the undershoot to 0.15 is
+the documented lag. Do not intervene in it.
+
+## 22. THE OBSERVATION TOLD THE AGENT THE MAP WAS EMPTY FOR UP TO 1.9 s AFTER EVERY PICKUP (2026-09-21)
+
+Found from an operator observation while watching a 1x round: "after picking up a gem the marble
+sometimes moves in completely the wrong direction to start out, corrects itself after like 2
+seconds, then makes a straight beeline". Their read was that the fault was in what we TELL the
+model, and they were right.
+
+**Measured on one FlatGem round (2,087 decisions, 36 pickups):**
+
+* 92 % of pickups were followed by a window with NO gem in the observation
+* window length median 21 decisions = **1.34 s**, max 30 = **1.92 s**
+* **31 % of all decisions** in the round were blind
+* the fallback goal was a median **35 deg** off where the gem turned out to be, more than 45 deg
+  on 21 % of windows and more than 90 deg on 3 % (the "completely wrong direction" observed)
+* **151 u of the round's 1,324 u of travel closed on nothing**, 11.4 %
+
+**The map is not at fault.** `FlatGemTraining_Hunt.mcs` carries `maxGemsPerSpawn = 1` and
+`minGemsPerSpawn = 1`, so exactly one gem exists at a time and `nvis` never exceeding 1 is
+correct. Nor is the server: `unspawnGem` decrements `$Hunt::CurrentGemCount` and calls
+`spawnHuntGemGroup` then `spawnGem` then `hide(false)` synchronously inside the same call, with
+no `schedule` anywhere on that path. A replacement gem exists essentially instantly.
+
+**The observer was reading a stale cache.** `AIObserver::collectGems` iterated `ItemArray`, a
+client-side snapshot built by `buildItemList()` (`client/scripts/mp/items.cs`) which skips hidden
+items at build time. In single player nothing refreshes it: its only callers there are
+`updateClientItems()`, which returns unless `$Server::ServerType $= "MultiPlayer"`, and
+`updateItemCollision()`, which returns on `"SinglePlayer"`. The observer's live fallback to
+`ServerConnection` only fires when `ItemArray` is EMPTY, and it was not empty; it held one entry,
+which was the hidden gem. The game's own log said so all along: `AIObserver: 1 objects from
+ItemArray`.
+
+**The fix** (`$AIObserver::GemSource = "server"`) prefers `ServerConnection`, which holds the live
+ghosted objects. The per-object `!isHidden()` and `classname $= "Gem"` filters are unchanged,
+which matters because those filters are what keeps powerups and BackupGems out. A
+`$TypeMasks::ItemObjectType` bitmask pre-filter keeps the wider scan cheap (the same idiom
+`buildItemList` uses). `$AIObserver::GemDiag` logs disagreements with the old path for proof.
+
+**Proof, verbatim, 40 consecutive lines:** `AIObserver GEMDIAG: server 1 itemarray 0 size 1`.
+
+**Result, same checkpoint, no retraining:**
+
+| | before | after |
+|---|---|---|
+| FlatGem, 1 round | 89 gems, 26.2 % blind, 9.55 u/s | 98 gems, **0.0 % blind**, 10.02 u/s |
+| FlatGem, 8 rounds | 84.9 gems | **96.8 gems** |
+| KOTM, 8 rounds | 95.9 pts | **98.4 pts** |
+| decisions / round | 4,706 | 4,706 (no throughput cost) |
+
+`blind_pct` is 0.0 on all sixteen rounds across both maps. KOTM gained far less than FlatGem
+because it spawns groups of 5-6, so most pickups leave other gems on the map and the stale cache
+still had something to report; the bug's cost scaled with how often the map went empty.
+
+**Consequences for everything above this section.** Every real-round number recorded before
+20:00 on 2026-09-21 was measured through this bug, including the "gems/min is the live gap" and
+"decelerates to 4.9 u/s at every pickup" claims in the morning state block, and section 15's
+whole gap-goal analysis (which remains correct about what the fallback DID, and is now nearly
+dead code because the fallback no longer fires). Training numbers were never affected: training
+uses synthetic waypoints, which is exactly why this hid for so long.
+
+## 23. WHY THE AGENT STILL DOES NOT ACCELERATE LIKE THE HUMAN (2026-09-21, research only)
+
+With section 22 fixed, the approach-profile graph shows the agent tracking the human from 23 u in
+to about 12 u and then plateauing at 12.8 u/s where the human arches to 14.94. Measured on one
+100-gem FlatGem round against the no-jump human demo:
+
+**Ruled out: command magnitude.** Agent mean 1.398 with 73 % on the 1.414 corner of the input
+square; human 1.356 with 86 % on the corner. The agent commands slightly HARDER. This also
+corrects an assumption worth recording: the human is NOT riding a single axis (which would cap
+them at the measured 15.00 u/s single-axis terminal and make 14.94 a physics wall). 86 % of
+their moving ticks are diagonal, so both share the 21.8 u/s diagonal ceiling and neither is near
+it. The human's peak is a choice.
+
+**Ruled out: heading sustain, and this REVERSES a claim still quoted in the code.** `real_run.py`
+and `vec_worker.py` both carried comments saying the policy swings 39.5 deg per decision and
+sustains a direction for 1 decision (0.06 s). Measured now: the agent holds its heading inside
+20 deg for a median of **14 decisions = 0.90 s**, the human for 46 ticks = **0.74 s**. The agent
+holds a line LONGER than the human. Those comments predate the gain work and are annotated.
+
+**The cause: thrust direction relative to the marble's own velocity.**
+
+| distance to gem | agent cmd-vs-velocity | human | agent aim at goal | human |
+|---|---|---|---|---|
+| 18-26 u | 48 deg | 38 deg | 0.93 | 0.92 |
+| 12-18 u | 63 deg | **31 deg** | 0.71 | 0.85 |
+| 9-12 u | 57 deg | **25 deg** | 0.51 | 0.86 |
+| 6-9 u | 67 deg | 76 deg | 0.34 | 0.26 |
+| 3-6 u | 76 deg | 144 deg | 0.29 | 0.58 |
+| 0-3 u | 81 deg | 156 deg | 0.24 | 0.82 |
+
+Far out the two are indistinguishable, which is why the graph's far side now overlaps. In the
+9-18 u acceleration band the human puts thrust within 25-31 deg of its velocity, so cos = 0.91
+of it adds speed; the agent is 57-63 deg off, so cos = 0.54. A **1.7x difference in the fraction
+of thrust that accelerates**, landing exactly where the human's arch takes off. The human's
+144-156 deg inside 6 u is deliberate braking; the agent never brakes and carries 10.55 u/s
+through pickups against the human's 8.09.
+
+Read plainly: the agent aims at the gem and then spends the approach on sideways line
+corrections, while the human commits to a line early and spends everything on acceleration.
+
+**Fix candidates, and what is already dead.** Charging for heading change (`TURN_COST`) was tried
+at 0.15, 0.3 and 0.6 and reverted 2026-09-20: it worked as designed and the design was wrong,
+because reaching a gem requires turning and the cheapest way to turn less is to go slower
+(pickup speed fell monotonically 5.19 -> 4.64). A lump-sum arrival-momentum bonus (`CARRY`) was
+a null twice, with the recorded lesson to make any retry DENSE. Surviving candidates, in the
+order worth trying:
+
+1. **Distance-dependent `DIR_GOAL_GAIN`.** The flat gain of 30 restored far-out aim to human
+   level and left the near field alone (0.93 at 18-26 u decaying to 0.51 by 9-12 u where the
+   human holds 0.86). Testable at inference only, one round, no training, the way
+   `dirskip_scale.py` tested the flat gain.
+2. **A dense per-decision payment for thrust along motion**, roughly
+   `k * max(0, cos(angle(command, velocity)))` gated above a speed floor. It prices the measured
+   0.54 against 0.91 difference, is dense rather than a lump sum, never charges for turning (so
+   it avoids `TURN_COST`'s failure), and cannot be farmed by slowing down because a slow marble
+   earns less of it. No flat-ground assumption, so it transfers.
+3. **Tighten `GEM_SPEED_REF`** rather than raise `GEM_SPEED_BONUS`. The agent now reaches gems
+   well inside the 60-decision reference on FlatGem, so the term is near saturation and its
+   gradient is weak in the regime of interest. Likeliest to trade arrivals for speed; hold it.
+
+**Caveat on the size of the prize.** The agent already averages 10.08 u/s against the human's
+9.75 and still scores 100 to 104, because it covers 30.4 u per gem against 28.3. Peak speed is
+real but ROUTE LENGTH is the larger remaining term, and none of the three candidates touches it.
+
+## 24. TRAP: the approach-profile graph shipped with a flipped x-axis (2026-09-21)
+
+`plot_approach_profile.py` called `invert_xaxis()` on both subplots while creating them with
+`sharex=True`. The second call undid the first, so both graphs produced on 2026-09-21 rendered
+with the GEM AT x=0 ON THE LEFT while the subtitle claimed "x runs from far (left) to the gem
+(right)". The per-distance tables in this document are unaffected because they carry explicit
+distances. Fixed by inverting once, with a comment.
+
+## 25. PICK UP HERE (2026-09-21 21:00) -- state, blockers, and what to do first
+
+Written for whoever takes this over cold. Everything in sections 3 through 24 is a dated log;
+this section and the CURRENT STATE block at the top of the file are the only two places that
+describe the present. If they disagree with each other, the top block wins.
+
+### 25.1 Where the project is
+
+**The goal set by the operator: 150 points on KingOfTheMarble.** Human baseline 143.5, so the
+target is 4.5 % ABOVE a strong human, not merely parity.
+
+Verified 2026-09-21 20:15 on `models/nav/nav_eval_dirgain_1934.pth` (update 13,895), 8 real
+rounds per map via `eval_both.ps1`:
+
+| | agent | human | share | round length |
+|---|---|---|---|---|
+| KingOfTheMarble | **98.4 points** | 143.5 | 69 % | 3.02 min |
+| FlatGemTraining | **96.8 gems** | 104 | 93 % | 5.02 min |
+
+**The single most important framing: FlatGem is nearly solved and KOTM is not.** 93 % against
+69 %. The remaining work is KOTM-specific, and general "make the marble faster" work has largely
+run its course. Evidence: on FlatGem the agent now moves at 10.08 u/s against the human's 9.75,
+i.e. **103 % of human speed**, while on KOTM it moves at 6.68 against 8.05, i.e. **83 %**. The
+agent can already drive faster than a human on open flat ground. What it cannot do is carry that
+onto terrain with holes, slopes and edges.
+
+### 25.2 The KOTM gap, decomposed (this is the map that matters)
+
+Full 8-round means: 78.5 gems, 98.4 points, **1.253 points per gem** (human 1.26), 6.68 u/s,
+**15.4 u travelled per gem**, 0.33 falls per 100 u, 25.98 gems/min, blind_pct 0.00.
+
+The gems-per-minute gap is 37.5 / 25.98 = **1.444x**, and it factors almost exactly into two
+equal halves:
+
+    speed              8.05 / 6.68  = 1.205x
+    distance per gem   15.4 / 12.8  = 1.203x
+    product                          = 1.449x   vs 1.444x observed
+
+Two conclusions follow, and both are load-bearing:
+
+* **The two factors are the same size.** Neither speed nor route length dominates on KOTM; each
+  is worth about 20 %. Fixing only one caps the gain at roughly 1.2x, which reaches about 118
+  points. **Reaching 150 requires progress on both.**
+* **Gem selection is NOT a lever and should be left alone.** Points per gem is 1.253 against the
+  human's 1.26, i.e. parity. The agent already picks gems of human-equivalent value. Do not spend
+  time on `NAV_VALUE_WEIGHT` or yellow-gem preference; section 3 of the roadmap's planner idea is
+  also not the bottleneck (straight-line distance between consecutive pickups was already at
+  parity, 11.1 u agent vs 11.0 u human).
+
+**What 150 points requires, quantified.** At 1.253 points per gem over a 3.02 min round, 150
+points needs 119.7 gems, i.e. **39.6 gems/min**, which is 1.52x the current 25.98 and 6 % above
+the human's 37.5. Split evenly across the two factors that would be about 8.2 u/s and 12.5 u per
+gem, both slightly better than human.
+
+### 25.3 Blockers, ranked
+
+**B1. Nothing has been trained against the corrected observation.** Highest priority and by far
+the cheapest. Until 2026-09-21 20:00 the observation reported an EMPTY MAP for up to 1.9 s after
+every pickup (section 22). Every policy ever trained, and every reward-shaping conclusion in this
+document, was formed under that defect. The current checkpoint scores 98.4 only because
+inference-time behaviour improved; the weights have never seen a truthful gem stream. Training on
+the fix is unexplored and requires no new ideas.
+
+**B2. KOTM speed, 6.68 u/s against 8.05. NOW MEASURED, see section 26.** The cause is that the
+policy cannot hold a heading on KOTM: median run 0.19 s and 42 % of decisions change heading by
+more than 20 deg, against the human's 0.29 s and 14 %. On FlatGem the same policy holds 0.90 s
+and is fine, so the twitch is terrain-reactive rather than a general defect. When the agent does
+sustain a heading on KOTM it reaches 10.48 u/s mean and 16.27 u/s at p90, above the human's
+average, but it reaches that state on only 3 % of decisions. **This is the primary KOTM lever.**
+
+**B3. KOTM route length, 15.4 u per gem against 12.8.** Improved from 17.8 earlier in the project
+but still 20 % long. Unexplored: whether the excess is edge-avoidance detours, overshoot and
+re-approach, or wide arcs out of pickups (the agent carries 10.55 u/s through gems on FlatGem
+where the human brakes to 8.09, which widens the exit arc; whether that also happens on KOTM is
+unmeasured).
+
+**B4. FlatIslands is unmeasured and regressed.** It fell from 92 % to 81 % training arrivals
+during the `DIR_GOAL_GAIN` run and has NEVER had a real-round evaluation, so its true state is
+unknown. It is 1 of 8 training instances, so a broken Islands is quietly polluting the gradient.
+
+**B5. Mid-leg peak speed on FlatGem, 12.8 u/s against 14.94.** Real and measured (section 23) but
+the LOWEST priority of these, because FlatGem is already at 93 % and the agent is already faster
+than the human there on average. **It will NOT transfer to B2**: section 26 measured the same
+quantities on KOTM and the FlatGem mechanism is absent there (thrust-versus-velocity angles match
+the human within a few degrees, and the human's own KOTM profile has no arch at all). Treat B2
+and B5 as separate problems.
+
+**B6. `Sprawl` walk grid unverified.** 2,150 slope-excluded cells, 19 % of walkable area, status
+unknown. `verify_walk_grid.py` exists but is unreliable: its drift criterion is invalid on ramps
+and 25-41 u "slides" turned out to be respawns. It needs the game's own OOB flag instead. Sprawl
+is NOT in the rotation, so this blocks only map expansion.
+
+### 25.4 Do these first, in this order
+
+1. **Restart training on the corrected observation and let it run.** `.\start_training.ps1`
+   (defaults are already the current 4/3/1 rotation). Keep `DIR_GOAL_GAIN = 30`. Evaluate with
+   `.\eval_both.ps1 -Tag postfix -Rounds 8` after a few hundred updates. This is B1 and it needs
+   no design work. **Expect the training metrics to shift** even with no config change, because
+   the observation itself changed; do not read that shift as a regression.
+2. **DONE 2026-09-21 22:05, see section 26.** (Was: measure KOTM the way FlatGem was measured.) Run the section 23 analysis on a KOTM trace:
+   thrust-versus-velocity angle and aim concentration per distance band, plus speed versus
+   distance-to-gem. **The human KOTM demo already exists: `demos/demo_20260914_214854.npz`**,
+   6 games, 18.2 min, 682 pickups, 861 points, which is exactly the 143.5 points/round and
+   37.5 gems/min baseline quoted throughout this document. Pass it with
+   `--demo demos/demo_20260914_214854.npz`. Use `demos/demo_20260921_155130.npz` for FlatGem
+   (1 game, 98 pickups, 0 % jumps). Both carry the map they were recorded on in their
+   `terrain_map` field, so check that rather than guessing. Without this analysis, B2 and B3 are
+   guesswork.
+   **Those two are the ONLY demos that exist.** Sections 19 and 20 cite
+   `demos/demo_20260921_105710.npz`; the operator deleted that recording and re-made it without
+   jumping as `demo_20260921_155130.npz`, so its numbers stand as history but the path is gone.
+3. **Give FlatIslands a real-round evaluation** so B4 stops being unknown. One line:
+   `.\real_run.ps1 -Map FlatIslands_Hunt -Rounds 8`.
+4. **Then, and only then, pick a shaping change** from the surviving candidates in section 23.
+   The distance-dependent `DIR_GOAL_GAIN` is testable at inference in a single round with no
+   training, so it costs almost nothing to rule in or out.
+
+### 25.5 Already tried and DEAD. Do not redo these without new information.
+
+| tried | result |
+|---|---|
+| `TURN_COST` at 0.15 / 0.3 / 0.6 | Reverted. Worked as designed; design was wrong. Charging for heading change makes the policy go SLOWER, because turning less is achieved by going slower. Pickup speed fell monotonically 5.19 -> 4.98 -> 4.82 -> 4.70 -> 4.64. |
+| `CARRY` (arrival momentum), two calibrations | Null both times. Fires once at pickup for a property created 10-20 decisions earlier. Any retry must be DENSE per-decision. |
+| Potential-based reward shaping (PBRS) | Indicator stepped once then flat; KOTM lost 8 arrivals. Reverted. |
+| PROGRESS / TIME rebalance | Broke Islands via the airborne tax on TIME. Reverted. |
+| Forcing throttle to 100 % | Moved the alignment distribution not at all. Throttle already measures 0.99 mean. |
+| Action smoothing (`NAV_SMOOTH`, `ACTION_SMOOTH`) | A crutch, since replaced by `GEM_SPEED_BONUS`. Also: the policy internalised the old smoothing, so applying a filter at inference now over-damps and halves the score. Run real rounds WITHOUT it. |
+| Behaviour cloning / BC aux term | Both regress the policy (ablation proved it). |
+| Jumping as the FlatGem lever | Operator re-recorded their demo with 0 % jumps and still scored 104, which disproves it. |
+| Gem selection / yellow preference | Points per gem is already at human parity (1.253 vs 1.26). |
+| Planner as the next lever | Straight-line distance between consecutive pickups already at parity (11.1 vs 11.0 u). |
+
+Also ruled out by measurement, so do not re-investigate: input magnitude (1.398 mean, 73 % on the
+1.414 corner, HARDER than the human's 1.356), impulse-versus-hold (a 64 ms decision delivers
+99.6 % of four 16 ms ticks), heading sustain (agent holds 0.90 s, human 0.74 s, agent holds
+LONGER), command persistence, frame error, route curvature (1.08 vs 1.03), powerups.
+
+### 25.6 Operating traps that will cost you hours
+
+* **Python is the SERVER.** It binds and listens; the game dials it 100 ms after "GO!". Start
+  Python first and wait for the port. Every launcher does this via `nav_ready.ps1`.
+* **The trainer AUTO-RESTARTS on crash**, so a broken run looks like a running one. The giveaway
+  is the log line count going DOWN between checks. Always check line count, not just process
+  count.
+* **A real-round evaluation requires stopping training.** The 8 GB GPU cannot hold a 9th game
+  instance beside a PPO update.
+* **Delete the matching `.dso`** after editing any `.cs` or `.mcs`, or the engine keeps running
+  the old compiled version.
+* **`nav_latest.pth` is often NOT the best checkpoint.** Recompute the smoothed peak from the
+  MAPS lines and use the nearest numbered checkpoint (saved every 25 updates). Do not call a
+  plateau from one downward stretch of 50-80 updates; that was called twice and was wrong twice.
+* **Do not intervene in the entropy controller.** It legitimately drives its coefficient negative
+  and undershoots below the band before reversing. `ENT_BAND_LO = 0.2` and `ENT_CUT_AT = 0.30`
+  define a dead zone it holds. Reading the fall as a runaway was a mistake made on 2026-09-21.
+* **`arrive=` in training means the WHOLE GROUP was collected**, roughly per-gem^6. 62 % group
+  arrive is 92.5 % per gem. Convert before reacting to a swing.
+* **`gemDelta` is POINTS, not a gem count.** Both are tracked separately in `real_run.py` output.
+* **Training metrics can be flatly disconnected from real score.** The most recent example: a
+  15 % training-speed gain converted to 5 % of real score because the defect lived in the gem
+  pipeline, which training never touches. When training and real rounds disagree, suspect the
+  real-round pipeline FIRST.
+
+### 25.7 Standing rules set by the operator. These are not negotiable.
+
+1. **Waypoints may ONLY ever appear inside a real gem.** No routing corner points, no marker on
+   empty ground.
+2. **READY AT GO.** Every run that rolls the marble must be able to move the instant the round
+   says GO, training and evaluation alike.
+3. **Judge only by 8-round `nav/real_run.py` evaluations.** Never by the training curve.
+4. **Never stop the trainer without explicit permission.** Only the operator ends a run. If an
+   experiment is clearly failing, report it with numbers and KEEP TRAINING. This rule exists
+   because it was broken once.
+5. **No code changes without the operator's approval.** Present analysis and options, then wait.
+6. **Solutions must transfer across maps.** No oracles or observation dimensions that bake in
+   flat-ground physics.
+
+### 25.8 Current config, for reference
+
+`EDGE_K = 1.0`, `FALL = 25.0`, `TIME = 0.05`, `PROGRESS = 1.0`, `ARRIVE = 10.0`,
+`GEM_SPEED_BONUS = 8.0`, `GEM_SPEED_REF = 60`, `BRAKE = 0.05`, `BRAKE_SUPPRESS = 1.0`,
+`JUMP_DAMP = 3.0`, `BRAKE_ENABLED = True`, `THROTTLE_FLOOR = 0.90`, `CARRY = 0.0`,
+`TURN_COST = 0.0`, `DIR_GOAL_GAIN = 30.0`, `NAV_SMOOTH = 1.0` (off), `DIRECT_GEM = 1`,
+`$AIObserver::GemSource = "server"`, adaptive entropy in band 0.2-0.8, rotation
+4 FlatGemTraining / 3 KingOfTheMarble / 1 FlatIslands across 8 instances.
+
+**Training is DOWN as of 2026-09-21 20:16.** Last run reached update 13,895.
+
+## 26. KOTM AND FLATGEM LOSE SPEED FOR DIFFERENT REASONS (2026-09-21 22:05)
+
+Section 25 step 2 asked for the section 23 analysis to be repeated on KOTM, and guessed under B5
+that whatever fixes FlatGem's peak speed "may transfer" to KOTM. **It does not.** Run on one
+85-gem / 103-point KOTM round (`nav_eval_dirgain_1934.pth`) against the human KOTM demo
+`demos/demo_20260914_214854.npz` (682 pickups over 6 rounds).
+
+### 26.1 The FlatGem mechanism is absent on KOTM
+
+On FlatGem the defect was thrust pointing sideways relative to the marble's own motion: agent
+57-63 deg off velocity where the human held 25-31 deg. On KOTM the two are nearly identical:
+
+| distance to gem | agent cmd-vs-velocity | human | agent speed | human speed |
+|---|---|---|---|---|
+| 18-26 u | 77 deg | 57 deg | **8.95** | 6.93 |
+| 12-18 u | 77 deg | 69 deg | 6.55 | 7.01 |
+| 9-12 u | 62 deg | 52 deg | 5.65 | 7.32 |
+| 6-9 u | 53 deg | 46 deg | 7.76 | 8.91 |
+| 3-6 u | 82 deg | 82 deg | 6.87 | 9.48 |
+| 0-3 u | 108 deg | 101 deg | 5.98 | 7.65 |
+
+The human ALSO turns hard on KOTM, because the map demands it, so "commit to a line and push
+along it" is not available to either player and is not the gap. Note also that the human's own
+KOTM profile is flat at 6.9-9.5 u/s with no 14.94 arch anywhere: **the FlatGem approach-profile
+shape is a property of flat open ground, not of human play.** Do not carry FlatGem's arch over as
+a target for KOTM.
+
+Ignore the 0-3 u aim-concentration figures on any map: both players read ~0.03-0.06 there because
+the goal bearing changes faster than the command can track it. The measure is only meaningful
+beyond ~6 u.
+
+### 26.2 What the KOTM defect actually is: the policy cannot hold a line at all
+
+| heading held inside 20 deg | agent | human |
+|---|---|---|
+| median run length | **3 decisions = 0.19 s** | 18 ticks = 0.29 s |
+| decisions changing heading >20 deg | **42 %** | 14 % |
+| share of time in runs of 16+ | **3 %** | 46 % |
+
+Compare the same measurement on FlatGem, where the agent is FINE: median 14 decisions = 0.90 s
+against the human's 0.74 s, and 32 % heading changes. **The same policy twitches on KOTM and does
+not twitch on FlatGem.** That is the finding.
+
+And the twitch is what costs the speed, because when the agent does hold a line it is fast:
+
+| agent run length | mean speed | p90 speed | n |
+|---|---|---|---|
+| 0-1 dec | 7.04 | 10.40 | 1180 |
+| 3-6 dec | 5.56 | 9.80 | 401 |
+| 6-10 dec | 5.22 | 7.64 | 264 |
+| **16+ dec** | **10.48** | **16.27** | 86 |
+
+A sustained heading reaches 10.5 u/s mean and 16.3 u/s at p90, well above the human's 8.05
+average. The agent reaches that state on only 3 % of decisions. The human's speed by contrast is
+nearly FLAT across run length (7.2 to 9.1), i.e. the human is not sustain-limited at all; they
+simply hold lines as a matter of course.
+
+### 26.3 Why the same policy behaves differently on the two maps
+
+Best available explanation, consistent with every number to hand: the twitch is
+**terrain-reactive**. FlatGem is open and flat, so the terrain crop and the edge ray-marches are
+nearly constant and nothing perturbs the direction head. KOTM has holes, edges and slopes, so
+those inputs change every decision and their contribution to the hidden state moves the commanded
+direction with them. `DIR_GOAL_GAIN = 30` strengthened the goal bearing relative to the hidden
+state, which is exactly why it was worth +11.9 gems on FlatGem and only +2.5 points on KOTM:
+on KOTM the hidden state still carries enough terrain reaction to dominate.
+
+This is an explanation, not a proof. It predicts two things that are cheap to check and have not
+been checked: (1) the agent's heading changes on KOTM should correlate with changes in the edge
+features or crop rather than with changes in the goal bearing; (2) a higher `DIR_GOAL_GAIN`, or
+any change that damps the terrain pathway into `dir_head` specifically, should lengthen KOTM run
+lengths without hurting FlatGem.
+
+### 26.4 Revised priority for KOTM
+
+Route length is 14.1 u per gem on this round against the human's 12.8 (8-round mean 15.4), so it
+remains a real but secondary term. The primary KOTM lever is **sustain**, and it is a different
+lever from FlatGem's. Recommended order:
+
+1. Verify the terrain-reaction hypothesis by correlating heading change against edge/crop change
+   versus goal-bearing change on the existing KOTM trace. Pure analysis, no training, no new runs.
+2. If it holds, test a raised or terrain-damped `DIR_GOAL_GAIN` at INFERENCE on KOTM first
+   (`dirskip_scale.py` already does inference-time scaling of the goal columns, and
+   `NAV_DIRSKIP` needs no training run to tell you whether run length moves).
+3. Only then consider reward shaping. Note that `TURN_COST`, which is the obvious way to buy
+   sustain, is already dead for a well-understood reason (section 23): charging for heading change
+   makes the marble go slower, because turning less is achieved by going slower.
+
+**Supersedes:** section 25 B5's guess that a FlatGem peak-speed fix "may transfer" to B2. It will
+not; the mechanisms are different. Section 25's decomposition of the KOTM gap into equal speed and
+route factors still stands, and this section identifies what the speed half actually is.

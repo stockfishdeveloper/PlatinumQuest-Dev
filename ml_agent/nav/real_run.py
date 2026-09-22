@@ -57,11 +57,20 @@ H_RESET = os.environ.get('NAV_H_RESET', 'never')   # 'never' | 'pickup' | '<N>' 
                                # marble moves at 2.2 u/s in real rounds vs 4.1-4.9 in training, so this
                                # is the prime suspect. 'pickup' mimics a training segment boundary.
 SMOOTH = float(os.environ.get('NAV_SMOOTH', '1.0'))   # EMA on the commanded DIRECTION.
-                               # 1.0 = raw policy output. The policy flips its heading a median
-                               # 39.5 deg every decision and sustains a driving direction for only
-                               # 1 decision (0.06 s); the human demo changes heading 0.4 deg and
-                               # sustains 10 decisions (0.64 s). A marble cannot accelerate to 8 u/s
-                               # on 0.06 s of consistent thrust, so this low-passes the direction.
+                               # 1.0 = raw policy output, which is where this should stay.
+                               # STALE RATIONALE, KEPT FOR HISTORY: this used to read "the policy
+                               # flips its heading a median 39.5 deg every decision and sustains a
+                               # driving direction for only 1 decision (0.06 s); the human demo
+                               # changes heading 0.4 deg and sustains 10 decisions (0.64 s)".
+                               # BOTH HALVES ARE NOW WRONG. The human figure was later remeasured
+                               # at 2.67 deg MEAN over 60,836 demo decisions (the 0.4 was an
+                               # error), and after DIR_GOAL_GAIN = 30 the agent holds its heading
+                               # inside 20 deg for a median of 14 decisions = 0.90 s against the
+                               # human's 46 ticks = 0.74 s, i.e. it now holds a line LONGER than
+                               # the human. Sustain is no longer a defect and smoothing is not the
+                               # fix for anything. See HANDOFF section 23 for what the real
+                               # acceleration defect is (thrust 57-63 deg off the marble's own
+                               # velocity in the 9-18 u band, where the human holds 25-31 deg).
 VIEW_SUBSTEPS = int(os.environ.get('NAV_VIEW_SUBSTEPS', '1'))   # WATCH only: split each 64 ms
                                # decision into this many sim slices so motion renders smoothly.
                                # 1 = exactly as trained (jagged, 15.6 Hz). 4 = ~62 Hz, viewing only.
@@ -342,8 +351,16 @@ def main():
             if target is not None:
                 gap_goal = None
             else:
-                # No gem on the map: the group is cleared and the next has not spawned yet
-                # (KOTM: median 1.15 s, 33 times a run, 10.3 % of all decisions). Two earlier
+                # No gem on the map: the group is cleared and the next has not spawned yet.
+                #
+                # THIS PATH IS NOW NEARLY DEAD, AND THE NUMBERS BELOW WERE A BUG, NOT THE GAME.
+                # The quoted "KOTM: median 1.15 s, 33 times a run, 10.3 % of all decisions" and
+                # FlatGem's 31 % were caused by the observer reading a stale client-side cache
+                # (HANDOFF section 22, $AIObserver::GemSource). The server replaces a collected gem
+                # synchronously, so these windows were almost entirely fictional. With the fix,
+                # blind_pct measured 0.0 on all 16 rounds across KOTM and FlatGem. Kept because a
+                # genuine spawn gap is still possible, but if blind_pct is ever non-trivial again,
+                # suspect the observation pipeline FIRST rather than tuning this fallback. Two earlier
                 # fallbacks were both wrong. Commanding ZERO left the marble dead for the gap.
                 # Steering at the NEAREST spawn point sent it back to the spot it had just
                 # cleared: it reversed, drove onto empty floor, and was doing 3.5 u/s in a random

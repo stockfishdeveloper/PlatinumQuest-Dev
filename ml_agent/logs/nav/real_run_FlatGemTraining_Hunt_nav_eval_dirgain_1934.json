@@ -1,0 +1,46 @@
+{
+ "map": "FlatGemTraining_Hunt",
+ "ckpt": "nav_eval_dirgain_1934.pth",
+ "update": 13895,
+ "rounds": [
+  {
+   "round": 1,
+   "gems": 100,
+   "points": 100.0,
+   "minutes": 5.02,
+   "decisions": 4706,
+   "gems_per_min": 19.9,
+   "points_per_min": 19.9,
+   "falls": 0,
+   "falls_per_100u": 0.0,
+   "travelled_u": 3036.5,
+   "speed": 10.08,
+   "blind_pct": 0.0,
+   "snapped_pct": 0.0,
+   "pathed_pct": 0.0,
+   "smooth": 1.0
+  }
+ ],
+ "mean": {
+  "gems_per_min": 19.9,
+  "points_per_min": 19.9,
+  "falls_per_100u": 0.0,
+  "speed": 10.08,
+  "blind_pct": 0.0
+ },
+ "human": {
+  "gems_per_min": 37.5,
+  "points_per_min": 47.3,
+  "speed": 8.05,
+  "falls_per_100u": 0.046
+ },
+ "vs_human": {
+  "gems_per_min": 0.53,
+  "points_per_min": 0.42,
+  "speed": 1.25,
+  "falls_ratio": 0.0
+ },
+ "value_weight": 0.0,
+ "h_reset": "never",
+ "when": "2026-09-21T20:23:59.033459"
+}

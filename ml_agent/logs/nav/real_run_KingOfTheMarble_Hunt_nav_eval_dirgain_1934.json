@@ -1,0 +1,46 @@
+{
+ "map": "KingOfTheMarble_Hunt",
+ "ckpt": "nav_eval_dirgain_1934.pth",
+ "update": 13895,
+ "rounds": [
+  {
+   "round": 1,
+   "gems": 85,
+   "points": 103.0,
+   "minutes": 3.02,
+   "decisions": 2831,
+   "gems_per_min": 28.1,
+   "points_per_min": 34.1,
+   "falls": 4,
+   "falls_per_100u": 0.334,
+   "travelled_u": 1197.1,
+   "speed": 6.61,
+   "blind_pct": 0.0,
+   "snapped_pct": 0.0,
+   "pathed_pct": 0.0,
+   "smooth": 1.0
+  }
+ ],
+ "mean": {
+  "gems_per_min": 28.1,
+  "points_per_min": 34.1,
+  "falls_per_100u": 0.334,
+  "speed": 6.61,
+  "blind_pct": 0.0
+ },
+ "human": {
+  "gems_per_min": 37.5,
+  "points_per_min": 47.3,
+  "speed": 8.05,
+  "falls_per_100u": 0.046
+ },
+ "vs_human": {
+  "gems_per_min": 0.75,
+  "points_per_min": 0.72,
+  "speed": 0.82,
+  "falls_ratio": 7.3
+ },
+ "value_weight": 0.0,
+ "h_reset": "never",
+ "when": "2026-09-21T22:22:57.163873"
+}

@@ -68,9 +68,16 @@ CARRY = 0.0                    # DISABLED 2026-09-20 11:55 after a null result. 
                                # At 6.0 human-level carry pays ~5.5, about half of ARRIVE.
                                # CARRY * min(1, max(0, v . unit(next - pos)) / CARRY_REF).
                                # GEM_SPEED_BONUS pays for the time a gem TOOK; this pays for the
-                               # speed the marble still HAS when it touches it, which is the
-                               # measured defect: the agent floors at 4.46 u/s at every pickup
-                               # where the human floors at 7.37 and never drops below ~6.3.
+                               # speed the marble still HAS when it touches it, which WAS the
+                               # measured defect: the agent floored at 4.46 u/s at every pickup
+                               # where the human floored at 7.37 and never dropped below ~6.3.
+                               # THAT DEFECT IS GONE AND HAS INVERTED. Most of it was the observer
+                               # bug in HANDOFF section 22 (the map read as EMPTY for up to 1.9 s
+                               # after every pickup, so the marble had nothing to steer at and
+                               # coasted). On FlatGem the agent now arrives at 10.55 u/s where the
+                               # human arrives at 8.09, because the human brakes into gems and the
+                               # agent does not. Do not re-enable CARRY on the strength of the
+                               # numbers above; remeasure first.
                                # Worth ~2.25 a gem now, ~5.55 at human carry, against ARRIVE 10
                                # and an expected fall cost of ~0.57 a gem. Only the component
                                # toward the next gem counts, so speed in a useless direction

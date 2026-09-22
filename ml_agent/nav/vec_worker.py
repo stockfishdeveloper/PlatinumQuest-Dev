@@ -47,8 +47,11 @@ TRAIN_WATCH = os.environ.get('NAV_TRAIN_WATCH', '0') == '1'   # pace every decis
                               # means the sim advances as fast as we reply, so without this
                               # the marble is a blur whatever the speed setting says.
 # EMA weight on the commanded DIRECTION, applied before it reaches the game so the policy trains
-# against the smoothed dynamics. 1.0 = raw output. See HANDOFF section 5b: the raw policy flips
-# heading 39.5 deg per decision and sustains thrust for 0.06 s, which caps speed at ~4 u/s.
+# against the smoothed dynamics. 1.0 = raw output, which is where this should stay.
+# STALE RATIONALE: this cited HANDOFF section 5b, "the raw policy flips heading 39.5 deg per
+# decision and sustains thrust for 0.06 s, which caps speed at ~4 u/s". No longer true. After
+# DIR_GOAL_GAIN = 30 the policy holds a heading inside 20 deg for a median 0.90 s, LONGER than the
+# human's 0.74 s, and FlatGem real rounds run at 10.08 u/s. See HANDOFF section 23.
 ACTION_SMOOTH = float(os.environ.get('NAV_ACTION_SMOOTH', '1.0'))   # 1.0 = OFF. This low-passed
                                # the commanded direction so the policy could not twitch. It bought
                                # speed (3.51 -> 5.26 u/s) but it is a crutch: imposed from outside,

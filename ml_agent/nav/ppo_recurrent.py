@@ -63,8 +63,11 @@ ENT_CUT_AT = 0.30      # the controller starts cutting HERE. Two reasons for the
                        # took direction std 0.183 -> 0.27, about 15 deg of extra heading jitter per
                        # decision, and speed fell 4.9 -> 4.7 over the same window. A marble whose
                        # commanded direction keeps rotating cannot sustain thrust, and speed is the
-                       # score limiter (the 1.99x gap to human is 1.37x wander x 1.41x speed; falls
-                       # are not in that product). Holding near the BOTTOM of the operator's
+                       # score limiter. (The "1.99x gap = 1.37x wander x 1.41x speed" decomposition
+                       # quoted here is SUPERSEDED: the gap on KOTM is now 143.5/98.4 = 1.46x, and
+                       # on FlatGem the agent is already FASTER than the human, so raw speed is no
+                       # longer the limiter there. See HANDOFF sections 22 and 23.) Holding near
+                       # the BOTTOM of the operator's
                        # 0.2-0.8 band gives std ~0.206, a 23 % cut in steering noise, while still
                        # leaving real exploration. Raise this back toward 0.7 if the policy
                        # plateaus and needs to explore its way out again.

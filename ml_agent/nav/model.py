@@ -9,6 +9,7 @@ Action stored in the rollout buffer: (dx, dy, throttle_logit, jump, brake).
 Action for the game: (dx, dy, throttle, jump, brake) -> action_to_joystick.
 """
 import math
+import os
 import torch
 import torch.nn as nn
 
@@ -29,6 +30,10 @@ JUMP_PRIOR_DROP = -0.15     # ray "beyond" value below this = a drop of > 1.5 u 
 JUMP_PRIOR_SPEED = 1.5      # u/s (was 2.0: braking dropped the marble under the gate and it rolled off)
 JUMP_LANDING_MAX = 4.5      # a landing within this many u beyond the edge (fine crop, 0.5 u cells) = crossable
 JUMP_LANDING_DZ = 0.15      # landing height within +/-1.5 u of the current floor (crop units are /10)
+DIR_GOAL_GAIN = float(os.environ.get('NAV_DIR_GOAL_GAIN', '30.0'))   # gain on vec[0:2] into the
+                            # direction head. 1.0 = the old behaviour. See heads() for the
+                            # measurement that motivated it; 30 was the value that reached
+                            # human-level aim steadiness in the offline replay (conc 0.89).
 JUMP_DAMP = 3.0             # 2.0 -> 3.0 on 2026-09-19 02:00, chasing the fall gap against the human
                             # baseline (section 3c: human 0.046 falls per 100 u and 0.11 jumps/s;
                             # agent 0.46-0.53 and, per map, islands 0.52 takeoffs/s with 59 % at a
@@ -158,7 +163,22 @@ class NavActorCritic(nn.Module):
         return (at_edge & ready & landing).float()
 
     def heads(self, h, vec, crop=None):
-        mean_xy = self.dir_head(torch.cat([h, vec], dim=-1))
+        # DIR_GOAL_GAIN: amplify the GOAL BEARING on the way into the direction head.
+        # Measured 2026-09-21 (HANDOFF 21a): the head was 65x more sensitive to the hidden state
+        # than to vec[0:2], the exact smooth unit vector to the gem sitting right there in its
+        # input, because training grew the hidden columns to 2.10x init and shrank the goal columns
+        # to 0.83x. The command therefore pointed at the gem ON AVERAGE but scattered +-60-70 deg
+        # around it, and useful thrust is the cosine of that scatter: 0.57 against a human 0.91.
+        # An inference-only test of this gain on real rounds: aim concentration 0.46 -> 0.64 and
+        # mean speed 8.29 -> 9.44 u/s (+14 %) with no training at all.
+        # Applied as a GAIN on the input rather than by rescaling the weights, so it is structural
+        # and visible: to switch it off, gradient descent would have to shrink those columns by the
+        # same factor, which is detectable (see the effective-norm log line in train_nav).
+        vec_in = vec
+        if DIR_GOAL_GAIN != 1.0:
+            vec_in = vec.clone()
+            vec_in[..., 0:2] = vec_in[..., 0:2] * DIR_GOAL_GAIN
+        mean_xy = self.dir_head(torch.cat([h, vec_in], dim=-1))
         thr = self.throttle_head(h).squeeze(-1)
         gp = self.gap_prior(crop, vec) if crop is not None else torch.zeros_like(thr)
         jump = torch.clamp(self.jump_head(h).squeeze(-1) - JUMP_DAMP + gp * JUMP_PRIOR, -7.0, 3.0)

@@ -25,7 +25,7 @@ from datetime import datetime
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from nav.env import TRAINING_MODE, OBS_MS                                          # noqa: E402
 from nav.obs import NAV_OBS_VERSION                                                # noqa: E402
-from nav.model import NavActorCritic                                               # noqa: E402
+from nav.model import NavActorCritic, HIDDEN, DIR_GOAL_GAIN                        # noqa: E402
 from nav.waypoints import (ARRIVE_MIN_SEGMENTS, ARRIVE_TIGHTEN_AT, ARRIVE_STEP,     # noqa: E402
                            ARRIVE_R_FINAL, ARRIVE_DZ_FINAL)
 from nav.ppo_recurrent import Rollout, ppo_update, LR                              # noqa: E402
@@ -331,6 +331,8 @@ def main():
                     log('MAPS ' + ' | '.join(f'{m}: n={sum(1 for w in workers if w.mission == m)} arrive={pooled_stats(workers, m)["arrive_pct"]:.0f}% '
                                              f'falls100={pooled_stats(workers, m)["falls_per_100u"]:.2f} speed={pooled_stats(workers, m)["speed"]:.1f} '
                                              f'gems={pooled_stats(workers, m)["gems_per_group"]:.1f}/grp pickup={pooled_stats(workers, m)["pickup_speed"]:.1f}' for m in missions))
+                dg = model.dir_head[0].weight[:, HIDDEN:HIDDEN+2].norm().item() * DIR_GOAL_GAIN
+                log(f'DIRGAIN effective goal-bearing norm {dg:.2f} (gain {DIR_GOAL_GAIN:g})') if update % 20 == 0 else None
                 log(f'NAV upd={update} map={"+".join(missions)} r={arrive["r"]:.2f} steps={steps:,} segs={seg_total} arrive={s["arrive_pct"]:.0f}% '
                     f'falls100={s["falls_per_100u"]:.2f} speed={s["speed"]:.1f} gems={s["gems_per_group"]:.1f} pickup={s["pickup_speed"]:.1f} carry={s["carry_speed"]:.1f} turn={s["turn_deg"]:.1f} rew={np.mean(recent_rewards) if recent_rewards else 0:.1f} '
                     f'pl={st.get("pl", 0):.3f} vl={st.get("vl", 0):.3f} ent={st.get("ent", 0):.2f} entd={st.get("ent_d", 0):.2f} ec={st.get("ent_coef", 0):.4f} kl={st.get("kl", 0):.3f} '

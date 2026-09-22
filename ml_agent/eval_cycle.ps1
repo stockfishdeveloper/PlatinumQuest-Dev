@@ -8,12 +8,18 @@
 #   .\eval_cycle.ps1 -Tag edge -Rounds 8 -NoRestart
 #
 # Real-run steering is GEMS-ONLY (nav/real_run.py DIRECT_GEM default on, 2026-09-20 23:50).
+#
+# This script evaluates ONE map (KOTM) and restarts training afterwards. To evaluate BOTH maps the
+# current work is judged on and leave training down, use eval_both.ps1 instead.
 param(
     [string]$Tag = "eval",
     [int]$Rounds = 8,
     [string]$Ckpt = "",                                   # default: snapshot models\nav\nav_latest.pth now
-    [string]$Split = "4,4",
-    [string]$Missions = "FlatIslands_Hunt,KingOfTheMarble_Hunt",
+    # MUST MATCH start_training.ps1, or this script silently reverts the training rotation when it
+    # restarts the game loop. It carried the old "FlatIslands,KingOfTheMarble" / "4,4" pair until
+    # 2026-09-21, after FlatGemTraining was added as the speed map.
+    [string]$Split = "4,3,1",
+    [string]$Missions = "FlatGemTraining_Hunt,KingOfTheMarble_Hunt,FlatIslands_Hunt",
     [switch]$NoRestart
 )
 $ml = $PSScriptRoot
