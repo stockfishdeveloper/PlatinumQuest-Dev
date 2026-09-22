@@ -1,28 +1,5 @@
 warm-up: model ready in 0.19 s, terrain "KingOfTheMarble_Hunt" pre-built
 [env:8920] waiting for the game
 [env:8920] game connected (1)
-real run: nav_eval_dirgain_1934.pth (update 13895) on KingOfTheMarble_Hunt, 8 round(s), port 8920
-  round 1: {'round': 1, 'gems': 84, 'points': 106.0, 'minutes': 3.02, 'decisions': 2830, 'gems_per_min': 27.8, 'points_per_min': 35.1, 'falls': 1, 'falls_per_100u': 0.085, 'travelled_u': 1170.9, 'speed': 6.46, 'blind_pct': 0.0, 'snapped_pct': 0.0, 'pathed_pct': 0.0, 'smooth': 1.0}
-[env:8920] round over (time left 180s of 180s); waiting for the next round
-[env:8920] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
-  round 2: {'round': 2, 'gems': 84, 'points': 106.0, 'minutes': 3.02, 'decisions': 2831, 'gems_per_min': 27.8, 'points_per_min': 35.1, 'falls': 2, 'falls_per_100u': 0.172, 'travelled_u': 1161.9, 'speed': 6.41, 'blind_pct': 0.0, 'snapped_pct': 0.0, 'pathed_pct': 0.0, 'smooth': 1.0}
-[env:8920] round over (time left 180s of 180s); waiting for the next round
-[env:8920] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
-  round 3: {'round': 3, 'gems': 77, 'points': 97.0, 'minutes': 3.02, 'decisions': 2828, 'gems_per_min': 25.5, 'points_per_min': 32.2, 'falls': 5, 'falls_per_100u': 0.435, 'travelled_u': 1148.2, 'speed': 6.34, 'blind_pct': 0.0, 'snapped_pct': 0.0, 'pathed_pct': 0.0, 'smooth': 1.0}
-[env:8920] round over (time left 180s of 180s); waiting for the next round
-[env:8920] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
-  round 4: {'round': 4, 'gems': 76, 'points': 96.0, 'minutes': 3.02, 'decisions': 2831, 'gems_per_min': 25.2, 'points_per_min': 31.8, 'falls': 2, 'falls_per_100u': 0.187, 'travelled_u': 1071.0, 'speed': 5.91, 'blind_pct': 0.0, 'snapped_pct': 0.0, 'pathed_pct': 0.0, 'smooth': 1.0}
-[env:8920] round over (time left 180s of 180s); waiting for the next round
-[env:8920] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
-  round 5: {'round': 5, 'gems': 81, 'points': 102.0, 'minutes': 3.02, 'decisions': 2831, 'gems_per_min': 26.8, 'points_per_min': 33.8, 'falls': 2, 'falls_per_100u': 0.172, 'travelled_u': 1166.0, 'speed': 6.44, 'blind_pct': 0.0, 'snapped_pct': 0.0, 'pathed_pct': 0.0, 'smooth': 1.0}
-[env:8920] round over (time left 180s of 180s); waiting for the next round
-[env:8920] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
-  round 6: {'round': 6, 'gems': 79, 'points': 104.0, 'minutes': 3.02, 'decisions': 2828, 'gems_per_min': 26.2, 'points_per_min': 34.5, 'falls': 5, 'falls_per_100u': 0.415, 'travelled_u': 1204.5, 'speed': 6.66, 'blind_pct': 0.0, 'snapped_pct': 0.0, 'pathed_pct': 0.0, 'smooth': 1.0}
-[env:8920] round over (time left 180s of 180s); waiting for the next round
-[env:8920] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
-  round 7: {'round': 7, 'gems': 86, 'points': 107.0, 'minutes': 3.02, 'decisions': 2830, 'gems_per_min': 28.5, 'points_per_min': 35.4, 'falls': 3, 'falls_per_100u': 0.261, 'travelled_u': 1148.5, 'speed': 6.34, 'blind_pct': 0.0, 'snapped_pct': 0.0, 'pathed_pct': 0.0, 'smooth': 1.0}
-[env:8920] round over (time left 180s of 180s); waiting for the next round
-[env:8920] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
-  round 8: {'round': 8, 'gems': 83, 'points': 105.0, 'minutes': 3.02, 'decisions': 2833, 'gems_per_min': 27.5, 'points_per_min': 34.7, 'falls': 0, 'falls_per_100u': 0.0, 'travelled_u': 1178.5, 'speed': 6.5, 'blind_pct': 0.0, 'snapped_pct': 0.0, 'pathed_pct': 0.0, 'smooth': 1.0}
-REAL RUN {"gems_per_min": 26.913, "points_per_min": 34.075, "falls_per_100u": 0.216, "speed": 6.383, "blind_pct": 0.0} vs human {"gems_per_min": 0.72, "points_per_min": 0.72, "speed": 0.79, "falls_ratio": 4.7}
-wrote C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\logs\nav\real_run_KingOfTheMarble_Hunt_nav_eval_dirgain_1934.json
+WATCH mode: every frame drawn, 4 sim slice(s) per 64 ms decision, real time
+real run: nav_eval_timeprice_0142.pth (update 14255) on KingOfTheMarble_Hunt, 2 round(s), port 8920

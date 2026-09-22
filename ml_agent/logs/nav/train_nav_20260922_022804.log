@@ -1,0 +1,22 @@
+[02:28:05] resumed C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\models\nav\nav_latest.pth: update 14305, steps 108,270,628, trained on FlatGemTraining_Hunt
+[02:28:05] 8 instance worker(s) on ports 8888..8895; training mode True (64 ms per decision); arrive radius 0.65 u; device cuda
+[02:28:21] [0] [env:8888] waiting for the game
+[02:28:21] [0] [env:8888] game connected (1)
+[02:28:21] [0] mission FlatGemTraining_Hunt: terrain 255x255 @ 0.5 u, walkable 15750 cells
+[02:28:21] [0] ready on 8888, mission FlatGemTraining_Hunt
+[02:28:24] [1] [env:8889] waiting for the game
+[02:28:24] [1] [env:8889] game connected (1)
+[02:28:24] [1] mission FlatGemTraining_Hunt: terrain 255x255 @ 0.5 u, walkable 15750 cells
+[02:28:24] [1] ready on 8889, mission FlatGemTraining_Hunt
+[02:28:25] [2] [env:8890] waiting for the game
+[02:28:25] [2] [env:8890] game connected (1)
+[02:28:25] [2] mission KingOfTheMarble_Hunt: terrain 99x99 @ 0.5 u, walkable 1488 cells
+[02:28:25] [2] ready on 8890, mission KingOfTheMarble_Hunt
+[02:28:27] [3] [env:8891] waiting for the game
+[02:28:27] [3] [env:8891] game connected (1)
+[02:28:27] [3] mission KingOfTheMarble_Hunt: terrain 99x99 @ 0.5 u, walkable 1488 cells
+[02:28:27] [3] ready on 8891, mission KingOfTheMarble_Hunt
+[02:28:29] [4] [env:8892] waiting for the game
+[02:28:29] [4] [env:8892] game connected (1)
+[02:28:29] [4] mission KingOfTheMarble_Hunt: terrain 99x99 @ 0.5 u, walkable 1488 cells
+[02:28:29] [4] ready on 8892, mission KingOfTheMarble_Hunt

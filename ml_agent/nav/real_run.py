@@ -238,19 +238,52 @@ def path_waypoint(terrain, mx, my, field, gem, lookahead=LOOKAHEAD_U):
     return pick, True
 
 
-def choose(gems, current):
+MOMENTUM_K = float(os.environ.get('NAV_MOMENTUM_K', '1.6'))   # s: 2026-09-22 (HANDOFF 28.7), momentum-aware
+                               # DEFAULT 1.6 after a sweep on fixed weights (nav_eval_timeprice_0142):
+                               # K=0 105.0 | 0.4 110.6 | 0.8 113.0 | 1.2 108.6 | 1.6 118.3 and 110.3 |
+                               # 2.2 114.3 | 3.2 112.0 points (8 rounds each). Pooled K>=0.8: 113.6.
+                               # ordering. A gem's cost is its distance plus MOMENTUM_K * speed *
+                               # (1 - cos(angle between the marble's velocity and the bearing to the
+                               # gem)), i.e. the extra distance a turn-around costs at this speed. The
+                               # human leaves the centre block along the line it swept (31 deg turn at
+                               # the exit gem); the agent's greedy-nearest order turned 79 deg and stopped.
+                               # 0 = pure nearest (the behaviour before this flag).
+
+
+GEO_ORDER = os.environ.get('NAV_GEO_ORDER', '0') == '1'   # 2026-09-22: rank gems by WALKING distance
+                               # (Dijkstra field sourced at the marble, cached per walk cell) instead of
+                               # the straight line. On KOTM's lattice a corner gem 14 u away by air is
+                               # 20 u by path; 40 % of the agent's centre entries started at a corner
+                               # against the human's 11 % (HANDOFF 28.2).
+
+
+def choose(gems, current, pos=None, vel=None, terrain=None, mfield=None):
     """Pick the gem to chase, and the one after it for the next-gem observation block.
 
     Sticky: keep the current target while it is still on the list, unless another is much closer
     (SWITCH_GAIN). Returns (target, next_target), either may be None.
+    `pos`/`vel` (world x, y) enable the MOMENTUM_K term; without them the cost is pure distance.
     """
     if not gems:
         return None, None
 
+    speed = 0.0
+    if MOMENTUM_K > 0 and pos is not None and vel is not None:
+        speed = math.hypot(float(vel[0]), float(vel[1]))
+
     def cost(g):
+        c = g[4]
+        if GEO_ORDER and terrain is not None and mfield is not None and pos is not None:
+            c = terrain.dist_at(mfield, g[0], g[1], (float(pos[0]), float(pos[1])))
         if VALUE_WEIGHT > 0 and g[3] > 0:
-            return g[4] / (g[3] ** VALUE_WEIGHT)
-        return g[4]
+            c = c / (g[3] ** VALUE_WEIGHT)
+        if speed > 1.0:
+            dx, dy = g[0] - float(pos[0]), g[1] - float(pos[1])
+            d = math.hypot(dx, dy)
+            if d > 1e-6:
+                cos_t = (dx * float(vel[0]) + dy * float(vel[1])) / (d * speed)
+                c += MOMENTUM_K * speed * (1.0 - cos_t)
+        return c
 
     ranked = sorted(gems, key=cost)
     best = ranked[0]
@@ -330,6 +363,7 @@ def main():
         marked = None
         smooth_dir = None
         field = None; field_key = None; held_goal = None
+        mfield_cache = None; mfield_key = None       # GEO_ORDER: Dijkstra field sourced at the marble
         gap_goal = None                  # where to head while no gem is on the map (held per gap)
         points = 0.0
         travelled = 0.0
@@ -353,7 +387,13 @@ def main():
 
         while True:
             vis = visible_gems(env.msg.obs)
-            target, nxt = choose(vis, target)
+            mfield = None
+            if GEO_ORDER and vis:
+                mcell = terrain.cell_of(float(env.msg.obs[0]), float(env.msg.obs[1]))
+                if mcell != mfield_key:
+                    mfield_cache = terrain.goal_field(float(env.msg.obs[0]), float(env.msg.obs[1])); mfield_key = mcell
+                mfield = mfield_cache
+            target, nxt = choose(vis, target, pos=env.msg.obs[0:2], vel=env.msg.obs[3:5], terrain=terrain, mfield=mfield)
             if target is not None:
                 gap_goal = None
             else:

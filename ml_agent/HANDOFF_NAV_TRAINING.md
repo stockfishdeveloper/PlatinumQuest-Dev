@@ -3,6 +3,9 @@
 > ## CURRENT STATE (2026-09-21 21:00) -- READ THIS BEFORE ANYTHING ELSE
 >
 > ### -> If you are picking this up cold, go straight to **section 25, "PICK UP HERE"**.
+> **2026-09-22 00:10: read section 28 next.** The KOTM gap is a stop-and-go at every pickup (worst at the four
+> centre gems), the reward prices a decision at 0.18 against ~0.8 in a scored round, and fast arrivals at the
+> centre gems do NOT cause falls. Proposal in 28.4, awaiting the operator. Fresh 8-round eval: 106 points.
 > It has the KOTM gap decomposed, the blockers ranked, the ordered list of what to do first, the
 > table of everything already tried and dead, and the operating traps. This block is the summary;
 > section 25 is the brief.
@@ -2783,3 +2786,237 @@ runs of 16+) remains the primary lever and is untouched by this section.
 WATCHING a 1x round and describing something that looked wrong: the wrong-direction start after a
 pickup (section 22), and this one. Neither was visible in any metric being tracked. Watching real
 play at 1x is a first-class diagnostic tool, not a demo.
+
+## 28. THE CENTRE IS SLOW BECAUSE EVERY PICKUP IS A STOP-AND-GO (2026-09-22 00:10, analysis only, nothing changed)
+
+Operator observation: "it plays too cautious and slow, especially in the centre around the holes."
+Measured on a fresh 8-round KOTM evaluation of `nav_eval_dirgain_1934.pth` (670 pickups, 106 points
+equivalent at 27.7 gems/min, consistent with section 27's 102.9) against the human demo (682 pickups).
+Scripts are in the session scratchpad; every number below comes from `logs/nav/real_trace.csv` (8 rounds,
+22,645 decisions) and `demos/demo_20260914_214854.npz`.
+
+### 28.1 Where the time goes: legs into and out of the centre block
+
+The centre is a 6.5 u square block around the 2x2 hole at (-25.2, 15.0), reached by 2.5-3 u bridges.
+Its four gem spawns sit on walk-grid EDGE cells (edge_dist 0) and supply 36 % of the human's gems.
+
+| leg type (consecutive pickups) | agent n / mean s | human n / mean s | agent excess |
+|---|---|---|---|
+| ring -> ring (3.9 u) | 76 / 0.96 | 112 / 0.85 | 8 s |
+| ring -> out | 164 / 1.94 | 135 / 1.60 | 55 s |
+| **out -> ring** | 161 / **3.12** | 133 / 1.84 | **205 s** |
+| out -> out | 261 / 1.95 | 296 / 1.71 | 64 s |
+
+Legs touching the ring are 73 % of the 332 s gap. Leg MIX explains only ~15 % of it: at the human's
+per-type durations the agent's own leg mix gives 1070 s against its actual 1402 s, i.e. **x1.31
+gems/min = 139 points**, and matching the human's fall rate as well (2.1 falls/round vs 0.2, ~7 s of
+dead time and return trip) gives ~144. Gem VALUE is at parity (1.266 vs 1.26 points per gem), as
+section 25 already said.
+
+Region speeds (share of time, mean speed): ring, agent 27 % at 5.12 u/s vs human 23 % at 7.43 (63 % of
+human); walkways 7.52 vs 8.76 (86 %); intersections 6.45 vs 7.27 (89 %). Inside the block itself the
+agent averages 4.6 u/s with 13 % of its time below 2 u/s and 0.6 % above 10; the human averages 6.9 with
+22 % above 10 u/s.
+
+### 28.2 The mechanism: braking into the gem, near-stop after it, one second to recover
+
+Speed by distance still to go on out -> ring legs: agent plateaus at 7.9 u/s from 8 u out and brakes to
+4.7 at the gem; the human accelerates 5.6 -> 10.9 and takes the gem at 9.8. Pickup speed at the four
+ring gems: **agent 4.50, human 8.21**; one second earlier both are near 7 (6.6 vs 7.5). On outer gems the
+agent is 6.62 vs 7.49, so the braking is specific to the edge-cell gems.
+
+After the pickup, every leg type shows the same dip, at matched turn angles:
+
+| after pickup | agent min speed in the next 1 s / share below 2 u/s | human | time to be back at 8 u/s, agent / human |
+|---|---|---|---|
+| ring -> out | 2.0 u/s / **51 %** | 6.8 / 14 % | 1.02 s / 0.00 |
+| ring -> ring | 2.8 / 29 % | 4.4 / 10 % | (short legs) |
+| out -> ring | 3.6 / 14 % | 6.0 / 6 % | 0.90 / 0.51 |
+| out -> out | 3.7 / 12 % | 6.4 / 7 % | 0.83 / 0.43 |
+
+Decision-by-decision replays (e.g. decisions 762-790) show it plainly: 5.7 u/s at the pickup, 0.3 u/s
+seven decisions later, then 1.5 s of acceleration to 10.6. The human turns 86 deg at pickup on
+out -> out legs (same as the agent) and keeps 6.4 u/s through it. Section 26's "sustain" finding is this
+same phase seen differently: the heading-change spikes are 13-17 % ONLY at 8-17 u to go on
+ring -> out legs, i.e. the first second after a ring pickup; elsewhere both players are at 0-3 %.
+
+Two smaller items in the same data:
+* Ordering at ring exits: with the velocity 0.5 s before the pickup, the human's turn to the next gem is
+  a median 31 deg on ring -> out (leaves the block along the line it swept) against the agent's 79 deg.
+  Other leg types match (83-91 deg both). Inference-only lever (`real_run.py::choose`), secondary.
+* 40 % of the agent's ring entries start at a corner gem (human 11 %), 3.74 s each. Also ordering.
+* Hanging on the hole's lip: 5 stalls of 2+ s in 8 rounds (0.5 % of time), the marble driving west along
+  y ~14.4 straight onto the south rim, sitting at ~0 u/s half over the void, then dropping in. Minor.
+
+### 28.3 Why the policy does this: the reward, in numbers
+
+* **Braking into ring gems buys no safety.** Training trace `trace_20260921_163647.csv`, KOTM instances,
+  16,952 ring-goal arrivals: a fall within 1.5 s of arrival is 0.11 %, and FLAT in arrival speed
+  (0.20 % at 0-3 u/s, 0.14 % at 7-9, 0.00 % at 9-12; outer goals 0.13 %). Training arrives at ring goals
+  at 5.05 u/s against 5.91 at outer goals, so training teaches the brake and real rounds amplify it
+  (4.50). The fear is priced in, the danger is absent at these speeds.
+* **Time is under-priced ~4x.** What a decision is worth in the reward: TIME 0.05 plus the
+  GEM_SPEED_BONUS slope 8/60 = 0.13, total **0.18**. What a decision is worth in a scored round: per
+  gem ~27 reward (ARRIVE 10 + progress ~14 + bonus ~3.5) x 27.7 gems/min / 937 decisions/min =
+  **~0.8**. Section 19 measured the same thing as "98 % of a leg's reward is speed-independent".
+* **PROGRESS 1.0/u makes momentum read as loss.** Carrying speed past a gem in an arc costs ~1-1.5 u of
+  geodesic progress = 1.0-1.5 reward; stopping and turning in place costs ~8 decisions x 0.18 = 1.4.
+  Break-even under the current prices, so the policy stops. At the true price (0.8/decision) the stop
+  costs ~6 and the arc ~2. The human's curve is what a correctly priced clock produces.
+* **The edge charge taxes human-speed play in the block.** Ignoring the goal exemption it fires on
+  61-69 % of in-block decisions at 7+ u/s (mean 0.41-0.47 per decision); with the exemption it still
+  charges the human's own trajectory 35 % more per ring decision than the agent's (0.081 vs 0.060).
+  Secondary to the pricing above, and not proposed for change in the first run.
+* Training never sees consecutive goals closer than GROUP_LINK_DMIN = 6 u; the ring gems are 3.9 u
+  apart and ring -> ring legs are 11 % of real legs (agent exit speed there 4.55 vs human 6.30).
+
+### 28.4 Proposal (pending operator approval; no code changed)
+
+1. **Price time through the collection-paid bonus, not per-decision TIME.** `GEM_SPEED_BONUS 8 -> 40`,
+   `GEM_SPEED_REF 60 -> 80` in `nav/waypoints.py`: slope 0.5 per decision (was 0.13), saturating at
+   5.1 s (95 % of real legs are under 61 decisions, 99 % under 80). Paid only on collection, so it cannot
+   be farmed by not collecting, never goes negative, and does NOT tax airborne decisions as such, which
+   is what broke FlatIslands when TIME went to 0.20 (section 19). PROGRESS stays 1.0 as the scaffold;
+   FALL 25 stays (a fall now also forfeits the bonus through the clock, the correct incentive).
+2. **`GROUP_LINK_DMIN 6.0 -> 3.0`** so 4 u gem pairs exist in training.
+3. Restart training on the current rotation, judge ONLY by 8-round real runs on KOTM and FlatGem
+   (FlatGem is the control: it has no edges, so any gain there is pure pacing). Watch the MAPS lines for
+   FlatIslands (baseline 86-87 % arrive, falls100 1.32) and KOTM falls100 (baseline 0.48) as canaries;
+   report, do not stop (operator rule).
+4. Secondary, inference-only, can run any time training is down: momentum-aware ordering in
+   `real_run.py::choose` (prefer the gem that continues the current heading when costs are close),
+   aimed at the 79 vs 31 deg ring-exit turn and the 40 % corner starts.
+
+Expected size of the prize: the pickup dip alone is worth up to the 139 points computed in 28.1 if
+matched to the human; 150 additionally needs the fall rate (2.1/round) brought toward the human's 0.2.
+Note on the target: 150 POINTS is 118 gems at 1.266 points per gem; 150 GEMS would be ~190 points.
+
+Handoff's B1 ("nothing trained on the corrected observation") is moot for the policy: training goals
+come from `terrain.gem_spawns` via `vec_worker`, never from the observer, so the section 22 bug only ever
+touched real rounds. Training is DOWN (it was down when this session began and was not restarted).
+
+### 28.5 APPLIED (2026-09-22 00:05): the section 28.4 change is live
+
+Operator approved the plan with the goal confirmed as **150 POINTS**. Applied in `nav/waypoints.py`:
+`GEM_SPEED_BONUS 8 -> 40`, `GEM_SPEED_REF 60 -> 80` (slope 0.5 per decision), `GROUP_LINK_DMIN 6 -> 3`.
+Pre-change weights snapshot: `models/nav/nav_before_timeprice_20260922.pth` (update 13,895).
+Training restarted 23:55 from `nav_latest.pth` via `start_training.ps1`; first update 13,899, per-update
+`rew=` now ~270 (was ~60-80) because the bonus is larger, so do not read the reward level against old runs.
+
+**Pool changed 00:00 at the operator's request: 2 FlatGem / 5 KOTM / 1 Islands** (was 4/3/1), now the
+default `-Split` in `start_training.ps1`. Games were relaunched with the trainer left running; workers
+reloaded their maps on reconnect and the MAPS line shows n=2/5/1. First readings on the new split:
+FlatGem arrive 99 %, speed 10.0; Islands arrive 94 %, falls100 1.12-1.21; KOTM arrive 98 %, falls100
+0.52-0.55, speed 5.7. Those are the canary baselines for this run.
+
+Operator note for this night only: stopping training is allowed if warranted (e.g. for the 8-round eval).
+Evaluate with `.\eval_both.ps1 -Tag timeprice -Rounds 8` after a few hundred updates; judge by KOTM points
+with FlatGem as the no-edges control. The pickup-dip metrics of 28.2 (min speed in the 1 s after a
+pickup, time to regain 8 u/s, ring pickup speed) are the direct readout of whether the change worked.
+
+### 28.6 First eval of the timeprice run: NO CHANGE after 360 updates (2026-09-22 02:10)
+
+`eval_cycle.ps1 -Tag timeprice` on `nav_eval_timeprice_0142.pth` (update 14,255, ~360 updates on the new
+reward): **105.0 points** (106,102,105,108,105,106,101,107), 27.6 gems/min, 16 falls. A second copy of
+the cycle fired one minute later on the same weights (`_0143.pth`) and scored 103.8 with 27 falls, but it
+ran alongside a full training stack (see the incident below) so it is confounded. Baseline was 106 / 102.9.
+The pickup-dip readout is unchanged too: 53 % of ring exits below 2 u/s, 0.9-1.0 s to regain 8 u/s.
+Training-side KOTM pickup speed 5.5 -> 5.2 and falls100 0.52 -> 0.56-0.73 over the same window, i.e. no
+sign yet of faster pickups. Verdict withheld: 360 updates may be too few for a new motor pattern (arc
+turns at speed) as opposed to re-weighting an existing one. Next automatic eval at update 14,900 (tag
+`timeprice2`). If that is also flat, the pricing hypothesis needs a different lever (see 28.3: the edge
+charge, or a dense per-decision term), not a bigger constant.
+
+**Incident, for the record.** Two waiter scripts were alive (the first was launched through the tool's
+background runner and did not die when "stopped"), so `eval_cycle.ps1` ran twice, one minute apart. Each
+restarted a full trainer + loop + 8 games afterwards, giving two stacks on ports 8888-8895 and 16 game
+instances; the second trainer never bound and its games dialled the first stack's workers. Cleaned up
+02:05 by killing the 02:01 stack; the 01:45 stack (resumed at update 14,255) is the live one. Lesson:
+launch long waiters ONLY as detached processes (`Start-Process` on Git Bash), never via the tool runner,
+and check `Get-Process marbleblast_mbx` count = 8 after any eval cycle.
+
+### 28.7 MOMENTUM-AWARE GEM ORDERING: +8 POINTS AT INFERENCE, NO TRAINING (2026-09-22 02:35)
+
+The secondary lever from 28.4 item 4, tested as a pure A/B on FIXED weights
+(`models/nav/nav_eval_timeprice_0142.pth`, update 14,255) with `eval_cycle.ps1` (8 rounds each, ~3.5 min
+of training downtime per run). `real_run.py::choose` now adds to each gem's distance the turn-around
+cost `MOMENTUM_K * speed * (1 - cos(angle between the marble's velocity and the bearing to the gem))`;
+`NAV_MOMENTUM_K` env, **default now 1.6** (0 restores greedy-nearest).
+
+| K (s) | points, 8 rounds | mean |
+|---|---|---|
+| 0 (greedy nearest) | 106,102,105,108,105,106,101,107 | 105.0 |
+| 0.4 | 103,111,110,112,109,112,118,110 | 110.6 |
+| 0.8 | 112,115,110,113,103,112,116,123 | 113.0 |
+| 1.2 | 114,114,115,101,106,104,110,105 | 108.6 |
+| 1.6 | 115,118,120,117,118,120,117,121 | **118.3** |
+| 1.6 (replicate) | 116,115,111,94,115,105,108,118 | 110.3 |
+| 2.2 | 124,87,115,116,111,123,122,116 | 114.3 |
+| 3.2 | 112,117,109,122,112,103,113,108 | 112.0 |
+
+Pooled K >= 0.8 (40 rounds): **113.6**, i.e. **+8.6 over greedy-nearest on the same weights**. The
+8-round mean has roughly +-3 of noise (single fall-heavy rounds of 87 and 94 appear), so K is not tuned
+finer than "1.6 to 2.2". Mechanism it targets: the agent's ring->out turn at the exit gem was 79 deg vs
+the human's 31 (28.2); with the term the marble leaves the centre along its momentum instead of
+reversing into a stop-and-go. Per-leg readout at K=0.4: ring->out mean 2.02 -> 1.88 s, path/straight
+1.10 -> 1.04, and 697 legs per 8 rounds against 652.
+
+**Attribution note for later evals.** Every real run from 02:35 on uses K=1.6 by default, so the
+`timeprice2` eval at update 14,900 must be read against ~113.6 (momentum baseline on the 14,255 weights),
+NOT against 105. To isolate training progress from the ordering term, run with `NAV_MOMENTUM_K=0`.
+
+**Still open on this lever:** distance in `choose` is Euclidean; on KOTM's lattice a geodesic (goal_field)
+distance would stop it picking a 14 u corner-to-ring gem that is 20 u by path. Untested.
+
+Geodesic variant tested 02:36 (`NAV_GEO_ORDER=1`, K=1.6, same weights): 124,120,110,115,115,103,110,111
+-> **113.5**, indistinguishable from the momentum-only pool (113.6). Left OFF by default; the code stays
+(`real_run.py`, one cached Dijkstra per walk cell, 0.3 ms on KOTM) for maps where the straight line lies.
+
+Cost of the sweep: `eval_cycle.ps1` kills the trainer without saving, so each run lost the updates since
+the last checkpoint; the trainer sat at update ~14,300 from 02:04 to 02:38 (seven evals). If sweeps like
+this become routine, make the cycle send a save request first, or use a copied checkpoint and leave
+training up (needs a 9th game's worth of VRAM, which the 8 GB card does not have).
+
+### 28.8 TRAP: game instances silently halve training throughput after a while; relaunching them fixes it (2026-09-22 04:15)
+
+At 03:36 every instance's rtf dropped from 4-5 to 2.0-2.1 in one step; per update `wall_s` 16 -> 35,
+`dps` 520 -> 235, profile `w_game` 21 -> 136 ms. CPU 13 %, GPU 53 %, no throttle, no new process, all
+eight games equally slow, uniform 32 ms extra per decision. Ruled out: display sleep (the 23:55 stack ran
+107 min through the display timeout at a steady 17 s), process age (same evidence), CPU/GPU contention.
+Measured: a plain sleep on this machine is 15.5 ms unless the process holds a 1 ms timer request, so the
+extra 32 ms per decision is exactly two coarse sleeps, i.e. the games lost their 1 ms timer resolution
+(Windows 11 revokes it per process under conditions it does not document). Waking the display did not
+help; **killing the eight games (the loop relaunches them, workers reconnect) restored 16 s immediately**.
+`logs/nav/game_watchdog.sh` now runs detached and does that automatically after three slow readings.
+If a run's update rate halves with nothing else wrong, check `wall_s`/`w_game` before anything else.
+
+### 28.9 VERDICT ON THE TIME REPRICING: REVERTED. It bought speed with falls (2026-09-22 05:55)
+
+Second eval at update 14,913 (~1,000 updates on GEM_SPEED_BONUS 40 / REF 80), 8 rounds each:
+
+| weights | ordering | points | falls / 8 rounds | gems/min |
+|---|---|---|---|---|
+| 14,255 (start of run) | K=0 | 105.0 | 16 | 27.6 |
+| 14,255 | K>=0.8 pooled | 113.6 | n/a | n/a |
+| **14,913** | K=1.6 | 116.3 (119,106,115,125,112,116,117,120) | **45** | 30.7 |
+| **14,913** | K=0 | 102.6 (108,99,104,105,105,100,96,104) | **51** | 27.1 |
+
+Same ordering, the trained weights score 105.0 -> 102.6 while real-round falls triple (0.18 -> 0.54 per
+100 u; ring-exit legs carry a fall 19 % of the time). The pickup dip DID move (ring exits below 2 u/s
+53 % -> 42 % at K=0, time to regain 8 u/s 0.96 -> 1.09 s, i.e. mixed), gems/min at K=1.6 reached 30.7,
+but every gained second was spent falling. Training-side KOTM falls100 stayed 0.45-0.55 throughout, so
+the training curve did not show it; only the real rounds did (rule 3 again). This is the trade the
+2026-09-18 note predicted: "told to go faster, a policy that already falls more will buy speed with falls".
+
+Action taken under the one-night stop permission: GEM_SPEED_BONUS/REF back to 8/60, weights restored to
+`nav_eval_timeprice_0142.pth` (update 14,255, the best-verified checkpoint: 105.0 at K=0, 118.3/110.3 at
+K=1.6), endpoint of the 40/80 run kept as `nav_timeprice_end_14913.pth`. `GROUP_LINK_DMIN = 3` and the
+2/5/1 pool are kept (not implicated; ring->ring legs carry a fall 2 %). Training restarted 05:57.
+
+**What the night established.** The centre gap is real and its mechanism (stop-and-go at pickups, 28.2)
+is measured, but pricing time harder is the wrong lever for it while the policy cannot turn at speed
+without leaving the block. The lever that worked is the ordering term (+8 to +14 points at inference).
+Candidates that survive for the pickup dip itself: FALL raised together with the time price (so speed
+cannot be bought with falls), or a dense per-decision term for thrust along motion (section 23 item 2);
+either needs the operator's decision. **Current best real-round configuration: 14,255 weights +
+K=1.6 = 113-118 points.**

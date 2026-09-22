@@ -1,0 +1,2 @@
+[02:01:16] resumed C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\models\nav\nav_latest.pth: update 14295, steps 108,188,654, trained on FlatGemTraining_Hunt
+[02:01:18] 8 instance worker(s) on ports 8888..8895; training mode True (64 ms per decision); arrive radius 0.65 u; device cuda

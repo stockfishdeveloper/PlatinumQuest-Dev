@@ -1,0 +1,88 @@
+02:04:42 latest update 14301 in logs/nav/train_nav_20260922_014552.log
+02:09:42 latest update none in logs/nav/train_nav_20260922_020924.log
+02:14:42 latest update none in logs/nav/train_nav_20260922_021314.log
+02:19:42 latest update none in logs/nav/train_nav_20260922_021651.log
+02:24:42 latest update none in logs/nav/train_nav_20260922_022425.log
+02:29:42 latest update none in logs/nav/train_nav_20260922_022804.log
+02:34:42 latest update 14309 in logs/nav/train_nav_20260922_023145.log
+02:39:43 latest update 14314 in logs/nav/train_nav_20260922_023645.log
+02:44:43 latest update 14333 in logs/nav/train_nav_20260922_023645.log
+02:49:43 latest update 14352 in logs/nav/train_nav_20260922_023645.log
+02:54:43 latest update 14372 in logs/nav/train_nav_20260922_023645.log
+02:59:43 latest update 14391 in logs/nav/train_nav_20260922_023645.log
+03:04:43 latest update 14410 in logs/nav/train_nav_20260922_023645.log
+03:09:43 latest update 14430 in logs/nav/train_nav_20260922_023645.log
+03:14:44 latest update 14449 in logs/nav/train_nav_20260922_023645.log
+03:19:44 latest update 14469 in logs/nav/train_nav_20260922_023645.log
+03:24:44 latest update 14488 in logs/nav/train_nav_20260922_023645.log
+03:29:44 latest update 14507 in logs/nav/train_nav_20260922_023645.log
+03:34:44 latest update 14527 in logs/nav/train_nav_20260922_023645.log
+03:39:44 latest update 14541 in logs/nav/train_nav_20260922_023645.log
+03:44:44 latest update 14549 in logs/nav/train_nav_20260922_023645.log
+03:49:45 latest update 14558 in logs/nav/train_nav_20260922_023645.log
+03:54:45 latest update 14566 in logs/nav/train_nav_20260922_023645.log
+03:59:45 latest update 14575 in logs/nav/train_nav_20260922_023645.log
+04:04:45 latest update 14583 in logs/nav/train_nav_20260922_023645.log
+04:09:45 latest update 14592 in logs/nav/train_nav_20260922_023645.log
+04:14:45 latest update 14601 in logs/nav/train_nav_20260922_023645.log
+04:19:45 latest update 14620 in logs/nav/train_nav_20260922_023645.log
+04:24:46 latest update 14639 in logs/nav/train_nav_20260922_023645.log
+04:29:46 latest update 14659 in logs/nav/train_nav_20260922_023645.log
+04:34:46 latest update 14678 in logs/nav/train_nav_20260922_023645.log
+04:39:46 latest update 14697 in logs/nav/train_nav_20260922_023645.log
+04:44:46 latest update 14716 in logs/nav/train_nav_20260922_023645.log
+04:49:46 latest update 14736 in logs/nav/train_nav_20260922_023645.log
+04:54:47 latest update 14755 in logs/nav/train_nav_20260922_023645.log
+04:59:47 latest update 14774 in logs/nav/train_nav_20260922_023645.log
+05:04:47 latest update 14794 in logs/nav/train_nav_20260922_023645.log
+05:09:47 latest update 14813 in logs/nav/train_nav_20260922_023645.log
+05:14:47 latest update 14832 in logs/nav/train_nav_20260922_023645.log
+05:19:47 latest update 14842 in logs/nav/train_nav_20260922_023645.log
+05:24:48 latest update 14851 in logs/nav/train_nav_20260922_052308.log
+05:29:48 latest update 14872 in logs/nav/train_nav_20260922_052308.log
+05:34:48 latest update 14892 in logs/nav/train_nav_20260922_052308.log
+05:39:48 latest update 14913 in logs/nav/train_nav_20260922_052308.log
+05:39:48 reached 14913, running eval_cycle -Tag timeprice2 -Rounds 8
+[05:39:54] stopped 1 loop + 17 training processes
+[05:39:54] snapshot C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\models\nav\nav_eval_timeprice2_0539.pth
+[05:39:54] starting the navigator on port 8920 (it binds before anything else)
+[05:39:55] port 8920 is listening; safe to launch the game
+[05:39:55] launching KingOfTheMarble_Hunt on port 8920
+  game pid 36460; it will be answered the instant it reaches GO
+
+  warm-up: model ready in 0.19 s, terrain "KingOfTheMarble_Hunt" pre-built
+  [env:8920] waiting for the game
+  [env:8920] game connected (1)
+  real run: nav_eval_timeprice2_0539.pth (update 14910) on KingOfTheMarble_Hunt, 8 round(s), port 8920
+    round 1: {'round': 1, 'gems': 93, 'points': 119.0, 'minutes': 3.02, 'decisions': 2828, 'gems_per_min': 30.8, 'points_per_min': 39.4, 'falls': 3, 'falls_per_100u': 0.238, 'travelled_u': 1260.8, 'speed': 6.97, 'blind_pct': 0.0, 'snapped_pct': 0.0, 'pathed_pct': 0.0, 'smooth': 1.0}
+  [env:8920] round over (time left 180s of 180s); waiting for the next round
+  [env:8920] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+    round 2: {'round': 2, 'gems': 84, 'points': 106.0, 'minutes': 3.01, 'decisions': 2821, 'gems_per_min': 27.9, 'points_per_min': 35.2, 'falls': 12, 'falls_per_100u': 0.98, 'travelled_u': 1225.0, 'speed': 6.79, 'blind_pct': 0.0, 'snapped_pct': 0.0, 'pathed_pct': 0.0, 'smooth': 1.0}
+  [env:8920] round over (time left 180s of 180s); waiting for the next round
+  [env:8920] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+    round 3: {'round': 3, 'gems': 92, 'points': 115.0, 'minutes': 3.02, 'decisions': 2829, 'gems_per_min': 30.5, 'points_per_min': 38.1, 'falls': 4, 'falls_per_100u': 0.34, 'travelled_u': 1174.9, 'speed': 6.49, 'blind_pct': 0.0, 'snapped_pct': 0.0, 'pathed_pct': 0.0, 'smooth': 1.0}
+  [env:8920] round over (time left 180s of 180s); waiting for the next round
+  [env:8920] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+    round 4: {'round': 4, 'gems': 100, 'points': 125.0, 'minutes': 3.01, 'decisions': 2824, 'gems_per_min': 33.2, 'points_per_min': 41.5, 'falls': 9, 'falls_per_100u': 0.746, 'travelled_u': 1207.2, 'speed': 6.68, 'blind_pct': 0.0, 'snapped_pct': 0.0, 'pathed_pct': 0.0, 'smooth': 1.0}
+  [env:8920] round over (time left 180s of 180s); waiting for the next round
+  [env:8920] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+    round 5: {'round': 5, 'gems': 89, 'points': 112.0, 'minutes': 3.02, 'decisions': 2828, 'gems_per_min': 29.5, 'points_per_min': 37.1, 'falls': 5, 'falls_per_100u': 0.409, 'travelled_u': 1222.6, 'speed': 6.75, 'blind_pct': 0.0, 'snapped_pct': 0.0, 'pathed_pct': 0.0, 'smooth': 1.0}
+  [env:8920] round over (time left 180s of 180s); waiting for the next round
+  [env:8920] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+    round 6: {'round': 6, 'gems': 92, 'points': 116.0, 'minutes': 3.02, 'decisions': 2830, 'gems_per_min': 30.5, 'points_per_min': 38.4, 'falls': 3, 'falls_per_100u': 0.245, 'travelled_u': 1223.1, 'speed': 6.75, 'blind_pct': 0.0, 'snapped_pct': 0.0, 'pathed_pct': 0.0, 'smooth': 1.0}
+  [env:8920] round over (time left 180s of 180s); waiting for the next round
+  [env:8920] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+    round 7: {'round': 7, 'gems': 93, 'points': 117.0, 'minutes': 3.02, 'decisions': 2828, 'gems_per_min': 30.8, 'points_per_min': 38.8, 'falls': 5, 'falls_per_100u': 0.402, 'travelled_u': 1242.7, 'speed': 6.87, 'blind_pct': 0.0, 'snapped_pct': 0.0, 'pathed_pct': 0.0, 'smooth': 1.0}
+  [env:8920] round over (time left 180s of 180s); waiting for the next round
+  [env:8920] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+    round 8: {'round': 8, 'gems': 97, 'points': 120.0, 'minutes': 3.02, 'decisions': 2829, 'gems_per_min': 32.1, 'points_per_min': 39.8, 'falls': 4, 'falls_per_100u': 0.339, 'travelled_u': 1180.5, 'speed': 6.52, 'blind_pct': 0.0, 'snapped_pct': 0.0, 'pathed_pct': 0.0, 'smooth': 1.0}
+  REAL RUN {"gems_per_min": 30.663, "points_per_min": 38.537, "falls_per_100u": 0.462, "speed": 6.728, "blind_pct": 0.0} vs human {"gems_per_min": 0.82, "points_per_min": 0.81, "speed": 0.84, "falls_ratio": 10.0}
+  wrote C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\logs\nav\real_run_KingOfTheMarble_Hunt_nav_eval_timeprice2_0539.json
+  stderr tail:
+    C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\nav\real_run.py:313: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+      ck = torch.load(ckpt, map_location=dev)
+[05:42:57] done. JSON: logs\nav\real_run_KingOfTheMarble_Hunt_*.json
+[05:42:57] EVAL timeprice2: rounds 119,106,115,125,112,116,117,120 -> mean 116.3
+[05:43:00] all 8 worker ports 8888..8895 listening; safe to launch the games
+[05:43:00] trainer up and listening, then game loop restarted
+05:43:00 eval cycle finished

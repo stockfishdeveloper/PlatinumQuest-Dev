@@ -9,7 +9,11 @@
 #   .\start_training.ps1 -Missions "FlatIslands_Hunt,KingOfTheMarble_Hunt" -Split "4,4"
 param(
     [string]$Missions = "FlatGemTraining_Hunt,KingOfTheMarble_Hunt,FlatIslands_Hunt",
-    [string]$Split = "4,3,1",      # 2026-09-21: FlatGemTraining added as the SPEED map (flat, no
+    [string]$Split = "2,5,1",      # 2026-09-22: 4,3,1 -> 2,5,1 at the operator's request: KOTM is the
+                                   # scored map and the behaviours HANDOFF section 28 targets (edge-cell
+                                   # gems, 4 u ring pairs, the centre block entry) only occur there.
+                                   # FlatGem kept at 2 as the no-edges pacing control.
+                                   # (earlier note) 2026-09-21: FlatGemTraining added as the SPEED map (flat, no
                                    # holes, a recorded human baseline of 9.92 u/s between pickups
                                    # and 2.80 s/gem to aim at). KOTM keeps a strong share because
                                    # it is the map we are scored on. One Islands instance is kept

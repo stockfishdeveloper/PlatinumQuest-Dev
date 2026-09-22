@@ -1,0 +1,41 @@
+[02:33:33] stopped 1 loop + 17 training processes
+[02:33:33] starting the navigator on port 8920 (it binds before anything else)
+[02:33:34] port 8920 is listening; safe to launch the game
+[02:33:34] launching KingOfTheMarble_Hunt on port 8920
+  game pid 29948; it will be answered the instant it reaches GO
+
+  warm-up: model ready in 0.20 s, terrain "KingOfTheMarble_Hunt" pre-built
+  [env:8920] waiting for the game
+  [env:8920] game connected (1)
+  real run: nav_eval_timeprice_0142.pth (update 14255) on KingOfTheMarble_Hunt, 8 round(s), port 8920
+    round 1: {'round': 1, 'gems': 100, 'points': 124.0, 'minutes': 3.02, 'decisions': 2830, 'gems_per_min': 33.1, 'points_per_min': 41.1, 'falls': 1, 'falls_per_100u': 0.083, 'travelled_u': 1201.6, 'speed': 6.63, 'blind_pct': 0.0, 'snapped_pct': 0.0, 'pathed_pct': 0.0, 'smooth': 1.0}
+  [env:8920] round over (time left 180s of 180s); waiting for the next round
+  [env:8920] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+    round 2: {'round': 2, 'gems': 96, 'points': 120.0, 'minutes': 3.02, 'decisions': 2830, 'gems_per_min': 31.8, 'points_per_min': 39.8, 'falls': 3, 'falls_per_100u': 0.26, 'travelled_u': 1155.4, 'speed': 6.38, 'blind_pct': 0.0, 'snapped_pct': 0.0, 'pathed_pct': 0.0, 'smooth': 1.0}
+  [env:8920] round over (time left 180s of 180s); waiting for the next round
+  [env:8920] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+    round 3: {'round': 3, 'gems': 87, 'points': 110.0, 'minutes': 3.02, 'decisions': 2827, 'gems_per_min': 28.9, 'points_per_min': 36.5, 'falls': 6, 'falls_per_100u': 0.532, 'travelled_u': 1128.8, 'speed': 6.24, 'blind_pct': 0.0, 'snapped_pct': 0.0, 'pathed_pct': 0.0, 'smooth': 1.0}
+  [env:8920] round over (time left 180s of 180s); waiting for the next round
+  [env:8920] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+    round 4: {'round': 4, 'gems': 91, 'points': 115.0, 'minutes': 3.02, 'decisions': 2833, 'gems_per_min': 30.1, 'points_per_min': 38.1, 'falls': 0, 'falls_per_100u': 0.0, 'travelled_u': 1130.8, 'speed': 6.24, 'blind_pct': 0.0, 'snapped_pct': 0.0, 'pathed_pct': 0.0, 'smooth': 1.0}
+  [env:8920] round over (time left 180s of 180s); waiting for the next round
+  [env:8920] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+    round 5: {'round': 5, 'gems': 92, 'points': 115.0, 'minutes': 3.02, 'decisions': 2830, 'gems_per_min': 30.5, 'points_per_min': 38.1, 'falls': 3, 'falls_per_100u': 0.259, 'travelled_u': 1158.3, 'speed': 6.4, 'blind_pct': 0.0, 'snapped_pct': 0.0, 'pathed_pct': 0.0, 'smooth': 1.0}
+  [env:8920] round over (time left 180s of 180s); waiting for the next round
+  [env:8920] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+    round 6: {'round': 6, 'gems': 82, 'points': 103.0, 'minutes': 3.02, 'decisions': 2827, 'gems_per_min': 27.2, 'points_per_min': 34.2, 'falls': 6, 'falls_per_100u': 0.525, 'travelled_u': 1143.1, 'speed': 6.32, 'blind_pct': 0.0, 'snapped_pct': 0.0, 'pathed_pct': 0.0, 'smooth': 1.0}
+  [env:8920] round over (time left 180s of 180s); waiting for the next round
+  [env:8920] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+    round 7: {'round': 7, 'gems': 86, 'points': 110.0, 'minutes': 3.02, 'decisions': 2828, 'gems_per_min': 28.5, 'points_per_min': 36.5, 'falls': 5, 'falls_per_100u': 0.433, 'travelled_u': 1155.2, 'speed': 6.38, 'blind_pct': 0.0, 'snapped_pct': 0.0, 'pathed_pct': 0.0, 'smooth': 1.0}
+  [env:8920] round over (time left 180s of 180s); waiting for the next round
+  [env:8920] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+    round 8: {'round': 8, 'gems': 88, 'points': 111.0, 'minutes': 3.02, 'decisions': 2829, 'gems_per_min': 29.2, 'points_per_min': 36.8, 'falls': 4, 'falls_per_100u': 0.344, 'travelled_u': 1163.6, 'speed': 6.43, 'blind_pct': 0.0, 'snapped_pct': 0.0, 'pathed_pct': 0.0, 'smooth': 1.0}
+  REAL RUN {"gems_per_min": 29.913, "points_per_min": 37.638, "falls_per_100u": 0.304, "speed": 6.378, "blind_pct": 0.0} vs human {"gems_per_min": 0.8, "points_per_min": 0.8, "speed": 0.79, "falls_ratio": 6.6}
+  wrote C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\logs\nav\real_run_KingOfTheMarble_Hunt_nav_eval_timeprice_0142.json
+  stderr tail:
+    C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\nav\real_run.py:313: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+      ck = torch.load(ckpt, map_location=dev)
+[02:36:43] done. JSON: logs\nav\real_run_KingOfTheMarble_Hunt_*.json
+[02:36:43] EVAL geo16: rounds 124,120,110,115,115,103,110,111 -> mean 113.5
+[02:36:46] all 8 worker ports 8888..8895 listening; safe to launch the games
+[02:36:46] trainer up and listening, then game loop restarted

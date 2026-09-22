@@ -43,14 +43,29 @@ PROGRESS = 1.0                 # REVERTED to 1.0 at 13:26 on 2026-09-21 after 10
                                # actually drive pace. Kept non-zero because this is the scaffold
                                # that makes the task learnable from scratch.
 ARRIVE = 10.0
-GEM_SPEED_BONUS = 8.0          # paid ON COLLECTION, scaled by how quickly THIS gem was reached:
+GEM_SPEED_BONUS = 8.0          # REVERTED to 8 (REF 60) at 05:55 on 2026-09-22 after ~1,000 updates at 40/80
+                               # (HANDOFF 28.9): real-round score 105.0 -> 102.6 on the same ordering while
+                               # falls went 16 -> 51 per 8 rounds. It bought speed with falls, as the
+                               # 2026-09-18 note predicted. Weights restored to nav_eval_timeprice_0142
+                               # (update 14,255); the 40/80 endpoint is nav_timeprice_end_14913.pth.
+                               # (superseded) 8 -> 40 on 2026-09-22 (HANDOFF section 28), with GEM_SPEED_REF 60 -> 80:
+                               # the slope becomes 0.5 reward per decision (was 0.13). This is how TIME is
+                               # priced: a decision in a scored round is worth ~0.8 of reward, and the
+                               # reward valued it at 0.18 (TIME + this slope), so the policy learned to
+                               # STOP at every pickup and turn in place (51 % of centre-gem exits below
+                               # 2 u/s, 1.0 s to regain 8 u/s; human dips to 6.8). Paid on collection
+                               # only, so unlike TIME 0.20 (section 19) it does not tax airborne
+                               # decisions as such and cannot break gap crossing on Islands.
+                               # Snapshot before: models/nav/nav_before_timeprice_20260922.pth
+                               # (was 8.0) paid ON COLLECTION, scaled by how quickly THIS gem was reached:
                                # GEM_SPEED_BONUS * max(0, 1 - gem_decisions / GEM_SPEED_REF).
                                # Pure outcome pressure -- nothing about direction or throttle.
                                # human pace ~24 decisions -> 4.8 | agent median 36 -> 3.0 | 60+ -> 0.
                                # Closing to human pace is worth ~+1.8 a gem, ~11 a group against ~60
                                # for the group. Cannot be farmed by abandoning a gem: only paid on
                                # collection. Raising flat TIME instead made speed WORSE (see TIME).
-GEM_SPEED_REF = 60             # decisions at which the bonus reaches zero (~3.8 s)
+GEM_SPEED_REF = 60             # decisions at which the bonus reaches zero (~3.8 s). Was 80 for the
+                               # 2026-09-22 timeprice run, reverted with GEM_SPEED_BONUS.
 CARRY = 0.0                    # DISABLED 2026-09-20 11:55 after a null result. Paid ON COLLECTION for
                                # momentum pointing at the NEXT gem. Two calibrations and 160 updates
                                # moved the measured arrival alignment not at all (carry held 1.1-1.2
@@ -258,7 +273,10 @@ REST_WAIT_TICKS = 90           # max ticks to wait for the marble to come to res
 
 # --- gem groups (2026-09-19) --------------------------------------------------------------
 GEM_GROUP_MIN, GEM_GROUP_MAX = 4, 8   # real hunt gems spawn in groups of this size
-GROUP_LINK_DMIN, GROUP_LINK_DMAX = 6.0, 22.0   # spacing between consecutive gems in a group
+GROUP_LINK_DMIN, GROUP_LINK_DMAX = 3.0, 22.0   # spacing between consecutive gems in a group.
+                               # DMIN 6 -> 3 on 2026-09-22: KOTM's four centre gems are 3.9 u apart and
+                               # ring->ring legs are 11 % of real legs, but training never produced a
+                               # pair closer than 6 u (HANDOFF section 28).
 TIMEOUT_PER_GEM = 312          # 20 s of budget per gem still to collect (was a flat TIMEOUT_DECISIONS)
 FALL_CONTINUE = True           # a fall respawns and CONTINUES the group instead of ending it, because
                                # that is what happens in a real round: the gems stay on the map and
