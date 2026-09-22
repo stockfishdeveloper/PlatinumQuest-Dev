@@ -79,6 +79,12 @@ WATCH = os.environ.get('NAV_WATCH', '0') == '1'    # real-time viewing. Lockstep
                                # RENDEREVERY 100 -- so NAV_SPEED alone does NOT give real time.
                                # WATCH renders every frame and paces the loop to 64 ms/decision,
                                # leaving physics and decisions bit-identical to a fast run.
+OOB_CLICK = os.environ.get('NAV_OOB_CLICK', '1') == '1'   # on by default. Send OOBCLICK the moment
+                               # a fall is reported, reproducing the left-mouse quick respawn every
+                               # human uses. Legal by construction: the game side fires only while
+                               # %client.isOOB, the same gate a human click passes, which turns true
+                               # on the tick the "Out of Bounds" text appears. NAV_OOB_CLICK=0
+                               # restores the old behaviour of waiting out the 2.5 s auto-respawn.
 MARK_GOAL = os.environ.get('NAV_MARK', '0') == '1'   # NAV_MARK=1 drops a black marker gem on the
                                # current goal so a human watching can see what it is steering at
 VALUE_WEIGHT = float(os.environ.get('NAV_VALUE_WEIGHT', '0'))   # 0 = pure nearest; >0 prefers
@@ -492,6 +498,17 @@ def main():
                 falls += 1
                 target = None
                 obs_b.reset(); h = model.initial_state(1, dev)   # respawn = a fresh start
+                if OOB_CLICK:
+                    # THE LEGAL QUICK RESPAWN, the one a human gets by clicking the left mouse the
+                    # instant the "Out of Bounds" text appears. Without it the marble waits out the
+                    # game's own schedule(2500, respawnFromOOB) before it can move again.
+                    # The game side is gated on %client.isOOB, which turns true on the SAME tick
+                    # the text appears, so this can never fire earlier than a human could legally
+                    # click; if the marble is not actually out of bounds the control does nothing.
+                    # Measured on KOTM 2026-09-21: per-fall dead time is bimodal at 0.83 s and
+                    # 3.26 s, the 2.43 s gap IS the 2500 ms schedule, and at 4.5 falls a round that
+                    # is 7.3 s or 4.0 % of a 3.02 min round, worth about 3 gems.
+                    env.control('OOBCLICK')
         # NOT from the round clock: at round end it already reads the NEXT round's full time, so
         # (t_start - time_left) is 0. Decisions are the reliable clock -- one per 64 ms of sim.
         # OBS_MS, not a hardcoded 0.064: at a finer decision rate the decision count doubles

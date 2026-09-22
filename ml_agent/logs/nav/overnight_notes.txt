@@ -675,3 +675,34 @@
   STATUS AT HANDOFF: training DOWN since 20:16. Nothing has trained against the corrected
   observation yet. KOTM 98.4 (69 % of human 143.5), FlatGem 96.8 gems (93 % of human 104).
 ================================================================================
+[23:02] EVAL oobclick FlatGemTraining_Hunt (nav_eval_dirgain_1934.pth): points 99,99,95,91,96,97,96,99 -> mean 96.5, gems mean 96.50 (gems-only steering, DIR_GOAL_GAIN=30)
+[23:05] EVAL oobclick KingOfTheMarble_Hunt (nav_eval_dirgain_1934.pth): points 106,106,97,96,102,104,107,105 -> mean 102.9, gems mean 81.25 (gems-only steering, DIR_GOAL_GAIN=30)
+
+[23:10] SECTION 27: legal quick respawn (OOBCLICK). Operator spotted at 1x that the marble waits
+  out the game's automatic OOB respawn instead of doing what every human does: click the left
+  mouse the instant the "Out of Bounds" text appears.
+  MECHANISM: MPOutofBounds() -> if (%client.isOOB) %client.respawnFromOOB() (mp/server.cs:144).
+  isOOB is set in the SAME synchronous function as setMessage("outOfBounds") and the
+  schedule(2500, respawnFromOOB), six lines apart, so gating on isOOB IS the human's gate and
+  cannot fire early. The respawn KEY path (serverCmdQuickRespawn) is blocked in competitive hunt;
+  the mouse path is not. Legal by construction.
+  WE WERE WRONG ON BOTH SIDES: real_run never respawned at all (waited the full 2.5 s), while
+  waypoints.py recover() used the force-RESPAWN that clears isOOB unconditionally, i.e. training
+  had a recovery a scored round would refuse. Now both send OOBCLICK; RESPAWN stays in recover()
+  only as the escalation for a marble off-map but never flagged OOB.
+  DEAD TIME per fall, KOTM, measured by altitude: bimodal, and the gap IS the 2500 ms schedule.
+    without  0.83 0.83 0.83 3.26 3.26 3.26 3.26 3.26 3.26   mean 2.45 s, 11.0 s per round
+    with     0.77 0.77 0.77 1.09 1.09 1.09                   mean 0.93 s,  2.8 s per round
+  EVAL oobclick, nav_eval_dirgain_1934.pth, 8 rounds, only this control changed:
+    KingOfTheMarble  106,106,97,96,102,104,107,105 -> mean 102.9 pts  (was 98.4)  +4.5
+    FlatGemTraining  99,99,95,91,96,97,96,99       -> mean  96.5 gems (was 96.8)  unchanged
+  FlatGem is the CONTROL: zero falls there, so OOBCLICK never fires and the score did not move.
+  That makes the KOTM gain attributable rather than checkpoint variance.
+  UNEXPLAINED, FLAGGED NOT CLAIMED: KOTM falls fell 4.00 -> 2.50 per round. The fix cannot prevent
+  falls. May be variance (0-7 per round earlier). Not verified.
+  KOTM DECOMPOSITION RECOMPUTED: 26.90 gems/min, gap 1.394x = 1.262x speed x 1.112x distance.
+  Speed is now the DOMINANT half (section 27 cut route, not speed). 150 points needs 39.2
+  gems/min, 1.46x today, 105 % of human.
+
+  STATUS: training still DOWN since 20:16. KOTM 102.9 (72 % of human 143.5), FlatGem 96.5 gems
+  (93 % of 104). Nothing yet trained against either the corrected observation or the new respawn.

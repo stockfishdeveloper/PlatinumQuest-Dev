@@ -368,7 +368,22 @@ class SegmentManager:
         s = self.seg
         waited = 0
         while not self._on_map(env.pos()):
-            if waited % FORCE_RESPAWN_DECISIONS == 0:
+            # LEGAL QUICK RESPAWN FIRST. Until 2026-09-21 this sent RESPAWN immediately, which
+            # force-clears %client.isOOB and respawns unconditionally. That is NOT a move a real
+            # competitive Hunt game allows, so training was being handed a recovery the agent
+            # could never have in a scored round. OOBCLICK reproduces the left-mouse quick respawn
+            # instead: the game side fires only while isOOB is true, the same gate a human click
+            # passes. It also matches what nav/real_run.py now does, so training and real rounds
+            # finally recover from a fall on the same timeline (~0.9 s, measured on KOTM).
+            if waited == 0:
+                env.control('OOBCLICK')
+                if env.round_ended or env.reconnected:
+                    raise RoundOver()
+                self._step_checked(env, POST_RESPAWN_TICKS)
+            elif waited % FORCE_RESPAWN_DECISIONS == 0:
+                # FALLBACK, deliberately not legal play: a marble that is off the map but NOT
+                # flagged OOB (seen 2026-09-17) gets no respawn from the game at all and OOBCLICK
+                # is a no-op for it, so the segment would hang forever. Escalate only then.
                 env.control('RESPAWN')
                 if env.round_ended or env.reconnected:
                     raise RoundOver()

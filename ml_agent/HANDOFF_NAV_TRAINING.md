@@ -19,11 +19,13 @@
 >
 > | map | score | rounds | human | share |
 > |---|---|---|---|---|
-> | KingOfTheMarble | **98.4 points** | 107,85,100,101,89,98,103,104 | 143.5 | 69 % |
-> | FlatGemTraining | **96.8 gems** | 93,99,99,103,91,96,93,100 | 104 | 93 % |
+> | KingOfTheMarble | **102.9 points** | 106,106,97,96,102,104,107,105 | 143.5 | 72 % |
+> | FlatGemTraining | **96.5 gems** | 99,99,95,91,96,97,96,99 | 104 | 93 % |
 >
-> History on KOTM: 90.8 -> 93.5 (fall-credit fix) -> 95.9 (`DIR_GOAL_GAIN = 30`) -> **98.4**
-> (observer gem source). FlatGem: 80.75 -> 84.9 -> **96.8**.
+> History on KOTM: 90.8 -> 93.5 (fall-credit fix) -> 95.9 (`DIR_GOAL_GAIN = 30`) -> 98.4
+> (observer gem source, section 22) -> **102.9** (legal quick respawn, section 27).
+> FlatGem: 80.75 -> 84.9 -> 96.8 -> 96.5 (unchanged by section 27; that map has no falls, so it
+> served as the control).
 >
 > | metric (FlatGem, 1 round, 100 gems) | agent | human | note |
 > |---|---|---|---|
@@ -2409,28 +2411,38 @@ onto terrain with holes, slopes and edges.
 Full 8-round means: 78.5 gems, 98.4 points, **1.253 points per gem** (human 1.26), 6.68 u/s,
 **15.4 u travelled per gem**, 0.33 falls per 100 u, 25.98 gems/min, blind_pct 0.00.
 
-The gems-per-minute gap is 37.5 / 25.98 = **1.444x**, and it factors almost exactly into two
-equal halves:
+**RECOMPUTED 2026-09-21 23:10 after section 27.** Current 8-round means: 81.25 gems, 102.9 points,
+**1.266 points per gem** (human 1.26, still parity), 6.38 u/s, **14.23 u per gem**, 2.50 falls,
+26.90 gems/min.
 
-    speed              8.05 / 6.68  = 1.205x
-    distance per gem   15.4 / 12.8  = 1.203x
-    product                          = 1.449x   vs 1.444x observed
+The gems-per-minute gap is 37.5 / 26.90 = **1.394x**, and it still factors cleanly, though the two
+halves are no longer equal:
+
+    speed              8.05 / 6.38   = 1.262x     <- now the DOMINANT half
+    distance per gem   14.23 / 12.8  = 1.112x
+    product                           = 1.403x   vs 1.394x observed
+
+Section 27 cut route length (15.4 -> 14.23 u per gem) without touching speed, so **speed is now
+clearly the bigger term**, and section 26 identifies what it is: the policy cannot hold a heading
+on KOTM. The pre-section-27 figures, kept for the record, were 25.98 gems/min factoring as
+1.205x speed and 1.203x distance.
 
 Two conclusions follow, and both are load-bearing:
 
-* **The two factors are the same size.** Neither speed nor route length dominates on KOTM; each
-  is worth about 20 %. Fixing only one caps the gain at roughly 1.2x, which reaches about 118
-  points. **Reaching 150 requires progress on both.**
+* **Speed is now the larger factor** (1.262x against 1.112x), after section 27 cut route length.
+  Fixing speed alone reaches roughly 130 points; fixing route alone reaches about 114. **Reaching
+  150 still requires progress on both**, but speed is where to start, and section 26 says the
+  speed problem on KOTM is sustain.
 * **Gem selection is NOT a lever and should be left alone.** Points per gem is 1.253 against the
   human's 1.26, i.e. parity. The agent already picks gems of human-equivalent value. Do not spend
   time on `NAV_VALUE_WEIGHT` or yellow-gem preference; section 3 of the roadmap's planner idea is
   also not the bottleneck (straight-line distance between consecutive pickups was already at
   parity, 11.1 u agent vs 11.0 u human).
 
-**What 150 points requires, quantified.** At 1.253 points per gem over a 3.02 min round, 150
-points needs 119.7 gems, i.e. **39.6 gems/min**, which is 1.52x the current 25.98 and 6 % above
-the human's 37.5. Split evenly across the two factors that would be about 8.2 u/s and 12.5 u per
-gem, both slightly better than human.
+**What 150 points requires, quantified (updated 23:10).** At 1.266 points per gem over a 3.02 min
+round, 150 points needs 118.4 gems, i.e. **39.2 gems/min**, which is **1.46x** the current 26.90
+and 105 % of the human's 37.5. Reaching it purely on speed would need about 8.9 u/s at today's
+route; splitting it across both factors, roughly 8.0 u/s and 12.3 u per gem.
 
 ### 25.3 Blockers, ranked
 
@@ -2448,8 +2460,9 @@ and is fine, so the twitch is terrain-reactive rather than a general defect. Whe
 sustain a heading on KOTM it reaches 10.48 u/s mean and 16.27 u/s at p90, above the human's
 average, but it reaches that state on only 3 % of decisions. **This is the primary KOTM lever.**
 
-**B3. KOTM route length, 15.4 u per gem against 12.8.** Improved from 17.8 earlier in the project
-but still 20 % long. Unexplored: whether the excess is edge-avoidance detours, overshoot and
+**B3. KOTM route length, now 14.23 u per gem against 12.8** (was 15.4 before section 27).
+Improved from 17.8 earlier in the project but still 11 % long, and now the SMALLER of the two
+factors behind B2. Unexplored: whether the excess is edge-avoidance detours, overshoot and
 re-approach, or wide arcs out of pickups (the agent carries 10.55 u/s through gems on FlatGem
 where the human brakes to 8.09, which widens the exit arc; whether that also happens on KOTM is
 unmeasured).
@@ -2560,7 +2573,8 @@ LONGER), command persistence, frame error, route curvature (1.08 vs 1.03), power
 `GEM_SPEED_BONUS = 8.0`, `GEM_SPEED_REF = 60`, `BRAKE = 0.05`, `BRAKE_SUPPRESS = 1.0`,
 `JUMP_DAMP = 3.0`, `BRAKE_ENABLED = True`, `THROTTLE_FLOOR = 0.90`, `CARRY = 0.0`,
 `TURN_COST = 0.0`, `DIR_GOAL_GAIN = 30.0`, `NAV_SMOOTH = 1.0` (off), `DIRECT_GEM = 1`,
-`$AIObserver::GemSource = "server"`, adaptive entropy in band 0.2-0.8, rotation
+`NAV_OOB_CLICK = 1` (the legal quick respawn, section 27; training sends it too, from
+`waypoints.py::recover()`), `$AIObserver::GemSource = "server"`, adaptive entropy in band 0.2-0.8, rotation
 4 FlatGemTraining / 3 KingOfTheMarble / 1 FlatIslands across 8 instances.
 
 **Training is DOWN as of 2026-09-21 20:16.** Last run reached update 13,895.
@@ -2656,3 +2670,116 @@ lever from FlatGem's. Recommended order:
 **Supersedes:** section 25 B5's guess that a FlatGem peak-speed fix "may transfer" to B2. It will
 not; the mechanisms are different. Section 25's decomposition of the KOTM gap into equal speed and
 route factors still stands, and this section identifies what the speed half actually is.
+
+## 27. THE LEGAL QUICK RESPAWN: +4.5 points on KOTM (2026-09-21 23:10)
+
+Operator observation while watching a 1x KOTM round: "after the marble falls OOB, it falls all the
+way down and waits for the game to respawn it. however there's a mechanism in the game that all
+human players use to respawn quicker, as soon as the text out of bounds appears, clicking the left
+mouse will respawn immediately". With the constraint attached: **do not respawn before the text
+appears, because a real competitive Hunt game will not allow it.**
+
+### 27.1 The mechanism
+
+A human's left click runs
+
+    input_mouseFire -> commandToServer('MouseFire') -> serverCmdMouseFire (mp/commands.cs:80)
+      -> MPOutofBounds() -> if (%client.isOOB) %client.respawnFromOOB()   (mp/server.cs:144)
+
+and in `GameConnection::outOfBounds` (server/scripts/game.cs, around line 971) three things happen
+in ONE synchronous function, in this order:
+
+    %this.isOOB = true;                            // source comment: "used for OOB Click in Multiplayer"
+    %this.setMessage("outOfBounds", 2000);         // the on-screen text
+    %this.respawnSchedule = %this.schedule(2500, respawnFromOOB);   // the automatic respawn
+
+So `isOOB` turns true on the SAME TICK the text appears, six lines earlier in the same call.
+**Gating on `isOOB` is exactly the gate a human click passes, not an approximation**, and it
+cannot fire earlier than a human could legally click because the flag is false until the function
+that prints the text sets it. The operator's constraint is satisfied by construction rather than
+by a timer we chose.
+
+`respawnFromOOB` is also the identical function the automatic path calls 2.5 s later, so calling
+it early changes the timing and nothing else.
+
+**It is the competitively legal path, and the game itself says so.** The other quick respawn,
+`serverCmdQuickRespawn` (the respawn KEY), is explicitly blocked in competitive Hunt:
+`(!$MPPref::Server::CompetitiveMode || !$Game::isMode["hunt"])`. The mouse OOB path carries no
+such check.
+
+### 27.2 What we were doing instead, on both sides, and both were wrong
+
+* `nav/real_run.py` never respawned at all. It reset the hidden state on a fall and waited out the
+  full automatic 2.5 s.
+* `nav/waypoints.py::recover()` DID respawn instantly, but through the `RESPAWN` control, which
+  force-clears `isOOB` and calls `respawnPlayer()` unconditionally. That is a teleport, not an OOB
+  click, and it is precisely the move a real competitive round refuses. **Training was therefore
+  being handed a recovery the agent could never have in a scored round**, which is the exact
+  failure the operator's constraint was aimed at.
+
+The two halves also disagreed with each other: training recovered instantly, real rounds took
+3.26 s. Training was learning that falls are cheaper than they actually are when scored.
+
+### 27.3 The fix
+
+New control `OOBCLICK` in `mlAgent.cs`, whose entire body is
+
+    %cl = ClientGroup.getObject(0);
+    if (isObject(%cl) && %cl.isOOB)
+        %cl.respawnFromOOB();
+
+Sent by `real_run.py` on the decision a fall is reported (`NAV_OOB_CLICK`, default on), and by
+`waypoints.py::recover()` as the FIRST action on a mid-group fall. `RESPAWN` is kept in `recover()`
+as an escalation after `FORCE_RESPAWN_DECISIONS`, because a marble that is off the map but never
+flagged OOB (seen 2026-09-17) gets no respawn from the game at all and `OOBCLICK` is a no-op for
+it, so the segment would hang. That fallback is not legal play and is labelled as such in the code.
+
+### 27.4 Measurement
+
+Per-fall dead time on KOTM, measured by altitude from the fall flag until the marble is back on the
+floor, is **bimodal**, and the gap between the clusters is the 2500 ms schedule almost exactly:
+
+    WITHOUT:  0.83 0.83 0.83 3.26 3.26 3.26 3.26 3.26 3.26     mean 2.45 s
+    WITH:     0.77 0.77 0.77 1.09 1.09 1.09                     mean 0.93 s
+
+The 3.26 s cluster disappears entirely. The ~0.8 s floor is the respawn drop-in, which happens
+either way and is not recoverable. Dead time per round went **11.0 s -> 2.8 s**.
+
+**8-round evaluation, `nav_eval_dirgain_1934.pth`, the only change being this control:**
+
+| map | before | after | |
+|---|---|---|---|
+| KingOfTheMarble | 98.4 pts | **102.9 pts** | 106,106,97,96,102,104,107,105 |
+| FlatGemTraining | 96.8 gems | 96.5 gems | unchanged, see below |
+
+**+4.5 points on KOTM**, against a prediction of +3.9 from the dead-time measurement. The spread
+also tightened, 96-107 against the previous 85-107, because the worst rounds were the fall-heavy
+ones.
+
+**FlatGem is an unplanned control and a useful one.** That map runs at zero falls, so `OOBCLICK`
+never fires, and the score is unchanged at 96.5 against 96.8. The change is a confirmed no-op where
+there is nothing to recover from, which makes the KOTM movement attributable to the fix rather than
+to checkpoint variance.
+
+**An unexplained side effect, flagged rather than claimed.** KOTM falls per round fell from 4.00 to
+2.50. The OOB click does not prevent falls, so this is not the fix acting directly. It may be that
+a marble back in play in 0.9 s rather than 3.3 s meets a differently-timed board and gets fewer
+chances to repeat a bad approach, or it may be variance (falls ranged 0-7 per round in the earlier
+sample). **Not verified. Do not build on it without measuring it.**
+
+### 27.5 Where this leaves KOTM
+
+98.4 -> **102.9**, i.e. **72 % of the human 143.5**. Progress across 2026-09-21:
+93.5 (fall-credit fix) -> 95.9 (`DIR_GOAL_GAIN = 30`) -> 98.4 (observer gem source) -> 102.9
+(legal quick respawn).
+
+This recovers wasted clock and does nothing for the two structural gaps. Section 25's decomposition
+still holds and should be recomputed against the new numbers: distance per gem is now 14.2 u
+against the human's 12.8, and speed 6.38 u/s against 8.05. Section 26's sustain finding (the policy
+holds a heading for 0.19 s on KOTM against the human's 0.29 s, and only 3 % of its decisions sit in
+runs of 16+) remains the primary lever and is untouched by this section.
+
+**Method note worth carrying forward.** Three of the four gains today came from an operator
+WATCHING a 1x round and describing something that looked wrong: the wrong-direction start after a
+pickup (section 22), and this one. Neither was visible in any metric being tracked. Watching real
+play at 1x is a first-class diagnostic tool, not a demo.

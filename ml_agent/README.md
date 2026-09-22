@@ -8,8 +8,9 @@ Reinforcement learning system for training an AI agent to play Hunt mode in Plat
 > overrides everything else including this README. The older per-map MLP (`train_ppo.py`) is kept
 > as the King-of-the-Marble baseline and is not being developed.
 >
-> **Verified as of 2026-09-21:** 98.4 points on KingOfTheMarble (human 143.5) and 96.8 gems on
-> FlatGemTraining (human 104), 8 real rounds each.
+> **Verified as of 2026-09-21 23:10:** 102.9 points on KingOfTheMarble (human 143.5, 72 %) and
+> 96.5 gems on FlatGemTraining (human 104, 93 %), 8 real rounds each. Start at the CURRENT STATE
+> block, then section 25 "PICK UP HERE".
 
 ## Quick start (navigator)
 
@@ -66,6 +67,11 @@ and a brake. The game-side observer is
   made the agent blind for up to 1.9 s after every pickup; see HANDOFF section 22)
 - `$AIObserver::GemDiag` - remaining budget of gem-source disagreement log lines
 
+Controls the Python side sends over the socket include `OOBCLICK`, the legal quick respawn a human
+gets by clicking the left mouse while out of bounds. It fires only while the game's own
+`%client.isOOB` is true, which is the same gate a human click passes, so it can never respawn
+earlier than a real competitive Hunt round allows. Disable with `NAV_OOB_CLICK=0`.
+
 The game is normally launched headlessly for training instead:
 `marbleblast_mbx.exe -autotrain <MissionFileBaseName> -aiport <port>`.
 
@@ -80,10 +86,14 @@ The game is normally launched headlessly for training instead:
 - Human demo recording and comparison tooling (`plot_approach_profile.py`, demo `.npz` files)
 
 **Known open items**
-- Route length: 30.4 u per gem against the human's 28.3 (the larger remaining gap)
-- Mid-leg peak speed: 12.8 u/s against the human's 14.94, mechanism measured in HANDOFF
-  section 23
-- FlatIslands has never had a real-round evaluation
+- KOTM is where the remaining points are (72 % of human) and FlatGem is nearly solved (93 %).
+  The KOTM gap factors as 1.262x speed by 1.112x route length.
+- KOTM speed is a SUSTAIN problem: the policy holds a heading for 0.19 s against the human's
+  0.29 s and changes heading on 42 % of decisions against 14 %. The same policy holds 0.90 s on
+  FlatGem, so the twitch is terrain-reactive. HANDOFF section 26.
+- Nothing has been trained against either of the two 2026-09-21 fixes (live gem source, legal
+  quick respawn). That is the cheapest unexplored lever.
+- FlatIslands has never had a real-round evaluation and regressed during the last training run
 - `Sprawl` is generated but not in the rotation, and its walk grid is unverified
 
 ## Hard-won lessons (do not re-discover these)
@@ -101,6 +111,9 @@ The game is normally launched headlessly for training instead:
 - **No Unicode in Python log output.** Windows cp1252 crashes on characters like arrows. Use ASCII.
 - **Delete the compiled `.dso`** after editing any `.cs` or `.mcs`, or the engine keeps running the
   old version.
+- **Watch a real round at 1x when stuck.** Three of the four gains on 2026-09-21 started with a
+  human watching play and describing something that looked wrong, and none of them were visible
+  in any metric being tracked at the time.
 
 ## Documents
 

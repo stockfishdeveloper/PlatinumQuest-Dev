@@ -383,6 +383,7 @@ function MLAgent::update(%gen) {
     //                                   fixed-delay counters (probes use it)
     //   "DELAY n"                       set $MLAgent::ActionDelay (ticks)
     //   "RESPAWN"                      force a server-side respawn of the marble
+    //   "OOBCLICK"                     the legal quick respawn a human gets by clicking while OOB
     //   "MARK x y z"                   show the navigator's waypoint as a pad (cosmetic)
     if (getWord(%actionStr, 0) $= "STATS") {
         AIBridge::sendState("STATS|" @ $AIBridge::DelayedReplies @ "," @ $AIBridge::LateReplies @ ","
@@ -416,6 +417,43 @@ function MLAgent::update(%gen) {
                 echo("MLAgent: forced respawn by the Python server: server marble " @ %cl.player @ " " @ %before
                      @ " -> " @ %cl.player.getPosition() @ "; client marble " @ $MP::MyMarble @ " " @ $MP::MyMarble.getPosition()
                      @ "; blocked " @ %cl.spawningBlocked @ " state " @ $Game::State);
+            }
+        }
+        $AIBridge::LastAction = "";
+        %actionStr = "";
+    } else if (getWord(%actionStr, 0) $= "OOBCLICK") {
+        // THE LEGAL QUICK RESPAWN. A human who falls out of bounds clicks the left mouse as soon
+        // as the "Out of Bounds" text appears and comes straight back, instead of waiting out the
+        // game's automatic respawn. Their click runs
+        //     input_mouseFire -> commandToServer('MouseFire') -> serverCmdMouseFire
+        //       -> MPOutofBounds() -> if (%client.isOOB) %client.respawnFromOOB()
+        // (server/scripts/mp/server.cs:144). This reproduces exactly that, and nothing else.
+        //
+        // WHY THE isOOB GATE IS THE WHOLE POINT. In GameConnection::outOfBounds
+        // (server/scripts/game.cs) three things happen in ONE synchronous function, in order:
+        //     %this.isOOB = true;                              // source comment: "used for OOB Click"
+        //     %this.setMessage("outOfBounds", 2000);           // the on-screen text
+        //     %this.schedule(2500, respawnFromOOB);            // the automatic respawn
+        // so isOOB turns true on the same tick the text appears. Gating on it is EXACTLY the gate
+        // a human's click passes, not an approximation, and it cannot fire earlier than a human
+        // could legally click because the flag is false until that function runs. The operator's
+        // requirement (2026-09-21) was that training must never use a respawn a real competitive
+        // Hunt game would refuse.
+        //
+        // This is NOT the same as the RESPAWN control above, which force-clears isOOB and
+        // respawns unconditionally. That one is a stuck-marble fallback and is not legal play.
+        // It is also not serverCmdQuickRespawn (the respawn KEY), which the game explicitly
+        // blocks in competitive Hunt: (!$MPPref::Server::CompetitiveMode || !$Game::isMode["hunt"]).
+        // The mouse OOB path carries no such check, which is why it is the allowed one.
+        //
+        // MEASURED WORTH, KOTM 2 rounds 2026-09-21: 4.5 falls a round, dead time per fall is
+        // bimodal at 0.83 s and 3.26 s, and the 2.43 s gap between the clusters IS the 2500 ms
+        // schedule. Recovering it is ~7.3 s a round, 4.0 % of a 3.02 min round, ~3 gems.
+        if (isObject(ClientGroup) && ClientGroup.getCount() > 0) {
+            %cl = ClientGroup.getObject(0);
+            if (isObject(%cl) && %cl.isOOB) {
+                %cl.respawnFromOOB();
+                $MLAgent::OOBClicks ++;
             }
         }
         $AIBridge::LastAction = "";
