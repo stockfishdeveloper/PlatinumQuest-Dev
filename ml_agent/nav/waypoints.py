@@ -150,7 +150,12 @@ EDGE_K = 1.0                   # RESTORED 09:05 on 2026-09-21. I set this to 0.0
 EDGE_T_SAFE = 1.2              # s of time-to-edge below which the charge starts. 0.6 -> 1.2 in v2: the
                                # policy was first turning away at a median 0.47 s (2.8 u at 6 u/s,
                                # less than a 90 deg turn needs), so the signal must start earlier
-EDGE_LOOK = 9.0                # u: how far ahead along the velocity to look for a drop (>= T_SAFE * 7 u/s)
+EDGE_DECEL = 13.0              # u/s^2 the marble sheds under full reverse thrust (measured 13.9 on both the
+                               # agent and the human demo, 2026-09-22); slightly conservative on purpose
+EDGE_MARGIN_U = 1.0            # u added to the stopping distance (marble radius + one walk cell)
+PICKUP_GRACE = 16              # decisions (~1 s) after a pickup with no negative-progress charge
+EDGE_LOOK = 9.0                # u: how far ahead along the velocity to look for a drop (>= stopping
+                               # distance at 12 u/s = 6.5 u; EDGE_T_SAFE is no longer used, see v3)
 EDGE_GOAL_LATERAL = 1.5        # u: a goal within this of the velocity ray and BEFORE the drop makes the
                                # approach a pickup, not a shortcut: no charge (1 % of falls, 15 % of v1 charges)
 EDGE_V_MIN = 1.5               # u/s: slower than this the marble stops within a cell; no charge
@@ -197,6 +202,14 @@ JUMP_TAKEOFF = 0.4             # per jump COMMANDED WHILE ON THE FLOOR (an actua
                                # shorter than AIR_GRACE and cost nothing. Charging the takeoff
                                # instead of the airtime keeps a real gap jump cheap (one fee that
                                # the progress reward covers) while bouncing pays on every hop.
+ALIGN_BONUS = 0.10             # per decision, 2026-09-22 (HANDOFF 28.11, step 3 of the fear-removal plan):
+                               # ALIGN_BONUS * min(1, speed / ALIGN_V_REF) * max(0, cos(angle between the
+                               # commanded direction and the velocity)). At most 0.10 per decision at
+                               # >= 8 u/s thrusting straight along the motion, ~3 per 30-decision leg
+                               # against ARRIVE 10; small on purpose so FALL 25 still dominates.
+                               # Snapshot before: models/nav/nav_before_align_1405.pth (update 15,275).
+ALIGN_V_REF = 8.0              # u/s at which the bonus saturates (the human's cruising speed)
+ALIGN_V_MIN = 2.0              # u/s below which nothing is paid (standing still earns nothing)
 TURN_COST = 0.0                # per decision: TURN_COST * (1 - cos(angle between this commanded
                                # direction and the last)). 0 for holding a line, 2*TURN_COST for a
                                # reversal. The policy swings its commanded heading a measured
@@ -327,10 +340,17 @@ def edge_time_cost(terrain, x, y, vx, vy, goal=None):
                 if -JUMP_DROP <= dz <= JUMP_RISE:
                     return 0.0                      # a real gap the walk graph would jump: run-up is free
                 break
-    t = d_edge / v
-    if t >= EDGE_T_SAFE:
+    # v3 (2026-09-22, HANDOFF 28.10): STOPPING-DISTANCE test instead of a fixed time-to-void.
+    # The v2 clock (1.2 s) charged a marble 3 u from a lip at 8 u/s 0.69 per decision although it
+    # can stop in 2.5 u, and fired on 61-69 % of centre-block decisions at human speed on KOTM;
+    # it was paying the policy to thrust backwards near holes (agent thrust opposes velocity on
+    # 42 % of moving decisions vs the human's 33 %). Now the charge starts only inside the
+    # distance the marble physically needs to stop: v^2 / (2 * EDGE_DECEL) + EDGE_MARGIN_U.
+    # EDGE_DECEL measured 13.9 u/s^2 under full reverse thrust for both the agent and the human.
+    d_stop = v * v / (2.0 * EDGE_DECEL) + EDGE_MARGIN_U
+    if d_edge >= d_stop:
         return 0.0
-    return EDGE_K * (1.0 - t / EDGE_T_SAFE)
+    return EDGE_K * (1.0 - d_edge / d_stop)
 
 
 class RoundOver(Exception):
@@ -343,7 +363,7 @@ class Segment:
     keeps its momentum and heads for the next one, which is the whole point of grouping."""
     __slots__ = ('fall_mark', 'goal', 'field', 'path_len', 'prev_d', 'decisions', 'travelled', 'last_pos', 'outcome',
                  'start', 'offmap', 'remaining', 'collected', 'group_size', 'pickup_speeds', 'falls',
-                 'gem_decisions', 'carry_vals', 'turn_degs')
+                 'gem_decisions', 'carry_vals', 'turn_degs', 'grace', 'chain_dec', 'chain_n')
 
     def __init__(self, goal, field, path_len, start, remaining=()):
         self.goal = goal; self.field = field; self.path_len = path_len; self.start = start
@@ -359,6 +379,12 @@ class Segment:
         self.fall_mark = None                 # path distance at the last on-map decision before a
                                               # fall: no progress credit until back inside it
         self.gem_decisions = 0                # decisions spent on the CURRENT gem, for the speed bonus
+        self.grace = 0                        # decisions left in the post-pickup window where negative
+                                              # progress is forgiven (PICKUP_GRACE, HANDOFF 28.10)
+        self.chain_dec = 0                    # decisions spent between consecutive pickups (the first gem
+        self.chain_n = 0                      # of a group starts from a teleport at rest and is excluded):
+                                              # sgem = 0.064 * chain_dec / chain_n, the operator's headline
+                                              # metric (2026-09-22): seconds between pickups. Human 1.60 s.
 
 
 class SegmentManager:
@@ -458,6 +484,7 @@ class SegmentManager:
         s.field = self.terrain.goal_field(gx, gy)
         s.prev_d = self.terrain.dist_at(s.field, x, y, (gx, gy))
         s.fall_mark = None                        # new goal, new field: the mark no longer applies
+        s.grace = PICKUP_GRACE                    # the arc out of this pickup is not charged as loss
         self.pending_mark = (gx, gy, gz)
 
     def maybe_tighten(self):
@@ -586,6 +613,7 @@ class SegmentManager:
         self._vel = vel
         # cost of swinging the commanded heading since the last decision
         turn_cost = 0.0
+        align_bonus = 0.0
         if cmd_dir is not None:
             n = math.hypot(float(cmd_dir[0]), float(cmd_dir[1]))
             if n > 1e-6:
@@ -595,6 +623,16 @@ class SegmentManager:
                     turn_cost = TURN_COST * (1.0 - dot)
                     s.turn_degs.append(math.degrees(math.acos(dot)))
                 self._prev_cmd = u
+                # ALIGN_BONUS (2026-09-22, HANDOFF 28.11): pay for thrust along the marble's own motion,
+                # scaled by speed. Measured before this: thrust opposes velocity on 41-42 % of the
+                # agent's moving decisions vs the human's 33 % (median angle 72 vs 57 deg); the
+                # hesitation is reverse/sideways thrust, not braking. Pays nothing while reversing,
+                # never charges turning (TURN_COST's failure), and shrinks with speed so it cannot be
+                # farmed by crawling. Off the floor, or slower than ALIGN_V_MIN, nothing is paid.
+                v = math.hypot(float(vel[0]), float(vel[1]))
+                if ALIGN_BONUS > 0.0 and not airborne and not fell and v >= ALIGN_V_MIN:
+                    cos_a = (u[0] * float(vel[0]) + u[1] * float(vel[1])) / v
+                    align_bonus = ALIGN_BONUS * min(1.0, v / ALIGN_V_REF) * max(0.0, cos_a)
         x, y, z = (float(v) for v in pos)
         gx, gy, gz = s.goal
         s.decisions += 1
@@ -633,11 +671,20 @@ class SegmentManager:
             # If retried, it needs a way to stop the shaping change from degrading the maps it was
             # not aimed at, and a reason to expect the indicator to keep moving rather than plateau.
             progress = max(-PROGRESS_CLIP, min(PROGRESS_CLIP, s.prev_d - d))
+            if s.grace > 0:
+                # PICKUP_GRACE (2026-09-22, HANDOFF 28.10): for ~1 s after a pickup, momentum carried
+                # past the gem is not charged as negative progress. Measured before this: the agent
+                # dropped to a median 2-3.7 u/s within 1 s of every pickup (51 % of centre-gem exits
+                # below 2 u/s) because an arc past the gem cost ~1 reward per unit while stopping and
+                # turning in place cost ~1.4 in TIME, i.e. break-even, so PPO stopped. The human keeps
+                # 6-7 u/s through the same turns. TIME and the speed bonus still charge the decisions.
+                progress = max(0.0, progress)
+                s.grace -= 1
         s.prev_d = d
         air_cost = AIR if (airborne and airborne_decisions > AIR_GRACE) else 0.0
         takeoff_cost = JUMP_TAKEOFF if (jumped and not airborne) else 0.0
         edge_cost = 0.0 if (airborne or fell) else edge_time_cost(self.terrain, x, y, float(vel[0]), float(vel[1]), goal=(gx, gy))
-        r = PROGRESS * progress - TIME - air_cost - takeoff_cost - (BRAKE if braked else 0.0) - turn_cost - edge_cost
+        r = PROGRESS * progress - TIME - air_cost - takeoff_cost - (BRAKE if braked else 0.0) - turn_cost - edge_cost + align_bonus
         done, outcome = False, None
         # off the map (below the lowest floor / outside the grid) without the game's OOB flag:
         # after OFFMAP_FALL_DECISIONS decisions count it as a fall ourselves
@@ -659,6 +706,8 @@ class SegmentManager:
                 done, outcome = True, 'fell'
         elif math.hypot(gx - x, gy - y) < self.arrive_r and abs(gz - z) < self.arrive_dz:
             r += ARRIVE + GEM_SPEED_BONUS * max(0.0, 1.0 - s.gem_decisions / float(GEM_SPEED_REF))
+            if s.collected > 0:                   # a pickup-to-pickup interval, not the from-rest first gem
+                s.chain_dec += s.gem_decisions; s.chain_n += 1
             s.gem_decisions = 0                   # the next gem is timed from here
             s.collected += 1
             s.pickup_speeds.append(float(math.hypot(float(self._vel[0]), float(self._vel[1]))))
@@ -687,7 +736,8 @@ class SegmentManager:
                                  'collected': s.collected, 'group_size': s.group_size, 'falls': s.falls,
                                  'pickup_speed': (sum(s.pickup_speeds) / len(s.pickup_speeds)) if s.pickup_speeds else 0.0,
                                  'carry_speed': (sum(s.carry_vals) / len(s.carry_vals)) if s.carry_vals else 0.0,
-                                 'turn_deg': (sum(s.turn_degs) / len(s.turn_degs)) if s.turn_degs else 0.0})
+                                 'turn_deg': (sum(s.turn_degs) / len(s.turn_degs)) if s.turn_degs else 0.0,
+                                 'chain_dec': s.chain_dec, 'chain_n': s.chain_n})
             if len(self.history) > 2000:
                 self.history = self.history[-2000:]
         return r, done, outcome
@@ -697,8 +747,9 @@ class SegmentManager:
         if not h:
             return {'segments': 0, 'arrive_pct': 0.0, 'falls_per_100u': 0.0, 'speed': 0.0, 'timeout_pct': 0.0,
                     'gems_pct': 0.0, 'gems_per_group': 0.0, 'pickup_speed': 0.0, 'carry_speed': 0.0,
-                    'turn_deg': 0.0}
+                    'turn_deg': 0.0, 's_per_gem': 0.0}
         n = len(h)
+        chain_dec = sum(x.get('chain_dec', 0) for x in h); chain_n = sum(x.get('chain_n', 0) for x in h)
         trav = sum(x['travelled'] for x in h)
         # falls no longer end a segment (FALL_CONTINUE), so count them, not 'fell' outcomes
         falls = sum(x.get('falls', 1 if x['outcome'] == 'fell' else 0) for x in h)
@@ -713,6 +764,7 @@ class SegmentManager:
                 'pickup_speed': (sum(psp) / len(psp)) if psp else 0.0,  # control metric: lower = under control
                 'carry_speed': (sum(csp) / len(csp)) if csp else 0.0,   # what CARRY pays for: higher = better
                 'turn_deg': (sum(tdg) / len(tdg)) if tdg else 0.0,      # what TURN_COST pays for: LOWER = better (human 0.4)
+                's_per_gem': 0.064 * chain_dec / max(chain_n, 1),       # seconds between consecutive pickups (human 1.60)
                 'arrive_pct': 100.0 * sum(1 for x in h if x['outcome'] == 'arrived') / n,
                 'falls_per_100u': 100.0 * falls / max(trav, 1.0),
                 'speed': trav / max(sum(x['decisions'] for x in h) * 0.064, 1e-6),

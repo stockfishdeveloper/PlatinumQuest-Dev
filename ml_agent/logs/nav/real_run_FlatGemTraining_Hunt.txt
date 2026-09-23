@@ -1,28 +1,28 @@
-warm-up: model ready in 0.19 s, terrain "FlatGemTraining_Hunt" pre-built
+warm-up: model ready in 0.20 s, terrain "FlatGemTraining_Hunt" pre-built
 [env:8920] waiting for the game
 [env:8920] game connected (1)
-real run: nav_eval_dirgain_1934.pth (update 13895) on FlatGemTraining_Hunt, 8 round(s), port 8920
-  round 1: {'round': 1, 'gems': 99, 'points': 99.0, 'minutes': 5.02, 'decisions': 4706, 'gems_per_min': 19.7, 'points_per_min': 19.7, 'falls': 0, 'falls_per_100u': 0.0, 'travelled_u': 2975.7, 'speed': 9.88, 'blind_pct': 0.0, 'snapped_pct': 0.0, 'pathed_pct': 0.0, 'smooth': 1.0}
+real run: nav_eval_noon_1200.pth (update 15055) on FlatGemTraining_Hunt, 8 round(s), port 8920
+  round 1: {'round': 1, 'gems': 93, 'points': 93.0, 'minutes': 5.02, 'decisions': 4706, 'gems_per_min': 18.5, 'points_per_min': 18.5, 'falls': 0, 'falls_per_100u': 0.0, 'travelled_u': 2832.9, 'speed': 9.41, 'blind_pct': 0.0, 'snapped_pct': 0.0, 'pathed_pct': 0.0, 'smooth': 1.0}
 [env:8920] round over (time left 300s of 300s); waiting for the next round
 [env:8920] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
-  round 2: {'round': 2, 'gems': 99, 'points': 99.0, 'minutes': 5.02, 'decisions': 4708, 'gems_per_min': 19.7, 'points_per_min': 19.7, 'falls': 0, 'falls_per_100u': 0.0, 'travelled_u': 2950.8, 'speed': 9.79, 'blind_pct': 0.0, 'snapped_pct': 0.0, 'pathed_pct': 0.0, 'smooth': 1.0}
+  round 2: {'round': 2, 'gems': 96, 'points': 96.0, 'minutes': 5.02, 'decisions': 4708, 'gems_per_min': 19.1, 'points_per_min': 19.1, 'falls': 0, 'falls_per_100u': 0.0, 'travelled_u': 2851.3, 'speed': 9.46, 'blind_pct': 0.0, 'snapped_pct': 0.0, 'pathed_pct': 0.0, 'smooth': 1.0}
 [env:8920] round over (time left 300s of 300s); waiting for the next round
 [env:8920] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
-  round 3: {'round': 3, 'gems': 95, 'points': 95.0, 'minutes': 5.02, 'decisions': 4708, 'gems_per_min': 18.9, 'points_per_min': 18.9, 'falls': 0, 'falls_per_100u': 0.0, 'travelled_u': 3031.7, 'speed': 10.06, 'blind_pct': 0.0, 'snapped_pct': 0.0, 'pathed_pct': 0.0, 'smooth': 1.0}
+  round 3: {'round': 3, 'gems': 95, 'points': 95.0, 'minutes': 5.02, 'decisions': 4708, 'gems_per_min': 18.9, 'points_per_min': 18.9, 'falls': 0, 'falls_per_100u': 0.0, 'travelled_u': 2856.5, 'speed': 9.48, 'blind_pct': 0.0, 'snapped_pct': 0.0, 'pathed_pct': 0.0, 'smooth': 1.0}
 [env:8920] round over (time left 300s of 300s); waiting for the next round
 [env:8920] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
-  round 4: {'round': 4, 'gems': 91, 'points': 91.0, 'minutes': 5.02, 'decisions': 4708, 'gems_per_min': 18.1, 'points_per_min': 18.1, 'falls': 0, 'falls_per_100u': 0.0, 'travelled_u': 3014.3, 'speed': 10.0, 'blind_pct': 0.0, 'snapped_pct': 0.0, 'pathed_pct': 0.0, 'smooth': 1.0}
+  round 4: {'round': 4, 'gems': 96, 'points': 96.0, 'minutes': 5.02, 'decisions': 4708, 'gems_per_min': 19.1, 'points_per_min': 19.1, 'falls': 0, 'falls_per_100u': 0.0, 'travelled_u': 2856.0, 'speed': 9.48, 'blind_pct': 0.0, 'snapped_pct': 0.0, 'pathed_pct': 0.0, 'smooth': 1.0}
 [env:8920] round over (time left 300s of 300s); waiting for the next round
 [env:8920] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
-  round 5: {'round': 5, 'gems': 96, 'points': 96.0, 'minutes': 5.02, 'decisions': 4708, 'gems_per_min': 19.1, 'points_per_min': 19.1, 'falls': 0, 'falls_per_100u': 0.0, 'travelled_u': 2998.8, 'speed': 9.95, 'blind_pct': 0.0, 'snapped_pct': 0.0, 'pathed_pct': 0.0, 'smooth': 1.0}
+  round 5: {'round': 5, 'gems': 98, 'points': 98.0, 'minutes': 5.02, 'decisions': 4708, 'gems_per_min': 19.5, 'points_per_min': 19.5, 'falls': 0, 'falls_per_100u': 0.0, 'travelled_u': 2806.1, 'speed': 9.31, 'blind_pct': 0.0, 'snapped_pct': 0.0, 'pathed_pct': 0.0, 'smooth': 1.0}
 [env:8920] round over (time left 300s of 300s); waiting for the next round
 [env:8920] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
-  round 6: {'round': 6, 'gems': 97, 'points': 97.0, 'minutes': 5.02, 'decisions': 4708, 'gems_per_min': 19.3, 'points_per_min': 19.3, 'falls': 0, 'falls_per_100u': 0.0, 'travelled_u': 3000.8, 'speed': 9.96, 'blind_pct': 0.0, 'snapped_pct': 0.0, 'pathed_pct': 0.0, 'smooth': 1.0}
+  round 6: {'round': 6, 'gems': 94, 'points': 94.0, 'minutes': 5.02, 'decisions': 4708, 'gems_per_min': 18.7, 'points_per_min': 18.7, 'falls': 0, 'falls_per_100u': 0.0, 'travelled_u': 2859.4, 'speed': 9.49, 'blind_pct': 0.0, 'snapped_pct': 0.0, 'pathed_pct': 0.0, 'smooth': 1.0}
 [env:8920] round over (time left 300s of 300s); waiting for the next round
 [env:8920] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
-  round 7: {'round': 7, 'gems': 96, 'points': 96.0, 'minutes': 5.02, 'decisions': 4708, 'gems_per_min': 19.1, 'points_per_min': 19.1, 'falls': 0, 'falls_per_100u': 0.0, 'travelled_u': 3056.5, 'speed': 10.14, 'blind_pct': 0.0, 'snapped_pct': 0.0, 'pathed_pct': 0.0, 'smooth': 1.0}
+  round 7: {'round': 7, 'gems': 94, 'points': 94.0, 'minutes': 5.02, 'decisions': 4708, 'gems_per_min': 18.7, 'points_per_min': 18.7, 'falls': 0, 'falls_per_100u': 0.0, 'travelled_u': 2868.6, 'speed': 9.52, 'blind_pct': 0.0, 'snapped_pct': 0.0, 'pathed_pct': 0.0, 'smooth': 1.0}
 [env:8920] round over (time left 300s of 300s); waiting for the next round
 [env:8920] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
-  round 8: {'round': 8, 'gems': 99, 'points': 99.0, 'minutes': 5.02, 'decisions': 4708, 'gems_per_min': 19.7, 'points_per_min': 19.7, 'falls': 0, 'falls_per_100u': 0.0, 'travelled_u': 2981.8, 'speed': 9.9, 'blind_pct': 0.0, 'snapped_pct': 0.0, 'pathed_pct': 0.0, 'smooth': 1.0}
-REAL RUN {"gems_per_min": 19.2, "points_per_min": 19.2, "falls_per_100u": 0.0, "speed": 9.96, "blind_pct": 0.0} vs human {"gems_per_min": 0.51, "points_per_min": 0.41, "speed": 1.24, "falls_ratio": 0.0}
-wrote C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\logs\nav\real_run_FlatGemTraining_Hunt_nav_eval_dirgain_1934.json
+  round 8: {'round': 8, 'gems': 98, 'points': 98.0, 'minutes': 5.02, 'decisions': 4708, 'gems_per_min': 19.5, 'points_per_min': 19.5, 'falls': 0, 'falls_per_100u': 0.0, 'travelled_u': 2857.3, 'speed': 9.48, 'blind_pct': 0.0, 'snapped_pct': 0.0, 'pathed_pct': 0.0, 'smooth': 1.0}
+REAL RUN {"gems_per_min": 19.0, "points_per_min": 19.0, "falls_per_100u": 0.0, "speed": 9.454, "blind_pct": 0.0} vs human {"gems_per_min": 0.51, "points_per_min": 0.4, "speed": 1.17, "falls_ratio": 0.0}
+wrote C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\logs\nav\real_run_FlatGemTraining_Hunt_nav_eval_noon_1200.json

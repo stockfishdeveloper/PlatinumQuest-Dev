@@ -572,6 +572,14 @@ def main():
             env.wait_new_round()
 
     trace.close()
+    # Keep the latest trace PER MAP as well (2026-09-22): the dashboard's speed heat map reads
+    # logs/nav/real_trace_<map>.csv for whichever map is selected.
+    try:
+        import shutil
+        shutil.copyfile(os.path.join(HERE, 'logs', 'nav', 'real_trace.csv'),
+                        os.path.join(HERE, 'logs', 'nav', f'real_trace_{mission}.csv'))
+    except OSError as e:
+        print(f'per-map trace copy failed: {e}')
     agg = {k: round(float(np.mean([x[k] for x in rounds])), 3)
            for k in ('gems_per_min', 'points_per_min', 'falls_per_100u', 'speed', 'blind_pct')}
     out = {'map': mission, 'ckpt': os.path.basename(ckpt), 'update': ck.get('update'),

@@ -5,7 +5,7 @@
 Reads every logs/nav/train_nav_*.log (all runs, resumed checkpoints included), parses
 the NAV / SEG / MAP / ARRIVE / saved lines, and pushes the whole picture to the page
 over server-sent events every few seconds. Same look and feel as dashboard.py, but the
-numbers are the navigator's: arrival rate, falls per 100 u, speed, arrival radius,
+numbers are the navigator's: seconds between pickups, arrival rate, falls per 100 u, speed,
 per-map breakdown, and PPO health. Runs independently of the trainer (tails the logs).
 """
 import os
@@ -27,10 +27,13 @@ LOG_DIR = os.path.join(HERE, 'logs', 'nav')
 CKPT_DIR = os.path.join(HERE, 'models', 'nav')
 PUSH_EVERY_S = 3.0
 
-NAV_RE = re.compile(r'\[(\d\d:\d\d:\d\d)\] NAV upd=(\d+)(?: map=(\S+))?(?: r=([\d.]+))? steps=([\d,]+) segs=(\d+) arrive=(\d+)% '
-                    r'falls100=([\d.]+) speed=([\d.]+) rew=(-?[\d.]+) pl=(-?[\d.]+) vl=([\d.]+) ent=(-?[\d.]+) kl=(-?[\d.]+) '
-                    r'clip=([\d.]+) gn=([\d.]+) ep=(\d+) dstd=([\d.]+) (?:flips=(\d+) )?upd_s=([\d.]+) wall_s=(\d+)')
-RADIUS_RE = re.compile(r'\[(\d\d:\d\d:\d\d)\] ARRIVE radius tightened to ([\d.]+) u')
+# 2026-09-22: the NAV line is parsed as key=value pairs. The old fixed regex silently stopped matching
+# when gems=/pickup=/sgem=/entd=/ec= were added to the line, and the dashboard showed nothing new.
+KV_RE = re.compile(r'(\w+)=(-?[\d.,]+)')
+NAV_HEAD_RE = re.compile(r'\[(\d\d:\d\d:\d\d)\] NAV upd=(\d+)(?: map=(\S+))?')
+MAPS_RE = re.compile(r'\[(\d\d:\d\d:\d\d)\] MAPS (.*)$')
+HUMAN_S_PER_GEM = 1.57          # seconds between pickups in the KOTM demo (682 gems, 18.2 min)
+
 SAVED_RE = re.compile(r'\[(\d\d:\d\d:\d\d)\] saved (\S+)')
 MAP_RE = re.compile(r'\[(\d\d:\d\d:\d\d)\] (?:MAP|mission) ([A-Za-z0-9_]+)')
 RTF_RE = re.compile(r'rtf[= ]([\d.]+)')
@@ -46,6 +49,7 @@ def parse_logs():
     counters = {'synthetic_falls': 0, 'respawn_misses': 0, 'teleport_ignored': 0, 'rounds': 0, 'restarts': 0}
     rtfs = []
     current_map = ''
+    pending_maps = None    # the MAPS line (per-map stats) is logged just before its NAV line
     for f in files:
         try:
             with open(f, encoding='utf-8', errors='replace') as fh:
@@ -53,19 +57,33 @@ def parse_logs():
         except OSError:
             continue
         for line in lines:
-            m = NAV_RE.search(line)
+            m = MAPS_RE.search(line)
+            if m:
+                pending_maps = {}
+                for part in m.group(2).split(' | '):
+                    name, _, rest = part.partition(':')
+                    kv = {k: float(v.replace(',', '')) for k, v in KV_RE.findall(rest)}
+                    pending_maps[name.strip()] = {'n': kv.get('n'), 'arrive': kv.get('arrive'), 'falls100': kv.get('falls100'),
+                                                  'speed': kv.get('speed'), 'gems': kv.get('gems'), 'pickup': kv.get('pickup'),
+                                                  'sgem': kv.get('sgem')}
+                continue
+            m = NAV_HEAD_RE.search(line)
             if m:
                 upd = int(m.group(2))
+                kv = {k: v for k, v in KV_RE.findall(line)}
+                fl = lambda k, d=None: float(kv[k].replace(',', '')) if k in kv else d
                 rec = {
-                    'time': m.group(1), 'update': upd, 'map': m.group(3) or current_map or '?', 'r': float(m.group(4)) if m.group(4) else None,
-                    'steps': int(m.group(5).replace(',', '')), 'segs': int(m.group(6)), 'arrive': float(m.group(7)),
-                    'falls100': float(m.group(8)), 'speed': float(m.group(9)), 'rew': float(m.group(10)),
-                    'pl': float(m.group(11)), 'vl': float(m.group(12)), 'ent': float(m.group(13)), 'kl': float(m.group(14)),
-                    'clip': float(m.group(15)), 'gn': float(m.group(16)), 'ep': int(m.group(17)), 'dstd': float(m.group(18)),
-                    'flips': int(m.group(19)) if m.group(19) else 0, 'upd_s': float(m.group(20)), 'wall_s': float(m.group(21)),
+                    'time': m.group(1), 'update': upd, 'map': m.group(3) or current_map or '?', 'r': fl('r'),
+                    'steps': int(fl('steps', 0)), 'segs': int(fl('segs', 0)), 'arrive': fl('arrive', 0.0),
+                    'falls100': fl('falls100', 0.0), 'speed': fl('speed', 0.0), 'rew': fl('rew', 0.0),
+                    'pl': fl('pl', 0.0), 'vl': fl('vl', 0.0), 'ent': fl('ent', 0.0), 'kl': fl('kl', 0.0),
+                    'clip': fl('clip', 0.0), 'gn': fl('gn', 0.0), 'ep': int(fl('ep', 0)), 'dstd': fl('dstd', 0.0),
+                    'flips': int(fl('flips', 0)), 'upd_s': fl('upd_s', 0.0), 'wall_s': fl('wall_s', 0.0),
+                    'sgem': fl('sgem'), 'pickup': fl('pickup'), 'gems': fl('gems'),
+                    'dps': fl('dps'),                                    # multi-instance trainer: decisions/s it measured itself
+                    'maps': pending_maps,
                 }
-                md = DPS_RE.search(line)
-                rec['dps'] = float(md.group(1)) if md else None      # multi-instance trainer: decisions/s it measured itself
+                pending_maps = None
                 by_update[upd] = rec
                 last_update = max(last_update, upd)
                 continue
@@ -75,10 +93,6 @@ def parse_logs():
                 if ' MAP ' in line:
                     events.append((last_update, 'map', f'{m.group(1)} map -> {current_map}'))
                 continue
-            m = RADIUS_RE.search(line)
-            if m:
-                events.append((last_update, 'radius', f'{m.group(1)} arrival radius -> {m.group(2)} u'))
-                continue
             m = SAVED_RE.search(line)
             if m:
                 events.append((last_update, 'ckpt', f'{m.group(1)} {os.path.basename(m.group(2))}'))
@@ -86,7 +100,15 @@ def parse_logs():
             m = RESUME_RE.search(line)
             if m:
                 counters['restarts'] += 1
-                events.append((int(m.group(1)), 'resume', f'trainer (re)started at update {m.group(1)}'))
+                resume_at = int(m.group(1))
+                # A resume BELOW the last update is a revert to an older checkpoint (2026-09-22 did it
+                # twice). Records of the abandoned lineage past that point would otherwise sit at the
+                # end of every chart and hide the live run, so drop them; the new run refills them.
+                if resume_at < last_update:
+                    for k in [k for k in by_update if k > resume_at]:
+                        del by_update[k]
+                    last_update = resume_at
+                events.append((resume_at, 'resume', f'trainer (re)started at update {resume_at}'))
                 continue
             if 'fall without OOB flag' in line:
                 counters['synthetic_falls'] += 1
@@ -111,14 +133,34 @@ def build_state():
     for u in updates:
         if u['map'] not in maps:
             maps.append(u['map'])
+    # True per-map series from the MAPS lines (a map MIX across instances logs one pooled NAV line whose
+    # map= is "A+B+C"; the MAPS line carries each map's own numbers).
+    pm = {}
+    for u in updates:
+        for name, v in (u.get('maps') or {}).items():
+            d = pm.setdefault(name, {k: [] for k in ('update', 'arrive', 'falls100', 'speed', 'sgem', 'pickup', 'gems')})
+            d['update'].append(u['update'])
+            for k in ('arrive', 'falls100', 'speed', 'sgem', 'pickup', 'gems'):
+                d[k].append(v.get(k))
     per_map = {}
-    for mp in maps:
-        us = [u for u in updates if u['map'] == mp]
-        per_map[mp] = {
-            'updates': len(us), 'last': us[-1]['update'], 'arrive': us[-1]['arrive'], 'best_arrive': max(u['arrive'] for u in us),
-            'falls100': us[-1]['falls100'], 'best_falls100': min(u['falls100'] for u in us), 'speed': us[-1]['speed'],
-            'best_speed': max(u['speed'] for u in us), 'r': us[-1]['r'],
-        }
+    if pm:
+        for mp, d in pm.items():
+            vals = lambda k: [x for x in d[k] if x is not None]
+            per_map[mp] = {
+                'updates': len(d['update']), 'last': d['update'][-1], 'arrive': d['arrive'][-1] or 0.0,
+                'best_arrive': max(vals('arrive') or [0.0]), 'falls100': d['falls100'][-1] or 0.0,
+                'best_falls100': min(vals('falls100') or [0.0]), 'speed': d['speed'][-1] or 0.0,
+                'best_speed': max(vals('speed') or [0.0]), 'sgem': d['sgem'][-1], 'best_sgem': min(vals('sgem') or [0.0]) or None,
+                'r': updates[-1]['r'],
+            }
+    else:
+        for mp in maps:
+            us = [u for u in updates if u['map'] == mp]
+            per_map[mp] = {
+                'updates': len(us), 'last': us[-1]['update'], 'arrive': us[-1]['arrive'], 'best_arrive': max(u['arrive'] for u in us),
+                'falls100': us[-1]['falls100'], 'best_falls100': min(u['falls100'] for u in us), 'speed': us[-1]['speed'],
+                'best_speed': max(u['speed'] for u in us), 'r': us[-1]['r'], 'sgem': None, 'best_sgem': None,
+            }
     latest = updates[-1] if updates else None
     ckpts = sorted(glob.glob(os.path.join(CKPT_DIR, 'nav_*.pth')), key=os.path.getmtime)
     latest_ckpt = os.path.basename(ckpts[-1]) if ckpts else '--'
@@ -133,9 +175,52 @@ def build_state():
         'latest': latest, 'maps': maps, 'per_map': per_map, 'events': events[-40:], 'counters': counters,
         'rtf': rtfs[-1] if rtfs else None, 'dec_per_s': dec_per_s,
         'ckpt': latest_ckpt, 'ckpt_time': latest_ckpt_time, 'n_updates': len(updates),
-        'series': {k: [u[k] for u in updates] for k in ('update', 'map', 'r', 'arrive', 'falls100', 'speed', 'rew', 'pl', 'vl',
-                                                         'ent', 'kl', 'clip', 'gn', 'dstd', 'wall_s', 'steps', 'ep')},
+        'series': {k: [u.get(k) for u in updates] for k in ('update', 'map', 'r', 'arrive', 'falls100', 'speed', 'rew', 'pl', 'vl',
+                                                             'ent', 'kl', 'clip', 'gn', 'dstd', 'wall_s', 'steps', 'ep', 'sgem', 'pickup')},
+        'pm': pm, 'human_sgem': HUMAN_S_PER_GEM,
     }
+
+
+_HEAT_CACHE = {}
+
+
+def build_heatmap(map_name, res=1.0, min_samples=3):
+    """Mean marble speed per `res` u cell from the latest real-round trace of `map_name`
+    (logs/nav/real_trace_<map>.csv, written by nav/real_run.py), plus the floor mask from the
+    terrain map so the page can draw the map under the colours. Cached by trace mtime."""
+    import csv
+    if not re.fullmatch(r'[A-Za-z0-9_]+', map_name or ''):
+        return {'error': 'bad map name'}
+    trace = os.path.join(LOG_DIR, f'real_trace_{map_name}.csv')
+    terrain = os.path.join(HERE, 'terrain_maps', f'terrain_{map_name}.npz')
+    if not os.path.exists(trace):
+        return {'error': f'no real-round trace for {map_name} yet (run real_run.ps1 -Map {map_name})'}
+    key = (map_name, os.path.getmtime(trace))
+    if key in _HEAT_CACHE:
+        return _HEAT_CACHE[key]
+    rows = list(csv.DictReader(open(trace)))
+    x = np.array([float(r['x']) for r in rows]); y = np.array([float(r['y']) for r in rows])
+    sp = np.array([float(r['speed']) for r in rows]); fl = np.array([float(r['on_floor']) for r in rows]) > 0
+    if os.path.exists(terrain):
+        T = np.load(terrain); txs, tys = T['xs'], T['ys']; fine = np.isfinite(T['heights'][0])
+        x0, x1, y0, y1 = float(np.floor(txs.min())), float(np.ceil(txs.max())), float(np.floor(tys.min())), float(np.ceil(tys.max()))
+    else:
+        fine = None; x0, x1, y0, y1 = np.floor(x.min()), np.ceil(x.max()), np.floor(y.min()), np.ceil(y.max())
+    xe = np.arange(x0, x1 + res, res); ye = np.arange(y0, y1 + res, res)
+    cnt, _, _ = np.histogram2d(x[fl], y[fl], bins=[xe, ye]); ssum, _, _ = np.histogram2d(x[fl], y[fl], bins=[xe, ye], weights=sp[fl])
+    mean = np.where(cnt >= min_samples, ssum / np.maximum(cnt, 1), np.nan)
+    floor = np.zeros(mean.shape, bool)
+    if fine is not None:
+        fx = np.clip(np.digitize(txs, xe) - 1, 0, mean.shape[0] - 1); fy = np.clip(np.digitize(tys, ye) - 1, 0, mean.shape[1] - 1)
+        jj, ii = np.where(fine); floor[fx[ii], fy[jj]] = True
+    z = [[(None if not np.isfinite(mean[i, j]) else round(float(mean[i, j]), 2)) for i in range(mean.shape[0])] for j in range(mean.shape[1])]
+    fz = [[(1 if floor[i, j] else None) for i in range(mean.shape[0])] for j in range(mean.shape[1])]
+    rounds = len(set(r['round'] for r in rows))
+    out = {'map': map_name, 'x': [float(v) for v in (xe[:-1] + res / 2)], 'y': [float(v) for v in (ye[:-1] + res / 2)], 'z': z, 'floor': fz,
+           'decisions': int(fl.sum()), 'rounds': rounds, 'trace_time': datetime.fromtimestamp(os.path.getmtime(trace)).strftime('%Y-%m-%d %H:%M'),
+           'p10': float(np.nanpercentile(mean, 10)), 'p90': float(np.nanpercentile(mean, 90))}
+    _HEAT_CACHE.clear(); _HEAT_CACHE[key] = out
+    return out
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -146,6 +231,15 @@ class Handler(BaseHTTPRequestHandler):
         if self.path == '/':
             body = HTML.encode('utf-8')
             self.send_response(200); self.send_header('Content-Type', 'text/html; charset=utf-8')
+            self.send_header('Content-Length', str(len(body))); self.end_headers(); self.wfile.write(body)
+        elif self.path.startswith('/heatmap'):
+            from urllib.parse import urlparse, parse_qs
+            q = parse_qs(urlparse(self.path).query); name = (q.get('map') or ['KingOfTheMarble_Hunt'])[0]
+            try:
+                body = json.dumps(build_heatmap(name)).encode('utf-8')
+            except Exception as e:      # never take the page down over one bad trace
+                body = json.dumps({'error': f'{type(e).__name__}: {e}'}).encode('utf-8')
+            self.send_response(200); self.send_header('Content-Type', 'application/json')
             self.send_header('Content-Length', str(len(body))); self.end_headers(); self.wfile.write(body)
         elif self.path == '/state':
             body = json.dumps(build_state()).encode('utf-8')
@@ -207,30 +301,30 @@ td.num { text-align:right; font-variant-numeric:tabular-nums; }
     <span>Decisions: <b id="m-steps">--</b></span>
     <span>Segments: <b id="m-segs">--</b></span>
     <span>Map: <b id="m-map">--</b></span>
-    <span>Arrive radius: <b id="m-r" style="color:#f0c040">--</b> u (final 0.65)</span>
     <span>Decisions/s: <b id="m-dps">--</b></span>
     <span>Game rtf: <b id="m-rtf">--</b>x</span>
     <span>Checkpoint: <b id="m-ckpt">--</b></span>
+    <span>Show map: <select id="map-sel" style="background:#0d1117;color:#e6edf3;border:1px solid #30363d;border-radius:4px;font-family:inherit;font-size:0.75rem;padding:1px 4px"><option value="ALL">all maps (overlay)</option></select></span>
+    <span>Window: <select id="win-sel" style="background:#0d1117;color:#e6edf3;border:1px solid #30363d;border-radius:4px;font-family:inherit;font-size:0.75rem;padding:1px 4px"><option value="200">last 200 updates</option><option value="500" selected>last 500</option><option value="1000">last 1000</option><option value="2000">last 2000</option><option value="0">all</option></select></span>
   </div>
 </div>
 <div id="gauges">
-  <div class="gauge"><div class="label">Arrival % (this map, last 300 segs)</div><div class="value" id="g-arrive" style="color:#3fb950">--</div><div class="label">target &gt; 90 %</div></div>
+  <div class="gauge"><div class="label" id="g-sgem-label">Seconds between pickups</div><div class="value" id="g-sgem" style="color:#f0c040">--</div><div class="label" id="g-sgem-sub">human 1.57 s</div></div>
+  <div class="gauge"><div class="label">Arrival % (selected map, last 300 segs)</div><div class="value" id="g-arrive" style="color:#3fb950">--</div><div class="label">target &gt; 90 %</div></div>
   <div class="gauge"><div class="label">Falls / 100 u</div><div class="value" id="g-falls" style="color:#f85149">--</div><div class="label">target &lt; 0.5</div></div>
   <div class="gauge"><div class="label">Speed u/s</div><div class="value" id="g-speed">--</div><div class="label">target &ge; 7</div></div>
   <div class="gauge"><div class="label">Reward / segment</div><div class="value" id="g-rew">--</div></div>
   <div class="gauge"><div class="label">Entropy</div><div class="value" id="g-ent">--</div><div class="label" id="g-dstd">dir std --</div></div>
   <div class="gauge"><div class="label">KL / clip frac</div><div class="value" id="g-kl">--</div><div class="label">healthy 0.005 - 0.03</div></div>
-  <div class="gauge"><div class="label">Grad norm</div><div class="value" id="g-gn">--</div></div>
-  <div class="gauge"><div class="label">Wall s / update</div><div class="value" id="g-wall">--</div><div class="label">~45 s at 3x, one instance</div></div>
-  <div class="gauge"><div class="label">Best arrival % (any map)</div><div class="value" id="g-best" style="color:#f0c040">--</div><div class="label" id="g-best-map"></div></div>
   <div class="gauge"><div class="label">Env warts (this run)</div><div class="value" id="g-warts" style="font-size:0.9rem">--</div><div class="label">synthetic falls / respawn misses / teleports ignored</div></div>
 </div>
 <div id="charts">
-  <div class="chart-card"><div class="chart-title">Arrival % per update, one line per map (the milestone number)</div><div id="c-arrive" style="height:230px"></div></div>
-  <div class="chart-card"><div class="chart-title">Falls per 100 u per map</div><div id="c-falls" style="height:230px"></div></div>
-  <div class="chart-card"><div class="chart-title">Speed (u/s, on-floor travel) per map</div><div id="c-speed" style="height:230px"></div></div>
-  <div class="chart-card"><div class="chart-title">Arrival radius (u) &mdash; ratchets down toward the real gem hitbox 0.65</div><div id="c-radius" style="height:230px"></div></div>
-  <div class="chart-card"><div class="chart-title">Reward per segment (300-segment rolling)</div><div id="c-rew" style="height:230px"></div></div>
+  <div class="chart-card"><div class="chart-title">SECONDS BETWEEN PICKUPS, selected map (pickup-to-pickup inside a group; lower is better; dashed = human 1.57 s on KOTM)</div><div id="c-sgem" style="height:230px"></div></div>
+  <div class="chart-card"><div class="chart-title" id="heat-title">Marble speed heat map, selected map (latest real rounds; green = fastest, red = slowest)</div><div id="c-heat" style="height:420px"></div></div>
+  <div class="chart-card"><div class="chart-title">Arrival % per update, selected map</div><div id="c-arrive" style="height:230px"></div></div>
+  <div class="chart-card"><div class="chart-title">Falls per 100 u, selected map</div><div id="c-falls" style="height:230px"></div></div>
+  <div class="chart-card"><div class="chart-title">Speed (u/s, on-floor travel), selected map</div><div id="c-speed" style="height:230px"></div></div>
+  <div class="chart-card"><div class="chart-title">Reward per segment (300-segment rolling, pooled over all maps)</div><div id="c-rew" style="height:230px"></div></div>
   <div class="chart-card"><div class="chart-title">Entropy + direction std</div><div id="c-ent" style="height:230px"></div></div>
   <div class="chart-card"><div class="chart-title">KL per update + clip fraction</div><div id="c-kl" style="height:230px"></div></div>
   <div class="chart-card"><div class="chart-title">Policy loss vs value loss</div><div id="c-loss" style="height:230px"></div></div>
@@ -238,8 +332,8 @@ td.num { text-align:right; font-variant-numeric:tabular-nums; }
   <div class="chart-card"><div class="chart-title">Wall seconds per update (throughput; spikes = stalls / map switches)</div><div id="c-wall" style="height:230px"></div></div>
 </div>
 <div id="tables">
-  <div class="chart-card"><div class="chart-title">Per map (latest slot vs best)</div><table id="t-maps"><thead><tr><th>map</th><th>updates</th><th>arrive %</th><th>best</th><th>falls/100u</th><th>best</th><th>speed</th><th>best</th></tr></thead><tbody></tbody></table></div>
-  <div class="chart-card"><div class="chart-title">Events (map switches, radius changes, checkpoints, restarts)</div><table id="t-events"><tbody></tbody></table></div>
+  <div class="chart-card"><div class="chart-title">Per map (latest slot vs best)</div><table id="t-maps"><thead><tr><th>map</th><th>updates</th><th>s/pickup</th><th>best</th><th>arrive %</th><th>best</th><th>falls/100u</th><th>best</th><th>speed</th><th>best</th></tr></thead><tbody></tbody></table></div>
+  <div class="chart-card"><div class="chart-title">Events (map switches, checkpoints, restarts)</div><table id="t-events"><tbody></tbody></table></div>
 </div>
 <div class="hint">Reads logs/nav/train_nav_*.log every 3 s. A segment = one waypoint; arrive / fall / timeout are its outcomes. Falls per 100 u counts falls per distance travelled on the floor.</div>
 <script>
@@ -251,10 +345,65 @@ const darkLayout = (extra) => Object.assign({
 const cfg = {responsive:true, displayModeBar:false};
 const palette = ['#3fb950','#58a6ff','#f0c040','#bc8cff','#f85149','#d29922','#39d3c3','#ff7b72'];
 const legend = {showlegend:true, legend:{x:0, y:1.15, orientation:'h', font:{size:9}}};
-['c-arrive','c-falls','c-speed','c-radius','c-rew','c-ent','c-kl','c-loss','c-gn','c-wall'].forEach(id => Plotly.newPlot(id, [], darkLayout(legend), cfg));
+['c-sgem','c-heat','c-arrive','c-falls','c-speed','c-rew','c-ent','c-kl','c-loss','c-gn','c-wall'].forEach(id => Plotly.newPlot(id, [], darkLayout(legend), cfg));
 
+let ST = null;   // latest state, so per-map traces can read the MAPS-line series (st.pm)
+// Map selector: one map at a time (default KingOfTheMarble, the scored map) or the overlay of all.
+let SEL = (function(){ try { return localStorage.getItem('nav_map_sel') || 'KingOfTheMarble_Hunt'; } catch (e) { return 'KingOfTheMarble_Hunt'; } })();
+let WIN = (function(){ try { return parseInt(localStorage.getItem('nav_win_sel') || '500'); } catch (e) { return 500; } })();
+let LO = -Infinity;   // first update shown; recomputed on every state push
+const winEl = document.getElementById('win-sel'); winEl.value = String(WIN);
+winEl.addEventListener('change', () => { WIN = parseInt(winEl.value); try { localStorage.setItem('nav_win_sel', String(WIN)); } catch (e) {} if (ST) update(ST); });
+function windowed(series) {   // copy of the pooled series restricted to update >= LO
+  const keep = series.update.map(u => u >= LO); const out = {};
+  for (const k of Object.keys(series)) out[k] = series[k].filter((_, i) => keep[i]);
+  return out;
+}
+const selEl = document.getElementById('map-sel');
+selEl.addEventListener('change', () => { SEL = selEl.value; try { localStorage.setItem('nav_map_sel', SEL); } catch (e) {} if (ST) update(ST); loadHeatmap(); });
+let HEAT_LOADED = '';   // "<map>@<trace_time>" currently drawn, so we only redraw when the trace changes
+async function loadHeatmap() {
+  const name = SEL === 'ALL' ? 'KingOfTheMarble_Hunt' : SEL;
+  try {
+    const h = await (await fetch('/heatmap?map=' + encodeURIComponent(name))).json();
+    const title = document.getElementById('heat-title');
+    if (h.error) { title.textContent = 'Marble speed heat map: ' + h.error; Plotly.react('c-heat', [], darkLayout(), cfg); HEAT_LOADED = ''; return; }
+    const key = h.map + '@' + h.trace_time; if (key === HEAT_LOADED) return; HEAT_LOADED = key;
+    title.textContent = 'Marble speed heat map, ' + h.map.replace('_Hunt','') + ' (' + h.rounds + ' real rounds, ' + h.decisions.toLocaleString() + ' floor decisions, trace ' + h.trace_time + '; green = fastest, red = slowest, 1 u cells)';
+    const floor = {x:h.x, y:h.y, z:h.floor, type:'heatmap', colorscale:[[0,'#2a2f36'],[1,'#2a2f36']], showscale:false, hoverinfo:'skip', zmin:0, zmax:1};
+    const speed = {x:h.x, y:h.y, z:h.z, type:'heatmap', zmin:2, zmax:11, colorscale:[[0,'#a50026'],[0.25,'#f46d43'],[0.5,'#fee08b'],[0.75,'#a6d96a'],[1,'#1a9850']],
+                   colorbar:{title:{text:'u/s', font:{color:'#e6edf3'}}, tickfont:{color:'#e6edf3'}, thickness:10}, hovertemplate:'x %{x}, y %{y}: %{z} u/s<extra></extra>'};
+    Plotly.react('c-heat', [floor, speed], darkLayout({margin:{l:40, r:10, t:8, b:32}, xaxis:{title:'x', gridcolor:'#21262d', color:'#7d8590', scaleanchor:'y', constrain:'domain'}, yaxis:{title:'y', gridcolor:'#21262d', color:'#7d8590'}}), cfg);
+  } catch (e) { console.error(e); }
+}
+loadHeatmap(); setInterval(loadHeatmap, 60000);
+function syncSelector(st) {
+  const names = st.pm ? Object.keys(st.pm) : [];
+  const have = [...selEl.options].map(o => o.value);
+  names.forEach(n => { if (!have.includes(n)) { const o = document.createElement('option'); o.value = n; o.textContent = n.replace('_Hunt',''); selEl.appendChild(o); } });
+  if (![...selEl.options].some(o => o.value === SEL)) SEL = names.includes('KingOfTheMarble_Hunt') ? 'KingOfTheMarble_Hunt' : 'ALL';
+  selEl.value = SEL;
+}
 function perMapTraces(s, key, mode) {
-  const maps = [...new Set(s.map)]; const traces = [];
+  const traces = [];
+  if (ST && ST.pm && Object.keys(ST.pm).length) {
+    const maps = Object.keys(ST.pm);
+    if (!ST.pm[maps[0]][key]) {
+      // pooled-only series (e.g. reward): one trace over the whole run
+      const x = [], y = [];
+      s.update.forEach((u, k) => { if (s[key][k] !== null && s[key][k] !== undefined) { x.push(u); y.push(s[key][k]); } });
+      return [{x, y, type:'scatter', mode:'lines', line:{width:1.5, color:palette[0]}, name:'all maps (pooled)'}];
+    }
+    maps.forEach((mp, i) => {
+      if (SEL !== 'ALL' && mp !== SEL) return;
+      const d = ST.pm[mp]; if (!d[key]) return;
+      const x = [], y = [];
+      d.update.forEach((u, k) => { if (u >= LO && d[key][k] !== null && d[key][k] !== undefined) { x.push(u); y.push(d[key][k]); } });
+      traces.push({x, y, type:'scatter', mode: mode || 'lines', line:{width:1.5, color:palette[i % palette.length]}, name: mp.replace('_Hunt','')});
+    });
+    return traces;
+  }
+  const maps = [...new Set(s.map)];
   maps.forEach((mp, i) => {
     const x = [], y = [];
     s.update.forEach((u, k) => { if (s.map[k] === mp && s[key][k] !== null) { x.push(u); y.push(s[key][k]); } });
@@ -265,31 +414,37 @@ function perMapTraces(s, key, mode) {
 function fmt(v, d) { return (v === null || v === undefined) ? '--' : Number(v).toFixed(d === undefined ? 2 : d); }
 
 function update(st) {
-  const s = st.series, L = st.latest;
+  ST = st;
+  syncSelector(st);
+  const allU = st.series.update; LO = (WIN > 0 && allU.length) ? allU[allU.length - 1] - WIN : -Infinity;
+  const s = windowed(st.series), L = st.latest;
+  const pmSel = SEL !== 'ALL' ? st.per_map[SEL] : null;   // the selected map's own numbers for the gauges
+  const selName = SEL === 'ALL' ? 'all maps' : SEL.replace('_Hunt','');
+  document.getElementById('g-sgem-label').textContent = 'Seconds between pickups (' + selName + ')';
+  document.getElementById('g-sgem').textContent = (pmSel && pmSel.sgem) ? fmt(pmSel.sgem) + ' s' : (L && L.sgem ? fmt(L.sgem) + ' s' : '--');
+  document.getElementById('g-sgem-sub').textContent = 'human 1.57 s (KOTM)' + ((pmSel && pmSel.best_sgem) ? ' | best ' + fmt(pmSel.best_sgem) : '');
+  {
+    const tr = perMapTraces(s, 'sgem');
+    if (s.update.length) tr.push({x:[s.update[0], s.update[s.update.length-1]], y:[st.human_sgem, st.human_sgem], type:'scatter', mode:'lines', line:{dash:'dash', color:'#e6edf3', width:1}, name:'human (KOTM demo)'});
+    Plotly.react('c-sgem', tr, darkLayout(Object.assign({yaxis:{title:'s / pickup', gridcolor:'#21262d', color:'#7d8590'}}, legend)), cfg);
+  }
   document.getElementById('trainer-badge').textContent = 'Trainer: ' + (st.trainer_alive ? 'running' : 'stopped');
   document.getElementById('trainer-badge').className = 'badge badge-game' + (st.trainer_alive ? ' connected' : '');
   if (L) {
     document.getElementById('m-update').textContent = L.update; document.getElementById('m-steps').textContent = L.steps.toLocaleString();
     document.getElementById('m-segs').textContent = L.segs; document.getElementById('m-map').textContent = L.map.replace('_Hunt','');
-    document.getElementById('m-r').textContent = L.r === null ? '1.50' : fmt(L.r);
-    document.getElementById('g-arrive').textContent = fmt(L.arrive, 0) + '%'; document.getElementById('g-falls').textContent = fmt(L.falls100);
-    document.getElementById('g-speed').textContent = fmt(L.speed, 1); document.getElementById('g-rew').textContent = fmt(L.rew, 1);
+    const G = pmSel || L;   // selected map's arrive / falls / speed, pooled when 'all maps'
+    document.getElementById('g-arrive').textContent = fmt(G.arrive, 0) + '%'; document.getElementById('g-falls').textContent = fmt(G.falls100);
+    document.getElementById('g-speed').textContent = fmt(G.speed, 1); document.getElementById('g-rew').textContent = fmt(L.rew, 1);
     document.getElementById('g-ent').textContent = fmt(L.ent); document.getElementById('g-dstd').textContent = 'dir std ' + fmt(L.dstd);
-    document.getElementById('g-kl').textContent = fmt(L.kl, 3) + ' / ' + fmt(L.clip); document.getElementById('g-gn').textContent = fmt(L.gn);
-    document.getElementById('g-wall').textContent = fmt(L.wall_s, 0) + ' s';
+    document.getElementById('g-kl').textContent = fmt(L.kl, 3) + ' / ' + fmt(L.clip);
   }
   document.getElementById('m-dps').textContent = fmt(st.dec_per_s, 1); document.getElementById('m-rtf').textContent = st.rtf === null ? '--' : fmt(st.rtf);
   document.getElementById('m-ckpt').textContent = st.ckpt + ' (' + st.ckpt_time + ')';
   const c = st.counters; document.getElementById('g-warts').textContent = c.synthetic_falls + ' / ' + c.respawn_misses + ' / ' + c.teleport_ignored;
-  let best = -1, bestMap = '';
-  for (const [mp, v] of Object.entries(st.per_map)) { if (v.best_arrive > best) { best = v.best_arrive; bestMap = mp; } }
-  document.getElementById('g-best').textContent = best < 0 ? '--' : best.toFixed(0) + '%'; document.getElementById('g-best-map').textContent = bestMap.replace('_Hunt','');
   Plotly.react('c-arrive', perMapTraces(s, 'arrive'), darkLayout(Object.assign({yaxis:{range:[0,100], gridcolor:'#21262d', color:'#7d8590'}}, legend)), cfg);
   Plotly.react('c-falls', perMapTraces(s, 'falls100'), darkLayout(legend), cfg);
   Plotly.react('c-speed', perMapTraces(s, 'speed'), darkLayout(legend), cfg);
-  Plotly.react('c-radius', [{x:s.update, y:s.r.map(v => v === null ? 1.5 : v), type:'scatter', mode:'lines', line:{shape:'hv', color:'#f0c040', width:2}, name:'radius'},
-                            {x:[s.update[0], s.update[s.update.length-1]], y:[0.65,0.65], type:'scatter', mode:'lines', line:{dash:'dash', color:'#7d8590', width:1}, name:'gem hitbox'}],
-               darkLayout(Object.assign({yaxis:{range:[0,1.7], gridcolor:'#21262d', color:'#7d8590'}}, legend)), cfg);
   Plotly.react('c-rew', perMapTraces(s, 'rew'), darkLayout(legend), cfg);
   Plotly.react('c-ent', [{x:s.update, y:s.ent, type:'scatter', mode:'lines', line:{color:'#bc8cff', width:1.5}, name:'entropy'},
                          {x:s.update, y:s.dstd, type:'scatter', mode:'lines', line:{color:'#58a6ff', width:1, dash:'dot'}, name:'dir std', yaxis:'y2'}],
@@ -304,7 +459,7 @@ function update(st) {
   Plotly.react('c-wall', [{x:s.update, y:s.wall_s, type:'bar', marker:{color:'#7d8590'}, name:'wall s'}], darkLayout(), cfg);
   const tb = document.querySelector('#t-maps tbody'); tb.innerHTML = '';
   for (const [mp, v] of Object.entries(st.per_map)) {
-    tb.innerHTML += `<tr><td>${mp.replace('_Hunt','')}</td><td class="num">${v.updates}</td><td class="num">${v.arrive.toFixed(0)}%</td><td class="num" style="color:#f0c040">${v.best_arrive.toFixed(0)}%</td><td class="num">${v.falls100.toFixed(2)}</td><td class="num" style="color:#f0c040">${v.best_falls100.toFixed(2)}</td><td class="num">${v.speed.toFixed(1)}</td><td class="num" style="color:#f0c040">${v.best_speed.toFixed(1)}</td></tr>`;
+    tb.innerHTML += `<tr><td>${mp.replace('_Hunt','')}</td><td class="num">${v.updates}</td><td class="num" style="color:#f0c040">${v.sgem ? v.sgem.toFixed(2) : '--'}</td><td class="num">${v.best_sgem ? v.best_sgem.toFixed(2) : '--'}</td><td class="num">${v.arrive.toFixed(0)}%</td><td class="num" style="color:#f0c040">${v.best_arrive.toFixed(0)}%</td><td class="num">${v.falls100.toFixed(2)}</td><td class="num" style="color:#f0c040">${v.best_falls100.toFixed(2)}</td><td class="num">${v.speed.toFixed(1)}</td><td class="num" style="color:#f0c040">${v.best_speed.toFixed(1)}</td></tr>`;
   }
   const te = document.querySelector('#t-events tbody'); te.innerHTML = '';
   st.events.slice().reverse().forEach(e => { te.innerHTML += `<tr><td class="num">upd ${e[0]}</td><td class="ev ${e[1]}">${e[2]}</td></tr>`; });

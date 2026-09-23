@@ -148,14 +148,14 @@ def pooled_stats(workers, mission=None):
     if not st:
         return {'segments': 0, 'arrive_pct': 0.0, 'falls_per_100u': 0.0, 'speed': 0.0, 'timeout_pct': 0.0,
                 'gems_pct': 0.0, 'gems_per_group': 0.0, 'pickup_speed': 0.0, 'carry_speed': 0.0,
-                'turn_deg': 0.0}
+                'turn_deg': 0.0, 's_per_gem': 0.0}
     n = sum(s['segments'] for s in st)
-    wavg = lambda k: sum(s[k] * s['segments'] for s in st) / n
+    wavg = lambda k: sum(s.get(k, 0.0) * s['segments'] for s in st) / n
     return {'segments': n, 'arrive_pct': wavg('arrive_pct'), 'falls_per_100u': wavg('falls_per_100u'),
             'speed': wavg('speed'), 'timeout_pct': wavg('timeout_pct'),
             'gems_pct': wavg('gems_pct'), 'gems_per_group': wavg('gems_per_group'),
             'pickup_speed': wavg('pickup_speed'), 'carry_speed': wavg('carry_speed'),
-            'turn_deg': wavg('turn_deg')}
+            'turn_deg': wavg('turn_deg'), 's_per_gem': wavg('s_per_gem')}
 
 
 def main():
@@ -330,11 +330,12 @@ def main():
                     # a map mix across instances: per-map arrival / fall numbers on their own line
                     log('MAPS ' + ' | '.join(f'{m}: n={sum(1 for w in workers if w.mission == m)} arrive={pooled_stats(workers, m)["arrive_pct"]:.0f}% '
                                              f'falls100={pooled_stats(workers, m)["falls_per_100u"]:.2f} speed={pooled_stats(workers, m)["speed"]:.1f} '
-                                             f'gems={pooled_stats(workers, m)["gems_per_group"]:.1f}/grp pickup={pooled_stats(workers, m)["pickup_speed"]:.1f}' for m in missions))
+                                             f'gems={pooled_stats(workers, m)["gems_per_group"]:.1f}/grp pickup={pooled_stats(workers, m)["pickup_speed"]:.1f} '
+                                             f'sgem={pooled_stats(workers, m)["s_per_gem"]:.2f}' for m in missions))
                 dg = model.dir_head[0].weight[:, HIDDEN:HIDDEN+2].norm().item() * DIR_GOAL_GAIN
                 log(f'DIRGAIN effective goal-bearing norm {dg:.2f} (gain {DIR_GOAL_GAIN:g})') if update % 20 == 0 else None
                 log(f'NAV upd={update} map={"+".join(missions)} r={arrive["r"]:.2f} steps={steps:,} segs={seg_total} arrive={s["arrive_pct"]:.0f}% '
-                    f'falls100={s["falls_per_100u"]:.2f} speed={s["speed"]:.1f} gems={s["gems_per_group"]:.1f} pickup={s["pickup_speed"]:.1f} carry={s["carry_speed"]:.1f} turn={s["turn_deg"]:.1f} rew={np.mean(recent_rewards) if recent_rewards else 0:.1f} '
+                    f'falls100={s["falls_per_100u"]:.2f} speed={s["speed"]:.1f} gems={s["gems_per_group"]:.1f} pickup={s["pickup_speed"]:.1f} sgem={s["s_per_gem"]:.2f} carry={s["carry_speed"]:.1f} turn={s["turn_deg"]:.1f} rew={np.mean(recent_rewards) if recent_rewards else 0:.1f} '
                     f'pl={st.get("pl", 0):.3f} vl={st.get("vl", 0):.3f} ent={st.get("ent", 0):.2f} entd={st.get("ent_d", 0):.2f} ec={st.get("ent_coef", 0):.4f} kl={st.get("kl", 0):.3f} '
                     f'clip={st.get("clipfrac", 0):.2f} gn={st.get("gn", 0):.2f} ep={st.get("epochs", 0)} '
                     f'dstd={model.log_std.clamp(model.LOG_STD_MIN, model.LOG_STD_MAX).exp().item():.2f} flips={flips} '

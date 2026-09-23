@@ -718,3 +718,6 @@
 [02:36] EVAL geo16 (nav_eval_timeprice_0142.pth): 124,120,110,115,115,103,110,111 -> mean 113.5 (gems-only steering)
 [05:42] EVAL timeprice2 (nav_eval_timeprice2_0539.pth): 119,106,115,125,112,116,117,120 -> mean 116.3 (gems-only steering)
 [05:47] EVAL tp2_k0 (nav_eval_timeprice2_0539.pth): 108,99,104,105,105,100,96,104 -> mean 102.6 (gems-only steering)
+[09:50] EVAL edgefix1 (nav_eval_edgefix1_0947.pth): 123,118,111,117,122,98,111,113 -> mean 114.1 (gems-only steering)
+[12:03] EVAL noon (nav_eval_noon_1200.pth): 121,105,122,124,125,121,71,43 -> mean 104.0 (gems-only steering)
+[15:39] EVAL align1 (nav_eval_align1_1536.pth): 128,121,120,122,122,120,129,123 -> mean 123.1 (gems-only steering)

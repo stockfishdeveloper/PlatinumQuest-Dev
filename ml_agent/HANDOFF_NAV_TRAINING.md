@@ -3020,3 +3020,70 @@ Candidates that survive for the pickup dip itself: FALL raised together with the
 cannot be bought with falls), or a dense per-decision term for thrust along motion (section 23 item 2);
 either needs the operator's decision. **Current best real-round configuration: 14,255 weights +
 K=1.6 = 113-118 points.**
+
+### 28.10 FEAR REMOVAL, STEP 1 APPLIED: stopping-distance edge charge + post-pickup grace (2026-09-22 08:25)
+
+Operator, after watching a 1x round: "slow and hesitant, acts like it's really scared to fall off,
+especially around holes; a human is much more confident". Before proposing, two claims were checked:
+* `THROTTLE_FLOOR = 0.90` is real (`nav/model.py`) but barely binds: mean throttle in real rounds 0.98,
+  above 0.95 on 82 % of KOTM decisions. Not a lever.
+* The explicit brake action is 0.09 % of training decisions and 0 % of real-round decisions (current, not
+  stale). But the human's 14.3 % is a DERIVED number (intent opposing velocity). Measured the same way
+  (command vs velocity while moving above 3 u/s): **agent opposes its own motion on 42 % of decisions,
+  human 33 %; strongly (beyond 120 deg) 28 % vs 20 %; median angle 72 vs 57 deg.** The agent does not
+  lack braking; it hesitates by thrusting backwards and sideways. The brake-cost and throttle-floor
+  ideas were dropped on that evidence.
+
+Applied in `nav/waypoints.py` (from the 14,255 weights, `nav_eval_timeprice_0142.pth`; the reverted-run
+endpoint 14,600 is kept as `nav_revert_end_0721.pth`):
+1. **`edge_time_cost` v3: stopping-distance test.** Charge only inside `v^2 / (2 * EDGE_DECEL) +
+   EDGE_MARGIN_U` of a lip along the velocity (EDGE_DECEL 13, measured 13.9 u/s^2 under full reverse for
+   both agent and human; margin 1 u). At 8 u/s the charge now starts 2.5 u out instead of 9.6 u. Fires on
+   6.3 % of the human's decisions and 2.7 % of the agent's (was 13.4 % / 10.4 %); the goal and jump
+   exemptions are unchanged. `EDGE_T_SAFE` is no longer used.
+2. **`PICKUP_GRACE = 16`**: for ~1 s after a pickup, negative progress is forgiven (TIME and the speed
+   bonus still charge). Removes the break-even that made stopping at the gem optimal (28.3).
+Not changed: FALL 25, GEM_SPEED_BONUS 8/60, GROUP_LINK_DMIN 3, pool 2/5/1, ordering K=1.6 at inference.
+
+Readout tool committed: `python -m nav.leg_report [trace.csv]` prints pickup speed at ring gems, the
+post-pickup dip, time to regain 8 u/s, turn at pickup, thrust-opposes-velocity share, block speed, falls,
+for the trace and the human demo side by side. Baselines on the 14,255 weights (K=0 trace): ring pickup
+4.50, ring->out dip below 2 u/s 53 %, thrust opposes 42 %, block 4.6 u/s, 16 falls / 8 rounds.
+Judge by `eval_cycle.ps1` (ordering on, compare against 113-118 points and 16 falls) at ~+300 and
+~+1,000 updates. Step 3 (dense thrust-along-motion bonus, k ~0.1) waits for that result.
+
+### 28.11 STEP 3 APPLIED: dense commitment bonus (2026-09-22 14:10). Plus the results that led here.
+
+**Edge-fix run results (28.10, weights 14,255 -> 15,285, ~1,030 updates), 8-round KOTM evals with
+ordering on:** 14,565: 114.1 points, 1.97 s/pickup, 22 falls. 15,057 (noon): rounds 121,105,122,124,
+125,121 then 71 and 43, because the marble FROZE at (-35, 11) for 54 s and 86 s (on the floor, full
+command magnitude, heading swinging randomly, next gem 12 u east across the SW hole, route 4 u north).
+Earlier checkpoints never had a gap over 9 s in a round. 15,285 (13:41): **120.9 points**
+(121,115,120,120,121,125,125,120), **1.86 s/pickup** (median 1.73), 15 falls, longest gap 11 s. Best
+8-round result to date; the training-side KOTM s/pickup sat at 1.73-1.77 the whole run. FlatGem control
+at 15,057: 95.5 gems, unchanged (96.5 before), no freezes. The hesitation readouts did NOT move: centre
+pickup speed 4.4 u/s (human 8.2), thrust-opposes-velocity 41 % (human 33 %), block speed 4.6 (human 6.9).
+The gain came from the pickup terms, not from confident driving.
+
+**Operator directive:** seconds between pickups is the headline metric (human 1.57; 150 points needs
+~1.53). It is logged as `sgem=` on the MAPS/NAV lines (pickup-to-pickup inside a group), on the dashboard
+(first chart, per map, with a map selector and time window), and printed first by `nav/leg_report.py`.
+The dashboard also has a per-map speed heat map (green fast, red slow) from `logs/nav/real_trace_<map>.csv`,
+which `real_run.py` now writes; the KOTM map shows red at the centre block, every junction, and the
+outer gem spots, green on straight walkways.
+
+**Applied now:** `ALIGN_BONUS = 0.10`, `ALIGN_V_REF = 8`, `ALIGN_V_MIN = 2` in `nav/waypoints.py`: per
+decision on the floor, `0.10 * min(1, v/8) * max(0, cos(thrust, velocity))`. Restarted 14:10 from
+`nav_before_align_1405.pth` (= 15,275). Evals scheduled at 15,575 (`align1`) and 16,175 (`align2`).
+Readouts to move: thrust-opposes share 41 % -> 33 %, centre pickup speed, s/pickup; falls must not rise.
+
+### 28.12 PENDING: entropy-controller fix, to apply after the align2 eval (operator, 2026-09-22 14:30)
+
+Measured on the 14,255 -> 15,285 lineage: entropy cycles 0.13 <-> 0.43 with a ~165-update period; the
+bang-bang controller's coefficient swings -0.03 <-> +0.07 and is NEGATIVE on 45 % of updates (an entropy
+penalty). KL (0.019) and clip (0.16) are healthy, so it is not what blocks improvement, but it pushes a
+hesitant policy toward determinism half the time and puts every A/B eval on a different cycle phase.
+Fix (operator-approved, to run right after the `align2` eval at update 16,175 restarts training):
+`python logs/nav/apply_entropy_fix.py` then restart the trainer. It replaces `_adapt_entropy` with a
+proportional rule toward ENT_TARGET 0.30 (gain 0.002/update, clamp [0, 0.02], never negative) and starts
+the coefficient at 0.005. Backup of the file before: `logs/nav/ppo_recurrent_backup_pre_entropyfix.py`.
