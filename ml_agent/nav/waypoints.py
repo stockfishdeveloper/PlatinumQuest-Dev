@@ -42,8 +42,19 @@ PROGRESS = 1.0                 # REVERTED to 1.0 at 13:26 on 2026-09-21 after 10
                                # two legs' worth of that gain. Cut so the time-sensitive terms can
                                # actually drive pace. Kept non-zero because this is the scaffold
                                # that makes the task learnable from scratch.
+PROGRESS_NEXT = 0.3            # 2026-09-23 (HANDOFF 28.22): per unit of walking distance closed to the NEXT gem of
+                               # the group, paid every decision beside PROGRESS to the current one. The policy
+                               # had the next gem in its observation (worth 8 points when hidden) but nothing
+                               # ever paid for carrying speed THROUGH gem 1 toward gem 2: with the next gem dead
+                               # ahead the human takes gem 1 at 11.3 u/s and holds 7.1, the agent takes it at
+                               # 5.8 and dips to 4.6. On a straight line both terms pay (1.3/u); on a corner an
+                               # approach that already curves toward gem 2 is paid during the approach.
 ARRIVE = 10.0
-GEM_SPEED_BONUS = 8.0          # REVERTED to 8 (REF 60) at 05:55 on 2026-09-22 after ~1,000 updates at 40/80
+GEM_SPEED_BONUS = 16.0         # 8 -> 16 at 03:45 on 2026-09-23 (HANDOFF 28.18, plan step 4): time pressure back at HALF
+                               # the slope that failed (0.27/decision vs 0.5), now that the fear terms are gone,
+                               # the stuck-breaker exists and falls are 9 per 8 rounds. Revert to 8 if falls exceed
+                               # 13 per 8 rounds without a pace gain at the next eval.
+                               # (superseded) REVERTED to 8 (REF 60) at 05:55 on 2026-09-22 after ~1,000 updates at 40/80
                                # (HANDOFF 28.9): real-round score 105.0 -> 102.6 on the same ordering while
                                # falls went 16 -> 51 per 8 rounds. It bought speed with falls, as the
                                # 2026-09-18 note predicted. Weights restored to nav_eval_timeprice_0142
@@ -159,6 +170,8 @@ EDGE_LOOK = 9.0                # u: how far ahead along the velocity to look for
 EDGE_GOAL_LATERAL = 1.5        # u: a goal within this of the velocity ray and BEFORE the drop makes the
                                # approach a pickup, not a shortcut: no charge (1 % of falls, 15 % of v1 charges)
 EDGE_V_MIN = 1.5               # u/s: slower than this the marble stops within a cell; no charge
+FALL_AFTER_JUMP = 8.0          # 2026-09-23 (HANDOFF 28.17): price of a fall within JUMP_FALL_WINDOW decisions of
+JUMP_FALL_WINDOW = 24          # a takeoff (~1.5 s), while jumping is being practised. See the note at the fall.
 FALL = 25.0                    # 10 -> 25 at 01:12 on 2026-09-21. Measured on the gems-only real rounds: a
                                # fall costs ~7.5 s of respawn and recovery = ~55-60 reward units of
                                # forgone gems, against 10 + ~6 TIME charged here, so shortcuts with a
@@ -191,7 +204,8 @@ AIR = 0.1                      # per decision airborne BEYOND the grace period b
 AIR_GRACE = 16                 # ~1 s: a purposeful jump is free; tumbling / falling still costs
                                # (2026-09-17: charging every airborne decision taught the policy that
                                # jumping never pays, so it never jumped gaps)
-JUMP_TAKEOFF = 0.4             # per jump COMMANDED WHILE ON THE FLOOR (an actual takeoff; a jump
+JUMP_TAKEOFF = 0.1             # 0.4 -> 0.1 on 2026-09-22 (HANDOFF 28.13, jump re-enable; see model.JUMP_DAMP).
+                               # per jump COMMANDED WHILE ON THE FLOOR (an actual takeoff; a jump
                                # pressed in mid-air does nothing in the engine and is not charged).
                                # 2026-09-18: on King of the Marble the policy jumped on 32 % of
                                # decisions and was airborne 51 % of the time with the gap prior
@@ -363,7 +377,8 @@ class Segment:
     keeps its momentum and heads for the next one, which is the whole point of grouping."""
     __slots__ = ('fall_mark', 'goal', 'field', 'path_len', 'prev_d', 'decisions', 'travelled', 'last_pos', 'outcome',
                  'start', 'offmap', 'remaining', 'collected', 'group_size', 'pickup_speeds', 'falls',
-                 'gem_decisions', 'carry_vals', 'turn_degs', 'grace', 'chain_dec', 'chain_n')
+                 'gem_decisions', 'carry_vals', 'turn_degs', 'grace', 'chain_dec', 'chain_n', 'last_takeoff',
+                 'next_field', 'prev_dn')
 
     def __init__(self, goal, field, path_len, start, remaining=()):
         self.goal = goal; self.field = field; self.path_len = path_len; self.start = start
@@ -381,6 +396,8 @@ class Segment:
         self.gem_decisions = 0                # decisions spent on the CURRENT gem, for the speed bonus
         self.grace = 0                        # decisions left in the post-pickup window where negative
                                               # progress is forgiven (PICKUP_GRACE, HANDOFF 28.10)
+        self.last_takeoff = -10**6            # decision index of the last real takeoff (FALL_AFTER_JUMP window)
+        self.next_field = None; self.prev_dn = None   # Dijkstra field of the NEXT gem + last distance (PROGRESS_NEXT)
         self.chain_dec = 0                    # decisions spent between consecutive pickups (the first gem
         self.chain_n = 0                      # of a group starts from a teleport at rest and is excluded):
                                               # sgem = 0.064 * chain_dec / chain_n, the operator's headline
@@ -443,6 +460,15 @@ class SegmentManager:
         s.last_pos = np.array([x, y, z])
         s.offmap = 0
 
+    def _set_next_field(self, x, y):
+        """(Re)build the next gem's Dijkstra field and prime its distance, for PROGRESS_NEXT."""
+        s = self.seg; ng = self.next_goal()
+        if ng is None:
+            s.next_field = None; s.prev_dn = None
+            return
+        s.next_field = self.terrain.goal_field(ng[0], ng[1])
+        s.prev_dn = self.terrain.dist_at(s.next_field, x, y, (ng[0], ng[1]))
+
     def next_goal(self):
         """The gem the greedy order will hand over after the current one, or None on the last gem.
         Nearest remaining to where the marble WILL be, i.e. to the current goal."""
@@ -485,6 +511,7 @@ class SegmentManager:
         s.prev_d = self.terrain.dist_at(s.field, x, y, (gx, gy))
         s.fall_mark = None                        # new goal, new field: the mark no longer applies
         s.grace = PICKUP_GRACE                    # the arc out of this pickup is not charged as loss
+        self._set_next_field(x, y)
         self.pending_mark = (gx, gy, gz)
 
     def maybe_tighten(self):
@@ -562,6 +589,7 @@ class SegmentManager:
         self._prev_cmd = None      # a teleport makes the previous heading meaningless
         self.seg.prev_d = self.terrain.dist_at(field, x, y, (gx, gy))
         self.seg.last_pos = np.array([x, y, z])
+        self._set_next_field(x, y)
         return self.seg.goal
 
     def _settle(self, env, max_ticks=REST_WAIT_TICKS):
@@ -681,10 +709,22 @@ class SegmentManager:
                 progress = max(0.0, progress)
                 s.grace -= 1
         s.prev_d = d
+        progress_next = 0.0
+        if PROGRESS_NEXT > 0.0 and s.next_field is not None and s.fall_mark is None:
+            ng = self.next_goal()
+            if ng is not None:
+                dn = self.terrain.dist_at(s.next_field, x, y, (ng[0], ng[1]))
+                if s.prev_dn is not None and np.isfinite(dn) and np.isfinite(s.prev_dn):
+                    progress_next = max(-PROGRESS_CLIP, min(PROGRESS_CLIP, s.prev_dn - dn))
+                    if s.grace > 0:
+                        progress_next = max(0.0, progress_next)
+                s.prev_dn = dn
         air_cost = AIR if (airborne and airborne_decisions > AIR_GRACE) else 0.0
         takeoff_cost = JUMP_TAKEOFF if (jumped and not airborne) else 0.0
+        if jumped and not airborne:
+            s.last_takeoff = s.decisions
         edge_cost = 0.0 if (airborne or fell) else edge_time_cost(self.terrain, x, y, float(vel[0]), float(vel[1]), goal=(gx, gy))
-        r = PROGRESS * progress - TIME - air_cost - takeoff_cost - (BRAKE if braked else 0.0) - turn_cost - edge_cost + align_bonus
+        r = PROGRESS * progress + PROGRESS_NEXT * progress_next - TIME - air_cost - takeoff_cost - (BRAKE if braked else 0.0) - turn_cost - edge_cost + align_bonus
         done, outcome = False, None
         # off the map (below the lowest floor / outside the grid) without the game's OOB flag:
         # after OFFMAP_FALL_DECISIONS decisions count it as a fall ourselves
@@ -696,7 +736,12 @@ class SegmentManager:
             fell = True
             self.log(f'fall without OOB flag: {s.offmap} decisions off the map at {np.round(p, 1)} (time left {self._elapsed:.0f}s)')
         if fell:
-            r -= FALL
+            # PRACTICE DISCOUNT (2026-09-23, HANDOFF 28.17): a fall within JUMP_FALL_WINDOW decisions of a
+            # takeoff costs FALL_AFTER_JUMP instead of FALL. A hop saves ~2.6 u of progress and a failed
+            # one cost 25, so unless 9 in 10 landed the expected value was negative and PPO extinguished
+            # jumping before it got good at it (takeoffs/min 0.95 -> 0.46 -> 0.33 across three evals).
+            # Restore to FALL once takeoffs hold near 1/min with falls back at <= 13 per 8 rounds.
+            r -= FALL_AFTER_JUMP if (s.decisions - s.last_takeoff) <= JUMP_FALL_WINDOW else FALL
             s.falls += 1
             if s.fall_mark is None and np.isfinite(d_before):
                 s.fall_mark = float(d_before)     # earliest mark wins if it falls again on the way back

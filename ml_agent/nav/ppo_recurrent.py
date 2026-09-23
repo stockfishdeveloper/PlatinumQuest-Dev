@@ -78,7 +78,9 @@ ENT_STEP_ABS = 0.0015  # coefficient is large, additive near zero so it can CROS
                        # entropy down once it was high (measured: coef 0.0141 -> 0.0035 over 30
                        # updates moved entropy 0.92 -> 0.93, i.e. not at all). Multiplication is
                        # also wrong once the coefficient is signed: -0.03 * 1.05 is MORE negative.
-DISCRETE_ENT_COEF = 0.002   # FIXED bonus for the jump and brake heads, never adapted. The
+DISCRETE_ENT_COEF = 0.01    # 0.002 -> 0.01 on 2026-09-22 (HANDOFF 28.13): jump exploration was ~0 with the
+                            # head damped by 3.0; the skill cannot be learned if it is never tried.
+                            # FIXED bonus for the jump and brake heads, never adapted. The
                             # controller must not be able to reach these: Bernoulli entropy is
                             # the cheapest on the menu, so a rising coefficient buys it there
                             # first and randomises braking instead of widening steering. Held

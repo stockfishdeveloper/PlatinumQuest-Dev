@@ -75,10 +75,16 @@ EDGE_COST = 2.0       # path cost multiplier for cells bordering a drop. NOTE (2
 # Inflation multiplied every edge by the same factor and changed no gradient DIRECTION at all.
 # self.edge_dist is kept below because it is a useful measurement, just not a useful cost.
 DROP_EDGE = 2.0       # a neighbour more than this far below counts as a drop (edge)
+JUMP_GOAL_P = 0.33    # share of spawn-goal draws that prefer a goal whose shortest route uses a jump
+JUMP_SAVE_MIN = 1.0   # u the jump route must save over the walk-only route to count (HANDOFF 28.13)
 JUMP_GAP = 4.0        # gaps up to this wide (u) get a "jump edge" in the walk graph
 JUMP_DROP = 6.0       # landing may be this far below the take-off cell ...
 JUMP_RISE = 1.5       # ... or this far above
-JUMP_COST = 3.0       # path cost multiplier for a jump edge (per unit of gap)
+JUMP_COST = 1.5       # 3.0 -> 1.5 on 2026-09-22 (HANDOFF 28.13). Path cost multiplier for a jump edge (per
+                      # unit of gap). A hop is priced near its TIME cost (a 3 u hop takes about as long
+                      # as rolling 4.5 u); the fall risk is priced by FALL in the reward, not here. At 3.0
+                      # (and doubled by the duplicate-edge bug above) no KOTM route ever used a jump, so
+                      # neither PROGRESS nor the jump curriculum could ever reward one.
 
 
 def _crop_offsets(res):
@@ -277,12 +283,24 @@ class TerrainGrid(TerrainMap):
         # connected components WITHOUT jump edges: "same island" test for goal sampling
         from scipy.sparse.csgraph import connected_components
         comp = np.full((H, W), -1, dtype=np.int64)
+        self._graph_nojump = None
         if n:
             g0 = coo_matrix((np.concatenate([w, w]), (np.concatenate([rows, cols]), np.concatenate([cols, rows]))), shape=(n, n)).tocsr()
             _, labels = connected_components(g0, directed=False)
             comp[nodes[:, 0], nodes[:, 1]] = labels
+            self._graph_nojump = g0       # walk-only graph: goal_field(..., jumps=False) measures the detour a jump saves
         self.component = comp
         if jr:
+            # DEDUPLICATE (fixed 2026-09-22, HANDOFF 28.13): every gap is found from BOTH of its edge cells,
+            # so each jump edge was appended twice and coo_matrix SUMMED the duplicates: a 3 u hop over
+            # KOTM's centre hole cost 18 instead of 9, and no shortest path on KOTM ever used a jump.
+            best = {}
+            for a, b, c in zip(jr, jc, jw):
+                key = (min(a, b), max(a, b))
+                if key not in best or c < best[key]:
+                    best[key] = c
+            jr = [k[0] for k in best]; jc = [k[1] for k in best]; jw = [best[k] for k in best]
+            self.jump_edges = len(jr)
             rows = np.concatenate([rows, np.array(jr)]); cols = np.concatenate([cols, np.array(jc)])
             w = np.concatenate([w, np.array(jw, dtype=np.float64)])
         g = coo_matrix((np.concatenate([w, w]), (np.concatenate([rows, cols]), np.concatenate([cols, rows]))), shape=(n, n)).tocsr()
@@ -290,9 +308,11 @@ class TerrainGrid(TerrainMap):
         self._node_idx = idx
         self._nodes = nodes
 
-    def goal_field(self, x, y):
+    def goal_field(self, x, y, jumps=True):
         """Walking distance from every walk cell to the goal at world (x, y); inf where unreachable.
-        Returns an (H, W) array. The goal snaps to the nearest walkable cell within 3 u."""
+        Returns an (H, W) array. The goal snaps to the nearest walkable cell within 3 u.
+        `jumps=False` uses the walk-only graph (no jump edges): comparing the two fields tells
+        whether the shortest route to a cell uses a jump, and how much the jump saves."""
         from scipy.sparse.csgraph import dijkstra
         if self._graph is None:
             self._build_graph()
@@ -301,7 +321,8 @@ class TerrainGrid(TerrainMap):
         field = np.full((self.wH, self.wW), np.inf, dtype=np.float32)
         if src is None:
             return field
-        d = dijkstra(self._graph, directed=False, indices=[self._node_idx[src]])[0]
+        graph = self._graph if (jumps or self._graph_nojump is None) else self._graph_nojump
+        d = dijkstra(graph, directed=False, indices=[self._node_idx[src]])[0]
         field[self._nodes[:, 0], self._nodes[:, 1]] = d
         return field
 
@@ -341,12 +362,21 @@ class TerrainGrid(TerrainMap):
             d = math.hypot(gx - x, gy - y)
             if d < 1.0:
                 continue                       # already standing on it
-            cand.append((gx, gy, gz, float(field[j, i]), d))
+            cand.append((gx, gy, gz, float(field[j, i]), d, j, i))
         if not cand:
             return None
         band = [c for c in cand if dmin <= c[4] <= dmax]
         pick = band if band else cand
-        gx, gy, gz, path_len, _ = pick[rng.integers(len(pick))]
+        # JUMP CURRICULUM (2026-09-22, HANDOFF 28.13): with probability JUMP_GOAL_P prefer a spawn whose
+        # shortest route from here uses a jump edge and saves at least JUMP_SAVE_MIN u over walking.
+        # The policy had jumping trained out of it (JUMP_DAMP 3, 0.1 % of real-round decisions) and a
+        # hop over KOTM's centre hole is 5.7 u against 12.5 u round it. Practice needs the task.
+        if JUMP_GOAL_P > 0.0 and rng.random() < JUMP_GOAL_P:
+            nojump = self.goal_field(x, y, jumps=False)
+            saves = [c for c in pick if (nojump[c[5], c[6]] if len(c) > 6 else np.inf) - c[3] >= JUMP_SAVE_MIN]
+            if saves:
+                pick = saves
+        gx, gy, gz, path_len, _ = pick[rng.integers(len(pick))][:5]
         return (gx, gy, gz, path_len)
 
     def _goal_cells(self, rng):

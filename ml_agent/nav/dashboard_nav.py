@@ -201,6 +201,7 @@ def build_heatmap(map_name, res=1.0, min_samples=3):
     rows = list(csv.DictReader(open(trace)))
     x = np.array([float(r['x']) for r in rows]); y = np.array([float(r['y']) for r in rows])
     sp = np.array([float(r['speed']) for r in rows]); fl = np.array([float(r['on_floor']) for r in rows]) > 0
+    jp = np.array([float(r.get('jump', 0) or 0) for r in rows]) > 0.5
     if os.path.exists(terrain):
         T = np.load(terrain); txs, tys = T['xs'], T['ys']; fine = np.isfinite(T['heights'][0])
         x0, x1, y0, y1 = float(np.floor(txs.min())), float(np.ceil(txs.max())), float(np.floor(tys.min())), float(np.ceil(tys.max()))
@@ -209,14 +210,17 @@ def build_heatmap(map_name, res=1.0, min_samples=3):
     xe = np.arange(x0, x1 + res, res); ye = np.arange(y0, y1 + res, res)
     cnt, _, _ = np.histogram2d(x[fl], y[fl], bins=[xe, ye]); ssum, _, _ = np.histogram2d(x[fl], y[fl], bins=[xe, ye], weights=sp[fl])
     mean = np.where(cnt >= min_samples, ssum / np.maximum(cnt, 1), np.nan)
+    jsum, _, _ = np.histogram2d(x[fl & jp], y[fl & jp], bins=[xe, ye])          # takeoffs: jump commanded on the floor
+    jrate = np.where(cnt >= min_samples, 100.0 * jsum / np.maximum(cnt, 1), np.nan)   # % of floor decisions in the cell
     floor = np.zeros(mean.shape, bool)
     if fine is not None:
         fx = np.clip(np.digitize(txs, xe) - 1, 0, mean.shape[0] - 1); fy = np.clip(np.digitize(tys, ye) - 1, 0, mean.shape[1] - 1)
         jj, ii = np.where(fine); floor[fx[ii], fy[jj]] = True
     z = [[(None if not np.isfinite(mean[i, j]) else round(float(mean[i, j]), 2)) for i in range(mean.shape[0])] for j in range(mean.shape[1])]
     fz = [[(1 if floor[i, j] else None) for i in range(mean.shape[0])] for j in range(mean.shape[1])]
+    jz = [[(None if not np.isfinite(jrate[i, j]) else round(float(jrate[i, j]), 2)) for i in range(mean.shape[0])] for j in range(mean.shape[1])]
     rounds = len(set(r['round'] for r in rows))
-    out = {'map': map_name, 'x': [float(v) for v in (xe[:-1] + res / 2)], 'y': [float(v) for v in (ye[:-1] + res / 2)], 'z': z, 'floor': fz,
+    out = {'map': map_name, 'x': [float(v) for v in (xe[:-1] + res / 2)], 'y': [float(v) for v in (ye[:-1] + res / 2)], 'z': z, 'floor': fz, 'jz': jz, 'takeoffs': int((fl & jp).sum()),
            'decisions': int(fl.sum()), 'rounds': rounds, 'trace_time': datetime.fromtimestamp(os.path.getmtime(trace)).strftime('%Y-%m-%d %H:%M'),
            'p10': float(np.nanpercentile(mean, 10)), 'p90': float(np.nanpercentile(mean, 90))}
     _HEAT_CACHE.clear(); _HEAT_CACHE[key] = out
@@ -321,6 +325,7 @@ td.num { text-align:right; font-variant-numeric:tabular-nums; }
 <div id="charts">
   <div class="chart-card"><div class="chart-title">SECONDS BETWEEN PICKUPS, selected map (pickup-to-pickup inside a group; lower is better; dashed = human 1.57 s on KOTM)</div><div id="c-sgem" style="height:230px"></div></div>
   <div class="chart-card"><div class="chart-title" id="heat-title">Marble speed heat map, selected map (latest real rounds; green = fastest, red = slowest)</div><div id="c-heat" style="height:420px"></div></div>
+  <div class="chart-card"><div class="chart-title" id="heatj-title">Jump heat map, selected map (takeoffs as % of floor decisions per cell; green = jumps a lot, red = never)</div><div id="c-heatj" style="height:420px"></div></div>
   <div class="chart-card"><div class="chart-title">Arrival % per update, selected map</div><div id="c-arrive" style="height:230px"></div></div>
   <div class="chart-card"><div class="chart-title">Falls per 100 u, selected map</div><div id="c-falls" style="height:230px"></div></div>
   <div class="chart-card"><div class="chart-title">Speed (u/s, on-floor travel), selected map</div><div id="c-speed" style="height:230px"></div></div>
@@ -345,7 +350,7 @@ const darkLayout = (extra) => Object.assign({
 const cfg = {responsive:true, displayModeBar:false};
 const palette = ['#3fb950','#58a6ff','#f0c040','#bc8cff','#f85149','#d29922','#39d3c3','#ff7b72'];
 const legend = {showlegend:true, legend:{x:0, y:1.15, orientation:'h', font:{size:9}}};
-['c-sgem','c-heat','c-arrive','c-falls','c-speed','c-rew','c-ent','c-kl','c-loss','c-gn','c-wall'].forEach(id => Plotly.newPlot(id, [], darkLayout(legend), cfg));
+['c-sgem','c-heat','c-heatj','c-arrive','c-falls','c-speed','c-rew','c-ent','c-kl','c-loss','c-gn','c-wall'].forEach(id => Plotly.newPlot(id, [], darkLayout(legend), cfg));
 
 let ST = null;   // latest state, so per-map traces can read the MAPS-line series (st.pm)
 // Map selector: one map at a time (default KingOfTheMarble, the scored map) or the overlay of all.
@@ -374,6 +379,12 @@ async function loadHeatmap() {
     const speed = {x:h.x, y:h.y, z:h.z, type:'heatmap', zmin:2, zmax:11, colorscale:[[0,'#a50026'],[0.25,'#f46d43'],[0.5,'#fee08b'],[0.75,'#a6d96a'],[1,'#1a9850']],
                    colorbar:{title:{text:'u/s', font:{color:'#e6edf3'}}, tickfont:{color:'#e6edf3'}, thickness:10}, hovertemplate:'x %{x}, y %{y}: %{z} u/s<extra></extra>'};
     Plotly.react('c-heat', [floor, speed], darkLayout({margin:{l:40, r:10, t:8, b:32}, xaxis:{title:'x', gridcolor:'#21262d', color:'#7d8590', scaleanchor:'y', constrain:'domain'}, yaxis:{title:'y', gridcolor:'#21262d', color:'#7d8590'}}), cfg);
+    if (h.jz) {
+      document.getElementById('heatj-title').textContent = 'Jump heat map, ' + h.map.replace('_Hunt','') + ' (' + h.takeoffs + ' takeoffs in ' + h.rounds + ' real rounds; takeoffs as % of floor decisions per 1 u cell; green = jumps a lot, red = never)';
+      const jump = {x:h.x, y:h.y, z:h.jz, type:'heatmap', zmin:0, zmax:5, colorscale:[[0,'#a50026'],[0.3,'#f46d43'],[0.6,'#fee08b'],[1,'#1a9850']],
+                    colorbar:{title:{text:'% takeoff', font:{color:'#e6edf3'}}, tickfont:{color:'#e6edf3'}, thickness:10}, hovertemplate:'x %{x}, y %{y}: %{z}% takeoffs<extra></extra>'};
+      Plotly.react('c-heatj', [floor, jump], darkLayout({margin:{l:40, r:10, t:8, b:32}, xaxis:{title:'x', gridcolor:'#21262d', color:'#7d8590', scaleanchor:'y', constrain:'domain'}, yaxis:{title:'y', gridcolor:'#21262d', color:'#7d8590'}}), cfg);
+    }
   } catch (e) { console.error(e); }
 }
 loadHeatmap(); setInterval(loadHeatmap, 60000);

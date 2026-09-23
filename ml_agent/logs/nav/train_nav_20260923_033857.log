@@ -1,0 +1,48 @@
+[03:38:58] resumed C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\models\nav\nav_latest.pth: update 17095, steps 131,140,998, trained on FlatIslands_Hunt
+[03:38:58] 8 instance worker(s) on ports 8888..8895; training mode True (64 ms per decision); arrive radius 0.65 u; device cuda
+[03:39:14] [0] [env:8888] waiting for the game
+[03:39:14] [0] [env:8888] game connected (1)
+[03:39:14] [0] mission KingOfTheMarble_Hunt: terrain 99x99 @ 0.5 u, walkable 1488 cells
+[03:39:14] [0] ready on 8888, mission KingOfTheMarble_Hunt
+[03:39:16] [1] [env:8889] waiting for the game
+[03:39:16] [1] [env:8889] game connected (1)
+[03:39:16] [1] mission KingOfTheMarble_Hunt: terrain 99x99 @ 0.5 u, walkable 1488 cells
+[03:39:16] [1] ready on 8889, mission KingOfTheMarble_Hunt
+[03:39:18] [2] [env:8890] waiting for the game
+[03:39:18] [2] [env:8890] game connected (1)
+[03:39:18] [2] mission KingOfTheMarble_Hunt: terrain 99x99 @ 0.5 u, walkable 1488 cells
+[03:39:18] [2] ready on 8890, mission KingOfTheMarble_Hunt
+[03:39:20] [3] [env:8891] waiting for the game
+[03:39:20] [3] [env:8891] game connected (1)
+[03:39:20] [3] mission KingOfTheMarble_Hunt: terrain 99x99 @ 0.5 u, walkable 1488 cells
+[03:39:20] [3] ready on 8891, mission KingOfTheMarble_Hunt
+[03:39:22] [4] [env:8892] waiting for the game
+[03:39:22] [4] [env:8892] game connected (1)
+[03:39:22] [4] mission KingOfTheMarble_Hunt: terrain 99x99 @ 0.5 u, walkable 1488 cells
+[03:39:22] [4] ready on 8892, mission KingOfTheMarble_Hunt
+[03:39:25] [5] [env:8893] waiting for the game
+[03:39:25] [5] [env:8893] game connected (1)
+[03:39:25] [5] mission KingOfTheMarble_Hunt: terrain 99x99 @ 0.5 u, walkable 1488 cells
+[03:39:25] [5] ready on 8893, mission KingOfTheMarble_Hunt
+[03:39:26] [6] [env:8894] waiting for the game
+[03:39:26] [6] [env:8894] game connected (1)
+[03:39:26] [6] mission KingOfTheMarble_Hunt: terrain 99x99 @ 0.5 u, walkable 1488 cells
+[03:39:26] [6] ready on 8894, mission KingOfTheMarble_Hunt
+[03:39:28] [7] [env:8895] waiting for the game
+[03:39:28] [7] [env:8895] game connected (1)
+[03:39:28] [7] mission FlatIslands_Hunt: terrain 165x165 @ 0.5 u, walkable 5775 cells
+[03:39:28] [7] ready on 8895, mission FlatIslands_Hunt
+[03:39:31] [7] fall without OOB flag: 4 decisions off the map at [ -9.3 -13.   -3.1] (time left 279s)
+[03:39:32] [7] fall without OOB flag: 4 decisions off the map at [-11.4  11.4  -3.5] (time left 268s)
+[03:39:33] [7] fall without OOB flag: 4 decisions off the map at [ 2.  15.8 -2.6] (time left 259s)
+[03:39:34] [7] fall without OOB flag: 4 decisions off the map at [16.3 -5.5 -3. ] (time left 249s)
+[03:39:36] [7] fall without OOB flag: 4 decisions off the map at [ 1.6 15.  -2.4] (time left 234s)
+[03:39:37] [0] fall without OOB flag: 4 decisions off the map at [-29.8  13.4  13.9] (time left 121s)
+[03:39:37] [7] fall without OOB flag: 4 decisions off the map at [-13.7  11.   -2.6] (time left 222s)
+[03:39:43] MAPS FlatIslands_Hunt: n=1 arrive=50% falls100=2.24 speed=4.3 gems=6.5/grp pickup=5.4 sgem=2.00 | KingOfTheMarble_Hunt: n=7 arrive=100% falls100=0.22 speed=5.6 gems=5.8/grp pickup=4.7 sgem=1.61
+[03:39:43] NAV upd=17096 map=FlatIslands_Hunt+KingOfTheMarble_Hunt r=0.65 steps=131,149,198 segs=40 arrive=95% falls100=0.43 speed=5.4 gems=5.9 pickup=4.8 sgem=1.65 carry=0.7 turn=36.2 rew=148.9 pl=-0.014 vl=0.090 ent=0.31 entd=0.03 ec=0.0050 kl=0.017 clip=0.16 gn=4.47 ep=3 dstd=0.22 flips=0 upd_s=4.0 wall_s=15 inst=8 dps=553 prof=fwd:6,send:0,recv:4,handle:0,w_game:19,w_obs:10,w_begin:1
+[03:39:46] [7] fall without OOB flag: 4 decisions off the map at [-13.8  11.5  -2.6] (time left 185s)
+[03:39:47] [7] fall without OOB flag: 4 decisions off the map at [-11.5  18.3  -3.7] (time left 176s)
+[03:39:52] [7] fall without OOB flag: 4 decisions off the map at [14.8 -3.2 -3.8] (time left 134s)
+[03:39:58] MAPS FlatIslands_Hunt: n=1 arrive=75% falls100=1.68 speed=4.1 gems=6.5/grp pickup=5.0 sgem=1.87 | KingOfTheMarble_Hunt: n=7 arrive=100% falls100=0.21 speed=5.7 gems=5.9/grp pickup=4.7 sgem=1.70
+[03:39:58] NAV upd=17097 map=FlatIslands_Hunt+KingOfTheMarble_Hunt r=0.65 steps=131,157,398 segs=82 arrive=98% falls100=0.35 speed=5.5 gems=5.9 pickup=4.8 sgem=1.72 carry=0.6 turn=36.0 rew=153.3 pl=-0.014 vl=0.060 ent=0.31 entd=0.03 ec=0.0050 kl=0.016 clip=0.15 gn=4.33 ep=3 dstd=0.22 flips=0 upd_s=3.5 wall_s=14 inst=8 dps=572 prof=fwd:7,send:0,recv:4,handle:0,w_game:20,w_obs:10,w_begin:1

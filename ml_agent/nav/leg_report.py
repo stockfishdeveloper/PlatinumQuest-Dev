@@ -33,15 +33,16 @@ def load_agent(path):
     rows = list(csv.DictReader(open(path)))
     f = lambda k: np.array([float(r[k]) for r in rows])
     cmd = np.c_[f('right') - f('left'), f('fwd') - f('back')]
+    jump = f('jump') > 0.5 if 'jump' in rows[0] else np.zeros(len(rows), bool)
     return dict(P=np.c_[f('x'), f('y')], S=f('speed'), gem=f('gem') > 0, fell=f('fell') > 0,
-                floor=f('on_floor') > 0, V=np.c_[f('vx'), f('vy')], dt=0.064, rnd=f('round'), cmd=cmd)
+                floor=f('on_floor') > 0, V=np.c_[f('vx'), f('vy')], dt=0.064, rnd=f('round'), cmd=cmd, jump=jump)
 
 
 def load_human(path=DEMO):
     d = np.load(path, allow_pickle=True); raw = d['obs_raw']; act = d['action']
     return dict(P=raw[:, :2].astype(float), S=np.hypot(raw[:, 3], raw[:, 4]), gem=d['gem_delta'] > 0,
                 fell=d['oob'] > 0, floor=np.abs(raw[:, 5]) < 1.0, V=raw[:, 3:5].astype(float), dt=0.016,
-                rnd=d['game'], cmd=np.where(act[:, 2:3] > 0.5, act[:, 0:2], 0.0))
+                rnd=d['game'], cmd=np.where(act[:, 2:3] > 0.5, act[:, 0:2], 0.0), jump=act[:, 3] > 0.5)
 
 
 def in_ring(p):
@@ -68,6 +69,36 @@ def report(name, D):
     gaps = np.array([(b - a) * dt for a, b in zip(idx[:-1], idx[1:]) if D['rnd'][a] == D['rnd'][b]])
     print(f'== {name}: {int(gem.sum())} pickups, {int(D["fell"].sum())} falls ({100 * D["fell"].sum() / travelled:.2f} per 100 u), mean speed {S.mean():.2f}')
     print(f'   SECONDS BETWEEN PICKUPS: mean {gaps.mean():.2f} s, median {np.median(gaps):.2f} s (n={len(gaps)})')
+    # stalls: longest stretch in which the marble stays within 1 u of where it was 3 s earlier, per
+    # round (a standoff freeze jitters at 1-1.5 u/s, so a speed threshold misses it; displacement does not)
+    stalls = []; n3 = int(round(3.0 / dt))
+    for R in np.unique(D['rnd']):
+        Pr = P[D['rnd'] == R]
+        if len(Pr) <= n3:
+            stalls.append(0.0); continue
+        moved = np.linalg.norm(Pr[n3:] - Pr[:-n3], axis=1) < 1.0
+        best = run = 0
+        for v in moved:
+            run = run + 1 if v else 0; best = max(best, run)
+        stalls.append((best + n3) * dt if best else 0.0)
+    print(f'   LONGEST STALL (moved <1 u in 3 s) per round: {" ".join(f"{v:.0f}" for v in stalls)} s')
+    jp = D['jump']; takeoff = jp & ~np.r_[False, jp[:-1]] & D['floor']
+    air = ~D['floor']; n1 = int(round(1.0 / dt))
+    pre_air = np.array([air[max(0, k - n1):k].any() for k in idx]) if len(idx) else np.zeros(0, bool)
+    ring_pk = np.array([in_ring(P[k]) for k in idx]) if len(idx) else np.zeros(0, bool)
+    print(f'   JUMPS: takeoffs per minute {takeoff.sum() / (len(P) * dt / 60):.2f}, jump held {100 * jp.mean():.2f}% of decisions; centre pickups preceded by airborne within 1 s: {100 * pre_air[ring_pk].mean() if ring_pk.any() else 0:.0f}% (outer {100 * pre_air[~ring_pk].mean() if (~ring_pk).any() else 0:.0f}%)')
+    # STRAIGHT-LINE dip: legs whose next gem lies within 20 deg of the velocity 0.5 s before the pickup
+    # (the case where a human blasts through gem 1); min speed in the 1 s after that pickup
+    sd = []
+    for a_, b_ in zip(idx[:-1], idx[1:]):
+        if D['rnd'][a_] != D['rnd'][b_] or b_ - a_ < 4: continue
+        v = V[max(0, a_ - n05)]; g = P[b_] - P[a_]
+        if np.linalg.norm(v) < 0.5 or np.linalg.norm(g) < 0.5: continue
+        if math.degrees(math.acos(float(np.clip(v @ g / (np.linalg.norm(v) * np.linalg.norm(g)), -1, 1)))) < 20:
+            sd.append((S[a_], S[a_:min(b_ + 1, a_ + n1)].min()))
+    if sd:
+        sd = np.array(sd)
+        print(f'   STRAIGHT-LINE PICKUPS (next gem within 20 deg, n={len(sd)}): speed at gem 1 {sd[:,0].mean():.1f}, min speed in next 1 s {sd[:,1].mean():.1f}, below 3 u/s {100*(sd[:,1]<3).mean():.0f}%  (human 11.3 / 7.1 / 2%)')
     print(f'   pickup speed: ring {S[gem & ring].mean():.2f} (n={int((gem & ring).sum())})  outer {S[gem & ~ring].mean():.2f} (n={int((gem & ~ring).sum())})')
     print(f'   block: {100 * blk.mean():.1f}% of time, mean speed {S[blk].mean():.2f}, below 2 u/s {100 * (S[blk] < 2).mean():.1f}%, above 10 u/s {100 * (S[blk] > 10).mean():.1f}%')
     cmd = D['cmd']; mag = np.hypot(cmd[:, 0], cmd[:, 1])

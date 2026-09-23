@@ -1,5 +1,5 @@
 ----------------------------------------
-Exception occurred during processing of request from ('192.168.1.103', 56154)
+Exception occurred during processing of request from ('192.168.1.103', 51549)
 Traceback (most recent call last):
   File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\socketserver.py", line 683, in process_request_thread
     self.finish_request(request, client_address)
@@ -16,7 +16,7 @@ Traceback (most recent call last):
 ConnectionAbortedError: [WinError 10053] An established connection was aborted by the software in your host machine
 ----------------------------------------
 ----------------------------------------
-Exception occurred during processing of request from ('192.168.1.4', 56928)
+Exception occurred during processing of request from ('192.168.1.103', 53976)
 Traceback (most recent call last):
   File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\socketserver.py", line 683, in process_request_thread
     self.finish_request(request, client_address)
@@ -33,7 +33,245 @@ Traceback (most recent call last):
 ConnectionAbortedError: [WinError 10053] An established connection was aborted by the software in your host machine
 ----------------------------------------
 ----------------------------------------
-Exception occurred during processing of request from ('192.168.1.4', 49104)
+Exception occurred during processing of request from ('192.168.1.103', 56892)
+Traceback (most recent call last):
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\socketserver.py", line 683, in process_request_thread
+    self.finish_request(request, client_address)
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\socketserver.py", line 360, in finish_request
+    self.RequestHandlerClass(request, client_address, self)
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\socketserver.py", line 747, in __init__
+    self.handle()
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\http\server.py", line 427, in handle
+    self.handle_one_request()
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\http\server.py", line 393, in handle_one_request
+    self.raw_requestline = self.rfile.readline(65537)
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\socket.py", line 704, in readinto
+    return self._sock.recv_into(b)
+ConnectionAbortedError: [WinError 10053] An established connection was aborted by the software in your host machine
+----------------------------------------
+----------------------------------------
+Exception occurred during processing of request from ('192.168.1.103', 55882)
+Traceback (most recent call last):
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\socketserver.py", line 683, in process_request_thread
+    self.finish_request(request, client_address)
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\socketserver.py", line 360, in finish_request
+    self.RequestHandlerClass(request, client_address, self)
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\socketserver.py", line 747, in __init__
+    self.handle()
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\http\server.py", line 427, in handle
+    self.handle_one_request()
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\http\server.py", line 393, in handle_one_request
+    self.raw_requestline = self.rfile.readline(65537)
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\socket.py", line 704, in readinto
+    return self._sock.recv_into(b)
+ConnectionAbortedError: [WinError 10053] An established connection was aborted by the software in your host machine
+----------------------------------------
+----------------------------------------
+Exception occurred during processing of request from ('192.168.1.103', 60370)
+Traceback (most recent call last):
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\socketserver.py", line 683, in process_request_thread
+    self.finish_request(request, client_address)
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\socketserver.py", line 360, in finish_request
+    self.RequestHandlerClass(request, client_address, self)
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\socketserver.py", line 747, in __init__
+    self.handle()
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\http\server.py", line 427, in handle
+    self.handle_one_request()
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\http\server.py", line 393, in handle_one_request
+    self.raw_requestline = self.rfile.readline(65537)
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\socket.py", line 704, in readinto
+    return self._sock.recv_into(b)
+ConnectionAbortedError: [WinError 10053] An established connection was aborted by the software in your host machine
+----------------------------------------
+----------------------------------------
+Exception occurred during processing of request from ('192.168.1.103', 61599)
+Traceback (most recent call last):
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\socketserver.py", line 683, in process_request_thread
+    self.finish_request(request, client_address)
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\socketserver.py", line 360, in finish_request
+    self.RequestHandlerClass(request, client_address, self)
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\socketserver.py", line 747, in __init__
+    self.handle()
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\http\server.py", line 427, in handle
+    self.handle_one_request()
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\http\server.py", line 393, in handle_one_request
+    self.raw_requestline = self.rfile.readline(65537)
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\socket.py", line 704, in readinto
+    return self._sock.recv_into(b)
+ConnectionAbortedError: [WinError 10053] An established connection was aborted by the software in your host machine
+----------------------------------------
+----------------------------------------
+Exception occurred during processing of request from ('192.168.1.103', 51224)
+Traceback (most recent call last):
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\socketserver.py", line 683, in process_request_thread
+    self.finish_request(request, client_address)
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\socketserver.py", line 360, in finish_request
+    self.RequestHandlerClass(request, client_address, self)
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\socketserver.py", line 747, in __init__
+    self.handle()
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\http\server.py", line 427, in handle
+    self.handle_one_request()
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\http\server.py", line 393, in handle_one_request
+    self.raw_requestline = self.rfile.readline(65537)
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\socket.py", line 704, in readinto
+    return self._sock.recv_into(b)
+ConnectionAbortedError: [WinError 10053] An established connection was aborted by the software in your host machine
+----------------------------------------
+----------------------------------------
+Exception occurred during processing of request from ('192.168.1.103', 64784)
+Traceback (most recent call last):
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\socketserver.py", line 683, in process_request_thread
+    self.finish_request(request, client_address)
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\socketserver.py", line 360, in finish_request
+    self.RequestHandlerClass(request, client_address, self)
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\socketserver.py", line 747, in __init__
+    self.handle()
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\http\server.py", line 427, in handle
+    self.handle_one_request()
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\http\server.py", line 393, in handle_one_request
+    self.raw_requestline = self.rfile.readline(65537)
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\socket.py", line 704, in readinto
+    return self._sock.recv_into(b)
+ConnectionAbortedError: [WinError 10053] An established connection was aborted by the software in your host machine
+----------------------------------------
+----------------------------------------
+Exception occurred during processing of request from ('192.168.1.103', 52390)
+Traceback (most recent call last):
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\socketserver.py", line 683, in process_request_thread
+    self.finish_request(request, client_address)
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\socketserver.py", line 360, in finish_request
+    self.RequestHandlerClass(request, client_address, self)
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\socketserver.py", line 747, in __init__
+    self.handle()
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\http\server.py", line 427, in handle
+    self.handle_one_request()
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\http\server.py", line 393, in handle_one_request
+    self.raw_requestline = self.rfile.readline(65537)
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\socket.py", line 704, in readinto
+    return self._sock.recv_into(b)
+ConnectionAbortedError: [WinError 10053] An established connection was aborted by the software in your host machine
+----------------------------------------
+----------------------------------------
+Exception occurred during processing of request from ('192.168.1.103', 54486)
+Traceback (most recent call last):
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\socketserver.py", line 683, in process_request_thread
+    self.finish_request(request, client_address)
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\socketserver.py", line 360, in finish_request
+    self.RequestHandlerClass(request, client_address, self)
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\socketserver.py", line 747, in __init__
+    self.handle()
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\http\server.py", line 427, in handle
+    self.handle_one_request()
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\http\server.py", line 393, in handle_one_request
+    self.raw_requestline = self.rfile.readline(65537)
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\socket.py", line 704, in readinto
+    return self._sock.recv_into(b)
+ConnectionAbortedError: [WinError 10053] An established connection was aborted by the software in your host machine
+----------------------------------------
+----------------------------------------
+Exception occurred during processing of request from ('192.168.1.103', 58227)
+Traceback (most recent call last):
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\socketserver.py", line 683, in process_request_thread
+    self.finish_request(request, client_address)
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\socketserver.py", line 360, in finish_request
+    self.RequestHandlerClass(request, client_address, self)
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\socketserver.py", line 747, in __init__
+    self.handle()
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\http\server.py", line 427, in handle
+    self.handle_one_request()
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\http\server.py", line 393, in handle_one_request
+    self.raw_requestline = self.rfile.readline(65537)
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\socket.py", line 704, in readinto
+    return self._sock.recv_into(b)
+ConnectionAbortedError: [WinError 10053] An established connection was aborted by the software in your host machine
+----------------------------------------
+----------------------------------------
+Exception occurred during processing of request from ('192.168.1.103', 52169)
+Traceback (most recent call last):
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\socketserver.py", line 683, in process_request_thread
+    self.finish_request(request, client_address)
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\socketserver.py", line 360, in finish_request
+    self.RequestHandlerClass(request, client_address, self)
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\socketserver.py", line 747, in __init__
+    self.handle()
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\http\server.py", line 427, in handle
+    self.handle_one_request()
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\http\server.py", line 393, in handle_one_request
+    self.raw_requestline = self.rfile.readline(65537)
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\socket.py", line 704, in readinto
+    return self._sock.recv_into(b)
+ConnectionAbortedError: [WinError 10053] An established connection was aborted by the software in your host machine
+----------------------------------------
+----------------------------------------
+Exception occurred during processing of request from ('192.168.1.103', 59224)
+Traceback (most recent call last):
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\socketserver.py", line 683, in process_request_thread
+    self.finish_request(request, client_address)
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\socketserver.py", line 360, in finish_request
+    self.RequestHandlerClass(request, client_address, self)
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\socketserver.py", line 747, in __init__
+    self.handle()
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\http\server.py", line 427, in handle
+    self.handle_one_request()
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\http\server.py", line 393, in handle_one_request
+    self.raw_requestline = self.rfile.readline(65537)
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\socket.py", line 704, in readinto
+    return self._sock.recv_into(b)
+ConnectionAbortedError: [WinError 10053] An established connection was aborted by the software in your host machine
+----------------------------------------
+----------------------------------------
+Exception occurred during processing of request from ('192.168.1.103', 53988)
+Traceback (most recent call last):
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\socketserver.py", line 683, in process_request_thread
+    self.finish_request(request, client_address)
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\socketserver.py", line 360, in finish_request
+    self.RequestHandlerClass(request, client_address, self)
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\socketserver.py", line 747, in __init__
+    self.handle()
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\http\server.py", line 427, in handle
+    self.handle_one_request()
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\http\server.py", line 393, in handle_one_request
+    self.raw_requestline = self.rfile.readline(65537)
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\socket.py", line 704, in readinto
+    return self._sock.recv_into(b)
+ConnectionAbortedError: [WinError 10053] An established connection was aborted by the software in your host machine
+----------------------------------------
+----------------------------------------
+Exception occurred during processing of request from ('192.168.1.4', 60926)
+Traceback (most recent call last):
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\socketserver.py", line 683, in process_request_thread
+    self.finish_request(request, client_address)
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\socketserver.py", line 360, in finish_request
+    self.RequestHandlerClass(request, client_address, self)
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\socketserver.py", line 747, in __init__
+    self.handle()
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\http\server.py", line 427, in handle
+    self.handle_one_request()
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\http\server.py", line 393, in handle_one_request
+    self.raw_requestline = self.rfile.readline(65537)
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\socket.py", line 704, in readinto
+    return self._sock.recv_into(b)
+ConnectionAbortedError: [WinError 10053] An established connection was aborted by the software in your host machine
+----------------------------------------
+----------------------------------------
+Exception occurred during processing of request from ('192.168.1.4', 60956)
+Traceback (most recent call last):
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\socketserver.py", line 683, in process_request_thread
+    self.finish_request(request, client_address)
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\socketserver.py", line 360, in finish_request
+    self.RequestHandlerClass(request, client_address, self)
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\socketserver.py", line 747, in __init__
+    self.handle()
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\http\server.py", line 427, in handle
+    self.handle_one_request()
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\http\server.py", line 393, in handle_one_request
+    self.raw_requestline = self.rfile.readline(65537)
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\socket.py", line 704, in readinto
+    return self._sock.recv_into(b)
+ConnectionAbortedError: [WinError 10053] An established connection was aborted by the software in your host machine
+----------------------------------------
+----------------------------------------
+Exception occurred during processing of request from ('192.168.1.4', 35168)
 Traceback (most recent call last):
   File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\socketserver.py", line 683, in process_request_thread
     self.finish_request(request, client_address)
@@ -50,7 +288,7 @@ Traceback (most recent call last):
 ConnectionResetError: [WinError 10054] An existing connection was forcibly closed by the remote host
 ----------------------------------------
 ----------------------------------------
-Exception occurred during processing of request from ('192.168.1.4', 38150)
+Exception occurred during processing of request from ('192.168.1.4', 51204)
 Traceback (most recent call last):
   File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\socketserver.py", line 683, in process_request_thread
     self.finish_request(request, client_address)
@@ -67,7 +305,7 @@ Traceback (most recent call last):
 ConnectionResetError: [WinError 10054] An existing connection was forcibly closed by the remote host
 ----------------------------------------
 ----------------------------------------
-Exception occurred during processing of request from ('192.168.1.4', 35620)
+Exception occurred during processing of request from ('192.168.1.4', 60412)
 Traceback (most recent call last):
   File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\socketserver.py", line 683, in process_request_thread
     self.finish_request(request, client_address)
@@ -84,7 +322,7 @@ Traceback (most recent call last):
 ConnectionResetError: [WinError 10054] An existing connection was forcibly closed by the remote host
 ----------------------------------------
 ----------------------------------------
-Exception occurred during processing of request from ('192.168.1.4', 35614)
+Exception occurred during processing of request from ('192.168.1.4', 60406)
 Traceback (most recent call last):
   File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\socketserver.py", line 683, in process_request_thread
     self.finish_request(request, client_address)
@@ -101,7 +339,7 @@ Traceback (most recent call last):
 ConnectionResetError: [WinError 10054] An existing connection was forcibly closed by the remote host
 ----------------------------------------
 ----------------------------------------
-Exception occurred during processing of request from ('192.168.1.4', 41084)
+Exception occurred during processing of request from ('192.168.1.4', 47644)
 Traceback (most recent call last):
   File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\socketserver.py", line 683, in process_request_thread
     self.finish_request(request, client_address)
@@ -109,16 +347,16 @@ Traceback (most recent call last):
     self.RequestHandlerClass(request, client_address, self)
   File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\socketserver.py", line 747, in __init__
     self.handle()
-  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\http\server.py", line 427, in handle
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\http\server.py", line 425, in handle
     self.handle_one_request()
   File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\http\server.py", line 393, in handle_one_request
     self.raw_requestline = self.rfile.readline(65537)
   File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\socket.py", line 704, in readinto
     return self._sock.recv_into(b)
-ConnectionAbortedError: [WinError 10053] An established connection was aborted by the software in your host machine
+ConnectionResetError: [WinError 10054] An existing connection was forcibly closed by the remote host
 ----------------------------------------
 ----------------------------------------
-Exception occurred during processing of request from ('192.168.1.4', 50506)
+Exception occurred during processing of request from ('192.168.1.4', 47630)
 Traceback (most recent call last):
   File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\socketserver.py", line 683, in process_request_thread
     self.finish_request(request, client_address)
@@ -135,7 +373,7 @@ Traceback (most recent call last):
 ConnectionResetError: [WinError 10054] An existing connection was forcibly closed by the remote host
 ----------------------------------------
 ----------------------------------------
-Exception occurred during processing of request from ('192.168.1.103', 58334)
+Exception occurred during processing of request from ('192.168.1.4', 39486)
 Traceback (most recent call last):
   File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\socketserver.py", line 683, in process_request_thread
     self.finish_request(request, client_address)
@@ -152,7 +390,7 @@ Traceback (most recent call last):
 ConnectionAbortedError: [WinError 10053] An established connection was aborted by the software in your host machine
 ----------------------------------------
 ----------------------------------------
-Exception occurred during processing of request from ('192.168.1.4', 55754)
+Exception occurred during processing of request from ('192.168.1.4', 59108)
 Traceback (most recent call last):
   File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\socketserver.py", line 683, in process_request_thread
     self.finish_request(request, client_address)
@@ -169,24 +407,7 @@ Traceback (most recent call last):
 ConnectionAbortedError: [WinError 10053] An established connection was aborted by the software in your host machine
 ----------------------------------------
 ----------------------------------------
-Exception occurred during processing of request from ('192.168.1.4', 50148)
-Traceback (most recent call last):
-  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\socketserver.py", line 683, in process_request_thread
-    self.finish_request(request, client_address)
-  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\socketserver.py", line 360, in finish_request
-    self.RequestHandlerClass(request, client_address, self)
-  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\socketserver.py", line 747, in __init__
-    self.handle()
-  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\http\server.py", line 427, in handle
-    self.handle_one_request()
-  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\http\server.py", line 393, in handle_one_request
-    self.raw_requestline = self.rfile.readline(65537)
-  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\socket.py", line 704, in readinto
-    return self._sock.recv_into(b)
-ConnectionAbortedError: [WinError 10053] An established connection was aborted by the software in your host machine
-----------------------------------------
-----------------------------------------
-Exception occurred during processing of request from ('192.168.1.4', 50168)
+Exception occurred during processing of request from ('192.168.1.4', 41070)
 Traceback (most recent call last):
   File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\socketserver.py", line 683, in process_request_thread
     self.finish_request(request, client_address)
@@ -203,7 +424,7 @@ Traceback (most recent call last):
 ConnectionResetError: [WinError 10054] An existing connection was forcibly closed by the remote host
 ----------------------------------------
 ----------------------------------------
-Exception occurred during processing of request from ('192.168.1.4', 59112)
+Exception occurred during processing of request from ('192.168.1.4', 52122)
 Traceback (most recent call last):
   File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\socketserver.py", line 683, in process_request_thread
     self.finish_request(request, client_address)
@@ -220,7 +441,24 @@ Traceback (most recent call last):
 ConnectionResetError: [WinError 10054] An existing connection was forcibly closed by the remote host
 ----------------------------------------
 ----------------------------------------
-Exception occurred during processing of request from ('192.168.1.103', 60221)
+Exception occurred during processing of request from ('192.168.1.4', 33588)
+Traceback (most recent call last):
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\socketserver.py", line 683, in process_request_thread
+    self.finish_request(request, client_address)
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\socketserver.py", line 360, in finish_request
+    self.RequestHandlerClass(request, client_address, self)
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\socketserver.py", line 747, in __init__
+    self.handle()
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\http\server.py", line 427, in handle
+    self.handle_one_request()
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\http\server.py", line 393, in handle_one_request
+    self.raw_requestline = self.rfile.readline(65537)
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\socket.py", line 704, in readinto
+    return self._sock.recv_into(b)
+ConnectionResetError: [WinError 10054] An existing connection was forcibly closed by the remote host
+----------------------------------------
+----------------------------------------
+Exception occurred during processing of request from ('192.168.1.103', 64825)
 Traceback (most recent call last):
   File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\socketserver.py", line 683, in process_request_thread
     self.finish_request(request, client_address)
@@ -237,7 +475,41 @@ Traceback (most recent call last):
 ConnectionAbortedError: [WinError 10053] An established connection was aborted by the software in your host machine
 ----------------------------------------
 ----------------------------------------
-Exception occurred during processing of request from ('192.168.1.103', 63124)
+Exception occurred during processing of request from ('192.168.1.4', 58316)
+Traceback (most recent call last):
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\socketserver.py", line 683, in process_request_thread
+    self.finish_request(request, client_address)
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\socketserver.py", line 360, in finish_request
+    self.RequestHandlerClass(request, client_address, self)
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\socketserver.py", line 747, in __init__
+    self.handle()
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\http\server.py", line 425, in handle
+    self.handle_one_request()
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\http\server.py", line 393, in handle_one_request
+    self.raw_requestline = self.rfile.readline(65537)
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\socket.py", line 704, in readinto
+    return self._sock.recv_into(b)
+ConnectionResetError: [WinError 10054] An existing connection was forcibly closed by the remote host
+----------------------------------------
+----------------------------------------
+Exception occurred during processing of request from ('192.168.1.4', 58308)
+Traceback (most recent call last):
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\socketserver.py", line 683, in process_request_thread
+    self.finish_request(request, client_address)
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\socketserver.py", line 360, in finish_request
+    self.RequestHandlerClass(request, client_address, self)
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\socketserver.py", line 747, in __init__
+    self.handle()
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\http\server.py", line 427, in handle
+    self.handle_one_request()
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\http\server.py", line 393, in handle_one_request
+    self.raw_requestline = self.rfile.readline(65537)
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\socket.py", line 704, in readinto
+    return self._sock.recv_into(b)
+ConnectionResetError: [WinError 10054] An existing connection was forcibly closed by the remote host
+----------------------------------------
+----------------------------------------
+Exception occurred during processing of request from ('192.168.1.102', 60077)
 Traceback (most recent call last):
   File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\socketserver.py", line 683, in process_request_thread
     self.finish_request(request, client_address)
@@ -254,7 +526,109 @@ Traceback (most recent call last):
 ConnectionAbortedError: [WinError 10053] An established connection was aborted by the software in your host machine
 ----------------------------------------
 ----------------------------------------
-Exception occurred during processing of request from ('192.168.1.103', 58523)
+Exception occurred during processing of request from ('192.168.1.4', 58540)
+Traceback (most recent call last):
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\socketserver.py", line 683, in process_request_thread
+    self.finish_request(request, client_address)
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\socketserver.py", line 360, in finish_request
+    self.RequestHandlerClass(request, client_address, self)
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\socketserver.py", line 747, in __init__
+    self.handle()
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\http\server.py", line 427, in handle
+    self.handle_one_request()
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\http\server.py", line 393, in handle_one_request
+    self.raw_requestline = self.rfile.readline(65537)
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\socket.py", line 704, in readinto
+    return self._sock.recv_into(b)
+ConnectionResetError: [WinError 10054] An existing connection was forcibly closed by the remote host
+----------------------------------------
+----------------------------------------
+Exception occurred during processing of request from ('192.168.1.103', 59450)
+Traceback (most recent call last):
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\socketserver.py", line 683, in process_request_thread
+    self.finish_request(request, client_address)
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\socketserver.py", line 360, in finish_request
+    self.RequestHandlerClass(request, client_address, self)
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\socketserver.py", line 747, in __init__
+    self.handle()
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\http\server.py", line 427, in handle
+    self.handle_one_request()
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\http\server.py", line 393, in handle_one_request
+    self.raw_requestline = self.rfile.readline(65537)
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\socket.py", line 704, in readinto
+    return self._sock.recv_into(b)
+ConnectionAbortedError: [WinError 10053] An established connection was aborted by the software in your host machine
+----------------------------------------
+----------------------------------------
+Exception occurred during processing of request from ('192.168.1.4', 43132)
+Traceback (most recent call last):
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\socketserver.py", line 683, in process_request_thread
+    self.finish_request(request, client_address)
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\socketserver.py", line 360, in finish_request
+    self.RequestHandlerClass(request, client_address, self)
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\socketserver.py", line 747, in __init__
+    self.handle()
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\http\server.py", line 427, in handle
+    self.handle_one_request()
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\http\server.py", line 393, in handle_one_request
+    self.raw_requestline = self.rfile.readline(65537)
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\socket.py", line 704, in readinto
+    return self._sock.recv_into(b)
+ConnectionResetError: [WinError 10054] An existing connection was forcibly closed by the remote host
+----------------------------------------
+----------------------------------------
+Exception occurred during processing of request from ('192.168.1.103', 53429)
+Traceback (most recent call last):
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\socketserver.py", line 683, in process_request_thread
+    self.finish_request(request, client_address)
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\socketserver.py", line 360, in finish_request
+    self.RequestHandlerClass(request, client_address, self)
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\socketserver.py", line 747, in __init__
+    self.handle()
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\http\server.py", line 427, in handle
+    self.handle_one_request()
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\http\server.py", line 393, in handle_one_request
+    self.raw_requestline = self.rfile.readline(65537)
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\socket.py", line 704, in readinto
+    return self._sock.recv_into(b)
+ConnectionAbortedError: [WinError 10053] An established connection was aborted by the software in your host machine
+----------------------------------------
+----------------------------------------
+Exception occurred during processing of request from ('192.168.1.103', 54738)
+Traceback (most recent call last):
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\socketserver.py", line 683, in process_request_thread
+    self.finish_request(request, client_address)
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\socketserver.py", line 360, in finish_request
+    self.RequestHandlerClass(request, client_address, self)
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\socketserver.py", line 747, in __init__
+    self.handle()
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\http\server.py", line 427, in handle
+    self.handle_one_request()
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\http\server.py", line 393, in handle_one_request
+    self.raw_requestline = self.rfile.readline(65537)
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\socket.py", line 704, in readinto
+    return self._sock.recv_into(b)
+ConnectionAbortedError: [WinError 10053] An established connection was aborted by the software in your host machine
+----------------------------------------
+----------------------------------------
+Exception occurred during processing of request from ('192.168.1.103', 52055)
+Traceback (most recent call last):
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\socketserver.py", line 683, in process_request_thread
+    self.finish_request(request, client_address)
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\socketserver.py", line 360, in finish_request
+    self.RequestHandlerClass(request, client_address, self)
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\socketserver.py", line 747, in __init__
+    self.handle()
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\http\server.py", line 427, in handle
+    self.handle_one_request()
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\http\server.py", line 393, in handle_one_request
+    self.raw_requestline = self.rfile.readline(65537)
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\socket.py", line 704, in readinto
+    return self._sock.recv_into(b)
+ConnectionAbortedError: [WinError 10053] An established connection was aborted by the software in your host machine
+----------------------------------------
+----------------------------------------
+Exception occurred during processing of request from ('192.168.1.103', 61902)
 Traceback (most recent call last):
   File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\socketserver.py", line 683, in process_request_thread
     self.finish_request(request, client_address)

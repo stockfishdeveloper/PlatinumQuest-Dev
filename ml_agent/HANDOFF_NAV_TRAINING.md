@@ -3087,3 +3087,171 @@ Fix (operator-approved, to run right after the `align2` eval at update 16,175 re
 `python logs/nav/apply_entropy_fix.py` then restart the trainer. It replaces `_adapt_entropy` with a
 proportional rule toward ENT_TARGET 0.30 (gain 0.002/update, clamp [0, 0.02], never negative) and starts
 the coefficient at 0.005. Backup of the file before: `logs/nav/ppo_recurrent_backup_pre_entropyfix.py`.
+
+### 28.13 JUMP RE-ENABLE + CURRICULUM + 7/1 POOL (2026-09-22 20:50). Also: the align run, and where it left us
+
+**Align run result (28.11):** at update 15,590 the 8-round KOTM eval gave **123.1** (128,121,120,122,122,
+120,129,123), 1.82 s/pickup, 10 falls; a second eval of the same weights 121.9 / 1.83 s / 13 falls. Best
+checkpoint to date, **`nav_eval_align1_1536.pth`**, now `nav_latest`. The run was stopped at 15,870
+(`nav_align_end_1655.pth`) after the operator watched it at 1x: still slow and hesitant, never jumping
+gaps or cutting corners. The commitment bonus did not move the thrust-opposes share (41 % throughout).
+Checked and ruled out: the section 21 weight imbalance (goal path 10.97 vs hidden path 10.38 into the
+direction head, ratio 0.95; aim scatter unchanged and within a few degrees of the human inside 12 u).
+Entropy fix (28.12) APPLIED: proportional controller, target 0.30, gain 0.002, coefficient in [0, 0.02].
+
+**Diagnosis behind this step.** Jumping had been trained out of the policy on purpose (JUMP_DAMP 3.0 on
+2026-09-19 to cut falls): 0.1 % of real-round decisions, 0 % in the centre block, 0.22 takeoffs/min vs the
+human's 0.87. A hop over the centre hole is 5.7 u against 12.5 u round it. Worse, the walk graph could
+never route through a jump on KOTM: jump edges were DOUBLE-COUNTED (each gap found from both edge cells,
+coo_matrix summed the duplicates) and JUMP_COST was 3.0, so a 3 u hop cost 18. With jumps never on the
+shortest path, PROGRESS never paid for one and no goal ever required one.
+
+**Applied, from the 15,590 weights:**
+* `terrain.py`: jump edges deduplicated (KOTM 228 -> 114 real edges), `JUMP_COST 3.0 -> 1.5`,
+  `goal_field(..., jumps=False)` for the walk-only distance, and a jump curriculum in
+  `_sample_spawn_goal`: with `JUMP_GOAL_P = 0.33` prefer a spawn whose jump route saves >= 1 u
+  (NW -> SE centre gem now saves 2.6 u; the sampler picks jump-saving goals on ~1/3 of draws).
+* `model.py` `JUMP_DAMP 3.0 -> 1.0`; `waypoints.py` `JUMP_TAKEOFF 0.4 -> 0.1`; `ppo_recurrent.py`
+  `DISCRETE_ENT_COEF 0.002 -> 0.01`. FALL stays 25. Falls WILL rise in training while it practises.
+* Pool **7 KOTM / 1 Islands** (FlatGem dropped: 93-95 % of human, unchanged by every change today;
+  Islands kept for its 854 jump edges). Defaults in `start_training.ps1` and `eval_cycle.ps1`.
+* Dashboard: jump heat map (takeoffs as % of floor decisions per cell, green high, red none) next to the
+  speed heat map, both following the map selector. `leg_report` prints takeoffs/min and the share of
+  centre pickups preceded by airborne (human 16 %).
+Evals scheduled at 15,890 (`jump1`) and 16,490 (`jump2`). Readouts: takeoffs/min (0.22 -> toward 0.87),
+s/pickup (1.83), falls per 8 rounds (10-15), and whether centre-to-centre legs start using the hole.
+
+### 28.14 OVERNIGHT 2026-09-22/23: stay on the jump track, goal 150 on KOTM (operator, 22:30)
+
+jump1 eval (update 15,900, ~310 updates on 28.13): 119.3 points (121,122,114,121,114,117,128,117),
+1.88 s/pickup, 17 falls, **0.95 takeoffs/min (was 0.22; human 0.87)**, 9 of 23 takeoffs in the centre
+block, 108 airborne decisions over the centre hole (was ~0). The move is back; the timing is not yet paid
+for (score/pace within noise of the 15,590 best, falls slightly up). Entropy controller: rose to 0.46
+with the coefficient at its 0.02 cap, then the coefficient went to 0 and entropy is easing back (0.40).
+Operator: keep this track all night; if it has not paid by morning, consider model-based alternatives
+(measured jump envelope fed to the gap prior and the routing graph; or a learned dynamics model with
+short-horizon jump planning). `logs/nav/wait_and_eval_loop.sh` runs an 8-round eval every 600 updates
+(jump2 at 16,490, then jump3, ...), training restarts itself after each; per-eval traces saved as
+`real_trace_jump<N>.csv`. Plan step 4 (restore time pressure gradually) is to be applied once an eval
+shows takeoffs holding with falls back at <= 13 per 8 rounds and s/pickup not worse.
+
+### 28.15 jump2 eval (update 16,500): the standoff freeze again, and jumps fading (2026-09-23 01:05)
+
+jump2: 103.6 mean (107,110,122,125,**25**,106,119,115), 1.92 s/pickup, 18 falls, **takeoffs 0.46/min**
+(jump1 had 0.95). Round 5 = the noon standoff again: from 38 s to the end (143 s) the marble sat at
+(-34.3, 21.7), inner edge of the west walkway, on the floor at ~1 u/s of jitter, last gem of the group
+12 u east across the NW hole, walkable route a few units north. Without that round: 114.9. The
+pickup-gap statistic missed it (no pickup followed), so `leg_report` now prints the longest stall per
+round. Takeoffs halving between jump1 and jump2 says the reward is currently pricing the practised jumps
+as net-negative (they still end in falls or cost time); if jump3 shows the same, the curriculum share or
+the gap prior needs raising rather than waiting. Stuck-breaker for real runs: see 28.16.
+
+### 28.16 STUCK-BREAKER in real runs: +16 points on the same weights (2026-09-23 01:05)
+
+`nav/real_run.py`: if the marble moved < `STUCK_U` (1 u) in the last `STUCK_S` (3 s) while a target
+exists, reset the recurrent state, steer at the string-pulled path waypoint instead of the straight line
+to the gem, and SAMPLE actions instead of taking the mean, for `STUCK_DETOUR` (24) decisions.
+`NAV_STUCK_S=0` disables. Validation on the jump2 weights (16,500): 103.6 -> **120.1** (121,117,123,121,
+121,112,124,122); the 147 s and 22 s standoffs of the unassisted run did not recur. 13 triggers in 8
+rounds, several on ordinary short hesitations (harmless: 1.5 s of sampled steering). `leg_report`
+prints the longest stall per round by displacement (moved < 1 u in 3 s), which catches a freeze even
+when no pickup follows it. Default ON for every real run from here, including the eval cycle.
+
+### 28.17 PRACTICE DISCOUNT on jump falls (2026-09-23 01:15)
+
+Takeoffs/min across the jump run's evals: 0.95 (15,900) -> 0.46 (16,500) -> 0.33 (16,500 with breaker).
+The reward was extinguishing the move: a hop saves ~2.6 u of progress, a failed hop cost FALL 25, so the
+expected value is negative unless 9 in 10 land, and the policy never got enough practice to reach that.
+Applied: `FALL_AFTER_JUMP = 8.0` for a fall within `JUMP_FALL_WINDOW = 24` decisions (~1.5 s) of a real
+takeoff (any takeoff; the gap prior is trainer-side and not available in the worker). Takeoff and airborne
+costs unchanged. Trainer restarted 01:16 from nav_latest (~16,560). REVERT to FALL for jump falls once
+takeoffs/min holds >= 0.8 with falls <= 13 per 8 rounds; the eval loop (jump3 at 17,090, ...) continues.
+
+### 28.18 jump3 + step 4 applied (2026-09-23 03:45)
+
+jump3 (17,095, ~590 updates on the practice discount): 117.8 (121,118,117,118,118,116,115,119), 1.89
+s/pickup, **9 falls** (lowest ever), takeoffs 0.50/min (recovering from 0.33), no stall over 4 s. The
+discount stopped the extinction; the policy is now over-safe (speed 6.3, centre pickups 4.8 u/s).
+Applied plan step 4 at half strength: `GEM_SPEED_BONUS 8 -> 16` (slope 0.27/decision; 0.5 tripled
+falls on 2026-09-22 with the fear terms still present). Restarted from 17,095. Judge at jump4 (17,690):
+revert to 8 if falls > 13 per 8 rounds without a pace gain.
+
+### 28.19 jump4 (2026-09-23 06:15): jumping at the human's rate, not yet paying
+
+jump4 (17,695, ~600 updates with GEM_SPEED_BONUS 16): 120.1 (121,126,121,118,118,123,120,114), 1.86
+s/pickup (median 1.73), 16 falls, **takeoffs 1.03/min** (human 0.87), jump held 1.24 % of decisions
+(human 1.8 %), no stall over 3 s. Falls back at the pre-jump level (not beyond), small pace gain over
+jump3, so the bonus stays at 16. Overnight sequence of 8-round evals on this lineage: 119.3 (15,900) ->
+103.6/120.1 with breaker (16,500) -> 117.8 (17,095) -> 120.1 (17,695). The move is learned; it is not
+yet shortening legs. Morning decision for the operator: keep practising on this track, or start the
+model-based alternative (measured jump envelope -> gap prior + routing graph; HANDOFF 28.14).
+
+### 28.20 jump5 and STOP (2026-09-23 08:52). Operator gate: "not serious progress -> stop"
+
+jump5 (18,295): 120.3 (119,122,118,120,125,115,125,118), 1.86 s/pickup (median 1.73), 19 falls,
+takeoffs 1.66/min, no stalls. Below the 125 gate -> training stopped 08:51 (trainer, loop, games,
+watchdog, eval loop all down). The jump lineage's five evals: 119.3, 120.1 (with breaker), 117.8,
+120.1, 120.3: flat at 118-120, 1.86-1.89 s/pickup, while takeoffs went 0.22 -> 1.66/min and the
+hesitation readouts never moved (centre pickup 4.8-4.9 u/s, thrust-opposes 42 %).
+
+**Best verified checkpoint remains `nav_eval_align1_1536.pth` (update 15,590): 121.9-123.1 points,
+1.83 s/pickup, 10-13 falls**, to be run with the ordering term (K=1.6) and the stuck-breaker, both
+defaults in `nav/real_run.py`. `nav_latest.pth` is the 18,295 jump-lineage endpoint. The lineages differ
+in reward constants (see 28.13, 28.17, 28.18); to resume the best checkpoint's own settings, see 28.11.
+
+**Where the remaining ~25 points are, unchanged by two days of reward work:** the policy decelerates
+into and out of pickups and near edges (centre pickup speed 4.8 vs human 8.2; thrust against velocity
+42 % vs 33 %), and its jumps, now frequent, do not yet save time. Next candidate (operator's morning
+choice, HANDOFF 28.14): the model-based route, starting with a measured jump envelope fed to the gap
+prior and the routing graph, then a learned short-horizon dynamics model for jump timing.
+
+### 28.21 TRAP FIXED: watch mode ran 4x from round 2 on (2026-09-23 09:15)
+
+Operator: "the game is running at 3x speed and is falling a lot". Measured: Python paced 15 decisions
+per wall second (correct), but rounds 2+ lasted 0.75 min with 705 decisions (round 1: 3.01 min, 2,826).
+Cause: `env.set_speed()` re-sends the training setup (`FIXEDSTEP 64`) at the end of `wait_new_round()`
+(and on connect), undoing watch mode's `FIXEDSTEP 16`; `real_run` kept sending `VIEW_SUBSTEPS` = 4
+slices per decision, so each decision covered 256 ms of game time from round 2 on. The game looked 4x
+fast and the policy, acting at a quarter of its trained rate, fell 11 times a round. Every multi-round
+1x watch run before this had the same defect after its first round (single-round watch runs were fine;
+all 8-round EVALS are unaffected, they do not use sub-steps). Fix: `apply_watch()` in `real_run.py`,
+called at start and after every `wait_new_round()`.
+
+### 28.22 NEXT-GEM PROGRESS TERM (2026-09-23 09:40). Operator's insight, confirmed by ablation
+
+Operator, watching 1x: the marble takes gem 1, nearly stops, then accelerates to gem 2, even when both
+lie on a straight walkway; a player who saw both would blast through gem 1 at full speed.
+**Checked:** the observation DOES carry the next gem (NEXT_DIM block since 2026-09-19; real runs pass
+the chooser's second pick, training the nearest remaining of the group), and hiding it costs 8 points
+(align1 checkpoint: 121.9-123.1 -> **114.0**, 1.83 -> 1.96 s/pickup with `NAV_NO_NEXT=1`). So it is
+used, but weakly: with the next gem within 20 deg the human takes gem 1 at 11.3 u/s and holds 7.1; the
+agent takes it at 5.8 and dips to 4.6 (21 % of those legs below 3 u/s). Round a corner: 3.1 vs 5.6.
+**Why:** no reward ever paid for carrying speed through gem 1 toward gem 2 (PROGRESS is to the current
+gem only; ARRIVE is exit-blind; CARRY was a null lump sum).
+**Applied:** `PROGRESS_NEXT = 0.3` in `nav/waypoints.py`: every decision also pays 0.3 x the change in
+walking distance to the NEXT gem (its own Dijkstra field, `_set_next_field`, rebuilt on every goal
+change; forgiven-negative during PICKUP_GRACE; off while a fall mark is active). On a straight line both
+terms pay 1.3/u; on a corner the approach that already curves toward gem 2 is paid during the approach.
+Started 09:37 from the jump5 endpoint (18,295; snapshot `nav_before_next_0935.pth`), all other settings
+as in 28.13/28.17/28.18. Evals `next1` at 18,895 then every 600 (`wait_and_eval_next.sh`). Readouts:
+straight-line dip (min speed in the 1 s after a pickup with the next gem within 20 deg: 4.6 -> toward
+7.1), s/pickup (1.86), points, falls.
+
+### 28.23 next1 (2026-09-23 12:45): PROGRESS_NEXT WORKS. New best: 126.6
+
+next1 (update 18,900, ~610 updates on PROGRESS_NEXT 0.3): **126.6** (125,126,125,128,127,128,123,131),
+**1.79 s/pickup** (median 1.73), 11 falls, mean speed 7.06, takeoffs 1.03/min, no stalls. Straight-line
+pickups (next gem within 20 deg): speed at gem 1 5.8 -> **7.0**, min speed after 4.6 -> **5.8**,
+near-stops 21 % -> **7 %** (human 11.3 / 7.1 / 2 %). Outer-gem pickup speed 5.57 -> 6.93; centre gems
+still 5.1. Best 8-round result of the project and the tightest spread. Checkpoint copied to
+`nav_best_next1_18900.pth`. The operator's diagnosis (28.22) was the right one: the input was there,
+the reward for using it through the pickup was not. Training continues; next2 at 19,495.
+
+### 28.24 next2 (2026-09-23 15:36): 121.8, falls doubled
+
+next2 (19,505): 121.8 (117,125,121,122,125,122,127,115), 1.83 s/pickup (median 1.73), **21 falls**
+(next1: 11), takeoffs 1.45/min, straight-line near-stops 2 % (human 2 %), centre pickup speed 5.5. The
+pickup mechanics held; the extra ~10 falls (~35 s per 8 rounds) are the whole difference from next1.
+Likeliest source: the rising takeoff rate under the practice discount (FALL_AFTER_JUMP 8). Plan: leave
+settings for next3 (20,095); if falls stay > 15 there, restore FALL_AFTER_JUMP to 25 (the jump rate is
+already above the human's). Best remains `nav_best_next1_18900.pth` (126.6).

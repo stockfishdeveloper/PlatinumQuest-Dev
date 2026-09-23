@@ -34,7 +34,15 @@ DIR_GOAL_GAIN = float(os.environ.get('NAV_DIR_GOAL_GAIN', '30.0'))   # gain on v
                             # direction head. 1.0 = the old behaviour. See heads() for the
                             # measurement that motivated it; 30 was the value that reached
                             # human-level aim steadiness in the offline replay (conc 0.89).
-JUMP_DAMP = 3.0             # 2.0 -> 3.0 on 2026-09-19 02:00, chasing the fall gap against the human
+JUMP_DAMP = 1.0             # 3.0 -> 1.0 on 2026-09-22 (HANDOFF 28.13): jumping is being re-enabled as a
+                            # learnable skill. At 3.0 the agent jumped on 0.1 % of real-round decisions
+                            # and never in KOTM's centre block, where a hop over the 2x2 hole is 5.7 u
+                            # against 12.5 u round it; the human jumps on 1.8 % of ticks. Together with
+                            # JUMP_TAKEOFF 0.4 -> 0.1, DISCRETE_ENT_COEF 0.002 -> 0.01 and the jump
+                            # curriculum (terrain.JUMP_GOAL_P). FALL stays 25: falls will rise in
+                            # training while it practises; the 8-round eval is the judge.
+                            # Snapshot before: models/nav/nav_eval_align1_1536.pth (update 15,590).
+                            # (superseded) 2.0 -> 3.0 on 2026-09-19 02:00, chasing the fall gap against the human
                             # baseline (section 3c: human 0.046 falls per 100 u and 0.11 jumps/s;
                             # agent 0.46-0.53 and, per map, islands 0.52 takeoffs/s with 59 % at a
                             # real gap, KOTM 0.17/s with only 32 % at a real gap). Stray takeoffs

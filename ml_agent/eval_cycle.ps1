@@ -18,8 +18,8 @@ param(
     # MUST MATCH start_training.ps1, or this script silently reverts the training rotation when it
     # restarts the game loop. It carried the old "FlatIslands,KingOfTheMarble" / "4,4" pair until
     # 2026-09-21, after FlatGemTraining was added as the speed map.
-    [string]$Split = "2,5,1",      # 2026-09-22: matches start_training.ps1 (KOTM prioritised)
-    [string]$Missions = "FlatGemTraining_Hunt,KingOfTheMarble_Hunt,FlatIslands_Hunt",
+    [string]$Split = "7,1",        # 2026-09-22 20:40: matches start_training.ps1 (7 KOTM / 1 Islands)
+    [string]$Missions = "KingOfTheMarble_Hunt,FlatIslands_Hunt",
     [switch]$NoRestart
 )
 $ml = $PSScriptRoot

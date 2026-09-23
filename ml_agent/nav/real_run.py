@@ -138,6 +138,17 @@ def snap_to_walkable(terrain, gx, gy, gz, radius=3):
     return (best[1], best[2], best[3]), True
 
 
+NO_NEXT = os.environ.get('NAV_NO_NEXT', '0') == '1'   # ABLATION (2026-09-23): hide the next-gem block from the policy
+STUCK_S = float(os.environ.get('NAV_STUCK_S', '3.0'))     # STUCK-BREAKER (2026-09-23, HANDOFF 28.16). If the
+STUCK_U = float(os.environ.get('NAV_STUCK_U', '1.0'))     # marble has moved less than STUCK_U in the last
+STUCK_DETOUR = int(os.environ.get('NAV_STUCK_DETOUR', '24'))   # STUCK_S seconds while a target exists:
+                               # reset the recurrent state, steer at the string-pulled PATH waypoint (not the
+                               # straight line to the gem) and sample actions instead of taking the mean,
+                               # for STUCK_DETOUR decisions. Twice (noon and 01:00 on 2026-09-22/23) the
+                               # deterministic policy sat at the inner edge of a walkway for 54-147 s with
+                               # the gem 12 u away across a hole and the route a few units north: a fixed
+                               # point of mean action + hidden state that a sample or a new bearing breaks.
+                               # NAV_STUCK_S=0 disables.
 DIRECT_GEM = os.environ.get('NAV_DIRECT_GEM', '1') == '1'   # default ON since 2026-09-20 23:50 by
                                # user instruction: the waypoint is the gem's exact position, always.
                                # Routing corner points and snap_to_walkable are bypassed. The
@@ -332,10 +343,20 @@ def main():
           + (f', terrain "{pre_map}" pre-built' if pre_map else ''))
 
     env.connect()                      # already bound and listening: this only accepts
-    if WATCH:
+    def apply_watch():
+        """(Re)apply the watch-mode engine settings. Called at start AND after every round transition:
+        env.set_speed() re-sends the TRAINING setup (FIXEDSTEP 64) on every (re)connect / new round,
+        which silently undid the 16 ms sub-step from round 2 on (found 2026-09-23 09:10): Python kept
+        sending VIEW_SUBSTEPS slices per decision, so each decision covered 256 ms of game time, the
+        game ran 4x and the policy, acting at a quarter of its trained rate, fell everywhere."""
         env.control('RENDEREVERY 1')       # draw every frame so a human can actually see it
         vy = os.environ.get('NAV_VIEWYAW', '0')   # fixed view yaw in radians; 'off' = follow the marble camera
         env.control(f'VIEWYAW {vy}')       # stable view while the marble camera rotates for force (engine: Marble.setViewYaw)
+        if VIEW_SUBSTEPS > 1:
+            env.control(f'FIXEDSTEP {max(1, OBS_MS // VIEW_SUBSTEPS)}')
+
+    if WATCH:
+        apply_watch()
         if VIEW_SUBSTEPS > 1:
             # The sim normally advances in ONE 64 ms jump per decision (gAIFixedStepMs), i.e. 15.6
             # motion updates a second -- the renderer just redraws that frozen state, which is why
@@ -343,7 +364,7 @@ def main():
             # slices and repeat the action across them: identical decisions every 64 ms, but the
             # motion renders at 64/VIEW_SUBSTEPS ms. VIEWING ONLY -- the integration step differs
             # from training, so do not measure with this on.
-            env.control(f'FIXEDSTEP {max(1, OBS_MS // VIEW_SUBSTEPS)}')
+            pass
         print(f'WATCH mode: every frame drawn, {VIEW_SUBSTEPS} sim slice(s) per 64 ms decision, real time')
     mission = env.info['mission']
     if terrain is None or pre_map != mission:
@@ -365,6 +386,7 @@ def main():
         field = None; field_key = None; held_goal = None
         mfield_cache = None; mfield_key = None       # GEO_ORDER: Dijkstra field sourced at the marble
         gap_goal = None                  # where to head while no gem is on the map (held per gap)
+        pos_hist = []; stuck_until = -1; n_stuck = 0     # stuck-breaker state (see STUCK_S)
         points = 0.0
         travelled = 0.0
         last = np.array(env.msg.obs[:3], dtype=np.float64)
@@ -453,12 +475,20 @@ def main():
                 field = terrain.goal_field(gem_goal[0], gem_goal[1]); field_key = key
                 held_goal = None                          # new target: the old waypoint is stale
             mx, my = float(env.msg.obs[0]), float(env.msg.obs[1])
+            pos_hist.append((mx, my))
+            n_stuck_win = int(round(STUCK_S / 0.064))
+            if (STUCK_S > 0 and decisions >= stuck_until and len(pos_hist) > n_stuck_win
+                    and math.hypot(mx - pos_hist[-1 - n_stuck_win][0], my - pos_hist[-1 - n_stuck_win][1]) < STUCK_U):
+                obs_b.reset(); h = model.initial_state(1, dev)
+                stuck_until = decisions + STUCK_DETOUR; n_stuck += 1; held_goal = None
+                print(f'stuck-breaker #{n_stuck} at ({mx:.1f},{my:.1f}) decision {decisions}: state reset, path waypoint + sampling for {STUCK_DETOUR} decisions')
+            detour = decisions < stuck_until
             # HOLD the waypoint until it is reached or no longer reachable in a straight line.
             # Recomputing the string-pulled point every decision let it snap forward whenever
             # line-of-sight cleared round a corner, and the policy reads that snap as a heading
             # change: steering swung 84.6 deg on decisions where the goal jumped >3 u, against
             # 63.8 deg otherwise. A waypoint should be a fixed point you drive at.
-            if DIRECT_GEM:
+            if DIRECT_GEM and not detour:
                 goal, pathed = gem_goal, False     # the goal IS the gem, never a point beside it
             elif (held_goal is not None
                     and math.hypot(held_goal[0] - mx, held_goal[1] - my) > WAYPOINT_HOLD_U
@@ -480,9 +510,9 @@ def main():
                 elif marked is not None:
                     env.mark_off()                        # no gem on the map: draw nothing anywhere
                     marked = None
-            crop, vec, on_floor = obs_b.build(env.msg.obs, goal, ngoal)
+            crop, vec, on_floor = obs_b.build(env.msg.obs, goal, None if NO_NEXT else ngoal)
             out = model.act(torch.as_tensor(crop, device=dev).unsqueeze(0),
-                            torch.as_tensor(vec, device=dev).unsqueeze(0), h, deterministic=True)
+                            torch.as_tensor(vec, device=dev).unsqueeze(0), h, deterministic=not detour)
             a = out['action_game'][0].tolist(); vel = env.msg.obs[RAW_VEL]
             if SMOOTH < 1.0:
                 n = math.hypot(a[0], a[1])
@@ -562,7 +592,7 @@ def main():
                'falls_per_100u': round(100.0 * falls / max(travelled, 1e-6), 3),
                'travelled_u': round(travelled, 1),
                'speed': round(travelled / max(decisions * (OBS_MS / 1000.0), 1e-6), 2),
-               'blind_pct': round(100.0 * blind / max(decisions, 1), 1),
+               'blind_pct': round(100.0 * blind / max(decisions, 1), 1), 'stuck_breaks': n_stuck,
                'snapped_pct': round(100.0 * n_snapped / max(decisions, 1), 1),
                'pathed_pct': round(100.0 * n_pathed / max(decisions, 1), 1),
                'smooth': SMOOTH}
@@ -570,6 +600,8 @@ def main():
         print(f'  round {r+1}: {row}')
         if r + 1 < ROUNDS:
             env.wait_new_round()
+            if WATCH:
+                apply_watch()              # the new round re-sent FIXEDSTEP 64; put the sub-step back
 
     trace.close()
     # Keep the latest trace PER MAP as well (2026-09-22): the dashboard's speed heat map reads
