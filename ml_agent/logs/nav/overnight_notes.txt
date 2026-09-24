@@ -729,3 +729,4 @@
 [08:49] EVAL jump5 (nav_eval_jump5_0846.pth): 119,122,118,120,125,115,125,118 -> mean 120.3 (gems-only steering)
 [12:45] EVAL next1 (nav_eval_next1_1242.pth): 125,126,125,128,127,128,123,131 -> mean 126.6 (gems-only steering)
 [15:36] EVAL next2 (nav_eval_next2_1533.pth): 117,125,121,122,125,122,127,115 -> mean 121.8 (gems-only steering)
+[20:51] EVAL parity1b (nav_eval_parity1b_2048.pth): 137,116,131,138,127,129,137,137 -> mean 131.5 (gems-only steering)

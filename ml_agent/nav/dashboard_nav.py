@@ -39,6 +39,7 @@ MAP_RE = re.compile(r'\[(\d\d:\d\d:\d\d)\] (?:MAP|mission) ([A-Za-z0-9_]+)')
 RTF_RE = re.compile(r'rtf[= ]([\d.]+)')
 DPS_RE = re.compile(r'dps=(\d+)')
 RESUME_RE = re.compile(r'resumed .*: update (\d+)')
+GAME_RE = re.compile(r'\[(\d\d:\d\d:\d\d)\] \[(\d+)\] GAME map=(\S+) points=([\d.]+) gems=(\d+) falls=(\d+)')
 
 
 def parse_logs():
@@ -48,6 +49,7 @@ def parse_logs():
     last_update = 0
     counters = {'synthetic_falls': 0, 'respawn_misses': 0, 'teleport_ignored': 0, 'rounds': 0, 'restarts': 0}
     rtfs = []
+    games = []             # real-gem training rounds: (update, inst, map, points, gems, falls, time)
     current_map = ''
     pending_maps = None    # the MAPS line (per-map stats) is logged just before its NAV line
     for f in files:
@@ -87,6 +89,10 @@ def parse_logs():
                 by_update[upd] = rec
                 last_update = max(last_update, upd)
                 continue
+            m = GAME_RE.search(line)
+            if m:
+                games.append((last_update, int(m.group(2)), m.group(3), float(m.group(4)), int(m.group(5)), int(m.group(6)), m.group(1)))
+                continue
             m = MAP_RE.search(line)
             if m:
                 current_map = m.group(2)
@@ -107,6 +113,7 @@ def parse_logs():
                 if resume_at < last_update:
                     for k in [k for k in by_update if k > resume_at]:
                         del by_update[k]
+                    games = [g for g in games if g[0] <= resume_at]
                     last_update = resume_at
                 events.append((resume_at, 'resume', f'trainer (re)started at update {resume_at}'))
                 continue
@@ -124,11 +131,33 @@ def parse_logs():
                 if m:
                     rtfs.append(float(m.group(1)))
     updates = [by_update[k] for k in sorted(by_update)]
-    return updates, events, counters, rtfs
+    return updates, events, counters, rtfs, games
+
+
+def eval_series():
+    """Real-round evaluations from logs/nav/real_run_<map>_<ckpt>.json: per map, one entry per eval with the
+    checkpoint's update and every round's points. Runs of fewer than 3 rounds (watch runs) are skipped."""
+    out = {}
+    for f in glob.glob(os.path.join(LOG_DIR, 'real_run_*_Hunt_*.json')):
+        try:
+            d = json.load(open(f))
+        except Exception:
+            continue
+        if d.get('update') is None or len(d.get('rounds') or []) < 3:
+            continue
+        pts = [float(r['points']) for r in d['rounds']]
+        out.setdefault(d['map'], []).append({'update': int(d['update']), 'points': pts, 'mean': sum(pts) / len(pts),
+                                             'when': d.get('when', ''), 'ckpt': d.get('ckpt', '')})
+    for m in out:
+        out[m].sort(key=lambda e: (e['update'], e['when']))
+    return out
+
+
+HUMAN_POINTS = {'KingOfTheMarble_Hunt': 143.5, 'FlatGemTraining_Hunt': 104.0}
 
 
 def build_state():
-    updates, events, counters, rtfs = parse_logs()
+    updates, events, counters, rtfs, games = parse_logs()
     maps = []
     for u in updates:
         if u['map'] not in maps:
@@ -177,7 +206,8 @@ def build_state():
         'ckpt': latest_ckpt, 'ckpt_time': latest_ckpt_time, 'n_updates': len(updates),
         'series': {k: [u.get(k) for u in updates] for k in ('update', 'map', 'r', 'arrive', 'falls100', 'speed', 'rew', 'pl', 'vl',
                                                              'ent', 'kl', 'clip', 'gn', 'dstd', 'wall_s', 'steps', 'ep', 'sgem', 'pickup')},
-        'pm': pm, 'human_sgem': HUMAN_S_PER_GEM,
+        'pm': pm, 'human_sgem': HUMAN_S_PER_GEM, 'evals': eval_series(), 'human_points': HUMAN_POINTS,
+        'games': [{'update': g[0], 'inst': g[1], 'map': g[2], 'points': g[3], 'gems': g[4], 'falls': g[5], 'time': g[6]} for g in games],
     }
 
 
@@ -314,19 +344,16 @@ td.num { text-align:right; font-variant-numeric:tabular-nums; }
 </div>
 <div id="gauges">
   <div class="gauge"><div class="label" id="g-sgem-label">Seconds between pickups</div><div class="value" id="g-sgem" style="color:#f0c040">--</div><div class="label" id="g-sgem-sub">human 1.57 s</div></div>
-  <div class="gauge"><div class="label">Arrival % (selected map, last 300 segs)</div><div class="value" id="g-arrive" style="color:#3fb950">--</div><div class="label">target &gt; 90 %</div></div>
+  <div class="gauge"><div class="label" id="g-best-label">Best points per game</div><div class="value" id="g-best" style="color:#3fb950">--</div><div class="label" id="g-best-sub">human 143.5 (KOTM)</div></div>
   <div class="gauge"><div class="label">Falls / 100 u</div><div class="value" id="g-falls" style="color:#f85149">--</div><div class="label">target &lt; 0.5</div></div>
   <div class="gauge"><div class="label">Speed u/s</div><div class="value" id="g-speed">--</div><div class="label">target &ge; 7</div></div>
-  <div class="gauge"><div class="label">Reward / segment</div><div class="value" id="g-rew">--</div></div>
   <div class="gauge"><div class="label">Entropy</div><div class="value" id="g-ent">--</div><div class="label" id="g-dstd">dir std --</div></div>
-  <div class="gauge"><div class="label">KL / clip frac</div><div class="value" id="g-kl">--</div><div class="label">healthy 0.005 - 0.03</div></div>
-  <div class="gauge"><div class="label">Env warts (this run)</div><div class="value" id="g-warts" style="font-size:0.9rem">--</div><div class="label">synthetic falls / respawn misses / teleports ignored</div></div>
 </div>
 <div id="charts">
   <div class="chart-card"><div class="chart-title">SECONDS BETWEEN PICKUPS, selected map (pickup-to-pickup inside a group; lower is better; dashed = human 1.57 s on KOTM)</div><div id="c-sgem" style="height:230px"></div></div>
+  <div class="chart-card"><div class="chart-title" id="pts-title">POINTS PER TRAINING GAME, selected map (one bar per finished round in order, real score from the game; dashed = human; sampled policy, no stuck-breaker)</div><div id="c-points" style="height:230px"></div></div>
   <div class="chart-card"><div class="chart-title" id="heat-title">Marble speed heat map, selected map (latest real rounds; green = fastest, red = slowest)</div><div id="c-heat" style="height:420px"></div></div>
   <div class="chart-card"><div class="chart-title" id="heatj-title">Jump heat map, selected map (takeoffs as % of floor decisions per cell; green = jumps a lot, red = never)</div><div id="c-heatj" style="height:420px"></div></div>
-  <div class="chart-card"><div class="chart-title">Arrival % per update, selected map</div><div id="c-arrive" style="height:230px"></div></div>
   <div class="chart-card"><div class="chart-title">Falls per 100 u, selected map</div><div id="c-falls" style="height:230px"></div></div>
   <div class="chart-card"><div class="chart-title">Speed (u/s, on-floor travel), selected map</div><div id="c-speed" style="height:230px"></div></div>
   <div class="chart-card"><div class="chart-title">Reward per segment (300-segment rolling, pooled over all maps)</div><div id="c-rew" style="height:230px"></div></div>
@@ -337,10 +364,10 @@ td.num { text-align:right; font-variant-numeric:tabular-nums; }
   <div class="chart-card"><div class="chart-title">Wall seconds per update (throughput; spikes = stalls / map switches)</div><div id="c-wall" style="height:230px"></div></div>
 </div>
 <div id="tables">
-  <div class="chart-card"><div class="chart-title">Per map (latest slot vs best)</div><table id="t-maps"><thead><tr><th>map</th><th>updates</th><th>s/pickup</th><th>best</th><th>arrive %</th><th>best</th><th>falls/100u</th><th>best</th><th>speed</th><th>best</th></tr></thead><tbody></tbody></table></div>
+  <div class="chart-card"><div class="chart-title">Per map (latest slot vs best)</div><table id="t-maps"><thead><tr><th>map</th><th>updates</th><th>s/pickup</th><th>best</th><th>falls/100u</th><th>best</th><th>speed</th><th>best</th></tr></thead><tbody></tbody></table></div>
   <div class="chart-card"><div class="chart-title">Events (map switches, checkpoints, restarts)</div><table id="t-events"><tbody></tbody></table></div>
 </div>
-<div class="hint">Reads logs/nav/train_nav_*.log every 3 s. A segment = one waypoint; arrive / fall / timeout are its outcomes. Falls per 100 u counts falls per distance travelled on the floor.</div>
+<div class="hint">Reads logs/nav/train_nav_*.log every 3 s. Falls per 100 u counts falls per distance travelled on the floor.</div>
 <script>
 const darkLayout = (extra) => Object.assign({
   paper_bgcolor:'#161b22', plot_bgcolor:'#0d1117', font:{color:'#e6edf3', size:10, family:'Consolas, monospace'},
@@ -350,7 +377,7 @@ const darkLayout = (extra) => Object.assign({
 const cfg = {responsive:true, displayModeBar:false};
 const palette = ['#3fb950','#58a6ff','#f0c040','#bc8cff','#f85149','#d29922','#39d3c3','#ff7b72'];
 const legend = {showlegend:true, legend:{x:0, y:1.15, orientation:'h', font:{size:9}}};
-['c-sgem','c-heat','c-heatj','c-arrive','c-falls','c-speed','c-rew','c-ent','c-kl','c-loss','c-gn','c-wall'].forEach(id => Plotly.newPlot(id, [], darkLayout(legend), cfg));
+['c-sgem','c-points','c-heat','c-heatj','c-falls','c-speed','c-rew','c-ent','c-kl','c-loss','c-gn','c-wall'].forEach(id => Plotly.newPlot(id, [], darkLayout(legend), cfg));
 
 let ST = null;   // latest state, so per-map traces can read the MAPS-line series (st.pm)
 // Map selector: one map at a time (default KingOfTheMarble, the scored map) or the overlay of all.
@@ -435,9 +462,35 @@ function update(st) {
   document.getElementById('g-sgem').textContent = (pmSel && pmSel.sgem) ? fmt(pmSel.sgem) + ' s' : (L && L.sgem ? fmt(L.sgem) + ' s' : '--');
   document.getElementById('g-sgem-sub').textContent = 'human 1.57 s (KOTM)' + ((pmSel && pmSel.best_sgem) ? ' | best ' + fmt(pmSel.best_sgem) : '');
   {
+    const bmap = SEL === 'ALL' ? 'KingOfTheMarble_Hunt' : SEL;
+    const all = (st.games || []).filter(g => g.map === bmap && g.gems <= 130);
+    const best = all.length ? all.reduce((a, b) => (b.points > a.points ? b : a)) : null;
+    document.getElementById('g-best-label').textContent = 'Best points per game (' + bmap.replace('_Hunt', '') + ')';
+    document.getElementById('g-best').textContent = best ? best.points.toFixed(0) : '--';
+    document.getElementById('g-best-sub').textContent = 'human 143.5 (KOTM)' + (best ? ' | upd ' + best.update + ' ' + best.time : '') + ' | ' + all.length + ' games';
+  }
+  {
     const tr = perMapTraces(s, 'sgem');
     if (s.update.length) tr.push({x:[s.update[0], s.update[s.update.length-1]], y:[st.human_sgem, st.human_sgem], type:'scatter', mode:'lines', line:{dash:'dash', color:'#e6edf3', width:1}, name:'human (KOTM demo)'});
     Plotly.react('c-sgem', tr, darkLayout(Object.assign({yaxis:{title:'s / pickup', gridcolor:'#21262d', color:'#7d8590'}}, legend)), cfg);
+  }
+  {
+    const emap = SEL === 'ALL' ? 'KingOfTheMarble_Hunt' : SEL;
+    // one round cannot hold more than ~130 gems: larger entries are two rounds merged by a worker
+    // that crossed a round end mid-respawn (fixed in vec_worker 17:00; older workers may still emit them)
+    const gs = (st.games || []).filter(g => g.map === emap && g.update >= LO && g.gems <= 130);
+    const x = gs.map((g, i) => i + 1), y = gs.map(g => g.points);
+    let bi = -1; y.forEach((v, i) => { if (bi < 0 || v > y[bi]) bi = i; });
+    const cols = y.map((v, i) => (i === bi ? '#3fb950' : '#f0883e'));
+    const tr = [{x, y, type:'bar', marker:{color:cols}, hovertemplate:'%{y}<extra></extra>', name:'training game'}];
+    if (gs.length >= 5) {
+      const k = 10, mx = [], my = [];
+      for (let i = k - 1; i < gs.length; i++) { let sum = 0; for (let j = i - k + 1; j <= i; j++) sum += gs[j].points; mx.push(i + 1); my.push(sum / k); }
+      tr.push({x:mx, y:my, type:'scatter', mode:'lines', line:{color:'#58a6ff', width:2}, name:'10-game mean'});
+    }
+    const hp = (st.human_points || {})[emap];
+    if (hp && x.length) tr.push({x:[Math.min(...x), Math.max(...x)], y:[hp, hp], type:'scatter', mode:'lines', line:{dash:'dash', color:'#e6edf3', width:1}, name:'human'});
+    Plotly.react('c-points', tr, darkLayout(Object.assign({yaxis:{title:'points', gridcolor:'#21262d', color:'#7d8590'}, xaxis:{title:'training game (in order)', gridcolor:'#21262d', color:'#7d8590'}, bargap:0.15}, legend)), cfg);
   }
   document.getElementById('trainer-badge').textContent = 'Trainer: ' + (st.trainer_alive ? 'running' : 'stopped');
   document.getElementById('trainer-badge').className = 'badge badge-game' + (st.trainer_alive ? ' connected' : '');
@@ -445,15 +498,13 @@ function update(st) {
     document.getElementById('m-update').textContent = L.update; document.getElementById('m-steps').textContent = L.steps.toLocaleString();
     document.getElementById('m-segs').textContent = L.segs; document.getElementById('m-map').textContent = L.map.replace('_Hunt','');
     const G = pmSel || L;   // selected map's arrive / falls / speed, pooled when 'all maps'
-    document.getElementById('g-arrive').textContent = fmt(G.arrive, 0) + '%'; document.getElementById('g-falls').textContent = fmt(G.falls100);
-    document.getElementById('g-speed').textContent = fmt(G.speed, 1); document.getElementById('g-rew').textContent = fmt(L.rew, 1);
+    document.getElementById('g-falls').textContent = fmt(G.falls100);
+    document.getElementById('g-speed').textContent = fmt(G.speed, 1); 
     document.getElementById('g-ent').textContent = fmt(L.ent); document.getElementById('g-dstd').textContent = 'dir std ' + fmt(L.dstd);
-    document.getElementById('g-kl').textContent = fmt(L.kl, 3) + ' / ' + fmt(L.clip);
+
   }
   document.getElementById('m-dps').textContent = fmt(st.dec_per_s, 1); document.getElementById('m-rtf').textContent = st.rtf === null ? '--' : fmt(st.rtf);
   document.getElementById('m-ckpt').textContent = st.ckpt + ' (' + st.ckpt_time + ')';
-  const c = st.counters; document.getElementById('g-warts').textContent = c.synthetic_falls + ' / ' + c.respawn_misses + ' / ' + c.teleport_ignored;
-  Plotly.react('c-arrive', perMapTraces(s, 'arrive'), darkLayout(Object.assign({yaxis:{range:[0,100], gridcolor:'#21262d', color:'#7d8590'}}, legend)), cfg);
   Plotly.react('c-falls', perMapTraces(s, 'falls100'), darkLayout(legend), cfg);
   Plotly.react('c-speed', perMapTraces(s, 'speed'), darkLayout(legend), cfg);
   Plotly.react('c-rew', perMapTraces(s, 'rew'), darkLayout(legend), cfg);
@@ -470,7 +521,7 @@ function update(st) {
   Plotly.react('c-wall', [{x:s.update, y:s.wall_s, type:'bar', marker:{color:'#7d8590'}, name:'wall s'}], darkLayout(), cfg);
   const tb = document.querySelector('#t-maps tbody'); tb.innerHTML = '';
   for (const [mp, v] of Object.entries(st.per_map)) {
-    tb.innerHTML += `<tr><td>${mp.replace('_Hunt','')}</td><td class="num">${v.updates}</td><td class="num" style="color:#f0c040">${v.sgem ? v.sgem.toFixed(2) : '--'}</td><td class="num">${v.best_sgem ? v.best_sgem.toFixed(2) : '--'}</td><td class="num">${v.arrive.toFixed(0)}%</td><td class="num" style="color:#f0c040">${v.best_arrive.toFixed(0)}%</td><td class="num">${v.falls100.toFixed(2)}</td><td class="num" style="color:#f0c040">${v.best_falls100.toFixed(2)}</td><td class="num">${v.speed.toFixed(1)}</td><td class="num" style="color:#f0c040">${v.best_speed.toFixed(1)}</td></tr>`;
+    tb.innerHTML += `<tr><td>${mp.replace('_Hunt','')}</td><td class="num">${v.updates}</td><td class="num" style="color:#f0c040">${v.sgem ? v.sgem.toFixed(2) : '--'}</td><td class="num">${v.best_sgem ? v.best_sgem.toFixed(2) : '--'}</td><td class="num">${v.falls100.toFixed(2)}</td><td class="num" style="color:#f0c040">${v.best_falls100.toFixed(2)}</td><td class="num">${v.speed.toFixed(1)}</td><td class="num" style="color:#f0c040">${v.best_speed.toFixed(1)}</td></tr>`;
   }
   const te = document.querySelector('#t-events tbody'); te.innerHTML = '';
   st.events.slice().reverse().forEach(e => { te.innerHTML += `<tr><td class="num">upd ${e[0]}</td><td class="ev ${e[1]}">${e[2]}</td></tr>`; });

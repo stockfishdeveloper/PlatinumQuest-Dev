@@ -1,0 +1,64 @@
+﻿[20:48:30] stopped 1 loop + 17 training processes
+[20:48:30] snapshot 
+C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\models\nav\nav_eval_parity1b_2048.pth
+[20:48:31] starting the navigator on port 8920 (it binds before anything else)
+[20:48:32] port 8920 is listening; safe to launch the game
+[20:48:32] launching KingOfTheMarble_Hunt on port 8920
+  game pid 40008; it will be answered the instant it reaches GO
+Cannot find an overload for "op_Subtraction" and the argument count: "2".
+At C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\real_run.ps1:67 char:1
++ Write-Host ("  navigator exit code {0} after {1:N0} s" -f $p.ExitCode ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (:) [], MethodException
+    + FullyQualifiedErrorId : MethodCountCouldNotFindBest
+ 
+
+  warm-up: model ready in 0.19 s, terrain "KingOfTheMarble_Hunt" pre-built
+  [env:8920] waiting for the game
+  [env:8920] game connected (1)
+  real run: nav_eval_parity1b_2048.pth (update 19640) on KingOfTheMarble_Hunt, 8 round(s), port 8920
+  stuck-breaker #1 at (-23.1,13.7) decision 2119: state reset, path waypoint + sampling for 24 decisions
+  stuck-breaker #2 at (-27.0,16.7) decision 2145: state reset, path waypoint + sampling for 24 decisions
+    round 1: {'round': 1, 'gems': 107, 'points': 137.0, 'minutes': 3.02, 'decisions': 2831, 'gems_per_min': 35.4, 'points_per_min': 45.4, 'falls': 0, 'falls_per_100u': 0.0, 'travelled_u': 1364.3, 'speed': 7.53, 'blind_pct': 0.0, 'stuck_breaks': 2, 'snapped_pct': 0.0, 'pathed_pct': 0.5, 'smooth': 1.0}
+  [env:8920] round over (time left 180s of 180s); waiting for the next round
+  [env:8920] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+    round 2: {'round': 2, 'gems': 92, 'points': 116.0, 'minutes': 3.02, 'decisions': 2827, 'gems_per_min': 30.5, 'points_per_min': 38.5, 'falls': 6, 'falls_per_100u': 0.454, 'travelled_u': 1320.9, 'speed': 7.3, 'blind_pct': 0.0, 'stuck_breaks': 0, 'snapped_pct': 0.0, 'pathed_pct': 0.0, 'smooth': 1.0}
+  [env:8920] round over (time left 180s of 180s); waiting for the next round
+  [env:8920] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+  stuck-breaker #1 at (-23.8,16.1) decision 2403: state reset, path waypoint + sampling for 24 decisions
+    round 3: {'round': 3, 'gems': 104, 'points': 131.0, 'minutes': 3.02, 'decisions': 2829, 'gems_per_min': 34.5, 'points_per_min': 43.4, 'falls': 4, 'falls_per_100u': 0.296, 'travelled_u': 1353.6, 'speed': 7.48, 'blind_pct': 0.0, 'stuck_breaks': 1, 'snapped_pct': 0.0, 'pathed_pct': 0.0, 'smooth': 1.0}
+  [env:8920] round over (time left 180s of 180s); waiting for the next round
+  [env:8920] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+    round 4: {'round': 4, 'gems': 109, 'points': 138.0, 'minutes': 3.02, 'decisions': 2831, 'gems_per_min': 36.1, 'points_per_min': 45.7, 'falls': 2, 'falls_per_100u': 0.15, 'travelled_u': 1330.3, 'speed': 7.34, 'blind_pct': 0.0, 'stuck_breaks': 0, 'snapped_pct': 0.0, 'pathed_pct': 0.0, 'smooth': 1.0}
+  [env:8920] round over (time left 180s of 180s); waiting for the next round
+  [env:8920] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+  stuck-breaker #1 at (-26.6,12.6) decision 107: state reset, path waypoint + sampling for 24 decisions
+  stuck-breaker #2 at (-25.6,11.4) decision 151: state reset, path waypoint + sampling for 24 decisions
+  stuck-breaker #3 at (-22.5,4.5) decision 215: state reset, path waypoint + sampling for 24 decisions
+  stuck-breaker #4 at (-26.0,16.6) decision 1742: state reset, path waypoint + sampling for 24 decisions
+    round 5: {'round': 5, 'gems': 98, 'points': 127.0, 'minutes': 3.02, 'decisions': 2831, 'gems_per_min': 32.5, 'points_per_min': 42.1, 'falls': 2, 'falls_per_100u': 0.148, 'travelled_u': 1354.8, 'speed': 7.48, 'blind_pct': 0.0, 'stuck_breaks': 4, 'snapped_pct': 0.0, 'pathed_pct': 2.0, 'smooth': 1.0}
+  [env:8920] round over (time left 180s of 180s); waiting for the next round
+  [env:8920] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+  stuck-breaker #1 at (-23.8,16.4) decision 1349: state reset, path waypoint + sampling for 24 decisions
+  stuck-breaker #2 at (-26.9,17.0) decision 1871: state reset, path waypoint + sampling for 24 decisions
+    round 6: {'round': 6, 'gems': 102, 'points': 129.0, 'minutes': 3.02, 'decisions': 2830, 'gems_per_min': 33.8, 'points_per_min': 42.7, 'falls': 3, 'falls_per_100u': 0.229, 'travelled_u': 1312.1, 'speed': 7.24, 'blind_pct': 0.0, 'stuck_breaks': 2, 'snapped_pct': 0.0, 'pathed_pct': 0.7, 'smooth': 1.0}
+  [env:8920] round over (time left 180s of 180s); waiting for the next round
+  [env:8920] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+  stuck-breaker #1 at (-25.7,17.7) decision 1630: state reset, path waypoint + sampling for 24 decisions
+    round 7: {'round': 7, 'gems': 110, 'points': 137.0, 'minutes': 3.02, 'decisions': 2833, 'gems_per_min': 36.4, 'points_per_min': 45.3, 'falls': 0, 'falls_per_100u': 0.0, 'travelled_u': 1364.1, 'speed': 7.52, 'blind_pct': 0.0, 'stuck_breaks': 1, 'snapped_pct': 0.0, 'pathed_pct': 0.7, 'smooth': 1.0}
+  [env:8920] round over (time left 180s of 180s); waiting for the next round
+  [env:8920] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+  stuck-breaker #1 at (-28.2,15.3) decision 945: state reset, path waypoint + sampling for 24 decisions
+  stuck-breaker #2 at (-22.2,16.1) decision 969: state reset, path waypoint + sampling for 24 decisions
+  stuck-breaker #3 at (-23.6,17.1) decision 1261: state reset, path waypoint + sampling for 24 decisions
+  stuck-breaker #4 at (-13.1,13.1) decision 1329: state reset, path waypoint + sampling for 24 decisions
+    round 8: {'round': 8, 'gems': 110, 'points': 137.0, 'minutes': 3.02, 'decisions': 2832, 'gems_per_min': 36.4, 'points_per_min': 45.4, 'falls': 1, 'falls_per_100u': 0.075, 'travelled_u': 1331.6, 'speed': 7.35, 'blind_pct': 0.0, 'stuck_breaks': 4, 'snapped_pct': 0.0, 'pathed_pct': 1.2, 'smooth': 1.0}
+  REAL RUN {"gems_per_min": 34.45, "points_per_min": 43.562, "falls_per_100u": 0.169, "speed": 7.405, "blind_pct": 0.0} vs human {"gems_per_min": 0.92, "points_per_min": 0.92, "speed": 0.92, "falls_ratio": 3.7}
+  wrote C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\logs\nav\real_run_KingOfTheMarble_Hunt_nav_eval_parity1b_2048.json
+  stderr tail:
+    C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\nav\real_run.py:296: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+      ck = torch.load(ckpt, map_location=dev)
+[20:51:56] done. JSON: logs\nav\real_run_KingOfTheMarble_Hunt_*.json
+[20:51:56] EVAL parity1b: rounds 137,116,131,138,127,129,137,137 -> mean 131.5
+[20:51:59] all 8 worker ports 8888..8895 listening; safe to launch the games
+[20:51:59] trainer up and listening, then game loop restarted

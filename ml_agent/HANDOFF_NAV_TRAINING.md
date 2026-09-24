@@ -3255,3 +3255,59 @@ pickup mechanics held; the extra ~10 falls (~35 s per 8 rounds) are the whole di
 Likeliest source: the rising takeoff rate under the practice discount (FALL_AFTER_JUMP 8). Plan: leave
 settings for next3 (20,095); if falls stay > 15 there, restore FALL_AFTER_JUMP to 25 (the jump rate is
 already above the human's). Best remains `nav_best_next1_18900.pth` (126.6).
+
+### 28.25 TRAINING PARITY: real-gem continuous training (2026-09-23 16:41). Operator's call
+
+**Diagnosis (16:00).** Routing is at parity with the human (travelled/optimal 1.05 both); the gap is pace,
+and the training world explained the pace: the last gem of every synthetic group was a TERMINAL event
+followed by a teleport to rest (TELEPORT_P 1.0, "after arrival always teleport"), so every group began
+from rest and every last gem was approached as an episode end; EDGE_K charged the centre block for being
+fast rather than for falling; FALL_AFTER_JUMP 8 doubled falls at next2. The operator: "bring training to
+parity with the 1x speed version I've been watching". Approved and applied:
+
+1. `nav/waypoints.py`: `EDGE_K 0.0`, `FALL_AFTER_JUMP 25.0`, `CONTINUOUS = True` (synthetic mode only:
+   a finished group rolls into a new one 30-60 u away via `_chain_group`, no episode end, no teleport),
+   `_record()` factored out, and a **real_mode** API: `begin(env, real_goal=, real_next=)` (no teleport,
+   one-gem segment), `retarget(x, y, goal, next_goal)`, `set_next(x, y, next_goal)`, `next_goal()` returns
+   the chooser's next gem, `step(..., picked=gem_delta)` where the GAME's pickup is the arrival (+ARRIVE
+   +GEM_SPEED_BONUS, PICKUP_GRACE, no done), timeout = 312 decisions on ONE gem. Backup of the
+   pre-change file: `logs/nav/waypoints_backup_pre_continuous.py`.
+2. `nav/gems.py` (new, torch-free): `visible_gems(raw)` and the sticky momentum-aware `choose()` used by
+   both `real_run.py` and the workers, so training chases exactly what a scored round chases.
+3. `nav/vec_worker.py`: `NAV_REAL_GEMS` (default 1, on when the terrain has `gem_spawns`). Each decision
+   after the game step the worker re-runs the chooser on the observer's gem list, retargets the segment
+   (and the on-screen mark) when the target changed by > STICKY_TOL, updates the next-gem block
+   otherwise, keeps the old goal while blind. `gem_delta` and `fell` are summed per round and every
+   round end logs `[i] GAME map=<map> points=<p> gems=<g> falls=<f> rtf=<r>`: a training round IS a real
+   KOTM round (sampled policy, no stuck-breaker, 3x speed), so no separate 8-round evals are needed.
+4. `nav/dashboard_nav.py`: gauges Reward/segment, KL/clip, Env warts removed. New chart after
+   seconds-between-pickups: POINTS PER TRAINING GAME, one bar per GAME line of the selected map, window
+   by update, 10-game mean line, human 143.5 dashed. Refreshes with the 3 s push.
+
+Patch scripts (all asserted on the pre-change text, run once): `logs/nav/apply_continuous.py`,
+`apply_realmode_waypoints.py`, `apply_realmode_worker.py`, `apply_dashboard_games.py`.
+
+**Run:** 16:41 from `nav_best_next1_18900.pth` (126.6) copied over `nav_latest.pth`; the 19,505 endpoint
+saved as `nav_pre_realgems_19505.pth`. 7 KOTM / 1 Islands, watchdog only, NO eval loop (operator rule:
+the GAME lines are the score). First lines: Islands 45 pts (partial round), KOTM inst 2 108 pts / 87
+gems / 4 falls. Sampled-policy training rounds score below a deterministic eval of the same weights, so
+compare GAME bars against each other, and confirm any candidate with `real_run.py` before calling it a
+best. Readouts to judge by: the GAME bars' 10-game mean on KOTM, falls per round, sgem.
+
+**28.25 follow-up (17:00).** Two dashboard complaints: gaps between bars (bars were placed by update, and
+rounds end in bursts every ~100 s wall = 5 updates) and a 222-point bar (177 gems = two rounds merged:
+the RoundOver paths inside `start_segment()` and the recover branch restarted without logging or resetting
+the counters). Fixed: `InstanceWorker._round_over()` is the single log-and-reset point for all three
+paths (live from the next trainer restart; the workers now running still have the old code), the chart
+plots bars in game order with the window still filtering by update, and the dashboard drops entries with
+> 130 gems as merged rounds. Hover shows the points only; no bar labels (operator request).
+
+### 28.26 parity1 (2026-09-23 20:52): NEW BEST 131.5 after 4 h of real-gem training
+
+Eval `nav_eval_parity1b_2048.pth` (update ~19,640, 740 updates of real-gem continuous training from
+18,900): **131.5** (137,116,131,138,127,129,137,137), 1.71 s/pickup (median 1.60), 18 falls, mean speed
+7.42. Copied to `nav_best_parity1_19640.pth`. Sampled training rounds over the same period: 100-round
+means 116 -> 125 in two hours, flat at ~125 since 18:46 (sampled policy scores ~6 below deterministic).
+Falls are now the variance source (the 116 round had 6). First eval attempt (parity1, 20:46) died 7 s
+after launch before its first print with nothing in stderr; rerun worked. Likeliest a native crash while
+the GPU was being released; `real_run.ps1` now prints the navigator's exit code.

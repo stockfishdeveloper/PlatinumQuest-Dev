@@ -1,0 +1,53 @@
+[20:51:58] resumed C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\models\nav\nav_latest.pth: update 19640, steps 152,002,592, trained on FlatIslands_Hunt
+[20:51:59] 8 instance worker(s) on ports 8888..8895; training mode True (64 ms per decision); arrive radius 0.65 u; device cuda
+[20:52:16] [0] [env:8888] waiting for the game
+[20:52:16] [0] [env:8888] game connected (1)
+[20:52:16] [0] real-gem training mode: True
+[20:52:16] [0] mission KingOfTheMarble_Hunt: terrain 99x99 @ 0.5 u, walkable 1488 cells
+[20:52:16] [0] ready on 8888, mission KingOfTheMarble_Hunt
+[20:52:18] [1] [env:8889] waiting for the game
+[20:52:18] [1] [env:8889] game connected (1)
+[20:52:18] [1] real-gem training mode: True
+[20:52:18] [1] mission KingOfTheMarble_Hunt: terrain 99x99 @ 0.5 u, walkable 1488 cells
+[20:52:18] [1] ready on 8889, mission KingOfTheMarble_Hunt
+[20:52:20] [2] [env:8890] waiting for the game
+[20:52:20] [2] [env:8890] game connected (1)
+[20:52:20] [2] real-gem training mode: True
+[20:52:20] [2] mission KingOfTheMarble_Hunt: terrain 99x99 @ 0.5 u, walkable 1488 cells
+[20:52:20] [2] ready on 8890, mission KingOfTheMarble_Hunt
+[20:52:22] [3] [env:8891] waiting for the game
+[20:52:22] [3] [env:8891] game connected (1)
+[20:52:22] [3] real-gem training mode: True
+[20:52:22] [3] mission KingOfTheMarble_Hunt: terrain 99x99 @ 0.5 u, walkable 1488 cells
+[20:52:22] [3] ready on 8891, mission KingOfTheMarble_Hunt
+[20:52:25] [4] [env:8892] waiting for the game
+[20:52:25] [4] [env:8892] game connected (1)
+[20:52:25] [4] real-gem training mode: True
+[20:52:25] [4] mission KingOfTheMarble_Hunt: terrain 99x99 @ 0.5 u, walkable 1488 cells
+[20:52:25] [4] ready on 8892, mission KingOfTheMarble_Hunt
+[20:52:26] [5] [env:8893] waiting for the game
+[20:52:26] [5] [env:8893] game connected (1)
+[20:52:26] [5] real-gem training mode: True
+[20:52:26] [5] mission KingOfTheMarble_Hunt: terrain 99x99 @ 0.5 u, walkable 1488 cells
+[20:52:26] [5] ready on 8893, mission KingOfTheMarble_Hunt
+[20:52:29] [6] [env:8894] waiting for the game
+[20:52:29] [6] [env:8894] game connected (1)
+[20:52:29] [6] real-gem training mode: True
+[20:52:29] [6] mission KingOfTheMarble_Hunt: terrain 99x99 @ 0.5 u, walkable 1488 cells
+[20:52:29] [6] ready on 8894, mission KingOfTheMarble_Hunt
+[20:52:29] [7] [env:8895] waiting for the game
+[20:52:29] [7] [env:8895] game connected (1)
+[20:52:29] [7] real-gem training mode: True
+[20:52:29] [7] mission FlatIslands_Hunt: terrain 165x165 @ 0.5 u, walkable 5775 cells
+[20:52:29] [7] ready on 8895, mission FlatIslands_Hunt
+[20:52:34] [7] fall without OOB flag: 4 decisions off the map at [  9.9 -12.6  -3.3] (time left 277s)
+[20:52:37] [7] fall without OOB flag: 4 decisions off the map at [-11.2  13.2  -3.3] (time left 258s)
+[20:52:42] [1] fall without OOB flag: 4 decisions off the map at [-24.6  18.7  13.9] (time left 116s)
+[20:52:49] MAPS FlatIslands_Hunt: n=1 arrive=0% falls100=0.00 speed=0.0 gems=0.0/grp pickup=0.0 sgem=0.00 | KingOfTheMarble_Hunt: n=7 arrive=0% falls100=0.00 speed=0.0 gems=0.0/grp pickup=0.0 sgem=0.00
+[20:52:49] NAV upd=19641 map=FlatIslands_Hunt+KingOfTheMarble_Hunt r=0.65 steps=152,010,792 segs=0 arrive=0% falls100=0.00 speed=0.0 gems=0.0 pickup=0.0 sgem=0.00 carry=0.0 turn=0.0 rew=0.0 pl=-0.004 vl=0.077 ent=0.33 entd=0.03 ec=0.0049 kl=0.038 clip=0.21 gn=5.49 ep=3 dstd=0.22 flips=0 upd_s=6.1 wall_s=20 inst=8 dps=410 prof=fwd:9,send:1,recv:3,handle:0,w_game:26,w_obs:16,w_begin:0
+[20:52:50] [0] fall without OOB flag: 4 decisions off the map at [-18.   10.9  13.8] (time left 107s)
+[20:52:51] [7] fall without OOB flag: 4 decisions off the map at [  9.2 -12.7  -2.5] (time left 217s)
+[20:52:51] [1] fall without OOB flag: 4 decisions off the map at [-22.8  20.4  14.2] (time left 101s)
+[20:52:53] [7] fall without OOB flag: 4 decisions off the map at [-10.5 -10.8  -2.4] (time left 204s)
+[20:52:54] [5] fall without OOB flag: 4 decisions off the map at [-25.8  17.2  14. ] (time left 81s)
+[20:52:59] [7] fall without OOB flag: 4 decisions off the map at [ 2.6 16.4 -3. ] (time left 169s)

@@ -64,6 +64,7 @@ $g = Start-Process -FilePath $exePath -ArgumentList @("-autotrain", $Map, "-aipo
 Write-Host "  game pid $($g.Id); it will be answered the instant it reaches GO"
 $timeoutMs = 300000 * $Rounds + 180000
 if (-not $p.WaitForExit($timeoutMs)) { Write-Host "  run timed out"; $p.Kill() }
+Write-Host ("  navigator exit code {0}" -f $p.ExitCode)
 
 Write-Host ""
 Get-Content $out -ErrorAction SilentlyContinue | ForEach-Object { "  $_" }

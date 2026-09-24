@@ -131,11 +131,7 @@ CARRY_FLOOR = -0.5             # the term is TWO-SIDED: arriving aimed AWAY from
                                # meant 180 deg scored the same as 90 deg, so nothing pushed the
                                # policy out of the bad half of the distribution. CARRY also went
                                # 6.0 -> 12.0, pre-registered before the 90-update check.
-EDGE_K = 0.0                   # 1.0 -> 0.0 on 2026-09-23 16:20 (HANDOFF 28.25): inside KOTM's 6.5 u centre block every
-                               # direction has a lip within 3 u, so at human speed the stopping-distance charge fired
-                               # on most decisions there and priced being FAST near the hole rather than falling.
-                               # FALL prices the fall; the stuck-breaker handles standoffs. Code and metric kept.
-                               # (superseded) RESTORED 09:05 on 2026-09-21. I set this to 0.0 at 07:50 on the
+EDGE_K = 1.0                   # RESTORED 09:05 on 2026-09-21. I set this to 0.0 at 07:50 on the
                                # suspicion that it was buying falls with speed, but the user stopped
                                # training two minutes later so that ablation NEVER RAN. 1.0 is the
                                # value that was in the configuration which actually halved KOTM
@@ -174,10 +170,7 @@ EDGE_LOOK = 9.0                # u: how far ahead along the velocity to look for
 EDGE_GOAL_LATERAL = 1.5        # u: a goal within this of the velocity ray and BEFORE the drop makes the
                                # approach a pickup, not a shortcut: no charge (1 % of falls, 15 % of v1 charges)
 EDGE_V_MIN = 1.5               # u/s: slower than this the marble stops within a cell; no charge
-FALL_AFTER_JUMP = 25.0         # 8 -> 25 on 2026-09-23 16:20 (28.25): the practice discount had done its job (takeoffs
-                               # 1.0-1.5/min, human 0.87) and falls doubled at next2 (21 per 8 rounds). A jump fall
-                               # now costs the full price again.
-                               # (superseded) 2026-09-23 (HANDOFF 28.17): price of a fall within JUMP_FALL_WINDOW decisions of
+FALL_AFTER_JUMP = 8.0          # 2026-09-23 (HANDOFF 28.17): price of a fall within JUMP_FALL_WINDOW decisions of
 JUMP_FALL_WINDOW = 24          # a takeoff (~1.5 s), while jumping is being practised. See the note at the fall.
 FALL = 25.0                    # 10 -> 25 at 01:12 on 2026-09-21. Measured on the gems-only real rounds: a
                                # fall costs ~7.5 s of respawn and recovery = ~55-60 reward units of
@@ -306,11 +299,6 @@ FORCE_RESPAWN_DECISIONS = 30   # re-send RESPAWN every this many decisions while
 REST_WAIT_TICKS = 90           # max ticks to wait for the marble to come to rest before a teleport
 
 # --- gem groups (2026-09-19) --------------------------------------------------------------
-CONTINUOUS = True              # 2026-09-23 16:20 (HANDOFF 28.25), synthetic-goal mode: when a group is completed, DO NOT
-                               # end the segment and DO NOT teleport; sample the next group SPAWN_BLOCK_U..2*SPAWN_BLOCK_U
-                               # away (the game's rule) and keep position, momentum and recurrent state. Before this the
-                               # last gem of every group was a TERMINAL event followed by a teleport to rest.
-SPAWN_BLOCK_U = 30.0           # huntGems.cs: spawnBlock = 2 * $Hunt::RadiusFromGem (15)
 GEM_GROUP_MIN, GEM_GROUP_MAX = 4, 8   # real hunt gems spawn in groups of this size
 GROUP_LINK_DMIN, GROUP_LINK_DMAX = 3.0, 22.0   # spacing between consecutive gems in a group.
                                # DMIN 6 -> 3 on 2026-09-22: KOTM's four centre gems are 3.9 u apart and
@@ -390,7 +378,7 @@ class Segment:
     __slots__ = ('fall_mark', 'goal', 'field', 'path_len', 'prev_d', 'decisions', 'travelled', 'last_pos', 'outcome',
                  'start', 'offmap', 'remaining', 'collected', 'group_size', 'pickup_speeds', 'falls',
                  'gem_decisions', 'carry_vals', 'turn_degs', 'grace', 'chain_dec', 'chain_n', 'last_takeoff',
-                 'next_field', 'prev_dn', 'chain_from_prev', 'real_next')
+                 'next_field', 'prev_dn')
 
     def __init__(self, goal, field, path_len, start, remaining=()):
         self.goal = goal; self.field = field; self.path_len = path_len; self.start = start
@@ -410,8 +398,6 @@ class Segment:
                                               # progress is forgiven (PICKUP_GRACE, HANDOFF 28.10)
         self.last_takeoff = -10**6            # decision index of the last real takeoff (FALL_AFTER_JUMP window)
         self.next_field = None; self.prev_dn = None   # Dijkstra field of the NEXT gem + last distance (PROGRESS_NEXT)
-        self.chain_from_prev = False          # this group was entered rolling from the previous one (CONTINUOUS)
-        self.real_next = None                 # real-gem mode: the chooser's next gem (x, y, z) or None
         self.chain_dec = 0                    # decisions spent between consecutive pickups (the first gem
         self.chain_n = 0                      # of a group starts from a teleport at rest and is excluded):
                                               # sgem = 0.064 * chain_dec / chain_n, the operator's headline
@@ -431,24 +417,6 @@ class SegmentManager:
         self.pending_mark = None       # (x, y, z) the worker should show as the current target
         self.pending_respawn = False   # set by step() when a fall needs a respawn mid-group
         self._prev_cmd = None          # last commanded direction, for TURN_COST
-        self.real_mode = False         # HANDOFF 28.25: goals are the GAME's gems (worker passes them in); the
-                                       # game's gem_delta is the arrival; no teleports, no chaining, no done at pickups
-
-    def retarget(self, x, y, goal, next_goal):
-        """Real-gem mode: the chooser switched target (a pickup or a better gem). Rebase on the new gem."""
-        s = self.seg
-        gx, gy, gz = goal
-        s.goal = (gx, gy, gz)
-        s.field = self.terrain.goal_field(gx, gy)
-        s.prev_d = self.terrain.dist_at(s.field, x, y, (gx, gy)); s.path_len = s.prev_d
-        s.fall_mark = None
-        self.set_next(x, y, next_goal)
-        self.pending_mark = (gx, gy, gz)
-
-    def set_next(self, x, y, next_goal):
-        s = self.seg
-        s.real_next = (float(next_goal[0]), float(next_goal[1]), float(next_goal[2])) if next_goal is not None else None
-        self._set_next_field(x, y)
 
     def take_respawn(self):
         r = self.pending_respawn; self.pending_respawn = False
@@ -505,11 +473,7 @@ class SegmentManager:
         """The gem the greedy order will hand over after the current one, or None on the last gem.
         Nearest remaining to where the marble WILL be, i.e. to the current goal."""
         s = self.seg
-        if s is None:
-            return None
-        if self.real_mode:
-            return s.real_next
-        if not s.remaining:
+        if s is None or not s.remaining:
             return None
         gx, gy, _ = s.goal
         i = int(np.argmin([math.hypot(g[0] - gx, g[1] - gy) for g in s.remaining]))
@@ -519,11 +483,11 @@ class SegmentManager:
         m = self.pending_mark; self.pending_mark = None
         return m
 
-    def _sample_group(self, x, y, dmin=None, dmax=None):
+    def _sample_group(self, x, y):
         """A chain of 4-8 reachable gems: the first GOAL_DMIN..GOAL_DMAX from the marble, each
         later one GROUP_LINK_DMIN..GROUP_LINK_DMAX from its predecessor, like a real gem cluster.
         Returns [(gx, gy, gz, path_len), ...] or None if even the first cannot be placed."""
-        first = self.terrain.sample_goal(x, y, self.rng, GOAL_DMIN if dmin is None else dmin, GOAL_DMAX if dmax is None else dmax)
+        first = self.terrain.sample_goal(x, y, self.rng, GOAL_DMIN, GOAL_DMAX)
         if first is None:
             return None
         group = [first]
@@ -561,7 +525,7 @@ class SegmentManager:
             return True
         return False
 
-    def begin(self, env, teleport=None, real_goal=None, real_next=None):
+    def begin(self, env, teleport=None):
         """Start a segment. Returns the goal (x, y, z). Teleports first with probability TELEPORT_P
         (or always/never if `teleport` is given)."""
         do_tp = self.rng.random() < TELEPORT_P if teleport is None else teleport
@@ -570,8 +534,6 @@ class SegmentManager:
         # segment (2026-09-17). Chained waypoints along a path are the planner's job later.
         if self.last_outcome == 'arrived':
             do_tp = True
-        if real_goal is not None:
-            do_tp = False                 # real-gem mode: the game placed the marble; never teleport
         t_begin = time.perf_counter(); ticks_begin = env.ticks
         # A fresh observation (after a fall the last message carried the pre-fall edge
         # position), then wait until the marble is back on the map: while it is still
@@ -611,7 +573,7 @@ class SegmentManager:
             if do_tp or attempt > 0:
                 self._settle(env)
             x, y, z = (float(v) for v in env.pos())
-            g = [(float(real_goal[0]), float(real_goal[1]), float(real_goal[2]), 0.0)] if real_goal is not None else self._sample_group(x, y)
+            g = self._sample_group(x, y)
             if g is not None:
                 break
             self.log(f'no reachable goal from {(round(x, 1), round(y, 1), round(z, 1))}; teleporting')
@@ -627,9 +589,6 @@ class SegmentManager:
         self._prev_cmd = None      # a teleport makes the previous heading meaningless
         self.seg.prev_d = self.terrain.dist_at(field, x, y, (gx, gy))
         self.seg.last_pos = np.array([x, y, z])
-        if real_goal is not None:
-            self.seg.path_len = self.seg.prev_d; self.seg.chain_from_prev = True
-            self.seg.real_next = (float(real_next[0]), float(real_next[1]), float(real_next[2])) if real_next is not None else None
         self._set_next_field(x, y)
         return self.seg.goal
 
@@ -672,7 +631,7 @@ class SegmentManager:
         return self.terrain.contains(x, y) and z >= self.terrain.z_floor_min - 1.0
 
     def step(self, pos, fell, airborne, round_ended, elapsed_s=0.0, braked=False, airborne_decisions=0,
-             jumped=False, vel=(0.0, 0.0), cmd_dir=None, picked=0.0):
+             jumped=False, vel=(0.0, 0.0), cmd_dir=None):
         """Reward and (done, outcome) for the decision that led to `pos`. `airborne` is the flag
         for this decision, `airborne_decisions` how many consecutive decisions it has been airborne,
         `jumped` whether a jump was commanded (charged only when it was a real takeoff, i.e. the
@@ -790,16 +749,14 @@ class SegmentManager:
                 self.pending_respawn = True       # the worker respawns us; the group is NOT lost
             else:
                 done, outcome = True, 'fell'
-        elif picked > 0 or (not self.real_mode and math.hypot(gx - x, gy - y) < self.arrive_r and abs(gz - z) < self.arrive_dz):
+        elif math.hypot(gx - x, gy - y) < self.arrive_r and abs(gz - z) < self.arrive_dz:
             r += ARRIVE + GEM_SPEED_BONUS * max(0.0, 1.0 - s.gem_decisions / float(GEM_SPEED_REF))
-            if s.collected > 0 or s.chain_from_prev:   # a pickup-to-pickup interval (chained groups count from gem 1)
+            if s.collected > 0:                   # a pickup-to-pickup interval, not the from-rest first gem
                 s.chain_dec += s.gem_decisions; s.chain_n += 1
             s.gem_decisions = 0                   # the next gem is timed from here
             s.collected += 1
             s.pickup_speeds.append(float(math.hypot(float(self._vel[0]), float(self._vel[1]))))
-            if self.real_mode:
-                s.grace = PICKUP_GRACE               # the worker retargets onto the game's next gem next decision
-            elif s.remaining:
+            if s.remaining:
                 # keep going: no teleport, no reset, momentum carries into the next gem
                 self._advance_goal(x, y)
                 # ...and pay for the part of that momentum already aimed at the new gem. Computed
@@ -810,52 +767,25 @@ class SegmentManager:
                     v_toward = (float(self._vel[0]) * nx + float(self._vel[1]) * ny) / nd
                     s.carry_vals.append(v_toward)          # RAW, signed: the honest metric
                     r += CARRY * max(CARRY_FLOOR, min(1.0, v_toward / CARRY_REF))
-            elif CONTINUOUS and not round_ended and self._chain_group(x, y, z):
-                pass                                     # rolled into the next group, no episode end
             else:
                 done, outcome = True, 'arrived'          # whole group collected
-        elif (s.gem_decisions >= TIMEOUT_PER_GEM) if self.real_mode else (s.decisions >= TIMEOUT_PER_GEM * (1 + len(s.remaining))):
+        elif s.decisions >= TIMEOUT_PER_GEM * (1 + len(s.remaining)):
             done, outcome = True, 'timeout'
         elif round_ended:
             done, outcome = True, 'round'
         if done:
             s.outcome = outcome
             self.last_outcome = outcome
-            self._record(s, outcome)
+            self.history.append({'outcome': outcome, 'decisions': s.decisions, 'path_len': s.path_len,
+                                 'travelled': s.travelled, 'speed': s.travelled / (s.decisions * 0.064),
+                                 'collected': s.collected, 'group_size': s.group_size, 'falls': s.falls,
+                                 'pickup_speed': (sum(s.pickup_speeds) / len(s.pickup_speeds)) if s.pickup_speeds else 0.0,
+                                 'carry_speed': (sum(s.carry_vals) / len(s.carry_vals)) if s.carry_vals else 0.0,
+                                 'turn_deg': (sum(s.turn_degs) / len(s.turn_degs)) if s.turn_degs else 0.0,
+                                 'chain_dec': s.chain_dec, 'chain_n': s.chain_n})
             if len(self.history) > 2000:
                 self.history = self.history[-2000:]
         return r, done, outcome
-
-    def _record(self, s, outcome):
-        self.history.append({'outcome': outcome, 'decisions': s.decisions, 'path_len': s.path_len,
-                             'travelled': s.travelled, 'speed': s.travelled / (max(s.decisions, 1) * 0.064),
-                             'collected': s.collected, 'group_size': s.group_size, 'falls': s.falls,
-                             'pickup_speed': (sum(s.pickup_speeds) / len(s.pickup_speeds)) if s.pickup_speeds else 0.0,
-                             'carry_speed': (sum(s.carry_vals) / len(s.carry_vals)) if s.carry_vals else 0.0,
-                             'turn_deg': (sum(s.turn_degs) / len(s.turn_degs)) if s.turn_degs else 0.0,
-                             'chain_dec': s.chain_dec, 'chain_n': s.chain_n})
-        if len(self.history) > 2000:
-            self.history = self.history[-2000:]
-
-    def _chain_group(self, x, y, z):
-        """CONTINUOUS (synthetic mode): the group is done; roll straight into a new one spawned the way the
-        game does it. Records the finished group, rebases the live Segment and returns True; False if no
-        group can be placed (the caller then ends the segment as before)."""
-        s = self.seg
-        g = self._sample_group(x, y, dmin=SPAWN_BLOCK_U, dmax=2.0 * SPAWN_BLOCK_U)
-        if not g:
-            return False
-        self._record(s, 'arrived')
-        gx, gy, gz, path_len = g[0]
-        s.goal = (gx, gy, gz); s.path_len = path_len; s.remaining = list(g[1:])
-        s.field = self.terrain.goal_field(gx, gy); s.prev_d = self.terrain.dist_at(s.field, x, y, (gx, gy))
-        s.start = (x, y, z); s.decisions = 0; s.travelled = 0.0; s.collected = 0; s.group_size = len(g)
-        s.falls = 0; s.fall_mark = None; s.offmap = 0; s.grace = PICKUP_GRACE
-        s.pickup_speeds = []; s.carry_vals = []; s.turn_degs = []; s.chain_dec = 0; s.chain_n = 0
-        s.chain_from_prev = True
-        self._set_next_field(x, y)
-        self.pending_mark = (gx, gy, gz)
-        return True
 
     def stats(self, last=300):
         h = [x for x in self.history[-last:] if x['outcome'] != 'round']

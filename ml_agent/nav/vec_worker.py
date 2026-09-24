@@ -34,6 +34,7 @@ from nav.terrain import TerrainGrid                                             
 from nav.obs import ObsBuilder                                                      # noqa: E402
 from nav.joystick import action_to_joystick                                         # noqa: E402
 from nav.waypoints import SegmentManager, RoundOver                                 # noqa: E402
+from nav.gems import visible_gems, choose, STICKY_TOL                               # noqa: E402
 
 # Frame check (2026-09-17): a segment whose marble accelerates against its commands (cosine
 # < FRAME_FLIP_COS over the first FRAME_CHECK_N rolling decisions) is corrupted game state;
@@ -42,6 +43,10 @@ from nav.waypoints import SegmentManager, RoundOver                             
 FRAME_CHECK_N = 12
 FRAME_FLIP_COS = -0.3
 GAME_SPEED = int(os.environ.get('NAV_SPEED', '3'))
+REAL_GEMS = os.environ.get('NAV_REAL_GEMS', '1') == '1'   # 2026-09-23 (HANDOFF 28.25): train on the GAME's gems.
+                              # Goals come from nav/gems.choose (the same chooser real rounds use), the game's
+                              # gem_delta is the arrival, there are no teleports and no episode end at a pickup,
+                              # and every finished round logs its real score: training IS the real game now.
 TRAIN_WATCH = os.environ.get('NAV_TRAIN_WATCH', '0') == '1'   # pace every decision to real
                               # time so a human can watch TRAINING (not the eval). Lockstep
                               # means the sim advances as fast as we reply, so without this
@@ -72,6 +77,8 @@ class InstanceWorker:
         self.seg_steps = 0; self.fc_num = 0.0; self.fc_den = 0.0
         self.ep_reward = 0.0; self.seg_count = 0; self.frame_flips = 0; self.steps = 0
         self.smooth_dir = None            # EMA state for the commanded direction
+        self.real = False; self.target = None            # real-gem mode state
+        self.round_points = 0.0; self.round_gems = 0; self.round_falls = 0
         self.t0 = time.perf_counter()
         self.prof = {'game': 0.0, 'obs': 0.0, 'begin': 0.0}   # wall seconds since the last reply
 
@@ -87,6 +94,8 @@ class InstanceWorker:
         t = TerrainGrid(TerrainMap.resolve(name))
         self.mission = name; self.terrain = t; self.obs_b = ObsBuilder(t)
         self.segs = SegmentManager(t, self.rng, self.log, arrive_r=self.arrive_r, arrive_dz=self.arrive_dz)
+        self.real = REAL_GEMS and bool(getattr(t, 'gem_spawns', None)); self.segs.real_mode = self.real
+        self.log(f'real-gem training mode: {self.real}')
         self.log(f'mission {name}: terrain {t.W}x{t.H} @ {t.res} u, walkable {int(t.walkable.sum())} cells')
 
     def sync_map(self):
@@ -108,14 +117,36 @@ class InstanceWorker:
         self.load_map(self.env.info['mission'])
         self.start_segment()
 
+    def _round_over(self):
+        """Every path that crosses a round end goes through here: log the finished round's real
+        score once, reset the counters. (Before 2026-09-23 17:00 the RoundOver paths inside
+        start_segment/recover skipped both, so a round ending mid-respawn merged into the next.)"""
+        if self.real and self.env.round_ended:
+            self.log(f'GAME map={self.mission} points={self.round_points:.0f} gems={self.round_gems} falls={self.round_falls} rtf={self.env.rtf():.1f}')
+        self.round_points = 0.0; self.round_gems = 0; self.round_falls = 0
+
     def start_segment(self):
         tb = time.perf_counter()
         while True:
             try:
+                if self.real:
+                    vis = []
+                    for _ in range(60):               # a gem is normally visible at once; wait through a spawn gap
+                        vis = visible_gems(self.env.msg.obs)
+                        if vis:
+                            break
+                        self.segs._step_checked(self.env, 1)
+                    if vis:
+                        o = self.env.msg.obs
+                        tgt, nxt = choose(vis, None, o[0:2], o[3:5])
+                        self.goal = self.segs.begin(self.env, real_goal=tgt[:3], real_next=(nxt[:3] if nxt else None))
+                        self.target = tgt
+                        break
                 self.goal = self.segs.begin(self.env)
                 break
             except RoundOver:
                 self.segs.abandon()
+                self._round_over()
                 if self.env.round_ended:
                     self.env.wait_new_round()
                 else:
@@ -162,6 +193,12 @@ class InstanceWorker:
                 self._next_tick = time.perf_counter()
         msg, info = self.env.step(js)
         self.prof['game'] += time.perf_counter() - tg
+        if self.real:
+            self.round_points += float(info['gem_delta'])
+            if info['gem_delta'] > 0:
+                self.round_gems += 1
+            if info['fell']:
+                self.round_falls += 1
         rolling = self.on_floor and abs(float(prev_obs[2]) - self.terrain.floor_z(float(prev_obs[0]), float(prev_obs[1]), float(prev_obs[2]))) < 0.3
         if rolling and not info['fell'] and not (info['round_ended'] or info['reconnected']):
             cx, cy = js[3] - js[2], js[0] - js[1]
@@ -181,6 +218,7 @@ class InstanceWorker:
             return self._reply(skip=True, truncate=k)
         if info['round_ended'] or info['reconnected']:
             self.segs.abandon()
+            self._round_over()
             if info['round_ended']:
                 self.env.wait_new_round()
             else:
@@ -201,13 +239,15 @@ class InstanceWorker:
                                           # by shrinking log_std -- the one thing the entropy
                                           # controller exists to prevent. Falls back to the sample
                                           # for eval paths that send a bare 5-vector.
-                                          cmd_dir=(a[5], a[6]) if len(a) > 6 else (a[0], a[1]))
+                                          cmd_dir=(a[5], a[6]) if len(a) > 6 else (a[0], a[1]),
+                                          picked=float(info['gem_delta']) if self.real else 0.0)
         if self.segs.take_respawn():
             # fell mid-group: get back on the map, keep the same gems, carry on
             try:
                 self.segs.recover(self.env)
             except RoundOver:
                 self.segs.abandon()
+                self._round_over()
                 if self.env.round_ended:
                     self.env.wait_new_round()
                 else:
@@ -236,6 +276,21 @@ class InstanceWorker:
             stats = self.segs.stats()
             self.start_segment()
         else:
+            if self.real:
+                vis = visible_gems(msg.obs)
+                if vis:
+                    tgt, nxt = choose(vis, self.target, msg.obs[0:2], msg.obs[3:5])
+                    g = self.segs.seg.goal
+                    want = (nxt[:3] if nxt else None)
+                    if tgt is not None and math.hypot(tgt[0] - g[0], tgt[1] - g[1]) > STICKY_TOL:
+                        self.segs.retarget(float(msg.obs[0]), float(msg.obs[1]), tgt[:3], want)
+                        self.goal = self.segs.seg.goal
+                        self.env.mark(self.goal[0], self.goal[1], self.goal[2])
+                    elif tgt is not None:
+                        nn = self.segs.seg.real_next
+                        if (nn is None) != (want is None) or (want is not None and math.hypot(want[0] - nn[0], want[1] - nn[1]) > STICKY_TOL):
+                            self.segs.set_next(float(msg.obs[0]), float(msg.obs[1]), want)
+                    self.target = tgt
             tg = time.perf_counter()
             self.crop, self.vec, self.on_floor = self.obs_b.build(self.env.msg.obs, self.goal, self.segs.next_goal())
             self.prof['obs'] += time.perf_counter() - tg

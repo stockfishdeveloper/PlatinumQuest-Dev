@@ -45,12 +45,6 @@ FORCE_THROTTLE = os.environ.get('NAV_FORCE_THROTTLE', '0') == '1'   # peg output
                                # go), so this is expected to be close to a null; it is run to find
                                # out whether the residual 1 % is hiding anything.
 ROUNDS = int(os.environ.get('NAV_ROUNDS', '1'))
-ABSENT = -500.0                # RAW_GEMS pads missing slots with value/dist <= -500
-STICKY_TOL = 0.75              # u: a gem within this of the current target counts as the same gem
-SWITCH_GAIN = 0.60             # only abandon the current target for one at most this fraction of
-                               # its distance -- without hysteresis the choice flaps between two
-                               # near-equal gems every tick and the navigator is handed a new
-                               # heading each decision
 H_RESET = os.environ.get('NAV_H_RESET', 'never')   # 'never' | 'pickup' | '<N>' decisions.
                                # Training resets the recurrent state every segment (~230 decisions);
                                # a real round runs ~2800 unbroken, far outside that distribution. The
@@ -87,8 +81,6 @@ OOB_CLICK = os.environ.get('NAV_OOB_CLICK', '1') == '1'   # on by default. Send 
                                # restores the old behaviour of waiting out the 2.5 s auto-respawn.
 MARK_GOAL = os.environ.get('NAV_MARK', '0') == '1'   # NAV_MARK=1 drops a black marker gem on the
                                # current goal so a human watching can see what it is steering at
-VALUE_WEIGHT = float(os.environ.get('NAV_VALUE_WEIGHT', '0'))   # 0 = pure nearest; >0 prefers
-                               # higher-value gems (yellow), cost = dist / value**VALUE_WEIGHT
 
 # Human demo reference, measured from demos/demo_20260914_214854.npz (68,208 ticks at 16 ms =
 # 18.2 min over 6 rounds, 682 pickups, 861 points -> 1.26 points per gem). Hunt is scored on
@@ -97,17 +89,7 @@ HUMAN = {'gems_per_min': 37.5, 'points_per_min': 47.3, 'speed': 8.05, 'falls_per
 HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
-def visible_gems(raw):
-    """Real gems as (world_x, world_y, world_z, value, dist), nearest first, absent slots dropped."""
-    px, py, pz = float(raw[0]), float(raw[1]), float(raw[2])
-    g = np.asarray(raw[RAW_GEMS], dtype=np.float64).reshape(5, 5)
-    out = []
-    for dx, dy, dz, value, dist in g:
-        if value <= ABSENT or dist <= ABSENT:
-            continue
-        out.append((px + dx, py + dy, pz + dz, float(value), float(dist)))
-    out.sort(key=lambda t: t[4])
-    return out
+from nav.gems import visible_gems, choose, ABSENT, STICKY_TOL, SWITCH_GAIN, MOMENTUM_K, VALUE_WEIGHT   # noqa: E402  (shared with real-gem training)
 
 
 def snap_to_walkable(terrain, gx, gy, gz, radius=3):
@@ -249,16 +231,6 @@ def path_waypoint(terrain, mx, my, field, gem, lookahead=LOOKAHEAD_U):
     return pick, True
 
 
-MOMENTUM_K = float(os.environ.get('NAV_MOMENTUM_K', '1.6'))   # s: 2026-09-22 (HANDOFF 28.7), momentum-aware
-                               # DEFAULT 1.6 after a sweep on fixed weights (nav_eval_timeprice_0142):
-                               # K=0 105.0 | 0.4 110.6 | 0.8 113.0 | 1.2 108.6 | 1.6 118.3 and 110.3 |
-                               # 2.2 114.3 | 3.2 112.0 points (8 rounds each). Pooled K>=0.8: 113.6.
-                               # ordering. A gem's cost is its distance plus MOMENTUM_K * speed *
-                               # (1 - cos(angle between the marble's velocity and the bearing to the
-                               # gem)), i.e. the extra distance a turn-around costs at this speed. The
-                               # human leaves the centre block along the line it swept (31 deg turn at
-                               # the exit gem); the agent's greedy-nearest order turned 79 deg and stopped.
-                               # 0 = pure nearest (the behaviour before this flag).
 
 
 GEO_ORDER = os.environ.get('NAV_GEO_ORDER', '0') == '1'   # 2026-09-22: rank gems by WALKING distance
