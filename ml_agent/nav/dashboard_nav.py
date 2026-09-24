@@ -39,6 +39,24 @@ MAP_RE = re.compile(r'\[(\d\d:\d\d:\d\d)\] (?:MAP|mission) ([A-Za-z0-9_]+)')
 RTF_RE = re.compile(r'rtf[= ]([\d.]+)')
 DPS_RE = re.compile(r'dps=(\d+)')
 RESUME_RE = re.compile(r'resumed .*: update (\d+)')
+# SANITY GATE (2026-09-23, operator request): plausible ranges per metric. A value outside its range is
+# dropped (None) before it reaches any chart, gauge or table, so one absurd log value (e.g. a 0.02 s
+# 'seconds between pickups' right after a restart) cannot wreck the axis. Optimiser diagnostics
+# (gn, kl, pl, vl) are deliberately NOT gated: their spikes are the signal.
+SANE = {'sgem': (0.8, 30.0), 'pickup': (0.5, 25.0), 'speed': (1.0, 25.0), 'falls100': (0.0, 50.0), 'gems': (0.0, 200.0),
+        'arrive': (0.0, 100.0), 'ent': (0.0, 5.0), 'dstd': (0.0, 3.0), 'clip': (0.0, 1.0), 'wall_s': (0.0, 600.0),
+        'upd_s': (0.0, 600.0), 'dps': (0.0, 5000.0), 'rew': (-1e5, 1e5), 'r': (-10.0, 10.0), 'points': (0.0, 200.0)}
+
+
+WARMUP_SEGS = 20       # pooled segment stats from fewer segments than this (right after a restart) are noise
+STAT_KEYS = ('sgem', 'pickup', 'speed', 'falls100', 'gems', 'arrive', 'rew', 'r')
+
+
+def sane(key, v):
+    if v is None:
+        return None
+    lo, hi = SANE.get(key, (-float('inf'), float('inf')))
+    return v if (v == v and lo <= v <= hi) else None
 GAME_RE = re.compile(r'\[(\d\d:\d\d:\d\d)\] \[(\d+)\] GAME map=(\S+) points=([\d.]+) gems=(\d+) falls=(\d+)')
 
 
@@ -65,15 +83,18 @@ def parse_logs():
                 for part in m.group(2).split(' | '):
                     name, _, rest = part.partition(':')
                     kv = {k: float(v.replace(',', '')) for k, v in KV_RE.findall(rest)}
-                    pending_maps[name.strip()] = {'n': kv.get('n'), 'arrive': kv.get('arrive'), 'falls100': kv.get('falls100'),
-                                                  'speed': kv.get('speed'), 'gems': kv.get('gems'), 'pickup': kv.get('pickup'),
-                                                  'sgem': kv.get('sgem')}
+                    pending_maps[name.strip()] = {'n': kv.get('n')}
+                    for k in ('arrive', 'falls100', 'speed', 'gems', 'pickup', 'sgem'):
+                        pending_maps[name.strip()][k] = sane(k, kv.get(k))
+                    if pending_maps[name.strip()]['speed'] is None:      # speed 0.0 = no segment finished yet on this map
+                        for k in STAT_KEYS:
+                            pending_maps[name.strip()][k] = None
                 continue
             m = NAV_HEAD_RE.search(line)
             if m:
                 upd = int(m.group(2))
                 kv = {k: v for k, v in KV_RE.findall(line)}
-                fl = lambda k, d=None: float(kv[k].replace(',', '')) if k in kv else d
+                fl = lambda k, d=None: sane(k, float(kv[k].replace(',', ''))) if k in kv else d
                 rec = {
                     'time': m.group(1), 'update': upd, 'map': m.group(3) or current_map or '?', 'r': fl('r'),
                     'steps': int(fl('steps', 0)), 'segs': int(fl('segs', 0)), 'arrive': fl('arrive', 0.0),
@@ -85,13 +106,22 @@ def parse_logs():
                     'dps': fl('dps'),                                    # multi-instance trainer: decisions/s it measured itself
                     'maps': pending_maps,
                 }
+                if rec['segs'] < WARMUP_SEGS:                          # a fresh run's first handful of segments
+                    for k in STAT_KEYS:
+                        rec[k] = None
+                    for pmv in (pending_maps or {}).values():          # ...and the per-map stats of the same update
+                        for k in STAT_KEYS:
+                            if k in pmv:
+                                pmv[k] = None
                 pending_maps = None
                 by_update[upd] = rec
                 last_update = max(last_update, upd)
                 continue
             m = GAME_RE.search(line)
             if m:
-                games.append((last_update, int(m.group(2)), m.group(3), float(m.group(4)), int(m.group(5)), int(m.group(6)), m.group(1)))
+                pts = sane('points', float(m.group(4)))
+                if pts is not None and int(m.group(5)) <= 130:
+                    games.append((last_update, int(m.group(2)), m.group(3), pts, int(m.group(5)), int(m.group(6)), m.group(1)))
                 continue
             m = MAP_RE.search(line)
             if m:
@@ -185,10 +215,11 @@ def build_state():
     else:
         for mp in maps:
             us = [u for u in updates if u['map'] == mp]
+            g = lambda k, f, d=0.0: f([u[k] for u in us if u.get(k) is not None] or [d])
             per_map[mp] = {
-                'updates': len(us), 'last': us[-1]['update'], 'arrive': us[-1]['arrive'], 'best_arrive': max(u['arrive'] for u in us),
-                'falls100': us[-1]['falls100'], 'best_falls100': min(u['falls100'] for u in us), 'speed': us[-1]['speed'],
-                'best_speed': max(u['speed'] for u in us), 'r': us[-1]['r'], 'sgem': None, 'best_sgem': None,
+                'updates': len(us), 'last': us[-1]['update'], 'arrive': us[-1]['arrive'] or 0.0, 'best_arrive': g('arrive', max),
+                'falls100': us[-1]['falls100'] or 0.0, 'best_falls100': g('falls100', min), 'speed': us[-1]['speed'] or 0.0,
+                'best_speed': g('speed', max), 'r': us[-1]['r'], 'sgem': None, 'best_sgem': None,
             }
     latest = updates[-1] if updates else None
     ckpts = sorted(glob.glob(os.path.join(CKPT_DIR, 'nav_*.pth')), key=os.path.getmtime)
@@ -356,7 +387,7 @@ td.num { text-align:right; font-variant-numeric:tabular-nums; }
   <div class="chart-card"><div class="chart-title" id="heatj-title">Jump heat map, selected map (takeoffs as % of floor decisions per cell; green = jumps a lot, red = never)</div><div id="c-heatj" style="height:420px"></div></div>
   <div class="chart-card"><div class="chart-title">Falls per 100 u, selected map</div><div id="c-falls" style="height:230px"></div></div>
   <div class="chart-card"><div class="chart-title">Speed (u/s, on-floor travel), selected map</div><div id="c-speed" style="height:230px"></div></div>
-  <div class="chart-card"><div class="chart-title">Reward per segment (300-segment rolling, pooled over all maps)</div><div id="c-rew" style="height:230px"></div></div>
+  <div class="chart-card"><div class="chart-title">Reward per segment (300-segment rolling, pooled over all maps; NOTE: since 28.25 a segment is a whole round, so the level stepped up at update 18,900)</div><div id="c-rew" style="height:230px"></div></div>
   <div class="chart-card"><div class="chart-title">Entropy + direction std</div><div id="c-ent" style="height:230px"></div></div>
   <div class="chart-card"><div class="chart-title">KL per update + clip fraction</div><div id="c-kl" style="height:230px"></div></div>
   <div class="chart-card"><div class="chart-title">Policy loss vs value loss</div><div id="c-loss" style="height:230px"></div></div>

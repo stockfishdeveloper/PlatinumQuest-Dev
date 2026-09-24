@@ -3311,3 +3311,103 @@ means 116 -> 125 in two hours, flat at ~125 since 18:46 (sampled policy scores ~
 Falls are now the variance source (the 116 round had 6). First eval attempt (parity1, 20:46) died 7 s
 after launch before its first print with nothing in stderr; rerun worked. Likeliest a native crash while
 the GPU was being released; `real_run.ps1` now prints the navigator's exit code.
+
+### 28.27 MEASURED JUMP ENVELOPE in the graph, the observation and the prior (2026-09-23 21:33)
+
+**Operator's three observations after watching 1x (131.5 checkpoint):** (1) training scores below 1x
+scores, (2) the marble still rolls into the centre holes, (3) it rolls around corners instead of jumping
+across. Findings: (1) training bars are a SAMPLED policy (~6 points under deterministic); 1x vs 3x is two
+rounds vs eight, unproven. (2) the .dif has vertical walls on the four 7 x 7 holes (a 45 deg bevel only on
+the 2 u centre hole); the crop shows them correctly; EDGE_K 0 (28.25) removed the only speed-near-lip
+charge and falls went 11 -> 18. (3) STRUCTURAL: `nav/gap_map.py` (new; `python -m nav.gap_map <map>`,
+PNG in logs/nav/) showed the walk graph's jump edges were 8 compass directions, <= 4 u: on every 7 u hole,
+bay and notch only diagonal corner cuts existed, never straight across, so PROGRESS paid to walk around.
+Nothing anywhere computed a gap from a position along a heading.
+
+**Measured (`python -m nav.measure_jump`, game as oracle, 16 ms step, flat east walkway x=-12):**
+apex 1.33 u and flight 0.75-0.77 s at every speed; range = 0.75 v + 2.0 u (5.05 -> 5.95, 9.52 -> 8.85,
+13.29 -> 11.71, 17.16 -> 14.67). Identical repeat trials: the sim is deterministic. Table in
+`physics/jump_envelope.json`, raw rows in `logs/physics/`. (First two attempts failed: jump pressed while
+still airborne after the teleport, then a walkway that turned out to be a ramp; both fixed in the script.)
+
+**Applied (patch `logs/nav/apply_measured_jumps.py` + follow-ups):**
+* `nav/physics.py` (new): `jump_range(v)`, `crossable(gap, v)`, `speed_for_gap`, `MAX_JUMP_GAP` = range at
+  CRUISE_SPEED 8 minus LANDING_MARGIN 0.5 = 7.0 u. Describes the marble, so it holds on any map.
+* `nav/terrain.py`: jump edges now from `_measured_jump_edges()`: from every edge cell, 16 headings on the
+  FINE 0.5 u map, lip within 1.5 u, first floor beyond within MAX_JUMP_GAP with dz in [-JUMP_DROP,
+  +JUMP_RISE]; cost gap x JUMP_COST 1.2 (was 1.5: a 10 u hypotenuse must beat 14 u of legs). KOTM: 228 ->
+  1593 edges; west-to-east across a hole 10.4 u (walk-only 20.7). `jump_edge_cells` kept for gap_map.
+* `terrain_obs.py`: `gap_along(x, y, z, ux, uy)` -> (lip, gap, landing dz) along one heading.
+* `nav/obs.py`: NAV_OBS_V3, VEC_DIM 53 -> 56: along the marble's VELOCITY heading (waypoint bearing when
+  < 1 u/s): lip distance /20, gap length /20 (1 = none), crossable at the CURRENT speed per physics.
+* `nav/model.py`: the jump prior's landing test is now `old short-hop crop test OR vec[VEC_GAP+2]`, so it
+  fires for a 7 u hole at 8 u/s and not at 5 u/s.
+* Checkpoint: `logs/nav/migrate_obs_v3.py` expanded `nav_best_parity1_19640.pth` with zero columns (model
+  + Adam moments) -> `nav_v3_start_19640.pth` = `nav_latest.pth`; behaviour identical at step 0. The V2
+  best files can only be evaluated with V2 code (git `709c01ac3` + 28.25 patches).
+
+**Run:** 21:33, real-gem mode, 7 KOTM / 1 Islands, watchdog (via the session's background shell: the
+detached Start-Process bash launch silently fails now), no eval loop. Judge by the GAME bars, falls per
+round and takeoffs/min (`nav.leg_report`). Expected first effect: more takeoffs at holes/bays; falls may
+rise before the speed gating is learned. Not yet done: EDGE_K restore (awaiting the operator), 1x vs 3x
+8-round test.
+
+### 28.28 OVERNIGHT 2026-09-23/24: run to 150, operator rules
+
+Operator 22:40: "keep on this track all night, try to get this to 150 overnight; you are allowed to tweak
+the jump physics implementation if there's a bug or obvious improvement." Rules in force: training never
+stops except for a deliberate real eval of a candidate; judge by the GAME bars (sampled policy, ~6 under
+deterministic); no periodic evals; jump-physics changes only for a bug or an obvious improvement, logged
+here. `logs/nav/game_summary.sh` prints a 15-minute summary and snapshots `nav_latest.pth` to
+`models/nav/nav_night_<upd>_<mean>.pth` on every new 50-round high (`logs/nav/night_best.json`).
+Baseline at the start: measured-jump run from 19,640, first hour 126.6 mean / 1.9 falls per round
+(previous plateau 125 / 2.3). Best verified: `nav_best_parity1_19640.pth` 131.5 (V2 obs).
+
+### 28.29 JUMP REWARD BUG: airborne hold + landing clip (2026-09-23 22:46)
+
+Audit of the reward along a hole crossing (simulated on the NW hole, west to east, gem 2 u past the far
+lip): over the void `dist_at` has no field value under the marble and falls back to a neighbour or
+straight-line + 5, so the distance sat at ~13.4 for the whole flight and dropped 6.7 in ONE decision at
+the far lip, where PROGRESS_CLIP 3 cut it. A 7 u crossing earned 7.5 of its 11.2 u of progress; walking
+earns 1 per u. Jumping was taxed 33 % against walking, on top of the fall risk. Fix in `nav/waypoints.py`:
+`Segment.air_hold`; while `airborne and not terrain.walkable_at(x, y)` prev_d (and prev_dn) are HELD; the
+first decision back over walkable floor pays the full gain with `JUMP_PROGRESS_CLIP = 12` (the normal
+clip still applies everywhere else; respawns go through fall_mark, teleports do not happen in real-gem
+mode). `TerrainGrid.walkable_at` added. Unit test: crossing now earns 11.0 (13.6 -> 2.4 u), flat walking
+of 12.6 u earns 13.2. Trainer restarted 22:46 from `nav_latest.pth` (update 19,860); the night snapshot
+`nav_night_19852_127.pth` predates it.
+
+### 28.30 crossable flag counts the run-up (2026-09-24 04:34)
+
+Six hours after 28.29 the sampled 50-round mean sat at 128-131 (highs 127.0 -> 131.6, snapshots
+`nav_night_*.pth`). Trace audit of the 7 KOTM instances (last 900k rows): deliberate jumps over voids
+(takeoff within 0.5 s before entering the void) succeeded 43 % at 3-4 u, 32 % at 4-5 u, 22 % at 5-6 u,
+53 % at 6-7 u, with takeoff speeds 6.5-8.5 u/s; most void "crossings" are height drops without a jump.
+Cause found in `nav/obs.py`: the crossable flag tested `crossable(gap, speed)` and ignored the distance
+to the lip, while the prior fires up to JUMP_PRIOR_DIST 2.5 u before it: a jump from 2.5 u back over a
+7 u hole needs 9.5 u of range, which 8 u/s (7.5 u) does not have. Now `crossable(lip + gap, speed)`: the
+flag turns on only when the remaining run-up plus the gap fits the range at the current speed, which
+also times the takeoff. Unit test on the NW hole: at 8 u/s the flag is off 1-3.5 u before the lip (it
+needs ~8.7 u/s at 1 u); corner cuts (4-5 u) are on at 7 u/s within 1.5 u. Trainer restarted 04:34 from
+`nav_latest.pth` (update ~20,900).
+
+### 28.31 Overnight result as of 07:05 on 2026-09-24 (run still going)
+
+Sampled 50-round means on KOTM: 126-131 from 22:46 to 04:34 (28.29 fix), then **131-134** since the
+04:34 run-up flag fix (28.30), falls 1.5-2.4 per round, best single training round 149. Snapshots of
+every new 50-round high are in `models/nav/nav_night_<upd>_<mean>.pth` (`logs/nav/night_best.json`
+names the current one). The morning job: 8 deterministic real rounds on the latest night snapshot (and
+on `nav_latest.pth`) with `eval_cycle.ps1`; sampled 134 has corresponded to ~140 deterministic, so a
+new verified best above 131.5 is expected. Unchanged tonight: FALL 25, EDGE_K 0, entropy controller.
+Not done: EDGE_K restore (operator's call), 1x vs 3x test.
+
+### 28.32 MORNING EVALS 2026-09-24: 144.9 at 1x, 142.5 at 3x. NEW BEST, above the human mean
+
+`nav_best_night_20945.pth` (= `nav_night_20949_135.pth`, update 20,945, snapshotted at a sampled
+50-round mean of 134.8):
+* 1x watch mode, 8 rounds (08:05): **144.9** (144,150,151... exact: 144,150,140,151,141,145,142,146),
+  1.53 s/pickup (median 1.47), 9 falls, speed 7.66, takeoffs 0.37/min.
+* 3x, 8 rounds (08:55): **142.5** (142,142,145,144,145,140,139,143), 9 falls, speed 7.84.
+Both above the previous best 131.5 (19,640) and level with the human 143.5. 1x vs 3x: 2.4 points apart
+on 8 rounds each, inside round-to-round spread; no evidence of a speed-setting effect. Endpoint of the
+night's run is `nav_night_end_morning.pth` (update ~21,4xx). Training is STOPPED pending the operator.

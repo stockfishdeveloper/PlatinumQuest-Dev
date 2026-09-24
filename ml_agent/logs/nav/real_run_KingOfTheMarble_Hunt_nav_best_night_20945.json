@@ -1,0 +1,47 @@
+{
+ "map": "KingOfTheMarble_Hunt",
+ "ckpt": "nav_best_night_20945.pth",
+ "update": 20945,
+ "rounds": [
+  {
+   "round": 1,
+   "gems": 112,
+   "points": 143.0,
+   "minutes": 3.02,
+   "decisions": 2827,
+   "gems_per_min": 37.1,
+   "points_per_min": 47.4,
+   "falls": 0,
+   "falls_per_100u": 0.0,
+   "travelled_u": 1377.1,
+   "speed": 7.61,
+   "blind_pct": 0.0,
+   "stuck_breaks": 4,
+   "snapped_pct": 0.0,
+   "pathed_pct": 0.2,
+   "smooth": 1.0
+  }
+ ],
+ "mean": {
+  "gems_per_min": 37.1,
+  "points_per_min": 47.4,
+  "falls_per_100u": 0.0,
+  "speed": 7.61,
+  "blind_pct": 0.0
+ },
+ "human": {
+  "gems_per_min": 37.5,
+  "points_per_min": 47.3,
+  "speed": 8.05,
+  "falls_per_100u": 0.046
+ },
+ "vs_human": {
+  "gems_per_min": 0.99,
+  "points_per_min": 1.0,
+  "speed": 0.95,
+  "falls_ratio": 0.0
+ },
+ "value_weight": 0.0,
+ "h_reset": "never",
+ "when": "2026-09-24T08:16:42.957510"
+}

@@ -13,7 +13,7 @@ import os
 import torch
 import torch.nn as nn
 
-from nav.obs import VEC_DIM
+from nav.obs import VEC_DIM, VEC_GAP
 from nav.terrain import CROP_SHAPE
 
 HIDDEN = 256
@@ -167,7 +167,11 @@ class NavActorCritic(nn.Module):
         bi = torch.arange(B, device=vec.device).unsqueeze(1).expand_as(ix)
         present = crop[:, 1][bi, iy, ix] > 0.5
         level = crop[:, 0][bi, iy, ix].abs() < JUMP_LANDING_DZ
-        landing = (present & level).any(dim=1)
+        landing_short = (present & level).any(dim=1)          # the old short-hop test (<= JUMP_LANDING_MAX u)
+        # 2026-09-23 (HANDOFF 28.27): OR the measured test: the gap along the marble's own heading is
+        # within jump_range(current speed) per nav/physics (obs.py fills vec[VEC_GAP + 2]). This is what
+        # lets the prior fire for a 7 u hole at 8 u/s and NOT at 5 u/s.
+        landing = landing_short | (vec[:, VEC_GAP + 2] > 0.5)
         return (at_edge & ready & landing).float()
 
     def heads(self, h, vec, crop=None):

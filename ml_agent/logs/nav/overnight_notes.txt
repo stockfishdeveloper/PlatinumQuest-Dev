@@ -730,3 +730,5 @@
 [12:45] EVAL next1 (nav_eval_next1_1242.pth): 125,126,125,128,127,128,123,131 -> mean 126.6 (gems-only steering)
 [15:36] EVAL next2 (nav_eval_next2_1533.pth): 117,125,121,122,125,122,127,115 -> mean 121.8 (gems-only steering)
 [20:51] EVAL parity1b (nav_eval_parity1b_2048.pth): 137,116,131,138,127,129,137,137 -> mean 131.5 (gems-only steering)
+[08:00] EVAL night135 1x (nav_night_20949_135.pth, upd 20945): 144,150,140,151,141,145,142,146 -> mean 144.9 (1x, watch mode)
+[08:09] EVAL night135 3x (nav_best_night_20945.pth): 142,142,145,144,145,140,139,143 -> mean 142.5

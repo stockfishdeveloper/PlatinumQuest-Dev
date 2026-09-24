@@ -77,10 +77,16 @@ EDGE_COST = 2.0       # path cost multiplier for cells bordering a drop. NOTE (2
 DROP_EDGE = 2.0       # a neighbour more than this far below counts as a drop (edge)
 JUMP_GOAL_P = 0.33    # share of spawn-goal draws that prefer a goal whose shortest route uses a jump
 JUMP_SAVE_MIN = 1.0   # u the jump route must save over the walk-only route to count (HANDOFF 28.13)
-JUMP_GAP = 4.0        # gaps up to this wide (u) get a "jump edge" in the walk graph
+JUMP_GAP = 4.0        # (superseded 2026-09-23, HANDOFF 28.27) the old 8-direction rule admitted gaps up to
+                      # this wide. Jump edges now come from nav/physics.py: any of 16 headings, gap up to
+                      # physics.MAX_JUMP_GAP (measured range at CRUISE_SPEED minus the landing margin).
+JUMP_HEADINGS = 16    # headings searched from every edge cell (the observation's 16 ray headings)
 JUMP_DROP = 6.0       # landing may be this far below the take-off cell ...
 JUMP_RISE = 1.5       # ... or this far above
-JUMP_COST = 1.5       # 3.0 -> 1.5 on 2026-09-22 (HANDOFF 28.13). Path cost multiplier for a jump edge (per
+JUMP_COST = 1.2       # 1.5 -> 1.2 on 2026-09-23 (HANDOFF 28.27): a jump edge is priced as its measured flight
+                      # (0.76 s, about the rolling time for the same distance) plus a landing loss. At 1.5 the
+                      # hypotenuse of a 7+7 u corner (10 u x 1.5 = 15) still lost to walking the legs (14).
+                      # (superseded) 3.0 -> 1.5 on 2026-09-22 (HANDOFF 28.13). Path cost multiplier for a jump edge (per
                       # unit of gap). A hop is priced near its TIME cost (a 3 u hop takes about as long
                       # as rolling 4.5 u); the fall risk is priced by FALL in the reward, not here. At 3.0
                       # (and doubled by the duplicate-edge bug above) no KOTM route ever used a jump, so
@@ -237,6 +243,43 @@ class TerrainGrid(TerrainMap):
     def in_walk_grid(self, j, i):
         return 0 <= j < self.wH and 0 <= i < self.wW
 
+    def _measured_jump_edges(self):
+        """[(j, i, jj, ii, gap_u), ...]: takeoff walk cell, landing walk cell, gap length."""
+        from nav.physics import MAX_JUMP_GAP
+        present = np.isfinite(self.heights).any(0)
+        H, W = present.shape
+        heads = [(math.cos(2 * math.pi * k / JUMP_HEADINGS), math.sin(2 * math.pi * k / JUMP_HEADINGS)) for k in range(JUMP_HEADINGS)]
+        step = self.res
+        n_steps = int(math.ceil((MAX_JUMP_GAP + 1.5) / step))
+        out = []
+        for (j, i) in np.argwhere(self.edge):
+            x = float(self.wxs[i]); y = float(self.wys[j]); z0 = float(self.walk_top[j, i])
+            for cx, cy in heads:
+                in_void = False; d_void = 0.0
+                for s in range(1, n_steps + 1):
+                    d = s * step
+                    ii = int(round((x + cx * d - self.x0) / step)); jj = int(round((y + cy * d - self.y0) / step))
+                    if not (0 <= ii < W and 0 <= jj < H):
+                        break
+                    if not present[jj, ii]:
+                        if not in_void:
+                            in_void = True; d_void = d
+                        continue
+                    if not in_void:
+                        if d > 1.5:
+                            break                  # floor continues: this heading has no lip here
+                        continue
+                    gap = d - d_void              # void samples span [d_void, d): their extent is d - d_void
+                    if gap > MAX_JUMP_GAP:
+                        break
+                    zs = self.heights[:, jj, ii]; zs = zs[np.isfinite(zs)]
+                    if len(zs) and np.any((zs - z0 >= -JUMP_DROP) & (zs - z0 <= JUMP_RISE)):
+                        lj, li = self.cell_of(x + cx * (d + 0.5), y + cy * (d + 0.5))
+                        if self.in_walk_grid(lj, li) and self.walkable[lj, li] and (lj, li) != (j, i):
+                            out.append((j, i, lj, li, float(gap)))
+                    break
+        return out
+
     def _build_graph(self):
         from scipy.sparse import coo_matrix
         H, W = self.wH, self.wW
@@ -262,21 +305,17 @@ class TerrainGrid(TerrainMap):
         # non-walkable (a real gap) and the landing height within [-JUMP_DROP, +JUMP_RISE].
         # Without these, crossing a gap was never "progress" and goals were never sampled
         # across one, so the policy learned to brake at edges instead of jumping.
-        max_cells = int(round(JUMP_GAP / self.walk_res))
+        # MEASURED jump edges (2026-09-23, HANDOFF 28.27; the 8-direction / 4 u rule is above in the
+        # comment history). From every edge cell, march the FINE height map in JUMP_HEADINGS headings:
+        # the void must begin within 1.5 u (it is this cell's own lip), and the first floor after it
+        # within physics.MAX_JUMP_GAP u with a height change in [-JUMP_DROP, +JUMP_RISE] is a landing.
+        # MAX_JUMP_GAP is the measured range at CRUISE_SPEED minus LANDING_MARGIN (~7 u on KOTM's
+        # marble), so a 7 x 7 hole is admitted straight across and every corner cut is admitted too.
         jr, jc, jw = [], [], []
-        for (j, i) in np.argwhere(self.edge):
-            for dy, dx in ((0, 1), (1, 0), (0, -1), (-1, 0), (1, 1), (1, -1), (-1, 1), (-1, -1)):
-                for k in range(2, max_cells + 1):
-                    jj, ii = j + dy * k, i + dx * k
-                    if not self.in_walk_grid(jj, ii):
-                        break
-                    if self.walkable[jj, ii]:
-                        if k >= 2 and not any(self.walkable[j + dy * m, i + dx * m] for m in range(1, k)):
-                            dz = self.walk_top[jj, ii] - self.walk_top[j, i]
-                            if -JUMP_DROP <= dz <= JUMP_RISE:
-                                d = self.walk_res * k * math.hypot(dx, dy)
-                                jr.append(idx[j, i]); jc.append(idx[jj, ii]); jw.append(d * JUMP_COST)
-                        break
+        self.jump_edge_cells = []
+        for (j, i, jj, ii, gap) in self._measured_jump_edges():
+            jr.append(idx[j, i]); jc.append(idx[jj, ii]); jw.append(gap * JUMP_COST)
+            self.jump_edge_cells.append((j, i, jj, ii, gap))
         self.jump_edges = len(jr)
         rows = np.concatenate(rows); cols = np.concatenate(cols); w = np.concatenate(w)
         n = len(nodes)
@@ -325,6 +364,11 @@ class TerrainGrid(TerrainMap):
         d = dijkstra(graph, directed=False, indices=[self._node_idx[src]])[0]
         field[self._nodes[:, 0], self._nodes[:, 1]] = d
         return field
+
+    def walkable_at(self, x, y):
+        """True if the walk cell under world (x, y) is walkable floor (False over a hole or off the map)."""
+        j, i = self.cell_of(x, y)
+        return bool(self.in_walk_grid(j, i) and self.walkable[j, i])
 
     def _nearest_walkable(self, j, i, radius=3):
         best, bd = None, 1e9

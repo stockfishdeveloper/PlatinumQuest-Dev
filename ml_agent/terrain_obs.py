@@ -265,6 +265,35 @@ class TerrainMap:
             return float(z)
         return float(h[np.nanargmin(np.abs(h - z))])
 
+    def gap_along(self, x, y, z, ux, uy, max_u=RAY_RANGE):
+        """(lip_u, gap_u, landing_dz): along unit heading (ux, uy) from (x, y): distance to the lip
+        (inf if the floor continues for max_u), the gap length from the lip to the first floor beyond
+        it (inf if none within max_u) and that floor's height relative to the current floor.
+        Added 2026-09-23 (HANDOFF 28.27) for the velocity-heading gap features."""
+        z0 = self.floor_height(x, y, z)
+        n = int(round(max_u / RAY_STEP))
+        ds = (np.arange(1, n + 1) * RAY_STEP).astype(np.float32)
+        h = self.heights_at(x + ux * ds, y + uy * ds)                 # (K, n)
+        # follow the level nearest the current height; the lip is the first step with no level
+        # within FOLLOW_TOL of the one before it
+        z_cur = float(z0); lip = math.inf; lip_i = -1
+        for s in range(n):
+            col = h[:, s]; fin = np.isfinite(col)
+            if fin.any():
+                k = int(np.nanargmin(np.abs(np.where(fin, col, np.inf) - z_cur)))
+                if abs(float(col[k]) - z_cur) <= FOLLOW_TOL:
+                    z_cur = float(col[k]); continue
+            lip = float(ds[s]); lip_i = s
+            break
+        if lip_i < 0:
+            return math.inf, math.inf, 0.0
+        for s in range(lip_i, n):
+            col = h[:, s]; fin = np.isfinite(col)
+            if fin.any():
+                zs = col[fin]; k = int(np.argmin(np.abs(zs - z_cur)))
+                return lip, float(ds[s] - lip), float(zs[k] - z_cur)
+        return lip, math.inf, 0.0
+
     def edge_rays(self, x, y, z, gem_rels):
         """The EDGE_DIM-dim edge observation for a marble at world (x, y, z).
         gem_rels: list of (dx, dy, dz, present) for the GEM_RAYS nearest gems

@@ -289,6 +289,14 @@ ARRIVE_STEP = 0.15
 ARRIVE_MIN_SEGMENTS = 150      # segments on the current map before the ratchet may act
 TIMEOUT_DECISIONS = 312        # 20 s at 64 ms
 PROGRESS_CLIP = 3.0            # per decision, guards against teleports / respawns
+JUMP_PROGRESS_CLIP = 12.0      # 2026-09-23 23:00 (HANDOFF 28.29): the clip for the ONE decision that lands a jump.
+                               # While airborne over the void the distance field has no value under the marble
+                               # (dist_at falls back to a neighbour or straight-line + 5), so the field distance
+                               # sat near the takeoff value and the whole gain of a 7 u hole crossing (6.7 u)
+                               # arrived in one step at the far lip, where PROGRESS_CLIP 3 cut it: a crossing
+                               # earned 7.5 of its 11.2 u (simulated on the NW hole), a 33 % tax on jumping vs
+                               # walking. Now prev_d is HELD while airborne over non-walkable cells and the landing
+                               # decision pays the full gain up to this clip (MAX_JUMP_GAP 7 + landing roll).
 TRAVEL_CLIP = 1.5              # u per decision counted as travel (8 u/s = 0.5 u); respawn jumps are not travel
 TELEPORT_P = 1.0               # every segment starts with a verified teleport: it is the only way to clear the
                                # spin the game leaves on a respawned or arriving marble (2026-09-17)
@@ -389,7 +397,7 @@ class Segment:
     keeps its momentum and heads for the next one, which is the whole point of grouping."""
     __slots__ = ('fall_mark', 'goal', 'field', 'path_len', 'prev_d', 'decisions', 'travelled', 'last_pos', 'outcome',
                  'start', 'offmap', 'remaining', 'collected', 'group_size', 'pickup_speeds', 'falls',
-                 'gem_decisions', 'carry_vals', 'turn_degs', 'grace', 'chain_dec', 'chain_n', 'last_takeoff',
+                 'gem_decisions', 'carry_vals', 'turn_degs', 'grace', 'chain_dec', 'chain_n', 'last_takeoff', 'air_hold',
                  'next_field', 'prev_dn', 'chain_from_prev', 'real_next')
 
     def __init__(self, goal, field, path_len, start, remaining=()):
@@ -406,6 +414,7 @@ class Segment:
         self.fall_mark = None                 # path distance at the last on-map decision before a
                                               # fall: no progress credit until back inside it
         self.gem_decisions = 0                # decisions spent on the CURRENT gem, for the speed bonus
+        self.air_hold = False                 # airborne over the void: prev_d held until landing (28.29)
         self.grace = 0                        # decisions left in the post-pickup window where negative
                                               # progress is forgiven (PICKUP_GRACE, HANDOFF 28.10)
         self.last_takeoff = -10**6            # decision index of the last real takeoff (FALL_AFTER_JUMP window)
@@ -712,6 +721,16 @@ class SegmentManager:
         s.last_pos = p
         d_before = s.prev_d                       # last known distance, for the fall mark below
         d = self.terrain.dist_at(s.field, x, y, (gx, gy))
+        # AIRBORNE HOLD (28.29): over the void the field has no value; keep the takeoff distance and settle
+        # the whole flight on the decision the marble is back over walkable floor.
+        in_air_gap = airborne and not self.terrain.walkable_at(x, y)
+        landing_clip = PROGRESS_CLIP
+        if in_air_gap:
+            d = s.prev_d if s.prev_d is not None else d
+            s.air_hold = True
+        elif s.air_hold:
+            s.air_hold = False
+            landing_clip = JUMP_PROGRESS_CLIP
         if s.fall_mark is not None:
             # Back from a respawn: the game put the marble a median ~17 u away, and paying the
             # trip back as progress made a fall net POSITIVE at FALL = 10 (found 2026-09-21).
@@ -739,7 +758,7 @@ class SegmentManager:
             # +0.1 u/s on the flat map and the cost was 8 points of arrivals and 0.8 u/s on KOTM.
             # If retried, it needs a way to stop the shaping change from degrading the maps it was
             # not aimed at, and a reason to expect the indicator to keep moving rather than plateau.
-            progress = max(-PROGRESS_CLIP, min(PROGRESS_CLIP, s.prev_d - d))
+            progress = max(-PROGRESS_CLIP, min(landing_clip, s.prev_d - d))
             if s.grace > 0:
                 # PICKUP_GRACE (2026-09-22, HANDOFF 28.10): for ~1 s after a pickup, momentum carried
                 # past the gem is not charged as negative progress. Measured before this: the agent
@@ -755,8 +774,10 @@ class SegmentManager:
             ng = self.next_goal()
             if ng is not None:
                 dn = self.terrain.dist_at(s.next_field, x, y, (ng[0], ng[1]))
+                if in_air_gap and s.prev_dn is not None:
+                    dn = s.prev_dn                          # same hold for the next-gem term
                 if s.prev_dn is not None and np.isfinite(dn) and np.isfinite(s.prev_dn):
-                    progress_next = max(-PROGRESS_CLIP, min(PROGRESS_CLIP, s.prev_dn - dn))
+                    progress_next = max(-PROGRESS_CLIP, min(landing_clip, s.prev_dn - dn))
                     if s.grace > 0:
                         progress_next = max(0.0, progress_next)
                 s.prev_dn = dn

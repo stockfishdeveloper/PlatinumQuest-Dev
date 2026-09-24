@@ -1,0 +1,116 @@
+{
+ "map": "KingOfTheMarble_Hunt",
+ "obs_ms": 16,
+ "hold": [
+  {
+   "speed": 0.0,
+   "range": 0.32,
+   "apex": 2.248,
+   "flight_s": 0.968
+  },
+  {
+   "speed": 5.05,
+   "range": 5.95,
+   "apex": 1.335,
+   "flight_s": 0.752
+  },
+  {
+   "speed": 5.61,
+   "range": 6.39,
+   "apex": 1.335,
+   "flight_s": 0.752
+  },
+  {
+   "speed": 7.72,
+   "range": 7.28,
+   "apex": 1.336,
+   "flight_s": 0.752
+  },
+  {
+   "speed": 9.52,
+   "range": 8.85,
+   "apex": 1.338,
+   "flight_s": 0.768
+  },
+  {
+   "speed": 11.39,
+   "range": 10.26,
+   "apex": 1.341,
+   "flight_s": 0.768
+  },
+  {
+   "speed": 13.29,
+   "range": 11.71,
+   "apex": 1.345,
+   "flight_s": 0.768
+  },
+  {
+   "speed": 15.22,
+   "range": 13.18,
+   "apex": 1.349,
+   "flight_s": 0.768
+  },
+  {
+   "speed": 17.16,
+   "range": 14.67,
+   "apex": 1.352,
+   "flight_s": 0.768
+  }
+ ],
+ "nohold": [
+  {
+   "speed": 0.0,
+   "range": 0.0,
+   "apex": 1.335,
+   "flight_s": 0.752
+  },
+  {
+   "speed": 5.05,
+   "range": 4.14,
+   "apex": 1.335,
+   "flight_s": 0.752
+  },
+  {
+   "speed": 5.61,
+   "range": 4.58,
+   "apex": 1.335,
+   "flight_s": 0.752
+  },
+  {
+   "speed": 7.72,
+   "range": 5.46,
+   "apex": 1.336,
+   "flight_s": 0.752
+  },
+  {
+   "speed": 9.52,
+   "range": 8.97,
+   "apex": 1.338,
+   "flight_s": 1.088
+  },
+  {
+   "speed": 11.39,
+   "range": 10.8,
+   "apex": 1.341,
+   "flight_s": 1.104
+  },
+  {
+   "speed": 13.29,
+   "range": 12.88,
+   "apex": 1.345,
+   "flight_s": 1.104
+  },
+  {
+   "speed": 15.22,
+   "range": 14.99,
+   "apex": 1.349,
+   "flight_s": 1.104
+  },
+  {
+   "speed": 17.16,
+   "range": 17.13,
+   "apex": 1.352,
+   "flight_s": 1.104
+  }
+ ]
+}

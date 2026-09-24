@@ -1,0 +1,22 @@
+﻿[08:13:16] starting the navigator on port 8920 (it binds before anything else)
+[08:13:17] port 8920 is listening; safe to launch the game
+[08:13:17] launching KingOfTheMarble_Hunt on port 8920
+  game pid 42408; it will be answered the instant it reaches GO
+  navigator exit code 
+
+  warm-up: model ready in 0.20 s, terrain "KingOfTheMarble_Hunt" pre-built
+  [env:8920] waiting for the game
+  [env:8920] game connected (1)
+  WATCH mode: every frame drawn, 4 sim slice(s) per 64 ms decision, real time
+  real run: nav_best_night_20945.pth (update 20945) on KingOfTheMarble_Hunt, 1 round(s), port 8920
+  stuck-breaker #1 at (-26.3,16.3) decision 264: state reset, path waypoint + sampling for 24 decisions
+  stuck-breaker #2 at (-26.6,16.3) decision 288: state reset, path waypoint + sampling for 24 decisions
+  stuck-breaker #3 at (-27.1,2.0) decision 1362: state reset, path waypoint + sampling for 24 decisions
+  stuck-breaker #4 at (-24.3,27.0) decision 2040: state reset, path waypoint + sampling for 24 decisions
+    round 1: {'round': 1, 'gems': 112, 'points': 143.0, 'minutes': 3.02, 'decisions': 2827, 'gems_per_min': 37.1, 'points_per_min': 47.4, 'falls': 0, 'falls_per_100u': 0.0, 'travelled_u': 1377.1, 'speed': 7.61, 'blind_pct': 0.0, 'stuck_breaks': 4, 'snapped_pct': 0.0, 'pathed_pct': 0.2, 'smooth': 1.0}
+  REAL RUN {"gems_per_min": 37.1, "points_per_min": 47.4, "falls_per_100u": 0.0, "speed": 7.61, "blind_pct": 0.0} vs human {"gems_per_min": 0.99, "points_per_min": 1.0, "speed": 0.95, "falls_ratio": 0.0}
+  wrote C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\logs\nav\real_run_KingOfTheMarble_Hunt_nav_best_night_20945.json
+  stderr tail:
+    C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\nav\real_run.py:296: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+      ck = torch.load(ckpt, map_location=dev)
+[08:16:43] done. JSON: logs\nav\real_run_KingOfTheMarble_Hunt_*.json

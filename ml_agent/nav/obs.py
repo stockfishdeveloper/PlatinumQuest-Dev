@@ -13,13 +13,21 @@ import numpy as np
 
 from terrain_obs import EDGE_DIM
 from nav.protocol import RAW_POS, RAW_VEL
-from nav.terrain import CROP_SHAPE
+from nav.terrain import CROP_SHAPE, JUMP_DROP, JUMP_RISE
+from nav.physics import crossable
+from terrain_obs import RAY_RANGE
 
-NAV_OBS_VERSION = 'NAV_OBS_V2'   # V2 (2026-09-19) appends the NEXT gem: see NEXT_DIM below
+NAV_OBS_VERSION = 'NAV_OBS_V3'   # V3 (2026-09-23, HANDOFF 28.27) appends GAP_DIM: the gap along the velocity
+                                 # V2 (2026-09-19) appends the NEXT gem: see NEXT_DIM below
 NEXT_DIM = 5                  # next gem: unit dx, unit dy, distance, dz, present flag
 VEC_NEXT = 10 + EDGE_DIM      # 48: where the next-gem block starts (appended AFTER the edge rays,
                               # so nav/model.py's fixed gap-prior indices 2/7/8/42/43 still hold)
-VEC_DIM = VEC_NEXT + NEXT_DIM # 53
+VEC_GAP = VEC_NEXT + NEXT_DIM # 53: where the gap block starts
+GAP_DIM = 3                   # along the velocity heading (or the waypoint bearing when slow):
+                              # lip distance / RAY_RANGE (1 = none), gap length / RAY_RANGE (1 = no
+                              # landing), crossable at the CURRENT speed per nav/physics (0/1)
+VEC_DIM = VEC_GAP + GAP_DIM   # 56
+GAP_MIN_SPEED = 1.0           # u/s: below this the gap features use the waypoint bearing
 WAYPOINT_DIST_SCALE = 50.0
 VEL_SCALE = 20.0
 ON_FLOOR_VZ = 0.3
@@ -68,6 +76,18 @@ class ObsBuilder:
             vec[VEC_NEXT + 2] = min(nd / WAYPOINT_DIST_SCALE, 1.0)
             vec[VEC_NEXT + 3] = max(-1.0, min(1.0, (nz - z) / 10.0))
             vec[VEC_NEXT + 4] = 1.0
+        # GAP block (V3): what lies along the marble's own heading
+        sp = math.hypot(vx, vy)
+        hx, hy = (vx / sp, vy / sp) if sp > GAP_MIN_SPEED else (ux, uy)
+        if hx != 0.0 or hy != 0.0:
+            lip, gap, ldz = self.terrain.gap_along(x, y, z, hx, hy)
+            vec[VEC_GAP] = min(lip / RAY_RANGE, 1.0) if math.isfinite(lip) else 1.0
+            vec[VEC_GAP + 1] = min(gap / RAY_RANGE, 1.0) if math.isfinite(gap) else 1.0
+            # 2026-09-24 04:40 (HANDOFF 28.30): the flight must cover the run-up to the lip AS WELL as the gap;
+            # a jump pressed 2.5 u before a 7 u hole needs 9.5 u of range. Testing the gap alone told the
+            # policy 'crossable' too early and half of its deliberate hole jumps fell short.
+            ok = math.isfinite(gap) and (-JUMP_DROP <= ldz <= JUMP_RISE) and bool(crossable(lip + gap, sp))
+            vec[VEC_GAP + 2] = 1.0 if ok else 0.0
         return crop.astype(np.float32), vec, on_floor
 
 
