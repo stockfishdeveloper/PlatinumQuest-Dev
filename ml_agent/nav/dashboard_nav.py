@@ -18,6 +18,7 @@ import time
 import threading
 from datetime import datetime
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
+JUMPS = None   # nav.jump_progress.JumpProgress, started in main() (2026-09-24, HANDOFF 28.34)
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -186,6 +187,24 @@ def eval_series():
 HUMAN_POINTS = {'KingOfTheMarble_Hunt': 143.5, 'FlatGemTraining_Hunt': 104.0}
 
 
+def _jumps_by_update(updates):
+    """Jump-progress buckets (keyed by trace step) mapped onto trainer updates via the NAV log's steps."""
+    if JUMPS is None:
+        return []
+    rows = JUMPS.series()
+    pairs = sorted((u['steps'], u['update']) for u in updates if u.get('steps'))
+    if not rows or len(pairs) < 2:
+        return []
+    xs = np.array([p[0] for p in pairs], dtype=np.float64); ys = np.array([p[1] for p in pairs], dtype=np.float64)
+    out = []
+    for r in rows:
+        st = float(r['step'])
+        if st < xs[0] - 5e5 or st > xs[-1] + 5e5:
+            continue
+        r = dict(r); r['update'] = int(round(float(np.interp(st, xs, ys)))); out.append(r)
+    return out
+
+
 def build_state():
     updates, events, counters, rtfs, games = parse_logs()
     maps = []
@@ -238,6 +257,7 @@ def build_state():
         'series': {k: [u.get(k) for u in updates] for k in ('update', 'map', 'r', 'arrive', 'falls100', 'speed', 'rew', 'pl', 'vl',
                                                              'ent', 'kl', 'clip', 'gn', 'dstd', 'wall_s', 'steps', 'ep', 'sgem', 'pickup')},
         'pm': pm, 'human_sgem': HUMAN_S_PER_GEM, 'evals': eval_series(), 'human_points': HUMAN_POINTS,
+        'jumps': _jumps_by_update(updates),
         'games': [{'update': g[0], 'inst': g[1], 'map': g[2], 'points': g[3], 'gems': g[4], 'falls': g[5], 'time': g[6]} for g in games],
     }
 
@@ -383,6 +403,8 @@ td.num { text-align:right; font-variant-numeric:tabular-nums; }
 <div id="charts">
   <div class="chart-card"><div class="chart-title">SECONDS BETWEEN PICKUPS, selected map (pickup-to-pickup inside a group; lower is better; dashed = human 1.57 s on KOTM)</div><div id="c-sgem" style="height:230px"></div></div>
   <div class="chart-card"><div class="chart-title" id="pts-title">POINTS PER TRAINING GAME, selected map (one bar per finished round in order, real score from the game; dashed = human; sampled policy, no stuck-breaker)</div><div id="c-points" style="height:230px"></div></div>
+  <div class="chart-card"><div class="chart-title">APPROVED TAKEOFFS (KOTM instances, from the training trace): per instance-minute (bars) and how many of them landed the crossing (line, %); bucket = 25 updates</div><div id="c-jump1" style="height:230px"></div></div>
+  <div class="chart-card"><div class="chart-title">VOID CROSSINGS per instance-minute (KOTM): landed with a jump vs without (rolled / dropped), and falls within 1.5 s of an approved takeoff</div><div id="c-jump2" style="height:230px"></div></div>
   <div class="chart-card"><div class="chart-title" id="heat-title">Marble speed heat map, selected map (latest real rounds; green = fastest, red = slowest)</div><div id="c-heat" style="height:420px"></div></div>
   <div class="chart-card"><div class="chart-title" id="heatj-title">Jump heat map, selected map (takeoffs as % of floor decisions per cell; green = jumps a lot, red = never)</div><div id="c-heatj" style="height:420px"></div></div>
   <div class="chart-card"><div class="chart-title">Falls per 100 u, selected map</div><div id="c-falls" style="height:230px"></div></div>
@@ -408,7 +430,7 @@ const darkLayout = (extra) => Object.assign({
 const cfg = {responsive:true, displayModeBar:false};
 const palette = ['#3fb950','#58a6ff','#f0c040','#bc8cff','#f85149','#d29922','#39d3c3','#ff7b72'];
 const legend = {showlegend:true, legend:{x:0, y:1.15, orientation:'h', font:{size:9}}};
-['c-sgem','c-points','c-heat','c-heatj','c-falls','c-speed','c-rew','c-ent','c-kl','c-loss','c-gn','c-wall'].forEach(id => Plotly.newPlot(id, [], darkLayout(legend), cfg));
+['c-sgem','c-points','c-jump1','c-jump2','c-heat','c-heatj','c-falls','c-speed','c-rew','c-ent','c-kl','c-loss','c-gn','c-wall'].forEach(id => Plotly.newPlot(id, [], darkLayout(legend), cfg));
 
 let ST = null;   // latest state, so per-map traces can read the MAPS-line series (st.pm)
 // Map selector: one map at a time (default KingOfTheMarble, the scored map) or the overlay of all.
@@ -506,6 +528,19 @@ function update(st) {
     Plotly.react('c-sgem', tr, darkLayout(Object.assign({yaxis:{title:'s / pickup', gridcolor:'#21262d', color:'#7d8590'}}, legend)), cfg);
   }
   {
+    const js = (st.jumps || []).filter(j => j.update >= LO);
+    const x = js.map(j => j.update);
+    const t1 = [{x, y: js.map(j => j.appr_per_min), type:'bar', marker:{color:'#58a6ff'}, name:'approved takeoffs / inst-min', yaxis:'y'},
+                {x, y: js.map(j => j.appr_success), type:'scatter', mode:'lines+markers', line:{color:'#3fb950', width:2}, name:'success %', yaxis:'y2',
+                 text: js.map(j => 'n=' + j.appr_n), hovertemplate:'%{y:.0f}% (%{text})<extra></extra>'}];
+    Plotly.react('c-jump1', t1, darkLayout(Object.assign({yaxis:{title:'takeoffs / min', gridcolor:'#21262d', color:'#7d8590', rangemode:'tozero'},
+      yaxis2:{title:'success %', overlaying:'y', side:'right', range:[0, 100], color:'#7d8590', showgrid:false}}, legend)), cfg);
+    const t2 = [{x, y: js.map(j => j.cross_j_per_min), type:'scatter', mode:'lines', line:{color:'#3fb950', width:2}, name:'crossings with a jump / min'},
+                {x, y: js.map(j => j.cross_nj_per_min), type:'scatter', mode:'lines', line:{color:'#7d8590', width:1.5}, name:'crossings without a jump / min'},
+                {x, y: js.map(j => j.fall_appr_per_min), type:'scatter', mode:'lines', line:{color:'#f85149', width:2}, name:'falls after approved takeoff / min'}];
+    Plotly.react('c-jump2', t2, darkLayout(Object.assign({yaxis:{title:'per inst-min', gridcolor:'#21262d', color:'#7d8590', rangemode:'tozero'}}, legend)), cfg);
+  }
+  {
     const emap = SEL === 'ALL' ? 'KingOfTheMarble_Hunt' : SEL;
     // one round cannot hold more than ~130 gems: larger entries are two rounds merged by a worker
     // that crossed a round end mid-respawn (fixed in vec_worker 17:00; older workers may still emit them)
@@ -568,6 +603,12 @@ def main():
     srv = ThreadingHTTPServer(('0.0.0.0', PORT), Handler)
     srv.daemon_threads = True
     print(f'navigator dashboard: http://localhost:{PORT}  (logs: {LOG_DIR})', flush=True)
+    global JUMPS
+    try:
+        from nav.jump_progress import start_background
+        JUMPS = start_background()
+    except Exception as e:
+        print('jump progress unavailable:', e, flush=True)
     st = build_state()
     print(f'parsed {st["n_updates"]} updates across {len(st["maps"])} maps; latest checkpoint {st["ckpt"]}', flush=True)
     srv.serve_forever()

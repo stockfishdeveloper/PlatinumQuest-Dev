@@ -50,7 +50,12 @@ PROGRESS_NEXT = 0.3            # 2026-09-23 (HANDOFF 28.22): per unit of walking
                                # 5.8 and dips to 4.6. On a straight line both terms pay (1.3/u); on a corner an
                                # approach that already curves toward gem 2 is paid during the approach.
 ARRIVE = 10.0
-GEM_SPEED_BONUS = 16.0         # 8 -> 16 at 03:45 on 2026-09-23 (HANDOFF 28.18, plan step 4): time pressure back at HALF
+GEM_SPEED_BONUS = 24.0         # 16 -> 24 at 01:23 on 2026-09-25 (HANDOFF 28.37, overnight nudge 2): after 110 min of the
+                               # run-up credit the takeoff speed at approved jumps was still 7.1-7.5 u/s (human 10.7), so
+                               # the general pace pressure is raised by half: a gem taken 1 s faster is now worth +6.3
+                               # instead of +4.2. Pre-change checkpoint nav_pre_gsb24_23420.pth; revert if the 50-round
+                               # mean sits below 130 for an hour (falls are the usual price of pace pressure).
+                               # (superseded) 8 -> 16 at 03:45 on 2026-09-23 (HANDOFF 28.18, plan step 4): time pressure back at HALF
                                # the slope that failed (0.27/decision vs 0.5), now that the fear terms are gone,
                                # the stuck-breaker exists and falls are 9 per 8 rounds. Revert to 8 if falls exceed
                                # 13 per 8 rounds without a pace gain at the next eval.
@@ -174,7 +179,12 @@ EDGE_LOOK = 9.0                # u: how far ahead along the velocity to look for
 EDGE_GOAL_LATERAL = 1.5        # u: a goal within this of the velocity ray and BEFORE the drop makes the
                                # approach a pickup, not a shortcut: no charge (1 % of falls, 15 % of v1 charges)
 EDGE_V_MIN = 1.5               # u/s: slower than this the marble stops within a cell; no charge
-FALL_AFTER_JUMP = 25.0         # 8 -> 25 on 2026-09-23 16:20 (28.25): the practice discount had done its job (takeoffs
+FALL_AFTER_JUMP = 6.0          # 25 -> 6 on 2026-09-24 (HANDOFF 28.34), now GATED: only a fall within JUMP_FALL_WINDOW of a
+                               # takeoff that the physics flag APPROVED (obs crossable = 1) is priced here; any other
+                               # fall, including an unapproved jump, still costs FALL. 6 ~ the true time cost of a fall
+                               # in a scored round (4-5 s of TIME + lost progress). The blanket 8 of 28.17 doubled falls
+                               # because it discounted every jump; this one discounts only jumps the marble could make.
+                               # (superseded) 8 -> 25 on 2026-09-23 16:20 (28.25): the practice discount had done its job (takeoffs
                                # 1.0-1.5/min, human 0.87) and falls doubled at next2 (21 per 8 rounds). A jump fall
                                # now costs the full price again.
                                # (superseded) 2026-09-23 (HANDOFF 28.17): price of a fall within JUMP_FALL_WINDOW decisions of
@@ -211,6 +221,16 @@ AIR = 0.1                      # per decision airborne BEYOND the grace period b
 AIR_GRACE = 16                 # ~1 s: a purposeful jump is free; tumbling / falling still costs
                                # (2026-09-17: charging every airborne decision taught the policy that
                                # jumping never pays, so it never jumped gaps)
+RUNUP_K = 0.3                  # 2026-09-24 23:30 (HANDOFF 28.37, overnight speed nudge 1): reward per u/s of speed GAINED in
+                               # a decision while a jumpable gap lies ahead along the marble's heading (obs gap block:
+                               # speed ratio > 0, i.e. a gap >= MIN_JUMP_GAP with a sane landing) and the marble is not yet
+                               # fast enough for it (ratio < 0.5), the lip within RUNUP_RANGE. Gains are clipped to
+                               # RUNUP_CLIP per decision, losses pay nothing, so a brake-and-accelerate loop cannot farm it
+                               # (TIME and lost progress outweigh it). Human takeoff speed 10.7 u/s vs the agent's 7.4:
+                               # the flag only approves a cut when the marble arrives fast, and nothing before this paid
+                               # for building that speed.
+RUNUP_RANGE = 10.0             # u: only when the lip is this close
+RUNUP_CLIP = 1.0               # u/s per decision (a full-throttle marble gains ~0.6 u/s per 64 ms)
 JUMP_TAKEOFF = 0.1             # 0.4 -> 0.1 on 2026-09-22 (HANDOFF 28.13, jump re-enable; see model.JUMP_DAMP).
                                # per jump COMMANDED WHILE ON THE FLOOR (an actual takeoff; a jump
                                # pressed in mid-air does nothing in the engine and is not charged).
@@ -397,7 +417,7 @@ class Segment:
     keeps its momentum and heads for the next one, which is the whole point of grouping."""
     __slots__ = ('fall_mark', 'goal', 'field', 'path_len', 'prev_d', 'decisions', 'travelled', 'last_pos', 'outcome',
                  'start', 'offmap', 'remaining', 'collected', 'group_size', 'pickup_speeds', 'falls',
-                 'gem_decisions', 'carry_vals', 'turn_degs', 'grace', 'chain_dec', 'chain_n', 'last_takeoff', 'air_hold',
+                 'gem_decisions', 'carry_vals', 'turn_degs', 'grace', 'chain_dec', 'chain_n', 'last_takeoff', 'air_hold', 'takeoff_approved', 'prev_speed',
                  'next_field', 'prev_dn', 'chain_from_prev', 'real_next')
 
     def __init__(self, goal, field, path_len, start, remaining=()):
@@ -418,6 +438,8 @@ class Segment:
         self.grace = 0                        # decisions left in the post-pickup window where negative
                                               # progress is forgiven (PICKUP_GRACE, HANDOFF 28.10)
         self.last_takeoff = -10**6            # decision index of the last real takeoff (FALL_AFTER_JUMP window)
+        self.takeoff_approved = False         # the obs crossable flag was on at that takeoff (28.34)
+        self.prev_speed = None                # horizontal speed at the previous decision (RUNUP_K, 28.37)
         self.next_field = None; self.prev_dn = None   # Dijkstra field of the NEXT gem + last distance (PROGRESS_NEXT)
         self.chain_from_prev = False          # this group was entered rolling from the previous one (CONTINUOUS)
         self.real_next = None                 # real-gem mode: the chooser's next gem (x, y, z) or None
@@ -681,7 +703,7 @@ class SegmentManager:
         return self.terrain.contains(x, y) and z >= self.terrain.z_floor_min - 1.0
 
     def step(self, pos, fell, airborne, round_ended, elapsed_s=0.0, braked=False, airborne_decisions=0,
-             jumped=False, vel=(0.0, 0.0), cmd_dir=None, picked=0.0):
+             jumped=False, vel=(0.0, 0.0), cmd_dir=None, picked=0.0, approved=False, gap_ratio=0.0, lip_u=float('inf')):
         """Reward and (done, outcome) for the decision that led to `pos`. `airborne` is the flag
         for this decision, `airborne_decisions` how many consecutive decisions it has been airborne,
         `jumped` whether a jump was commanded (charged only when it was a real takeoff, i.e. the
@@ -785,8 +807,16 @@ class SegmentManager:
         takeoff_cost = JUMP_TAKEOFF if (jumped and not airborne) else 0.0
         if jumped and not airborne:
             s.last_takeoff = s.decisions
+            s.takeoff_approved = bool(approved)
+        # RUN-UP CREDIT (28.37): pay for speed gained toward a cut that is ahead but not yet reachable
+        speed_now = math.hypot(float(vel[0]), float(vel[1]))
+        runup = 0.0
+        if (RUNUP_K > 0.0 and not airborne and not fell and s.prev_speed is not None
+                and 0.0 < gap_ratio < 0.5 and lip_u <= RUNUP_RANGE):
+            runup = RUNUP_K * max(0.0, min(RUNUP_CLIP, speed_now - s.prev_speed))
+        s.prev_speed = speed_now
         edge_cost = 0.0 if (airborne or fell) else edge_time_cost(self.terrain, x, y, float(vel[0]), float(vel[1]), goal=(gx, gy))
-        r = PROGRESS * progress + PROGRESS_NEXT * progress_next - TIME - air_cost - takeoff_cost - (BRAKE if braked else 0.0) - turn_cost - edge_cost + align_bonus
+        r = PROGRESS * progress + PROGRESS_NEXT * progress_next - TIME - air_cost - takeoff_cost - (BRAKE if braked else 0.0) - turn_cost - edge_cost + align_bonus + runup
         done, outcome = False, None
         # off the map (below the lowest floor / outside the grid) without the game's OOB flag:
         # after OFFMAP_FALL_DECISIONS decisions count it as a fall ourselves
@@ -803,7 +833,7 @@ class SegmentManager:
             # one cost 25, so unless 9 in 10 landed the expected value was negative and PPO extinguished
             # jumping before it got good at it (takeoffs/min 0.95 -> 0.46 -> 0.33 across three evals).
             # Restore to FALL once takeoffs hold near 1/min with falls back at <= 13 per 8 rounds.
-            r -= FALL_AFTER_JUMP if (s.decisions - s.last_takeoff) <= JUMP_FALL_WINDOW else FALL
+            r -= FALL_AFTER_JUMP if (s.takeoff_approved and (s.decisions - s.last_takeoff) <= JUMP_FALL_WINDOW) else FALL
             s.falls += 1
             if s.fall_mark is None and np.isfinite(d_before):
                 s.fall_mark = float(d_before)     # earliest mark wins if it falls again on the way back

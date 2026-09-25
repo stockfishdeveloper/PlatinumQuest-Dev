@@ -24,7 +24,11 @@ ACTION_DIM = 5
 # moving. Without it the learned jump logit sat at its -7 clamp (0.1 %) after the flat maps,
 # so a jump at a gap edge was never sampled and could never be learned. The learned head can
 # cancel the bonus where jumping is bad. Map-independent: it only reads the rays.
-JUMP_PRIOR = 6.0            # logit bonus (-7 -> -1 = 27 % per decision at a gap edge)
+JUMP_PRIOR = 8.5            # 6.0 -> 8.5 on 2026-09-24 (HANDOFF 28.34): with the head at ~-7 and JUMP_DAMP 1 the old bonus
+                            # left the logit at ~-1 (27 % sampled, NEVER deterministic). 8.5 puts an approved gap at
+                            # ~+0.5 (62 % sampled, jumps deterministically) while the flag is now physics-approved with a
+                            # 1 u landing margin and an approved fall is priced at its true cost (waypoints 28.34).
+                            # (superseded) logit bonus (-7 -> -1 = 27 % per decision at a gap edge)
 JUMP_PRIOR_DIST = 2.5       # edge within this many u along the line to the waypoint
 JUMP_PRIOR_DROP = -0.15     # ray "beyond" value below this = a drop of > 1.5 u or void
 JUMP_PRIOR_SPEED = 1.5      # u/s (was 2.0: braking dropped the marble under the gate and it rolled off)
@@ -171,7 +175,11 @@ class NavActorCritic(nn.Module):
         # 2026-09-23 (HANDOFF 28.27): OR the measured test: the gap along the marble's own heading is
         # within jump_range(current speed) per nav/physics (obs.py fills vec[VEC_GAP + 2]). This is what
         # lets the prior fire for a 7 u hole at 8 u/s and NOT at 5 u/s.
-        landing = landing_short | (vec[:, VEC_GAP + 2] > 0.5)
+        # 2026-09-24 16:10 (HANDOFF 28.35): the crop short-hop test is DROPPED from the prior. It fired at every
+        # lip with floor within 4.5 u (block-to-ring drop-offs included): 45 firings per instance-minute, 5 % of
+        # decisions, so the head learned to ignore the prior entirely (P(jump | prior on) = 1 %). Only the
+        # physics-approved flag (run-up + gap within jump_range(speed) with a 1 u margin, over floor) counts.
+        landing = vec[:, VEC_GAP + 2] > 0.5
         return (at_edge & ready & landing).float()
 
     def heads(self, h, vec, crop=None):
@@ -193,7 +201,10 @@ class NavActorCritic(nn.Module):
         mean_xy = self.dir_head(torch.cat([h, vec_in], dim=-1))
         thr = self.throttle_head(h).squeeze(-1)
         gp = self.gap_prior(crop, vec) if crop is not None else torch.zeros_like(thr)
-        jump = torch.clamp(self.jump_head(h).squeeze(-1) - JUMP_DAMP + gp * JUMP_PRIOR, -7.0, 3.0)
+        # 28.35: the prior is added AFTER the clamp, so the head cannot cancel it by going more negative (it
+        # had reached ~-12 against a +8.5 prior). An approved gap now sits at >= -7 + 8.5 = +1.5: ~82 % sampled
+        # in training and a jump in deterministic play. The policy's job is the approach, not the decision.
+        jump = torch.clamp(self.jump_head(h).squeeze(-1) - JUMP_DAMP, -7.0, 3.0) + gp * JUMP_PRIOR
         brake = torch.clamp(self.brake_head(h).squeeze(-1) - gp * BRAKE_SUPPRESS, -7.0, 3.0)
         if not BRAKE_ENABLED:
             brake = torch.full_like(brake, -20.0)
@@ -215,6 +226,11 @@ class NavActorCritic(nn.Module):
         return vn * self.value_std + self.value_mean
 
     # ------------------------------------------------------------------ acting
+    JUMP_ON_PRIOR = os.environ.get('NAV_JUMP_ON_PRIOR', '0') == '1'   # 2026-09-24 (HANDOFF 28.33) inference-only test:
+                                  # deterministic runs jump whenever the gap prior is on. The learned jump logit is
+                                  # ~-7 and the prior lifts it to ~-1, so the mean action NEVER jumps (893 prior
+                                  # firings, 1 jump, in the 3x eval of 20945). Off by default; the eval sets it.
+
     @torch.no_grad()
     def act(self, crop, vec, h, deterministic=False):
         """crop (B,6,32,32), vec (B,48), h (B,H). Returns dict with action_buf (B,5), action_game (B,5),
@@ -224,6 +240,8 @@ class NavActorCritic(nn.Module):
         d_dir, d_thr, d_jump, d_brake = self.dists(mean_xy, thr, jump, brake)
         if deterministic:
             direction = d_dir.mean; thr_s = thr; j = (torch.sigmoid(jump) > 0.5).float(); b = (torch.sigmoid(brake) > 0.5).float()
+            if self.JUMP_ON_PRIOR and crop is not None:
+                j = torch.maximum(j, self.gap_prior(crop, vec))
         else:
             direction = d_dir.sample(); thr_s = d_thr.sample(); j = d_jump.sample(); b = d_brake.sample()
         logp = d_dir.log_prob(direction).sum(-1) + d_thr.log_prob(thr_s) + d_jump.log_prob(j) + d_brake.log_prob(b)

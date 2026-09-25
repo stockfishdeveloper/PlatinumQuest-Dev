@@ -3411,3 +3411,110 @@ Not done: EDGE_K restore (operator's call), 1x vs 3x test.
 Both above the previous best 131.5 (19,640) and level with the human 143.5. 1x vs 3x: 2.4 points apart
 on 8 rounds each, inside round-to-round spread; no evidence of a speed-setting effect. Endpoint of the
 night's run is `nav_night_end_morning.pth` (update ~21,4xx). Training is STOPPED pending the operator.
+
+### 28.33 Jump-on-prior inference test (2026-09-24 13:13): 117.1, REJECTED
+
+Why: the deterministic policy never jumps (jump head ~-7, prior +6, damping -1: logit stays < 0; 893
+prior firings -> 1 jump in the 3x eval). Operator asked what forcing the jump when the prior fires is
+worth. `NavActorCritic.JUMP_ON_PRIOR` (env NAV_JUMP_ON_PRIOR, default 0) makes the deterministic action
+jump whenever `gap_prior` is 1. Same checkpoint 20945, 3x, 8 rounds: **117.1** (112,131,114,125,123,120,
+103,109), **56 falls** (baseline 142.5 / 9 falls), 1.90 s/pickup, takeoffs 10.5/min. Of 253 forced
+takeoffs 99 landed, 52 fell (66 %), 102 never left the floor (pressed at the lip while not in contact or
+already committed). Verdict: a 66-71 % success rate is worth about -25 points; the prior is far too
+loose to act on directly. Left off. Next lever if jumping is pursued: make approved jumps reliable
+first (LANDING_MARGIN 0.5 -> 1.0, tighter lip window), then price approved-jump falls at true cost.
+
+### 28.34 SUSTAINABLE JUMPING: reliability, price, decisiveness (2026-09-24 13:19). Operator's call
+
+Operator: "jumps are necessary to get us to human level play; go ahead with your plan." Applied, in
+the order reliability -> price -> decisiveness, all in TRAINING so that what is watched is what is learned:
+1. `nav/physics.py` LANDING_MARGIN 0.5 -> 1.0 (MAX_JUMP_GAP at cruise 7.0 -> 6.5 u: KOTM's 7 u holes are
+   admitted straight across only above ~9.5 u/s; corner cuts and bays stay). `nav/obs.py`: the crossable
+   flag also requires the marble to be over a walkable cell (40 % of the forced jumps in 28.33 were pressed
+   already over the void and did nothing).
+2. `nav/waypoints.py` FALL_AFTER_JUMP 25 -> 6, now GATED on `Segment.takeoff_approved` (the obs crossable
+   flag was on at the takeoff; the worker passes `approved=`). Every other fall, including an unapproved
+   jump, stays at FALL 25. 6 ~ the true time cost of a fall in a scored round. Expected value of an
+   approved jump: at 80 % success ~ +4 (GEM_SPEED_BONUS pays ~5 for 1.3 s saved, TIME ~1), so the head
+   is no longer pushed negative by every attempt.
+3. `nav/model.py` JUMP_PRIOR 6 -> 8.5: an approved gap now lifts the logit to ~+0.5 (62 % sampled in
+   training, and the deterministic action jumps). JUMP_ON_PRIOR (28.33) stays off.
+Started 13:19 from `nav_latest.pth` (= night endpoint, update 21,4xx). Night snapshot state moved to
+`night_best_phase1.json`; the summary now snapshots this phase's own highs. Judge by: GAME bars, falls
+per round, and (from the trace) approved-takeoff success rate; an 8-round eval when the 50-round mean
+holds above 134. Watch for: falls spiking above ~3 per round for more than an hour (then raise
+LANDING_MARGIN further or lower JUMP_PRIOR to 7.5).
+
+### 28.35 The prior made binding (2026-09-24 16:10). Operator: "Do it"
+
+Three hours after 28.34 the score was up (sampled 50-round 135-137, falls 1.4-2.4) but the jump stats
+were DOWN: approved takeoffs 0.56-0.99/min (night) -> 0.18-0.33/min, crossings with a jump 0.43-0.69 ->
+0.20-0.29/min. Trace measurement: the prior was on for 41-50 decisions per instance-minute (5 % of all
+decisions) and P(jump | prior on) was 0.5-1.7 %. Two causes: (1) `gap_prior` still ORed the old crop
+short-hop test, which fires at any lip with floor within 4.5 u (block-to-ring drop-offs), so the prior
+was noise; (2) the head had gone to ~-12, cancelling the +8.5 added before the clamp. Fix in
+`nav/model.py`: the prior uses ONLY the physics-approved flag, and it is added AFTER the clamp
+(`clamp(head - damp, -7, 3) + gp * JUMP_PRIOR`), so an approved gap is >= +1.5 whatever the head does.
+On the current weights: no gap -5.1, approved +4.3 (99 % sampled), short-hop-only -7.0. Restarted 16:12
+from `nav_latest.pth` (update ~21,900; copy `nav_pre_prior_fix_21900.pth`). Judge by the dashboard's
+APPROVED TAKEOFFS chart: takeoffs/min should rise to the approved-decision rate and the success % is
+the number that decides whether the plan holds (below ~60 % for an hour: widen LANDING_MARGIN to 1.5).
+Deterministic evals will now jump at approved gaps; compare against 142.5 (3x) / 144.9 (1x).
+
+### 28.36 HUMAN DEMO vs MODEL: the graph never valued the cuts (2026-09-24 21:28-21:34)
+
+Operator watched `nav_night_22680_138` at 1x (rounds 152, 144, 150: first real 150s) and saw no corner
+cuts, only pointless hops at the centre. A recorded demo round (`demos/demo_20260924_212808.npz`, 160 pts
+in 2.7 min, analysed by the new `python -m nav.demo_jumps <npz>`): **17 gap jumps, all landed, 6.3/min,
+takeoff 8.4-14.8 u/s (mean 10.7), takeoff-to-landing 9-15 u (mean 10.8), walking detour saved 7.3 u each
+(~125 u, ~15 s, ~10 points per round). The physics flag would approve 14/17 at the human's speed; the
+training graph had an edge for 2/17** (MAX_JUMP_GAP 6.5 at CRUISE 8). The model at the same spots: 6.8 u/s
+(range 7 u), 24 takeoffs in 2,367 visits. Closed loop: slow because the cut is not rewarded, not rewarded
+because the graph assumed slow. The centre hops: the 2 u centre hole was an approved in-graph crossing.
+**Applied:** `nav/physics.py` CRUISE_SPEED 8 -> 11 (MAX_JUMP_GAP 6.5 -> 9.0; KOTM edges 938 with gaps up
+to 8 u, the 7 u holes straight across included), MIN_JUMP_GAP 3.0 (graph and flag); `nav/obs.py`
+NAV_OBS_V4, VEC_DIM 57: gap block gains the speed ratio current / speed_for_gap(lip + gap) (/2, 0.5 = just
+enough) so the policy can learn to accelerate for a cut ahead. Checkpoint migrated with
+`logs/nav/migrate_obs_width.py` (V3 endpoint kept as `nav_v3_end_22700.pth`). The flag is unchanged
+(speed-conditioned), the prior binding (28.35): the field now pulls toward the cut, the policy is paid on
+landing only if it arrives fast enough, and it can see how much faster it needs to be.
+Prior best real rounds before this: 152/144/150 at 1x on 22680 (3 rounds, watch mode).
+Started 21:34 from `nav_v4_start_22700.pth` (= migrated V3 endpoint, update 22,715) as `nav_latest.pth`;
+phase-2 snapshot state moved to `night_best_phase2.json`. Judge by: APPROVED TAKEOFFS chart (expect longer
+crossings and higher takeoff speed over hours), speed at takeoff from `nav.demo_jumps`-style analysis of
+the trace, GAME bars. Human reference for the jump metrics: 6.3 gap jumps/min, 10.7 u/s, 10.8 u.
+
+### 28.37 OVERNIGHT 2026-09-24/25: speed nudges under operator autonomy. Target: a 170 single round
+
+Operator 23:25: "you are given autonomy overnight to apply the speed nudges you mentioned as needed" and
+"I want a 170 single score by morning" (best single training round so far 155, best real 152).
+After 2 h on the carrying-speed graph (28.36): score 136-137 sampled, approved jumps 0.35/min at 83-85 %
+success, crossings 8.7 u, but takeoff speed flat at 7.4 u/s (human 10.7). The flag opens only when the
+marble is fast; nothing paid for getting fast before the lip.
+**Nudge 1 applied 23:34 (this restart): RUNUP_K 0.3** in `nav/waypoints.py`: per decision, while a jumpable
+gap lies ahead along the heading (obs speed ratio > 0), the marble is not yet fast enough (ratio < 0.5)
+and the lip is within RUNUP_RANGE 10 u, pay 0.3 x speed gained (clipped to 1 u/s per decision; losses
+pay nothing). An 8-decision 6 -> 10 u/s build-up earns ~1.2. Worker passes `gap_ratio` and `lip_u` from
+the obs gap block. Pre-change checkpoint `nav_pre_runup_23060.pth`.
+**Protocol:** every 30 min read takeoff speed / approved rate / success / falls / score (trace analysis +
+GAME bars). ~01:30: if median takeoff speed at approved jumps is still < 8.0, nudge 2 = GEM_SPEED_BONUS
+16 -> 24 (general pace pressure). Revert any change whose 50-round mean sits below 130 for an hour.
+Snapshots of every 50-round high continue (`nav_night_*.pth`, `night_best.json`).
+**Nudge 1 result (23:34-01:25):** score rose to a new sampled high, 50-round 140.4 at 23,368 (falls 1.3;
+snapshot `nav_night_23368_140.pth`), approved rate 0.3-0.5/min at 76-89 % success, crossings 8.5-8.7 u,
+but takeoff speed at approved jumps stayed 7.1-7.6 u/s in every 16-min bucket: the credit did not change
+the approach. **Nudge 2 applied 01:23: GEM_SPEED_BONUS 16 -> 24** (pre-change `nav_pre_gsb24_23420.pth`).
+Revert trigger unchanged (50-round mean < 130 for an hour).
+
+### 28.38 Overnight result as of 05:50 on 2026-09-25 (run still going, nudges 1+2 in)
+
+Sampled 50-round means on KOTM since nudge 2 (01:23): 137.5, 135.7, 136.9, 138.2, 139.2, **142.2**
+(falls 0.8), 140.1, 138.3, 140.5, 140.2, 139.5, 139.7, 139.3, 140.3, 137.8, 139.6, 139.8. Run average
+139.3, falls 1.6/round, best single training round 154 (155 earlier in the evening). Best snapshot
+`nav_night_23705_142.pth` (142.3 sampled, 0.76 falls). KOTM pace between pickups 1.49 s (human 1.57).
+The 170 single-round target was NOT reached. Takeoff speed at approved jumps stayed 7.0-7.7 u/s through
+both nudges (human 10.7); approved jumps 0.25-0.5/min at 76-89 % success, crossings 8.1-9.1 u. Neither
+the run-up credit nor the bigger speed bonus changed how the marble arrives at a lip; the score gains
+came from pace and fewer falls. Morning job: 8 deterministic rounds on `nav_night_23705_142.pth` and on
+`nav_latest.pth` (expect ~145-150 real). Next lever for the cuts, not yet tried: a landing bonus scaled
+by crossing length, or a curriculum that starts rounds facing a cut (real-gem mode makes the latter hard).

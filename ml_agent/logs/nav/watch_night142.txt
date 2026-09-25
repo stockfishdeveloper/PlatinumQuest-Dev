@@ -1,0 +1,4 @@
+﻿[08:25:59] starting the navigator on port 8920 (it binds before anything else)
+[08:26:04] port 8920 is listening; safe to launch the game
+[08:26:04] launching KingOfTheMarble_Hunt on port 8920
+  game pid 30308; it will be answered the instant it reaches GO

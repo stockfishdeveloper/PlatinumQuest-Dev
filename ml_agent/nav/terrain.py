@@ -245,7 +245,7 @@ class TerrainGrid(TerrainMap):
 
     def _measured_jump_edges(self):
         """[(j, i, jj, ii, gap_u), ...]: takeoff walk cell, landing walk cell, gap length."""
-        from nav.physics import MAX_JUMP_GAP
+        from nav.physics import MAX_JUMP_GAP, MIN_JUMP_GAP
         present = np.isfinite(self.heights).any(0)
         H, W = present.shape
         heads = [(math.cos(2 * math.pi * k / JUMP_HEADINGS), math.sin(2 * math.pi * k / JUMP_HEADINGS)) for k in range(JUMP_HEADINGS)]
@@ -270,7 +270,7 @@ class TerrainGrid(TerrainMap):
                             break                  # floor continues: this heading has no lip here
                         continue
                     gap = d - d_void              # void samples span [d_void, d): their extent is d - d_void
-                    if gap > MAX_JUMP_GAP:
+                    if gap > MAX_JUMP_GAP or gap < MIN_JUMP_GAP:
                         break
                     zs = self.heights[:, jj, ii]; zs = zs[np.isfinite(zs)]
                     if len(zs) and np.any((zs - z0 >= -JUMP_DROP) & (zs - z0 <= JUMP_RISE)):

@@ -22,9 +22,18 @@ _DEFAULT_SPEED = np.array([0.0, 5.05, 5.61, 7.72, 9.52, 11.39, 13.29, 15.22, 17.
 _DEFAULT_RANGE = np.array([1.81, 5.95, 6.39, 7.28, 8.85, 10.26, 11.71, 13.18, 14.67])
 JUMP_APEX = 1.33            # u: the most a jump can rise (landing must be lower than this above the lip)
 JUMP_FLIGHT_S = 0.76        # s: same-height flight time
-LANDING_MARGIN = 0.5        # u: the marble centre must clear the far lip by this much to count as crossable
-CRUISE_SPEED = 8.0          # u/s: the speed the terrain graph assumes when admitting a jump edge
-                            # (the navigator's measured pace between pickups is 7-9 u/s)
+LANDING_MARGIN = 1.0        # 0.5 -> 1.0 on 2026-09-24 (HANDOFF 28.34): approved jumps succeeded only 66-71 % at 0.5
+                            # (forced-jump eval 117 pts / 56 falls). With 1.0 the marble centre must clear the far lip
+                            # by a full unit: the 7 u holes drop out at cruise speed, corner cuts and bays stay in.
+CRUISE_SPEED = 11.0         # 8 -> 11 on 2026-09-24 21:40 (HANDOFF 28.36): the speed the terrain graph assumes when
+                            # admitting a jump edge. The human demo of 21:28 made 17 gap jumps (all landed) at a mean
+                            # takeoff speed of 10.7 u/s crossing 9-15 u; at 8 u/s the graph admitted <= 6.5 u and held
+                            # an edge for 2 of the 17. The field must value the cut at the speed a marble CAN carry;
+                            # the crossable flag (speed-conditioned) still decides when it actually may jump.
+MIN_JUMP_GAP = 3.0          # u: gaps narrower than this are rolled around, never jumped (the 2 u centre hole made the
+                            # policy 'jump for the sake of jumping', operator 2026-09-24). KOTM-ONLY HACK, per the
+                            # operator: NOT a long-term lower bound. Remove (0.0) or replace with a detour-based test
+                            # before training other maps, where short gaps may be the jumps that matter.
 
 
 def _load():

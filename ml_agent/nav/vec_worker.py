@@ -31,7 +31,7 @@ from terrain_obs import TerrainMap                                              
 from nav.protocol import RAW_VEL                                                    # noqa: E402
 from nav.env import HuntEnv, OBS_MS                                                         # noqa: E402
 from nav.terrain import TerrainGrid                                                 # noqa: E402
-from nav.obs import ObsBuilder                                                      # noqa: E402
+from nav.obs import ObsBuilder, VEC_GAP                                             # noqa: E402
 from nav.joystick import action_to_joystick                                         # noqa: E402
 from nav.waypoints import SegmentManager, RoundOver                                 # noqa: E402
 from nav.gems import visible_gems, choose, STICKY_TOL                               # noqa: E402
@@ -232,6 +232,9 @@ class InstanceWorker:
         r, done, outcome = self.segs.step(msg.obs[:3], info['fell'], airborne, info['round_ended'], self.env.time_left_s(),
                                           braked=a[4] > 0.5, airborne_decisions=self.obs_b.airborne,
                                           jumped=a[3] > 0.5, vel=(float(msg.obs[3]), float(msg.obs[4])),
+                                          approved=bool(self.vec is not None and self.vec[VEC_GAP + 2] > 0.5),   # 28.34
+                                          gap_ratio=float(self.vec[VEC_GAP + 3]) if self.vec is not None else 0.0,   # 28.37 run-up credit
+                                          lip_u=float(self.vec[VEC_GAP]) * 20.0 if self.vec is not None else float('inf'),
                                           # elements 5-6 are the policy's MEAN direction when the
                                           # trainer supplies it. Charging TURN_COST on the SAMPLE
                                           # billed the policy for its own exploration noise (~17 deg
