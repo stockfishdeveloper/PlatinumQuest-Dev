@@ -14,23 +14,26 @@ import numpy as np
 from terrain_obs import EDGE_DIM
 from nav.protocol import RAW_POS, RAW_VEL
 from nav.terrain import CROP_SHAPE, JUMP_DROP, JUMP_RISE
-from nav.physics import crossable, speed_for_gap, MIN_JUMP_GAP
+from nav.physics import crossable, speed_for_gap, MIN_JUMP_GAP, jump_verdict
 from terrain_obs import RAY_RANGE
 
-NAV_OBS_VERSION = 'NAV_OBS_V4'   # V4 (2026-09-24, HANDOFF 28.36) adds the speed ratio for the gap ahead (GAP_DIM 3 -> 4)
+NAV_OBS_VERSION = 'NAV_OBS_V5'   # V5 (2026-09-25, HANDOFF 28.39): landing-predictor verdicts (GAP_DIM 4 -> 5)
+                                 # V4 (2026-09-24, HANDOFF 28.36) adds the speed ratio for the gap ahead (GAP_DIM 3 -> 4)
                                  # V3 (2026-09-23, HANDOFF 28.27) appends GAP_DIM: the gap along the velocity
                                  # V2 (2026-09-19) appends the NEXT gem: see NEXT_DIM below
 NEXT_DIM = 5                  # next gem: unit dx, unit dy, distance, dz, present flag
 VEC_NEXT = 10 + EDGE_DIM      # 48: where the next-gem block starts (appended AFTER the edge rays,
                               # so nav/model.py's fixed gap-prior indices 2/7/8/42/43 still hold)
 VEC_GAP = VEC_NEXT + NEXT_DIM # 53: where the gap block starts
-GAP_DIM = 4                   # along the velocity heading (or the waypoint bearing when slow):
+GAP_DIM = 5                   # along the velocity heading (or the waypoint bearing when slow):
+                              # [4] = lands even ballistic (V5); [2] = lands if forward is held (V5)
                               # lip distance / RAY_RANGE (1 = none), gap length / RAY_RANGE (1 = no
                               # landing), crossable at the CURRENT speed per nav/physics (0/1),
                               # speed ratio = current speed / speed the crossing needs, /2 clipped to 1
                               # (0.5 = exactly fast enough; below = accelerate; 0 = no gap ahead)
-VEC_DIM = VEC_GAP + GAP_DIM   # 57
+VEC_DIM = VEC_GAP + GAP_DIM   # 58
 GAP_MIN_SPEED = 1.0           # u/s: below this the gap features use the waypoint bearing
+PREDICT_LIP_MAX = 6.0         # u: the landing predictor runs only when the lip is this close (a decision is 0.5 u)
 WAYPOINT_DIST_SCALE = 50.0
 VEL_SCALE = 20.0
 ON_FLOOR_VZ = 0.3
@@ -89,12 +92,26 @@ class ObsBuilder:
             # 2026-09-24 04:40 (HANDOFF 28.30): the flight must cover the run-up to the lip AS WELL as the gap;
             # a jump pressed 2.5 u before a 7 u hole needs 9.5 u of range. Testing the gap alone told the
             # policy 'crossable' too early and half of its deliberate hole jumps fell short.
-            ok = (math.isfinite(gap) and gap >= MIN_JUMP_GAP and (-JUMP_DROP <= ldz <= JUMP_RISE) and bool(crossable(lip + gap, sp))
-                  and self.terrain.walkable_at(x, y))   # 28.34: 40 % of forced jumps were pressed already over the void
             if math.isfinite(gap) and gap >= MIN_JUMP_GAP and (-JUMP_DROP <= ldz <= JUMP_RISE):
                 need = speed_for_gap(lip + gap)
                 vec[VEC_GAP + 3] = min(1.0, (sp / need) / 2.0) if need > 0 else 1.0   # 28.36: how much faster to go
-            vec[VEC_GAP + 2] = 1.0 if ok else 0.0
+            # V5 (2026-09-25, HANDOFF 28.39): the approval is the LANDING PREDICTOR, not a gap-vs-range test.
+            # Integrate the jump arc from the current state over the height map (nav/physics.predict_landing),
+            # with a 1 u lateral tolerance and floor required under the takeoff point:
+            #   vec[VEC_GAP + 2]  lands on floor across a void if forward is held through the flight (achievable:
+            #                     approves 15/17 of the human demo's jumps, 18/22 of the model's landings)
+            #   vec[VEC_GAP + 4]  lands on floor whatever the marble does in the air (ballistic: 0 approved falls)
+            # MIN_JUMP_GAP still gates both (KOTM hack, see nav/physics.py).
+            ok_hold = ok_ball = False
+            # only when a lip is within a flight's reach (a jump covers at most ~13 u): keeps the obs at ~1 ms
+            if sp > GAP_MIN_SPEED and math.isfinite(gap) and gap >= MIN_JUMP_GAP and on_floor and lip <= PREDICT_LIP_MAX:
+                v_hold, land = jump_verdict(self.terrain, x, y, z, vx, vy, hold=True)
+                ok_hold = v_hold == 'floor' and bool(land and land['crossed_void'])
+                if ok_hold:
+                    v_ball, _ = jump_verdict(self.terrain, x, y, z, vx, vy, hold=False)
+                    ok_ball = v_ball == 'floor'
+            vec[VEC_GAP + 2] = 1.0 if ok_hold else 0.0
+            vec[VEC_GAP + 4] = 1.0 if ok_ball else 0.0
         return crop.astype(np.float32), vec, on_floor
 
 

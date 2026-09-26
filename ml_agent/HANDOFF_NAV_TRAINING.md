@@ -3518,3 +3518,67 @@ the run-up credit nor the bigger speed bonus changed how the marble arrives at a
 came from pace and fewer falls. Morning job: 8 deterministic rounds on `nav_night_23705_142.pth` and on
 `nav_latest.pth` (expect ~145-150 real). Next lever for the cuts, not yet tried: a landing bonus scaled
 by crossing length, or a curriculum that starts rounds facing a cut (real-gem mode makes the latter hard).
+
+### 28.39 LANDING PREDICTOR replaces the gap-vs-range flag (2026-09-25 morning). Operator's direction
+
+Morning 1x rounds on `nav_night_23705_142.pth` (= `nav_best_1x_150_23705.pth`): 30 rounds, mean ~150,
+best 159, first 8: 157,151,148,148,140,148,147,152 (148.9). Operator: the approval must come from
+physics ("if the marble is going at x speed on y heading, where will it land, on floor or gap?"), measured
+on a flat map, general to any map. Also: two of my earlier explanations were wrong and withdrawn
+(in-air steering as the cause of falls: air control is at most 5-7 u/s^2, ~1.4 u over a flight; and a
+"committed flight" override, rejected: no control taken from the policy).
+**Built (`nav/physics.py`):** `predict_landing(terrain, x, y, z, vx, vy, hold, jump)`: integrate the arc
+(VZ0 7.31, G 20, A_AIR 7.0 along the heading when forward is held, R_MARBLE 0.25) over the height map in
+16 ms steps, one heights_at call per arc; verdict floor / edge / wall (met a face) / void; landing point,
+flight time, drop. `jump_verdict(terrain, ..., hold)`: floor only if the arc from a point WITH floor under
+it lands, and so do the arcs shifted +-1 u laterally. `python -m nav.validate_landing` scores it:
+* flat strip: predicted range within 0.4 u of the measured at 5-17 u/s (conservative side).
+* human demo (17 jumps, all landed): hold=True approves 15/17; hold=False 8/17.
+* model 1x rounds (32 takeoffs): hold=True approved-and-fell 3 / refused-but-landed 4 (the 3 falls were
+  flights where the policy BRAKED mid-air: receipts in the session log); hold=False 0 / 12.
+Root causes of the earlier "approved but fell": the ray flag assumed forward held (3 cases), pressed
+jump past the lip with no contact (2), a bounce misread as a jump (1). None was air steering.
+**Wired (NAV_OBS_V5, VEC_DIM 58):** gap block = [lip, gap, LANDS-IF-FORWARD-HELD, speed ratio, LANDS-
+BALLISTIC]; the prior fires on the hold verdict (index unchanged); MIN_JUMP_GAP still gates (KOTM hack).
+Obs build 1.3 ms. Checkpoint migrated: `nav_v4_end_24570.pth` -> `nav_v5_start_24570.pth` = `nav_latest`.
+Not yet done: retrain on it (needs the 1x loop stopped), replace the graph's MAX_JUMP_GAP rule with the
+predictor, drop MIN_JUMP_GAP once the predictor's field costs make it unnecessary.
+
+### 28.40 The predictor made engine-exact (2026-09-25, ~10:00-12:00)
+
+Operator: "the goal is to be literally as close to deterministic about where the marble will land".
+Done: (1) `nav/fine_terrain.py`: a 0.1 u height raster of the .dif floors per map
+(`terrain_maps/terrain_fine_<map>.npz`, built on first use; KOTM 476x475 cells); the predictor reads it,
+the crop / walk grid stay at 0.5 / 1.0. (2) `predict_landing` integrates the way marble.cc does: 8 ms
+sub-steps, velocity then position; VZ0 7.40 (jumpImpulse 7.5 minus the ~0.1 outgoing velocity of a
+rolling marble), G 20, A_AIR 6.8 along the heading when forward is held, LAUNCH_DELAY 0.032 s.
+(3) `nav/measure_arc.py` captured per-tick trajectories (trainer stopped, one game): 6/8/10/12 u/s x
+{forward held, hands off, stick left} + a drop, in `logs/physics/arcs_KingOfTheMarble_Hunt.csv`.
+Receipts: apex 1.336-1.346 measured vs 1.340 simulated on all 12 runs; same-height flight 0.736 s vs
+0.732; hold-forward ranges 8.55/9.91/11.30 vs 8.56/9.92/11.32 at 8/10/12 u/s; hands-off at 12 u/s 9.39 vs
+9.40; lateral acceleration with the stick held 6.8 u/s^2; gravity 20.0 tick to tick. Also learned: the
+impulse fires 2 ticks (32 ms) after the key; a landing with NO input bounces (~0.45 restitution), with
+forward held it does not (relevant near lips). Verdict scores on the 32 model takeoffs unchanged by the
+exactness pass (the errors were inputs and contact, not physics): hold-forward 18/22 landings approved,
+3 approved falls (all mid-air braking), ballistic 0 approved falls; human demo 15/17 approved.
+The 1x loop on `nav_night_23705_142` ran 78 rounds in the meantime: mean 150.6 (best 159, 129 gems max).
+**Training restarted 12:41 on V5** from `nav_v5_start_24570.pth` (= nav_latest, update 24,590): the prior
+fires on the hold-forward landing verdict, the ballistic verdict is a second input, run-up credit and
+GEM_SPEED_BONUS 24 kept, watchdog + 15-min summary on (phase-3 snapshot state fresh). Judge by: approved
+takeoffs/min and their success on the dashboard (expect success to climb toward the verdict's own 85-90 %
+as the policy learns to hold forward), takeoff speed, GAME bars. Reference real-round score for the
+weights before this change: 150.6 over 78 rounds at 1x.
+
+### 28.41 Afternoon 2026-09-25 on V5: plateau diagnosed as LINES, training stopped 18:05 by the operator
+
+V5 run 12:44-18:05 (updates 24,592-25,520): sampled 50-round means 138-142 the whole time (best 143.4 at
+25,237, falls 1.34: `nav_night_25237_143.pth`), jump side: approved takeoffs 0.7-0.85/min (twice the old
+flag) at 82-90 % success, crossings 8.3-8.8 u, takeoff speed 6.9-7.2 u/s unchanged. Endpoint
+`nav_v5_end_25520.pth`. Operator: "why is the score not going up". Time budget, 78 model rounds at 1x vs
+the human demo: time below 5 u/s identical (11.3 vs 11.2 %), falls now ~0.5 s/round, but time at >= 12 u/s
+2.7 % vs 12.6 % (mean speed 8.09 vs 8.65). The gap is sustained top-speed LINES through several gems; the
+reward pays progress to the CURRENT gem (PROGRESS_NEXT only 0.3) and DIR_GOAL_GAIN 30 drags the heading
+onto it every decision, so the policy zigzags at 9-11 u/s. Proposed, awaiting the operator: (1) progress
+against a route through the next 2-3 gems with the next-gem weight raised toward parity; (2) ease
+DIR_GOAL_GAIN 30 -> ~15; (3) in reserve, a speed premium above 10 u/s. Training STOPPED; nothing running.
+Rollback: commit "Baseline before jump physics" + `nav_best_1x_150_23705.pth` (150.6 over 78 real rounds).

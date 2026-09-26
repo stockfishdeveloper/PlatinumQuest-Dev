@@ -10,7 +10,7 @@ while true; do
   [ -z "$f" ] && continue
   w=$(grep -o "wall_s=[0-9]*" "$f" | tail -1 | cut -d= -f2)
   age=$(( $(date +%s) - $(stat -c %Y "$f") ))
-  if [ -n "$w" ] && [ "$w" -ge 26 ] && [ "$age" -lt 300 ]; then slow=$((slow+1)); else slow=0; fi
+  if [ -n "$w" ] && [ "$w" -ge 36 ] && [ "$age" -lt 300 ]; then slow=$((slow+1)); else slow=0; fi
   echo "$(date +%H:%M:%S) wall_s=${w:-?} slow=$slow"
   if [ "$slow" -ge 3 ]; then
     echo "$(date +%H:%M:%S) throughput halved for 3 readings: relaunching the game instances"
