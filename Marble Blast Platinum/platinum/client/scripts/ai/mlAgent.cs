@@ -374,13 +374,16 @@ function MLAgent::update(%gen) {
             // a teleported marble kept its SPIN, which turned into a roll in an arbitrary
             // direction on landing (the navigator's "wrong direction" segments, 2026-09-17).
             // Reset both the client marble and the server-side player object.
-            $MP::MyMarble.setAngularVelocity("0 0 0");
+            // 2026-09-26 (physics plan): optional words 7-9 set the spin instead of zeroing it,
+            // so a teleported marble can start rolling without skidding: TELEPORT x y z vx vy vz wx wy wz
+            %spin = (getWord(%actionStr, 7) !$= "") ? (getWord(%actionStr, 7) SPC getWord(%actionStr, 8) SPC getWord(%actionStr, 9)) : "0 0 0";
+            $MP::MyMarble.setAngularVelocity(%spin);
             if (isObject(ClientGroup) && ClientGroup.getCount() > 0) {
                 %scl = ClientGroup.getObject(0);
                 if (isObject(%scl) && isObject(%scl.player) && %scl.player != $MP::MyMarble) {
                     %scl.player.setTransform(%tp);
                     %scl.player.setVelocity(getWord(%actionStr, 4) !$= "" ? (getWord(%actionStr, 4) SPC getWord(%actionStr, 5) SPC getWord(%actionStr, 6)) : "0 0 0");
-                    %scl.player.setAngularVelocity("0 0 0");
+                    %scl.player.setAngularVelocity(%spin);
                 }
             }
             echo("MLAgent: teleported to " @ %tp @ " by the Python server");
@@ -514,7 +517,12 @@ function MLAgent::update(%gen) {
            @ "|clientPos=" @ (isObject($MP::MyMarble) ? $MP::MyMarble.getPosition() : "?")
            @ "|serverPos=" @ (isObject(%sp) ? %sp.getPosition() : "?")
            @ "|control=" @ (isObject(ServerConnection) ? ServerConnection.getControlObject() : "?")
-           @ "|gravRot=" @ $Game::GravityRot @ "|oob=" @ (isObject(%cl) ? %cl.isOOB : "?");
+           @ "|gravRot=" @ $Game::GravityRot @ "|oob=" @ (isObject(%cl) ? %cl.isOOB : "?")
+           // 2026-09-26 (physics plan): spin and velocity of both marble objects
+           @ "|clientOmega=" @ (isObject($MP::MyMarble) ? $MP::MyMarble.getAngularVelocity() : "?")
+           @ "|serverOmega=" @ (isObject(%sp) ? %sp.getAngularVelocity() : "?")
+           @ "|clientVel=" @ (isObject($MP::MyMarble) ? $MP::MyMarble.getVelocity() : "?")
+           @ "|serverVel=" @ (isObject(%sp) ? %sp.getVelocity() : "?");
         echo("MLAgent: DEBUG requested -> " @ %d);
         AIBridge::sendState(%d);
         $AIBridge::LastAction = "";

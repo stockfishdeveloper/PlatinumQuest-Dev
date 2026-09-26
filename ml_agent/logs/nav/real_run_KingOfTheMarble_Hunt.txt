@@ -1,5 +1,7 @@
-warm-up: model ready in 0.19 s, terrain "KingOfTheMarble_Hunt" pre-built
+warm-up: model ready in 0.20 s, terrain "KingOfTheMarble_Hunt" pre-built
 [env:8920] waiting for the game
 [env:8920] game connected (1)
 WATCH mode: every frame drawn, 4 sim slice(s) per 64 ms decision, real time
-real run: nav_night_25237_143.pth (update 25235) on KingOfTheMarble_Hunt, 1 round(s), port 8920
+real run: nav_fall25_end_26830.pth (update 26830) on KingOfTheMarble_Hunt, 3 round(s), port 8920
+stuck-breaker #1 at (-22.9,4.1) decision 1734: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #2 at (-18.7,15.4) decision 1956: state reset, path waypoint + sampling for 24 decisions

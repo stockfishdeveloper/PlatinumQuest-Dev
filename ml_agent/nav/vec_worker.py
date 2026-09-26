@@ -34,7 +34,10 @@ from nav.terrain import TerrainGrid                                             
 from nav.obs import ObsBuilder, VEC_GAP                                             # noqa: E402
 from nav.joystick import action_to_joystick                                         # noqa: E402
 from nav.waypoints import SegmentManager, RoundOver                                 # noqa: E402
-from nav.gems import visible_gems, choose, STICKY_TOL                               # noqa: E402
+from nav.gems import visible_gems, choose, plan_tour, STICKY_TOL                    # noqa: E402
+TOUR = os.environ.get('NAV_TOUR', 'walk')   # 2026-09-26 (HANDOFF 28.51, operator): real-gem training picks gems with the
+                              # WHOLE-SPAWN planner (nav/gems.plan_tour, walk-only Dijkstra distances), the same default as
+                              # nav/real_run.py. '' = the old greedy chooser; 'euc' = straight-line distances.
 
 # Frame check (2026-09-17): a segment whose marble accelerates against its commands (cosine
 # < FRAME_FLIP_COS over the first FRAME_CHECK_N rolling decisions) is corrupted game state;
@@ -97,6 +100,21 @@ class InstanceWorker:
         self.real = REAL_GEMS and bool(getattr(t, 'gem_spawns', None)); self.segs.real_mode = self.real
         self.log(f'real-gem training mode: {self.real}')
         self.log(f'mission {name}: terrain {t.W}x{t.H} @ {t.res} u, walkable {int(t.walkable.sum())} cells')
+        self.tour_fields = {}                 # walk-only Dijkstra field per gem position (TOUR == 'walk'), per map
+        self.log(f'gem chooser: {"whole-spawn planner (" + TOUR + ")" if TOUR else "greedy"}')
+
+    def walk_dist(self, a, g):
+        key = (round(g[0], 1), round(g[1], 1))
+        f = self.tour_fields.get(key)
+        if f is None:
+            f = self.tour_fields[key] = self.terrain.goal_field(g[0], g[1], jumps=False)
+        return self.terrain.dist_at(f, float(a[0]), float(a[1]), (g[0], g[1]))
+
+    def pick(self, vis, current, pos, vel):
+        """Target and next gem: the whole-spawn planner by default (TOUR), else the greedy chooser."""
+        if TOUR:
+            return plan_tour(vis, current, pos, vel, dist=(self.walk_dist if TOUR == 'walk' else None))
+        return choose(vis, current, pos, vel)
 
     def sync_map(self):
         if not self.env.info.get('mission'):
@@ -138,7 +156,7 @@ class InstanceWorker:
                         self.segs._step_checked(self.env, 1)
                     if vis:
                         o = self.env.msg.obs
-                        tgt, nxt = choose(vis, None, o[0:2], o[3:5])
+                        tgt, nxt = self.pick(vis, None, o[0:2], o[3:5])
                         self.goal = self.segs.begin(self.env, real_goal=tgt[:3], real_next=(nxt[:3] if nxt else None))
                         self.target = tgt
                         break
@@ -282,7 +300,7 @@ class InstanceWorker:
             if self.real:
                 vis = visible_gems(msg.obs)
                 if vis:
-                    tgt, nxt = choose(vis, self.target, msg.obs[0:2], msg.obs[3:5])
+                    tgt, nxt = self.pick(vis, self.target, msg.obs[0:2], msg.obs[3:5])
                     g = self.segs.seg.goal
                     want = (nxt[:3] if nxt else None)
                     if tgt is not None and math.hypot(tgt[0] - g[0], tgt[1] - g[1]) > STICKY_TOL:

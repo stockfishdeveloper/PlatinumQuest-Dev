@@ -1,0 +1,15 @@
+warm-up: model ready in 0.20 s, terrain "KingOfTheMarble_Hunt" pre-built
+[env:8920] waiting for the game
+[env:8920] game connected (1)
+WATCH mode: every frame drawn, 4 sim slice(s) per 64 ms decision, real time
+real run: nav_night_26113_142.pth (update 26110) on KingOfTheMarble_Hunt, 100 round(s), port 8920
+stuck-breaker #1 at (-25.2,3.7) decision 1254: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #2 at (-23.7,12.2) decision 1285: state reset, path waypoint + sampling for 24 decisions
+  round 1: {'round': 1, 'gems': 121, 'points': 153.0, 'minutes': 3.03, 'decisions': 2842, 'countdown_decisions': 45, 'gems_per_min': 39.9, 'points_per_min': 50.5, 'falls': 1, 'falls_per_100u': 0.064, 'travelled_u': 1569.8, 'speed': 8.63, 'blind_pct': 0.0, 'stuck_breaks': 2, 'snapped_pct': 0.0, 'pathed_pct': 0.0, 'smooth': 1.0}
+[env:8920] round over (time left 180s of 180s); waiting for the next round
+[env:8920] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+stuck-breaker #1 at (-11.8,13.5) decision 724: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #2 at (-23.7,1.0) decision 2774: state reset, path waypoint + sampling for 24 decisions
+  round 2: {'round': 2, 'gems': 122, 'points': 153.0, 'minutes': 3.03, 'decisions': 2842, 'countdown_decisions': 46, 'gems_per_min': 40.2, 'points_per_min': 50.5, 'falls': 1, 'falls_per_100u': 0.067, 'travelled_u': 1489.4, 'speed': 8.19, 'blind_pct': 0.0, 'stuck_breaks': 2, 'snapped_pct': 0.0, 'pathed_pct': 0.2, 'smooth': 1.0}
+[env:8920] round over (time left 180s of 180s); waiting for the next round
+[env:8920] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)

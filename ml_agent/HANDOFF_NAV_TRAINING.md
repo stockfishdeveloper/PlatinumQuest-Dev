@@ -3582,3 +3582,306 @@ onto it every decision, so the policy zigzags at 9-11 u/s. Proposed, awaiting th
 against a route through the next 2-3 gems with the next-gem weight raised toward parity; (2) ease
 DIR_GOAL_GAIN 30 -> ~15; (3) in reserve, a speed premium above 10 u/s. Training STOPPED; nothing running.
 Rollback: commit "Baseline before jump physics" + `nav_best_1x_150_23705.pth` (150.6 over 78 real rounds).
+
+### 28.42 Night of 2026-09-25/26: measurements, pre-spin, kotmjump, and REWARD = GAME SCORE step 1
+
+**Measurements (analysis only):**
+* Gap crossings >= 3 u of void, per minute: human 6.3 (4.5 with a jump), training 0.12-0.20, 1x inference
+  0.00-0.05. Training crosses 2.5-4x more often than inference (sampled jumps; heading noise sweeps the landing
+  check), but both are 30-50x below the human. Jump approval fires 1.1-1.3/min in training, 0.25/min at 1x.
+* "The model is slow before jumps" was a SELECTION ARTIFACT: the human's 10.4 u/s is the speed at which the
+  human chose to jump. Mean speed is equal (human 8.13, model 8.09-8.25). What differs is the top end (>= 12 u/s
+  11.3 % vs 2.7-3.4 %) and BRAKING INTO GEMS. Speed at the gem by where the next gem is (ahead / side /
+  behind): human 11.4 / 7.1 / 5.4, model 7.7 / 7.6 / 5.8. The model uses one arrival speed. It brakes by
+  steering backward (brake key 0 %) from ~5 u out, in training as well. Of ~29 straight-ahead pickups per
+  round, ~20 are the 4 centre gems (human 11.1, model 7.4). The game's pickup radius is ~1.0 u (max over 9,272
+  pickups: 0.99).
+* Heading at 1x (deterministic, nothing sampled): the command's error against the straight line to the gem is
+  the same as the human's when the gem is >= 6 u away (median 22 deg vs 21). The command changes 8-12 deg
+  PER DECISION (median), where the human holds (0.4-0.9 deg).
+* Inference-only ring override (no backward thrust on straight approaches along the outer ring) raised
+  ring-row arrival 11.0 -> 12.8 u/s. Score was not measurable in 2-3 rounds. REVERTED at the operator's
+  request.
+
+**Smoothing sweep (NAV_SMOOTH, 3x, 8 rounds per arm, nav_night_25237_143):** off 151.2 (1.5 falls/round),
+0.75 152.6 (+1.4 +- 2.2, 1.0 falls), 0.5 134.9 (4.4 falls), 0.3 50.2 (28 falls). Acceleration at 8-12 u/s did
+not improve with smoothing, so jitter is not what limits acceleration. Not adopted. This 151.2 is the current
+3x baseline (pre-spin on).
+
+**PRE-SPIN (operator request, verified by the operator at 1x): mlAgent.cs.** The Ready/Set countdown is now
+PLAYED. The marble is in Start mode (marble.cc, mMode == 2: friction and horizontal velocity zeroed, control
+torque applied), so input spins it in place and GO turns the spin into speed. Changes:
+* onGameStart connects at round load; autoRestart 1000 -> 100 ms; start() skips the 500 ms wait when the socket
+  is already up.
+* update() allows the countdown via MLAgent::inCountdown(): $Game::State in start/ready/set, the marble not at
+  the origin, 6 settle ticks.
+* checkDone's time test only fires after the clock starts.
+* -autotrain games apply VIEWYAW 0 from the first frame (MLAgent::viewYawWatch), so the camera no longer
+  swings after GO.
+* Recording mode is unchanged.
+
+real_run.py keeps countdown decisions out of the stuck-breaker, the trace and minutes/speed
+('countdown_decisions' in the round row). It also gained NAV_TRACE / NAV_TAG, so A/B arms can run side by side.
+
+**kotmjump (operator request): `data/multiplayer/hunt/custom/kotmjump.mcs`.** A KOTM copy with gemGroups = 1:
+4 groups, one per big hole. Each group is corner + side + centre gem + a gem floating over the hole centre
+(x = -30.25/-20.25, y = 10.05/20.05, z = 21.7, ~2 marble diameters above the floor). Terrain maps
+terrain_kotmjump / terrain_fine_kotmjump were generated; the walk grid is identical to KOTM's.
+nav/terrain's spawn list keeps only 14 of the 16 gems: the west hole gems are > 2 cells from floor. Real
+rounds are unaffected.
+* 1x result on nav_night_25237_143: 3 gems / 4 points / 45-46 falls per round. It never took a floating gem,
+  so the round stalls on the first group. It arrives at the lip at 5-6 u/s and freezes; most "jumps" are
+  stuck-breaker samples.
+* Physics model (predict_landing arc, west approach): a real jump 0.5-1.3 u before the lip at >= 6 u/s already
+  passes within 0.2 u of the gem. Landing on the centre walkway needs 8-11 u/s; >= 12 overshoots into the next
+  hole.
+* Operator: keep the map, DO NOT train on it for now. Generalisation plan discussed: varied jump maps plus one
+  held-out test map.
+
+**REWARD = GAME SCORE, step 1 (operator-approved "reward = game rules only, small OOB marker"): nav/waypoints.py**
+* FALL 25 -> 5 and FALL_AFTER_JUMP 6 -> 5. Hypothesis: 25 on top of the implicit cost (the lost ground is
+  unpaid progress; later gems are discounted) made caution cheap, hence braking into every gem.
+* ARRIVE is paid PER POINT in real-gem mode (yellow = 20).
+* Everything else unchanged. Note that a flat TIME cost cannot create urgency in fixed-length rounds.
+
+Started 01:04 on 2026-09-26 from `nav_night_25237_143.pth` (update 25,235) as nav_latest; the V5 endpoint is
+kept as nav_v5_end_25520.pth. Rotation 7 KOTM / 1 Islands. Snapshot state reset (V5 state archived as
+night_best_v5.json). Helpers deduplicated: 43 stale copies of game_summary.sh / game_watchdog.sh were killed
+and one of each restarted.
+
+**Judge step 1 by:** the sampled 50-round KOTM mean (V5 lineage 138-142; best50 143.4), falls per round (~1.3-2
+before; a rise is expected), and speed at the gem with the next gem ahead (7.7). Then 8 rounds at 3x against
+151.2.
+
+**Step 2** (approved, my call after step 1 reads out): ALIGN_BONUS 0.10, RUNUP_K 0.3, JUMP_TAKEOFF 0.1, AIR 0.1
+and BRAKE 0.05 all -> 0. PROGRESS 1.0, GEM_SPEED_BONUS 24/60, PROGRESS_NEXT 0.3 and TIME 0.05 are kept.
+
+### 28.43 Step 1 read-out and STEP 2 applied (2026-09-26 03:45)
+
+**Step 1, 01:04-03:40** (updates 25,235-25,715, 1,323 KOTM training rounds, sampled policy):
+* Score held: mean 140.0 over the run, 50-round means 138.5-143.0 (best 143.0 at 25,485, snapshot
+  nav_night_25485_143.pth), the same as the pre-change level of 138-142.
+* Falls rose from ~1.8 to 2.3 per round on average (3.1 in the last 50).
+* Speed at the gem when the next gem is ahead, training trace: 7.79 (V5) -> 7.97 -> 8.12 -> 8.20. Side 7.9 and
+  behind 7.0 stayed put, so arrival speed is starting to depend on the next gem.
+* Seconds per pickup: 1.42 -> 1.39.
+* Endpoint saved as nav_step1_end_25715.pth; snapshot state archived as night_best_step1.json.
+
+Verdict: holds the score and moves arrival speed the intended way, so step 2 was applied (operator-approved on
+this condition).
+
+**Step 2, nav/waypoints.py:** ALIGN_BONUS 0.10, RUNUP_K 0.3, JUMP_TAKEOFF 0.1, AIR 0.1 and BRAKE 0.05 all -> 0.
+The reward is now:
+* per point picked up: ARRIVE 10
+* per gem, for time between pickups: GEM_SPEED_BONUS 24/60
+* distance guide: PROGRESS 1.0 and PROGRESS_NEXT 0.3
+* per decision: TIME 0.05 (neutral)
+* per fall: FALL 5
+
+Trainer restarted at ~03:46 from nav_latest (25,715); the games stayed up and reconnected. Watch: the brake-key
+share (free now), takeoffs and falls (jumping is free now), 50-round mean vs 140, and speed at the gem when the
+next gem is ahead (8.2).
+
+### 28.44 Overnight read-out, 07:40 on 2026-09-26 (step 2 still running)
+
+Sampled KOTM training rounds (not deterministic evals):
+
+| phase | updates | rounds | mean | 50-round range | falls/round | ahead / side / behind speed at gem | s/pickup |
+|---|---|---|---|---|---|---|---|
+| V5 before (baseline) | - | - | 138-142 | best 143.4 | ~1.3-2 | 7.79 / 7.91 / 6.97 | 1.42 |
+| step 1 (FALL 5, ARRIVE/point) | 25,235-25,715 | 1,323 | 140.0 | 138.5-143.0 | 2.3 | 8.20 / 7.83 / 7.04 | 1.39 |
+| step 2 (behaviour terms 0) | 25,720-26,408 | 1,905 | 139.9 | 135.1-142.5 | 2.4 | 8.36 / 8.02 / 7.07 | 1.38 |
+
+* Score has not moved. Arrival speed when the next gem is ahead rose steadily (+0.57 u/s) and seconds per pickup
+  fell 1.42 -> 1.38; the gems-behind speed did not rise. That is the intended shape, but small.
+* Falls: 2.3-2.4/round on average, up from ~1.8. They peaked at 3.3 around 04:40 and have been 1.6-2.9 since.
+* Freezes: an occasional frozen round (65, 68, 35 points) shows up about once an hour. Training has no
+  stuck-breaker.
+* Nothing crashed; the watchdog never had to relaunch the games.
+
+Snapshots:
+* nav_night_25485_143.pth (step 1 best 50)
+* nav_step1_end_25715.pth
+* nav_night_25759_141.pth
+* nav_night_26113_142.pth (step 2 best 50, falls 1.6)
+
+Not done: a deterministic 8-round eval at 3x against 151.2. It needs a 9th game instance, which does not fit on
+the GPU next to the trainer (real_run.ps1 refuses without -Force), and training must not be stopped without
+the operator.
+
+### 28.45 Morning eval 2026-09-26 (3x, 8 deterministic rounds, training paused 08:27-08:35)
+
+| checkpoint | rounds | mean (se) | falls/round | vs pre-change |
+|---|---|---|---|---|
+| pre-change nav_night_25237_143 (28.42 sweep, off arm) | 150 146 155 149 153 156 155 146 | 151.2 (1.4) | 1.5 | - |
+| step 2 best 50 window, nav_night_26113_142 | 156 149 144 159 154 150 152 161 | 153.1 (2.0) | 1.6 | +1.9 +- 2.4 |
+| step 2 endpoint, nav_step2_pause_26535 | 134 158 141 143 138 148 161 151 | 146.8 (3.4) | 3.4 | -4.5 +- 3.7 |
+
+Verdict: no measurable gain from steps 1+2 on the deterministic score.
+* The best-window snapshot matches the pre-change checkpoint. It was chosen as the peak of noisy sampled means,
+  so its +1.9 is the upper edge of what the run offers.
+* The endpoint is lower, and the whole difference is falls (3.4 vs 1.5 per round).
+* Arrival speed rose (training trace: ahead-gem speed 7.8 -> 8.4) but did not convert into points; the cheaper
+  fall (5) was spent on falling.
+
+Training resumed 08:35 on step 2 from nav_latest (26,535); the operator decides the next change.
+
+### 28.46 FALL back to 25 (2026-09-26 08:47, operator)
+
+Following 28.45 (FALL 5 spent the cheaper falls on falling), FALL is 25 again. FALL_AFTER_JUMP stays 5 (was 6
+before 28.42), ARRIVE stays per point, and the step 2 zeros stay. Trainer restarted from nav_latest (26,570);
+the endpoint was saved as nav_step2_end_26570.pth and the step 2 snapshot state archived as
+night_best_step2.json. The games stayed up. Judge against: 3x eval 151.2 / 1.5 falls (pre-change), 153.1 / 1.6
+(nav_night_26113_142); training 50-round mean ~140 and ahead-gem speed 8.4. The hope is that falls return to
+~1.5-2 while the small arrival-speed gain stays.
+
+### 28.47 FALL-25 read-out and eval (2026-09-26 10:15-10:30); training STOPPED by the operator
+
+The FALL-25 run (28.46) went from update 26,570 to 26,830. Training 50-round means were 135-141, falls 2.0-3.3.
+Training was stopped by the operator at ~10:14. Endpoint saved as nav_fall25_end_26830.pth.
+
+3x eval, 8 deterministic rounds each:
+
+| checkpoint | rounds | mean (se) | falls/round | vs pre-change 151.2 |
+|---|---|---|---|---|
+| nav_fall25_end_26830 | 159 144 158 144 153 157 152 149 | 152.0 (2.1) | 1.9 | +0.8 +- 2.5 |
+| nav_night_26778_141 | 158 151 146 159 153 151 148 156 | 152.8 (1.6) | 2.0 | +1.5 +- 2.2 |
+
+Summary of the whole reward change (28.42-28.47):
+* Every evaluated checkpoint is within noise of the pre-change 151.2: step 2 best +1.9, FALL-25 end +0.8, FALL-25
+  best +1.5.
+* The only outlier is the step-2 endpoint: -4.5, with 3.4 falls/round under FALL 5.
+* Restoring FALL 25 brought eval falls back to ~2 per round.
+
+Net result: the reward is now closer to the game rules (points per pickup, the five behaviour terms at 0) at no
+cost, but there is no measurable gain. The speed-into-gems habit moved only slightly (training trace 7.8 ->
+8.4 u/s).
+
+Current reward: ARRIVE 10 per point, GEM_SPEED_BONUS 24/60, PROGRESS 1.0, PROGRESS_NEXT 0.3, TIME 0.05, FALL 25,
+FALL_AFTER_JUMP 5, ALIGN/RUNUP/JUMP_TAKEOFF/AIR/BRAKE 0.
+
+Next candidates, waiting on the operator:
+* spin in the observation (V6; verified readable and settable, see PHYSICS_PLANNER_PLAN.md section 10);
+* the learned jump-outcome model (PHYSICS_PLANNER_PLAN.md v1).
+
+### 28.48 ARRIVE back to per gem (2026-09-26 ~10:45, operator)
+
+ARRIVE pays 10 per gem again, whatever its colour. Paying per point could pull the marble toward yellow gems
+instead of along the most efficient path through the spawn. The gem ORDER itself is set by nav/gems.choose, not
+the policy.
+
+The reward is now the pre-28.42 reward minus the five behaviour terms, with FALL_AFTER_JUMP 5 instead of 6.
+Training remains stopped.
+
+### 28.49 Distance per gem spawn: the 170-level human wins on ROUTE LENGTH (2026-09-26 ~11:00)
+
+KOTM spawns are always 4 gems. Each spawn was measured from the pickup that cleared the previous group to the
+pickup that clears this one (respawn teleports excluded; the first spawn of each round skipped).
+
+| | distance / spawn | time / spawn | speed over spawn |
+|---|---|---|---|
+| human, best two rounds (177, 172; demo 09-14 rounds 2-3) | 45.1 u | 5.15 s | 8.77 u/s |
+| human, all 7 recorded rounds | 50.4 u | 6.18 s | 8.16 u/s |
+| model nav_fall25_end_26830 + nav_night_26778_141, 16 rounds 3x | 50.7 u | 5.90 s | 8.59 u/s |
+
+* NOTE: "human = 143.5" (the recorded-demo average used since 2026-09-14) mixes 163 / 177 / 172 with 121 / 119 /
+  109. The 170-level rounds ARE recorded (09-14 rounds 2-3). Compare per round.
+* Against the best human rounds the model takes 15 % longer per spawn: 12 % from a longer route, 2 % from speed.
+* The 09-24 demo's 17 gap jumps saved ~7.3 u each (28.36), ~4.6 u per spawn, close to the whole 5.6 u
+  difference. So hole-crossing jumps are the main lever on KOTM itself, not only on kotmjump. To confirm: count
+  gap jumps in 09-14 rounds 2-3.
+
+**28.49 addendum: jump count and route split (same morning).**
+* Gap jumps per round (flight over real void, then landing):
+  * human 09-14: 18 / 12 / 15 / 9 / 18 / 27 in rounds of 163 / 177 / 172 / 121 / 119 / 109;
+  * the 177 and 172 rounds saved 3.0-3.3 u of walking per spawn;
+  * model: 1.6 per round, 0.3 u per spawn.
+  * The weakest human round jumped the most and still had the longest route, so jumps are not the whole story.
+* Route split, spawns without falls:
+  * human best two: straight lines between the 4 pickups 41.6 u, travelled 45.1 u (ratio 1.084);
+  * model: 43.2 u, travelled 50.1 u (ratio 1.160).
+* Of the 5.0 u gap:
+  * ~3.3 u is path straightness. It matches the human's jump savings: flying straight across holes vs rolling
+    around them.
+  * ~1.7 u is where the pickups happen (gem order, and/or grabbing gems at the edge of the ~1 u pickup range
+    instead of rolling through the centre). Not yet separated.
+* Rough time split against the 170-level rounds (model 15 % slower per spawn): about 8 from jumps, about 4 from
+  pickup order and position, about 2 from speed.
+
+### 28.50 Whole-spawn gem order (2026-09-26 ~11:10): fixes the order, no points at inference; PARKED
+
+Setup:
+* Analysis first (per spawn, vs the human's 177 / 172 rounds): of the model's ~1.6 u route gap from pickup
+  positions, ~0.7 u is gem ORDER (set by the fixed chooser, not learnable today), ~0.5 u is pickup clipping
+  (human 0.67 u off-centre vs model 0.53 u), and ~0.3 u is spawn luck.
+* Built: nav/gems.py plan_tour() scores every order of the visible gems (leg distances + the momentum cost of the
+  first turn + TOUR_TURN_U 6 x sin(turn/2) at each gem, sticky with TOUR_SWITCH 0.9). Used only by real_run.py
+  when NAV_TOUR is 'euc' (straight lines) or 'walk' (walk-only Dijkstra). Default '' = unchanged; training is
+  unchanged.
+
+3x, 8 rounds each, nav_fall25_end_26830:
+
+| chooser | mean | falls/rd | distance/spawn | time/spawn | order loss (walk) | best order taken |
+|---|---|---|---|---|---|---|
+| greedy (current) | 151.4 | 1.9 | 51.6 u | 5.97 s | 3.28 u | 38 % |
+| tour, walk | 149.8 (-1.6 +- 2.2) | 3.1 | 50.5 u | 6.02 s | 1.00 u | 55 % (human 51 %) |
+| tour, straight line | 147.9 (-3.5 +- 2.1) | 3.0 | 51.9 u | 6.10 s | 1.82 u | 43 % |
+
+* The walk tour fixes the order and shortens the route, but the policy moves slower and falls more on those routes.
+  25 falls vs 15; the extra ones are mostly in the centre between the holes (17 vs 10), not after pickups.
+* The policy was trained on the greedy chooser's targets. To cash the order in, it would have to be trained with
+  plan_tour as its chooser (vec_worker too). The gain is at most a few points and depends on centre edge control.
+* Parked by choice; the jump work comes first. Code stays behind NAV_TOUR (off).
+
+### 28.51 Training WITH the whole-spawn planner (2026-09-26 11:03, operator)
+
+The operator expects the planner (28.50) to give new highs once the policy trains on its routes. Changes:
+* nav/vec_worker.py: TOUR = NAV_TOUR, default 'walk'. The real-gem worker picks targets with plan_tour (walk-only
+  Dijkstra fields, cached per gem position per map; about 0.3 ms per decision). '' = the old greedy chooser.
+* nav/real_run.py: default NAV_TOUR is now 'walk' too (training parity). For a greedy eval, NAV_TOUR must be
+  EMPTY inside Python. PowerShell `$env:NAV_TOUR = ""` DELETES the variable, so the run gets 'walk' (see 28.52).
+
+Training started from nav_latest = nav_fall25_end_26830 (update 26,830), with the reward of 28.48 and the
+7 KOTM / 1 Islands rotation. The FALL-25 snapshot state was archived as night_best_fall25.json.
+
+Judge by:
+* the GAME bars;
+* falls in the centre (the inference test fell 17 vs 10 there);
+* a 3x eval against greedy 151.4 and tour-at-inference 149.8.
+
+### 28.52 Planner training result (2026-09-26 13:41 stop, 3x evals 13:42-14:20): NO GAIN
+
+The operator stopped training at 13:41 after one more hour; training stays STOPPED until the operator says otherwise.
+During the run (11:03-13:41, updates 26,830 -> 27,280), KOTM averaged 139.7 over 1,245 rounds with 2.8 falls. The last
+50 rounds averaged 141.9 with 2.0 falls. Best snapshot: nav_night_27189_142.pth (best50 141.74). Endpoint:
+nav_planner_end_27280.pth.
+
+3x, 8 rounds per arm (16 for the endpoint with walk):
+
+| arm | weights | chooser | points | falls/rd | speed | distance/spawn | time/spawn | best order |
+|---|---|---|---|---|---|---|---|---|
+| ev_greedy (28.50) | 26830 | greedy | 151.4 (se 1.5) | 1.9 | 8.57 | 51.6 u | 5.97 s | 38 % |
+| ev_tour_walk (28.50) | 26830 | walk | 149.8 | 3.1 | 8.32 | 50.5 u | 6.02 s | 55 % |
+| ev_pl_end + ev_pl_end_b | 27280 | walk | 151.4 (se 1.2), +0.0 +- 1.9 | 1.9 | 8.10 / 8.22 | 48.4 / 48.8 u | 5.91 / 5.90 s | 54 / 56 % |
+| ev_pl_best | 27189 | walk | 154.1 (se 1.9), +2.8 +- 2.5 | 2.6 | 8.38 | 49.5 u | 5.84 s | 61 % |
+| ev_pl_end_greedy | 27280 | greedy | 148.5 (se 1.7), -2.9 +- 2.3 | 2.4 | 8.27 | 50.6 u | 6.06 s | 43 % |
+
+* The planner shortens the route by 2-3 u per spawn (51.6 -> 48.4-49.5), but the marble got slower
+  (8.57 -> 8.10-8.38 u/s). Time per spawn improved only 1-2 %, so points are unchanged.
+* The policy itself got slower. On the same chooser (greedy), 27280 runs at 8.27 u/s vs 8.48-8.57 for every
+  pre-planner checkpoint (s2best, f25end, f25best, 26830), and scores 148.5 vs 151.4.
+  Walk vs greedy on the same 27280 weights: +2.9 +- 2.1. The chooser's gain was paid for by a slower policy.
+* The best snapshot's +2.8 is inside noise, and it was picked by the training bars (selection bias).
+* EVAL BUG, caught and fixed: the first ev_pl_end_greedy arm was launched with PowerShell `$env:NAV_TOUR = ""`,
+  which deletes the variable. It therefore ran 'walk'. Its route stats (56 % best order) exposed it; its rounds were
+  renamed ev_pl_end_b. The greedy arm was re-run with `python -c "import os, runpy; os.environ['NAV_TOUR']=''; ..."`
+  (43 % best order, as greedy should be). Earlier greedy evals (ev_greedy etc.) ran while the default was '' and are valid.
+* Code state: NAV_TOUR default is still 'walk' in vec_worker and real_run. Nothing reverted; the operator decides.
+
+### 28.53 Rollback to nav_night_26113_142 (2026-09-26 ~14:55, operator)
+
+The operator watched the planner endpoint (27280, walk) at 1x: 7 rounds averaging 149.7, 7.8-8.2 u/s. They judged it
+bad: it rolls past gems and has to come back for them. On request, nav_latest.pth is now nav_night_26113_142.pth
+(step-2 best: 153.1 at 3x, 1.6 falls). The planner model is kept as nav_planner_end_27280.pth.
+At 1x with greedy, 26113 scored 153 and 153 (1 fall each, 8.63 / 8.19 u/s) before the operator ended the run.
+The NAV_TOUR default in vec_worker and real_run is still 'walk' (not reverted; the operator decides).

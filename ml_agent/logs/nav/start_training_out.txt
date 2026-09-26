@@ -1,0 +1,5 @@
+[11:03:06] starting the trainer (binds 8888..8895 before any game launches)
+  trainer pid 27140
+[11:03:09] all 8 worker ports 8888..8895 listening; safe to launch the games
+[11:03:09] launching 8 game instance(s): KingOfTheMarble_Hunt,FlatIslands_Hunt split 7,1
+[11:03:09] up. Every instance is answered on its first dial at GO.

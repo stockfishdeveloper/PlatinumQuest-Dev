@@ -1,0 +1,61 @@
+warm-up: model ready in 0.20 s, terrain "kotmjump" pre-built
+[env:8920] waiting for the game
+[env:8920] game connected (1)
+WATCH mode: every frame drawn, 4 sim slice(s) per 64 ms decision, real time
+real run: nav_night_25237_143.pth (update 25235) on kotmjump, 2 round(s), port 8920
+stuck-breaker #1 at (-35.1,19.1) decision 261: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #2 at (-35.3,20.0) decision 334: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #3 at (-35.1,19.0) decision 382: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #4 at (-36.1,18.9) decision 485: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #5 at (-35.0,18.8) decision 590: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #6 at (-35.4,18.9) decision 696: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #7 at (-35.2,18.9) decision 799: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #8 at (-35.4,18.9) decision 906: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #9 at (-35.4,19.1) decision 1019: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #10 at (-35.6,20.0) decision 1068: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #11 at (-35.5,19.3) decision 1115: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #12 at (-35.0,19.8) decision 1190: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #13 at (-35.6,19.0) decision 1237: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #14 at (-36.0,20.0) decision 1285: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #15 at (-35.1,18.8) decision 1334: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #16 at (-35.2,19.7) decision 1383: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #17 at (-35.5,19.0) decision 1429: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #18 at (-35.5,18.9) decision 1540: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #19 at (-35.8,19.9) decision 1590: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #20 at (-34.8,19.2) decision 1638: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #21 at (-35.3,19.9) decision 1706: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #22 at (-34.8,19.8) decision 1848: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #23 at (-35.2,19.2) decision 1894: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #24 at (-35.5,18.9) decision 2004: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #25 at (-35.0,19.7) decision 2096: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #26 at (-35.3,19.1) decision 2143: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #27 at (-35.8,20.0) decision 2192: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #28 at (-34.8,19.0) decision 2240: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #29 at (-35.3,19.2) decision 2345: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #30 at (-34.8,19.7) decision 2412: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #31 at (-35.6,19.1) decision 2457: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #32 at (-35.7,20.0) decision 2505: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #33 at (-35.4,19.4) decision 2552: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #34 at (-34.7,20.3) decision 2600: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #35 at (-34.9,20.3) decision 2624: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #36 at (-34.8,19.6) decision 2681: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #37 at (-34.7,20.2) decision 2780: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #38 at (-34.6,20.2) decision 2804: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #39 at (-34.7,20.2) decision 2828: state reset, path waypoint + sampling for 24 decisions
+  round 1: {'round': 1, 'gems': 3, 'points': 4.0, 'minutes': 3.02, 'decisions': 2831, 'countdown_decisions': 45, 'gems_per_min': 1.0, 'points_per_min': 1.3, 'falls': 46, 'falls_per_100u': 4.864, 'travelled_u': 945.8, 'speed': 5.22, 'blind_pct': 0.0, 'stuck_breaks': 39, 'snapped_pct': 0.0, 'pathed_pct': 18.4, 'smooth': 1.0}
+[env:8920] round over (time left 180s of 180s); waiting for the next round
+[env:8920] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+stuck-breaker #1 at (-20.6,15.9) decision 312: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #2 at (-21.8,20.9) decision 391: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #3 at (-22.5,23.0) decision 495: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #4 at (-22.0,22.9) decision 546: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #5 at (-23.0,22.0) decision 595: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #6 at (-21.4,19.4) decision 726: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #7 at (-22.1,23.8) decision 871: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #8 at (-22.9,22.0) decision 1309: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #9 at (-35.6,23.1) decision 1566: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #10 at (-35.2,18.5) decision 1624: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #11 at (-21.5,20.7) decision 1741: state reset, path waypoint + sampling for 24 decisions
+  round 2: {'round': 2, 'gems': 3, 'points': 4.0, 'minutes': 3.02, 'decisions': 2831, 'countdown_decisions': 46, 'gems_per_min': 1.0, 'points_per_min': 1.3, 'falls': 45, 'falls_per_100u': 4.004, 'travelled_u': 1124.0, 'speed': 6.2, 'blind_pct': 0.0, 'stuck_breaks': 11, 'snapped_pct': 0.0, 'pathed_pct': 7.6, 'smooth': 1.0}
+REAL RUN {"gems_per_min": 1.0, "points_per_min": 1.3, "falls_per_100u": 4.434, "speed": 5.71, "blind_pct": 0.0} vs human {"gems_per_min": 0.03, "points_per_min": 0.03, "speed": 0.71, "falls_ratio": 96.4}
+wrote C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\logs\nav\real_run_kotmjump_nav_night_25237_143.json

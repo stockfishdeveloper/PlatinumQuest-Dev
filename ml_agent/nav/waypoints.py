@@ -49,7 +49,9 @@ PROGRESS_NEXT = 0.3            # 2026-09-23 (HANDOFF 28.22): per unit of walking
                                # ahead the human takes gem 1 at 11.3 u/s and holds 7.1, the agent takes it at
                                # 5.8 and dips to 4.6. On a straight line both terms pay (1.3/u); on a corner an
                                # approach that already curves toward gem 2 is paid during the approach.
-ARRIVE = 10.0
+ARRIVE = 10.0                  # per GEM, whatever its colour. Paid per point from 01:04 to ~10:45 on 2026-09-26 (HANDOFF 28.42);
+                               # reverted by the operator (28.48): paying yellow gems double could pull the marble toward them
+                               # instead of along the most efficient path through the whole spawn.
 GEM_SPEED_BONUS = 24.0         # 16 -> 24 at 01:23 on 2026-09-25 (HANDOFF 28.37, overnight nudge 2): after 110 min of the
                                # run-up credit the takeoff speed at approved jumps was still 7.1-7.5 u/s (human 10.7), so
                                # the general pace pressure is raised by half: a gem taken 1 s faster is now worth +6.3
@@ -179,7 +181,9 @@ EDGE_LOOK = 9.0                # u: how far ahead along the velocity to look for
 EDGE_GOAL_LATERAL = 1.5        # u: a goal within this of the velocity ray and BEFORE the drop makes the
                                # approach a pickup, not a shortcut: no charge (1 % of falls, 15 % of v1 charges)
 EDGE_V_MIN = 1.5               # u/s: slower than this the marble stops within a cell; no charge
-FALL_AFTER_JUMP = 6.0          # 25 -> 6 on 2026-09-24 (HANDOFF 28.34), now GATED: only a fall within JUMP_FALL_WINDOW of a
+FALL_AFTER_JUMP = 5.0          # 6 -> 5 on 2026-09-26 (HANDOFF 28.42, reward = game score step 1): the same small marker as FALL,
+                               # so an approved jump's fall is no longer a special case.
+                               # (superseded) 25 -> 6 on 2026-09-24 (HANDOFF 28.34), now GATED: only a fall within JUMP_FALL_WINDOW of a
                                # takeoff that the physics flag APPROVED (obs crossable = 1) is priced here; any other
                                # fall, including an unapproved jump, still costs FALL. 6 ~ the true time cost of a fall
                                # in a scored round (4-5 s of TIME + lost progress). The blanket 8 of 28.17 doubled falls
@@ -189,7 +193,16 @@ FALL_AFTER_JUMP = 6.0          # 25 -> 6 on 2026-09-24 (HANDOFF 28.34), now GATE
                                # now costs the full price again.
                                # (superseded) 2026-09-23 (HANDOFF 28.17): price of a fall within JUMP_FALL_WINDOW decisions of
 JUMP_FALL_WINDOW = 24          # a takeoff (~1.5 s), while jumping is being practised. See the note at the fall.
-FALL = 25.0                    # 10 -> 25 at 01:12 on 2026-09-21. Measured on the gems-only real rounds: a
+FALL = 25.0                    # 5 -> 25 again on 2026-09-26 08:47 (HANDOFF 28.46, operator): the 3x eval showed FALL 5 spent the
+                               # cheaper falls on falling (3.4 falls/round at the endpoint vs 1.5, points -4.5), with only a
+                               # small speed gain. The rest of steps 1+2 (ARRIVE per point, behaviour terms 0) is kept.
+                               # (superseded) 25 -> 5 on 2026-09-26 (HANDOFF 28.42, operator-approved "reward = game rules only (gem points,
+                               # small OOB marker)", step 1). A fall's real cost is already charged without this term: the
+                               # ground lost earns no progress until the marble is back past fall_mark, and every later gem
+                               # arrives later (discounting). The quick respawn (OOBCLICK, 2026-09-21) also cut the dead time
+                               # of a fall from 3.3 s to 0.8 s since the 25 below was set. Hypothesis under test: 25 on top of
+                               # those made caution cheap, hence braking into every gem. Judge by points, not by falls.
+                               # (superseded) 10 -> 25 at 01:12 on 2026-09-21. Measured on the gems-only real rounds: a
                                # fall costs ~7.5 s of respawn and recovery = ~55-60 reward units of
                                # forgone gems, against 10 + ~6 TIME charged here, so shortcuts with a
                                # few % fall risk were RATIONAL under the old price and three settings of
@@ -217,11 +230,13 @@ TIME = 0.05                    # REVERTED to 0.05 at 13:26 on 2026-09-21; see th
                                # updates, then flat). A constant per-decision cost mostly shifts the
                                # value baseline; it is a weak lever on pace. Do not simply retry it.
                                # (Original note: was 0.02 -- on King of the Marble the policy sat still.)
-AIR = 0.1                      # per decision airborne BEYOND the grace period below
+AIR = 0.0                      # 2026-09-26 03:45 (HANDOFF 28.43, reward = game score step 2): -> 0, a behaviour prescription.
+                               # (superseded) per decision airborne BEYOND the grace period below
 AIR_GRACE = 16                 # ~1 s: a purposeful jump is free; tumbling / falling still costs
                                # (2026-09-17: charging every airborne decision taught the policy that
                                # jumping never pays, so it never jumped gaps)
-RUNUP_K = 0.3                  # 2026-09-24 23:30 (HANDOFF 28.37, overnight speed nudge 1): reward per u/s of speed GAINED in
+RUNUP_K = 0.0                  # 2026-09-26 03:45 (HANDOFF 28.43, reward = game score step 2): -> 0, a behaviour prescription.
+                               # (superseded) 2026-09-24 23:30 (HANDOFF 28.37, overnight speed nudge 1): reward per u/s of speed GAINED in
                                # a decision while a jumpable gap lies ahead along the marble's heading (obs gap block:
                                # speed ratio > 0, i.e. a gap >= MIN_JUMP_GAP with a sane landing) and the marble is not yet
                                # fast enough for it (ratio < 0.5), the lip within RUNUP_RANGE. Gains are clipped to
@@ -231,7 +246,8 @@ RUNUP_K = 0.3                  # 2026-09-24 23:30 (HANDOFF 28.37, overnight spee
                                # for building that speed.
 RUNUP_RANGE = 10.0             # u: only when the lip is this close
 RUNUP_CLIP = 1.0               # u/s per decision (a full-throttle marble gains ~0.6 u/s per 64 ms)
-JUMP_TAKEOFF = 0.1             # 0.4 -> 0.1 on 2026-09-22 (HANDOFF 28.13, jump re-enable; see model.JUMP_DAMP).
+JUMP_TAKEOFF = 0.0             # 2026-09-26 03:45 (HANDOFF 28.43, reward = game score step 2): -> 0, a behaviour prescription.
+                               # (superseded) 0.4 -> 0.1 on 2026-09-22 (HANDOFF 28.13, jump re-enable; see model.JUMP_DAMP).
                                # per jump COMMANDED WHILE ON THE FLOOR (an actual takeoff; a jump
                                # pressed in mid-air does nothing in the engine and is not charged).
                                # 2026-09-18: on King of the Marble the policy jumped on 32 % of
@@ -243,7 +259,8 @@ JUMP_TAKEOFF = 0.1             # 0.4 -> 0.1 on 2026-09-22 (HANDOFF 28.13, jump r
                                # shorter than AIR_GRACE and cost nothing. Charging the takeoff
                                # instead of the airtime keeps a real gap jump cheap (one fee that
                                # the progress reward covers) while bouncing pays on every hop.
-ALIGN_BONUS = 0.10             # per decision, 2026-09-22 (HANDOFF 28.11, step 3 of the fear-removal plan):
+ALIGN_BONUS = 0.0              # 2026-09-26 03:45 (HANDOFF 28.43, reward = game score step 2): -> 0, a behaviour prescription.
+                               # (superseded) per decision, 2026-09-22 (HANDOFF 28.11, step 3 of the fear-removal plan):
                                # ALIGN_BONUS * min(1, speed / ALIGN_V_REF) * max(0, cos(angle between the
                                # commanded direction and the velocity)). At most 0.10 per decision at
                                # >= 8 u/s thrusting straight along the motion, ~3 per 30-decision leg
@@ -286,7 +303,8 @@ TURN_COST = 0.0                # per decision: TURN_COST * (1 - cos(angle betwee
                                # segment against a group worth ~78, where GEM_SPEED_BONUS (which did
                                # move behaviour) is worth up to 48. At 0.3 a jittering segment
                                # carries ~16, about a fifth of the group.
-BRAKE = 0.05                   # 0.1 -> 0.05 on 2026-09-19 03:05. With braking re-enabled the policy used
+BRAKE = 0.0                    # 2026-09-26 03:45 (HANDOFF 28.43, reward = game score step 2): -> 0, a behaviour prescription.
+                               # (superseded) 0.1 -> 0.05 on 2026-09-19 03:05. With braking re-enabled the policy used
                                # it on only 0.6 % of decisions (human: 14.3 %): its head was frozen while
                                # the action was disabled, and at 0.1 the immediate cost outweighs a benefit
                                # (not falling) that arrives seconds later and rarely, so PPO was pushing

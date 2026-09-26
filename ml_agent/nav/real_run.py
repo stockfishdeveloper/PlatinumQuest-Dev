@@ -81,6 +81,8 @@ OOB_CLICK = os.environ.get('NAV_OOB_CLICK', '1') == '1'   # on by default. Send 
                                # restores the old behaviour of waiting out the 2.5 s auto-respawn.
 MARK_GOAL = os.environ.get('NAV_MARK', '0') == '1'   # NAV_MARK=1 drops a black marker gem on the
                                # current goal so a human watching can see what it is steering at
+TRACE_PATH = os.environ.get('NAV_TRACE', '')   # default logs/nav/real_trace.csv; set to run several real runs side by side
+RUN_TAG = os.environ.get('NAV_TAG', '')        # appended to the result JSON name (A/B arms on the same checkpoint)
 
 # Human demo reference, measured from demos/demo_20260914_214854.npz (68,208 ticks at 16 ms =
 # 18.2 min over 6 rounds, 682 pickups, 861 points -> 1.26 points per gem). Hunt is scored on
@@ -90,6 +92,10 @@ HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
 from nav.gems import visible_gems, choose, ABSENT, STICKY_TOL, SWITCH_GAIN, MOMENTUM_K, VALUE_WEIGHT   # noqa: E402  (shared with real-gem training)
+from nav.gems import plan_tour                                       # noqa: E402
+TOUR = os.environ.get('NAV_TOUR', 'walk')   # 2026-09-26 (HANDOFF 28.50-28.51): the gem chooser. 'walk' (DEFAULT since 28.51,
+                               # the same as training in nav/vec_worker.py) = plan the whole spawn with walk-only Dijkstra
+                               # distances; 'euc' = straight-line distances (no terrain map); '' = the old greedy chooser
 
 
 def snap_to_walkable(terrain, gx, gy, gz, radius=3):
@@ -347,7 +353,8 @@ def main():
           f'{ROUNDS} round(s), port {PORT}')
 
     rounds = []
-    trace = open(os.path.join(HERE, 'logs', 'nav', 'real_trace.csv'), 'w', buffering=1)
+    trace_path = TRACE_PATH or os.path.join(HERE, 'logs', 'nav', 'real_trace.csv')
+    trace = open(trace_path, 'w', buffering=1)
     trace.write('round,dec,x,y,z,vx,vy,speed,on_floor,tx,ty,tdist,nx,ny,gx,gy,nvis,gem,fell,fwd,back,left,right,jump\n')
     for r in range(ROUNDS):
         obs_b.reset(); h = model.initial_state(1, dev)
@@ -384,6 +391,14 @@ def main():
                     next_tick[0] = time.perf_counter()
             return out
 
+        tour_fields = {}                 # NAV_TOUR=walk: walk-only Dijkstra field per gem position, cached for the run
+
+        def walk_dist(a, g):
+            key = (round(g[0], 1), round(g[1], 1))
+            if key not in tour_fields:
+                tour_fields[key] = terrain.goal_field(g[0], g[1], jumps=False)
+            return terrain.dist_at(tour_fields[key], float(a[0]), float(a[1]), (g[0], g[1]))
+
         while True:
             vis = visible_gems(env.msg.obs)
             mfield = None
@@ -392,7 +407,10 @@ def main():
                 if mcell != mfield_key:
                     mfield_cache = terrain.goal_field(float(env.msg.obs[0]), float(env.msg.obs[1])); mfield_key = mcell
                 mfield = mfield_cache
-            target, nxt = choose(vis, target, pos=env.msg.obs[0:2], vel=env.msg.obs[3:5], terrain=terrain, mfield=mfield)
+            if TOUR and vis:
+                target, nxt = plan_tour(vis, target, env.msg.obs[0:2], env.msg.obs[3:5], dist=(walk_dist if TOUR == 'walk' else None))
+            else:
+                target, nxt = choose(vis, target, pos=env.msg.obs[0:2], vel=env.msg.obs[3:5], terrain=terrain, mfield=mfield)
             if target is not None:
                 gap_goal = None
             else:
@@ -591,8 +609,8 @@ def main():
     # logs/nav/real_trace_<map>.csv for whichever map is selected.
     try:
         import shutil
-        shutil.copyfile(os.path.join(HERE, 'logs', 'nav', 'real_trace.csv'),
-                        os.path.join(HERE, 'logs', 'nav', f'real_trace_{mission}.csv'))
+        if not TRACE_PATH:                 # tagged A/B arms leave the per-map heat-map trace alone
+            shutil.copyfile(trace_path, os.path.join(HERE, 'logs', 'nav', f'real_trace_{mission}.csv'))
     except OSError as e:
         print(f'per-map trace copy failed: {e}')
     agg = {k: round(float(np.mean([x[k] for x in rounds])), 3)
@@ -606,7 +624,7 @@ def main():
            'value_weight': VALUE_WEIGHT, 'h_reset': H_RESET, 'when': datetime.now().isoformat()}
     os.makedirs(os.path.join(HERE, 'logs', 'nav'), exist_ok=True)
     p = os.path.join(HERE, 'logs', 'nav',
-                     f'real_run_{mission}_{os.path.splitext(os.path.basename(ckpt))[0]}.json')
+                     f'real_run_{mission}_{os.path.splitext(os.path.basename(ckpt))[0]}{("_" + RUN_TAG) if RUN_TAG else ""}.json')
     json.dump(out, open(p, 'w'), indent=1)
     print('REAL RUN', json.dumps(out['mean']), 'vs human', json.dumps(out['vs_human']))
     print('wrote', p)
