@@ -93,8 +93,9 @@ function MLAgent::start() {
         return;
     }
 
-    // Wait a moment for connection
-    schedule(500, 0, "MLAgent::startLoop");
+    // Wait a moment for connection (not needed when the socket is already up, e.g. after a round restart:
+    // 2026-09-26, so the pre-spin countdown is not cut short by half a second)
+    schedule($AIBridge::Connected ? 0 : 500, 0, "MLAgent::startLoop");
 }
 
 function MLAgent::startLoop() {
@@ -143,6 +144,7 @@ function MLAgent::startLoop() {
     $MLAgent::WasOOB = false;
     $MLAgent::EpisodeShouldEnd = false;
     $MLAgent::TimerStarted = false;
+    $MLAgent::CountdownTicks = 0;       // the countdown settle restarts every round (see MLAgent::inCountdown)
 
     MLAgent::update($MLAgent::LoopGen);
 }
@@ -206,12 +208,21 @@ function MLAgent::update(%gen) {
     // zero velocity, expired timer). Wait until currentTime < total time.
     // Only applies at episode start — once we've seen a valid timer, we let
     // the episode run to natural completion and send done=1 normally.
+    //
+    // PRE-SPIN (2026-09-26, operator): the Ready/Set countdown is PLAYED, not skipped. During it the
+    // marble sits on its pad in Start mode, where the engine zeroes friction and horizontal velocity but
+    // still applies the control torque (marble.cc, mMode == 2), so input spins the marble in place and GO
+    // turns that spin into speed, as a human does. MLAgent::inCountdown() tells the countdown apart from
+    // the dead zone above. Recording / diagnostic mode keeps the old behaviour.
     if (!$MLAgent::TimerStarted && isObject(MissionInfo) && MissionInfo.time > 0) {
         if (PlayGui.currentTime >= MissionInfo.time) {
-            $MLAgent::UpdateSchedule = schedule($MLAgent::UpdateInterval, 0, "MLAgent::update", $MLAgent::LoopGen);
-            return;
+            if ($MLAgent::DiagnosticMode || !MLAgent::inCountdown()) {
+                $MLAgent::UpdateSchedule = schedule($MLAgent::UpdateInterval, 0, "MLAgent::update", $MLAgent::LoopGen);
+                return;
+            }
+        } else {
+            $MLAgent::TimerStarted = true;
         }
-        $MLAgent::TimerStarted = true;
     }
 
     // 1. Collect observation
@@ -557,8 +568,10 @@ function MLAgent::checkDone() {
     // 1. Time runs out (Hunt mode: currentTime counts UP from 0)
     //    The dead-zone guard in update() prevents observations before the timer
     //    starts, so we only need a small safety margin (10 steps) here.
+    //    Only once the clock has started (2026-09-26): during the pre-spin countdown the clock shows the
+    //    full round length, which this test would otherwise read as "time is up" every step.
     if (isObject(MissionInfo) && MissionInfo.time > 0) {
-        if (PlayGui.currentTime >= MissionInfo.time && $MLAgent::StepCount > 10) {
+        if ($MLAgent::TimerStarted && PlayGui.currentTime >= MissionInfo.time && $MLAgent::StepCount > 10) {
             return 1;
         }
     }
@@ -584,6 +597,24 @@ function MLAgent::checkDone() {
 //------------------------------------------------------------------------------
 // Episode Reset
 //------------------------------------------------------------------------------
+
+// True while the round is in its Ready/Set countdown with the marble really on its pad (2026-09-26).
+// $Game::State is "start" on the server side of a hosted game and cycles start/Ready/set on the client
+// side ($= is case-insensitive). Right after restartLevel the state is already "start" while the client's
+// marble can still be the old one at its end-of-round position (or at the origin), so the countdown only
+// counts after COUNTDOWN_SETTLE consecutive update ticks in it (~100 ms; the Start state alone lasts 500 ms).
+$MLAgent::CountdownSettle = 6;
+$MLAgent::CountdownTicks = 0;
+function MLAgent::inCountdown() {
+    %s = $Game::State;
+    if (!(%s $= "start" || %s $= "ready" || %s $= "set") || !isObject($MP::MyMarble)
+            || VectorLen($MP::MyMarble.getPosition()) < 0.01) {
+        $MLAgent::CountdownTicks = 0;
+        return false;
+    }
+    $MLAgent::CountdownTicks++;
+    return $MLAgent::CountdownTicks > $MLAgent::CountdownSettle;
+}
 
 function MLAgent::resetEpisode() {
     $MLAgent::StepCount = 0;
@@ -710,6 +741,11 @@ function MLAgent::onGameStart() {
 
     echo("MLAgent: Game started, waiting for GO!");
     $MLAgent::ReadyToStart = true;
+    // PRE-SPIN (2026-09-26): connect NOW, not 100 ms after GO, so the agent plays the Ready/Set countdown
+    // (see update()) and Python's view settings are in force before the countdown starts. start() is
+    // idempotent, so the GO hook below finds it already running. Recording keeps starting at GO.
+    if (!$MLAgent::DiagnosticMode)
+        MLAgent::start();
 }
 
 function MLAgent::onTimerStart() {
@@ -767,8 +803,9 @@ function MLAgent::autoRestart() {
         // Restart the mission
         commandToServer('restartLevel');
 
-        // Re-enable ML agent
-        schedule(1000, 0, "MLAgent::start");
+        // Re-enable ML agent. 1000 -> 100 ms on 2026-09-26 (pre-spin): the countdown begins with the restart
+        // and the agent must be running for all of it. update() skips the post-restart dead zone by itself.
+        schedule(100, 0, "MLAgent::start");
     }
 }
 
@@ -874,6 +911,23 @@ for ($MLAgent::_argi = 1; $MLAgent::_argi < $Game::argc; $MLAgent::_argi++) {
 if ($MLAgent::AutoTrainMission !$= "") {
     echo("MLAgent: -autotrain " @ $MLAgent::AutoTrainMission @ " -- will host and start the round automatically");
     schedule(5000, 0, "MLAgent::autoTrainStage", 1);
+    // FIXED VIEW FROM THE FIRST FRAME (2026-09-26, operator): the render-only view yaw used to arrive with
+    // Python's VIEWYAW after GO, so the picture swung once the round was already running. An -autotrain game
+    // is always driven by the navigator, which sends VIEWYAW 0 unless NAV_VIEWYAW says otherwise, so start
+    // with that view and apply it to every marble the moment it exists. A VIEWYAW from Python still
+    // overrides it ("VIEWYAW off" restores the marble camera).
+    $MLAgent::ViewYawOn = true;
+    $MLAgent::ViewYaw = 0;
+    $MLAgent::ViewYawApplied = "";
+    schedule(0, 0, "MLAgent::viewYawWatch");    // scheduled: the function is defined below this block
+}
+
+function MLAgent::viewYawWatch() {
+    if ($MLAgent::ViewYawOn && isObject($MP::MyMarble) && $MLAgent::ViewYawApplied !$= $MP::MyMarble.getId()) {
+        $MP::MyMarble.setViewYaw($MLAgent::ViewYaw);
+        $MLAgent::ViewYawApplied = $MP::MyMarble.getId();
+    }
+    schedule(16, 0, "MLAgent::viewYawWatch");
 }
 
 function MLAgent::autoTrainStage(%stage) {

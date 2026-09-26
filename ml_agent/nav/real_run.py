@@ -359,6 +359,11 @@ def main():
         mfield_cache = None; mfield_key = None       # GEO_ORDER: Dijkstra field sourced at the marble
         gap_goal = None                  # where to head while no gem is on the map (held per gap)
         pos_hist = []; stuck_until = -1; n_stuck = 0     # stuck-breaker state (see STUCK_S)
+        # PRE-SPIN (2026-09-26): mlAgent.cs now plays the Ready/Set countdown. The round clock shows the full
+        # round length until GO and the marble cannot move (Start mode), so countdown decisions are kept out of
+        # the stuck-breaker, the per-round minutes/speed and the trace; the policy's input spins the marble up.
+        round_s = float(env.info.get('round_ms', 0.0)) / 1000.0
+        n_countdown = 0
         points = 0.0
         travelled = 0.0
         last = np.array(env.msg.obs[:3], dtype=np.float64)
@@ -448,8 +453,12 @@ def main():
                 held_goal = None                          # new target: the old waypoint is stale
             mx, my = float(env.msg.obs[0]), float(env.msg.obs[1])
             pos_hist.append((mx, my))
+            in_countdown = round_s > 0 and env.time_left_s() >= round_s - 0.001
+            if in_countdown:
+                n_countdown += 1
+                pos_hist = [(mx, my)]          # the stuck window starts at GO
             n_stuck_win = int(round(STUCK_S / 0.064))
-            if (STUCK_S > 0 and decisions >= stuck_until and len(pos_hist) > n_stuck_win
+            if (STUCK_S > 0 and not in_countdown and decisions >= stuck_until and len(pos_hist) > n_stuck_win
                     and math.hypot(mx - pos_hist[-1 - n_stuck_win][0], my - pos_hist[-1 - n_stuck_win][1]) < STUCK_U):
                 obs_b.reset(); h = model.initial_state(1, dev)
                 stuck_until = decisions + STUCK_DETOUR; n_stuck += 1; held_goal = None
@@ -520,7 +529,8 @@ def main():
                 travelled += step_d
             last = p
             js = action_to_joystick(a[0], a[1], a[2], a[3], a[4], float(vel[0]), float(vel[1]))
-            trace.write(f'{r+1},{decisions},{p[0]:.2f},{p[1]:.2f},{p[2]:.2f},{msg.obs[3]:.2f},{msg.obs[4]:.2f},'
+            if not in_countdown:
+                trace.write(f'{r+1},{decisions},{p[0]:.2f},{p[1]:.2f},{p[2]:.2f},{msg.obs[3]:.2f},{msg.obs[4]:.2f},'
                         f'{math.hypot(float(msg.obs[3]), float(msg.obs[4])):.2f},{int(on_floor)},'
                         f'{target[0]:.1f},{target[1]:.1f},'
                         f'{math.hypot(target[0]-p[0], target[1]-p[1]):.2f},'
@@ -556,14 +566,15 @@ def main():
         # OBS_MS, not a hardcoded 0.064: at a finer decision rate the decision count doubles
         # and a hardcoded step made speed and gems/min read HALF their true value (found
         # 2026-09-20 during the 32 ms eval, where 5.78 u/s was reported as 2.89).
-        mins = max(decisions * (OBS_MS / 1000.0) / 60.0, 1e-6)
+        played = decisions - n_countdown          # decisions after GO (the countdown is not play time)
+        mins = max(played * (OBS_MS / 1000.0) / 60.0, 1e-6)
         row = {'round': r + 1, 'gems': gems, 'points': round(points, 1), 'minutes': round(mins, 2),
-               'decisions': decisions,
+               'decisions': played, 'countdown_decisions': n_countdown,
                'gems_per_min': round(gems / mins, 1), 'points_per_min': round(points / mins, 1),
                'falls': falls,
                'falls_per_100u': round(100.0 * falls / max(travelled, 1e-6), 3),
                'travelled_u': round(travelled, 1),
-               'speed': round(travelled / max(decisions * (OBS_MS / 1000.0), 1e-6), 2),
+               'speed': round(travelled / max(played * (OBS_MS / 1000.0), 1e-6), 2),
                'blind_pct': round(100.0 * blind / max(decisions, 1), 1), 'stuck_breaks': n_stuck,
                'snapped_pct': round(100.0 * n_snapped / max(decisions, 1), 1),
                'pathed_pct': round(100.0 * n_pathed / max(decisions, 1), 1),

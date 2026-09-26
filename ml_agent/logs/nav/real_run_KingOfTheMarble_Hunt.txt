@@ -1,20 +1,5 @@
-warm-up: model ready in 0.24 s, terrain "KingOfTheMarble_Hunt" pre-built
+warm-up: model ready in 0.19 s, terrain "KingOfTheMarble_Hunt" pre-built
 [env:8920] waiting for the game
 [env:8920] game connected (1)
 WATCH mode: every frame drawn, 4 sim slice(s) per 64 ms decision, real time
-real run: nav_night_25237_143.pth (update 25235) on KingOfTheMarble_Hunt, 200 round(s), port 8920
-stuck-breaker #1 at (-26.1,12.4) decision 1942: state reset, path waypoint + sampling for 24 decisions
-  round 1: {'round': 1, 'gems': 128, 'points': 157.0, 'minutes': 3.02, 'decisions': 2827, 'gems_per_min': 42.4, 'points_per_min': 52.1, 'falls': 2, 'falls_per_100u': 0.136, 'travelled_u': 1467.2, 'speed': 8.11, 'blind_pct': 0.0, 'stuck_breaks': 1, 'snapped_pct': 0.0, 'pathed_pct': 0.4, 'smooth': 1.0}
-[env:8920] round over (time left 180s of 180s); waiting for the next round
-[env:8920] next round after 0 ticks / 0 s wall (time left 180s, reconnected False)
-stuck-breaker #1 at (-37.4,12.5) decision 802: state reset, path waypoint + sampling for 24 decisions
-stuck-breaker #2 at (-28.2,1.6) decision 964: state reset, path waypoint + sampling for 24 decisions
-stuck-breaker #3 at (-39.6,21.3) decision 1513: state reset, path waypoint + sampling for 24 decisions
-  round 2: {'round': 2, 'gems': 122, 'points': 156.0, 'minutes': 3.02, 'decisions': 2835, 'gems_per_min': 40.3, 'points_per_min': 51.6, 'falls': 2, 'falls_per_100u': 0.129, 'travelled_u': 1551.5, 'speed': 8.55, 'blind_pct': 0.0, 'stuck_breaks': 3, 'snapped_pct': 0.0, 'pathed_pct': 0.1, 'smooth': 1.0}
-[env:8920] round over (time left 180s of 180s); waiting for the next round
-[env:8920] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
-stuck-breaker #1 at (-37.5,3.7) decision 2831: state reset, path waypoint + sampling for 24 decisions
-  round 3: {'round': 3, 'gems': 119, 'points': 151.0, 'minutes': 3.02, 'decisions': 2835, 'gems_per_min': 39.4, 'points_per_min': 49.9, 'falls': 1, 'falls_per_100u': 0.068, 'travelled_u': 1476.5, 'speed': 8.14, 'blind_pct': 0.0, 'stuck_breaks': 1, 'snapped_pct': 0.0, 'pathed_pct': 0.0, 'smooth': 1.0}
-[env:8920] round over (time left 180s of 180s); waiting for the next round
-[env:8920] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
-stuck-breaker #1 at (-22.7,15.5) decision 538: state reset, path waypoint + sampling for 24 decisions
+real run: nav_night_25237_143.pth (update 25235) on KingOfTheMarble_Hunt, 1 round(s), port 8920
