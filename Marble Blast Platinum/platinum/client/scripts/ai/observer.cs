@@ -110,6 +110,16 @@ function AIObserver::collectSelfState(%obs) {
     %obs.selfVelY = %worldVelX * %sinYaw + %worldVelY * %cosYaw;
     %obs.selfVelZ = getWord(%vel, 2) + 0;
 
+    // Spin (3), 2026-09-26 (NAV_OBS_V6): angular velocity in rad/s, rotated like the velocity (x/y by the
+    // same yaw, z unchanged). The client marble's value equals the server's (checked live 2026-09-26).
+    // Serialized LAST (see serializeToJSON) so every older index stays where it was.
+    %spin = $MP::MyMarble.getAngularVelocity();
+    %worldSpinX = getWord(%spin, 0) + 0;
+    %worldSpinY = getWord(%spin, 1) + 0;
+    %obs.selfSpinX = %worldSpinX * %cosYaw - %worldSpinY * %sinYaw;
+    %obs.selfSpinY = %worldSpinX * %sinYaw + %worldSpinY * %cosYaw;
+    %obs.selfSpinZ = getWord(%spin, 2) + 0;
+
     // Collision radius, powerup and mega-marble state: NOT collected.
     // None of these are serialized (see serializeToJSON), and the two
     // $MP::MyMarble.isMegaMarble() calls made the engine print
@@ -552,6 +562,10 @@ function AIObserver::serializeToJSON(%obs) {
     // REMOVED: opponent best score. Still collected in collectGameState() for future use:
     // %json = %json @ "," @ AIObserver::safeNum(%obs.opponentBestScore);
     %json = %json @ "," @ AIObserver::safeNum(%obs.gemsRemaining);
+
+    // Spin (3 values, NAV_OBS_V6, 2026-09-26): appended last so indices 0-34 are unchanged
+    %json = %json @ "," @ AIObserver::safeNum(%obs.selfSpinX) @ "," @ AIObserver::safeNum(%obs.selfSpinY)
+                  @ "," @ AIObserver::safeNum(%obs.selfSpinZ);
 
     %json = %json @ "]";
 

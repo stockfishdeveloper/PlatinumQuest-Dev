@@ -7,17 +7,19 @@ Layout NAV_OBS_V1 (stored in every checkpoint; change => bump the version):
         4-9   self: vx/20, vy/20, vz/20, speed/20, on_floor (0/1), airborne decisions/8 clipped to 1
         10-47 edge rays (38): 16 headings [edge_dist, edge_dz] + 3 "gem" rays, of which ray 1 is the
               line to the waypoint (clear fraction, what lies beyond) and rays 2-3 are unused (0)
+    later versions append blocks at the end: next gem (V2, 48-52), gap (V3-V5, 53-57), spin (V6, 58-60)
 """
 import math
 import numpy as np
 
 from terrain_obs import EDGE_DIM
-from nav.protocol import RAW_POS, RAW_VEL
+from nav.protocol import RAW_POS, RAW_VEL, RAW_SPIN
 from nav.terrain import CROP_SHAPE, JUMP_DROP, JUMP_RISE
 from nav.physics import crossable, speed_for_gap, MIN_JUMP_GAP, jump_verdict
 from terrain_obs import RAY_RANGE
 
-NAV_OBS_VERSION = 'NAV_OBS_V5'   # V5 (2026-09-25, HANDOFF 28.39): landing-predictor verdicts (GAP_DIM 4 -> 5)
+NAV_OBS_VERSION = 'NAV_OBS_V6'   # V6 (2026-09-26, HANDOFF 28.56): the marble's spin, appended (SPIN_DIM 3)
+                                 # V5 (2026-09-25, HANDOFF 28.39): landing-predictor verdicts (GAP_DIM 4 -> 5)
                                  # V4 (2026-09-24, HANDOFF 28.36) adds the speed ratio for the gap ahead (GAP_DIM 3 -> 4)
                                  # V3 (2026-09-23, HANDOFF 28.27) appends GAP_DIM: the gap along the velocity
                                  # V2 (2026-09-19) appends the NEXT gem: see NEXT_DIM below
@@ -31,7 +33,14 @@ GAP_DIM = 5                   # along the velocity heading (or the waypoint bear
                               # landing), crossable at the CURRENT speed per nav/physics (0/1),
                               # speed ratio = current speed / speed the crossing needs, /2 clipped to 1
                               # (0.5 = exactly fast enough; below = accelerate; 0 = no gap ahead)
-VEC_DIM = VEC_GAP + GAP_DIM   # 58
+VEC_SPIN = VEC_GAP + GAP_DIM  # 58: where the spin block starts
+SPIN_DIM = 3                  # V6: the spin as a ROLLING VELOCITY, /VEL_SCALE like vec[4:7]:
+                              # [0] r*wy, [1] -r*wx = the velocity pure rolling on flat floor would give (rolling
+                              # east spins about +y, |v|/|w| = 0.190 = r; measured live 2026-09-26), so a gap
+                              # between vec[4:6] and these two IS the skid; [2] r*wz = spin about the vertical
+VEC_DIM = VEC_SPIN + SPIN_DIM # 61
+MARBLE_RADIUS = 0.19          # u (the probe's v/|w| on the floor, 0.1898)
+SPIN_CLIP = 3.0               # rolling-speed features clipped to +-3 (60 u/s); rolling tops out near 1
 GAP_MIN_SPEED = 1.0           # u/s: below this the gap features use the waypoint bearing
 PREDICT_LIP_MAX = 6.0         # u: the landing predictor runs only when the lip is this close (a decision is 0.5 u)
 WAYPOINT_DIST_SCALE = 50.0
@@ -112,6 +121,13 @@ class ObsBuilder:
                     ok_ball = v_ball == 'floor'
             vec[VEC_GAP + 2] = 1.0 if ok_hold else 0.0
             vec[VEC_GAP + 4] = 1.0 if ok_ball else 0.0
+        # SPIN block (V6): spin decides what a landing, an edge hit or a pre-spun start does next, and none of
+        # it can be read from the velocity (a teleported or freshly landed marble can move with any spin)
+        wx, wy, wz = (float(v) for v in raw[RAW_SPIN])
+        k = MARBLE_RADIUS / VEL_SCALE
+        vec[VEC_SPIN + 0] = max(-SPIN_CLIP, min(SPIN_CLIP, wy * k))
+        vec[VEC_SPIN + 1] = max(-SPIN_CLIP, min(SPIN_CLIP, -wx * k))
+        vec[VEC_SPIN + 2] = max(-SPIN_CLIP, min(SPIN_CLIP, wz * k))
         return crop.astype(np.float32), vec, on_floor
 
 

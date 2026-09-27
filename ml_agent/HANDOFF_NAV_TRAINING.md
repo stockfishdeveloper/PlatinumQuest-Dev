@@ -3912,3 +3912,26 @@ plus one clean 149 (round 29).
 Most others fell or were under target at 2:00. Six were cut at 1:00 with the predictor at exactly 160 (107 points).
 REMOVED the same day on the operator's request: the RESTART control word (mlAgent.cs) and NAV_VIDEO_TARGET
 (real_run.py) are gone, and fall handling is back to the plain OOBCLICK. To record again, re-add both as described above.
+
+### 28.56 NAV_OBS_V6: marble spin in the observation (2026-09-26 ~18:30, operator)
+
+The operator asked for spin as a model input (needed on every map; see PHYSICS_PLANNER_PLAN.md D5).
+* observer.cs: collectSelfState reads `$MP::MyMarble.getAngularVelocity()` (rad/s), rotated like the velocity;
+  serializeToJSON appends it LAST, so raw indices 0-34 are unchanged. Raw obs 35 -> 38 numbers.
+* nav/protocol.py: RAW_DIM 38, RAW_SPIN = slice(35, 38). A 35-number observation (a stale observer.cs.dso)
+  now raises a clear error instead of hanging.
+* nav/obs.py: NAV_OBS_V6, VEC_DIM 58 -> 61, spin block at 58-60 as a ROLLING VELOCITY /20:
+  [r*wy, -r*wx, r*wz], r = 0.19. Rolling east spins about +y with |v|/|w| = 0.190 (probe, 09-26). So on the
+  floor vec[58:60] equals vec[4:6] unless the marble skids.
+* Checkpoint: `logs/nav/migrate_obs_width.py` converted nav_night_26113_142 (V5 best, 153.1 at 3x) to
+  `nav_v6_start_26110.pth` = nav_latest. The spin columns start at zero. Checked offline: actions within 6e-7,
+  value and hidden state identical for random spin inputs; Adam moments correctly shaped.
+  V5 checkpoints can only be run with V5 code now (the V5 original is kept).
+* Live smoke round (3x, 1 round, not training): 159 points, 0 falls, 8.52 u/s. Spin on every decision.
+  On the floor, moving: corr(v, rolling velocity) 1.000, skid median 0.01 u/s. So on KOTM spin adds information
+  mainly in the countdown (pre-spin up to 92 rad/s at zero velocity), in the air, and after landings or edge hits.
+  Expect a small effect on KOTM; the payoff is for maps with slopes, bumpers and landings.
+
+Training NOT started: waiting for the operator's approval. Plan: a couple of hours from nav_latest, same reward
+and 7 KOTM / 1 Islands rotation, greedy chooser. Judge "no regression" by the GAME bars against the FALL-25 run
+(last 50 ~141-142, ~2 falls), then a 3x 8-round eval against 153.1. Archive night_best.json before the launch.

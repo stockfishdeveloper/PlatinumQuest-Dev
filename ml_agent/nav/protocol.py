@@ -2,7 +2,7 @@
 
 Game -> Python, one line per 16 ms script update:
     obs_json|gemDelta|oob|done[|humanInputs]|tick
-    obs_json: 35 numbers (see RAW_* below), or [] on the round-end message
+    obs_json: 38 numbers (see RAW_* below), or [] on the round-end message
     tick:     monotonic update counter (always the last field)
 Other lines the game sends (answers to control words, never need a reply):
     STATS|onTime,late,held,delay,tick
@@ -17,7 +17,8 @@ from dataclasses import dataclass, field
 from typing import List, Optional
 import numpy as np
 
-RAW_DIM = 35
+RAW_DIM = 38                     # 35 -> 38 on 2026-09-26 (NAV_OBS_V6): the marble's spin appended
+RAW_DIM_BEFORE_SPIN = 35         # what an observer.cs without the spin fields sends (see parse_message)
 RAW_POS = slice(0, 3)
 RAW_VEL = slice(3, 6)
 RAW_GEMS = slice(6, 31)          # 5 gems x [dx, dy, dz, value, dist]; absent gems have value/dist <= -500
@@ -26,6 +27,7 @@ RAW_TIME_ELAPSED = 31            # (old name kept; same field, see above)
 RAW_TIME_REMAINING = 32          # MissionInfo.time - PlayGui.currentTime, i.e. ms ELAPSED
 RAW_SCORE = 33
 RAW_GEMS_REMAINING = 34
+RAW_SPIN = slice(35, 38)         # angular velocity, rad/s, same frame as RAW_VEL (observer.cs collectSelfState)
 
 NOOP_ACTION = (0.0, 0.0, 0.0, 0.0, 0)
 
@@ -33,7 +35,7 @@ NOOP_ACTION = (0.0, 0.0, 0.0, 0.0, 0)
 @dataclass
 class GameMessage:
     kind: str                                   # 'obs' | 'end' | 'stats' | 'info' | 'other'
-    obs: Optional[np.ndarray] = None            # (35,) float32 for kind == 'obs'
+    obs: Optional[np.ndarray] = None            # (RAW_DIM,) float32 for kind == 'obs'
     gem_delta: float = 0.0
     oob: int = 0
     done: int = 0
@@ -66,6 +68,11 @@ def parse_message(line: str) -> GameMessage:
     if len(obs) == 0:
         return GameMessage('end', gem_delta=gem_delta, oob=oob, done=done, tick=tick, fields=parts, raw=line)
     if len(obs) < RAW_DIM:
+        if len(obs) >= RAW_DIM_BEFORE_SPIN:
+            # An old observer.cs.dso without the spin fields. Failing loudly beats training on missing spin
+            # (or hanging, which is what an 'other' message here would do: every observation would be skipped).
+            raise ValueError(f'the game sends {len(obs)} observation numbers but NAV_OBS_V6 needs {RAW_DIM} '
+                             f'(spin). Delete client/scripts/ai/observer.cs.dso so the game recompiles observer.cs.')
         return GameMessage('other', fields=parts, raw=line)
     return GameMessage('obs', obs=np.asarray(obs[:RAW_DIM], dtype=np.float32), gem_delta=gem_delta,
                        oob=oob, done=done, tick=tick, fields=parts, raw=line)
