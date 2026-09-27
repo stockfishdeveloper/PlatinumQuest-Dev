@@ -3910,3 +3910,5 @@ Launcher: scratchpad video_1x.ps1 (NAV_SPEED 1, NAV_WATCH 1, NAV_VIEW_SUBSTEPS 4
 Result over 49 rounds: 2 clean rounds over 160 (round 22: 167, ~15:47-15:50; round 35: 163, ~16:07-16:10),
 plus one clean 149 (round 29).
 Most others fell or were under target at 2:00. Six were cut at 1:00 with the predictor at exactly 160 (107 points).
+REMOVED the same day on the operator's request: the RESTART control word (mlAgent.cs) and NAV_VIDEO_TARGET
+(real_run.py) are gone, and fall handling is back to the plain OOBCLICK. To record again, re-add both as described above.
