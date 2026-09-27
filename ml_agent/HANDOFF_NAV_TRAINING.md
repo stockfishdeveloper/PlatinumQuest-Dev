@@ -3948,3 +3948,14 @@ The console echoes were lost to the force-kill (the engine buffers console outpu
 A policy that uses powerups would need the held powerup in the observation (observer.cs collects none today).
 REMOVED the same day on the operator's request (SSTEST, MLAgent::superSpeedTest, NAV_SUPERSPEED_TEST). How to rebuild it
 is in the operator's session memory (superspeed-aim-recipe); everything needed is also above.
+
+### 28.58 V6 (spin) training run: no regression (2026-09-26 19:10-21:45, operator stopped it)
+
+The run went from nav_v6_start_26110 to update 26595, same reward, 7 KOTM / 1 Islands, greedy chooser. KOTM training
+rounds: 1,344, mean 140.4, 2.13 falls/rd, last 50 140.7 / 1.80. Earlier runs today: 137.6-140.0 with 2.3-2.8 falls.
+The 50-round windows went 142.7, 143.5, 140.2, 139.2, 139.7, 138.3, 141.0, 139.3, 141.4, 140.7, never below 138.
+Best snapshot nav_night_26206_144.pth (best50 143.5, 1.64 falls). Endpoint nav_v6_end_26595.pth = nav_latest.
+The spin weights grew slowly from zero: vec-layer spin columns 0.14 -> 0.20 -> 0.26 against 6.1 for velocity (~4 %).
+So training with spin did not hurt. But spin's influence is still small, so this does not show that spin helps.
+Proper test (proposed, not done): a 3x A/B on one checkpoint, real spin vs spin zeroed (needs an eval-only switch),
+plus the 153.1 baseline. Operator watching the endpoint at 1x afterwards (logs/nav/watch_1x_v6.txt).

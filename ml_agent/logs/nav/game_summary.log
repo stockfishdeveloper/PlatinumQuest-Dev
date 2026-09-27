@@ -83,3 +83,16 @@ upd 27283 trainer=0 games=0 KOTM all: n=1253 mean=139.7 max=157 min=107 falls/rd
 upd 27283 trainer=0 games=0 KOTM all: n=1253 mean=139.7 max=157 min=107 falls/rd=2.8 | last 14: n=14 mean=138.8 max=150 min=127 falls/rd=2.9 | last 50: n=50 mean=140.8 max=152 min=116 falls/rd=2.4 | last time 13:42:04
 upd 27283 trainer=0 games=0 KOTM all: n=1253 mean=139.7 max=157 min=107 falls/rd=2.8 | last 14: n=14 mean=138.8 max=150 min=127 falls/rd=2.9 | last 50: n=50 mean=140.8 max=152 min=116 falls/rd=2.4 | last time 13:42:04
 upd 27283 trainer=0 games=0 KOTM all: n=1253 mean=139.7 max=157 min=107 falls/rd=2.8 | last 14: n=14 mean=138.8 max=150 min=127 falls/rd=2.9 | last 50: n=50 mean=140.8 max=152 min=116 falls/rd=2.4 | last time 13:42:04
+upd 26111 trainer=1 games=8 KOTM all: n=0 | last 14: n=0 | last 50: n=0 | last time -
+upd 26158 trainer=1 games=8 KOTM all: n=133 mean=141.3 max=158 min=112 falls/rd=1.9 | last 14: n=14 mean=144.1 max=149 min=133 falls/rd=1.6 | last 50: n=50 mean=142.7 max=156 min=123 falls/rd=1.7 | last time 19:26:23
+NEW 50-ROUND HIGH 142.7 at upd 26158: snapshot models/nav/nav_night_26158_143.pth
+upd 26206 trainer=1 games=8 KOTM all: n=259 mean=142.8 max=160 min=112 falls/rd=1.7 | last 14: n=14 mean=143.9 max=157 min=130 falls/rd=1.7 | last 50: n=50 mean=143.5 max=157 min=129 falls/rd=1.6 | last time 19:40:55
+NEW 50-ROUND HIGH 143.5 at upd 26206: snapshot models/nav/nav_night_26206_144.pth
+upd 26252 trainer=1 games=8 KOTM all: n=392 mean=142.3 max=160 min=106 falls/rd=1.7 | last 14: n=14 mean=140.0 max=151 min=130 falls/rd=2.4 | last 50: n=50 mean=140.2 max=151 min=125 falls/rd=2.0 | last time 19:56:27
+upd 26299 trainer=1 games=8 KOTM all: n=518 mean=142.1 max=160 min=106 falls/rd=1.8 | last 14: n=14 mean=141.6 max=152 min=128 falls/rd=2.3 | last 50: n=50 mean=139.2 max=152 min=117 falls/rd=2.6 | last time 20:11:07
+upd 26345 trainer=1 games=8 KOTM all: n=644 mean=141.6 max=160 min=106 falls/rd=1.9 | last 14: n=14 mean=139.2 max=152 min=132 falls/rd=2.3 | last 50: n=50 mean=139.7 max=152 min=126 falls/rd=2.3 | last time 20:26:00
+upd 26392 trainer=1 games=8 KOTM all: n=777 mean=140.9 max=160 min=98 falls/rd=2.0 | last 14: n=14 mean=138.6 max=151 min=119 falls/rd=3.1 | last 50: n=50 mean=138.3 max=151 min=119 falls/rd=2.7 | last time 20:41:25
+upd 26437 trainer=1 games=8 KOTM all: n=903 mean=140.5 max=160 min=94 falls/rd=2.1 | last 14: n=14 mean=140.5 max=149 min=112 falls/rd=2.4 | last 50: n=50 mean=141.0 max=156 min=112 falls/rd=2.2 | last time 20:56:24
+upd 26483 trainer=1 games=8 KOTM all: n=1029 mean=140.3 max=160 min=94 falls/rd=2.2 | last 14: n=14 mean=137.1 max=149 min=130 falls/rd=2.4 | last 50: n=50 mean=139.3 max=153 min=124 falls/rd=2.5 | last time 21:11:19
+upd 26530 trainer=1 games=8 KOTM all: n=1155 mean=140.4 max=160 min=94 falls/rd=2.2 | last 14: n=14 mean=139.2 max=153 min=119 falls/rd=2.2 | last 50: n=50 mean=141.4 max=153 min=119 falls/rd=2.1 | last time 21:26:11
+upd 26575 trainer=1 games=8 KOTM all: n=1281 mean=140.3 max=160 min=94 falls/rd=2.2 | last 14: n=14 mean=139.1 max=151 min=131 falls/rd=2.2 | last 50: n=50 mean=140.7 max=152 min=128 falls/rd=1.7 | last time 21:41:16
