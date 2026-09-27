@@ -1,0 +1,10 @@
+warm-up: model ready in 0.19 s, terrain "KingOfTheMarble_Hunt" pre-built
+[env:8920] waiting for the game
+[env:8920] game connected (1)
+WATCH mode: every frame drawn, 4 sim slice(s) per 64 ms decision, real time
+SUPER SPEED AIM TEST on: a held Super Speed is fired straight back along the velocity
+real run: nav_latest.pth (update 26110) on KingOfTheMarble_Hunt, 100 round(s), port 8920
+stuck-breaker #1 at (-26.8,17.2) decision 432: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #2 at (-14.2,28.0) decision 899: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #3 at (-27.0,17.1) decision 1609: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #4 at (-26.9,16.9) decision 2155: state reset, path waypoint + sampling for 24 decisions

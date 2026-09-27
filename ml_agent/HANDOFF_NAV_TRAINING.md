@@ -3935,3 +3935,16 @@ The operator asked for spin as a model input (needed on every map; see PHYSICS_P
 Training NOT started: waiting for the operator's approval. Plan: a couple of hours from nav_latest, same reward
 and 7 KOTM / 1 Islands rotation, greedy chooser. Judge "no regression" by the GAME bars against the FALL-25 run
 (last 50 ~141-142, ~2 falls), then a 3x 8-round eval against 153.1. Archive night_best.json before the launch.
+
+### 28.57 Super Speed can be aimed in any direction (2026-09-26 ~19:05, operator confirmed at 1x)
+
+The engine boosts along the marble's CAMERA yaw (marble.cc doPowerUp case 2: camera forward projected onto the
+contact plane, 25 u/s). The actions already set that yaw every decision, and the view is pinned separately by
+VIEWYAW. So a boost can go anywhere: set camYaw = atan2(dx, dy) and press use-powerup (7th action word).
+Test mode, off by default: `NAV_SUPERSPEED_TEST=1` makes real_run send `SSTEST 1`, and mlAgent.cs
+MLAgent::superSpeedTest fires any held Super Speed straight back along the velocity. It aims 2 ticks before the
+press and holds 2 after, so the server marble has the yaw. The operator watched it reverse the marble at 1x.
+The console echoes were lost to the force-kill (the engine buffers console output), so there are no logged velocities.
+A policy that uses powerups would need the held powerup in the observation (observer.cs collects none today).
+REMOVED the same day on the operator's request (SSTEST, MLAgent::superSpeedTest, NAV_SUPERSPEED_TEST). How to rebuild it
+is in the operator's session memory (superspeed-aim-recipe); everything needed is also above.
