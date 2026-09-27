@@ -35,9 +35,10 @@ from nav.obs import ObsBuilder, VEC_GAP                                         
 from nav.joystick import action_to_joystick                                         # noqa: E402
 from nav.waypoints import SegmentManager, RoundOver                                 # noqa: E402
 from nav.gems import visible_gems, choose, plan_tour, STICKY_TOL                    # noqa: E402
-TOUR = os.environ.get('NAV_TOUR', 'walk')   # 2026-09-26 (HANDOFF 28.51, operator): real-gem training picks gems with the
-                              # WHOLE-SPAWN planner (nav/gems.plan_tour, walk-only Dijkstra distances), the same default as
-                              # nav/real_run.py. '' = the old greedy chooser; 'euc' = straight-line distances.
+TOUR = os.environ.get('NAV_TOUR', '').replace('greedy', '')   # 2026-09-26 (HANDOFF 28.51-28.54, operator): the gem
+                              # chooser for real-gem training, same default as nav/real_run.py. '' or 'greedy' = choose()
+                              # (DEFAULT again since 28.54: training with the planner gave no gain, 28.52); 'walk' = the
+                              # whole-spawn planner (nav/gems.plan_tour, walk-only Dijkstra); 'euc' = straight-line.
 
 # Frame check (2026-09-17): a segment whose marble accelerates against its commands (cosine
 # < FRAME_FLIP_COS over the first FRAME_CHECK_N rolling decisions) is corrupted game state;

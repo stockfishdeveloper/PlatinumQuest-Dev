@@ -1,0 +1,301 @@
+warm-up: model ready in 0.20 s, terrain "KingOfTheMarble_Hunt" pre-built
+[env:8920] waiting for the game
+[env:8920] game connected (1)
+WATCH mode: every frame drawn, 4 sim slice(s) per 64 ms decision, real time
+real run: nav_latest.pth (update 26110) on KingOfTheMarble_Hunt, 1000 round(s), port 8920
+VIDEO RESTART round 1: fell
+  round 1: {'round': 1, 'gems': 34, 'points': 42.0, 'minutes': 0.99, 'decisions': 924, 'countdown_decisions': 45, 'gems_per_min': 34.5, 'points_per_min': 42.6, 'falls': 1, 'falls_per_100u': 0.227, 'travelled_u': 440.3, 'speed': 7.45, 'blind_pct': 0.0, 'stuck_breaks': 0, 'snapped_pct': 0.0, 'pathed_pct': 0.0, 'smooth': 1.0, 'video': 'fell'}
+[env:8920] round over (time left 180s of 180s); waiting for the next round
+[env:8920] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+stuck-breaker #1 at (-24.0,1.1) decision 231: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #2 at (-18.5,14.9) decision 759: state reset, path waypoint + sampling for 24 decisions
+VIDEO check at 120 s left: score 56, predicted 167 (target over 160)
+VIDEO RESTART round 2: fell
+  round 2: {'round': 2, 'gems': 62, 'points': 79.0, 'minutes': 1.44, 'decisions': 1348, 'countdown_decisions': 46, 'gems_per_min': 43.1, 'points_per_min': 54.9, 'falls': 1, 'falls_per_100u': 0.134, 'travelled_u': 747.5, 'speed': 8.66, 'blind_pct': 0.0, 'stuck_breaks': 2, 'snapped_pct': 0.0, 'pathed_pct': 0.0, 'smooth': 1.0, 'video': 'fell'}
+[env:8920] round over (time left 180s of 180s); waiting for the next round
+[env:8920] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+VIDEO RESTART round 3: fell
+  round 3: {'round': 3, 'gems': 42, 'points': 52.0, 'minutes': 0.96, 'decisions': 900, 'countdown_decisions': 46, 'gems_per_min': 43.8, 'points_per_min': 54.2, 'falls': 1, 'falls_per_100u': 0.201, 'travelled_u': 496.3, 'speed': 8.62, 'blind_pct': 0.0, 'stuck_breaks': 0, 'snapped_pct': 0.0, 'pathed_pct': 0.0, 'smooth': 1.0, 'video': 'fell'}
+[env:8920] round over (time left 180s of 180s); waiting for the next round
+[env:8920] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+stuck-breaker #1 at (-14.2,4.3) decision 690: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #2 at (-14.1,4.5) decision 714: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #3 at (-13.7,4.6) decision 738: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #4 at (-13.5,4.4) decision 762: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #5 at (-13.4,4.6) decision 786: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #6 at (-13.7,4.7) decision 810: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #7 at (-13.4,4.6) decision 834: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #8 at (-13.5,4.7) decision 858: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #9 at (-13.7,4.7) decision 882: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #10 at (-13.9,4.5) decision 906: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #11 at (-13.5,5.0) decision 930: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #12 at (-13.8,4.6) decision 954: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #13 at (-13.6,4.7) decision 978: state reset, path waypoint + sampling for 24 decisions
+VIDEO check at 120 s left: score 33, predicted 98 (target over 160)
+VIDEO RESTART round 4: predicted 98 at 120 s left
+  round 4: {'round': 4, 'gems': 27, 'points': 33.0, 'minutes': 1.0, 'decisions': 938, 'countdown_decisions': 46, 'gems_per_min': 27.0, 'points_per_min': 33.0, 'falls': 0, 'falls_per_100u': 0.0, 'travelled_u': 350.9, 'speed': 5.85, 'blind_pct': 0.0, 'stuck_breaks': 13, 'snapped_pct': 0.0, 'pathed_pct': 0.0, 'smooth': 1.0, 'video': 'predicted 98 at 120 s left'}
+[env:8920] round over (time left 180s of 180s); waiting for the next round
+[env:8920] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+stuck-breaker #1 at (-11.5,12.8) decision 748: state reset, path waypoint + sampling for 24 decisions
+VIDEO check at 120 s left: score 52, predicted 155 (target over 160)
+VIDEO RESTART round 5: predicted 155 at 120 s left
+  round 5: {'round': 5, 'gems': 40, 'points': 52.0, 'minutes': 1.0, 'decisions': 938, 'countdown_decisions': 46, 'gems_per_min': 40.0, 'points_per_min': 52.0, 'falls': 0, 'falls_per_100u': 0.0, 'travelled_u': 533.1, 'speed': 8.88, 'blind_pct': 0.0, 'stuck_breaks': 1, 'snapped_pct': 0.0, 'pathed_pct': 0.0, 'smooth': 1.0, 'video': 'predicted 155 at 120 s left'}
+[env:8920] round over (time left 180s of 180s); waiting for the next round
+[env:8920] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+stuck-breaker #1 at (-17.1,15.2) decision 495: state reset, path waypoint + sampling for 24 decisions
+VIDEO check at 120 s left: score 49, predicted 146 (target over 160)
+VIDEO RESTART round 6: predicted 146 at 120 s left
+  round 6: {'round': 6, 'gems': 39, 'points': 49.0, 'minutes': 1.0, 'decisions': 938, 'countdown_decisions': 46, 'gems_per_min': 39.0, 'points_per_min': 49.0, 'falls': 0, 'falls_per_100u': 0.0, 'travelled_u': 499.2, 'speed': 8.31, 'blind_pct': 0.0, 'stuck_breaks': 1, 'snapped_pct': 0.0, 'pathed_pct': 0.0, 'smooth': 1.0, 'video': 'predicted 146 at 120 s left'}
+[env:8920] round over (time left 180s of 180s); waiting for the next round
+[env:8920] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+VIDEO RESTART round 7: fell
+  round 7: {'round': 7, 'gems': 5, 'points': 6.0, 'minutes': 0.18, 'decisions': 167, 'countdown_decisions': 46, 'gems_per_min': 28.1, 'points_per_min': 33.7, 'falls': 1, 'falls_per_100u': 1.125, 'travelled_u': 88.9, 'speed': 8.32, 'blind_pct': 0.0, 'stuck_breaks': 0, 'snapped_pct': 0.0, 'pathed_pct': 0.0, 'smooth': 1.0, 'video': 'fell'}
+[env:8920] round over (time left 180s of 180s); waiting for the next round
+[env:8920] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+VIDEO check at 120 s left: score 54, predicted 161 (target over 160)
+stuck-breaker #1 at (-23.8,27.5) decision 1512: state reset, path waypoint + sampling for 24 decisions
+VIDEO RESTART round 8: fell
+  round 8: {'round': 8, 'gems': 68, 'points': 87.0, 'minutes': 1.73, 'decisions': 1625, 'countdown_decisions': 46, 'gems_per_min': 39.2, 'points_per_min': 50.2, 'falls': 1, 'falls_per_100u': 0.113, 'travelled_u': 883.2, 'speed': 8.49, 'blind_pct': 0.0, 'stuck_breaks': 1, 'snapped_pct': 0.0, 'pathed_pct': 0.0, 'smooth': 1.0, 'video': 'fell'}
+[env:8920] round over (time left 180s of 180s); waiting for the next round
+[env:8920] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+VIDEO check at 120 s left: score 55, predicted 164 (target over 160)
+stuck-breaker #1 at (-11.7,13.3) decision 1053: state reset, path waypoint + sampling for 24 decisions
+VIDEO RESTART round 9: fell
+  round 9: {'round': 9, 'gems': 70, 'points': 87.0, 'minutes': 1.74, 'decisions': 1632, 'countdown_decisions': 46, 'gems_per_min': 40.2, 'points_per_min': 50.0, 'falls': 1, 'falls_per_100u': 0.119, 'travelled_u': 843.0, 'speed': 8.07, 'blind_pct': 0.0, 'stuck_breaks': 1, 'snapped_pct': 0.0, 'pathed_pct': 0.2, 'smooth': 1.0, 'video': 'fell'}
+[env:8920] round over (time left 180s of 180s); waiting for the next round
+[env:8920] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+VIDEO check at 120 s left: score 52, predicted 155 (target over 160)
+VIDEO RESTART round 10: predicted 155 at 120 s left
+  round 10: {'round': 10, 'gems': 42, 'points': 52.0, 'minutes': 1.0, 'decisions': 938, 'countdown_decisions': 46, 'gems_per_min': 42.0, 'points_per_min': 52.0, 'falls': 0, 'falls_per_100u': 0.0, 'travelled_u': 515.9, 'speed': 8.59, 'blind_pct': 0.0, 'stuck_breaks': 0, 'snapped_pct': 0.0, 'pathed_pct': 0.0, 'smooth': 1.0, 'video': 'predicted 155 at 120 s left'}
+[env:8920] round over (time left 180s of 180s); waiting for the next round
+[env:8920] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+stuck-breaker #1 at (-27.1,2.6) decision 671: state reset, path waypoint + sampling for 24 decisions
+VIDEO check at 120 s left: score 51, predicted 152 (target over 160)
+VIDEO RESTART round 11: predicted 152 at 120 s left
+  round 11: {'round': 11, 'gems': 40, 'points': 51.0, 'minutes': 1.0, 'decisions': 938, 'countdown_decisions': 46, 'gems_per_min': 40.0, 'points_per_min': 51.0, 'falls': 0, 'falls_per_100u': 0.0, 'travelled_u': 520.6, 'speed': 8.67, 'blind_pct': 0.0, 'stuck_breaks': 1, 'snapped_pct': 0.0, 'pathed_pct': 0.0, 'smooth': 1.0, 'video': 'predicted 152 at 120 s left'}
+[env:8920] round over (time left 180s of 180s); waiting for the next round
+[env:8920] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+stuck-breaker #1 at (-23.7,1.1) decision 219: state reset, path waypoint + sampling for 24 decisions
+VIDEO check at 120 s left: score 53, predicted 158 (target over 160)
+VIDEO RESTART round 12: predicted 158 at 120 s left
+  round 12: {'round': 12, 'gems': 41, 'points': 53.0, 'minutes': 1.0, 'decisions': 938, 'countdown_decisions': 46, 'gems_per_min': 41.0, 'points_per_min': 53.0, 'falls': 0, 'falls_per_100u': 0.0, 'travelled_u': 511.9, 'speed': 8.53, 'blind_pct': 0.0, 'stuck_breaks': 1, 'snapped_pct': 0.0, 'pathed_pct': 0.0, 'smooth': 1.0, 'video': 'predicted 158 at 120 s left'}
+[env:8920] round over (time left 180s of 180s); waiting for the next round
+[env:8920] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+stuck-breaker #1 at (-11.7,13.4) decision 254: state reset, path waypoint + sampling for 24 decisions
+VIDEO check at 120 s left: score 48, predicted 143 (target over 160)
+VIDEO RESTART round 13: predicted 143 at 120 s left
+  round 13: {'round': 13, 'gems': 38, 'points': 48.0, 'minutes': 1.0, 'decisions': 938, 'countdown_decisions': 46, 'gems_per_min': 38.0, 'points_per_min': 48.0, 'falls': 0, 'falls_per_100u': 0.0, 'travelled_u': 492.2, 'speed': 8.2, 'blind_pct': 0.0, 'stuck_breaks': 1, 'snapped_pct': 0.0, 'pathed_pct': 0.0, 'smooth': 1.0, 'video': 'predicted 143 at 120 s left'}
+[env:8920] round over (time left 180s of 180s); waiting for the next round
+[env:8920] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+stuck-breaker #1 at (-23.7,28.1) decision 228: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #2 at (-36.4,4.8) decision 580: state reset, path waypoint + sampling for 24 decisions
+VIDEO RESTART round 14: fell
+  round 14: {'round': 14, 'gems': 20, 'points': 26.0, 'minutes': 0.61, 'decisions': 574, 'countdown_decisions': 46, 'gems_per_min': 32.7, 'points_per_min': 42.5, 'falls': 1, 'falls_per_100u': 0.359, 'travelled_u': 278.6, 'speed': 7.58, 'blind_pct': 0.0, 'stuck_breaks': 2, 'snapped_pct': 0.0, 'pathed_pct': 3.5, 'smooth': 1.0, 'video': 'fell'}
+[env:8920] round over (time left 180s of 180s); waiting for the next round
+[env:8920] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+VIDEO check at 120 s left: score 51, predicted 152 (target over 160)
+VIDEO RESTART round 15: predicted 152 at 120 s left
+  round 15: {'round': 15, 'gems': 41, 'points': 51.0, 'minutes': 1.0, 'decisions': 938, 'countdown_decisions': 46, 'gems_per_min': 41.0, 'points_per_min': 51.0, 'falls': 0, 'falls_per_100u': 0.0, 'travelled_u': 503.2, 'speed': 8.38, 'blind_pct': 0.0, 'stuck_breaks': 0, 'snapped_pct': 0.0, 'pathed_pct': 0.0, 'smooth': 1.0, 'video': 'predicted 152 at 120 s left'}
+[env:8920] round over (time left 180s of 180s); waiting for the next round
+[env:8920] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+VIDEO RESTART round 16: fell
+  round 16: {'round': 16, 'gems': 0, 'points': 0.0, 'minutes': 0.03, 'decisions': 26, 'countdown_decisions': 46, 'gems_per_min': 0.0, 'points_per_min': 0.0, 'falls': 1, 'falls_per_100u': 7.875, 'travelled_u': 12.7, 'speed': 7.63, 'blind_pct': 0.0, 'stuck_breaks': 0, 'snapped_pct': 0.0, 'pathed_pct': 0.0, 'smooth': 1.0, 'video': 'fell'}
+[env:8920] round over (time left 180s of 180s); waiting for the next round
+[env:8920] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+stuck-breaker #1 at (-25.2,3.8) decision 353: state reset, path waypoint + sampling for 24 decisions
+VIDEO check at 120 s left: score 52, predicted 155 (target over 160)
+VIDEO RESTART round 17: predicted 155 at 120 s left
+  round 17: {'round': 17, 'gems': 42, 'points': 52.0, 'minutes': 1.0, 'decisions': 938, 'countdown_decisions': 46, 'gems_per_min': 42.0, 'points_per_min': 52.0, 'falls': 0, 'falls_per_100u': 0.0, 'travelled_u': 530.7, 'speed': 8.84, 'blind_pct': 0.0, 'stuck_breaks': 1, 'snapped_pct': 0.0, 'pathed_pct': 2.0, 'smooth': 1.0, 'video': 'predicted 155 at 120 s left'}
+[env:8920] round over (time left 180s of 180s); waiting for the next round
+[env:8920] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+VIDEO check at 120 s left: score 51, predicted 152 (target over 160)
+VIDEO RESTART round 18: predicted 152 at 120 s left
+  round 18: {'round': 18, 'gems': 40, 'points': 51.0, 'minutes': 1.0, 'decisions': 938, 'countdown_decisions': 46, 'gems_per_min': 40.0, 'points_per_min': 51.0, 'falls': 0, 'falls_per_100u': 0.0, 'travelled_u': 494.1, 'speed': 8.23, 'blind_pct': 0.0, 'stuck_breaks': 0, 'snapped_pct': 0.0, 'pathed_pct': 0.0, 'smooth': 1.0, 'video': 'predicted 152 at 120 s left'}
+[env:8920] round over (time left 180s of 180s); waiting for the next round
+[env:8920] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+VIDEO check at 120 s left: score 56, predicted 167 (target over 160)
+VIDEO check at 60 s left: score 107, predicted 160 (target over 160)
+VIDEO RESTART round 19: predicted 160 at 60 s left
+  round 19: {'round': 19, 'gems': 87, 'points': 107.0, 'minutes': 2.0, 'decisions': 1875, 'countdown_decisions': 46, 'gems_per_min': 43.5, 'points_per_min': 53.5, 'falls': 0, 'falls_per_100u': 0.0, 'travelled_u': 1032.9, 'speed': 8.61, 'blind_pct': 0.0, 'stuck_breaks': 0, 'snapped_pct': 0.0, 'pathed_pct': 0.0, 'smooth': 1.0, 'video': 'predicted 160 at 60 s left'}
+[env:8920] round over (time left 180s of 180s); waiting for the next round
+[env:8920] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+stuck-breaker #1 at (-26.9,16.8) decision 483: state reset, path waypoint + sampling for 24 decisions
+VIDEO check at 120 s left: score 51, predicted 152 (target over 160)
+VIDEO RESTART round 20: predicted 152 at 120 s left
+  round 20: {'round': 20, 'gems': 42, 'points': 51.0, 'minutes': 1.0, 'decisions': 938, 'countdown_decisions': 46, 'gems_per_min': 42.0, 'points_per_min': 51.0, 'falls': 0, 'falls_per_100u': 0.0, 'travelled_u': 511.8, 'speed': 8.53, 'blind_pct': 0.0, 'stuck_breaks': 1, 'snapped_pct': 0.0, 'pathed_pct': 0.3, 'smooth': 1.0, 'video': 'predicted 152 at 120 s left'}
+[env:8920] round over (time left 180s of 180s); waiting for the next round
+[env:8920] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+VIDEO check at 120 s left: score 54, predicted 161 (target over 160)
+stuck-breaker #1 at (-11.4,13.4) decision 999: state reset, path waypoint + sampling for 24 decisions
+VIDEO RESTART round 21: fell
+  round 21: {'round': 21, 'gems': 52, 'points': 66.0, 'minutes': 1.33, 'decisions': 1247, 'countdown_decisions': 46, 'gems_per_min': 39.1, 'points_per_min': 49.6, 'falls': 1, 'falls_per_100u': 0.157, 'travelled_u': 638.7, 'speed': 8.0, 'blind_pct': 0.0, 'stuck_breaks': 1, 'snapped_pct': 0.0, 'pathed_pct': 0.4, 'smooth': 1.0, 'video': 'fell'}
+[env:8920] round over (time left 180s of 180s); waiting for the next round
+[env:8920] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+VIDEO check at 120 s left: score 57, predicted 170 (target over 160)
+VIDEO check at 60 s left: score 108, predicted 161 (target over 160)
+VIDEO COMPLETE round 22: 167 points, 0 falls
+  round 22: {'round': 22, 'gems': 133, 'points': 167.0, 'minutes': 3.03, 'decisions': 2842, 'countdown_decisions': 46, 'gems_per_min': 43.9, 'points_per_min': 55.1, 'falls': 0, 'falls_per_100u': 0.0, 'travelled_u': 1572.2, 'speed': 8.64, 'blind_pct': 0.0, 'stuck_breaks': 0, 'snapped_pct': 0.0, 'pathed_pct': 0.0, 'smooth': 1.0, 'video': 'COMPLETE'}
+[env:8920] round over (time left 180s of 180s); waiting for the next round
+[env:8920] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+stuck-breaker #1 at (-25.5,10.0) decision 368: state reset, path waypoint + sampling for 24 decisions
+VIDEO check at 120 s left: score 53, predicted 158 (target over 160)
+VIDEO RESTART round 23: predicted 158 at 120 s left
+  round 23: {'round': 23, 'gems': 42, 'points': 53.0, 'minutes': 1.0, 'decisions': 938, 'countdown_decisions': 46, 'gems_per_min': 42.0, 'points_per_min': 53.0, 'falls': 0, 'falls_per_100u': 0.0, 'travelled_u': 481.2, 'speed': 8.02, 'blind_pct': 0.0, 'stuck_breaks': 1, 'snapped_pct': 0.0, 'pathed_pct': 0.0, 'smooth': 1.0, 'video': 'predicted 158 at 120 s left'}
+[env:8920] round over (time left 180s of 180s); waiting for the next round
+[env:8920] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+stuck-breaker #1 at (-11.5,12.9) decision 833: state reset, path waypoint + sampling for 24 decisions
+VIDEO check at 120 s left: score 48, predicted 143 (target over 160)
+VIDEO RESTART round 24: predicted 143 at 120 s left
+  round 24: {'round': 24, 'gems': 38, 'points': 48.0, 'minutes': 1.0, 'decisions': 938, 'countdown_decisions': 46, 'gems_per_min': 38.0, 'points_per_min': 48.0, 'falls': 0, 'falls_per_100u': 0.0, 'travelled_u': 482.7, 'speed': 8.04, 'blind_pct': 0.0, 'stuck_breaks': 1, 'snapped_pct': 0.0, 'pathed_pct': 0.0, 'smooth': 1.0, 'video': 'predicted 143 at 120 s left'}
+[env:8920] round over (time left 180s of 180s); waiting for the next round
+[env:8920] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+VIDEO check at 120 s left: score 54, predicted 161 (target over 160)
+VIDEO check at 60 s left: score 105, predicted 157 (target over 160)
+VIDEO RESTART round 25: predicted 157 at 60 s left
+  round 25: {'round': 25, 'gems': 84, 'points': 105.0, 'minutes': 2.0, 'decisions': 1875, 'countdown_decisions': 46, 'gems_per_min': 42.0, 'points_per_min': 52.5, 'falls': 0, 'falls_per_100u': 0.0, 'travelled_u': 1022.3, 'speed': 8.52, 'blind_pct': 0.0, 'stuck_breaks': 0, 'snapped_pct': 0.0, 'pathed_pct': 0.0, 'smooth': 1.0, 'video': 'predicted 157 at 60 s left'}
+[env:8920] round over (time left 180s of 180s); waiting for the next round
+[env:8920] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+VIDEO RESTART round 26: fell
+  round 26: {'round': 26, 'gems': 14, 'points': 17.0, 'minutes': 0.38, 'decisions': 358, 'countdown_decisions': 46, 'gems_per_min': 36.7, 'points_per_min': 44.5, 'falls': 1, 'falls_per_100u': 0.539, 'travelled_u': 185.6, 'speed': 8.1, 'blind_pct': 0.0, 'stuck_breaks': 0, 'snapped_pct': 0.0, 'pathed_pct': 0.0, 'smooth': 1.0, 'video': 'fell'}
+[env:8920] round over (time left 180s of 180s); waiting for the next round
+[env:8920] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+VIDEO RESTART round 27: fell
+  round 27: {'round': 27, 'gems': 6, 'points': 7.0, 'minutes': 0.16, 'decisions': 150, 'countdown_decisions': 46, 'gems_per_min': 37.5, 'points_per_min': 43.8, 'falls': 1, 'falls_per_100u': 1.314, 'travelled_u': 76.1, 'speed': 7.93, 'blind_pct': 0.0, 'stuck_breaks': 0, 'snapped_pct': 0.0, 'pathed_pct': 0.0, 'smooth': 1.0, 'video': 'fell'}
+[env:8920] round over (time left 180s of 180s); waiting for the next round
+[env:8920] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+stuck-breaker #1 at (-23.0,13.4) decision 147: state reset, path waypoint + sampling for 24 decisions
+VIDEO check at 120 s left: score 50, predicted 149 (target over 160)
+VIDEO RESTART round 28: predicted 149 at 120 s left
+  round 28: {'round': 28, 'gems': 39, 'points': 50.0, 'minutes': 1.0, 'decisions': 938, 'countdown_decisions': 46, 'gems_per_min': 39.0, 'points_per_min': 50.0, 'falls': 0, 'falls_per_100u': 0.0, 'travelled_u': 481.4, 'speed': 8.02, 'blind_pct': 0.0, 'stuck_breaks': 1, 'snapped_pct': 0.0, 'pathed_pct': 0.0, 'smooth': 1.0, 'video': 'predicted 149 at 120 s left'}
+[env:8920] round over (time left 180s of 180s); waiting for the next round
+[env:8920] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+VIDEO check at 120 s left: score 55, predicted 164 (target over 160)
+VIDEO check at 60 s left: score 109, predicted 163 (target over 160)
+stuck-breaker #1 at (-11.9,13.4) decision 2111: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #2 at (-36.3,25.8) decision 2628: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #3 at (-36.3,26.0) decision 2652: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #4 at (-36.0,26.4) decision 2676: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #5 at (-36.4,25.9) decision 2700: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #6 at (-36.5,26.0) decision 2724: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #7 at (-36.4,26.0) decision 2748: state reset, path waypoint + sampling for 24 decisions
+VIDEO COMPLETE round 29: 149 points, 0 falls
+  round 29: {'round': 29, 'gems': 118, 'points': 149.0, 'minutes': 3.03, 'decisions': 2842, 'countdown_decisions': 46, 'gems_per_min': 38.9, 'points_per_min': 49.2, 'falls': 0, 'falls_per_100u': 0.0, 'travelled_u': 1460.4, 'speed': 8.03, 'blind_pct': 0.0, 'stuck_breaks': 7, 'snapped_pct': 0.0, 'pathed_pct': 0.1, 'smooth': 1.0, 'video': 'COMPLETE'}
+[env:8920] round over (time left 180s of 180s); waiting for the next round
+[env:8920] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+VIDEO check at 120 s left: score 55, predicted 164 (target over 160)
+VIDEO check at 60 s left: score 107, predicted 160 (target over 160)
+VIDEO RESTART round 30: predicted 160 at 60 s left
+  round 30: {'round': 30, 'gems': 86, 'points': 107.0, 'minutes': 2.0, 'decisions': 1875, 'countdown_decisions': 46, 'gems_per_min': 43.0, 'points_per_min': 53.5, 'falls': 0, 'falls_per_100u': 0.0, 'travelled_u': 1038.8, 'speed': 8.66, 'blind_pct': 0.0, 'stuck_breaks': 0, 'snapped_pct': 0.0, 'pathed_pct': 0.0, 'smooth': 1.0, 'video': 'predicted 160 at 60 s left'}
+[env:8920] round over (time left 180s of 180s); waiting for the next round
+[env:8920] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+VIDEO check at 120 s left: score 52, predicted 155 (target over 160)
+VIDEO RESTART round 31: predicted 155 at 120 s left
+  round 31: {'round': 31, 'gems': 42, 'points': 52.0, 'minutes': 1.0, 'decisions': 938, 'countdown_decisions': 46, 'gems_per_min': 42.0, 'points_per_min': 52.0, 'falls': 0, 'falls_per_100u': 0.0, 'travelled_u': 504.9, 'speed': 8.41, 'blind_pct': 0.0, 'stuck_breaks': 0, 'snapped_pct': 0.0, 'pathed_pct': 0.0, 'smooth': 1.0, 'video': 'predicted 155 at 120 s left'}
+[env:8920] round over (time left 180s of 180s); waiting for the next round
+[env:8920] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+VIDEO check at 120 s left: score 52, predicted 155 (target over 160)
+VIDEO RESTART round 32: predicted 155 at 120 s left
+  round 32: {'round': 32, 'gems': 41, 'points': 52.0, 'minutes': 1.0, 'decisions': 938, 'countdown_decisions': 46, 'gems_per_min': 41.0, 'points_per_min': 52.0, 'falls': 0, 'falls_per_100u': 0.0, 'travelled_u': 513.0, 'speed': 8.54, 'blind_pct': 0.0, 'stuck_breaks': 0, 'snapped_pct': 0.0, 'pathed_pct': 0.0, 'smooth': 1.0, 'video': 'predicted 155 at 120 s left'}
+[env:8920] round over (time left 180s of 180s); waiting for the next round
+[env:8920] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+stuck-breaker #1 at (-38.3,12.4) decision 676: state reset, path waypoint + sampling for 24 decisions
+VIDEO check at 120 s left: score 50, predicted 149 (target over 160)
+VIDEO RESTART round 33: predicted 149 at 120 s left
+  round 33: {'round': 33, 'gems': 39, 'points': 50.0, 'minutes': 1.0, 'decisions': 938, 'countdown_decisions': 46, 'gems_per_min': 39.0, 'points_per_min': 50.0, 'falls': 0, 'falls_per_100u': 0.0, 'travelled_u': 503.5, 'speed': 8.39, 'blind_pct': 0.0, 'stuck_breaks': 1, 'snapped_pct': 0.0, 'pathed_pct': 0.2, 'smooth': 1.0, 'video': 'predicted 149 at 120 s left'}
+[env:8920] round over (time left 180s of 180s); waiting for the next round
+[env:8920] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+stuck-breaker #1 at (-38.4,12.7) decision 575: state reset, path waypoint + sampling for 24 decisions
+VIDEO check at 120 s left: score 54, predicted 161 (target over 160)
+VIDEO check at 60 s left: score 107, predicted 160 (target over 160)
+VIDEO RESTART round 34: predicted 160 at 60 s left
+  round 34: {'round': 34, 'gems': 84, 'points': 107.0, 'minutes': 2.0, 'decisions': 1875, 'countdown_decisions': 46, 'gems_per_min': 42.0, 'points_per_min': 53.5, 'falls': 0, 'falls_per_100u': 0.0, 'travelled_u': 1042.2, 'speed': 8.68, 'blind_pct': 0.0, 'stuck_breaks': 1, 'snapped_pct': 0.0, 'pathed_pct': 0.0, 'smooth': 1.0, 'video': 'predicted 160 at 60 s left'}
+[env:8920] round over (time left 180s of 180s); waiting for the next round
+[env:8920] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+VIDEO check at 120 s left: score 55, predicted 164 (target over 160)
+VIDEO check at 60 s left: score 108, predicted 161 (target over 160)
+VIDEO COMPLETE round 35: 163 points, 0 falls
+  round 35: {'round': 35, 'gems': 130, 'points': 163.0, 'minutes': 3.03, 'decisions': 2842, 'countdown_decisions': 46, 'gems_per_min': 42.9, 'points_per_min': 53.8, 'falls': 0, 'falls_per_100u': 0.0, 'travelled_u': 1608.9, 'speed': 8.85, 'blind_pct': 0.0, 'stuck_breaks': 0, 'snapped_pct': 0.0, 'pathed_pct': 0.0, 'smooth': 1.0, 'video': 'COMPLETE'}
+[env:8920] round over (time left 180s of 180s); waiting for the next round
+[env:8920] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+VIDEO check at 120 s left: score 56, predicted 167 (target over 160)
+VIDEO RESTART round 36: fell
+  round 36: {'round': 36, 'gems': 56, 'points': 69.0, 'minutes': 1.26, 'decisions': 1181, 'countdown_decisions': 46, 'gems_per_min': 44.5, 'points_per_min': 54.8, 'falls': 1, 'falls_per_100u': 0.153, 'travelled_u': 654.2, 'speed': 8.66, 'blind_pct': 0.0, 'stuck_breaks': 0, 'snapped_pct': 0.0, 'pathed_pct': 0.0, 'smooth': 1.0, 'video': 'fell'}
+[env:8920] round over (time left 180s of 180s); waiting for the next round
+[env:8920] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+VIDEO check at 120 s left: score 50, predicted 149 (target over 160)
+VIDEO RESTART round 37: predicted 149 at 120 s left
+  round 37: {'round': 37, 'gems': 40, 'points': 50.0, 'minutes': 1.0, 'decisions': 938, 'countdown_decisions': 46, 'gems_per_min': 40.0, 'points_per_min': 50.0, 'falls': 0, 'falls_per_100u': 0.0, 'travelled_u': 503.3, 'speed': 8.38, 'blind_pct': 0.0, 'stuck_breaks': 0, 'snapped_pct': 0.0, 'pathed_pct': 0.0, 'smooth': 1.0, 'video': 'predicted 149 at 120 s left'}
+[env:8920] round over (time left 180s of 180s); waiting for the next round
+[env:8920] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+VIDEO check at 120 s left: score 55, predicted 164 (target over 160)
+VIDEO check at 60 s left: score 107, predicted 160 (target over 160)
+VIDEO RESTART round 38: predicted 160 at 60 s left
+  round 38: {'round': 38, 'gems': 86, 'points': 107.0, 'minutes': 2.0, 'decisions': 1875, 'countdown_decisions': 46, 'gems_per_min': 43.0, 'points_per_min': 53.5, 'falls': 0, 'falls_per_100u': 0.0, 'travelled_u': 1030.3, 'speed': 8.59, 'blind_pct': 0.0, 'stuck_breaks': 0, 'snapped_pct': 0.0, 'pathed_pct': 0.0, 'smooth': 1.0, 'video': 'predicted 160 at 60 s left'}
+[env:8920] round over (time left 180s of 180s); waiting for the next round
+[env:8920] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+VIDEO RESTART round 39: fell
+  round 39: {'round': 39, 'gems': 24, 'points': 30.0, 'minutes': 0.62, 'decisions': 583, 'countdown_decisions': 46, 'gems_per_min': 38.6, 'points_per_min': 48.2, 'falls': 1, 'falls_per_100u': 0.329, 'travelled_u': 303.7, 'speed': 8.14, 'blind_pct': 0.0, 'stuck_breaks': 0, 'snapped_pct': 0.0, 'pathed_pct': 0.0, 'smooth': 1.0, 'video': 'fell'}
+[env:8920] round over (time left 180s of 180s); waiting for the next round
+[env:8920] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+VIDEO check at 120 s left: score 57, predicted 170 (target over 160)
+VIDEO RESTART round 40: fell
+  round 40: {'round': 40, 'gems': 68, 'points': 85.0, 'minutes': 1.66, 'decisions': 1558, 'countdown_decisions': 46, 'gems_per_min': 40.9, 'points_per_min': 51.1, 'falls': 1, 'falls_per_100u': 0.122, 'travelled_u': 816.3, 'speed': 8.19, 'blind_pct': 0.0, 'stuck_breaks': 0, 'snapped_pct': 0.0, 'pathed_pct': 0.0, 'smooth': 1.0, 'video': 'fell'}
+[env:8920] round over (time left 180s of 180s); waiting for the next round
+[env:8920] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+VIDEO RESTART round 41: fell
+  round 41: {'round': 41, 'gems': 6, 'points': 7.0, 'minutes': 0.18, 'decisions': 170, 'countdown_decisions': 46, 'gems_per_min': 33.1, 'points_per_min': 38.6, 'falls': 1, 'falls_per_100u': 1.104, 'travelled_u': 90.6, 'speed': 8.33, 'blind_pct': 0.0, 'stuck_breaks': 0, 'snapped_pct': 0.0, 'pathed_pct': 0.0, 'smooth': 1.0, 'video': 'fell'}
+[env:8920] round over (time left 180s of 180s); waiting for the next round
+[env:8920] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+stuck-breaker #1 at (-23.1,13.1) decision 147: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #2 at (-11.8,13.3) decision 817: state reset, path waypoint + sampling for 24 decisions
+VIDEO check at 120 s left: score 51, predicted 152 (target over 160)
+VIDEO RESTART round 42: predicted 152 at 120 s left
+  round 42: {'round': 42, 'gems': 39, 'points': 51.0, 'minutes': 1.0, 'decisions': 938, 'countdown_decisions': 46, 'gems_per_min': 39.0, 'points_per_min': 51.0, 'falls': 0, 'falls_per_100u': 0.0, 'travelled_u': 507.3, 'speed': 8.45, 'blind_pct': 0.0, 'stuck_breaks': 2, 'snapped_pct': 0.0, 'pathed_pct': 0.5, 'smooth': 1.0, 'video': 'predicted 152 at 120 s left'}
+[env:8920] round over (time left 180s of 180s); waiting for the next round
+[env:8920] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+VIDEO RESTART round 43: fell
+  round 43: {'round': 43, 'gems': 17, 'points': 21.0, 'minutes': 0.45, 'decisions': 421, 'countdown_decisions': 46, 'gems_per_min': 37.9, 'points_per_min': 46.8, 'falls': 1, 'falls_per_100u': 0.424, 'travelled_u': 235.9, 'speed': 8.75, 'blind_pct': 0.0, 'stuck_breaks': 0, 'snapped_pct': 0.0, 'pathed_pct': 0.0, 'smooth': 1.0, 'video': 'fell'}
+[env:8920] round over (time left 180s of 180s); waiting for the next round
+[env:8920] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+VIDEO RESTART round 44: fell
+  round 44: {'round': 44, 'gems': 32, 'points': 41.0, 'minutes': 0.84, 'decisions': 790, 'countdown_decisions': 46, 'gems_per_min': 38.0, 'points_per_min': 48.7, 'falls': 1, 'falls_per_100u': 0.235, 'travelled_u': 424.7, 'speed': 8.4, 'blind_pct': 0.0, 'stuck_breaks': 0, 'snapped_pct': 0.0, 'pathed_pct': 0.0, 'smooth': 1.0, 'video': 'fell'}
+[env:8920] round over (time left 180s of 180s); waiting for the next round
+[env:8920] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+VIDEO check at 120 s left: score 55, predicted 164 (target over 160)
+VIDEO check at 60 s left: score 107, predicted 160 (target over 160)
+VIDEO RESTART round 45: predicted 160 at 60 s left
+  round 45: {'round': 45, 'gems': 86, 'points': 107.0, 'minutes': 2.0, 'decisions': 1875, 'countdown_decisions': 46, 'gems_per_min': 43.0, 'points_per_min': 53.5, 'falls': 0, 'falls_per_100u': 0.0, 'travelled_u': 1040.4, 'speed': 8.67, 'blind_pct': 0.0, 'stuck_breaks': 0, 'snapped_pct': 0.0, 'pathed_pct': 0.0, 'smooth': 1.0, 'video': 'predicted 160 at 60 s left'}
+[env:8920] round over (time left 180s of 180s); waiting for the next round
+[env:8920] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+stuck-breaker #1 at (-24.0,13.6) decision 655: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #2 at (-24.3,13.5) decision 679: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #3 at (-23.5,26.4) decision 813: state reset, path waypoint + sampling for 24 decisions
+VIDEO check at 120 s left: score 45, predicted 134 (target over 160)
+VIDEO RESTART round 46: predicted 134 at 120 s left
+  round 46: {'round': 46, 'gems': 35, 'points': 45.0, 'minutes': 1.0, 'decisions': 938, 'countdown_decisions': 46, 'gems_per_min': 35.0, 'points_per_min': 45.0, 'falls': 0, 'falls_per_100u': 0.0, 'travelled_u': 462.2, 'speed': 7.7, 'blind_pct': 0.0, 'stuck_breaks': 3, 'snapped_pct': 0.0, 'pathed_pct': 1.7, 'smooth': 1.0, 'video': 'predicted 134 at 120 s left'}
+[env:8920] round over (time left 180s of 180s); waiting for the next round
+[env:8920] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+stuck-breaker #1 at (-24.9,12.8) decision 484: state reset, path waypoint + sampling for 24 decisions
+VIDEO check at 120 s left: score 52, predicted 155 (target over 160)
+VIDEO RESTART round 47: predicted 155 at 120 s left
+  round 47: {'round': 47, 'gems': 42, 'points': 52.0, 'minutes': 1.0, 'decisions': 938, 'countdown_decisions': 46, 'gems_per_min': 42.0, 'points_per_min': 52.0, 'falls': 0, 'falls_per_100u': 0.0, 'travelled_u': 493.9, 'speed': 8.23, 'blind_pct': 0.0, 'stuck_breaks': 1, 'snapped_pct': 0.0, 'pathed_pct': 0.7, 'smooth': 1.0, 'video': 'predicted 155 at 120 s left'}
+[env:8920] round over (time left 180s of 180s); waiting for the next round
+[env:8920] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+VIDEO check at 120 s left: score 54, predicted 161 (target over 160)
+stuck-breaker #1 at (-17.8,15.2) decision 1555: state reset, path waypoint + sampling for 24 decisions
+VIDEO check at 60 s left: score 107, predicted 160 (target over 160)
+VIDEO RESTART round 48: predicted 160 at 60 s left
+  round 48: {'round': 48, 'gems': 86, 'points': 107.0, 'minutes': 2.0, 'decisions': 1875, 'countdown_decisions': 46, 'gems_per_min': 43.0, 'points_per_min': 53.5, 'falls': 0, 'falls_per_100u': 0.0, 'travelled_u': 991.4, 'speed': 8.26, 'blind_pct': 0.0, 'stuck_breaks': 1, 'snapped_pct': 0.0, 'pathed_pct': 0.0, 'smooth': 1.0, 'video': 'predicted 160 at 60 s left'}
+[env:8920] round over (time left 180s of 180s); waiting for the next round
+[env:8920] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+VIDEO check at 120 s left: score 48, predicted 143 (target over 160)
+VIDEO RESTART round 49: predicted 143 at 120 s left
+  round 49: {'round': 49, 'gems': 38, 'points': 48.0, 'minutes': 1.0, 'decisions': 938, 'countdown_decisions': 46, 'gems_per_min': 38.0, 'points_per_min': 48.0, 'falls': 0, 'falls_per_100u': 0.0, 'travelled_u': 515.4, 'speed': 8.59, 'blind_pct': 0.0, 'stuck_breaks': 0, 'snapped_pct': 0.0, 'pathed_pct': 0.0, 'smooth': 1.0, 'video': 'predicted 143 at 120 s left'}
+[env:8920] round over (time left 180s of 180s); waiting for the next round
+[env:8920] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+stuck-breaker #1 at (-23.7,1.0) decision 855: state reset, path waypoint + sampling for 24 decisions
+VIDEO check at 120 s left: score 48, predicted 143 (target over 160)
+VIDEO RESTART round 50: predicted 143 at 120 s left
+  round 50: {'round': 50, 'gems': 37, 'points': 48.0, 'minutes': 1.0, 'decisions': 938, 'countdown_decisions': 46, 'gems_per_min': 37.0, 'points_per_min': 48.0, 'falls': 0, 'falls_per_100u': 0.0, 'travelled_u': 486.8, 'speed': 8.11, 'blind_pct': 0.0, 'stuck_breaks': 1, 'snapped_pct': 0.0, 'pathed_pct': 0.0, 'smooth': 1.0, 'video': 'predicted 143 at 120 s left'}
+[env:8920] round over (time left 180s of 180s); waiting for the next round
+[env:8920] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)

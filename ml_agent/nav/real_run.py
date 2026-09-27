@@ -93,9 +93,10 @@ HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 from nav.gems import visible_gems, choose, ABSENT, STICKY_TOL, SWITCH_GAIN, MOMENTUM_K, VALUE_WEIGHT   # noqa: E402  (shared with real-gem training)
 from nav.gems import plan_tour                                       # noqa: E402
-TOUR = os.environ.get('NAV_TOUR', 'walk')   # 2026-09-26 (HANDOFF 28.50-28.51): the gem chooser. 'walk' (DEFAULT since 28.51,
-                               # the same as training in nav/vec_worker.py) = plan the whole spawn with walk-only Dijkstra
-                               # distances; 'euc' = straight-line distances (no terrain map); '' = the old greedy chooser
+TOUR = os.environ.get('NAV_TOUR', '').replace('greedy', '')   # 2026-09-26 (HANDOFF 28.50-28.54): the gem chooser.
+                               # '' or 'greedy' = choose() (DEFAULT again since 28.54, the same as nav/vec_worker.py);
+                               # 'walk' = plan the whole spawn with walk-only Dijkstra distances; 'euc' = straight-line
+                               # distances. 'greedy' exists because PowerShell $env:NAV_TOUR = "" DELETES the variable.
 
 
 def snap_to_walkable(terrain, gx, gy, gz, radius=3):

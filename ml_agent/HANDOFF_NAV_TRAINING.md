@@ -3885,3 +3885,28 @@ bad: it rolls past gems and has to come back for them. On request, nav_latest.pt
 (step-2 best: 153.1 at 3x, 1.6 falls). The planner model is kept as nav_planner_end_27280.pth.
 At 1x with greedy, 26113 scored 153 and 153 (1 fall each, 8.63 / 8.19 u/s) before the operator ended the run.
 The NAV_TOUR default in vec_worker and real_run is still 'walk' (not reverted; the operator decides).
+
+### 28.54 Greedy chooser is the default again (2026-09-26 ~15:10, operator); FUTURE NOTE on the planner
+
+NAV_TOUR default is '' (greedy choose()) again in nav/vec_worker.py and nav/real_run.py. NAV_TOUR=greedy also
+means greedy, because PowerShell `$env:NAV_TOUR = ""` deletes the variable. NAV_TOUR=walk / euc still select plan_tour.
+
+**FUTURE NOTE (operator):** the whole-spawn planner (nav/gems.plan_tour, NAV_TOUR=walk) is parked, not dropped.
+If KOTM gets stuck and scores stop rising, revisit it: the gem ORDER is still about 1/3 of the route gap to the
+human's 170-level rounds (28.49), greedy takes the best order only 38 % of the time (planner 54-61 %), and the planner
+cut 2-3 u per spawn. The 28.52 attempt failed because the policy got slower and overshot gems on the planner's routes.
+The route gain itself was real.
+
+### 28.55 Video mode for screen recording (2026-09-26 15:22-16:29, operator)
+
+The operator recorded a 1x KOTM round over 160. New, off by default:
+* mlAgent.cs: control word `RESTART`. It cancels a pending OOB respawn, sends the 'end' message, then takes the
+  normal autoRestart path (restartLevel, loop restarted 100 ms later).
+* nav/real_run.py: `NAV_VIDEO_TARGET=160`. A fall restarts the round at once. So does the game's own score
+  predictor (hunt.cs updatePredictor: floor(score * round length / elapsed), from obs 31-33) at or under the
+  target at 2:00 or 1:00 left.
+Launcher: scratchpad video_1x.ps1 (NAV_SPEED 1, NAV_WATCH 1, NAV_VIEW_SUBSTEPS 4, nav_latest = 26113, greedy).
+
+Result over 49 rounds: 2 clean rounds over 160 (round 22: 167, ~15:47-15:50; round 35: 163, ~16:07-16:10),
+plus one clean 149 (round 29).
+Most others fell or were under target at 2:00. Six were cut at 1:00 with the predictor at exactly 160 (107 points).
