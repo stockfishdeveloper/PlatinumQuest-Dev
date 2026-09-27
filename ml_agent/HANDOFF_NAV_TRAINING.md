@@ -73,14 +73,19 @@ Measured on 2026-09-25/26 against the human's 177 and 172 rounds, per gem spawn 
 
 ## 4. Next: jump physics
 
-`PHYSICS_PLANNER_PLAN.md` (the operator's direction): learn the outcome of a jump OFFLINE from
-exhaustive engine-generated jumps (outcome, landing point, landing velocity, flight time), then use that
-model at play time as cheap features, including "what if" run-up queries. No engine rollouts during
-play. The test is `kotmjump` at 1x.
-Open decisions: D1 (input in the air), D2 (after landing), D3 (separate model or an extra head),
-D4 (which maps), D6 (retiring the current jump stack). D5 (spin in the observation) is done (V6).
-The 3 u minimum jump gap in `nav/physics.py` (`MIN_JUMP_GAP`) is a KOTM-only hack that this work should
-replace.
+**The plan we follow** (operator, 2026-09-27): [KOTMJUMP_NAVIGATION_DESIGN.md](KOTMJUMP_NAVIGATION_DESIGN.md),
+starting with [KOTMJUMP_START_HERE.md](KOTMJUMP_START_HERE.md). In short: a dynamics model learned offline from
+engine trials on the game's own maps (a step model plus a direct flight head), forward search from the
+marble's real state seeded from the gem side, and a feedback controller, with a second arm where PPO drives
+and the controller takes over for planned manoeuvres. No engine rollouts during play. The first experiment
+(P0) is a recorded flight experiment on one kotmjump hole, then learned action selection on held-out starts.
+All six decisions of the earlier `PHYSICS_PLANNER_PLAN.md` are settled in the design; that file is history.
+Nothing is implemented yet, and no code, checkpoint, training rotation or runtime setting has changed.
+The operator's answers (2026-09-27): P0 runs on a new drill map `kotmjump_p0`; building P0 is approved;
+PPO training stays stopped during P0; Horizon and Archipelago are the fixed reference maps, never
+trained on. Implementation starts when the operator says.
+The 3 u minimum jump gap in `nav/physics.py` (`MIN_JUMP_GAP`) stays a KOTM-only hack of the baseline; the new
+planner must not depend on it.
 
 Longer term (the 2026-09-16 roadmap, archived): the navigator on every map, a planner above it
 (targets, powerups), then multiplayer and self-play.
@@ -192,7 +197,11 @@ Longer term (the 2026-09-16 roadmap, archived): the navigator on every map, a pl
 
 * `HANDOFF_NAV_TRAINING.md`: this file, the current state.
 * `docs/HANDOFF_NAV_TRAINING_LOG.md`: the dated history, sections 1 to 28.x.
-* `PHYSICS_PLANNER_PLAN.md`: the next piece of work.
+* `BIG_QUESTIONS.md`: the open questions for general-purpose navigation (physics, terrain, routes, plan to policy).
+* `JUMP_PLAN_OVERVIEW.md`: the jump physics plan in plain words, with the happy-path roadmap.
+* `KOTMJUMP_START_HERE.md`: the first experiment of the jump physics plan (P0). Start here.
+* `KOTMJUMP_NAVIGATION_DESIGN.md`: the jump physics plan we follow, as the reference specification.
+* `PHYSICS_PLANNER_PLAN.md`: the first jump-predictor draft (2026-09-26); superseded by the design, kept as history.
 * `PHYSICS_SKILLS_DESIGN.md`: the 2026-09-23 design. Its plan was superseded by
   `PHYSICS_PLANNER_PLAN.md`; its engine facts (`marble.cc` line references) are still the reference.
 * `README.md`: quick start, architecture and lessons.

@@ -1,9 +1,14 @@
 # Learned jump physics: working plan (DRAFT v1, 2026-09-26)
 
-Status: draft for iteration with the operator. D5 is done (spin is in the observation since NAV_OBS_V6); the
-rest is not built yet, and decisions D1-D4 and D6 are open. Related: `PHYSICS_SKILLS_DESIGN.md` (2026-09-23; this
+Status: **superseded** (2026-09-27). The plan we follow is [KOTMJUMP_NAVIGATION_DESIGN.md](KOTMJUMP_NAVIGATION_DESIGN.md),
+starting with [KOTMJUMP_START_HERE.md](KOTMJUMP_START_HERE.md); it settles D1-D6. This draft is kept as history. Related: `PHYSICS_SKILLS_DESIGN.md` (2026-09-23; this
 plan is its Option C, a learned physics model, promoted to the main approach by the operator).
-Current state of the navigator: `HANDOFF_NAV_TRAINING.md`.
+Current state of the navigator: `HANDOFF_NAV_TRAINING.md`. The wider questions (routes, terrain, plan to policy) are in `BIG_QUESTIONS.md`.
+
+For the 2026-09-27 implementation design, see [KOTMJUMP_NAVIGATION_DESIGN.md](KOTMJUMP_NAVIGATION_DESIGN.md).
+It expands this predictor proposal to include rolling, input sequences, post-landing continuation,
+reachable-state route search, and feedback control, starting with kotmjump. Its milestones describe
+proposed work, not completed implementation; this earlier draft is retained for context.
 
 ## 1. The idea (operator, 2026-09-26)
 

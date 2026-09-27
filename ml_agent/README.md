@@ -8,7 +8,7 @@ Reinforcement learning system for training an AI agent to play Hunt mode in Plat
 > and is not being developed.
 >
 > **As of 2026-09-26:** about 153 points on KingOfTheMarble (3x, 8 deterministic rounds), against human
-> rounds of 143-177. The next piece of work is jump physics (`PHYSICS_PLANNER_PLAN.md`).
+> rounds of 143-177. The next piece of work is jump physics: start at `KOTMJUMP_START_HERE.md`.
 
 ## Quick start (navigator)
 
@@ -96,7 +96,11 @@ The game is normally launched headlessly for training instead:
 
 - `HANDOFF_NAV_TRAINING.md` - the current state: scores, the system, how to run it, traps, rules. Start here.
 - `docs/HANDOFF_NAV_TRAINING_LOG.md` - the dated history of every experiment (sections 1-28.x).
-- `PHYSICS_PLANNER_PLAN.md` - the next piece of work: a learned jump-outcome model.
+- `BIG_QUESTIONS.md` - the big open questions: learning the physics, representing terrain, finding routes, handing plans to the policy.
+- `KOTMJUMP_NAVIGATION_DESIGN.md` - the 2026-09-27 design and implementation sequence for learned physics, reliable floating-gem jumps, and useful route discovery on kotmjump; not implemented yet.
+- `JUMP_PLAN_OVERVIEW.md` - the jump physics plan in plain words, with the roadmap.
+- `KOTMJUMP_START_HERE.md` - the first experiment of the jump physics plan (P0). Start here for that work.
+- `PHYSICS_PLANNER_PLAN.md` - the first jump-predictor draft (2026-09-26), superseded by the design; history.
 - `PHYSICS_SKILLS_DESIGN.md` - background on the engine's physics (`marble.cc`).
 - `docs/archive/` - superseded documents (the 2026-09-16 roadmap and implementation plan, the old
   dashboard's chat context, earlier designs).

@@ -3882,3 +3882,13 @@ plus the 153.1 baseline. Operator watching the endpoint at 1x afterwards (logs/n
   influence median 0.6 deg, p99 11.7 deg; jump flips 0.009 %). The 2.5 h run cost 4.0 +- 1.8 points against its
   start, spin or not. No checkpoint trained after 26113 has beaten it at the deterministic eval.
 * 22:50, operator: nav_latest.pth = nav_v6_start_26110 (26113 in V6) as the checkpoint to train from.
+
+### 28.60 Sprawl's "too steep" cells are ledge borders, not slopes (2026-09-26 ~23:30)
+
+Found while building a 3D view of Sprawl's terrain data for the operator. Sprawl's ramps are smooth 18.3 deg planes,
+stored exactly (14,315 half-unit cells, 92 % walkable). Of the 2,150 walk cells flagged too steep (log 25, B6), 2,133
+(99 %) sit next to a ledge or wall: `nav/terrain.py` `_build_walk_grid` takes the slope as a central difference over
+1 u cells, so a vertical step reads as a steep slope on the cells beside it. That is a strip of non-walkable cells
+along every ledge top and wall bottom, the same family as KOTM's phantom holes. Not fixed (code change needs the
+operator): measure slope only between neighbours on the same surface, or take normals from the map geometry.
+The model's own features treat the ramps as floor: rays and the gap block follow up to 1 u of rise per 0.5 u step.
