@@ -1,5 +1,7 @@
 # Roadmap: from a King-of-the-Marble policy to a multiplayer hunt agent
 
+> **ARCHIVED 2026-09-26.** The 2026-09-16 roadmap. The navigator it proposes was built (nav/) and trained; its status lines ("nothing implemented", 83 points) are long out of date. The long-term direction it sets (navigator on every map, then a planner with powerups, then multiplayer and self-play) still stands and is summarised in ../../HANDOFF_NAV_TRAINING.md section 4.
+
 Written 2026-09-16. Status: **planning document, nothing here is implemented yet.**
 Read `CHAT_CONTEXT.md` first for the current stack; this document assumes it.
 

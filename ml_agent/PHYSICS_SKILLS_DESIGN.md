@@ -1,5 +1,10 @@
 # Physics-aware planning for the marble: measured physics, engine-as-oracle, and learned dynamics
 
+> **Status 2026-09-26:** background, not the plan. Its recommended approach (engine rollouts during play) was
+> superseded by `PHYSICS_PLANNER_PLAN.md` (the operator: learn the physics offline, use a cheap model at play
+> time). Its engine facts (sections 1-2, `marble.cc` line references) remain the reference. Current state:
+> `HANDOFF_NAV_TRAINING.md`.
+
 Written 2026-09-23 for whoever picks this up next (human or model). It assumes the navigator stack in
 `ml_agent/nav/` (read `HANDOFF_NAV_TRAINING.md`, CURRENT STATE block, first) and the engine worktree
 `C:/Users/doug/src/OpenPQ-TGEMIT-mbx` (branch `ai-training-mode`, off `mbx`). Every file:line below was

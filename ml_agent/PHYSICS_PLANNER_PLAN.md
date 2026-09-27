@@ -1,8 +1,9 @@
 # Learned jump physics: working plan (DRAFT v1, 2026-09-26)
 
-Status: draft for iteration with the operator. Nothing here is built yet. Related: `PHYSICS_SKILLS_DESIGN.md`
-(2026-09-23; this plan is its Option C, a learned physics model, promoted to the main approach by the operator).
-Current training state is in `HANDOFF_NAV_TRAINING.md` sections 28.42-28.46.
+Status: draft for iteration with the operator. D5 is done (spin is in the observation since NAV_OBS_V6); the
+rest is not built yet, and decisions D1-D4 and D6 are open. Related: `PHYSICS_SKILLS_DESIGN.md` (2026-09-23; this
+plan is its Option C, a learned physics model, promoted to the main approach by the operator).
+Current state of the navigator: `HANDOFF_NAV_TRAINING.md`.
 
 ## 1. The idea (operator, 2026-09-26)
 
@@ -33,7 +34,7 @@ For "jump at this instant", with a fixed assumption about what is pressed in the
 
 ## 3. Inputs
 
-* **Marble state:** velocity (3), spin (3; the observation does not carry it today, see D5), on-floor / contact
+* **Marble state:** velocity (3), spin (3; in the navigator's observation since V6, see D5), on-floor / contact
   normal.
 * **Geometry around the marble:** height crops like the navigator's existing ones (fine 0.5 u and coarse 2 u,
   two levels), rotated to the heading so the model does not have to learn every direction separately.
@@ -93,10 +94,10 @@ Engine as ground truth, using the existing lockstep machinery. No engine C++ cha
 * **M1. KOTM + kotmjump dataset** (~1-2M trials).
 * **M2. Predictor trained and validated** (section 6 criteria).
 * **M3. Multi-map dataset and held-out-map test.**
-* **M4. Wire into the navigator:** "jump now" and "what if" features replace the V5 gap block and the jump prior.
-  New observation version; the checkpoint is migrated.
+* **M4. Wire into the navigator:** "jump now" and "what if" features replace the gap block (vector 53-57) and the
+  jump prior. New observation version; the checkpoint is migrated.
 * **M5. Train, then test kotmjump at 1x.** Targets: every gem group completed; >= 80 % of floating-gem jumps take
-  the gem and land; KOTM not worse (8 rounds at 3x vs 151.2).
+  the gem and land; KOTM not worse (8 rounds at 3x against the current best in `HANDOFF_NAV_TRAINING.md`).
 
 ## 8. Open decisions for the operator
 
@@ -110,8 +111,9 @@ Engine as ground truth, using the existing lockstep machinery. No engine C++ cha
   every map. An auxiliary head truly internalises the physics but mixes supervised and RL training (behaviour
   cloning has hurt before). Proposal: separate model first.
 * **D4. Which maps feed the data,** and which complex maps to hold out as the transfer test.
-* **D5. Spin in the observation.** The engine has it (`getAngularVelocity`); the observer does not send it.
-  The predictor needs it, and it probably helps the policy too.
+* **D5. Spin in the observation. DONE 2026-09-26 (NAV_OBS_V6).** The observer sends the angular velocity; the
+  navigator gets it at vector 58-60 as a rolling velocity (r * (wy, -wx, wz) / 20, r = 0.19). A 2.5 h training
+  run showed no regression; the A/B of real against zeroed spin is in `HANDOFF_NAV_TRAINING.md` section 2.
 * **D6. The current jump stack** (terrain-map gap scripts, "crossable" flag, jump prior): retire it at M4, or keep
   the prior until the new features are proven? Proposal: replace the features at M4, keep the prior only if
   kotmjump fails without it.
@@ -156,3 +158,5 @@ Engine as ground truth, using the existing lockstep machinery. No engine C++ cha
 * v1 2026-09-26: learned jump-outcome model trained offline on engine data (this document).
 * v1.1 2026-09-26: section 10 added. Spin can be read and set in a live game (probe results); marble radius
   0.19 u; "no input" brakes the marble.
+* v1.2 2026-09-26: D5 done (spin in the observation, NAV_OBS_V6). References point at the new current-state
+  handoff.

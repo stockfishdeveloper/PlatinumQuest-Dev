@@ -1,5 +1,7 @@
 # Implementation plan: navigator + planner agent
 
+> **ARCHIVED 2026-09-26.** The 2026-09-16/17 work packages. WP1-WP5 (protocol, terrain, observation and model, reward and recurrent PPO, evaluation) became the nav/ package and WP7 (engine fixed step, lockstep, multi-instance, headless) the engine branch. WP6 (demo bootstrap) was tried and dropped: cloning regressed the policy. The greedy gem chooser stands in for WP8's heuristic planner. WP9-WP10 (powerups, learned planner, self-play) were not started. Current state: ../../HANDOFF_NAV_TRAINING.md; next work: ../../PHYSICS_PLANNER_PLAN.md.
+
 Written 2026-09-16 (late). Companion to `ROADMAP_NAVIGATOR_PLANNER.md` (the
 "why" and the architecture) and `CHAT_CONTEXT.md` (the current stack). This
 document is the "how": work packages, file layout, data contracts, numbers,

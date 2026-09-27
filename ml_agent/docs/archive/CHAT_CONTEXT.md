@@ -1,5 +1,7 @@
 # Dashboard Chat Context
 
+> **ARCHIVED 2026-09-26.** System prompt of the OLD dashboard (dashboard.py, train_ppo era: FlatWithJump stage, per-map MLP). Nothing current loads it. The current state is ../../HANDOFF_NAV_TRAINING.md.
+
 > This file is loaded into the system prompt of the dashboard's chat assistant on every message. Edit it as the project evolves — changes take effect on the next question, no restart needed.
 
 ---
