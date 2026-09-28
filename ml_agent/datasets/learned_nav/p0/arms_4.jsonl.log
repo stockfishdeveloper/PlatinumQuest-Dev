@@ -1,0 +1,6 @@
+[18:10:32] [env:8955] waiting for the game
+[18:10:32] [env:8955] game connected (1)
+[18:10:32] connected: kotmjump_p0, round 3600 s
+[18:10:47] 200 trials in 16 s (12.78/s), 0 teleport retries
+[18:11:02] 400 trials in 30 s (13.28/s), 0 teleport retries
+[18:11:09] finished: 504 trials in 37 s, 0 teleport retries

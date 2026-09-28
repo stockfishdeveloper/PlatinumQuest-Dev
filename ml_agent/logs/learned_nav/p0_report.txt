@@ -1,0 +1,8 @@
+held-out starts 756, feasible 251
+  learned       170/251 = 0.677  95% [0.617, 0.732]  pickup 0.932  oob 0.116  engine runs 756
+  handwritten    30/251 = 0.120  95% [0.085, 0.165]  pickup 0.355  oob 0.335  engine runs 756
+  fixed          47/251 = 0.187  95% [0.144, 0.240]  pickup 0.530  oob 0.124  engine runs 756
+  random         15/251 = 0.060  95% [0.037, 0.096]  pickup 0.215  oob 0.625  engine runs 756
+engine vs oracle agreement: 3024/3024
+PASS: True (best baseline fixed)
+pickup AUC 0.985 FP 568 FN 632 of 3685 positives; safe AUC 0.953; success ECE 0.007; path error median 0.45 u; landing error median 0.39 u

@@ -1,0 +1,16 @@
+[env:8961] waiting for the game
+[env:8961] game connected (1)
+connected: kotmjump_p0, round 3600 s
+  1 s1_00029: 11.7 u/s, jump at decision 2, air -45 deg from the heading; predicted 0.53 -> pickup, fell  (0/1)
+  2 s1_00035:  8.1 u/s, jump at decision 4, air -90 deg from the heading; predicted 0.94 -> PICKUP + SAFE  (1/2)
+  3 s1_00063:  5.8 u/s, jump at decision 4, air -45 deg from the heading; predicted 0.67 -> PICKUP + SAFE  (2/3)
+  4 s1_00104:  7.2 u/s, jump at decision 4, air -45 deg from the heading; predicted 0.77 -> PICKUP + SAFE  (3/4)
+  5 s1_00105: 11.7 u/s, jump at decision 2, air -90 deg from the heading; predicted 0.84 -> pickup, fell  (3/5)
+  6 s1_00129:  6.6 u/s, jump at decision 3, air -45 deg from the heading; predicted 0.74 -> PICKUP + SAFE  (4/6)
+  7 s1_00139:  9.0 u/s, jump at decision 1, air -45 deg from the heading; predicted 0.78 -> PICKUP + SAFE  (5/7)
+  8 s1_00155:  5.5 u/s, jump at decision 4, air +0 deg from the heading; predicted 0.13 -> PICKUP + SAFE  (6/8)
+  9 s1_00158: 11.1 u/s, jump at decision 0, air -90 deg from the heading; predicted 0.98 -> PICKUP + SAFE  (7/9)
+ 10 s1_00170:  7.0 u/s, jump at decision 3, air -45 deg from the heading; predicted 0.74 -> PICKUP + SAFE  (8/10)
+ 11 s1_00182:  7.9 u/s, jump at decision 4, air -45 deg from the heading; predicted 0.89 -> PICKUP + SAFE  (9/11)
+ 12 s1_00343: 12.3 u/s, jump at decision 3, air +180 deg from the heading; predicted 0.76 -> missed  (9/12)
+ 13 s1_00346: 10.4 u/s, jump at decision 0, air -45 deg from the heading; predicted 0.18 -> pickup, fell  (9/13)

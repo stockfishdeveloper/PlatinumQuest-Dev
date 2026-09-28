@@ -1,0 +1,10 @@
+[18:10:32] [env:8956] waiting for the game
+[18:10:32] [env:8956] game connected (1)
+[18:10:32] connected: kotmjump_p0, round 3600 s
+[18:10:47] 200 trials in 15 s (13.05/s), 0 teleport retries
+[18:10:58] round ended / reconnected: waiting for the next round
+[18:10:58] [env:8956] round over (time left 3600s of 3600s); waiting for the next round
+[18:10:58] [env:8956] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[18:10:58] trial s2_00280/22 attempt 0: round_over
+[18:11:03] 400 trials in 31 s (12.79/s), 0 teleport retries
+[18:11:11] finished: 504 trials in 40 s, 0 teleport retries

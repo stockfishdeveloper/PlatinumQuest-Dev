@@ -399,6 +399,7 @@ function MLAgent::update(%gen) {
     //   "RESPAWN"                      force a server-side respawn of the marble
     //   "OOBCLICK"                     the legal quick respawn a human gets by clicking while OOB
     //   "MARK x y z"                   show the navigator's waypoint as a pad (cosmetic)
+    //   "GEMRESET"                     drill maps: respawn the gem group if no gem is up
     if (getWord(%actionStr, 0) $= "STATS") {
         AIBridge::sendState("STATS|" @ $AIBridge::DelayedReplies @ "," @ $AIBridge::LateReplies @ ","
                             @ $AIBridge::HeldTicks @ "," @ $MLAgent::ActionDelay @ "," @ $MLAgent::Tick);
@@ -530,6 +531,14 @@ function MLAgent::update(%gen) {
     } else if (getWord(%actionStr, 0) $= "DELAY") {
         $MLAgent::ActionDelay = getWord(%actionStr, 1) + 0;
         echo("MLAgent: action delay set to " @ $MLAgent::ActionDelay @ " ticks by the Python server");
+        $AIBridge::LastAction = "";
+        %actionStr = "";
+    } else if (getWord(%actionStr, 0) $= "GEMRESET") {
+        // "GEMRESET" (2026-09-27, jump physics P0 drills): if no hunt gem is spawned, spawn the gem group
+        // again. The game respawns a group EXCLUDING the gem just collected, so a one-gem drill map
+        // (kotmjump_p0) would stay empty after its first pickup. Does nothing while a gem is up.
+        if ($Hunt::CurrentGemCount <= 0)
+            spawnHuntGemGroup();
         $AIBridge::LastAction = "";
         %actionStr = "";
     }

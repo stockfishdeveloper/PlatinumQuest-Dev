@@ -6,7 +6,7 @@ it here. The dated history of every experiment (sections 1 to 28.x, 2026-09-17 t
 `docs/HANDOFF_NAV_TRAINING_LOG.md`. Code comments that cite "HANDOFF 28.52" and the like point into that
 log, and new dated entries go there too.
 
-Last updated: 2026-09-26 22:45.
+Last updated: 2026-09-27 18:30 (jump physics P0).
 
 ## 1. Where things stand
 
@@ -36,6 +36,11 @@ Last updated: 2026-09-26 22:45.
   2026-09-22 (it had saturated at 93-95 % of the human). `kotmjump` (a KOTM copy with a gem floating
   over each big hole) is in the game as the jump test map and is NOT in the rotation.
 * **KOTM is the base model** that other maps will fine-tune from (per-map checkpoints later).
+* **Jump physics P0 (2026-09-27): PASSED.** A small learned flight predictor, trained on 184,000 recorded flights at
+  one kotmjump hole, chose a jump that collected the floating gem and landed safely on 67.7 % of 251 feasible
+  held-out starts, against 18.7 % for the best simple rule. Separate code (`nav/learned_nav/`); the PPO navigator
+  and its checkpoints are untouched. M0 on kotmjump: the navigator scores 4.6 points a round and stalls after its
+  first three gems. Details: log section 29 and `KOTMJUMP_START_HERE.md`. Next (needs the operator): stage 3.
 
 ## 2. Spin A/B (2026-09-26 22:00-22:40, 3x, 8 rounds per arm)
 

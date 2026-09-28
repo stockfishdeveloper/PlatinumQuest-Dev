@@ -1,0 +1,144 @@
+[17:13:52] [env:8952] waiting for the game
+[17:13:58] [env:8952] game connected (1)
+[17:14:03] connected: kotmjump_p0, round 3600 s
+[17:14:11] 200 trials in 8 s (25.89/s), 0 teleport retries
+[17:14:20] 400 trials in 17 s (23.82/s), 0 teleport retries
+[17:14:28] 600 trials in 25 s (24.44/s), 0 teleport retries
+[17:14:35] 800 trials in 32 s (25.10/s), 0 teleport retries
+[17:14:43] 1000 trials in 40 s (25.27/s), 0 teleport retries
+[17:14:51] 1200 trials in 47 s (25.30/s), 0 teleport retries
+[17:14:59] 1400 trials in 56 s (25.06/s), 0 teleport retries
+[17:15:01] round ended / reconnected: waiting for the next round
+[17:15:01] [env:8952] round over (time left 3600s of 3600s); waiting for the next round
+[17:15:01] [env:8952] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[17:15:01] trial s1_00192/15 attempt 0: round_over
+[17:15:08] 1600 trials in 65 s (24.78/s), 0 teleport retries
+[17:15:17] 1800 trials in 73 s (24.52/s), 0 teleport retries
+[17:15:26] 2000 trials in 82 s (24.32/s), 0 teleport retries
+[17:15:35] 2200 trials in 92 s (23.98/s), 0 teleport retries
+[17:15:44] 2400 trials in 101 s (23.87/s), 0 teleport retries
+[17:15:53] 2600 trials in 110 s (23.69/s), 0 teleport retries
+[17:16:03] 2800 trials in 119 s (23.50/s), 0 teleport retries
+[17:16:06] round ended / reconnected: waiting for the next round
+[17:16:06] [env:8952] round over (time left 3600s of 3600s); waiting for the next round
+[17:16:06] [env:8952] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[17:16:06] trial s1_00376/45 attempt 0: round_over
+[17:16:12] 3000 trials in 128 s (23.36/s), 0 teleport retries
+[17:16:21] 3200 trials in 138 s (23.19/s), 0 teleport retries
+[17:16:31] 3400 trials in 148 s (23.04/s), 0 teleport retries
+[17:16:40] 3600 trials in 156 s (23.02/s), 0 teleport retries
+[17:16:49] 3800 trials in 166 s (22.90/s), 0 teleport retries
+[17:16:58] 4000 trials in 175 s (22.88/s), 0 teleport retries
+[17:17:07] 4200 trials in 184 s (22.82/s), 0 teleport retries
+[17:17:12] round ended / reconnected: waiting for the next round
+[17:17:12] [env:8952] round over (time left 3600s of 3600s); waiting for the next round
+[17:17:12] [env:8952] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[17:17:12] trial s1_00557/40 attempt 0: round_over
+[17:17:17] 4400 trials in 194 s (22.71/s), 0 teleport retries
+[17:17:26] 4600 trials in 203 s (22.66/s), 0 teleport retries
+[17:17:36] 4800 trials in 212 s (22.62/s), 0 teleport retries
+[17:17:44] 5000 trials in 221 s (22.64/s), 0 teleport retries
+[17:17:53] 5200 trials in 230 s (22.62/s), 0 teleport retries
+[17:18:02] 5400 trials in 239 s (22.59/s), 0 teleport retries
+[17:18:12] 5600 trials in 249 s (22.50/s), 0 teleport retries
+[17:18:19] round ended / reconnected: waiting for the next round
+[17:18:19] [env:8952] round over (time left 3600s of 3600s); waiting for the next round
+[17:18:19] [env:8952] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[17:18:19] trial s1_00750/30 attempt 0: round_over
+[17:18:21] 5800 trials in 258 s (22.48/s), 0 teleport retries
+[17:18:31] 6000 trials in 268 s (22.43/s), 0 teleport retries
+[17:18:42] 6200 trials in 278 s (22.27/s), 0 teleport retries
+[17:18:51] 6400 trials in 288 s (22.23/s), 0 teleport retries
+[17:19:00] 6600 trials in 297 s (22.24/s), 0 teleport retries
+[17:19:09] 6800 trials in 305 s (22.27/s), 0 teleport retries
+[17:19:18] 7000 trials in 315 s (22.22/s), 0 teleport retries
+[17:19:28] 7200 trials in 324 s (22.21/s), 0 teleport retries
+[17:19:28] round ended / reconnected: waiting for the next round
+[17:19:28] [env:8952] round over (time left 3600s of 3600s); waiting for the next round
+[17:19:28] [env:8952] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[17:19:28] trial s1_00935/10 attempt 0: round_over
+[17:19:37] 7400 trials in 333 s (22.20/s), 0 teleport retries
+[17:19:46] 7600 trials in 343 s (22.16/s), 0 teleport retries
+[17:19:56] 7800 trials in 353 s (22.11/s), 0 teleport retries
+[17:20:06] 8000 trials in 363 s (22.05/s), 0 teleport retries
+[17:20:16] 8200 trials in 373 s (22.01/s), 0 teleport retries
+[17:20:25] 8400 trials in 382 s (22.01/s), 0 teleport retries
+[17:20:35] 8600 trials in 392 s (21.97/s), 0 teleport retries
+[17:20:37] round ended / reconnected: waiting for the next round
+[17:20:37] [env:8952] round over (time left 3600s of 3600s); waiting for the next round
+[17:20:37] [env:8952] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[17:20:37] trial s1_01118/43 attempt 0: round_over
+[17:20:44] 8800 trials in 401 s (21.94/s), 0 teleport retries
+[17:20:54] 9000 trials in 411 s (21.92/s), 0 teleport retries
+[17:21:04] 9200 trials in 421 s (21.85/s), 0 teleport retries
+[17:21:14] 9400 trials in 431 s (21.82/s), 0 teleport retries
+[17:21:24] 9600 trials in 441 s (21.77/s), 0 teleport retries
+[17:21:34] 9800 trials in 450 s (21.76/s), 0 teleport retries
+[17:21:43] 10000 trials in 460 s (21.74/s), 0 teleport retries
+[17:21:47] round ended / reconnected: waiting for the next round
+[17:21:47] [env:8952] round over (time left 3600s of 3600s); waiting for the next round
+[17:21:47] [env:8952] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[17:21:47] trial s1_01310/45 attempt 0: round_over
+[17:21:53] 10200 trials in 470 s (21.72/s), 0 teleport retries
+[17:22:03] 10400 trials in 480 s (21.68/s), 0 teleport retries
+[17:22:14] 10600 trials in 490 s (21.62/s), 0 teleport retries
+[17:22:24] 10800 trials in 500 s (21.58/s), 0 teleport retries
+[17:22:34] 11000 trials in 511 s (21.54/s), 0 teleport retries
+[17:22:44] 11200 trials in 520 s (21.52/s), 0 teleport retries
+[17:22:54] 11400 trials in 530 s (21.50/s), 0 teleport retries
+[17:22:59] round ended / reconnected: waiting for the next round
+[17:22:59] [env:8952] round over (time left 3600s of 3600s); waiting for the next round
+[17:22:59] [env:8952] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[17:22:59] trial s1_01491/41 attempt 0: round_over
+[17:23:04] 11600 trials in 540 s (21.47/s), 0 teleport retries
+[17:23:13] 11800 trials in 550 s (21.46/s), 0 teleport retries
+[17:23:23] 12000 trials in 560 s (21.44/s), 0 teleport retries
+[17:23:34] 12200 trials in 571 s (21.38/s), 0 teleport retries
+[17:23:44] 12400 trials in 581 s (21.35/s), 0 teleport retries
+[17:23:55] 12600 trials in 592 s (21.28/s), 0 teleport retries
+[17:24:06] 12800 trials in 603 s (21.23/s), 0 teleport retries
+[17:24:14] round ended / reconnected: waiting for the next round
+[17:24:14] [env:8952] round over (time left 3600s of 3600s); waiting for the next round
+[17:24:14] [env:8952] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[17:24:14] trial s1_01684/44 attempt 0: round_over
+[17:24:17] 13000 trials in 614 s (21.18/s), 0 teleport retries
+[17:24:27] 13200 trials in 623 s (21.17/s), 0 teleport retries
+[17:24:36] 13400 trials in 633 s (21.17/s), 0 teleport retries
+[17:24:47] 13600 trials in 643 s (21.14/s), 0 teleport retries
+[17:24:57] 13800 trials in 653 s (21.12/s), 0 teleport retries
+[17:25:07] 14000 trials in 664 s (21.09/s), 0 teleport retries
+[17:25:19] 14200 trials in 675 s (21.02/s), 0 teleport retries
+[17:25:27] round ended / reconnected: waiting for the next round
+[17:25:27] [env:8952] round over (time left 3600s of 3600s); waiting for the next round
+[17:25:27] [env:8952] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[17:25:27] trial s1_01871/15 attempt 0: round_over
+[17:25:29] 14400 trials in 685 s (21.01/s), 0 teleport retries
+[17:25:39] 14600 trials in 696 s (20.99/s), 0 teleport retries
+[17:25:50] 14800 trials in 706 s (20.96/s), 0 teleport retries
+[17:26:00] 15000 trials in 717 s (20.92/s), 0 teleport retries
+[17:26:11] 15200 trials in 728 s (20.89/s), 0 teleport retries
+[17:26:22] 15400 trials in 739 s (20.85/s), 0 teleport retries
+[17:26:33] 15600 trials in 750 s (20.81/s), 0 teleport retries
+[17:26:44] 15800 trials in 761 s (20.76/s), 0 teleport retries
+[17:26:46] round ended / reconnected: waiting for the next round
+[17:26:46] [env:8952] round over (time left 3600s of 3600s); waiting for the next round
+[17:26:46] [env:8952] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[17:26:46] trial s1_02066/29 attempt 0: round_over
+[17:26:56] 16000 trials in 773 s (20.71/s), 0 teleport retries
+[17:27:07] 16200 trials in 783 s (20.68/s), 0 teleport retries
+[17:27:17] 16400 trials in 794 s (20.67/s), 0 teleport retries
+[17:27:27] 16600 trials in 804 s (20.65/s), 0 teleport retries
+[17:27:38] 16800 trials in 814 s (20.63/s), 0 teleport retries
+[17:27:48] 17000 trials in 825 s (20.61/s), 0 teleport retries
+[17:27:59] 17200 trials in 835 s (20.59/s), 0 teleport retries
+[17:28:02] round ended / reconnected: waiting for the next round
+[17:28:02] [env:8952] round over (time left 3600s of 3600s); waiting for the next round
+[17:28:02] [env:8952] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[17:28:02] trial s1_02249/23 attempt 0: round_over
+[17:28:09] 17400 trials in 846 s (20.56/s), 0 teleport retries
+[17:28:19] 17600 trials in 856 s (20.56/s), 0 teleport retries
+[17:28:30] 17800 trials in 867 s (20.54/s), 0 teleport retries
+[17:28:41] 18000 trials in 877 s (20.52/s), 0 teleport retries
+[17:28:51] 18200 trials in 888 s (20.49/s), 0 teleport retries
+[17:29:02] 18400 trials in 899 s (20.48/s), 0 teleport retries
+[17:29:02] finished: 18400 trials in 899 s, 0 teleport retries

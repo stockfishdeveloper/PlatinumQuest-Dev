@@ -85,5 +85,10 @@ def format_action(fwd, back, left, right, jump, cam_yaw=0.0, use_pow=0, tick='')
     return s
 
 
-def format_teleport(x, y, z, vx=0.0, vy=0.0, vz=0.0):
-    return f'TELEPORT {x:.4f} {y:.4f} {z:.4f} {vx:.4f} {vy:.4f} {vz:.4f}'
+def format_teleport(x, y, z, vx=0.0, vy=0.0, vz=0.0, spin=None):
+    """spin = (wx, wy, wz) rad/s sets the marble's angular velocity (mlAgent.cs words 7-9, 2026-09-26);
+    without it the game zeroes the spin, as before."""
+    s = f'TELEPORT {x:.4f} {y:.4f} {z:.4f} {vx:.4f} {vy:.4f} {vz:.4f}'
+    if spin is not None:
+        s += f' {spin[0]:.4f} {spin[1]:.4f} {spin[2]:.4f}'
+    return s

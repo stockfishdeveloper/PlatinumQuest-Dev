@@ -1,6 +1,8 @@
 # Jump physics: start here
 
-Status: **the plan we follow** (operator, 2026-09-27); final, implementation not started. This page is
+Status: **the plan we follow** (operator, 2026-09-27). **P0 done and PASSED on 2026-09-27** (learned 67.7 %
+[61.7-73.2] against the best baseline's 18.7 % [14.4-24.0] on 251 feasible held-out starts; details in
+`docs/HANDOFF_NAV_TRAINING_LOG.md` section 29). Stage 3 onward waits for the operator. This page is
 the concrete first experiment. The full
 reference specification is [KOTMJUMP_NAVIGATION_DESIGN.md](KOTMJUMP_NAVIGATION_DESIGN.md); where the two
 differ on what to do first, this page wins. The deployed PPO navigator, its checkpoints and training
@@ -107,4 +109,11 @@ calibration and predictor arbitration, search and seeding, handovers, multi-map 
    excluded, including Horizon's other modes (`snowball/advanced/Horizon_xmas.mcs` with `HorizonXmas.dif`,
    and `training/advanced/Horizon_Training.mis`). Archipelago replaced Fun in the Sun the same day.
 
-Implementation has not started; the operator will say when.
+## P0 outcome (2026-09-27)
+
+Built and run in one autonomous session after the operator said to proceed. PASSED: the learned arm picked a
+successful jump on 170 of 251 feasible held-out starts (67.7 %, 95 % interval 61.7-73.2), against the fixed rule
+18.7 % (14.4-24.0), the hand-written predictor 12.0 % and random 6.0 %. Stage 0 checks, the 20-repeat check and the
+frozen-before-evaluation protocol are in `docs/HANDOFF_NAV_TRAINING_LOG.md` section 29; code in `nav/learned_nav/`,
+results in `logs/learned_nav/p0_results.json`. Watch it at 1x: `nav\learned_nav\watch_p0.ps1`. Stage 3 (the general
+data pipeline, design M1 and M2) needs the operator's approval.

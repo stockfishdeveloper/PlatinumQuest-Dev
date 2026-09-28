@@ -246,8 +246,8 @@ class HuntEnv:
         """Hide the waypoint marker (between gem groups nothing may be drawn off a gem)."""
         self.control('MARK off')
 
-    def teleport(self, x, y, z, vx=0.0, vy=0.0, vz=0.0, settle_ticks=2):
-        self.control(format_teleport(x, y, z, vx, vy, vz))
+    def teleport(self, x, y, z, vx=0.0, vy=0.0, vz=0.0, settle_ticks=2, spin=None):
+        self.control(format_teleport(x, y, z, vx, vy, vz, spin=spin))
         for _ in range(settle_ticks):
             self.step(NOOP_ACTION, repeat=1)
         return self.msg

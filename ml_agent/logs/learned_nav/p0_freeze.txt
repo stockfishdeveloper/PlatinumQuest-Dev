@@ -1,0 +1,33 @@
+4000 starts recorded, 4000 complete; training 3244 (2807 fit, 437 validation); 756 held out (not read)
+validation: 100 feasible of 437 starts
+--- mirror augmentation False: 129122 training rows
+epoch 5: epoch 5, loss 1.1714, val_direct 0.3200, val_pass 0.3100, val_joint 0.2900, val_safe_ll 0.3097
+epoch 10: epoch 10, loss 0.9856, val_direct 0.5000, val_pass 0.4900, val_joint 0.5100, val_safe_ll 0.2882
+epoch 15: epoch 15, loss 0.8859, val_direct 0.5900, val_pass 0.5200, val_joint 0.5800, val_safe_ll 0.2878
+epoch 20: epoch 20, loss 0.8233, val_direct 0.6600, val_pass 0.5600, val_joint 0.6200, val_safe_ll 0.2838
+epoch 25: epoch 25, loss 0.7602, val_direct 0.6100, val_pass 0.5700, val_joint 0.6300, val_safe_ll 0.2941
+epoch 30: epoch 30, loss 0.7137, val_direct 0.5800, val_pass 0.5400, val_joint 0.5800, val_safe_ll 0.2786
+epoch 35: epoch 35, loss 0.6805, val_direct 0.6100, val_pass 0.5400, val_joint 0.6300, val_safe_ll 0.2895
+epoch 40: epoch 40, loss 0.6383, val_direct 0.6300, val_pass 0.6000, val_joint 0.6000, val_safe_ll 0.2911
+epoch 45: epoch 45, loss 0.6065, val_direct 0.6200, val_pass 0.5500, val_joint 0.6100, val_safe_ll 0.2961
+epoch 50: epoch 50, loss 0.5824, val_direct 0.6500, val_pass 0.6000, val_joint 0.6200, val_safe_ll 0.2930
+epoch 55: epoch 55, loss 0.5657, val_direct 0.6200, val_pass 0.5800, val_joint 0.6100, val_safe_ll 0.2972
+epoch 60: epoch 60, loss 0.5602, val_direct 0.6500, val_pass 0.5900, val_joint 0.6200, val_safe_ll 0.2941
+--- mirror augmentation True: 258244 training rows
+epoch 5: epoch 5, loss 1.0459, val_direct 0.7000, val_pass 0.5700, val_joint 0.7200, val_safe_ll 0.2695
+epoch 10: epoch 10, loss 0.9056, val_direct 0.7000, val_pass 0.6400, val_joint 0.7100, val_safe_ll 0.2472
+epoch 15: epoch 15, loss 0.8174, val_direct 0.6900, val_pass 0.6100, val_joint 0.7400, val_safe_ll 0.2447
+epoch 20: epoch 20, loss 0.7603, val_direct 0.7000, val_pass 0.5900, val_joint 0.7400, val_safe_ll 0.2419
+epoch 25: epoch 25, loss 0.7109, val_direct 0.7800, val_pass 0.6900, val_joint 0.7400, val_safe_ll 0.2413
+epoch 30: epoch 30, loss 0.6713, val_direct 0.7600, val_pass 0.6900, val_joint 0.7600, val_safe_ll 0.2301
+epoch 35: epoch 35, loss 0.6295, val_direct 0.8100, val_pass 0.7200, val_joint 0.7900, val_safe_ll 0.2282
+epoch 40: epoch 40, loss 0.5947, val_direct 0.8300, val_pass 0.7100, val_joint 0.8200, val_safe_ll 0.2308
+epoch 45: epoch 45, loss 0.5621, val_direct 0.8100, val_pass 0.7700, val_joint 0.8000, val_safe_ll 0.2305
+epoch 50: epoch 50, loss 0.5397, val_direct 0.8200, val_pass 0.6900, val_joint 0.8300, val_safe_ll 0.2298
+epoch 55: epoch 55, loss 0.5268, val_direct 0.7900, val_pass 0.7800, val_joint 0.8300, val_safe_ll 0.2311
+epoch 60: epoch 60, loss 0.5186, val_direct 0.8000, val_pass 0.7100, val_joint 0.8100, val_safe_ll 0.2306
+selected: variant direct, mirror True, 40 epochs (validation success 0.830 over 100 feasible validation starts)
+saved C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\models\learned_nav\p0_flight.pth
+hand-written arm: physics.py verdicts on training starts ...
+hand-written r_pick 0.3 (training success 0.141); fixed D 2.0 (training success 0.238)
+frozen -> C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\configs\learned_nav\p0_frozen.json; 3024 arm trials -> C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\datasets\learned_nav\p0\arms_list.json; 1340 s

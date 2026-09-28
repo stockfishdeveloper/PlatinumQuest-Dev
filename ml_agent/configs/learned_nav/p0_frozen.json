@@ -1,0 +1,5146 @@
+{
+ "schema": "p0_frozen_v1",
+ "time": "2026-09-27 18:10:22",
+ "model": "models\\learned_nav\\p0_flight.pth",
+ "model_sha1": "89b41c50267d",
+ "meta": {
+  "n_s": 1636,
+  "variant": "direct",
+  "mirror": true,
+  "epochs": 40,
+  "curve": null,
+  "train_starts": 3244,
+  "val_success": 0.83
+ },
+ "handwritten_r_pick": 0.3,
+ "handwritten_train_success": 0.14130434782608695,
+ "fixed_d_lip": 2.0,
+ "fixed_train_success": 0.23792270531400966,
+ "random_seed_rule": "md5(start_id + \":random\")",
+ "held_out_starts": 756,
+ "pass_rule": {
+  "min_feasible": 100,
+  "interval": "Wilson 95 %",
+  "rule": "learned lower bound > every baseline upper bound"
+ },
+ "picks": {
+  "s1_00009": {
+   "learned": 13,
+   "handwritten": 1,
+   "fixed": 29,
+   "random": 2
+  },
+  "s1_00022": {
+   "learned": 39,
+   "handwritten": 38,
+   "fixed": 38,
+   "random": 38
+  },
+  "s1_00024": {
+   "learned": 5,
+   "handwritten": 1,
+   "fixed": 2,
+   "random": 43
+  },
+  "s1_00028": {
+   "learned": 38,
+   "handwritten": 38,
+   "fixed": 38,
+   "random": 35
+  },
+  "s1_00029": {
+   "learned": 27,
+   "handwritten": 38,
+   "fixed": 38,
+   "random": 39
+  },
+  "s1_00033": {
+   "learned": 31,
+   "handwritten": 29,
+   "fixed": 38,
+   "random": 32
+  },
+  "s1_00034": {
+   "learned": 17,
+   "handwritten": 20,
+   "fixed": 2,
+   "random": 38
+  },
+  "s1_00035": {
+   "learned": 44,
+   "handwritten": 29,
+   "fixed": 38,
+   "random": 15
+  },
+  "s1_00058": {
+   "learned": 0,
+   "handwritten": 11,
+   "fixed": 38,
+   "random": 32
+  },
+  "s1_00061": {
+   "learned": 3,
+   "handwritten": 20,
+   "fixed": 2,
+   "random": 35
+  },
+  "s1_00063": {
+   "learned": 45,
+   "handwritten": 38,
+   "fixed": 38,
+   "random": 2
+  },
+  "s1_00076": {
+   "learned": 8,
+   "handwritten": 38,
+   "fixed": 38,
+   "random": 29
+  },
+  "s1_00096": {
+   "learned": 45,
+   "handwritten": 11,
+   "fixed": 38,
+   "random": 15
+  },
+  "s1_00099": {
+   "learned": 0,
+   "handwritten": 38,
+   "fixed": 29,
+   "random": 15
+  },
+  "s1_00102": {
+   "learned": 38,
+   "handwritten": 38,
+   "fixed": 38,
+   "random": 9
+  },
+  "s1_00103": {
+   "learned": 44,
+   "handwritten": 38,
+   "fixed": 38,
+   "random": 42
+  },
+  "s1_00104": {
+   "learned": 45,
+   "handwritten": 38,
+   "fixed": 38,
+   "random": 37
+  },
+  "s1_00105": {
+   "learned": 26,
+   "handwritten": 20,
+   "fixed": 20,
+   "random": 21
+  },
+  "s1_00114": {
+   "learned": 39,
+   "handwritten": 38,
+   "fixed": 38,
+   "random": 21
+  },
+  "s1_00116": {
+   "learned": 45,
+   "handwritten": 37,
+   "fixed": 38,
+   "random": 1
+  },
+  "s1_00118": {
+   "learned": 0,
+   "handwritten": 38,
+   "fixed": 29,
+   "random": 19
+  },
+  "s1_00128": {
+   "learned": 9,
+   "handwritten": 11,
+   "fixed": 2,
+   "random": 15
+  },
+  "s1_00129": {
+   "learned": 36,
+   "handwritten": 38,
+   "fixed": 38,
+   "random": 20
+  },
+  "s1_00139": {
+   "learned": 18,
+   "handwritten": 20,
+   "fixed": 20,
+   "random": 43
+  },
+  "s1_00155": {
+   "learned": 38,
+   "handwritten": 10,
+   "fixed": 38,
+   "random": 12
+  },
+  "s1_00158": {
+   "learned": 8,
+   "handwritten": 11,
+   "fixed": 2,
+   "random": 23
+  },
+  "s1_00164": {
+   "learned": 0,
+   "handwritten": 37,
+   "fixed": 29,
+   "random": 8
+  },
+  "s1_00170": {
+   "learned": 36,
+   "handwritten": 38,
+   "fixed": 29,
+   "random": 6
+  },
+  "s1_00171": {
+   "learned": 38,
+   "handwritten": 37,
+   "fixed": 38,
+   "random": 13
+  },
+  "s1_00174": {
+   "learned": 30,
+   "handwritten": 29,
+   "fixed": 2,
+   "random": 15
+  },
+  "s1_00176": {
+   "learned": 18,
+   "handwritten": 19,
+   "fixed": 2,
+   "random": 16
+  },
+  "s1_00177": {
+   "learned": 45,
+   "handwritten": 38,
+   "fixed": 38,
+   "random": 15
+  },
+  "s1_00182": {
+   "learned": 45,
+   "handwritten": 38,
+   "fixed": 38,
+   "random": 2
+  },
+  "s1_00189": {
+   "learned": 3,
+   "handwritten": 20,
+   "fixed": 29,
+   "random": 8
+  },
+  "s1_00194": {
+   "learned": 30,
+   "handwritten": 37,
+   "fixed": 2,
+   "random": 34
+  },
+  "s1_00214": {
+   "learned": 45,
+   "handwritten": 38,
+   "fixed": 38,
+   "random": 11
+  },
+  "s1_00222": {
+   "learned": 27,
+   "handwritten": 20,
+   "fixed": 38,
+   "random": 0
+  },
+  "s1_00232": {
+   "learned": 8,
+   "handwritten": 11,
+   "fixed": 2,
+   "random": 4
+  },
+  "s1_00233": {
+   "learned": 45,
+   "handwritten": 1,
+   "fixed": 38,
+   "random": 13
+  },
+  "s1_00243": {
+   "learned": 44,
+   "handwritten": 38,
+   "fixed": 38,
+   "random": 9
+  },
+  "s1_00247": {
+   "learned": 45,
+   "handwritten": 1,
+   "fixed": 38,
+   "random": 42
+  },
+  "s1_00249": {
+   "learned": 4,
+   "handwritten": 1,
+   "fixed": 2,
+   "random": 6
+  },
+  "s1_00260": {
+   "learned": 21,
+   "handwritten": 2,
+   "fixed": 2,
+   "random": 31
+  },
+  "s1_00262": {
+   "learned": 45,
+   "handwritten": 38,
+   "fixed": 38,
+   "random": 39
+  },
+  "s1_00266": {
+   "learned": 42,
+   "handwritten": 29,
+   "fixed": 20,
+   "random": 27
+  },
+  "s1_00277": {
+   "learned": 27,
+   "handwritten": 29,
+   "fixed": 29,
+   "random": 22
+  },
+  "s1_00287": {
+   "learned": 38,
+   "handwritten": 38,
+   "fixed": 38,
+   "random": 13
+  },
+  "s1_00289": {
+   "learned": 39,
+   "handwritten": 38,
+   "fixed": 38,
+   "random": 8
+  },
+  "s1_00295": {
+   "learned": 40,
+   "handwritten": 2,
+   "fixed": 11,
+   "random": 30
+  },
+  "s1_00300": {
+   "learned": 8,
+   "handwritten": 2,
+   "fixed": 2,
+   "random": 17
+  },
+  "s1_00304": {
+   "learned": 2,
+   "handwritten": 11,
+   "fixed": 2,
+   "random": 13
+  },
+  "s1_00311": {
+   "learned": 33,
+   "handwritten": 1,
+   "fixed": 20,
+   "random": 23
+  },
+  "s1_00326": {
+   "learned": 38,
+   "handwritten": 38,
+   "fixed": 38,
+   "random": 42
+  },
+  "s1_00330": {
+   "learned": 11,
+   "handwritten": 11,
+   "fixed": 2,
+   "random": 2
+  },
+  "s1_00331": {
+   "learned": 40,
+   "handwritten": 10,
+   "fixed": 20,
+   "random": 35
+  },
+  "s1_00341": {
+   "learned": 42,
+   "handwritten": 11,
+   "fixed": 20,
+   "random": 8
+  },
+  "s1_00343": {
+   "learned": 33,
+   "handwritten": 11,
+   "fixed": 38,
+   "random": 28
+  },
+  "s1_00345": {
+   "learned": 40,
+   "handwritten": 11,
+   "fixed": 2,
+   "random": 28
+  },
+  "s1_00346": {
+   "learned": 9,
+   "handwritten": 20,
+   "fixed": 2,
+   "random": 39
+  },
+  "s1_00352": {
+   "learned": 26,
+   "handwritten": 38,
+   "fixed": 29,
+   "random": 35
+  },
+  "s1_00359": {
+   "learned": 30,
+   "handwritten": 37,
+   "fixed": 38,
+   "random": 19
+  },
+  "s1_00366": {
+   "learned": 4,
+   "handwritten": 11,
+   "fixed": 2,
+   "random": 44
+  },
+  "s1_00369": {
+   "learned": 45,
+   "handwritten": 10,
+   "fixed": 2,
+   "random": 9
+  },
+  "s1_00372": {
+   "learned": 15,
+   "handwritten": 1,
+   "fixed": 2,
+   "random": 7
+  },
+  "s1_00373": {
+   "learned": 45,
+   "handwritten": 38,
+   "fixed": 38,
+   "random": 6
+  },
+  "s1_00375": {
+   "learned": 7,
+   "handwritten": 2,
+   "fixed": 2,
+   "random": 12
+  },
+  "s1_00387": {
+   "learned": 8,
+   "handwritten": 2,
+   "fixed": 2,
+   "random": 12
+  },
+  "s1_00388": {
+   "learned": 40,
+   "handwritten": 38,
+   "fixed": 38,
+   "random": 37
+  },
+  "s1_00400": {
+   "learned": 31,
+   "handwritten": 2,
+   "fixed": 2,
+   "random": 2
+  },
+  "s1_00408": {
+   "learned": 32,
+   "handwritten": 1,
+   "fixed": 11,
+   "random": 28
+  },
+  "s1_00412": {
+   "learned": 1,
+   "handwritten": 2,
+   "fixed": 2,
+   "random": 4
+  },
+  "s1_00416": {
+   "learned": 38,
+   "handwritten": 20,
+   "fixed": 38,
+   "random": 26
+  },
+  "s1_00417": {
+   "learned": 45,
+   "handwritten": 38,
+   "fixed": 38,
+   "random": 18
+  },
+  "s1_00429": {
+   "learned": 39,
+   "handwritten": 1,
+   "fixed": 38,
+   "random": 1
+  },
+  "s1_00430": {
+   "learned": 44,
+   "handwritten": 38,
+   "fixed": 38,
+   "random": 38
+  },
+  "s1_00436": {
+   "learned": 8,
+   "handwritten": 2,
+   "fixed": 2,
+   "random": 37
+  },
+  "s1_00454": {
+   "learned": 22,
+   "handwritten": 2,
+   "fixed": 29,
+   "random": 19
+  },
+  "s1_00458": {
+   "learned": 2,
+   "handwritten": 2,
+   "fixed": 2,
+   "random": 21
+  },
+  "s1_00459": {
+   "learned": 34,
+   "handwritten": 11,
+   "fixed": 20,
+   "random": 23
+  },
+  "s1_00463": {
+   "learned": 30,
+   "handwritten": 37,
+   "fixed": 2,
+   "random": 29
+  },
+  "s1_00466": {
+   "learned": 2,
+   "handwritten": 38,
+   "fixed": 2,
+   "random": 26
+  },
+  "s1_00468": {
+   "learned": 4,
+   "handwritten": 11,
+   "fixed": 2,
+   "random": 9
+  },
+  "s1_00471": {
+   "learned": 38,
+   "handwritten": 37,
+   "fixed": 38,
+   "random": 0
+  },
+  "s1_00474": {
+   "learned": 35,
+   "handwritten": 20,
+   "fixed": 20,
+   "random": 39
+  },
+  "s1_00486": {
+   "learned": 18,
+   "handwritten": 38,
+   "fixed": 2,
+   "random": 37
+  },
+  "s1_00487": {
+   "learned": 4,
+   "handwritten": 11,
+   "fixed": 2,
+   "random": 43
+  },
+  "s1_00489": {
+   "learned": 40,
+   "handwritten": 38,
+   "fixed": 38,
+   "random": 0
+  },
+  "s1_00490": {
+   "learned": 45,
+   "handwritten": 37,
+   "fixed": 38,
+   "random": 40
+  },
+  "s1_00507": {
+   "learned": 38,
+   "handwritten": 38,
+   "fixed": 38,
+   "random": 6
+  },
+  "s1_00513": {
+   "learned": 9,
+   "handwritten": 2,
+   "fixed": 29,
+   "random": 35
+  },
+  "s1_00518": {
+   "learned": 20,
+   "handwritten": 38,
+   "fixed": 2,
+   "random": 33
+  },
+  "s1_00521": {
+   "learned": 40,
+   "handwritten": 28,
+   "fixed": 11,
+   "random": 0
+  },
+  "s1_00526": {
+   "learned": 38,
+   "handwritten": 38,
+   "fixed": 38,
+   "random": 19
+  },
+  "s1_00527": {
+   "learned": 5,
+   "handwritten": 11,
+   "fixed": 2,
+   "random": 13
+  },
+  "s1_00529": {
+   "learned": 40,
+   "handwritten": 38,
+   "fixed": 38,
+   "random": 35
+  },
+  "s1_00534": {
+   "learned": 27,
+   "handwritten": 19,
+   "fixed": 38,
+   "random": 5
+  },
+  "s1_00546": {
+   "learned": 28,
+   "handwritten": 29,
+   "fixed": 29,
+   "random": 29
+  },
+  "s1_00550": {
+   "learned": 39,
+   "handwritten": 37,
+   "fixed": 38,
+   "random": 38
+  },
+  "s1_00556": {
+   "learned": 3,
+   "handwritten": 2,
+   "fixed": 20,
+   "random": 14
+  },
+  "s1_00563": {
+   "learned": 30,
+   "handwritten": 29,
+   "fixed": 29,
+   "random": 23
+  },
+  "s1_00566": {
+   "learned": 3,
+   "handwritten": 10,
+   "fixed": 2,
+   "random": 39
+  },
+  "s1_00569": {
+   "learned": 38,
+   "handwritten": 38,
+   "fixed": 38,
+   "random": 27
+  },
+  "s1_00573": {
+   "learned": 6,
+   "handwritten": 1,
+   "fixed": 2,
+   "random": 13
+  },
+  "s1_00574": {
+   "learned": 30,
+   "handwritten": 38,
+   "fixed": 20,
+   "random": 37
+  },
+  "s1_00575": {
+   "learned": 5,
+   "handwritten": 10,
+   "fixed": 2,
+   "random": 2
+  },
+  "s1_00576": {
+   "learned": 20,
+   "handwritten": 11,
+   "fixed": 2,
+   "random": 29
+  },
+  "s1_00582": {
+   "learned": 45,
+   "handwritten": 38,
+   "fixed": 38,
+   "random": 7
+  },
+  "s1_00605": {
+   "learned": 45,
+   "handwritten": 38,
+   "fixed": 38,
+   "random": 17
+  },
+  "s1_00611": {
+   "learned": 36,
+   "handwritten": 38,
+   "fixed": 38,
+   "random": 27
+  },
+  "s1_00613": {
+   "learned": 40,
+   "handwritten": 1,
+   "fixed": 38,
+   "random": 0
+  },
+  "s1_00614": {
+   "learned": 21,
+   "handwritten": 38,
+   "fixed": 29,
+   "random": 26
+  },
+  "s1_00630": {
+   "learned": 4,
+   "handwritten": 1,
+   "fixed": 2,
+   "random": 33
+  },
+  "s1_00631": {
+   "learned": 4,
+   "handwritten": 1,
+   "fixed": 2,
+   "random": 11
+  },
+  "s1_00634": {
+   "learned": 9,
+   "handwritten": 2,
+   "fixed": 2,
+   "random": 23
+  },
+  "s1_00635": {
+   "learned": 12,
+   "handwritten": 20,
+   "fixed": 11,
+   "random": 0
+  },
+  "s1_00638": {
+   "learned": 11,
+   "handwritten": 38,
+   "fixed": 11,
+   "random": 38
+  },
+  "s1_00639": {
+   "learned": 9,
+   "handwritten": 20,
+   "fixed": 2,
+   "random": 21
+  },
+  "s1_00645": {
+   "learned": 27,
+   "handwritten": 11,
+   "fixed": 38,
+   "random": 2
+  },
+  "s1_00648": {
+   "learned": 39,
+   "handwritten": 38,
+   "fixed": 38,
+   "random": 40
+  },
+  "s1_00650": {
+   "learned": 36,
+   "handwritten": 38,
+   "fixed": 2,
+   "random": 17
+  },
+  "s1_00651": {
+   "learned": 36,
+   "handwritten": 38,
+   "fixed": 29,
+   "random": 13
+  },
+  "s1_00658": {
+   "learned": 5,
+   "handwritten": 2,
+   "fixed": 2,
+   "random": 40
+  },
+  "s1_00666": {
+   "learned": 16,
+   "handwritten": 19,
+   "fixed": 11,
+   "random": 27
+  },
+  "s1_00667": {
+   "learned": 39,
+   "handwritten": 38,
+   "fixed": 38,
+   "random": 33
+  },
+  "s1_00681": {
+   "learned": 30,
+   "handwritten": 38,
+   "fixed": 2,
+   "random": 10
+  },
+  "s1_00690": {
+   "learned": 38,
+   "handwritten": 38,
+   "fixed": 38,
+   "random": 9
+  },
+  "s1_00692": {
+   "learned": 25,
+   "handwritten": 10,
+   "fixed": 20,
+   "random": 2
+  },
+  "s1_00694": {
+   "learned": 39,
+   "handwritten": 37,
+   "fixed": 38,
+   "random": 39
+  },
+  "s1_00697": {
+   "learned": 44,
+   "handwritten": 38,
+   "fixed": 38,
+   "random": 1
+  },
+  "s1_00702": {
+   "learned": 38,
+   "handwritten": 37,
+   "fixed": 38,
+   "random": 43
+  },
+  "s1_00704": {
+   "learned": 20,
+   "handwritten": 38,
+   "fixed": 2,
+   "random": 11
+  },
+  "s1_00710": {
+   "learned": 17,
+   "handwritten": 38,
+   "fixed": 29,
+   "random": 25
+  },
+  "s1_00718": {
+   "learned": 14,
+   "handwritten": 28,
+   "fixed": 20,
+   "random": 42
+  },
+  "s1_00735": {
+   "learned": 36,
+   "handwritten": 38,
+   "fixed": 38,
+   "random": 22
+  },
+  "s1_00738": {
+   "learned": 35,
+   "handwritten": 29,
+   "fixed": 38,
+   "random": 31
+  },
+  "s1_00741": {
+   "learned": 35,
+   "handwritten": 11,
+   "fixed": 29,
+   "random": 1
+  },
+  "s1_00747": {
+   "learned": 26,
+   "handwritten": 38,
+   "fixed": 20,
+   "random": 33
+  },
+  "s1_00749": {
+   "learned": 4,
+   "handwritten": 2,
+   "fixed": 2,
+   "random": 45
+  },
+  "s1_00752": {
+   "learned": 40,
+   "handwritten": 11,
+   "fixed": 11,
+   "random": 38
+  },
+  "s1_00759": {
+   "learned": 45,
+   "handwritten": 38,
+   "fixed": 38,
+   "random": 21
+  },
+  "s1_00760": {
+   "learned": 29,
+   "handwritten": 38,
+   "fixed": 11,
+   "random": 27
+  },
+  "s1_00764": {
+   "learned": 25,
+   "handwritten": 2,
+   "fixed": 20,
+   "random": 21
+  },
+  "s1_00765": {
+   "learned": 18,
+   "handwritten": 11,
+   "fixed": 38,
+   "random": 4
+  },
+  "s1_00768": {
+   "learned": 35,
+   "handwritten": 38,
+   "fixed": 38,
+   "random": 2
+  },
+  "s1_00773": {
+   "learned": 8,
+   "handwritten": 38,
+   "fixed": 38,
+   "random": 30
+  },
+  "s1_00774": {
+   "learned": 18,
+   "handwritten": 29,
+   "fixed": 38,
+   "random": 12
+  },
+  "s1_00776": {
+   "learned": 4,
+   "handwritten": 1,
+   "fixed": 2,
+   "random": 1
+  },
+  "s1_00779": {
+   "learned": 40,
+   "handwritten": 38,
+   "fixed": 11,
+   "random": 37
+  },
+  "s1_00784": {
+   "learned": 45,
+   "handwritten": 38,
+   "fixed": 38,
+   "random": 13
+  },
+  "s1_00785": {
+   "learned": 31,
+   "handwritten": 38,
+   "fixed": 20,
+   "random": 44
+  },
+  "s1_00788": {
+   "learned": 26,
+   "handwritten": 11,
+   "fixed": 38,
+   "random": 27
+  },
+  "s1_00794": {
+   "learned": 45,
+   "handwritten": 10,
+   "fixed": 38,
+   "random": 5
+  },
+  "s1_00797": {
+   "learned": 5,
+   "handwritten": 11,
+   "fixed": 2,
+   "random": 29
+  },
+  "s1_00798": {
+   "learned": 36,
+   "handwritten": 37,
+   "fixed": 2,
+   "random": 31
+  },
+  "s1_00799": {
+   "learned": 38,
+   "handwritten": 37,
+   "fixed": 38,
+   "random": 18
+  },
+  "s1_00803": {
+   "learned": 12,
+   "handwritten": 29,
+   "fixed": 2,
+   "random": 23
+  },
+  "s1_00808": {
+   "learned": 4,
+   "handwritten": 2,
+   "fixed": 20,
+   "random": 31
+  },
+  "s1_00810": {
+   "learned": 14,
+   "handwritten": 29,
+   "fixed": 2,
+   "random": 22
+  },
+  "s1_00831": {
+   "learned": 40,
+   "handwritten": 20,
+   "fixed": 2,
+   "random": 18
+  },
+  "s1_00840": {
+   "learned": 44,
+   "handwritten": 29,
+   "fixed": 38,
+   "random": 8
+  },
+  "s1_00842": {
+   "learned": 22,
+   "handwritten": 1,
+   "fixed": 2,
+   "random": 12
+  },
+  "s1_00851": {
+   "learned": 39,
+   "handwritten": 37,
+   "fixed": 38,
+   "random": 22
+  },
+  "s1_00858": {
+   "learned": 5,
+   "handwritten": 1,
+   "fixed": 2,
+   "random": 28
+  },
+  "s1_00864": {
+   "learned": 45,
+   "handwritten": 19,
+   "fixed": 38,
+   "random": 34
+  },
+  "s1_00872": {
+   "learned": 37,
+   "handwritten": 29,
+   "fixed": 20,
+   "random": 16
+  },
+  "s1_00874": {
+   "learned": 38,
+   "handwritten": 38,
+   "fixed": 38,
+   "random": 25
+  },
+  "s1_00876": {
+   "learned": 9,
+   "handwritten": 2,
+   "fixed": 2,
+   "random": 41
+  },
+  "s1_00902": {
+   "learned": 4,
+   "handwritten": 11,
+   "fixed": 2,
+   "random": 42
+  },
+  "s1_00905": {
+   "learned": 26,
+   "handwritten": 2,
+   "fixed": 29,
+   "random": 34
+  },
+  "s1_00908": {
+   "learned": 24,
+   "handwritten": 2,
+   "fixed": 20,
+   "random": 44
+  },
+  "s1_00918": {
+   "learned": 38,
+   "handwritten": 38,
+   "fixed": 38,
+   "random": 22
+  },
+  "s1_00919": {
+   "learned": 39,
+   "handwritten": 38,
+   "fixed": 38,
+   "random": 21
+  },
+  "s1_00922": {
+   "learned": 26,
+   "handwritten": 29,
+   "fixed": 29,
+   "random": 8
+  },
+  "s1_00925": {
+   "learned": 9,
+   "handwritten": 38,
+   "fixed": 20,
+   "random": 4
+  },
+  "s1_00926": {
+   "learned": 13,
+   "handwritten": 38,
+   "fixed": 38,
+   "random": 24
+  },
+  "s1_00935": {
+   "learned": 0,
+   "handwritten": 2,
+   "fixed": 38,
+   "random": 0
+  },
+  "s1_00937": {
+   "learned": 45,
+   "handwritten": 19,
+   "fixed": 38,
+   "random": 19
+  },
+  "s1_00945": {
+   "learned": 42,
+   "handwritten": 19,
+   "fixed": 38,
+   "random": 2
+  },
+  "s1_00981": {
+   "learned": 6,
+   "handwritten": 10,
+   "fixed": 2,
+   "random": 16
+  },
+  "s1_00982": {
+   "learned": 36,
+   "handwritten": 37,
+   "fixed": 38,
+   "random": 39
+  },
+  "s1_00985": {
+   "learned": 20,
+   "handwritten": 38,
+   "fixed": 2,
+   "random": 39
+  },
+  "s1_00989": {
+   "learned": 45,
+   "handwritten": 38,
+   "fixed": 38,
+   "random": 28
+  },
+  "s1_00995": {
+   "learned": 39,
+   "handwritten": 38,
+   "fixed": 38,
+   "random": 5
+  },
+  "s1_00999": {
+   "learned": 44,
+   "handwritten": 29,
+   "fixed": 38,
+   "random": 4
+  },
+  "s1_01007": {
+   "learned": 39,
+   "handwritten": 38,
+   "fixed": 20,
+   "random": 40
+  },
+  "s1_01010": {
+   "learned": 45,
+   "handwritten": 38,
+   "fixed": 38,
+   "random": 15
+  },
+  "s1_01015": {
+   "learned": 39,
+   "handwritten": 37,
+   "fixed": 38,
+   "random": 2
+  },
+  "s1_01016": {
+   "learned": 8,
+   "handwritten": 2,
+   "fixed": 20,
+   "random": 33
+  },
+  "s1_01029": {
+   "learned": 35,
+   "handwritten": 38,
+   "fixed": 11,
+   "random": 38
+  },
+  "s1_01034": {
+   "learned": 32,
+   "handwritten": 11,
+   "fixed": 20,
+   "random": 24
+  },
+  "s1_01036": {
+   "learned": 33,
+   "handwritten": 11,
+   "fixed": 20,
+   "random": 21
+  },
+  "s1_01039": {
+   "learned": 39,
+   "handwritten": 1,
+   "fixed": 2,
+   "random": 36
+  },
+  "s1_01041": {
+   "learned": 45,
+   "handwritten": 38,
+   "fixed": 38,
+   "random": 7
+  },
+  "s1_01042": {
+   "learned": 2,
+   "handwritten": 2,
+   "fixed": 2,
+   "random": 39
+  },
+  "s1_01050": {
+   "learned": 8,
+   "handwritten": 11,
+   "fixed": 2,
+   "random": 19
+  },
+  "s1_01051": {
+   "learned": 45,
+   "handwritten": 38,
+   "fixed": 38,
+   "random": 35
+  },
+  "s1_01058": {
+   "learned": 39,
+   "handwritten": 37,
+   "fixed": 11,
+   "random": 2
+  },
+  "s1_01059": {
+   "learned": 15,
+   "handwritten": 20,
+   "fixed": 2,
+   "random": 19
+  },
+  "s1_01063": {
+   "learned": 36,
+   "handwritten": 1,
+   "fixed": 38,
+   "random": 34
+  },
+  "s1_01064": {
+   "learned": 44,
+   "handwritten": 37,
+   "fixed": 38,
+   "random": 36
+  },
+  "s1_01066": {
+   "learned": 5,
+   "handwritten": 11,
+   "fixed": 2,
+   "random": 27
+  },
+  "s1_01068": {
+   "learned": 40,
+   "handwritten": 38,
+   "fixed": 38,
+   "random": 37
+  },
+  "s1_01069": {
+   "learned": 4,
+   "handwritten": 2,
+   "fixed": 2,
+   "random": 45
+  },
+  "s1_01070": {
+   "learned": 38,
+   "handwritten": 38,
+   "fixed": 38,
+   "random": 29
+  },
+  "s1_01077": {
+   "learned": 3,
+   "handwritten": 11,
+   "fixed": 2,
+   "random": 39
+  },
+  "s1_01081": {
+   "learned": 28,
+   "handwritten": 38,
+   "fixed": 2,
+   "random": 6
+  },
+  "s1_01084": {
+   "learned": 20,
+   "handwritten": 29,
+   "fixed": 2,
+   "random": 3
+  },
+  "s1_01086": {
+   "learned": 21,
+   "handwritten": 38,
+   "fixed": 2,
+   "random": 25
+  },
+  "s1_01087": {
+   "learned": 38,
+   "handwritten": 38,
+   "fixed": 2,
+   "random": 12
+  },
+  "s1_01109": {
+   "learned": 38,
+   "handwritten": 38,
+   "fixed": 38,
+   "random": 1
+  },
+  "s1_01112": {
+   "learned": 30,
+   "handwritten": 38,
+   "fixed": 2,
+   "random": 10
+  },
+  "s1_01114": {
+   "learned": 8,
+   "handwritten": 20,
+   "fixed": 11,
+   "random": 42
+  },
+  "s1_01116": {
+   "learned": 33,
+   "handwritten": 10,
+   "fixed": 20,
+   "random": 19
+  },
+  "s1_01126": {
+   "learned": 42,
+   "handwritten": 10,
+   "fixed": 11,
+   "random": 14
+  },
+  "s1_01136": {
+   "learned": 14,
+   "handwritten": 2,
+   "fixed": 2,
+   "random": 7
+  },
+  "s1_01138": {
+   "learned": 39,
+   "handwritten": 38,
+   "fixed": 38,
+   "random": 45
+  },
+  "s1_01149": {
+   "learned": 21,
+   "handwritten": 38,
+   "fixed": 2,
+   "random": 44
+  },
+  "s1_01151": {
+   "learned": 24,
+   "handwritten": 19,
+   "fixed": 2,
+   "random": 0
+  },
+  "s1_01154": {
+   "learned": 9,
+   "handwritten": 38,
+   "fixed": 29,
+   "random": 40
+  },
+  "s1_01165": {
+   "learned": 20,
+   "handwritten": 19,
+   "fixed": 2,
+   "random": 24
+  },
+  "s1_01166": {
+   "learned": 18,
+   "handwritten": 2,
+   "fixed": 2,
+   "random": 16
+  },
+  "s1_01172": {
+   "learned": 38,
+   "handwritten": 38,
+   "fixed": 38,
+   "random": 0
+  },
+  "s1_01178": {
+   "learned": 45,
+   "handwritten": 38,
+   "fixed": 11,
+   "random": 28
+  },
+  "s1_01179": {
+   "learned": 39,
+   "handwritten": 10,
+   "fixed": 38,
+   "random": 8
+  },
+  "s1_01180": {
+   "learned": 39,
+   "handwritten": 37,
+   "fixed": 38,
+   "random": 24
+  },
+  "s1_01182": {
+   "learned": 32,
+   "handwritten": 20,
+   "fixed": 2,
+   "random": 20
+  },
+  "s1_01183": {
+   "learned": 36,
+   "handwritten": 38,
+   "fixed": 2,
+   "random": 0
+  },
+  "s1_01187": {
+   "learned": 40,
+   "handwritten": 11,
+   "fixed": 2,
+   "random": 16
+  },
+  "s1_01191": {
+   "learned": 27,
+   "handwritten": 28,
+   "fixed": 2,
+   "random": 2
+  },
+  "s1_01194": {
+   "learned": 20,
+   "handwritten": 38,
+   "fixed": 2,
+   "random": 24
+  },
+  "s1_01199": {
+   "learned": 45,
+   "handwritten": 37,
+   "fixed": 38,
+   "random": 1
+  },
+  "s1_01204": {
+   "learned": 4,
+   "handwritten": 29,
+   "fixed": 11,
+   "random": 29
+  },
+  "s1_01206": {
+   "learned": 36,
+   "handwritten": 20,
+   "fixed": 29,
+   "random": 36
+  },
+  "s1_01211": {
+   "learned": 30,
+   "handwritten": 10,
+   "fixed": 2,
+   "random": 14
+  },
+  "s1_01212": {
+   "learned": 17,
+   "handwritten": 11,
+   "fixed": 2,
+   "random": 1
+  },
+  "s1_01219": {
+   "learned": 21,
+   "handwritten": 11,
+   "fixed": 2,
+   "random": 4
+  },
+  "s1_01223": {
+   "learned": 3,
+   "handwritten": 11,
+   "fixed": 2,
+   "random": 34
+  },
+  "s1_01225": {
+   "learned": 10,
+   "handwritten": 1,
+   "fixed": 2,
+   "random": 31
+  },
+  "s1_01236": {
+   "learned": 37,
+   "handwritten": 10,
+   "fixed": 29,
+   "random": 29
+  },
+  "s1_01241": {
+   "learned": 8,
+   "handwritten": 2,
+   "fixed": 2,
+   "random": 31
+  },
+  "s1_01242": {
+   "learned": 8,
+   "handwritten": 2,
+   "fixed": 2,
+   "random": 24
+  },
+  "s1_01251": {
+   "learned": 4,
+   "handwritten": 1,
+   "fixed": 2,
+   "random": 45
+  },
+  "s1_01259": {
+   "learned": 2,
+   "handwritten": 2,
+   "fixed": 2,
+   "random": 24
+  },
+  "s1_01280": {
+   "learned": 27,
+   "handwritten": 11,
+   "fixed": 2,
+   "random": 38
+  },
+  "s1_01282": {
+   "learned": 38,
+   "handwritten": 38,
+   "fixed": 38,
+   "random": 45
+  },
+  "s1_01293": {
+   "learned": 21,
+   "handwritten": 29,
+   "fixed": 38,
+   "random": 20
+  },
+  "s1_01299": {
+   "learned": 8,
+   "handwritten": 2,
+   "fixed": 20,
+   "random": 39
+  },
+  "s1_01301": {
+   "learned": 40,
+   "handwritten": 38,
+   "fixed": 2,
+   "random": 17
+  },
+  "s1_01305": {
+   "learned": 1,
+   "handwritten": 1,
+   "fixed": 2,
+   "random": 26
+  },
+  "s1_01306": {
+   "learned": 38,
+   "handwritten": 38,
+   "fixed": 38,
+   "random": 16
+  },
+  "s1_01319": {
+   "learned": 9,
+   "handwritten": 2,
+   "fixed": 20,
+   "random": 12
+  },
+  "s1_01323": {
+   "learned": 30,
+   "handwritten": 38,
+   "fixed": 38,
+   "random": 26
+  },
+  "s1_01325": {
+   "learned": 8,
+   "handwritten": 2,
+   "fixed": 2,
+   "random": 1
+  },
+  "s1_01326": {
+   "learned": 2,
+   "handwritten": 2,
+   "fixed": 2,
+   "random": 43
+  },
+  "s1_01330": {
+   "learned": 38,
+   "handwritten": 38,
+   "fixed": 38,
+   "random": 34
+  },
+  "s1_01333": {
+   "learned": 22,
+   "handwritten": 11,
+   "fixed": 11,
+   "random": 29
+  },
+  "s1_01334": {
+   "learned": 24,
+   "handwritten": 20,
+   "fixed": 11,
+   "random": 19
+  },
+  "s1_01336": {
+   "learned": 44,
+   "handwritten": 38,
+   "fixed": 38,
+   "random": 5
+  },
+  "s1_01339": {
+   "learned": 17,
+   "handwritten": 2,
+   "fixed": 20,
+   "random": 29
+  },
+  "s1_01356": {
+   "learned": 9,
+   "handwritten": 2,
+   "fixed": 2,
+   "random": 2
+  },
+  "s1_01358": {
+   "learned": 22,
+   "handwritten": 2,
+   "fixed": 38,
+   "random": 16
+  },
+  "s1_01362": {
+   "learned": 5,
+   "handwritten": 1,
+   "fixed": 2,
+   "random": 29
+  },
+  "s1_01363": {
+   "learned": 45,
+   "handwritten": 38,
+   "fixed": 38,
+   "random": 1
+  },
+  "s1_01369": {
+   "learned": 36,
+   "handwritten": 37,
+   "fixed": 38,
+   "random": 40
+  },
+  "s1_01371": {
+   "learned": 2,
+   "handwritten": 1,
+   "fixed": 2,
+   "random": 10
+  },
+  "s1_01376": {
+   "learned": 45,
+   "handwritten": 38,
+   "fixed": 2,
+   "random": 19
+  },
+  "s1_01380": {
+   "learned": 20,
+   "handwritten": 29,
+   "fixed": 2,
+   "random": 22
+  },
+  "s1_01387": {
+   "learned": 45,
+   "handwritten": 38,
+   "fixed": 38,
+   "random": 18
+  },
+  "s1_01390": {
+   "learned": 45,
+   "handwritten": 37,
+   "fixed": 38,
+   "random": 40
+  },
+  "s1_01394": {
+   "learned": 37,
+   "handwritten": 20,
+   "fixed": 29,
+   "random": 45
+  },
+  "s1_01438": {
+   "learned": 26,
+   "handwritten": 38,
+   "fixed": 38,
+   "random": 19
+  },
+  "s1_01439": {
+   "learned": 28,
+   "handwritten": 38,
+   "fixed": 29,
+   "random": 42
+  },
+  "s1_01442": {
+   "learned": 36,
+   "handwritten": 38,
+   "fixed": 38,
+   "random": 20
+  },
+  "s1_01443": {
+   "learned": 5,
+   "handwritten": 10,
+   "fixed": 2,
+   "random": 7
+  },
+  "s1_01446": {
+   "learned": 17,
+   "handwritten": 11,
+   "fixed": 2,
+   "random": 31
+  },
+  "s1_01449": {
+   "learned": 45,
+   "handwritten": 1,
+   "fixed": 38,
+   "random": 10
+  },
+  "s1_01451": {
+   "learned": 21,
+   "handwritten": 38,
+   "fixed": 2,
+   "random": 40
+  },
+  "s1_01452": {
+   "learned": 40,
+   "handwritten": 2,
+   "fixed": 38,
+   "random": 35
+  },
+  "s1_01461": {
+   "learned": 38,
+   "handwritten": 38,
+   "fixed": 38,
+   "random": 0
+  },
+  "s1_01465": {
+   "learned": 22,
+   "handwritten": 37,
+   "fixed": 2,
+   "random": 36
+  },
+  "s1_01466": {
+   "learned": 45,
+   "handwritten": 2,
+   "fixed": 38,
+   "random": 17
+  },
+  "s1_01472": {
+   "learned": 38,
+   "handwritten": 38,
+   "fixed": 38,
+   "random": 31
+  },
+  "s1_01478": {
+   "learned": 3,
+   "handwritten": 11,
+   "fixed": 20,
+   "random": 14
+  },
+  "s1_01483": {
+   "learned": 45,
+   "handwritten": 38,
+   "fixed": 38,
+   "random": 23
+  },
+  "s1_01484": {
+   "learned": 12,
+   "handwritten": 19,
+   "fixed": 2,
+   "random": 4
+  },
+  "s1_01487": {
+   "learned": 39,
+   "handwritten": 38,
+   "fixed": 38,
+   "random": 44
+  },
+  "s1_01489": {
+   "learned": 13,
+   "handwritten": 20,
+   "fixed": 2,
+   "random": 8
+  },
+  "s1_01492": {
+   "learned": 14,
+   "handwritten": 2,
+   "fixed": 2,
+   "random": 30
+  },
+  "s1_01493": {
+   "learned": 45,
+   "handwritten": 38,
+   "fixed": 38,
+   "random": 33
+  },
+  "s1_01496": {
+   "learned": 26,
+   "handwritten": 29,
+   "fixed": 38,
+   "random": 1
+  },
+  "s1_01498": {
+   "learned": 4,
+   "handwritten": 2,
+   "fixed": 2,
+   "random": 44
+  },
+  "s1_01505": {
+   "learned": 21,
+   "handwritten": 38,
+   "fixed": 2,
+   "random": 27
+  },
+  "s1_01506": {
+   "learned": 45,
+   "handwritten": 37,
+   "fixed": 38,
+   "random": 34
+  },
+  "s1_01511": {
+   "learned": 36,
+   "handwritten": 20,
+   "fixed": 20,
+   "random": 12
+  },
+  "s1_01518": {
+   "learned": 18,
+   "handwritten": 11,
+   "fixed": 2,
+   "random": 45
+  },
+  "s1_01526": {
+   "learned": 39,
+   "handwritten": 37,
+   "fixed": 38,
+   "random": 22
+  },
+  "s1_01527": {
+   "learned": 39,
+   "handwritten": 38,
+   "fixed": 38,
+   "random": 43
+  },
+  "s1_01544": {
+   "learned": 9,
+   "handwritten": 2,
+   "fixed": 29,
+   "random": 13
+  },
+  "s1_01549": {
+   "learned": 40,
+   "handwritten": 2,
+   "fixed": 11,
+   "random": 11
+  },
+  "s1_01556": {
+   "learned": 39,
+   "handwritten": 37,
+   "fixed": 38,
+   "random": 20
+  },
+  "s1_01557": {
+   "learned": 9,
+   "handwritten": 38,
+   "fixed": 20,
+   "random": 19
+  },
+  "s1_01563": {
+   "learned": 39,
+   "handwritten": 19,
+   "fixed": 38,
+   "random": 2
+  },
+  "s1_01564": {
+   "learned": 0,
+   "handwritten": 19,
+   "fixed": 11,
+   "random": 18
+  },
+  "s1_01565": {
+   "learned": 36,
+   "handwritten": 38,
+   "fixed": 2,
+   "random": 8
+  },
+  "s1_01574": {
+   "learned": 11,
+   "handwritten": 38,
+   "fixed": 2,
+   "random": 18
+  },
+  "s1_01585": {
+   "learned": 4,
+   "handwritten": 2,
+   "fixed": 2,
+   "random": 26
+  },
+  "s1_01591": {
+   "learned": 40,
+   "handwritten": 38,
+   "fixed": 38,
+   "random": 0
+  },
+  "s1_01594": {
+   "learned": 9,
+   "handwritten": 2,
+   "fixed": 29,
+   "random": 20
+  },
+  "s1_01595": {
+   "learned": 39,
+   "handwritten": 38,
+   "fixed": 38,
+   "random": 38
+  },
+  "s1_01596": {
+   "learned": 4,
+   "handwritten": 2,
+   "fixed": 29,
+   "random": 44
+  },
+  "s1_01598": {
+   "learned": 4,
+   "handwritten": 11,
+   "fixed": 2,
+   "random": 39
+  },
+  "s1_01602": {
+   "learned": 4,
+   "handwritten": 2,
+   "fixed": 2,
+   "random": 33
+  },
+  "s1_01603": {
+   "learned": 20,
+   "handwritten": 38,
+   "fixed": 38,
+   "random": 10
+  },
+  "s1_01605": {
+   "learned": 4,
+   "handwritten": 29,
+   "fixed": 11,
+   "random": 35
+  },
+  "s1_01606": {
+   "learned": 17,
+   "handwritten": 11,
+   "fixed": 29,
+   "random": 17
+  },
+  "s1_01609": {
+   "learned": 39,
+   "handwritten": 37,
+   "fixed": 38,
+   "random": 28
+  },
+  "s1_01611": {
+   "learned": 8,
+   "handwritten": 1,
+   "fixed": 2,
+   "random": 6
+  },
+  "s1_01615": {
+   "learned": 13,
+   "handwritten": 2,
+   "fixed": 20,
+   "random": 8
+  },
+  "s1_01617": {
+   "learned": 2,
+   "handwritten": 2,
+   "fixed": 2,
+   "random": 33
+  },
+  "s1_01621": {
+   "learned": 32,
+   "handwritten": 20,
+   "fixed": 29,
+   "random": 39
+  },
+  "s1_01622": {
+   "learned": 22,
+   "handwritten": 29,
+   "fixed": 11,
+   "random": 14
+  },
+  "s1_01627": {
+   "learned": 40,
+   "handwritten": 38,
+   "fixed": 38,
+   "random": 41
+  },
+  "s1_01631": {
+   "learned": 38,
+   "handwritten": 37,
+   "fixed": 38,
+   "random": 15
+  },
+  "s1_01638": {
+   "learned": 22,
+   "handwritten": 19,
+   "fixed": 2,
+   "random": 42
+  },
+  "s1_01653": {
+   "learned": 38,
+   "handwritten": 38,
+   "fixed": 38,
+   "random": 15
+  },
+  "s1_01659": {
+   "learned": 26,
+   "handwritten": 29,
+   "fixed": 29,
+   "random": 9
+  },
+  "s1_01676": {
+   "learned": 9,
+   "handwritten": 1,
+   "fixed": 2,
+   "random": 0
+  },
+  "s1_01681": {
+   "learned": 42,
+   "handwritten": 20,
+   "fixed": 29,
+   "random": 5
+  },
+  "s1_01691": {
+   "learned": 36,
+   "handwritten": 20,
+   "fixed": 29,
+   "random": 5
+  },
+  "s1_01692": {
+   "learned": 17,
+   "handwritten": 2,
+   "fixed": 2,
+   "random": 42
+  },
+  "s1_01704": {
+   "learned": 8,
+   "handwritten": 38,
+   "fixed": 29,
+   "random": 31
+  },
+  "s1_01711": {
+   "learned": 20,
+   "handwritten": 38,
+   "fixed": 2,
+   "random": 16
+  },
+  "s1_01726": {
+   "learned": 13,
+   "handwritten": 20,
+   "fixed": 29,
+   "random": 7
+  },
+  "s1_01729": {
+   "learned": 11,
+   "handwritten": 38,
+   "fixed": 2,
+   "random": 6
+  },
+  "s1_01732": {
+   "learned": 21,
+   "handwritten": 20,
+   "fixed": 2,
+   "random": 27
+  },
+  "s1_01741": {
+   "learned": 38,
+   "handwritten": 38,
+   "fixed": 38,
+   "random": 1
+  },
+  "s1_01747": {
+   "learned": 43,
+   "handwritten": 28,
+   "fixed": 20,
+   "random": 23
+  },
+  "s1_01749": {
+   "learned": 31,
+   "handwritten": 20,
+   "fixed": 38,
+   "random": 38
+  },
+  "s1_01755": {
+   "learned": 39,
+   "handwritten": 37,
+   "fixed": 38,
+   "random": 38
+  },
+  "s1_01769": {
+   "learned": 13,
+   "handwritten": 1,
+   "fixed": 2,
+   "random": 26
+  },
+  "s1_01774": {
+   "learned": 4,
+   "handwritten": 29,
+   "fixed": 2,
+   "random": 33
+  },
+  "s1_01776": {
+   "learned": 0,
+   "handwritten": 38,
+   "fixed": 29,
+   "random": 38
+  },
+  "s1_01778": {
+   "learned": 45,
+   "handwritten": 38,
+   "fixed": 38,
+   "random": 39
+  },
+  "s1_01786": {
+   "learned": 9,
+   "handwritten": 2,
+   "fixed": 2,
+   "random": 14
+  },
+  "s1_01789": {
+   "learned": 0,
+   "handwritten": 2,
+   "fixed": 38,
+   "random": 30
+  },
+  "s1_01792": {
+   "learned": 26,
+   "handwritten": 20,
+   "fixed": 38,
+   "random": 22
+  },
+  "s1_01794": {
+   "learned": 30,
+   "handwritten": 11,
+   "fixed": 38,
+   "random": 38
+  },
+  "s1_01795": {
+   "learned": 13,
+   "handwritten": 37,
+   "fixed": 29,
+   "random": 40
+  },
+  "s1_01809": {
+   "learned": 38,
+   "handwritten": 38,
+   "fixed": 38,
+   "random": 16
+  },
+  "s1_01816": {
+   "learned": 4,
+   "handwritten": 1,
+   "fixed": 2,
+   "random": 27
+  },
+  "s1_01817": {
+   "learned": 39,
+   "handwritten": 38,
+   "fixed": 38,
+   "random": 44
+  },
+  "s1_01824": {
+   "learned": 40,
+   "handwritten": 11,
+   "fixed": 2,
+   "random": 33
+  },
+  "s1_01825": {
+   "learned": 2,
+   "handwritten": 2,
+   "fixed": 2,
+   "random": 8
+  },
+  "s1_01826": {
+   "learned": 9,
+   "handwritten": 2,
+   "fixed": 29,
+   "random": 9
+  },
+  "s1_01828": {
+   "learned": 4,
+   "handwritten": 2,
+   "fixed": 2,
+   "random": 14
+  },
+  "s1_01832": {
+   "learned": 17,
+   "handwritten": 11,
+   "fixed": 29,
+   "random": 1
+  },
+  "s1_01835": {
+   "learned": 33,
+   "handwritten": 37,
+   "fixed": 2,
+   "random": 0
+  },
+  "s1_01848": {
+   "learned": 45,
+   "handwritten": 38,
+   "fixed": 38,
+   "random": 28
+  },
+  "s1_01852": {
+   "learned": 17,
+   "handwritten": 38,
+   "fixed": 20,
+   "random": 35
+  },
+  "s1_01857": {
+   "learned": 23,
+   "handwritten": 1,
+   "fixed": 11,
+   "random": 40
+  },
+  "s1_01887": {
+   "learned": 4,
+   "handwritten": 2,
+   "fixed": 2,
+   "random": 29
+  },
+  "s1_01888": {
+   "learned": 20,
+   "handwritten": 29,
+   "fixed": 2,
+   "random": 7
+  },
+  "s1_01889": {
+   "learned": 45,
+   "handwritten": 38,
+   "fixed": 38,
+   "random": 38
+  },
+  "s1_01904": {
+   "learned": 21,
+   "handwritten": 38,
+   "fixed": 2,
+   "random": 15
+  },
+  "s1_01907": {
+   "learned": 20,
+   "handwritten": 38,
+   "fixed": 2,
+   "random": 38
+  },
+  "s1_01908": {
+   "learned": 9,
+   "handwritten": 2,
+   "fixed": 2,
+   "random": 19
+  },
+  "s1_01909": {
+   "learned": 22,
+   "handwritten": 11,
+   "fixed": 38,
+   "random": 17
+  },
+  "s1_01910": {
+   "learned": 3,
+   "handwritten": 11,
+   "fixed": 2,
+   "random": 30
+  },
+  "s1_01920": {
+   "learned": 30,
+   "handwritten": 37,
+   "fixed": 20,
+   "random": 23
+  },
+  "s1_01925": {
+   "learned": 8,
+   "handwritten": 20,
+   "fixed": 2,
+   "random": 42
+  },
+  "s1_01937": {
+   "learned": 45,
+   "handwritten": 37,
+   "fixed": 38,
+   "random": 37
+  },
+  "s1_01943": {
+   "learned": 0,
+   "handwritten": 10,
+   "fixed": 2,
+   "random": 19
+  },
+  "s1_01948": {
+   "learned": 31,
+   "handwritten": 19,
+   "fixed": 11,
+   "random": 6
+  },
+  "s1_01950": {
+   "learned": 35,
+   "handwritten": 38,
+   "fixed": 29,
+   "random": 13
+  },
+  "s1_01954": {
+   "learned": 35,
+   "handwritten": 11,
+   "fixed": 29,
+   "random": 38
+  },
+  "s1_01958": {
+   "learned": 36,
+   "handwritten": 37,
+   "fixed": 2,
+   "random": 9
+  },
+  "s1_01973": {
+   "learned": 26,
+   "handwritten": 2,
+   "fixed": 2,
+   "random": 15
+  },
+  "s1_01984": {
+   "learned": 45,
+   "handwritten": 38,
+   "fixed": 38,
+   "random": 43
+  },
+  "s1_01995": {
+   "learned": 30,
+   "handwritten": 37,
+   "fixed": 38,
+   "random": 0
+  },
+  "s1_01997": {
+   "learned": 0,
+   "handwritten": 37,
+   "fixed": 20,
+   "random": 18
+  },
+  "s1_02001": {
+   "learned": 3,
+   "handwritten": 1,
+   "fixed": 2,
+   "random": 11
+  },
+  "s1_02003": {
+   "learned": 38,
+   "handwritten": 38,
+   "fixed": 38,
+   "random": 25
+  },
+  "s1_02023": {
+   "learned": 29,
+   "handwritten": 38,
+   "fixed": 2,
+   "random": 39
+  },
+  "s1_02039": {
+   "learned": 40,
+   "handwritten": 37,
+   "fixed": 38,
+   "random": 42
+  },
+  "s1_02053": {
+   "learned": 25,
+   "handwritten": 38,
+   "fixed": 29,
+   "random": 14
+  },
+  "s1_02059": {
+   "learned": 5,
+   "handwritten": 1,
+   "fixed": 2,
+   "random": 16
+  },
+  "s1_02078": {
+   "learned": 27,
+   "handwritten": 38,
+   "fixed": 38,
+   "random": 21
+  },
+  "s1_02080": {
+   "learned": 38,
+   "handwritten": 38,
+   "fixed": 38,
+   "random": 27
+  },
+  "s1_02090": {
+   "learned": 45,
+   "handwritten": 38,
+   "fixed": 38,
+   "random": 16
+  },
+  "s1_02103": {
+   "learned": 38,
+   "handwritten": 10,
+   "fixed": 38,
+   "random": 34
+  },
+  "s1_02105": {
+   "learned": 18,
+   "handwritten": 11,
+   "fixed": 2,
+   "random": 15
+  },
+  "s1_02106": {
+   "learned": 45,
+   "handwritten": 38,
+   "fixed": 38,
+   "random": 37
+  },
+  "s1_02115": {
+   "learned": 12,
+   "handwritten": 11,
+   "fixed": 2,
+   "random": 19
+  },
+  "s1_02117": {
+   "learned": 2,
+   "handwritten": 2,
+   "fixed": 2,
+   "random": 19
+  },
+  "s1_02125": {
+   "learned": 9,
+   "handwritten": 38,
+   "fixed": 29,
+   "random": 21
+  },
+  "s1_02127": {
+   "learned": 4,
+   "handwritten": 11,
+   "fixed": 2,
+   "random": 39
+  },
+  "s1_02130": {
+   "learned": 13,
+   "handwritten": 2,
+   "fixed": 2,
+   "random": 33
+  },
+  "s1_02131": {
+   "learned": 2,
+   "handwritten": 2,
+   "fixed": 2,
+   "random": 27
+  },
+  "s1_02134": {
+   "learned": 12,
+   "handwritten": 20,
+   "fixed": 11,
+   "random": 3
+  },
+  "s1_02136": {
+   "learned": 39,
+   "handwritten": 38,
+   "fixed": 2,
+   "random": 29
+  },
+  "s1_02140": {
+   "learned": 39,
+   "handwritten": 10,
+   "fixed": 38,
+   "random": 34
+  },
+  "s1_02143": {
+   "learned": 42,
+   "handwritten": 19,
+   "fixed": 11,
+   "random": 23
+  },
+  "s1_02145": {
+   "learned": 42,
+   "handwritten": 38,
+   "fixed": 2,
+   "random": 36
+  },
+  "s1_02146": {
+   "learned": 39,
+   "handwritten": 38,
+   "fixed": 38,
+   "random": 36
+  },
+  "s1_02152": {
+   "learned": 5,
+   "handwritten": 11,
+   "fixed": 2,
+   "random": 17
+  },
+  "s1_02159": {
+   "learned": 26,
+   "handwritten": 11,
+   "fixed": 20,
+   "random": 10
+  },
+  "s1_02160": {
+   "learned": 40,
+   "handwritten": 38,
+   "fixed": 38,
+   "random": 17
+  },
+  "s1_02165": {
+   "learned": 8,
+   "handwritten": 2,
+   "fixed": 2,
+   "random": 28
+  },
+  "s1_02169": {
+   "learned": 5,
+   "handwritten": 2,
+   "fixed": 2,
+   "random": 41
+  },
+  "s1_02175": {
+   "learned": 4,
+   "handwritten": 2,
+   "fixed": 2,
+   "random": 15
+  },
+  "s1_02185": {
+   "learned": 18,
+   "handwritten": 20,
+   "fixed": 29,
+   "random": 38
+  },
+  "s1_02191": {
+   "learned": 29,
+   "handwritten": 38,
+   "fixed": 2,
+   "random": 10
+  },
+  "s1_02209": {
+   "learned": 21,
+   "handwritten": 29,
+   "fixed": 2,
+   "random": 44
+  },
+  "s1_02217": {
+   "learned": 38,
+   "handwritten": 38,
+   "fixed": 38,
+   "random": 31
+  },
+  "s1_02232": {
+   "learned": 18,
+   "handwritten": 20,
+   "fixed": 38,
+   "random": 44
+  },
+  "s1_02234": {
+   "learned": 13,
+   "handwritten": 2,
+   "fixed": 11,
+   "random": 18
+  },
+  "s1_02235": {
+   "learned": 7,
+   "handwritten": 11,
+   "fixed": 2,
+   "random": 15
+  },
+  "s1_02240": {
+   "learned": 13,
+   "handwritten": 2,
+   "fixed": 2,
+   "random": 21
+  },
+  "s1_02248": {
+   "learned": 18,
+   "handwritten": 29,
+   "fixed": 38,
+   "random": 16
+  },
+  "s1_02251": {
+   "learned": 38,
+   "handwritten": 38,
+   "fixed": 38,
+   "random": 41
+  },
+  "s1_02252": {
+   "learned": 4,
+   "handwritten": 2,
+   "fixed": 2,
+   "random": 25
+  },
+  "s1_02256": {
+   "learned": 36,
+   "handwritten": 11,
+   "fixed": 20,
+   "random": 39
+  },
+  "s1_02264": {
+   "learned": 27,
+   "handwritten": 37,
+   "fixed": 2,
+   "random": 7
+  },
+  "s1_02265": {
+   "learned": 27,
+   "handwritten": 38,
+   "fixed": 38,
+   "random": 43
+  },
+  "s1_02267": {
+   "learned": 31,
+   "handwritten": 38,
+   "fixed": 2,
+   "random": 24
+  },
+  "s1_02283": {
+   "learned": 38,
+   "handwritten": 38,
+   "fixed": 38,
+   "random": 35
+  },
+  "s1_02287": {
+   "learned": 31,
+   "handwritten": 20,
+   "fixed": 38,
+   "random": 35
+  },
+  "s1_02288": {
+   "learned": 32,
+   "handwritten": 38,
+   "fixed": 11,
+   "random": 6
+  },
+  "s1_02292": {
+   "learned": 9,
+   "handwritten": 11,
+   "fixed": 38,
+   "random": 32
+  },
+  "s1_02297": {
+   "learned": 22,
+   "handwritten": 1,
+   "fixed": 2,
+   "random": 12
+  },
+  "s1_02301": {
+   "learned": 4,
+   "handwritten": 2,
+   "fixed": 2,
+   "random": 45
+  },
+  "s1_02302": {
+   "learned": 22,
+   "handwritten": 11,
+   "fixed": 38,
+   "random": 38
+  },
+  "s1_02306": {
+   "learned": 37,
+   "handwritten": 38,
+   "fixed": 29,
+   "random": 33
+  },
+  "s1_02308": {
+   "learned": 9,
+   "handwritten": 2,
+   "fixed": 2,
+   "random": 4
+  },
+  "s1_02309": {
+   "learned": 35,
+   "handwritten": 38,
+   "fixed": 29,
+   "random": 33
+  },
+  "s1_02355": {
+   "learned": 29,
+   "handwritten": 38,
+   "fixed": 2,
+   "random": 29
+  },
+  "s1_02357": {
+   "learned": 6,
+   "handwritten": 2,
+   "fixed": 2,
+   "random": 6
+  },
+  "s1_02360": {
+   "learned": 22,
+   "handwritten": 38,
+   "fixed": 29,
+   "random": 45
+  },
+  "s1_02367": {
+   "learned": 10,
+   "handwritten": 1,
+   "fixed": 2,
+   "random": 18
+  },
+  "s1_02368": {
+   "learned": 40,
+   "handwritten": 29,
+   "fixed": 20,
+   "random": 28
+  },
+  "s1_02375": {
+   "learned": 45,
+   "handwritten": 38,
+   "fixed": 38,
+   "random": 17
+  },
+  "s1_02377": {
+   "learned": 9,
+   "handwritten": 11,
+   "fixed": 29,
+   "random": 17
+  },
+  "s1_02380": {
+   "learned": 32,
+   "handwritten": 1,
+   "fixed": 2,
+   "random": 27
+  },
+  "s1_02382": {
+   "learned": 8,
+   "handwritten": 11,
+   "fixed": 2,
+   "random": 20
+  },
+  "s1_02384": {
+   "learned": 19,
+   "handwritten": 11,
+   "fixed": 11,
+   "random": 32
+  },
+  "s1_02388": {
+   "learned": 37,
+   "handwritten": 37,
+   "fixed": 38,
+   "random": 38
+  },
+  "s1_02394": {
+   "learned": 2,
+   "handwritten": 2,
+   "fixed": 2,
+   "random": 30
+  },
+  "s1_02396": {
+   "learned": 3,
+   "handwritten": 10,
+   "fixed": 2,
+   "random": 19
+  },
+  "s2_00007": {
+   "learned": 22,
+   "handwritten": 38,
+   "fixed": 11,
+   "random": 43
+  },
+  "s2_00013": {
+   "learned": 42,
+   "handwritten": 1,
+   "fixed": 29,
+   "random": 12
+  },
+  "s2_00016": {
+   "learned": 15,
+   "handwritten": 10,
+   "fixed": 2,
+   "random": 18
+  },
+  "s2_00018": {
+   "learned": 21,
+   "handwritten": 29,
+   "fixed": 29,
+   "random": 18
+  },
+  "s2_00035": {
+   "learned": 4,
+   "handwritten": 1,
+   "fixed": 2,
+   "random": 23
+  },
+  "s2_00041": {
+   "learned": 26,
+   "handwritten": 10,
+   "fixed": 29,
+   "random": 23
+  },
+  "s2_00042": {
+   "learned": 18,
+   "handwritten": 29,
+   "fixed": 38,
+   "random": 2
+  },
+  "s2_00051": {
+   "learned": 35,
+   "handwritten": 29,
+   "fixed": 38,
+   "random": 38
+  },
+  "s2_00052": {
+   "learned": 17,
+   "handwritten": 38,
+   "fixed": 20,
+   "random": 42
+  },
+  "s2_00054": {
+   "learned": 8,
+   "handwritten": 11,
+   "fixed": 11,
+   "random": 3
+  },
+  "s2_00059": {
+   "learned": 44,
+   "handwritten": 20,
+   "fixed": 38,
+   "random": 20
+  },
+  "s2_00061": {
+   "learned": 10,
+   "handwritten": 11,
+   "fixed": 20,
+   "random": 3
+  },
+  "s2_00069": {
+   "learned": 0,
+   "handwritten": 38,
+   "fixed": 29,
+   "random": 38
+  },
+  "s2_00075": {
+   "learned": 36,
+   "handwritten": 29,
+   "fixed": 29,
+   "random": 30
+  },
+  "s2_00081": {
+   "learned": 8,
+   "handwritten": 2,
+   "fixed": 2,
+   "random": 12
+  },
+  "s2_00092": {
+   "learned": 23,
+   "handwritten": 19,
+   "fixed": 20,
+   "random": 31
+  },
+  "s2_00100": {
+   "learned": 21,
+   "handwritten": 1,
+   "fixed": 2,
+   "random": 25
+  },
+  "s2_00109": {
+   "learned": 23,
+   "handwritten": 1,
+   "fixed": 2,
+   "random": 3
+  },
+  "s2_00120": {
+   "learned": 42,
+   "handwritten": 10,
+   "fixed": 29,
+   "random": 41
+  },
+  "s2_00121": {
+   "learned": 13,
+   "handwritten": 11,
+   "fixed": 29,
+   "random": 35
+  },
+  "s2_00126": {
+   "learned": 14,
+   "handwritten": 29,
+   "fixed": 11,
+   "random": 34
+  },
+  "s2_00128": {
+   "learned": 10,
+   "handwritten": 10,
+   "fixed": 2,
+   "random": 2
+  },
+  "s2_00129": {
+   "learned": 0,
+   "handwritten": 19,
+   "fixed": 29,
+   "random": 17
+  },
+  "s2_00136": {
+   "learned": 8,
+   "handwritten": 2,
+   "fixed": 2,
+   "random": 44
+  },
+  "s2_00143": {
+   "learned": 13,
+   "handwritten": 38,
+   "fixed": 29,
+   "random": 40
+  },
+  "s2_00150": {
+   "learned": 4,
+   "handwritten": 1,
+   "fixed": 2,
+   "random": 45
+  },
+  "s2_00159": {
+   "learned": 7,
+   "handwritten": 2,
+   "fixed": 2,
+   "random": 38
+  },
+  "s2_00163": {
+   "learned": 11,
+   "handwritten": 10,
+   "fixed": 2,
+   "random": 16
+  },
+  "s2_00164": {
+   "learned": 15,
+   "handwritten": 10,
+   "fixed": 2,
+   "random": 34
+  },
+  "s2_00176": {
+   "learned": 4,
+   "handwritten": 37,
+   "fixed": 20,
+   "random": 45
+  },
+  "s2_00177": {
+   "learned": 36,
+   "handwritten": 28,
+   "fixed": 29,
+   "random": 38
+  },
+  "s2_00181": {
+   "learned": 9,
+   "handwritten": 11,
+   "fixed": 11,
+   "random": 36
+  },
+  "s2_00186": {
+   "learned": 12,
+   "handwritten": 38,
+   "fixed": 38,
+   "random": 5
+  },
+  "s2_00187": {
+   "learned": 9,
+   "handwritten": 38,
+   "fixed": 29,
+   "random": 30
+  },
+  "s2_00196": {
+   "learned": 4,
+   "handwritten": 2,
+   "fixed": 2,
+   "random": 2
+  },
+  "s2_00199": {
+   "learned": 17,
+   "handwritten": 2,
+   "fixed": 29,
+   "random": 30
+  },
+  "s2_00207": {
+   "learned": 28,
+   "handwritten": 20,
+   "fixed": 38,
+   "random": 14
+  },
+  "s2_00211": {
+   "learned": 5,
+   "handwritten": 10,
+   "fixed": 2,
+   "random": 45
+  },
+  "s2_00215": {
+   "learned": 12,
+   "handwritten": 1,
+   "fixed": 2,
+   "random": 14
+  },
+  "s2_00216": {
+   "learned": 39,
+   "handwritten": 38,
+   "fixed": 38,
+   "random": 8
+  },
+  "s2_00227": {
+   "learned": 1,
+   "handwritten": 11,
+   "fixed": 2,
+   "random": 0
+  },
+  "s2_00229": {
+   "learned": 26,
+   "handwritten": 19,
+   "fixed": 11,
+   "random": 11
+  },
+  "s2_00239": {
+   "learned": 44,
+   "handwritten": 38,
+   "fixed": 38,
+   "random": 19
+  },
+  "s2_00242": {
+   "learned": 8,
+   "handwritten": 2,
+   "fixed": 2,
+   "random": 5
+  },
+  "s2_00247": {
+   "learned": 35,
+   "handwritten": 38,
+   "fixed": 20,
+   "random": 32
+  },
+  "s2_00255": {
+   "learned": 12,
+   "handwritten": 10,
+   "fixed": 2,
+   "random": 7
+  },
+  "s2_00256": {
+   "learned": 1,
+   "handwritten": 1,
+   "fixed": 2,
+   "random": 7
+  },
+  "s2_00258": {
+   "learned": 26,
+   "handwritten": 2,
+   "fixed": 2,
+   "random": 41
+  },
+  "s2_00262": {
+   "learned": 4,
+   "handwritten": 10,
+   "fixed": 2,
+   "random": 18
+  },
+  "s2_00265": {
+   "learned": 33,
+   "handwritten": 1,
+   "fixed": 20,
+   "random": 0
+  },
+  "s2_00272": {
+   "learned": 8,
+   "handwritten": 11,
+   "fixed": 20,
+   "random": 23
+  },
+  "s2_00278": {
+   "learned": 6,
+   "handwritten": 10,
+   "fixed": 2,
+   "random": 12
+  },
+  "s2_00280": {
+   "learned": 4,
+   "handwritten": 2,
+   "fixed": 2,
+   "random": 22
+  },
+  "s2_00292": {
+   "learned": 9,
+   "handwritten": 2,
+   "fixed": 2,
+   "random": 23
+  },
+  "s2_00294": {
+   "learned": 40,
+   "handwritten": 20,
+   "fixed": 2,
+   "random": 32
+  },
+  "s2_00297": {
+   "learned": 0,
+   "handwritten": 28,
+   "fixed": 11,
+   "random": 1
+  },
+  "s2_00303": {
+   "learned": 17,
+   "handwritten": 29,
+   "fixed": 11,
+   "random": 15
+  },
+  "s2_00306": {
+   "learned": 17,
+   "handwritten": 2,
+   "fixed": 2,
+   "random": 39
+  },
+  "s2_00312": {
+   "learned": 2,
+   "handwritten": 19,
+   "fixed": 2,
+   "random": 39
+  },
+  "s2_00316": {
+   "learned": 27,
+   "handwritten": 29,
+   "fixed": 38,
+   "random": 45
+  },
+  "s2_00318": {
+   "learned": 4,
+   "handwritten": 11,
+   "fixed": 2,
+   "random": 43
+  },
+  "s2_00319": {
+   "learned": 8,
+   "handwritten": 2,
+   "fixed": 2,
+   "random": 30
+  },
+  "s2_00328": {
+   "learned": 36,
+   "handwritten": 38,
+   "fixed": 38,
+   "random": 35
+  },
+  "s2_00330": {
+   "learned": 26,
+   "handwritten": 20,
+   "fixed": 20,
+   "random": 40
+  },
+  "s2_00332": {
+   "learned": 17,
+   "handwritten": 29,
+   "fixed": 20,
+   "random": 40
+  },
+  "s2_00345": {
+   "learned": 7,
+   "handwritten": 1,
+   "fixed": 2,
+   "random": 31
+  },
+  "s2_00348": {
+   "learned": 8,
+   "handwritten": 37,
+   "fixed": 29,
+   "random": 16
+  },
+  "s2_00356": {
+   "learned": 27,
+   "handwritten": 38,
+   "fixed": 29,
+   "random": 1
+  },
+  "s2_00361": {
+   "learned": 4,
+   "handwritten": 1,
+   "fixed": 2,
+   "random": 7
+  },
+  "s2_00371": {
+   "learned": 43,
+   "handwritten": 38,
+   "fixed": 29,
+   "random": 11
+  },
+  "s2_00378": {
+   "learned": 26,
+   "handwritten": 19,
+   "fixed": 2,
+   "random": 41
+  },
+  "s2_00379": {
+   "learned": 3,
+   "handwritten": 2,
+   "fixed": 11,
+   "random": 1
+  },
+  "s2_00383": {
+   "learned": 13,
+   "handwritten": 2,
+   "fixed": 2,
+   "random": 28
+  },
+  "s2_00384": {
+   "learned": 8,
+   "handwritten": 38,
+   "fixed": 20,
+   "random": 29
+  },
+  "s2_00393": {
+   "learned": 6,
+   "handwritten": 1,
+   "fixed": 2,
+   "random": 2
+  },
+  "s2_00407": {
+   "learned": 8,
+   "handwritten": 2,
+   "fixed": 2,
+   "random": 30
+  },
+  "s2_00412": {
+   "learned": 4,
+   "handwritten": 20,
+   "fixed": 2,
+   "random": 31
+  },
+  "s2_00418": {
+   "learned": 4,
+   "handwritten": 2,
+   "fixed": 2,
+   "random": 24
+  },
+  "s2_00419": {
+   "learned": 4,
+   "handwritten": 2,
+   "fixed": 2,
+   "random": 7
+  },
+  "s2_00421": {
+   "learned": 9,
+   "handwritten": 29,
+   "fixed": 38,
+   "random": 10
+  },
+  "s2_00425": {
+   "learned": 8,
+   "handwritten": 11,
+   "fixed": 2,
+   "random": 4
+  },
+  "s2_00435": {
+   "learned": 12,
+   "handwritten": 38,
+   "fixed": 38,
+   "random": 5
+  },
+  "s2_00440": {
+   "learned": 9,
+   "handwritten": 29,
+   "fixed": 20,
+   "random": 45
+  },
+  "s2_00443": {
+   "learned": 22,
+   "handwritten": 11,
+   "fixed": 29,
+   "random": 43
+  },
+  "s2_00446": {
+   "learned": 28,
+   "handwritten": 19,
+   "fixed": 2,
+   "random": 11
+  },
+  "s2_00454": {
+   "learned": 44,
+   "handwritten": 29,
+   "fixed": 11,
+   "random": 22
+  },
+  "s2_00455": {
+   "learned": 23,
+   "handwritten": 2,
+   "fixed": 11,
+   "random": 32
+  },
+  "s2_00459": {
+   "learned": 9,
+   "handwritten": 2,
+   "fixed": 29,
+   "random": 24
+  },
+  "s2_00461": {
+   "learned": 31,
+   "handwritten": 20,
+   "fixed": 2,
+   "random": 8
+  },
+  "s2_00469": {
+   "learned": 4,
+   "handwritten": 2,
+   "fixed": 2,
+   "random": 43
+  },
+  "s2_00471": {
+   "learned": 4,
+   "handwritten": 2,
+   "fixed": 2,
+   "random": 4
+  },
+  "s2_00472": {
+   "learned": 36,
+   "handwritten": 20,
+   "fixed": 29,
+   "random": 38
+  },
+  "s2_00473": {
+   "learned": 42,
+   "handwritten": 10,
+   "fixed": 20,
+   "random": 34
+  },
+  "s2_00476": {
+   "learned": 34,
+   "handwritten": 11,
+   "fixed": 29,
+   "random": 45
+  },
+  "s2_00491": {
+   "learned": 22,
+   "handwritten": 20,
+   "fixed": 11,
+   "random": 31
+  },
+  "s2_00497": {
+   "learned": 38,
+   "handwritten": 28,
+   "fixed": 2,
+   "random": 26
+  },
+  "s2_00501": {
+   "learned": 4,
+   "handwritten": 1,
+   "fixed": 2,
+   "random": 33
+  },
+  "s2_00502": {
+   "learned": 14,
+   "handwritten": 2,
+   "fixed": 11,
+   "random": 44
+  },
+  "s2_00506": {
+   "learned": 17,
+   "handwritten": 11,
+   "fixed": 2,
+   "random": 24
+  },
+  "s2_00510": {
+   "learned": 13,
+   "handwritten": 10,
+   "fixed": 11,
+   "random": 34
+  },
+  "s2_00511": {
+   "learned": 42,
+   "handwritten": 2,
+   "fixed": 11,
+   "random": 11
+  },
+  "s2_00526": {
+   "learned": 17,
+   "handwritten": 11,
+   "fixed": 2,
+   "random": 18
+  },
+  "s2_00532": {
+   "learned": 36,
+   "handwritten": 38,
+   "fixed": 38,
+   "random": 16
+  },
+  "s2_00550": {
+   "learned": 0,
+   "handwritten": 29,
+   "fixed": 11,
+   "random": 17
+  },
+  "s2_00557": {
+   "learned": 14,
+   "handwritten": 19,
+   "fixed": 2,
+   "random": 8
+  },
+  "s2_00565": {
+   "learned": 36,
+   "handwritten": 38,
+   "fixed": 29,
+   "random": 14
+  },
+  "s2_00567": {
+   "learned": 40,
+   "handwritten": 38,
+   "fixed": 38,
+   "random": 15
+  },
+  "s2_00569": {
+   "learned": 18,
+   "handwritten": 20,
+   "fixed": 20,
+   "random": 26
+  },
+  "s2_00576": {
+   "learned": 13,
+   "handwritten": 1,
+   "fixed": 2,
+   "random": 38
+  },
+  "s2_00585": {
+   "learned": 22,
+   "handwritten": 11,
+   "fixed": 38,
+   "random": 31
+  },
+  "s2_00592": {
+   "learned": 4,
+   "handwritten": 1,
+   "fixed": 2,
+   "random": 28
+  },
+  "s2_00593": {
+   "learned": 40,
+   "handwritten": 37,
+   "fixed": 29,
+   "random": 15
+  },
+  "s2_00602": {
+   "learned": 26,
+   "handwritten": 29,
+   "fixed": 20,
+   "random": 11
+  },
+  "s2_00624": {
+   "learned": 15,
+   "handwritten": 29,
+   "fixed": 11,
+   "random": 15
+  },
+  "s2_00625": {
+   "learned": 8,
+   "handwritten": 2,
+   "fixed": 2,
+   "random": 26
+  },
+  "s2_00630": {
+   "learned": 8,
+   "handwritten": 29,
+   "fixed": 11,
+   "random": 3
+  },
+  "s2_00634": {
+   "learned": 4,
+   "handwritten": 2,
+   "fixed": 2,
+   "random": 15
+  },
+  "s2_00657": {
+   "learned": 36,
+   "handwritten": 29,
+   "fixed": 38,
+   "random": 2
+  },
+  "s2_00662": {
+   "learned": 4,
+   "handwritten": 2,
+   "fixed": 2,
+   "random": 13
+  },
+  "s2_00668": {
+   "learned": 0,
+   "handwritten": 38,
+   "fixed": 29,
+   "random": 1
+  },
+  "s2_00683": {
+   "learned": 4,
+   "handwritten": 2,
+   "fixed": 2,
+   "random": 19
+  },
+  "s2_00694": {
+   "learned": 36,
+   "handwritten": 38,
+   "fixed": 38,
+   "random": 40
+  },
+  "s2_00703": {
+   "learned": 18,
+   "handwritten": 38,
+   "fixed": 11,
+   "random": 23
+  },
+  "s2_00704": {
+   "learned": 19,
+   "handwritten": 29,
+   "fixed": 2,
+   "random": 41
+  },
+  "s2_00722": {
+   "learned": 8,
+   "handwritten": 11,
+   "fixed": 2,
+   "random": 14
+  },
+  "s2_00724": {
+   "learned": 19,
+   "handwritten": 29,
+   "fixed": 11,
+   "random": 23
+  },
+  "s2_00725": {
+   "learned": 18,
+   "handwritten": 2,
+   "fixed": 2,
+   "random": 11
+  },
+  "s2_00735": {
+   "learned": 3,
+   "handwritten": 19,
+   "fixed": 2,
+   "random": 36
+  },
+  "s2_00742": {
+   "learned": 0,
+   "handwritten": 38,
+   "fixed": 29,
+   "random": 43
+  },
+  "s2_00744": {
+   "learned": 4,
+   "handwritten": 1,
+   "fixed": 2,
+   "random": 7
+  },
+  "s2_00747": {
+   "learned": 8,
+   "handwritten": 11,
+   "fixed": 2,
+   "random": 7
+  },
+  "s2_00749": {
+   "learned": 38,
+   "handwritten": 38,
+   "fixed": 38,
+   "random": 3
+  },
+  "s2_00751": {
+   "learned": 13,
+   "handwritten": 2,
+   "fixed": 2,
+   "random": 4
+  },
+  "s2_00767": {
+   "learned": 2,
+   "handwritten": 11,
+   "fixed": 2,
+   "random": 13
+  },
+  "s2_00777": {
+   "learned": 27,
+   "handwritten": 19,
+   "fixed": 11,
+   "random": 38
+  },
+  "s2_00778": {
+   "learned": 17,
+   "handwritten": 11,
+   "fixed": 2,
+   "random": 41
+  },
+  "s2_00781": {
+   "learned": 0,
+   "handwritten": 2,
+   "fixed": 38,
+   "random": 22
+  },
+  "s2_00787": {
+   "learned": 23,
+   "handwritten": 11,
+   "fixed": 2,
+   "random": 23
+  },
+  "s2_00796": {
+   "learned": 20,
+   "handwritten": 2,
+   "fixed": 2,
+   "random": 44
+  },
+  "s2_00798": {
+   "learned": 4,
+   "handwritten": 2,
+   "fixed": 2,
+   "random": 16
+  },
+  "s2_00803": {
+   "learned": 26,
+   "handwritten": 29,
+   "fixed": 11,
+   "random": 44
+  },
+  "s2_00805": {
+   "learned": 40,
+   "handwritten": 2,
+   "fixed": 2,
+   "random": 2
+  },
+  "s2_00811": {
+   "learned": 19,
+   "handwritten": 38,
+   "fixed": 11,
+   "random": 33
+  },
+  "s2_00813": {
+   "learned": 35,
+   "handwritten": 29,
+   "fixed": 20,
+   "random": 18
+  },
+  "s2_00814": {
+   "learned": 4,
+   "handwritten": 2,
+   "fixed": 2,
+   "random": 4
+  },
+  "s2_00818": {
+   "learned": 26,
+   "handwritten": 20,
+   "fixed": 29,
+   "random": 4
+  },
+  "s2_00820": {
+   "learned": 14,
+   "handwritten": 2,
+   "fixed": 2,
+   "random": 23
+  },
+  "s2_00823": {
+   "learned": 25,
+   "handwritten": 1,
+   "fixed": 29,
+   "random": 35
+  },
+  "s2_00824": {
+   "learned": 31,
+   "handwritten": 1,
+   "fixed": 2,
+   "random": 30
+  },
+  "s2_00825": {
+   "learned": 34,
+   "handwritten": 2,
+   "fixed": 29,
+   "random": 16
+  },
+  "s2_00828": {
+   "learned": 0,
+   "handwritten": 10,
+   "fixed": 38,
+   "random": 19
+  },
+  "s2_00832": {
+   "learned": 13,
+   "handwritten": 11,
+   "fixed": 2,
+   "random": 20
+  },
+  "s2_00833": {
+   "learned": 18,
+   "handwritten": 10,
+   "fixed": 2,
+   "random": 11
+  },
+  "s2_00834": {
+   "learned": 8,
+   "handwritten": 11,
+   "fixed": 2,
+   "random": 27
+  },
+  "s2_00839": {
+   "learned": 28,
+   "handwritten": 20,
+   "fixed": 29,
+   "random": 2
+  },
+  "s2_00845": {
+   "learned": 22,
+   "handwritten": 2,
+   "fixed": 2,
+   "random": 21
+  },
+  "s2_00848": {
+   "learned": 37,
+   "handwritten": 19,
+   "fixed": 29,
+   "random": 26
+  },
+  "s2_00855": {
+   "learned": 9,
+   "handwritten": 11,
+   "fixed": 2,
+   "random": 18
+  },
+  "s2_00871": {
+   "learned": 44,
+   "handwritten": 28,
+   "fixed": 11,
+   "random": 39
+  },
+  "s2_00874": {
+   "learned": 4,
+   "handwritten": 10,
+   "fixed": 2,
+   "random": 1
+  },
+  "s2_00882": {
+   "learned": 3,
+   "handwritten": 1,
+   "fixed": 2,
+   "random": 20
+  },
+  "s2_00884": {
+   "learned": 37,
+   "handwritten": 19,
+   "fixed": 38,
+   "random": 6
+  },
+  "s2_00886": {
+   "learned": 8,
+   "handwritten": 1,
+   "fixed": 2,
+   "random": 43
+  },
+  "s2_00900": {
+   "learned": 37,
+   "handwritten": 28,
+   "fixed": 38,
+   "random": 8
+  },
+  "s2_00902": {
+   "learned": 45,
+   "handwritten": 10,
+   "fixed": 20,
+   "random": 21
+  },
+  "s2_00903": {
+   "learned": 27,
+   "handwritten": 28,
+   "fixed": 2,
+   "random": 10
+  },
+  "s2_00908": {
+   "learned": 31,
+   "handwritten": 1,
+   "fixed": 11,
+   "random": 44
+  },
+  "s2_00915": {
+   "learned": 28,
+   "handwritten": 19,
+   "fixed": 2,
+   "random": 31
+  },
+  "s2_00917": {
+   "learned": 0,
+   "handwritten": 38,
+   "fixed": 29,
+   "random": 37
+  },
+  "s2_00919": {
+   "learned": 12,
+   "handwritten": 38,
+   "fixed": 20,
+   "random": 4
+  },
+  "s2_00925": {
+   "learned": 42,
+   "handwritten": 2,
+   "fixed": 20,
+   "random": 7
+  },
+  "s2_00928": {
+   "learned": 3,
+   "handwritten": 2,
+   "fixed": 2,
+   "random": 45
+  },
+  "s2_00930": {
+   "learned": 4,
+   "handwritten": 1,
+   "fixed": 2,
+   "random": 4
+  },
+  "s2_00938": {
+   "learned": 5,
+   "handwritten": 10,
+   "fixed": 2,
+   "random": 16
+  },
+  "s2_00947": {
+   "learned": 4,
+   "handwritten": 1,
+   "fixed": 2,
+   "random": 24
+  },
+  "s2_00950": {
+   "learned": 13,
+   "handwritten": 1,
+   "fixed": 2,
+   "random": 33
+  },
+  "s2_00954": {
+   "learned": 22,
+   "handwritten": 11,
+   "fixed": 20,
+   "random": 32
+  },
+  "s2_00959": {
+   "learned": 4,
+   "handwritten": 1,
+   "fixed": 2,
+   "random": 29
+  },
+  "s2_00960": {
+   "learned": 38,
+   "handwritten": 38,
+   "fixed": 38,
+   "random": 13
+  },
+  "s2_00963": {
+   "learned": 5,
+   "handwritten": 20,
+   "fixed": 2,
+   "random": 41
+  },
+  "s2_00972": {
+   "learned": 38,
+   "handwritten": 38,
+   "fixed": 38,
+   "random": 29
+  },
+  "s2_00975": {
+   "learned": 19,
+   "handwritten": 10,
+   "fixed": 2,
+   "random": 45
+  },
+  "s2_00976": {
+   "learned": 4,
+   "handwritten": 20,
+   "fixed": 11,
+   "random": 32
+  },
+  "s2_00983": {
+   "learned": 21,
+   "handwritten": 2,
+   "fixed": 29,
+   "random": 45
+  },
+  "s2_01001": {
+   "learned": 11,
+   "handwritten": 2,
+   "fixed": 2,
+   "random": 36
+  },
+  "s2_01005": {
+   "learned": 8,
+   "handwritten": 2,
+   "fixed": 2,
+   "random": 4
+  },
+  "s2_01007": {
+   "learned": 22,
+   "handwritten": 1,
+   "fixed": 2,
+   "random": 9
+  },
+  "s2_01017": {
+   "learned": 10,
+   "handwritten": 2,
+   "fixed": 11,
+   "random": 34
+  },
+  "s2_01018": {
+   "learned": 20,
+   "handwritten": 11,
+   "fixed": 2,
+   "random": 23
+  },
+  "s2_01025": {
+   "learned": 42,
+   "handwritten": 2,
+   "fixed": 11,
+   "random": 11
+  },
+  "s2_01031": {
+   "learned": 43,
+   "handwritten": 37,
+   "fixed": 29,
+   "random": 29
+  },
+  "s2_01035": {
+   "learned": 27,
+   "handwritten": 38,
+   "fixed": 38,
+   "random": 10
+  },
+  "s2_01043": {
+   "learned": 2,
+   "handwritten": 11,
+   "fixed": 2,
+   "random": 36
+  },
+  "s2_01052": {
+   "learned": 43,
+   "handwritten": 20,
+   "fixed": 38,
+   "random": 25
+  },
+  "s2_01053": {
+   "learned": 18,
+   "handwritten": 29,
+   "fixed": 2,
+   "random": 40
+  },
+  "s2_01055": {
+   "learned": 3,
+   "handwritten": 1,
+   "fixed": 2,
+   "random": 13
+  },
+  "s2_01056": {
+   "learned": 36,
+   "handwritten": 38,
+   "fixed": 38,
+   "random": 5
+  },
+  "s2_01058": {
+   "learned": 15,
+   "handwritten": 20,
+   "fixed": 2,
+   "random": 27
+  },
+  "s2_01069": {
+   "learned": 45,
+   "handwritten": 1,
+   "fixed": 38,
+   "random": 45
+  },
+  "s2_01070": {
+   "learned": 3,
+   "handwritten": 2,
+   "fixed": 2,
+   "random": 2
+  },
+  "s2_01072": {
+   "learned": 17,
+   "handwritten": 11,
+   "fixed": 2,
+   "random": 37
+  },
+  "s2_01073": {
+   "learned": 12,
+   "handwritten": 2,
+   "fixed": 2,
+   "random": 22
+  },
+  "s2_01076": {
+   "learned": 0,
+   "handwritten": 19,
+   "fixed": 29,
+   "random": 32
+  },
+  "s2_01096": {
+   "learned": 21,
+   "handwritten": 1,
+   "fixed": 2,
+   "random": 33
+  },
+  "s2_01100": {
+   "learned": 37,
+   "handwritten": 28,
+   "fixed": 20,
+   "random": 2
+  },
+  "s2_01102": {
+   "learned": 8,
+   "handwritten": 38,
+   "fixed": 29,
+   "random": 41
+  },
+  "s2_01105": {
+   "learned": 0,
+   "handwritten": 10,
+   "fixed": 38,
+   "random": 36
+  },
+  "s2_01109": {
+   "learned": 18,
+   "handwritten": 20,
+   "fixed": 2,
+   "random": 6
+  },
+  "s2_01116": {
+   "learned": 4,
+   "handwritten": 2,
+   "fixed": 2,
+   "random": 1
+  },
+  "s2_01118": {
+   "learned": 13,
+   "handwritten": 11,
+   "fixed": 20,
+   "random": 26
+  },
+  "s2_01123": {
+   "learned": 9,
+   "handwritten": 11,
+   "fixed": 2,
+   "random": 0
+  },
+  "s2_01133": {
+   "learned": 26,
+   "handwritten": 11,
+   "fixed": 20,
+   "random": 12
+  },
+  "s2_01140": {
+   "learned": 17,
+   "handwritten": 11,
+   "fixed": 2,
+   "random": 10
+  },
+  "s2_01152": {
+   "learned": 31,
+   "handwritten": 20,
+   "fixed": 38,
+   "random": 14
+  },
+  "s2_01160": {
+   "learned": 2,
+   "handwritten": 11,
+   "fixed": 2,
+   "random": 33
+  },
+  "s2_01162": {
+   "learned": 36,
+   "handwritten": 38,
+   "fixed": 38,
+   "random": 21
+  },
+  "s2_01173": {
+   "learned": 2,
+   "handwritten": 1,
+   "fixed": 2,
+   "random": 3
+  },
+  "s2_01176": {
+   "learned": 8,
+   "handwritten": 11,
+   "fixed": 2,
+   "random": 16
+  },
+  "s2_01178": {
+   "learned": 21,
+   "handwritten": 29,
+   "fixed": 2,
+   "random": 9
+  },
+  "s2_01190": {
+   "learned": 8,
+   "handwritten": 2,
+   "fixed": 11,
+   "random": 31
+  },
+  "s2_01195": {
+   "learned": 42,
+   "handwritten": 1,
+   "fixed": 11,
+   "random": 41
+  },
+  "s2_01199": {
+   "learned": 45,
+   "handwritten": 38,
+   "fixed": 29,
+   "random": 24
+  },
+  "s2_01200": {
+   "learned": 5,
+   "handwritten": 1,
+   "fixed": 2,
+   "random": 29
+  },
+  "s2_01204": {
+   "learned": 41,
+   "handwritten": 1,
+   "fixed": 29,
+   "random": 14
+  },
+  "s2_01211": {
+   "learned": 4,
+   "handwritten": 10,
+   "fixed": 2,
+   "random": 11
+  },
+  "s2_01226": {
+   "learned": 36,
+   "handwritten": 2,
+   "fixed": 29,
+   "random": 6
+  },
+  "s2_01229": {
+   "learned": 9,
+   "handwritten": 11,
+   "fixed": 29,
+   "random": 12
+  },
+  "s2_01235": {
+   "learned": 2,
+   "handwritten": 1,
+   "fixed": 2,
+   "random": 27
+  },
+  "s2_01238": {
+   "learned": 11,
+   "handwritten": 38,
+   "fixed": 11,
+   "random": 0
+  },
+  "s2_01239": {
+   "learned": 1,
+   "handwritten": 2,
+   "fixed": 2,
+   "random": 7
+  },
+  "s2_01244": {
+   "learned": 8,
+   "handwritten": 2,
+   "fixed": 2,
+   "random": 3
+  },
+  "s2_01246": {
+   "learned": 9,
+   "handwritten": 2,
+   "fixed": 2,
+   "random": 9
+  },
+  "s2_01266": {
+   "learned": 9,
+   "handwritten": 11,
+   "fixed": 2,
+   "random": 3
+  },
+  "s2_01267": {
+   "learned": 4,
+   "handwritten": 19,
+   "fixed": 38,
+   "random": 11
+  },
+  "s2_01269": {
+   "learned": 27,
+   "handwritten": 38,
+   "fixed": 38,
+   "random": 19
+  },
+  "s2_01274": {
+   "learned": 36,
+   "handwritten": 20,
+   "fixed": 20,
+   "random": 33
+  },
+  "s2_01281": {
+   "learned": 2,
+   "handwritten": 38,
+   "fixed": 20,
+   "random": 35
+  },
+  "s2_01282": {
+   "learned": 4,
+   "handwritten": 2,
+   "fixed": 2,
+   "random": 0
+  },
+  "s2_01284": {
+   "learned": 1,
+   "handwritten": 29,
+   "fixed": 11,
+   "random": 5
+  },
+  "s2_01292": {
+   "learned": 8,
+   "handwritten": 11,
+   "fixed": 2,
+   "random": 32
+  },
+  "s2_01293": {
+   "learned": 40,
+   "handwritten": 2,
+   "fixed": 2,
+   "random": 32
+  },
+  "s2_01297": {
+   "learned": 2,
+   "handwritten": 1,
+   "fixed": 2,
+   "random": 2
+  },
+  "s2_01302": {
+   "learned": 40,
+   "handwritten": 10,
+   "fixed": 29,
+   "random": 39
+  },
+  "s2_01303": {
+   "learned": 39,
+   "handwritten": 38,
+   "fixed": 38,
+   "random": 26
+  },
+  "s2_01312": {
+   "learned": 39,
+   "handwritten": 38,
+   "fixed": 38,
+   "random": 13
+  },
+  "s2_01316": {
+   "learned": 9,
+   "handwritten": 29,
+   "fixed": 2,
+   "random": 25
+  },
+  "s2_01317": {
+   "learned": 36,
+   "handwritten": 29,
+   "fixed": 38,
+   "random": 34
+  },
+  "s2_01320": {
+   "learned": 4,
+   "handwritten": 19,
+   "fixed": 2,
+   "random": 16
+  },
+  "s2_01330": {
+   "learned": 1,
+   "handwritten": 2,
+   "fixed": 2,
+   "random": 26
+  },
+  "s2_01338": {
+   "learned": 4,
+   "handwritten": 1,
+   "fixed": 11,
+   "random": 42
+  },
+  "s2_01340": {
+   "learned": 8,
+   "handwritten": 20,
+   "fixed": 2,
+   "random": 7
+  },
+  "s2_01341": {
+   "learned": 8,
+   "handwritten": 11,
+   "fixed": 2,
+   "random": 44
+  },
+  "s2_01345": {
+   "learned": 13,
+   "handwritten": 38,
+   "fixed": 11,
+   "random": 36
+  },
+  "s2_01350": {
+   "learned": 2,
+   "handwritten": 2,
+   "fixed": 2,
+   "random": 34
+  },
+  "s2_01352": {
+   "learned": 3,
+   "handwritten": 11,
+   "fixed": 38,
+   "random": 3
+  },
+  "s2_01362": {
+   "learned": 8,
+   "handwritten": 2,
+   "fixed": 2,
+   "random": 7
+  },
+  "s2_01370": {
+   "learned": 7,
+   "handwritten": 2,
+   "fixed": 2,
+   "random": 43
+  },
+  "s2_01378": {
+   "learned": 3,
+   "handwritten": 20,
+   "fixed": 29,
+   "random": 28
+  },
+  "s2_01387": {
+   "learned": 42,
+   "handwritten": 20,
+   "fixed": 38,
+   "random": 32
+  },
+  "s2_01392": {
+   "learned": 40,
+   "handwritten": 38,
+   "fixed": 38,
+   "random": 14
+  },
+  "s2_01399": {
+   "learned": 30,
+   "handwritten": 1,
+   "fixed": 11,
+   "random": 45
+  },
+  "s2_01402": {
+   "learned": 45,
+   "handwritten": 38,
+   "fixed": 38,
+   "random": 40
+  },
+  "s2_01412": {
+   "learned": 17,
+   "handwritten": 38,
+   "fixed": 20,
+   "random": 39
+  },
+  "s2_01414": {
+   "learned": 4,
+   "handwritten": 1,
+   "fixed": 2,
+   "random": 15
+  },
+  "s2_01415": {
+   "learned": 45,
+   "handwritten": 38,
+   "fixed": 38,
+   "random": 24
+  },
+  "s2_01417": {
+   "learned": 4,
+   "handwritten": 1,
+   "fixed": 20,
+   "random": 32
+  },
+  "s2_01419": {
+   "learned": 13,
+   "handwritten": 20,
+   "fixed": 2,
+   "random": 35
+  },
+  "s2_01421": {
+   "learned": 17,
+   "handwritten": 29,
+   "fixed": 20,
+   "random": 37
+  },
+  "s2_01422": {
+   "learned": 25,
+   "handwritten": 2,
+   "fixed": 20,
+   "random": 21
+  },
+  "s2_01423": {
+   "learned": 0,
+   "handwritten": 38,
+   "fixed": 29,
+   "random": 18
+  },
+  "s2_01427": {
+   "learned": 18,
+   "handwritten": 11,
+   "fixed": 20,
+   "random": 13
+  },
+  "s2_01429": {
+   "learned": 4,
+   "handwritten": 29,
+   "fixed": 11,
+   "random": 16
+  },
+  "s2_01430": {
+   "learned": 8,
+   "handwritten": 1,
+   "fixed": 2,
+   "random": 7
+  },
+  "s2_01433": {
+   "learned": 7,
+   "handwritten": 11,
+   "fixed": 2,
+   "random": 44
+  },
+  "s2_01435": {
+   "learned": 7,
+   "handwritten": 2,
+   "fixed": 2,
+   "random": 34
+  },
+  "s2_01436": {
+   "learned": 31,
+   "handwritten": 1,
+   "fixed": 2,
+   "random": 45
+  },
+  "s2_01444": {
+   "learned": 15,
+   "handwritten": 10,
+   "fixed": 2,
+   "random": 13
+  },
+  "s2_01446": {
+   "learned": 44,
+   "handwritten": 29,
+   "fixed": 38,
+   "random": 45
+  },
+  "s2_01452": {
+   "learned": 11,
+   "handwritten": 2,
+   "fixed": 2,
+   "random": 36
+  },
+  "s2_01461": {
+   "learned": 8,
+   "handwritten": 1,
+   "fixed": 38,
+   "random": 41
+  },
+  "s2_01465": {
+   "learned": 0,
+   "handwritten": 29,
+   "fixed": 38,
+   "random": 16
+  },
+  "s2_01471": {
+   "learned": 4,
+   "handwritten": 2,
+   "fixed": 2,
+   "random": 37
+  },
+  "s2_01476": {
+   "learned": 40,
+   "handwritten": 1,
+   "fixed": 20,
+   "random": 15
+  },
+  "s2_01482": {
+   "learned": 6,
+   "handwritten": 1,
+   "fixed": 2,
+   "random": 41
+  },
+  "s2_01489": {
+   "learned": 39,
+   "handwritten": 2,
+   "fixed": 2,
+   "random": 6
+  },
+  "s2_01490": {
+   "learned": 8,
+   "handwritten": 38,
+   "fixed": 20,
+   "random": 7
+  },
+  "s2_01491": {
+   "learned": 4,
+   "handwritten": 2,
+   "fixed": 2,
+   "random": 7
+  },
+  "s2_01506": {
+   "learned": 3,
+   "handwritten": 2,
+   "fixed": 2,
+   "random": 26
+  },
+  "s2_01519": {
+   "learned": 11,
+   "handwritten": 29,
+   "fixed": 11,
+   "random": 0
+  },
+  "s2_01525": {
+   "learned": 13,
+   "handwritten": 20,
+   "fixed": 2,
+   "random": 30
+  },
+  "s2_01526": {
+   "learned": 18,
+   "handwritten": 20,
+   "fixed": 29,
+   "random": 3
+  },
+  "s2_01532": {
+   "learned": 36,
+   "handwritten": 29,
+   "fixed": 38,
+   "random": 10
+  },
+  "s2_01534": {
+   "learned": 40,
+   "handwritten": 11,
+   "fixed": 11,
+   "random": 16
+  },
+  "s2_01538": {
+   "learned": 17,
+   "handwritten": 11,
+   "fixed": 20,
+   "random": 32
+  },
+  "s2_01541": {
+   "learned": 5,
+   "handwritten": 10,
+   "fixed": 2,
+   "random": 7
+  },
+  "s2_01554": {
+   "learned": 44,
+   "handwritten": 29,
+   "fixed": 38,
+   "random": 16
+  },
+  "s2_01559": {
+   "learned": 2,
+   "handwritten": 2,
+   "fixed": 2,
+   "random": 34
+  },
+  "s2_01560": {
+   "learned": 12,
+   "handwritten": 2,
+   "fixed": 20,
+   "random": 22
+  },
+  "s2_01562": {
+   "learned": 29,
+   "handwritten": 19,
+   "fixed": 2,
+   "random": 26
+  },
+  "s2_01567": {
+   "learned": 5,
+   "handwritten": 10,
+   "fixed": 2,
+   "random": 10
+  },
+  "s2_01569": {
+   "learned": 40,
+   "handwritten": 10,
+   "fixed": 38,
+   "random": 13
+  },
+  "s2_01573": {
+   "learned": 22,
+   "handwritten": 20,
+   "fixed": 38,
+   "random": 30
+  },
+  "s2_01577": {
+   "learned": 0,
+   "handwritten": 38,
+   "fixed": 29,
+   "random": 26
+  },
+  "s2_01580": {
+   "learned": 4,
+   "handwritten": 2,
+   "fixed": 2,
+   "random": 23
+  },
+  "s2_01587": {
+   "learned": 32,
+   "handwritten": 10,
+   "fixed": 2,
+   "random": 20
+  },
+  "s2_01593": {
+   "learned": 18,
+   "handwritten": 1,
+   "fixed": 2,
+   "random": 24
+  },
+  "s2_01595": {
+   "learned": 45,
+   "handwritten": 38,
+   "fixed": 38,
+   "random": 37
+  },
+  "s2_01599": {
+   "learned": 7,
+   "handwritten": 1,
+   "fixed": 2,
+   "random": 43
+  }
+ },
+ "history": {
+  "mirror_False": [
+   {
+    "epoch": 1,
+    "loss": 2.4670761815382134
+   },
+   {
+    "epoch": 2,
+    "loss": 1.5627543837057878
+   },
+   {
+    "epoch": 3,
+    "loss": 1.3528506165934113
+   },
+   {
+    "epoch": 4,
+    "loss": 1.2271771019263005
+   },
+   {
+    "epoch": 5,
+    "loss": 1.1713577711779106,
+    "val_direct": 0.32,
+    "val_pass": 0.31,
+    "val_joint": 0.29,
+    "val_safe_ll": 0.3096878533377141
+   },
+   {
+    "epoch": 6,
+    "loss": 1.116328183191343
+   },
+   {
+    "epoch": 7,
+    "loss": 1.0753181607525246
+   },
+   {
+    "epoch": 8,
+    "loss": 1.0485997894854209
+   },
+   {
+    "epoch": 9,
+    "loss": 1.0040708259208548
+   },
+   {
+    "epoch": 10,
+    "loss": 0.9855716879767419,
+    "val_direct": 0.5,
+    "val_pass": 0.49,
+    "val_joint": 0.51,
+    "val_safe_ll": 0.28819468379473107
+   },
+   {
+    "epoch": 11,
+    "loss": 0.9612935701544958
+   },
+   {
+    "epoch": 12,
+    "loss": 0.9393572573525356
+   },
+   {
+    "epoch": 13,
+    "loss": 0.9306134141021075
+   },
+   {
+    "epoch": 14,
+    "loss": 0.9001413507231008
+   },
+   {
+    "epoch": 15,
+    "loss": 0.8859376660333668,
+    "val_direct": 0.59,
+    "val_pass": 0.52,
+    "val_joint": 0.58,
+    "val_safe_ll": 0.2878247625884182
+   },
+   {
+    "epoch": 16,
+    "loss": 0.8736747602866648
+   },
+   {
+    "epoch": 17,
+    "loss": 0.8571057656466546
+   },
+   {
+    "epoch": 18,
+    "loss": 0.8390840468656112
+   },
+   {
+    "epoch": 19,
+    "loss": 0.8346597888966232
+   },
+   {
+    "epoch": 20,
+    "loss": 0.8232922125762164,
+    "val_direct": 0.66,
+    "val_pass": 0.56,
+    "val_joint": 0.62,
+    "val_safe_ll": 0.2837557073426231
+   },
+   {
+    "epoch": 21,
+    "loss": 0.8124912836948244
+   },
+   {
+    "epoch": 22,
+    "loss": 0.7962539334905808
+   },
+   {
+    "epoch": 23,
+    "loss": 0.8001342511847379
+   },
+   {
+    "epoch": 24,
+    "loss": 0.7823547100974261
+   },
+   {
+    "epoch": 25,
+    "loss": 0.7601993188615301,
+    "val_direct": 0.61,
+    "val_pass": 0.57,
+    "val_joint": 0.63,
+    "val_safe_ll": 0.29407223547046896
+   },
+   {
+    "epoch": 26,
+    "loss": 0.7490822099470652
+   },
+   {
+    "epoch": 27,
+    "loss": 0.7505528685590603
+   },
+   {
+    "epoch": 28,
+    "loss": 0.7385994150221973
+   },
+   {
+    "epoch": 29,
+    "loss": 0.728923112607913
+   },
+   {
+    "epoch": 30,
+    "loss": 0.7137429771935955,
+    "val_direct": 0.58,
+    "val_pass": 0.54,
+    "val_joint": 0.58,
+    "val_safe_ll": 0.2786308923491334
+   },
+   {
+    "epoch": 31,
+    "loss": 0.7132819474441029
+   },
+   {
+    "epoch": 32,
+    "loss": 0.7077221804261594
+   },
+   {
+    "epoch": 33,
+    "loss": 0.7007036449141784
+   },
+   {
+    "epoch": 34,
+    "loss": 0.6802715064089173
+   },
+   {
+    "epoch": 35,
+    "loss": 0.6805400357570159,
+    "val_direct": 0.61,
+    "val_pass": 0.54,
+    "val_joint": 0.63,
+    "val_safe_ll": 0.2895167093709832
+   },
+   {
+    "epoch": 36,
+    "loss": 0.6704677854278136
+   },
+   {
+    "epoch": 37,
+    "loss": 0.6725033873508021
+   },
+   {
+    "epoch": 38,
+    "loss": 0.6534650049004682
+   },
+   {
+    "epoch": 39,
+    "loss": 0.6451588746749588
+   },
+   {
+    "epoch": 40,
+    "loss": 0.6383426619780486,
+    "val_direct": 0.63,
+    "val_pass": 0.6,
+    "val_joint": 0.6,
+    "val_safe_ll": 0.29109080694883105
+   },
+   {
+    "epoch": 41,
+    "loss": 0.6366524692566106
+   },
+   {
+    "epoch": 42,
+    "loss": 0.6292034213415375
+   },
+   {
+    "epoch": 43,
+    "loss": 0.6205073484176633
+   },
+   {
+    "epoch": 44,
+    "loss": 0.6182007911377398
+   },
+   {
+    "epoch": 45,
+    "loss": 0.6064549309739536,
+    "val_direct": 0.62,
+    "val_pass": 0.55,
+    "val_joint": 0.61,
+    "val_safe_ll": 0.29613227328363484
+   },
+   {
+    "epoch": 46,
+    "loss": 0.6027585929948194
+   },
+   {
+    "epoch": 47,
+    "loss": 0.5940252174644264
+   },
+   {
+    "epoch": 48,
+    "loss": 0.5888620485615474
+   },
+   {
+    "epoch": 49,
+    "loss": 0.5882112912288789
+   },
+   {
+    "epoch": 50,
+    "loss": 0.582400436019627,
+    "val_direct": 0.65,
+    "val_pass": 0.6,
+    "val_joint": 0.62,
+    "val_safe_ll": 0.2929522944337152
+   },
+   {
+    "epoch": 51,
+    "loss": 0.5786633856773308
+   },
+   {
+    "epoch": 52,
+    "loss": 0.5746335034675988
+   },
+   {
+    "epoch": 53,
+    "loss": 0.5716254235473465
+   },
+   {
+    "epoch": 54,
+    "loss": 0.566585283882251
+   },
+   {
+    "epoch": 55,
+    "loss": 0.5657296419009286,
+    "val_direct": 0.62,
+    "val_pass": 0.58,
+    "val_joint": 0.61,
+    "val_safe_ll": 0.2972190176509712
+   },
+   {
+    "epoch": 56,
+    "loss": 0.5618731231346213
+   },
+   {
+    "epoch": 57,
+    "loss": 0.5611820888882935
+   },
+   {
+    "epoch": 58,
+    "loss": 0.5615535079695225
+   },
+   {
+    "epoch": 59,
+    "loss": 0.5603449428087693
+   },
+   {
+    "epoch": 60,
+    "loss": 0.5601573676658953,
+    "val_direct": 0.65,
+    "val_pass": 0.59,
+    "val_joint": 0.62,
+    "val_safe_ll": 0.29408734897478866
+   }
+  ],
+  "mirror_True": [
+   {
+    "epoch": 1,
+    "loss": 2.0205969011113867
+   },
+   {
+    "epoch": 2,
+    "loss": 1.3200313595885895
+   },
+   {
+    "epoch": 3,
+    "loss": 1.1758017056309014
+   },
+   {
+    "epoch": 4,
+    "loss": 1.1003174331036178
+   },
+   {
+    "epoch": 5,
+    "loss": 1.045862919270111,
+    "val_direct": 0.7,
+    "val_pass": 0.57,
+    "val_joint": 0.72,
+    "val_safe_ll": 0.2694646426645876
+   },
+   {
+    "epoch": 6,
+    "loss": 1.0000216778754898
+   },
+   {
+    "epoch": 7,
+    "loss": 0.965713682202221
+   },
+   {
+    "epoch": 8,
+    "loss": 0.9471484598026619
+   },
+   {
+    "epoch": 9,
+    "loss": 0.9240090212266361
+   },
+   {
+    "epoch": 10,
+    "loss": 0.9056293345688334,
+    "val_direct": 0.7,
+    "val_pass": 0.64,
+    "val_joint": 0.71,
+    "val_safe_ll": 0.24715060856514123
+   },
+   {
+    "epoch": 11,
+    "loss": 0.8853898413742702
+   },
+   {
+    "epoch": 12,
+    "loss": 0.8634221874086699
+   },
+   {
+    "epoch": 13,
+    "loss": 0.8537305871931391
+   },
+   {
+    "epoch": 14,
+    "loss": 0.837949822746522
+   },
+   {
+    "epoch": 15,
+    "loss": 0.8173699944942571,
+    "val_direct": 0.69,
+    "val_pass": 0.61,
+    "val_joint": 0.74,
+    "val_safe_ll": 0.24466150837657658
+   },
+   {
+    "epoch": 16,
+    "loss": 0.8094026626748018
+   },
+   {
+    "epoch": 17,
+    "loss": 0.7922363581671971
+   },
+   {
+    "epoch": 18,
+    "loss": 0.7860042118261199
+   },
+   {
+    "epoch": 19,
+    "loss": 0.7741978439034501
+   },
+   {
+    "epoch": 20,
+    "loss": 0.7603202831896632,
+    "val_direct": 0.7,
+    "val_pass": 0.59,
+    "val_joint": 0.74,
+    "val_safe_ll": 0.24192775216845827
+   },
+   {
+    "epoch": 21,
+    "loss": 0.7551141738785564
+   },
+   {
+    "epoch": 22,
+    "loss": 0.7399927757111522
+   },
+   {
+    "epoch": 23,
+    "loss": 0.7296549363956423
+   },
+   {
+    "epoch": 24,
+    "loss": 0.7255608426422998
+   },
+   {
+    "epoch": 25,
+    "loss": 0.7109320795571543,
+    "val_direct": 0.78,
+    "val_pass": 0.69,
+    "val_joint": 0.74,
+    "val_safe_ll": 0.24126095572239706
+   },
+   {
+    "epoch": 26,
+    "loss": 0.7023993415599331
+   },
+   {
+    "epoch": 27,
+    "loss": 0.6985599035377196
+   },
+   {
+    "epoch": 28,
+    "loss": 0.6804325142214948
+   },
+   {
+    "epoch": 29,
+    "loss": 0.6760054429541109
+   },
+   {
+    "epoch": 30,
+    "loss": 0.6713079103749233,
+    "val_direct": 0.76,
+    "val_pass": 0.69,
+    "val_joint": 0.76,
+    "val_safe_ll": 0.23009072534316496
+   },
+   {
+    "epoch": 31,
+    "loss": 0.6618422224942173
+   },
+   {
+    "epoch": 32,
+    "loss": 0.6525561105106376
+   },
+   {
+    "epoch": 33,
+    "loss": 0.6404038380329569
+   },
+   {
+    "epoch": 34,
+    "loss": 0.6358800812782505
+   },
+   {
+    "epoch": 35,
+    "loss": 0.6294642205494665,
+    "val_direct": 0.81,
+    "val_pass": 0.72,
+    "val_joint": 0.79,
+    "val_safe_ll": 0.22815372012849663
+   },
+   {
+    "epoch": 36,
+    "loss": 0.6202655267587496
+   },
+   {
+    "epoch": 37,
+    "loss": 0.6149174894685553
+   },
+   {
+    "epoch": 38,
+    "loss": 0.6048970557276026
+   },
+   {
+    "epoch": 39,
+    "loss": 0.6006960139916693
+   },
+   {
+    "epoch": 40,
+    "loss": 0.5947042880468157,
+    "val_direct": 0.83,
+    "val_pass": 0.71,
+    "val_joint": 0.82,
+    "val_safe_ll": 0.23082775839201566
+   },
+   {
+    "epoch": 41,
+    "loss": 0.5853927124831141
+   },
+   {
+    "epoch": 42,
+    "loss": 0.5812405957798922
+   },
+   {
+    "epoch": 43,
+    "loss": 0.5741933848368155
+   },
+   {
+    "epoch": 44,
+    "loss": 0.569726727984004
+   },
+   {
+    "epoch": 45,
+    "loss": 0.5620574109555123,
+    "val_direct": 0.81,
+    "val_pass": 0.77,
+    "val_joint": 0.8,
+    "val_safe_ll": 0.2304939888540741
+   },
+   {
+    "epoch": 46,
+    "loss": 0.5574758785458787
+   },
+   {
+    "epoch": 47,
+    "loss": 0.5531352124221324
+   },
+   {
+    "epoch": 48,
+    "loss": 0.5489442953737487
+   },
+   {
+    "epoch": 49,
+    "loss": 0.5446668154914165
+   },
+   {
+    "epoch": 50,
+    "loss": 0.5397349213700996,
+    "val_direct": 0.82,
+    "val_pass": 0.69,
+    "val_joint": 0.83,
+    "val_safe_ll": 0.22982344614533234
+   },
+   {
+    "epoch": 51,
+    "loss": 0.5364479576355351
+   },
+   {
+    "epoch": 52,
+    "loss": 0.5352851226105861
+   },
+   {
+    "epoch": 53,
+    "loss": 0.5306921840990517
+   },
+   {
+    "epoch": 54,
+    "loss": 0.5265892639533453
+   },
+   {
+    "epoch": 55,
+    "loss": 0.5268153052488024,
+    "val_direct": 0.79,
+    "val_pass": 0.78,
+    "val_joint": 0.83,
+    "val_safe_ll": 0.2311347263057889
+   },
+   {
+    "epoch": 56,
+    "loss": 0.5232224258762372
+   },
+   {
+    "epoch": 57,
+    "loss": 0.5218052748967273
+   },
+   {
+    "epoch": 58,
+    "loss": 0.522937611369707
+   },
+   {
+    "epoch": 59,
+    "loss": 0.5197193924640415
+   },
+   {
+    "epoch": 60,
+    "loss": 0.5186209280464459,
+    "val_direct": 0.8,
+    "val_pass": 0.71,
+    "val_joint": 0.81,
+    "val_safe_ll": 0.23061325936943533
+   }
+  ]
+ }
+}

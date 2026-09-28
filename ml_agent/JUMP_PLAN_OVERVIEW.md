@@ -88,6 +88,11 @@ starts.
 On the happy path, stages 0 to 2 take about a week, and the first real rounds with the new system (stage 6)
 arrive about two months in.
 
+**Progress, 2026-09-27:** stages 0 to 2 are done and stage 2 passed. From 251 new starting positions where some
+jump works, the learned model collected the gem and landed safely 68 % of the time; the best simple rule managed
+19 %. Today's navigator, on the jump test map, scores 4.6 points a round and gets stuck after its first three
+gems. Stage 3 starts when the operator says so.
+
 ## Moments to watch
 
 The best discoveries on this project have come from watching the game at normal speed. Natural points to

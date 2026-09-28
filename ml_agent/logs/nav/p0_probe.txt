@@ -1,0 +1,39 @@
+[env:8941] waiting for the game
+[env:8941] game connected (1)
+[env:8941] game disconnected
+[env:8941] waiting for the game
+[env:8941] game connected (2)
+[env:8941] game disconnected
+[env:8941] waiting for the game
+[env:8941] game connected (3)
+connected: kotmjump_p0, round 3600 s
+1. mission kotmjump_p0, round 3600 s, time left 3599 s, pos (-25.25, -4.43, 21.95), gem up True
+2. spin=None: requested v (0, 8, 0), rolling w (-42.1, 0, 0)
+     step 1: v (0.00, 8.00, 0.00) w (0.00, 0.00, 0.00)
+     step 2: v (0.00, 8.00, 0.00) w (0.00, 0.00, 0.00)
+     step 3: v (0.00, 7.71, 0.00) w (-11.44, 0.00, 0.00)
+     step 4: v (0.00, 6.82, 0.00) w (-28.04, 0.00, 0.00)
+     step 5: v (0.00, 7.06, 0.00) w (-37.19, 0.00, 0.00)
+     step 6: v (0.00, 7.94, 0.00) w (-41.83, 0.00, 0.00)
+2. spin=rolling: requested v (0, 8, 0), rolling w (-42.1, 0, 0)
+     step 1: v (0.00, 8.00, 0.00) w (-42.11, 0.00, 0.00)
+     step 2: v (0.00, 8.00, 0.00) w (-42.11, 0.00, 0.00)
+     step 3: v (0.00, 8.72, 0.00) w (-45.94, 0.00, 0.00)
+     step 4: v (0.00, 9.49, 0.00) w (-50.03, 0.00, 0.00)
+     step 5: v (0.00, 10.22, 0.00) w (-53.88, 0.00, 0.00)
+     step 6: v (0.00, 10.91, 0.00) w (-57.48, 0.00, 0.00)
+3. teleport onto the gem: gem_delta total 1.0, fell at step 15, gem up after pickup False
+   recovered and GEMRESET: pos (-37.25, -3.29, 21.67), gem up True (0.0 s)
+4. (-34.00, 10.05) terrain floor 20.649999618530273: expect floor, got floor (z 20.84) ok
+4. (-33.00, 10.05) terrain floor None: expect hole, got fell (z 14.89) ok
+4. (-26.00, 10.05) terrain floor 20.649999618530273: expect floor, got floor (z 20.84) ok
+4. (-27.00, 10.05) terrain floor None: expect hole, got fell (z 12.75) ok
+4. (-30.25, 6.60) terrain floor 20.649999618530273: expect floor, got fell (z 13.69) MISMATCH
+4. (-30.25, 7.20) terrain floor None: expect hole, got fell (z 14.89) ok
+4. (-27.50, 12.30) terrain floor 20.649999618530273: expect floor, got floor (z 20.84) ok
+4. (-30.25, 13.40) terrain floor None: expect hole, got fell (z 14.72) ok
+4. (-30.25, 14.10) terrain floor 20.649999618530273: expect floor, got floor (z 20.84) ok
+4. (-25.00, 9.00) terrain floor 20.649999618530273: expect floor, got floor (z 20.84) ok
+4. (-23.00, 9.00) terrain floor None: expect hole, got fell (z 13.86) ok
+4. (-22.50, 15.30) terrain floor 20.649999618530273: expect floor, got floor (z 20.84) ok
+done

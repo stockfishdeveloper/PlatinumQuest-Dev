@@ -3892,3 +3892,118 @@ stored exactly (14,315 half-unit cells, 92 % walkable). Of the 2,150 walk cells 
 along every ledge top and wall bottom, the same family as KOTM's phantom holes. Not fixed (code change needs the
 operator): measure slope only between neighbours on the same surface, or take normals from the map geometry.
 The model's own features treat the ramps as floor: rays and the gap block follow up to 1 u of rise per 0.5 u step.
+
+## 29. Jump physics P0 (2026-09-27, autonomous session; operator offline)
+
+The plan: `../KOTMJUMP_START_HERE.md` (P0) with `../KOTMJUMP_NAVIGATION_DESIGN.md` as the reference. Scope approved by the
+operator: new files under `nav/learned_nav/`, the spin words for the Python teleport, small `mlAgent.cs` additions and
+the drill map. Training stayed stopped.
+
+### 29.1 M0: the preserved navigator on kotmjump (16:48-17:13, 3x, 8 rounds)
+
+nav_v6_start_26110 (26113), greedy chooser: 4.6 points a round (9, then 4 in each of the other seven), 37 falls a
+round, 23 stuck-breaker firings a round. One floating gem in 8 rounds (round 1, the north-west hole). In rounds 2-8 the
+last pickup came 6-15 s into the round: after the first three floor gems the navigator never finished a group with a
+floating gem and spent the other ~165 s stuck. `logs/nav/kotmjump_m0_baseline.txt`,
+`logs/nav/real_trace_kotmjump_m0_baseline.csv`, `logs/nav/real_run_kotmjump_nav_v6_start_26110_kotmjump_m0_baseline.json`.
+
+### 29.2 Stage 0: the drill map and the checks
+
+* `nav/learned_nav/make_drill_map.py` writes `hunt/custom/kotmjump_p0.mcs`: kotmjump with only the gem at
+  (-30.25, 10.05, 21.7), no powerups, a one-hour round. First attempt did not load: the game looks the info function
+  up as `MP_PQ_<alphanumerics of the file name>_GetMissionInfo` (`shared/mission.cs` getMissionInfo), so the
+  underscore in `kotmjump_p0` must be dropped (`MP_PQ_kotmjumpp0_`). The autotrain sat in the level select; this
+  engine build writes no console.log, so it was found with a screenshot.
+* `mlAgent.cs`: control word `GEMRESET` (respawn the gem group when no gem is up; the game respawns a group
+  excluding the gem just taken, so a one-gem map stays empty after a pickup). `.dso` deleted.
+* `nav/learned_nav/probe_drill.py` (in the game): mission and one-hour round OK; gem present; spin teleport OK
+  (with the rolling spin words the marble keeps 8 u/s and accelerates; without them it skids to 6.8 u/s and spins
+  up over 4 decisions); teleport onto the gem gives a pickup, the fall, recovery and GEMRESET brings it back;
+  11 of 12 lip points match the 0.5 u terrain grid. The miss: the south lip. The 0.1 u raster
+  (`nav/fine_terrain`, built for kotmjump_p0) has the hole at x -33.75..-26.78, y 6.58..11.58 with the bay on the
+  west half to 13.58, and matches the game at all 12 points; the 0.5 u grid puts the south lip 0.3 u too far into
+  the hole. The recorder uses the 0.1 u raster.
+* Teleport timing, measured: the observation after TELEPORT plus 2 decisions is the teleported state itself
+  (position, velocity and spin exactly as requested); the first physics step follows it. The recorder's start
+  state is that observation, checked against the request to 0.05 u (this also catches a teleport the game ignored).
+* Repeat check (`nav/learned_nav/check_repeat.py`, declared tolerance 0.01 u): 4 starts x 3 candidates x 20
+  repeats: every recorded position identical (max difference 0.0), identical replies and events. The
+  out-of-bounds flag arrives one decision later in some repeats (a trigger event, not the physics); allowed +-1.
+* Edge hits are real and large: a marble clipping the far edge of a hole left it at vz +11 to +12.7 u/s (a jump
+  gives 7.4). A flight can therefore go on well past its first contact, so trials run until the marble has landed
+  and rolled 0.5 s (cap 75 decisions); an undecided flight at the cap is censored and counts as unsafe.
+
+### 29.3 P0a: the recorder and the data
+
+`nav/learned_nav/record.py`. Start: hold the run-up input one decision, TELEPORT onto the floor with rolling spin,
+2 more run-up decisions. Candidates: no jump, or jump at decision 0-4 holding one of 9 air inputs (none, or heading
++ 0, 45, ..., 315 deg): 46 per start, the same for every arm. After landing, no input for 8 decisions. Recorded per
+decision: the reply as serialized (with camera yaw), position, velocity, spin, the floor height under the marble,
+gem delta, out-of-bounds flag, the game tick. Outcomes: pickup, out of bounds, takeoff and landing decisions,
+censored, ends over floor; safe = no out of bounds, not censored, a started flight landed, ends over floor;
+success = pickup and safe. Provenance line first in every file (engine/script/mission hashes, settings).
+Starts: on the floor around the hole, 0-15 u/s, heading within 60 deg of the gem, the lip 0.3-6 u ahead along the
+heading. Split by region and heading: 3 u blocks x 20 deg bins of heading relative to the gem, one cell in four held
+out (md5 of the cell), starts within 0.25 u / 2 deg of a cell edge skipped. 6 games at ~21 trials/s each.
+Two batches: 2,400 starts at 0-15 u/s (448 held out) and, because only 26 % of those were feasible, 1,600 more at
+6-15 u/s (308 held out). 4,000 starts x 46 candidates = 184,000 flights, 0 teleport retries, 0 failed trials,
+about 34 min of wall time (datasets/learned_nav/p0/, 0.9 GB, not git-ignored: keep it out of commits). Rounds end every ~100 s of wall time (the
+one-hour game clock runs ~35x real time); the restart costs one tick. Of the pickups in the first 8,000 flights,
+65 % fell into the hole before landing, 16 % ended over void (the narrow east strip, or a wall slope in the hole)
+and 19 % succeeded, every success landing at 8.7 u/s or more.
+
+### 29.4 P0b: the predictor, the arms, the freeze
+
+`nav/learned_nav/dynamics.py`: an MLP (3 x 384) on the start state in its own frame (velocity, spin), a 0.5 u height
+crop from the 0.1 u raster (1 u behind to 14.5 u ahead, 6 u each side; relative height and floor present) and
+lip/gap distances along 15 rays, plus the candidate one-hot. Heads: the timed path (45 decisions), safe, landed,
+landing point; a small head that also sees the gem gives pickup and success (the physical part never sees the gem).
+Chosen on VALIDATION cells inside the training starts (437 starts, 100 feasible), never on held-out: scoring
+variant (direct P(pickup) x P(safe) / path closest pass / joint success head), mirror augmentation (left-right
+reflection, spin as an axial vector) and epochs. Selected: direct, mirror on, 40 epochs (validation 0.83; without
+mirror the best was 0.66). Final fit on all 3,244 training starts: `models/learned_nav/p0_flight.pth`.
+`nav/learned_nav/evaluate.py freeze` also fitted each baseline's single parameter on the training starts (the
+hand-written arm's pickup radius made no difference, 14.1 %; the fixed rule's lip distance D = 2.0 u, 23.8 %),
+computed every arm's pick for the 756 held-out starts from their start states only, and wrote
+`configs/learned_nav/p0_frozen.json` (18:10) before any held-out outcome was read. Each arm then ran once per
+held-out start in the game (3,024 trials, `datasets/learned_nav/p0/arms_*.jsonl`).
+
+### 29.5 Result: PASS (18:12, `logs/learned_nav/p0_results.json`)
+
+756 held-out starts, 251 feasible (the oracle, all 46 candidates recorded, found a success; 3.3 working candidates
+on average). Success = pickup and safe landing, over the feasible starts, 95 % Wilson intervals:
+
+| arm | success | 95 % | pickup | out of bounds |
+|---|---|---|---|---|
+| learned | 170/251 = 67.7 % | 61.7-73.2 | 93.2 % | 11.6 % |
+| fixed rule (D 2.0) | 47/251 = 18.7 % | 14.4-24.0 | 53.0 % | 12.4 % |
+| hand-written (physics.py) | 30/251 = 12.0 % | 8.5-16.5 | 35.5 % | 33.5 % |
+| random | 15/251 = 6.0 % | 3.7-9.6 | 21.5 % | 62.5 % |
+
+The learned arm's lower bound (61.7 %) is far above every baseline's upper bound (24.0 %), with 251 >= 100
+feasible starts: the declared pass rule holds. The engine re-runs agreed with the oracle's recorded outcome in
+3,024 of 3,024 trials.
+* Calibration of its own choices: predicted 67.7 % success on average, actual 67.7 %; predicted > 0.8: 86 % actual
+  (103 starts), 0.5-0.8: 62 % (94), < 0.5: 43 % (54). On infeasible starts it predicts 4 % on average: it knows when
+  no candidate works (the basis for abstaining later).
+* Hardest starts (only 1 of 46 candidates works, 74 starts): learned 53 %, fixed 12 %.
+* Failures (81): 40 picked the gem up but ended over void after landing plus 0.5 s of no input, 22 picked it up and
+  fell before landing, 2 fell after landing, 17 missed the gem. The no-input continuation is harsh on the narrow
+  east strip and the wall slopes; a braking or steering continuation is the obvious next candidate family.
+* Predictor, all 34,776 held-out flights: pickup AUC 0.985 (568 false positives, 632 false negatives at 50 % of
+  3,685 pickups), safe AUC 0.953, success AUC 0.973 and calibration error 0.007; median path error 0.45 u per
+  flight (under 0.3 u for the first 0.6 s, growing on long falls), median landing point error 0.39 u.
+* Validation (0.83) read higher than held-out (0.68): the validation number was the best of 72 settings on 100
+  starts, so it is optimistic. The held-out number is the one to quote.
+
+### 29.6 Files, and what P0 does not show
+
+New: `nav/learned_nav/{make_drill_map, probe_drill, record, check_repeat, dynamics, evaluate, watch}.py`,
+`nav/learned_nav/watch_p0.ps1`, `hunt/custom/kotmjump_p0.mcs`, `terrain_maps/terrain{,_fine}_kotmjump_p0.npz`,
+`configs/learned_nav/p0_frozen.json`, `models/learned_nav/p0_flight.pth`, `datasets/learned_nav/p0/`,
+`logs/learned_nav/`. Changed: `mlAgent.cs` (GEMRESET), `nav/protocol.py` + `nav/env.py` (teleport spin words).
+The PPO navigator, its checkpoints and training are untouched.
+P0 shows flight prediction and action choice from near-launch states at one hole. It does not show approach
+planning, route finding, whole gem groups, PPO handovers or other maps (KOTMJUMP_START_HERE.md). Watch it:
+`powershell -ExecutionPolicy Bypass -File nav\learned_nav\watch_p0.ps1` (held-out feasible starts at 1x;
+`-Fresh` for new random starts). Next (needs the operator): stage 3, the general data pipeline (design M1, M2).
