@@ -4007,3 +4007,169 @@ P0 shows flight prediction and action choice from near-launch states at one hole
 planning, route finding, whole gem groups, PPO handovers or other maps (KOTMJUMP_START_HERE.md). Watch it:
 `powershell -ExecutionPolicy Bypass -File nav\learned_nav\watch_p0.ps1` (held-out feasible starts at 1x;
 `-Fresh` for new random starts). Next (needs the operator): stage 3, the general data pipeline (design M1, M2).
+
+## 30. Jump physics stage 3: the general data pipeline and the pilot models (2026-09-27 night, autonomous)
+
+Operator approvals (2026-09-27 evening): stage 3; a small C++ change in the mbx engine (commit locally, never push);
+minimal script additions; replacing marbleblast_mbx.exe; training stays stopped; 15 maps (below); data under a 20 GB
+cap. The operator went to bed at ~23:20 and asked for as much progress as possible, stopping only for major issues.
+
+### 30.1 Maps (operator-approved, normal surfaces only)
+
+Only beginner/intermediate/advanced/expert maps; no special-friction surfaces, moving platforms, gravity changes,
+pushers or many stacked floors; Horizon and Archipelago excluded; Pyramid and Skate Park Square removed by the
+operator. Training (10): Vortex Effect, Gems in the Road, Tilo, Basin Hill, Parkour Peaks, Duplex, Cragmire, Sprawl,
+King of the Ring, Maximo Center; plus KOTM (the base task). Held-out development (2, never trained on): Gems Ahoy,
+Acropolis 2. Reserves (unused): Treasure Box, Marble Agility Course, Skatium. A survey of all 113 Hunt missions
+(107 geometry families) and an edge survey (lips, drops, gaps, narrow paths) guided the choice.
+
+### 30.2 Engine: contact telemetry (mbx repo, branch ai-training-mode, local commits only)
+
+* 3cb4c53f: the existing, previously uncommitted AI training-mode changes (fixed step, lockstep, render skip,
+  multi-instance, view yaw) and build-engine.ps1.
+* d0124cd2: `Marble::getContactTelemetry()`: a summary of the physics sub-steps since the last read (sub-steps,
+  with contact, with a supporting contact, with a collision, most contacts, fastest approach into a surface, the
+  supporting normal and its material friction / restitution / force, contact at the last sub-step). Bookkeeping in
+  advancePhysics outside prediction replays; testMove's return value (previously discarded) counts collisions.
+* The rebuilt exe replaced marbleblast_mbx.exe (old one kept as marbleblast_mbx_pretelemetry.exe). 340 recorded P0
+  flights replayed: every outcome and reply identical, 26 of 43,776 values off by the 0.0001 u recording step (no
+  growth): not strictly bit-identical (a rebuild's floating-point noise), well inside the 0.01 u tolerance.
+* Scripts (minimal): mlAgent.cs control word `CONTACT 1|0`; observer.cs appends the 13 numbers after the 38 only
+  when on. nav/protocol.py: `GameMessage.extra`, `CONTACT_FIELDS`. The 38-number observation is unchanged.
+* In-game check (probe_contact.py): resting 8/8 sub-steps supported, normal (0, 0, 1), friction 1; a landing from
+  a drop shows a collision at 7.69 u/s against a measured 7.68.
+
+### 30.3 Practice copies, geometry export and in-game verification
+
+* practice_maps.py: `<Mission>_phys` copies in hunt/custom: all geometry, gems, spawn and bounds kept; removed
+  powerups (every non-gem item), Duplex's 42 glass panes, Gems Ahoy's physics-modifier zone and graffiti, Marble
+  Agility Course's signs; one-hour round. All 16 load in the game (check_load.py).
+* geometry.py (`geometry_v1`): collision surfaces (single detail level in all 27 DIFs), materials (none special on
+  any of the 16), a 0.2 u layered raster with exact face normals, and exact edge segments from the mesh classified
+  void / drop / wall. Two traps found and fixed: seams between floor faces whose vertices do not match (T-junctions)
+  looked like edges (now dropped when the floor continues beyond), and edge queries caught surfaces under the floor
+  (rays now follow the marble's floor on the raster). The exact KOTM lips (y 6.5, x -33.7, y 11.5, x -26.7) differ
+  from P0's 0.1 u raster by 0.05-0.08 u (grid quantization in P0).
+* verify_map.py (declared rules: floor 95 %, lips 95 %, ramps 90 %): all 16 maps PASS. Floors 97-100 % (contact
+  normal error 0.0 deg at p95 on every map, height error p95 0.0002-0.035 u), ramps 97-100 % (downhill direction
+  within 10 deg), lips 96-100 % (0.3 u inside supported, 0.35 u outside falls). The few floor misses are within a
+  marble radius of a crease between faces, where either face can be the contact.
+
+### 30.4 Recorder, repeatability and natural-state replay
+
+* record3.py: starts half near an exact edge (0.3-6 u inside, heading mostly toward it) and half anywhere on the
+  floor incl. slopes; 0-16 u/s along the surface; rolling spin from the surface normal (15 % deliberately slipping);
+  10 % airborne. Control families: roll, switch, brake, none, jump, jump with an air switch. Per decision: state,
+  telemetry, the exact reply, the intent, gem delta, out of bounds. ~24 decisions and ~1.2 KB per trial.
+* Trap found: after an out of bounds the game schedules a respawn that landed in the next trial (55 of 300 KOTM
+  test trials jumped to z 24 at a spawn point). session.py now triggers the quick respawn and waits until the
+  marble has visibly moved; any trial with a > 2.5 u jump between decisions is discarded as a guard.
+* check3.py on KOTM, Sprawl, King of the Ring: repeats 30/30 (positions identical; only the out-of-bounds flag's
+  timing varies, up to 2 decisions). Natural-state replay (teleport into a naturally reached state, replay the same
+  replies): 115/120 within 0.02 u over 15 decisions (declared rule 95 %): KOTM 40/40, Sprawl 39/40, King of the
+  Ring 36/40; median error 0.00012-0.00015 u. Of the 5 misses, 2 are fully explained by the reporting precision
+  (a 0.00005 u nudge alone gives the same divergence; chaotic contacts, several on King of the Ring's panel seams),
+  1 (an airborne cut, 0.04 u) is not: possibly a small hidden state for later; 2 could not be classified.
+* Edge contacts at speed and angle (edge_check.py, recorded roll-offs without a jump): the release point (the
+  supported fraction of the last supported decision's sub-steps along its path) lies a median +0.03 u beyond the
+  exact edge on every map (p95 +0.09 to +0.10 u; King of the Ring +0.06, its rim is a 22 deg fold), 92-97 % within
+  0-0.25 u; ~20,000 roll-offs on 11 maps at a median 7 u/s across the edge. The exported edges are where the game
+  lets go.
+* Collection (collect3.py): 121 jobs of 20,000 trials over 13 maps, 8 games, ~17-20 trials/s each, resumable,
+  stall/crash restarts, disk guard. Cragmire: its map files include scenery out to +-200 u; a marble that leaves the
+  bounds box sideways and falls was sometimes not respawned; recovery was made soft (logged, the jump guard discards
+  any trial a late respawn lands in): 7 cases in 20,000 trials, the job completed.
+* check3 on four more maps after collection (04:20): repeats 40/40; natural-state replay Tilo 40/40, Basin Hill
+  40/40, Parkour Peaks 39/40, Duplex 35/40. All seven maps: 269/280 = 96.1 % (declared rule 95 %). The game reports
+  state with ~6 significant digits: on maps whose coordinates exceed 100 (Duplex z 133-141, Tilo x to 210) the
+  replayed start is only good to 0.001 u, and the median replay error there is 0.001 u (0.0001 elsewhere); the Duplex
+  misses are that coarser rounding amplified by contacts. Remedy if wanted: more digits in observer.cs's state
+  (a one-line script change, not done).
+
+### 30.5 Data
+
+2,420,000 trials (04:21), 2.65 GB: KOTM 500,000; the ten training maps 180,000 each; Gems Ahoy and Acropolis 2 60,000
+each (evaluation only). 121 jobs, none abandoned. Feature caches (datasets/learned_nav/stage3_features, derived, can
+be deleted and rebuilt): 6.4 M step transitions, 1.5 M flight samples.
+
+### 30.6 The step model (dynamics3.py, 3 bootstrap members, 768 x 4 residual blocks, 6 epochs)
+
+Chosen on validation blocks of the training maps (8 u blocks, one in eight), never on the held-out maps. Three
+measured improvements on the way: (1) train the mean by squared error and the spread separately (fitting both through
+one likelihood stalled two dimensions at the spread bound); (2) the previous reply as an input: at an input switch the
+step's velocity change still follows the previous input by ~0.25 u/s (rolling velocity error 0.358 -> 0.211 u/s);
+(3) targets as the deviation from the ballistic step (one-step position error 0.033 -> 0.006 u). Contact telemetry is
+a target, never an input (the state is Markov, section 30.4), so the model rolls forward on its own predictions.
+Results (logs/learned_nav/stage3_eval.json), one step (64 ms), validation blocks, 916,816 transitions:
+position 0.0043 u median / 0.045 p95 (air 0.0034, rolling 0.0056, collisions 0.028 / 0.30); velocity 0.116 u/s;
+support AUC 0.999, collision AUC 0.970, contact normal 0.98 deg; held-out maps: Gems Ahoy 0.0042 u, Acropolis 2
+0.0045 u (the same). Rollouts on its own predictions (1.02 s): 0.67-0.86 u median (ballistic 8.6-11 u); held-out maps
+0.67-0.76 u; from airborne starts 0.045-0.052 u at 4 decisions (bounded airborne corrections). Systematic error: none
+overall (position bias 0.0002 u), small while rolling (speed -0.07 u/s), large in collisions (+0.76 u/s along,
+-0.50 u/s vertical): a unimodal prediction averages bounce and roll, as the design warned; collisions need modes.
+Uncertainty is conservative: 85-94 % of errors within one predicted std (ideal 68 %); needs a calibration scale.
+Ensemble disagreement correlates with the error at 0.53.
+
+### 30.7 The flight head (flight3.py) and arbitration
+
+CNN on a heading-frame crop (2 u behind to 16 u ahead, +-6 u), exact edge rays, the state, and the exact reply
+sequence of 24 decisions (the jump anywhere in it, so a candidate is scored from the current state); path as a
+correction to the start velocity, takeoff and landing decisions, landing point, safe. 1.26 M training samples,
+10 epochs. Validation: path 0.43 u median (p90 2.7), takeoff decision exact 90 %, landing point 1.23 u, safe AUC
+0.971; held-out maps: path 0.46 / 0.54 u, takeoff 89 %, safe AUC 0.968 / 0.956. Arbitration on the same validation
+jumps: the step ensemble rolled forward is better at 4 decisions (0.075 u vs 0.11-0.13), level at 8 (0.25 vs
+0.24-0.34), mixed at 16.
+
+### 30.8 Cross-check on P0's held-out test, and the verdict
+
+The general models never saw a P0 recording (KOTM is in the stage 3 data, the same geometry as the P0 hole, so this
+tests the objective and the controls, not unseen geometry). Each P0 candidate written as the reply sequence P0 flew;
+pickup from the predicted path's closest pass to the gem through a curve fitted on P0 training starts; the landing
+predicted first and the input released after it, as P0 did (p0cross.py). Flight head: 118/251 feasible held-out starts
+= 47.0 % (95 % 40.9-53.2), pickup query AUC 0.958 (776 false positives, 1,050 false negatives of 3,685 pickups).
+Step-model rollouts flying the same candidates closed-loop: 80/251 = 31.9 % (26.4-37.9), pickup AUC 0.935. For
+reference: P0's own model 67.7 %, the fixed rule 18.7 %, physics.py 12.0 %, random 6.0 %.
+
+Verdict against the design's gates. M1: passed (20-repeat agreement, natural-state replay 96.1 % against the declared
+95 %, rolling / takeoff / flight / landing all recorded, edge contacts verified at speed and angle, materials: none
+special on these maps). M2: mostly met. Takeoff timing (90 % exact), pickup errors, landing / exit errors, coverage and
+disagreement by slice, and bounded airborne corrections are reported. Two items are open: collisions carry a
+systematic contact error (a unimodal prediction averages bounce and roll; the design asks for modes), and the
+predicted uncertainty is too wide (needs a calibration scale). Landing points from the flight head are 1.2 u off
+(median). Results page: https://claude.ai/artifact/N9DBr7e7ASBDuc6vbx8Wxr. Files: nav/learned_nav/{practice_maps,
+geometry, verify_map, check_load, probe_contact, session, record3, check3, collect3, edge_check, dynamics3, flight3,
+eval3, eval_flight3, p0cross, final3}.py; datasets/learned_nav/{geometry, stage3, stage3_features (derived, 14 GB)};
+models/learned_nav/{step3_0-2, flight3}.pth; logs/learned_nav/. Changed shared files: nav/protocol.py (extra,
+CONTACT_FIELDS), mlAgent.cs (CONTACT word), observer.cs (the 13 numbers when on). Next (operator): finish the two M2
+items (collision modes, uncertainty calibration; within stage 3), then stage 4.
+
+### 30.9 The two M2 items, fixed (05:10-06:00)
+
+* Uncertainty calibration (calibrate3.py): one scale per output (0.47-0.65, i.e. the spread was about twice too wide),
+  fitted on the training maps' validation blocks, checked on the held-out maps: within one predicted std 68-71 % on
+  Gems Ahoy, 62-65 % on Acropolis 2 (ideal 68.3 %); within two 86-92 % (ideal 95.4 %): the tails are heavier than a
+  Gaussian (a heavy-tailed or mixture spread would fix that). models/learned_nav/step3_calibration.json.
+* Collision modes (design section 5): the step model now also predicts the step's outcome given a collision and given
+  none (heads trained on their own outcomes; the collision probability picks or weights them). With the true branch
+  the collision bias falls from +0.75 / -0.47 u/s (along / up) to +0.06 / -0.01; picking the branch by the predicted
+  probability cuts every error by ~40 %. Final mode ensemble (step3_0-2.pth; the single-mean ensemble is kept as
+  step3u_0-2.pth), validation: one-step position 0.0026 u median / 0.027 p95, velocity 0.065 u/s; held-out maps
+  0.0026 / 0.0029 u; 1.02 s rollouts 0.37-0.42 u (held-out 0.43-0.44 u; ballistic 8.6-11 u); from airborne starts
+  0.025-0.030 u at 4 decisions. Remaining note: whether a collision happens is ranked well (AUC 0.97) but rarely above
+  50 %, so the collision slice keeps a bias under automatic branch choice; a planner should keep both branches.
+* Arbitration with the mode ensemble: the step rollout is now more accurate than the flight head at every horizon on
+  the same validation jumps (4 / 8 / 16 decisions: 0.05 / 0.17 / 0.46 u against 0.11-0.13 / 0.24-0.34 / 0.57-0.83).
+  P0 cross-check: step rollouts alone 89/251 = 35.5 %; the pickup from the rollout's path times the safe landing from
+  the flight head: 131/251 = 52.2 % (95 % 46.0-58.3), the best general result (flight head alone 47.0 %; P0's own model
+  67.7 %; fixed rule 18.7 %). Verdict: M2 met for the pilot, with the two notes above. Next (operator): stage 4.
+
+### 30.10 Full-precision marble state (operator-approved, 2026-09-28 morning)
+
+The observer pins the frame to the world (ForceYaw 0), so its rotation was an identity that only cost digits:
+TorqueScript re-prints arithmetic results with ~6 significant digits. observer.cs now passes the engine's own strings
+through when the yaw is 0 (position to 6 decimals, velocity and spin to 7 significant digits); format_teleport sends 6
+decimals (was 4); protocol.py skips a non-list first message (a partial line seen once at connect). Natural-state
+replay after the change: Duplex 40/40 (was 35/40, median error 0.0000086 u, was 0.001), Tilo 40/40 (0.000008 u),
+KOTM 40/40 (0.0000038 u, was 0.00014); repeats 30/30. So the earlier misses were reporting precision, not hidden
+engine state. The stage 3 data was recorded before the change (states good to 1e-4 to 1e-3 u); the models need no
+retraining for it. The navigator's observation carries the same values, now exact.

@@ -1,0 +1,8 @@
+﻿KingOfTheMarble_Hunt_phys: KingOfTheMarble_Hunt_phys: repeats 10/10; natural replay 40/40 within 0.02 u (max error 
+median 0.0001436396108225649, p95 0.0023380088944299016); nudged replays over the tolerance 0, nudged p95 
+0.0004216657277961199
+Sprawl_Hunt_phys: Sprawl_Hunt_phys: repeats 10/10; natural replay 39/40 within 0.02 u (max error median 
+0.0001177886148425765, p95 0.00017836085741478362); nudged replays over the tolerance 1, nudged p95 
+0.0002525591563261995
+KingOfTheRing_Hunt_phys: KingOfTheRing_Hunt_phys: repeats 10/10; natural replay 36/40 within 0.02 u (max error median 
+0.00011423519596409846, p95 0.05029774843220625); nudged replays over the tolerance 2, nudged p95 0.019137543665670425

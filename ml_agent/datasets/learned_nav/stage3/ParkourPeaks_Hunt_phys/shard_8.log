@@ -1,0 +1,48 @@
+[03:21:11] [env:9106] waiting for the game
+[03:21:16] [env:9106] game connected (1)
+[03:21:19] connected: ParkourPeaks_Hunt_phys, round 3600 s
+[03:22:51] recover: respawn not confirmed (pos 26.0 -26.5 -26.1, on map False, telemetry {'sub_steps': np.float64(8.0), 'contact_steps': np.float64(0.0), 'support_steps': np.float64(0.0), 'collisions': np.float64(0.0), 'max_contacts': np.float64(0.0), 'max_approach': np.float64(0.0), 'nx': np.float64(0.0), 'ny': np.float64(0.0), 'nz': np.float64(0.0), 'friction': np.float64(0.0), 'restitution': np.float64(0.0), 'force': np.float64(0.0), 'last_step_contact': np.float64(0.0)})
+[03:22:51] round ended / reconnected: waiting for the next round
+[03:22:51] [env:9106] round over (time left 3600s of 3600s); waiting for the next round
+[03:22:51] [env:9106] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[03:23:07] 2000 trials (18.5/s), wrote shard_8_000_2000.npz; teleport retries 5
+[03:24:23] round ended / reconnected: waiting for the next round
+[03:24:23] [env:9106] round over (time left 3600s of 3600s); waiting for the next round
+[03:24:23] [env:9106] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[03:24:46] 4000 trials (19.4/s), wrote shard_8_001_2000.npz; teleport retries 11
+[03:25:33] round ended / reconnected: waiting for the next round
+[03:25:33] [env:9106] round over (time left 3600s of 3600s); waiting for the next round
+[03:25:33] [env:9106] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[03:26:07] 6000 trials (20.9/s), wrote shard_8_002_2000.npz; teleport retries 13
+[03:26:45] round ended / reconnected: waiting for the next round
+[03:26:45] [env:9106] round over (time left 3600s of 3600s); waiting for the next round
+[03:26:45] [env:9106] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[03:27:28] 8000 trials (21.7/s), wrote shard_8_003_2000.npz; teleport retries 19
+[03:27:57] round ended / reconnected: waiting for the next round
+[03:27:57] [env:9106] round over (time left 3600s of 3600s); waiting for the next round
+[03:27:57] [env:9106] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[03:28:55] 10000 trials (22.0/s), wrote shard_8_004_2000.npz; teleport retries 26
+[03:29:10] round ended / reconnected: waiting for the next round
+[03:29:10] [env:9106] round over (time left 3600s of 3600s); waiting for the next round
+[03:29:10] [env:9106] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[03:30:19] 12000 trials (22.3/s), wrote shard_8_005_2000.npz; teleport retries 30
+[03:30:27] round ended / reconnected: waiting for the next round
+[03:30:27] [env:9106] round over (time left 3600s of 3600s); waiting for the next round
+[03:30:27] [env:9106] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[03:31:45] round ended / reconnected: waiting for the next round
+[03:31:45] [env:9106] round over (time left 3600s of 3600s); waiting for the next round
+[03:31:45] [env:9106] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[03:31:52] 14000 trials (22.1/s), wrote shard_8_006_2000.npz; teleport retries 37
+[03:33:03] round ended / reconnected: waiting for the next round
+[03:33:03] [env:9106] round over (time left 3600s of 3600s); waiting for the next round
+[03:33:03] [env:9106] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[03:33:26] 16000 trials (22.0/s), wrote shard_8_007_2000.npz; teleport retries 48
+[03:34:23] round ended / reconnected: waiting for the next round
+[03:34:23] [env:9106] round over (time left 3600s of 3600s); waiting for the next round
+[03:34:23] [env:9106] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[03:34:57] 18000 trials (22.0/s), wrote shard_8_008_2000.npz; teleport retries 54
+[03:35:48] round ended / reconnected: waiting for the next round
+[03:35:48] [env:9106] round over (time left 3600s of 3600s); waiting for the next round
+[03:35:48] [env:9106] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[03:36:33] 20000 trials (21.9/s), wrote shard_8_009_2000.npz; teleport retries 61
+[03:36:33] finished ParkourPeaks_Hunt_phys shard 8: 20000 trials

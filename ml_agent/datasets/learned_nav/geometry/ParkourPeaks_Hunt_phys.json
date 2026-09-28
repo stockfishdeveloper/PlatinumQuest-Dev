@@ -1,0 +1,34 @@
+{
+ "schema": "geometry_v1",
+ "map": "ParkourPeaks_Hunt_phys",
+ "mission": "..\\Marble Blast Platinum\\platinum\\data\\multiplayer\\hunt\\custom\\ParkourPeaks_Hunt_phys.mcs",
+ "hashes": {
+  "ParkourPeaks_Hunt_phys.mcs": "b381b5feac26",
+  "parkourpeaks.dif": "47986de60bff"
+ },
+ "time": "2026-09-27 23:38:23",
+ "triangles": 538,
+ "floor_triangles": 139,
+ "raster": [
+  341,
+  361
+ ],
+ "res": 0.2,
+ "levels": 4,
+ "floor_cells": 84400,
+ "multi_level_cells": 2422,
+ "edges": {
+  "void": 98,
+  "drop": 70,
+  "wall": 4
+ },
+ "edge_length_u": 1232.0,
+ "materials": {
+  "mbp_wall_dark_blue_random": "DefaultMaterial",
+  "mbu_neutral6_random": "DefaultMaterial",
+  "mbu_neutral7_random": "DefaultMaterial",
+  "mbu_neutral10_random": "DefaultMaterial"
+ },
+ "special_materials": [],
+ "seconds": 0.3
+}

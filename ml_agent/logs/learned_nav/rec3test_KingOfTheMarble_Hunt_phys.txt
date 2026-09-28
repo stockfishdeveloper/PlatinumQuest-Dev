@@ -1,0 +1,5 @@
+[23:45:47] [env:8991] waiting for the game
+[23:45:51] [env:8991] game connected (1)
+[23:45:54] connected: KingOfTheMarble_Hunt_phys, round 3600 s
+[23:46:03] 300 trials (32.1/s), wrote shard_99_000_300.npz; teleport retries 3
+[23:46:03] finished KingOfTheMarble_Hunt_phys shard 99: 300 trials

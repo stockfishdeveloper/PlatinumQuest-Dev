@@ -1,0 +1,40 @@
+{
+ "schema": "geometry_v1",
+ "map": "Duplex_Hunt_phys",
+ "mission": "..\\Marble Blast Platinum\\platinum\\data\\multiplayer\\hunt\\custom\\Duplex_Hunt_phys.mis",
+ "hashes": {
+  "Duplex_Hunt_phys.mis": "c6c39fca4f4c",
+  "Duplex.dif": "a2768a3c5e7e",
+  "arch_2_corner.dif": "7548becc8a15"
+ },
+ "time": "2026-09-27 23:38:24",
+ "triangles": 10305,
+ "floor_triangles": 2647,
+ "raster": [
+  1066,
+  626
+ ],
+ "res": 0.2,
+ "levels": 4,
+ "floor_cells": 356468,
+ "multi_level_cells": 20609,
+ "edges": {
+  "void": 456,
+  "drop": 510,
+  "wall": 602
+ },
+ "edge_length_u": 5453.3,
+ "materials": {
+  "plate_1": "DefaultMaterial",
+  "tile_intermediate": "DefaultMaterial",
+  "tile_intermediate_red": "DefaultMaterial",
+  "tile_intermediate_shadow": "DefaultMaterial",
+  "tile_intermediate_green": "DefaultMaterial",
+  "edge_white": "DefaultMaterial",
+  "edge_white_shadow": "DefaultMaterial",
+  "beam_side": "DefaultMaterial",
+  "beam": "DefaultMaterial"
+ },
+ "special_materials": [],
+ "seconds": 1.5
+}

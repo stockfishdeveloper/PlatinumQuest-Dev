@@ -93,6 +93,12 @@ jump works, the learned model collected the gem and landed safely 68 % of the ti
 19 %. Today's navigator, on the jump test map, scores 4.6 points a round and gets stuck after its first three
 gems. Stage 3 starts when the operator says so.
 
+**Progress, 2026-09-28 morning:** stage 3 ran overnight. The physics model was trained on 2.4 million short
+recordings from 11 maps. It predicts the marble's next 64 ms to about 0.003 units, and just as well on two maps it
+never saw. Choosing the jumps of stage 2's test without ever seeing that data, it succeeds 52 % of the time (the
+model trained only there: 68 %; the best simple rule: 19 %). Stage 3's checks are met; stage 4 (planning the run-up
+from anywhere) starts when the operator says so.
+
 ## Moments to watch
 
 The best discoveries on this project have come from watching the game at normal speed. Natural points to

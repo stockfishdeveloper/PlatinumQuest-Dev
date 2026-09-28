@@ -28,6 +28,11 @@ RAW_TIME_REMAINING = 32          # MissionInfo.time - PlayGui.currentTime, i.e. 
 RAW_SCORE = 33
 RAW_GEMS_REMAINING = 34
 RAW_SPIN = slice(35, 38)         # angular velocity, rad/s, same frame as RAW_VEL (observer.cs collectSelfState)
+# Contact telemetry (2026-09-27, jump physics stage 3): after the CONTACT 1 control word the game appends these
+# 13 numbers (Marble::getContactTelemetry, covering the physics since the previous observation); they arrive in
+# GameMessage.extra and never enter the 38-number observation.
+CONTACT_FIELDS = ('sub_steps', 'contact_steps', 'support_steps', 'collisions', 'max_contacts', 'max_approach',
+                  'nx', 'ny', 'nz', 'friction', 'restitution', 'force', 'last_step_contact')
 
 NOOP_ACTION = (0.0, 0.0, 0.0, 0.0, 0)
 
@@ -42,6 +47,7 @@ class GameMessage:
     tick: str = ''
     fields: List[str] = field(default_factory=list)   # raw '|' fields, for stats/info/other
     raw: str = ''
+    extra: Optional[np.ndarray] = None          # numbers after the RAW_DIM observation (CONTACT telemetry), or None
 
 
 def parse_message(line: str) -> GameMessage:
@@ -60,6 +66,8 @@ def parse_message(line: str) -> GameMessage:
         obs = json.loads(head)
     except ValueError:
         return GameMessage('other', fields=parts, raw=line)
+    if not isinstance(obs, list):             # a partial line (seen once at connect, 2026-09-28): skip it
+        return GameMessage('other', fields=parts, raw=line)
     tick = parts[-1].strip() if len(parts) >= 5 and parts[-1].strip().isdigit() else ''
     try:
         gem_delta = float(parts[1]); oob = int(float(parts[2])); done = int(float(parts[3]))
@@ -75,7 +83,8 @@ def parse_message(line: str) -> GameMessage:
                              f'(spin). Delete client/scripts/ai/observer.cs.dso so the game recompiles observer.cs.')
         return GameMessage('other', fields=parts, raw=line)
     return GameMessage('obs', obs=np.asarray(obs[:RAW_DIM], dtype=np.float32), gem_delta=gem_delta,
-                       oob=oob, done=done, tick=tick, fields=parts, raw=line)
+                       oob=oob, done=done, tick=tick, fields=parts, raw=line,
+                       extra=np.asarray(obs[RAW_DIM:], dtype=np.float64) if len(obs) > RAW_DIM else None)
 
 
 def format_action(fwd, back, left, right, jump, cam_yaw=0.0, use_pow=0, tick=''):
@@ -88,7 +97,9 @@ def format_action(fwd, back, left, right, jump, cam_yaw=0.0, use_pow=0, tick='')
 def format_teleport(x, y, z, vx=0.0, vy=0.0, vz=0.0, spin=None):
     """spin = (wx, wy, wz) rad/s sets the marble's angular velocity (mlAgent.cs words 7-9, 2026-09-26);
     without it the game zeroes the spin, as before."""
-    s = f'TELEPORT {x:.4f} {y:.4f} {z:.4f} {vx:.4f} {vy:.4f} {vz:.4f}'
+    # 6 decimals (2026-09-28, was 4): the marble's reported state is now full precision (observer.cs), so a replayed
+    # state can match it
+    s = f'TELEPORT {x:.6f} {y:.6f} {z:.6f} {vx:.6f} {vy:.6f} {vz:.6f}'
     if spin is not None:
-        s += f' {spin[0]:.4f} {spin[1]:.4f} {spin[2]:.4f}'
+        s += f' {spin[0]:.6f} {spin[1]:.6f} {spin[2]:.6f}'
     return s

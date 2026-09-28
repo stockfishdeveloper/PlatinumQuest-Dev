@@ -1,0 +1,23 @@
+{
+ "method": "step-model rollouts",
+ "curve": {
+  "r0": 0.8499999999999999,
+  "a": 4.0,
+  "logloss": 0.14096176957880052
+ },
+ "held_out_feasible": 251,
+ "success": 89,
+ "rate": 0.3545816733067729,
+ "ci95": [
+  0.2979975154323624,
+  0.41555003724349593
+ ],
+ "pickup_query": {
+  "auc": 0.9460760326833294,
+  "false_pos": 988,
+  "false_neg": 1603,
+  "positives": 3685
+ },
+ "safe_accuracy_heldout": 0.8428801472279733,
+ "safe_accuracy_fit": 0.8451358695652174
+}

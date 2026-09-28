@@ -1,0 +1,37 @@
+{
+ "schema": "geometry_v1",
+ "map": "TreasureBox_Hunt_phys",
+ "mission": "..\\Marble Blast Platinum\\platinum\\data\\multiplayer\\hunt\\custom\\TreasureBox_Hunt_phys.mis",
+ "hashes": {
+  "TreasureBox_Hunt_phys.mis": "b2b9c2ece538",
+  "TreasureBox1.dif": "730fb72652b9",
+  "TreasureBox2.dif": "0f20df4d6b10"
+ },
+ "time": "2026-09-27 23:38:32",
+ "triangles": 5328,
+ "floor_triangles": 1840,
+ "raster": [
+  734,
+  641
+ ],
+ "res": 0.2,
+ "levels": 4,
+ "floor_cells": 371049,
+ "multi_level_cells": 42971,
+ "edges": {
+  "void": 208,
+  "drop": 1002,
+  "wall": 819
+ },
+ "edge_length_u": 7146.5,
+ "materials": {
+  "mbu_pattern_cool2": "DefaultMaterial",
+  "mbu_neutral7_random": "DefaultMaterial",
+  "mbu_neutral2_random": "DefaultMaterial",
+  "mbu_neutral8_random": "DefaultMaterial",
+  "mbu_neutral11_random": "DefaultMaterial",
+  "mbu_neutral11_med": "DefaultMaterial"
+ },
+ "special_materials": [],
+ "seconds": 1.5
+}

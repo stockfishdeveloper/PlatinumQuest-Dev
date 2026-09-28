@@ -1,0 +1,35 @@
+{
+ "schema": "geometry_v1",
+ "map": "MarbleAgilityCourse_Hunt_phys",
+ "mission": "..\\Marble Blast Platinum\\platinum\\data\\multiplayer\\hunt\\custom\\MarbleAgilityCourse_Hunt_phys.mcs",
+ "hashes": {
+  "MarbleAgilityCourse_Hunt_phys.mcs": "1fcc0d14cf18",
+  "MarbleAgilityCourse.dif": "44f72d0e25fc"
+ },
+ "time": "2026-09-27 23:38:33",
+ "triangles": 3923,
+ "floor_triangles": 1570,
+ "raster": [
+  331,
+  331
+ ],
+ "res": 0.2,
+ "levels": 4,
+ "floor_cells": 52521,
+ "multi_level_cells": 3681,
+ "edges": {
+  "void": 198,
+  "drop": 342,
+  "wall": 148
+ },
+ "edge_length_u": 754.9,
+ "materials": {
+  "mbu_edge_white2": "DefaultMaterial",
+  "mbu_pattern_cool2": "DefaultMaterial",
+  "custom_woodblockside": "DefaultMaterial",
+  "solid_white": "DefaultMaterial",
+  "mbu_grid_warm5": "DefaultMaterial"
+ },
+ "special_materials": [],
+ "seconds": 0.6
+}

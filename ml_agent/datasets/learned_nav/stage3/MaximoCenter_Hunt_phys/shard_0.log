@@ -1,0 +1,44 @@
+[00:06:28] [env:9106] waiting for the game
+[00:06:33] [env:9106] game connected (1)
+[00:06:38] connected: MaximoCenter_Hunt_phys, round 3600 s
+[00:08:26] round ended / reconnected: waiting for the next round
+[00:08:26] [env:9106] round over (time left 3600s of 3600s); waiting for the next round
+[00:08:26] [env:9106] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[00:08:32] 2000 trials (17.6/s), wrote shard_0_000_2000.npz; teleport retries 0
+[00:09:58] round ended / reconnected: waiting for the next round
+[00:09:58] [env:9106] round over (time left 3600s of 3600s); waiting for the next round
+[00:09:58] [env:9106] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[00:10:07] 4000 trials (19.1/s), wrote shard_0_001_2000.npz; teleport retries 0
+[00:11:35] round ended / reconnected: waiting for the next round
+[00:11:35] [env:9106] round over (time left 3600s of 3600s); waiting for the next round
+[00:11:35] [env:9106] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[00:11:53] 6000 trials (19.1/s), wrote shard_0_002_2000.npz; teleport retries 0
+[00:13:11] round ended / reconnected: waiting for the next round
+[00:13:11] [env:9106] round over (time left 3600s of 3600s); waiting for the next round
+[00:13:11] [env:9106] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[00:13:30] 8000 trials (19.4/s), wrote shard_0_003_2000.npz; teleport retries 0
+[00:14:45] round ended / reconnected: waiting for the next round
+[00:14:45] [env:9106] round over (time left 3600s of 3600s); waiting for the next round
+[00:14:45] [env:9106] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[00:15:13] 10000 trials (19.4/s), wrote shard_0_004_2000.npz; teleport retries 0
+[00:16:26] round ended / reconnected: waiting for the next round
+[00:16:26] [env:9106] round over (time left 3600s of 3600s); waiting for the next round
+[00:16:26] [env:9106] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[00:17:01] 12000 trials (19.3/s), wrote shard_0_005_2000.npz; teleport retries 0
+[00:18:11] round ended / reconnected: waiting for the next round
+[00:18:11] [env:9106] round over (time left 3600s of 3600s); waiting for the next round
+[00:18:11] [env:9106] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[00:18:51] 14000 trials (19.1/s), wrote shard_0_006_2000.npz; teleport retries 0
+[00:19:48] round ended / reconnected: waiting for the next round
+[00:19:48] [env:9106] round over (time left 3600s of 3600s); waiting for the next round
+[00:19:48] [env:9106] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[00:20:32] 16000 trials (19.2/s), wrote shard_0_007_2000.npz; teleport retries 0
+[00:21:26] round ended / reconnected: waiting for the next round
+[00:21:26] [env:9106] round over (time left 3600s of 3600s); waiting for the next round
+[00:21:26] [env:9106] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[00:22:12] 18000 trials (19.3/s), wrote shard_0_008_2000.npz; teleport retries 0
+[00:23:06] round ended / reconnected: waiting for the next round
+[00:23:06] [env:9106] round over (time left 3600s of 3600s); waiting for the next round
+[00:23:06] [env:9106] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[00:23:57] 20000 trials (19.3/s), wrote shard_0_009_2000.npz; teleport retries 0
+[00:23:57] finished MaximoCenter_Hunt_phys shard 0: 20000 trials

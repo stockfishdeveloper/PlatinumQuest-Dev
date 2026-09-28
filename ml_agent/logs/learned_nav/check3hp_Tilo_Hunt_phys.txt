@@ -1,0 +1,54 @@
+[env:9042] waiting for the game
+[env:9042] game connected (1)
+connected: Tilo_Hunt_phys, round 3600 s
+repeat 0 {'family': 'jump_switch', 'kind': 'floor', 'max_dp': 1.9073486328125e-06, 'events_agree': True, 'oob_decision_spread': 1, 'ok': True}
+repeat 1 {'family': 'jump_switch', 'kind': 'floor', 'max_dp': 0.0, 'events_agree': True, 'oob_decision_spread': 0, 'ok': True}
+repeat 2 {'family': 'roll', 'kind': 'floor', 'max_dp': 0.0, 'events_agree': True, 'oob_decision_spread': 0, 'ok': True}
+repeat 3 {'family': 'none', 'kind': 'floor', 'max_dp': 0.0, 'events_agree': True, 'oob_decision_spread': 0, 'ok': True}
+repeat 4 {'family': 'roll', 'kind': 'floor', 'max_dp': 0.0, 'events_agree': True, 'oob_decision_spread': 0, 'ok': True}
+repeat 5 {'family': 'roll', 'kind': 'floor', 'max_dp': 0.0, 'events_agree': True, 'oob_decision_spread': 0, 'ok': True}
+repeat 6 {'family': 'switch', 'kind': 'floor', 'max_dp': 0.0, 'events_agree': True, 'oob_decision_spread': 0, 'ok': True}
+repeat 7 {'family': 'roll', 'kind': 'air', 'max_dp': 0.0, 'events_agree': True, 'oob_decision_spread': 0, 'ok': True}
+repeat 8 {'family': 'jump', 'kind': 'floor', 'max_dp': 0.0, 'events_agree': True, 'oob_decision_spread': 0, 'ok': True}
+repeat 9 {'family': 'none', 'kind': 'slip', 'max_dp': 0.0, 'events_agree': True, 'oob_decision_spread': 0, 'ok': True}
+natural 1 {'family': 'jump', 't': 16, 'airborne_at_cut': True, 'max_err': 1.5377536293599222e-05, 'nudged_replay_max_diff': 8.517117905336803e-05, 'err_at_5': 0.0, 'ok': True}
+natural 2 {'family': 'jump', 't': 11, 'airborne_at_cut': True, 'max_err': 7.921813834112239e-06, 'nudged_replay_max_diff': 5.741087701146092e-05, 'err_at_5': 9.5367431640625e-07, 'ok': True}
+natural 3 {'family': 'jump', 't': 9, 'airborne_at_cut': True, 'max_err': 7.62939453125e-06, 'nudged_replay_max_diff': 7.428871953640155e-05, 'err_at_5': 0.0, 'ok': True}
+natural 4 {'family': 'roll', 't': 8, 'airborne_at_cut': False, 'max_err': 4.264961199760036e-06, 'nudged_replay_max_diff': 6.554733382201989e-05, 'err_at_5': 3.814697265625e-06, 'ok': True}
+natural 5 {'family': 'jump_switch', 't': 6, 'airborne_at_cut': True, 'max_err': 2.6973983046972182e-06, 'nudged_replay_max_diff': 0.00023154458248922727, 'err_at_5': 0.0, 'ok': True}
+natural 6 {'family': 'roll', 't': 16, 'airborne_at_cut': True, 'max_err': 8.148196931188136e-06, 'nudged_replay_max_diff': 4.823603239084444e-05, 'err_at_5': 2.132480599880018e-06, 'ok': True}
+natural 7 {'family': 'jump', 't': 11, 'airborne_at_cut': True, 'max_err': 3.814697265625e-06, 'nudged_replay_max_diff': 6.784140471670805e-05, 'err_at_5': 9.5367431640625e-07, 'ok': True}
+natural 8 {'family': 'jump_switch', 't': 10, 'airborne_at_cut': True, 'max_err': 7.864199877963372e-06, 'nudged_replay_max_diff': 2.26485101452597e-05, 'err_at_5': 1.9073486328125e-06, 'ok': True}
+natural 9 {'family': 'roll', 't': 5, 'airborne_at_cut': False, 'max_err': 1.5495373543998644e-05, 'nudged_replay_max_diff': 3.4332275390625e-05, 'err_at_5': 1.9073486328125e-06, 'ok': True}
+natural 10 {'family': 'jump', 't': 8, 'airborne_at_cut': True, 'max_err': 1.528856233776226e-05, 'nudged_replay_max_diff': 7.741227673942825e-05, 'err_at_5': 9.5367431640625e-07, 'ok': True}
+natural 11 {'family': 'switch', 't': 18, 'airborne_at_cut': True, 'max_err': 1.9073486328125e-06, 'nudged_replay_max_diff': 6.375368085234935e-05, 'err_at_5': 1.9073486328125e-06, 'ok': True}
+natural 12 {'family': 'jump', 't': 8, 'airborne_at_cut': True, 'max_err': 8.923864414436024e-05, 'nudged_replay_max_diff': 0.000672958982257323, 'err_at_5': 1.52587890625e-05, 'ok': True}
+natural 13 {'family': 'jump', 't': 16, 'airborne_at_cut': True, 'max_err': 1.9073486328125e-06, 'nudged_replay_max_diff': 8.90550043482113e-05, 'err_at_5': 0.0, 'ok': True}
+natural 14 {'family': 'jump_switch', 't': 9, 'airborne_at_cut': True, 'max_err': 5.7220458984375e-06, 'nudged_replay_max_diff': 7.717105226190151e-05, 'err_at_5': 5.7220458984375e-06, 'ok': True}
+natural 15 {'family': 'jump', 't': 12, 'airborne_at_cut': True, 'max_err': 8.529922399520072e-06, 'nudged_replay_max_diff': 6.153971025429412e-05, 'err_at_5': 2.86102294921875e-06, 'ok': True}
+natural 16 {'family': 'jump', 't': 5, 'airborne_at_cut': True, 'max_err': 1.5377536293599222e-05, 'nudged_replay_max_diff': 8.956418519496075e-05, 'err_at_5': 1.52587890625e-05, 'ok': True}
+natural 17 {'family': 'jump', 't': 17, 'airborne_at_cut': True, 'max_err': 3.814697265625e-06, 'nudged_replay_max_diff': 7.497117617429179e-05, 'err_at_5': 0.0, 'ok': True}
+natural 18 {'family': 'roll', 't': 6, 'airborne_at_cut': False, 'max_err': 1.5495373543998644e-05, 'nudged_replay_max_diff': 4.7721847546374526e-05, 'err_at_5': 1.5377536293599222e-05, 'ok': True}
+natural 19 {'family': 'switch', 't': 6, 'airborne_at_cut': False, 'max_err': 1.1779422118220925e-05, 'nudged_replay_max_diff': 2.35337664454537, 'err_at_5': 2.0042061805725098e-06, 'ok': True}
+natural 20 {'family': 'switch', 't': 5, 'airborne_at_cut': False, 'max_err': 4.264961199760036e-06, 'nudged_replay_max_diff': 4.055078816503391e-05, 'err_at_5': 0.0, 'ok': True}
+natural 21 {'family': 'jump', 't': 11, 'airborne_at_cut': True, 'max_err': 1.528856233776226e-05, 'nudged_replay_max_diff': 8.923864414436024e-05, 'err_at_5': 1.52587890625e-05, 'ok': True}
+natural 22 {'family': 'roll', 't': 9, 'airborne_at_cut': False, 'max_err': 3.5987782028414166e-05, 'nudged_replay_max_diff': 0.0002821909249221713, 'err_at_5': 0.0, 'ok': True}
+natural 23 {'family': 'jump_switch', 't': 6, 'airborne_at_cut': True, 'max_err': 7.62939453125e-06, 'nudged_replay_max_diff': 4.52970202905194e-05, 'err_at_5': 0.0, 'ok': True}
+natural 24 {'family': 'jump', 't': 6, 'airborne_at_cut': True, 'max_err': 3.814697265625e-06, 'nudged_replay_max_diff': 5.093013733985401e-05, 'err_at_5': 0.0, 'ok': True}
+natural 25 {'family': 'jump', 't': 6, 'airborne_at_cut': True, 'max_err': 1.5377536293599222e-05, 'nudged_replay_max_diff': 4.76837158203125e-05, 'err_at_5': 1.9073486328125e-06, 'ok': True}
+natural 26 {'family': 'jump', 't': 9, 'airborne_at_cut': True, 'max_err': 1.5728399755926745e-05, 'nudged_replay_max_diff': 7.817803013580016e-05, 'err_at_5': 1.5377536293599222e-05, 'ok': True}
+natural 27 {'family': 'jump', 't': 8, 'airborne_at_cut': True, 'max_err': 1.528856233776226e-05, 'nudged_replay_max_diff': 4.2780027041162265e-05, 'err_at_5': 0.0, 'ok': True}
+natural 28 {'family': 'jump', 't': 10, 'airborne_at_cut': True, 'max_err': 4.264961199760036e-06, 'nudged_replay_max_diff': 5.9534031047872955e-05, 'err_at_5': 9.5367431640625e-07, 'ok': True}
+natural 29 {'family': 'switch', 't': 14, 'airborne_at_cut': False, 'max_err': 1.9073486328125e-06, 'nudged_replay_max_diff': 0.0005238957500091983, 'err_at_5': 9.5367431640625e-07, 'ok': True}
+natural 30 {'family': 'jump', 't': 11, 'airborne_at_cut': True, 'max_err': 8.58306884765625e-06, 'nudged_replay_max_diff': 0.00011379137080262799, 'err_at_5': 9.5367431640625e-07, 'ok': True}
+natural 31 {'family': 'jump_switch', 't': 8, 'airborne_at_cut': True, 'max_err': 8.529922399520072e-06, 'nudged_replay_max_diff': 6.348921576344772e-05, 'err_at_5': 0.0, 'ok': True}
+natural 32 {'family': 'jump', 't': 9, 'airborne_at_cut': True, 'max_err': 8.529922399520072e-06, 'nudged_replay_max_diff': 6.845229509325547e-05, 'err_at_5': 7.864199877963372e-06, 'ok': True}
+natural 33 {'family': 'switch', 't': 7, 'airborne_at_cut': False, 'max_err': 1.5495373543998644e-05, 'nudged_replay_max_diff': 0.0003067037952405715, 'err_at_5': 1.52587890625e-05, 'ok': True}
+natural 34 {'family': 'switch', 't': 5, 'airborne_at_cut': False, 'max_err': 7.62939453125e-06, 'nudged_replay_max_diff': 4.353604206281024e-05, 'err_at_5': 0.0, 'ok': True}
+natural 35 {'family': 'roll', 't': 19, 'airborne_at_cut': False, 'max_err': 2.0631129887374818e-05, 'nudged_replay_max_diff': 7.18237700796613e-05, 'err_at_5': 7.864199877963372e-06, 'ok': True}
+natural 36 {'family': 'jump', 't': 9, 'airborne_at_cut': True, 'max_err': 3.996623662529042e-06, 'nudged_replay_max_diff': 6.640374754387436e-05, 'err_at_5': 0.0, 'ok': True}
+natural 37 {'family': 'roll', 't': 10, 'airborne_at_cut': False, 'max_err': 2.6973983046972182e-06, 'nudged_replay_max_diff': 4.498472753551771e-05, 'err_at_5': 2.6973983046972182e-06, 'ok': True}
+natural 38 {'family': 'jump', 't': 15, 'airborne_at_cut': True, 'max_err': 2.7771415288087914e-05, 'nudged_replay_max_diff': 0.0006913027180727671, 'err_at_5': 1.52587890625e-05, 'ok': True}
+natural 39 {'family': 'jump', 't': 7, 'airborne_at_cut': True, 'max_err': 7.921813834112239e-06, 'nudged_replay_max_diff': 7.338336411747222e-05, 'err_at_5': 0.0, 'ok': True}
+natural 40 {'family': 'jump', 't': 11, 'airborne_at_cut': True, 'max_err': 1.1920928955078125e-06, 'nudged_replay_max_diff': 8.147115549050284e-05, 'err_at_5': 0.0, 'ok': True}
+Tilo_Hunt_phys: repeats 10/10; natural replay 40/40 within 0.02 u (max error median 8.035005382650187e-06, p95 2.8182233625104202e-05); nudged replays over the tolerance 1, nudged p95 0.0006738761690480951

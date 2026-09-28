@@ -1,0 +1,29 @@
+{
+ "model": "flight3.pth",
+ "curve": {
+  "r0": 0.8999999999999999,
+  "a": 6.0,
+  "logloss": 0.10301340593930103
+ },
+ "held_out_feasible": 251,
+ "general_flight_head": {
+  "success": 118,
+  "rate": 0.4701195219123506,
+  "ci95": [
+   0.40928896802849585,
+   0.5318509400555848
+  ]
+ },
+ "p0_model_same_starts": {
+  "success": 170,
+  "rate": 0.6772908366533864
+ },
+ "fit_starts": 800,
+ "pickup_query": {
+  "n": 34776,
+  "positives": 3685,
+  "false_pos": 776,
+  "false_neg": 1050,
+  "auc": 0.9575903832348923
+ }
+}

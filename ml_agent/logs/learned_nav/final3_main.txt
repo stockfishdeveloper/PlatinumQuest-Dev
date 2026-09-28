@@ -1,0 +1,19 @@
+[04:22:25] final3: stage 3 final run
+[04:22:25] start step features
+[04:25:22] end step features: exit 0, 177 s
+[04:25:22] start step ensemble training
+[04:34:02] end step ensemble training: exit 0, 520 s
+[04:46:45] flight features built (exit 0)
+[04:46:45] start flight head training
+[04:50:56] end flight head training: exit 0, 251 s
+[04:50:56] start step model evaluation
+[04:52:04] end step model evaluation: exit 0, 67 s
+[04:52:04] start flight head evaluation
+[04:52:42] end flight head evaluation: exit 0, 38 s
+[04:52:42] start P0 cross-check (flight head)
+[04:53:14] end P0 cross-check (flight head): exit 0, 32 s
+[04:53:14] start P0 cross-check (step rollouts)
+[04:54:07] end P0 cross-check (step rollouts): exit 0, 52 s
+[04:54:07] start edge release check
+[04:55:08] end edge release check: exit 0, 61 s
+[04:55:08] final3: done

@@ -1,0 +1,44 @@
+[02:48:30] [env:9101] waiting for the game
+[02:48:35] [env:9101] game connected (1)
+[02:48:38] connected: KingOfTheMarble_Hunt_phys, round 3600 s
+[02:50:13] round ended / reconnected: waiting for the next round
+[02:50:13] [env:9101] round over (time left 3600s of 3600s); waiting for the next round
+[02:50:13] [env:9101] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[02:50:19] 2000 trials (19.7/s), wrote shard_7_000_2000.npz; teleport retries 13
+[02:51:33] round ended / reconnected: waiting for the next round
+[02:51:33] [env:9101] round over (time left 3600s of 3600s); waiting for the next round
+[02:51:33] [env:9101] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[02:51:45] 4000 trials (21.4/s), wrote shard_7_001_2000.npz; teleport retries 35
+[02:52:49] round ended / reconnected: waiting for the next round
+[02:52:49] [env:9101] round over (time left 3600s of 3600s); waiting for the next round
+[02:52:49] [env:9101] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[02:53:07] 6000 trials (22.3/s), wrote shard_7_002_2000.npz; teleport retries 56
+[02:54:07] round ended / reconnected: waiting for the next round
+[02:54:07] [env:9101] round over (time left 3600s of 3600s); waiting for the next round
+[02:54:07] [env:9101] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[02:54:32] 8000 trials (22.6/s), wrote shard_7_003_2000.npz; teleport retries 77
+[02:55:27] round ended / reconnected: waiting for the next round
+[02:55:27] [env:9101] round over (time left 3600s of 3600s); waiting for the next round
+[02:55:27] [env:9101] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[02:56:01] 10000 trials (22.6/s), wrote shard_7_004_2000.npz; teleport retries 94
+[02:56:56] round ended / reconnected: waiting for the next round
+[02:56:56] [env:9101] round over (time left 3600s of 3600s); waiting for the next round
+[02:56:56] [env:9101] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[02:57:38] 12000 trials (22.2/s), wrote shard_7_005_2000.npz; teleport retries 111
+[02:58:26] round ended / reconnected: waiting for the next round
+[02:58:26] [env:9101] round over (time left 3600s of 3600s); waiting for the next round
+[02:58:26] [env:9101] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[02:59:11] 14000 trials (22.1/s), wrote shard_7_006_2000.npz; teleport retries 121
+[02:59:51] round ended / reconnected: waiting for the next round
+[02:59:51] [env:9101] round over (time left 3600s of 3600s); waiting for the next round
+[02:59:51] [env:9101] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[03:00:41] 16000 trials (22.1/s), wrote shard_7_007_2000.npz; teleport retries 139
+[03:01:16] round ended / reconnected: waiting for the next round
+[03:01:16] [env:9101] round over (time left 3600s of 3600s); waiting for the next round
+[03:01:16] [env:9101] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[03:02:17] 18000 trials (22.0/s), wrote shard_7_008_2000.npz; teleport retries 157
+[03:02:47] round ended / reconnected: waiting for the next round
+[03:02:47] [env:9101] round over (time left 3600s of 3600s); waiting for the next round
+[03:02:47] [env:9101] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[03:03:58] 20000 trials (21.7/s), wrote shard_7_009_2000.npz; teleport retries 166
+[03:03:58] finished KingOfTheMarble_Hunt_phys shard 7: 20000 trials

@@ -1,0 +1,33 @@
+{
+ "schema": "geometry_v1",
+ "map": "KingOfTheRing_Hunt_phys",
+ "mission": "..\\Marble Blast Platinum\\platinum\\data\\multiplayer\\hunt\\custom\\KingOfTheRing_Hunt_phys.mis",
+ "hashes": {
+  "KingOfTheRing_Hunt_phys.mis": "93c491a82d93",
+  "KingOfTheRing.dif": "a31b2bcd1408"
+ },
+ "time": "2026-09-27 23:38:27",
+ "triangles": 673,
+ "floor_triangles": 151,
+ "raster": [
+  220,
+  220
+ ],
+ "res": 0.2,
+ "levels": 4,
+ "floor_cells": 28625,
+ "multi_level_cells": 121,
+ "edges": {
+  "void": 119,
+  "drop": 4,
+  "wall": 3
+ },
+ "edge_length_u": 319.1,
+ "materials": {
+  "plate_1": "DefaultMaterial",
+  "tile_beginner_red": "DefaultMaterial",
+  "tile_beginner": "DefaultMaterial"
+ },
+ "special_materials": [],
+ "seconds": 0.3
+}

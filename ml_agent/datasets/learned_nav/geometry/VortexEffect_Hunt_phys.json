@@ -1,0 +1,40 @@
+{
+ "schema": "geometry_v1",
+ "map": "VortexEffect_Hunt_phys",
+ "mission": "..\\Marble Blast Platinum\\platinum\\data\\multiplayer\\hunt\\custom\\VortexEffect_Hunt_phys.mcs",
+ "hashes": {
+  "VortexEffect_Hunt_phys.mcs": "c9eeff8f9f36",
+  "VortexEffect.dif": "a336071ef54f",
+  "vertical_support.dif": "1413b139c2af"
+ },
+ "time": "2026-09-27 23:38:20",
+ "triangles": 8193,
+ "floor_triangles": 2697,
+ "raster": [
+  596,
+  686
+ ],
+ "res": 0.2,
+ "levels": 4,
+ "floor_cells": 161845,
+ "multi_level_cells": 2052,
+ "edges": {
+  "void": 1059,
+  "drop": 58,
+  "wall": 19
+ },
+ "edge_length_u": 3929.5,
+ "materials": {
+  "wall_beginner": "DefaultMaterial",
+  "tile_intermediate": "DefaultMaterial",
+  "tile_underside": "DefaultMaterial",
+  "edge_white": "DefaultMaterial",
+  "tile_intermediate_red": "DefaultMaterial",
+  "tile_intermediate_green": "DefaultMaterial",
+  "plate_1": "DefaultMaterial",
+  "beam_side": "DefaultMaterial",
+  "beam": "DefaultMaterial"
+ },
+ "special_materials": [],
+ "seconds": 1.0
+}

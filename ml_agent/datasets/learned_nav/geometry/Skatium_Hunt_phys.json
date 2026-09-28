@@ -1,0 +1,41 @@
+{
+ "schema": "geometry_v1",
+ "map": "Skatium_Hunt_phys",
+ "mission": "..\\Marble Blast Platinum\\platinum\\data\\multiplayer\\hunt\\custom\\Skatium_Hunt_phys.mis",
+ "hashes": {
+  "Skatium_Hunt_phys.mis": "26690c161fb9",
+  "Skatium.dif": "4c2c441b25d6"
+ },
+ "time": "2026-09-27 23:38:36",
+ "triangles": 9320,
+ "floor_triangles": 5410,
+ "raster": [
+  1231,
+  1831
+ ],
+ "res": 0.2,
+ "levels": 4,
+ "floor_cells": 2032641,
+ "multi_level_cells": 55950,
+ "edges": {
+  "void": 147,
+  "drop": 353,
+  "wall": 866
+ },
+ "edge_length_u": 6911.0,
+ "materials": {
+  "pq_edge_white_2_large": "DefaultMaterial",
+  "pq_neutral_7_med": "DefaultMaterial",
+  "pq_under_tile_brown": "DefaultMaterial",
+  "pq_neutral_3_med": "DefaultMaterial",
+  "pq_neutral_5_med": "DefaultMaterial",
+  "pq_ray_wall_combo_2": "DefaultMaterial",
+  "pq_wall_purple": "DefaultMaterial",
+  "pq_neutral_2_med": "DefaultMaterial",
+  "pq_wood_4": "DefaultMaterial",
+  "pq_construction_plain_wood": "DefaultMaterial",
+  "pq_wall_brown": "DefaultMaterial"
+ },
+ "special_materials": [],
+ "seconds": 3.1
+}

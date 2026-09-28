@@ -1,0 +1,40 @@
+{
+ "schema": "geometry_v1",
+ "map": "Acropolis2_Hunt_phys",
+ "mission": "..\\Marble Blast Platinum\\platinum\\data\\multiplayer\\hunt\\custom\\Acropolis2_Hunt_phys.mis",
+ "hashes": {
+  "Acropolis2_Hunt_phys.mis": "cd9b1c2af5a2",
+  "Acropolis2.dif": "407f982010fe"
+ },
+ "time": "2026-09-27 23:38:31",
+ "triangles": 3697,
+ "floor_triangles": 1236,
+ "raster": [
+  481,
+  612
+ ],
+ "res": 0.2,
+ "levels": 4,
+ "floor_cells": 224931,
+ "multi_level_cells": 20261,
+ "edges": {
+  "void": 196,
+  "drop": 512,
+  "wall": 398
+ },
+ "edge_length_u": 3449.9,
+ "materials": {
+  "plate_1": "DefaultMaterial",
+  "tile_beginner_blue": "DefaultMaterial",
+  "tile_underside": "DefaultMaterial",
+  "tile_beginner": "DefaultMaterial",
+  "wall_beginner": "DefaultMaterial",
+  "tile_beginner_red": "DefaultMaterial",
+  "tile_advanced": "DefaultMaterial",
+  "tile_advanced_green": "DefaultMaterial",
+  "tile_intermediate_red": "DefaultMaterial",
+  "tile_intermediate": "DefaultMaterial"
+ },
+ "special_materials": [],
+ "seconds": 0.9
+}

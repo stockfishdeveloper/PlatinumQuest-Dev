@@ -1,0 +1,46 @@
+[00:59:16] [env:9105] waiting for the game
+[00:59:21] [env:9105] game connected (1)
+[00:59:25] connected: KingOfTheRing_Hunt_phys, round 3600 s
+[01:01:11] round ended / reconnected: waiting for the next round
+[01:01:11] [env:9105] round over (time left 3600s of 3600s); waiting for the next round
+[01:01:11] [env:9105] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[01:01:26] 2000 trials (16.5/s), wrote shard_2_000_2000.npz; teleport retries 20
+[01:02:55] round ended / reconnected: waiting for the next round
+[01:02:55] [env:9105] round over (time left 3600s of 3600s); waiting for the next round
+[01:02:55] [env:9105] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[01:03:18] 4000 trials (17.1/s), wrote shard_2_001_2000.npz; teleport retries 40
+[01:04:19] round ended / reconnected: waiting for the next round
+[01:04:19] [env:9105] round over (time left 3600s of 3600s); waiting for the next round
+[01:04:19] [env:9105] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[01:04:50] 6000 trials (18.4/s), wrote shard_2_002_2000.npz; teleport retries 50
+[01:05:41] [env:9105] round over (time left 3600s of 3600s); waiting for the next round
+[01:05:41] [env:9105] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[01:06:22] 8000 trials (19.2/s), wrote shard_2_003_2000.npz; teleport retries 70
+[01:07:04] round ended / reconnected: waiting for the next round
+[01:07:04] [env:9105] round over (time left 3600s of 3600s); waiting for the next round
+[01:07:04] [env:9105] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[01:07:53] 10000 trials (19.7/s), wrote shard_2_004_2000.npz; teleport retries 90
+[01:08:31] round ended / reconnected: waiting for the next round
+[01:08:31] [env:9105] round over (time left 3600s of 3600s); waiting for the next round
+[01:08:31] [env:9105] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[01:09:35] 12000 trials (19.6/s), wrote shard_2_005_2000.npz; teleport retries 101
+[01:10:01] round ended / reconnected: waiting for the next round
+[01:10:01] [env:9105] round over (time left 3600s of 3600s); waiting for the next round
+[01:10:01] [env:9105] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[01:11:13] 14000 trials (19.8/s), wrote shard_2_006_2000.npz; teleport retries 125
+[01:11:32] round ended / reconnected: waiting for the next round
+[01:11:32] [env:9105] round over (time left 3600s of 3600s); waiting for the next round
+[01:11:32] [env:9105] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[01:12:56] 16000 trials (19.7/s), wrote shard_2_007_2000.npz; teleport retries 142
+[01:13:03] round ended / reconnected: waiting for the next round
+[01:13:03] [env:9105] round over (time left 3600s of 3600s); waiting for the next round
+[01:13:03] [env:9105] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[01:14:32] round ended / reconnected: waiting for the next round
+[01:14:32] [env:9105] round over (time left 3600s of 3600s); waiting for the next round
+[01:14:32] [env:9105] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[01:14:37] 18000 trials (19.7/s), wrote shard_2_008_2000.npz; teleport retries 164
+[01:16:06] round ended / reconnected: waiting for the next round
+[01:16:06] [env:9105] round over (time left 3600s of 3600s); waiting for the next round
+[01:16:06] [env:9105] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[01:16:21] 20000 trials (19.7/s), wrote shard_2_009_2000.npz; teleport retries 182
+[01:16:21] finished KingOfTheRing_Hunt_phys shard 2: 20000 trials

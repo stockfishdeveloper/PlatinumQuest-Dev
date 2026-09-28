@@ -1,0 +1,37 @@
+{
+ "schema": "geometry_v1",
+ "map": "BasinHill_Hunt_phys",
+ "mission": "..\\Marble Blast Platinum\\platinum\\data\\multiplayer\\hunt\\custom\\BasinHill_Hunt_phys.mis",
+ "hashes": {
+  "BasinHill_Hunt_phys.mis": "1b62fa4f37df",
+  "BasinHill.dif": "7b49d365ec51"
+ },
+ "time": "2026-09-27 23:38:22",
+ "triangles": 3831,
+ "floor_triangles": 1680,
+ "raster": [
+  651,
+  651
+ ],
+ "res": 0.2,
+ "levels": 4,
+ "floor_cells": 206081,
+ "multi_level_cells": 10606,
+ "edges": {
+  "void": 431,
+  "drop": 744,
+  "wall": 522
+ },
+ "edge_length_u": 4620.0,
+ "materials": {
+  "wall_neutral3": "DefaultMaterial",
+  "grid_warm3": "DefaultMaterial",
+  "grid_cool3": "DefaultMaterial",
+  "grid_neutral": "DefaultMaterial",
+  "grid_cool4": "DefaultMaterial",
+  "grid_neutral4": "DefaultMaterial",
+  "trim_white1": "DefaultMaterial"
+ },
+ "special_materials": [],
+ "seconds": 0.9
+}

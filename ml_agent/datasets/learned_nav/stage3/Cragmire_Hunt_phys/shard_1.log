@@ -1,0 +1,55 @@
+[00:27:28] [env:9102] waiting for the game
+[00:27:33] [env:9102] game connected (1)
+[00:27:37] connected: Cragmire_Hunt_phys, round 3600 s
+[00:29:11] trial failed: marble could not be respawned
+[00:29:22] round ended / reconnected: waiting for the next round
+[00:29:22] [env:9102] round over (time left 3600s of 3600s); waiting for the next round
+[00:29:22] [env:9102] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[00:29:38] 2000 trials (16.5/s), wrote shard_1_000_2000.npz; teleport retries 38
+[00:31:04] round ended / reconnected: waiting for the next round
+[00:31:04] [env:9102] round over (time left 3600s of 3600s); waiting for the next round
+[00:31:04] [env:9102] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[00:31:38] 4000 trials (16.6/s), wrote shard_1_001_2000.npz; teleport retries 82
+[00:32:04] trial failed: marble could not be respawned
+[04:07:45] [env:9106] waiting for the game
+[04:07:50] [env:9106] game connected (1)
+[04:07:53] connected: Cragmire_Hunt_phys, round 3600 s
+[04:09:45] round ended / reconnected: waiting for the next round
+[04:09:45] [env:9106] round over (time left 3600s of 3600s); waiting for the next round
+[04:09:45] [env:9106] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[04:10:03] recover: respawn not confirmed (pos 47.5 69.2 -32.9, on map False, telemetry {'sub_steps': np.float64(8.0), 'contact_steps': np.float64(0.0), 'support_steps': np.float64(0.0), 'collisions': np.float64(0.0), 'max_contacts': np.float64(0.0), 'max_approach': np.float64(0.0), 'nx': np.float64(0.0), 'ny': np.float64(0.0), 'nz': np.float64(0.0), 'friction': np.float64(0.0), 'restitution': np.float64(0.0), 'force': np.float64(0.0), 'last_step_contact': np.float64(0.0)})
+[04:10:05] 6000 trials (15.1/s), wrote shard_1_002_2000.npz; teleport retries 36
+[04:11:29] round ended / reconnected: waiting for the next round
+[04:11:29] [env:9106] round over (time left 3600s of 3600s); waiting for the next round
+[04:11:29] [env:9106] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[04:12:02] 8000 trials (16.0/s), wrote shard_1_003_2000.npz; teleport retries 77
+[04:13:17] round ended / reconnected: waiting for the next round
+[04:13:17] [env:9106] round over (time left 3600s of 3600s); waiting for the next round
+[04:13:17] [env:9106] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[04:13:30] recover: respawn not confirmed (pos 65.7 34.2 -34.4, on map False, telemetry {'sub_steps': np.float64(8.0), 'contact_steps': np.float64(0.0), 'support_steps': np.float64(0.0), 'collisions': np.float64(0.0), 'max_contacts': np.float64(0.0), 'max_approach': np.float64(0.0), 'nx': np.float64(0.0), 'ny': np.float64(0.0), 'nz': np.float64(0.0), 'friction': np.float64(0.0), 'restitution': np.float64(0.0), 'force': np.float64(0.0), 'last_step_contact': np.float64(0.0)})
+[04:14:00] 10000 trials (16.4/s), wrote shard_1_004_2000.npz; teleport retries 106
+[04:14:51] round ended / reconnected: waiting for the next round
+[04:14:51] [env:9106] round over (time left 3600s of 3600s); waiting for the next round
+[04:14:51] [env:9106] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[04:15:23] recover: respawn not confirmed (pos 62.6 42.0 -34.4, on map False, telemetry {'sub_steps': np.float64(8.0), 'contact_steps': np.float64(0.0), 'support_steps': np.float64(0.0), 'collisions': np.float64(0.0), 'max_contacts': np.float64(0.0), 'max_approach': np.float64(0.0), 'nx': np.float64(0.0), 'ny': np.float64(0.0), 'nz': np.float64(0.0), 'friction': np.float64(0.0), 'restitution': np.float64(0.0), 'force': np.float64(0.0), 'last_step_contact': np.float64(0.0)})
+[04:15:41] 12000 trials (17.1/s), wrote shard_1_005_2000.npz; teleport retries 140
+[04:16:17] round ended / reconnected: waiting for the next round
+[04:16:17] [env:9106] round over (time left 3600s of 3600s); waiting for the next round
+[04:16:17] [env:9106] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[04:17:13] 14000 trials (17.9/s), wrote shard_1_006_2000.npz; teleport retries 161
+[04:17:38] round ended / reconnected: waiting for the next round
+[04:17:38] [env:9106] round over (time left 3600s of 3600s); waiting for the next round
+[04:17:38] [env:9106] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[04:18:44] 16000 trials (18.4/s), wrote shard_1_007_2000.npz; teleport retries 198
+[04:18:55] round ended / reconnected: waiting for the next round
+[04:18:55] [env:9106] round over (time left 3600s of 3600s); waiting for the next round
+[04:18:55] [env:9106] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[04:20:09] 18000 trials (19.0/s), wrote shard_1_008_2000.npz; teleport retries 228
+[04:20:10] round ended / reconnected: waiting for the next round
+[04:20:10] [env:9106] round over (time left 3600s of 3600s); waiting for the next round
+[04:20:10] [env:9106] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[04:21:26] round ended / reconnected: waiting for the next round
+[04:21:26] [env:9106] round over (time left 3600s of 3600s); waiting for the next round
+[04:21:26] [env:9106] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[04:21:36] 20000 trials (19.4/s), wrote shard_1_009_2000.npz; teleport retries 263
+[04:21:36] finished Cragmire_Hunt_phys shard 1: 20000 trials

@@ -1,0 +1,48 @@
+[02:32:33] [env:9104] waiting for the game
+[02:32:39] [env:9104] game connected (1)
+[02:32:42] connected: Tilo_Hunt_phys, round 3600 s
+[02:33:07] recover: respawn not confirmed (pos 77.2 43.9 -3.0, on map False, telemetry {'sub_steps': np.float64(8.0), 'contact_steps': np.float64(0.0), 'support_steps': np.float64(0.0), 'collisions': np.float64(0.0), 'max_contacts': np.float64(0.0), 'max_approach': np.float64(0.0), 'nx': np.float64(0.0), 'ny': np.float64(0.0), 'nz': np.float64(0.0), 'friction': np.float64(0.0), 'restitution': np.float64(0.0), 'force': np.float64(0.0), 'last_step_contact': np.float64(0.0)})
+[02:34:36] round ended / reconnected: waiting for the next round
+[02:34:36] [env:9104] round over (time left 3600s of 3600s); waiting for the next round
+[02:34:36] [env:9104] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[02:34:53] 2000 trials (15.3/s), wrote shard_6_000_2000.npz; teleport retries 15
+[02:36:01] round ended / reconnected: waiting for the next round
+[02:36:01] [env:9104] round over (time left 3600s of 3600s); waiting for the next round
+[02:36:01] [env:9104] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[02:36:25] 4000 trials (17.9/s), wrote shard_6_001_2000.npz; teleport retries 37
+[02:37:14] round ended / reconnected: waiting for the next round
+[02:37:14] [env:9104] round over (time left 3600s of 3600s); waiting for the next round
+[02:37:14] [env:9104] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[02:37:54] 6000 trials (19.3/s), wrote shard_6_002_2000.npz; teleport retries 62
+[02:38:38] round ended / reconnected: waiting for the next round
+[02:38:38] [env:9104] round over (time left 3600s of 3600s); waiting for the next round
+[02:38:38] [env:9104] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[02:39:31] 8000 trials (19.6/s), wrote shard_6_003_2000.npz; teleport retries 81
+[02:39:59] round ended / reconnected: waiting for the next round
+[02:39:59] [env:9104] round over (time left 3600s of 3600s); waiting for the next round
+[02:39:59] [env:9104] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[02:41:03] 10000 trials (20.0/s), wrote shard_6_004_2000.npz; teleport retries 95
+[02:41:23] round ended / reconnected: waiting for the next round
+[02:41:23] [env:9104] round over (time left 3600s of 3600s); waiting for the next round
+[02:41:23] [env:9104] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[02:42:45] 12000 trials (19.9/s), wrote shard_6_005_2000.npz; teleport retries 101
+[02:42:50] round ended / reconnected: waiting for the next round
+[02:42:50] [env:9104] round over (time left 3600s of 3600s); waiting for the next round
+[02:42:50] [env:9104] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[02:44:13] round ended / reconnected: waiting for the next round
+[02:44:13] [env:9104] round over (time left 3600s of 3600s); waiting for the next round
+[02:44:13] [env:9104] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[02:44:23] 14000 trials (20.0/s), wrote shard_6_006_2000.npz; teleport retries 129
+[02:45:42] round ended / reconnected: waiting for the next round
+[02:45:42] [env:9104] round over (time left 3600s of 3600s); waiting for the next round
+[02:45:42] [env:9104] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[02:46:05] 16000 trials (19.9/s), wrote shard_6_007_2000.npz; teleport retries 142
+[02:47:11] round ended / reconnected: waiting for the next round
+[02:47:11] [env:9104] round over (time left 3600s of 3600s); waiting for the next round
+[02:47:11] [env:9104] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[02:47:49] 18000 trials (19.9/s), wrote shard_6_008_2000.npz; teleport retries 159
+[02:48:43] round ended / reconnected: waiting for the next round
+[02:48:43] [env:9104] round over (time left 3600s of 3600s); waiting for the next round
+[02:48:43] [env:9104] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[02:49:30] 20000 trials (19.8/s), wrote shard_6_009_2000.npz; teleport retries 175
+[02:49:30] finished Tilo_Hunt_phys shard 6: 20000 trials

@@ -1,0 +1,47 @@
+[01:37:27] [env:9101] waiting for the game
+[01:37:34] [env:9101] game connected (1)
+[01:37:38] connected: GemsInTheRoad_Hunt_phys, round 3600 s
+[01:39:18] round ended / reconnected: waiting for the next round
+[01:39:18] [env:9101] round over (time left 3600s of 3600s); waiting for the next round
+[01:39:18] [env:9101] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[01:40:08] 2000 trials (13.3/s), wrote shard_4_000_2000.npz; teleport retries 2
+[01:41:40] round ended / reconnected: waiting for the next round
+[01:41:40] [env:9101] round over (time left 3600s of 3600s); waiting for the next round
+[01:41:40] [env:9101] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[01:42:21] 4000 trials (14.2/s), wrote shard_4_001_2000.npz; teleport retries 3
+[01:43:27] round ended / reconnected: waiting for the next round
+[01:43:27] [env:9101] round over (time left 3600s of 3600s); waiting for the next round
+[01:43:27] [env:9101] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[01:44:10] 6000 trials (15.3/s), wrote shard_4_002_2000.npz; teleport retries 6
+[01:44:51] round ended / reconnected: waiting for the next round
+[01:44:51] [env:9101] round over (time left 3600s of 3600s); waiting for the next round
+[01:44:51] [env:9101] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[01:45:51] 8000 trials (16.2/s), wrote shard_4_003_2000.npz; teleport retries 9
+[01:46:10] round ended / reconnected: waiting for the next round
+[01:46:10] [env:9101] round over (time left 3600s of 3600s); waiting for the next round
+[01:46:10] [env:9101] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[01:47:27] 10000 trials (17.0/s), wrote shard_4_004_2000.npz; teleport retries 9
+[01:47:35] round ended / reconnected: waiting for the next round
+[01:47:35] [env:9101] round over (time left 3600s of 3600s); waiting for the next round
+[01:47:35] [env:9101] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[01:49:08] round ended / reconnected: waiting for the next round
+[01:49:08] [env:9101] round over (time left 3600s of 3600s); waiting for the next round
+[01:49:08] [env:9101] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[01:49:17] 12000 trials (17.2/s), wrote shard_4_005_2000.npz; teleport retries 10
+[01:50:44] round ended / reconnected: waiting for the next round
+[01:50:44] [env:9101] round over (time left 3600s of 3600s); waiting for the next round
+[01:50:44] [env:9101] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[01:51:20] 14000 trials (17.0/s), wrote shard_4_006_2000.npz; teleport retries 15
+[01:52:41] round ended / reconnected: waiting for the next round
+[01:52:41] [env:9101] round over (time left 3600s of 3600s); waiting for the next round
+[01:52:41] [env:9101] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[01:53:40] 16000 trials (16.6/s), wrote shard_4_007_2000.npz; teleport retries 16
+[01:54:24] round ended / reconnected: waiting for the next round
+[01:54:24] [env:9101] round over (time left 3600s of 3600s); waiting for the next round
+[01:54:24] [env:9101] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[01:55:26] 18000 trials (16.9/s), wrote shard_4_008_2000.npz; teleport retries 18
+[01:55:51] round ended / reconnected: waiting for the next round
+[01:55:51] [env:9101] round over (time left 3600s of 3600s); waiting for the next round
+[01:55:51] [env:9101] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[01:57:24] 20000 trials (16.9/s), wrote shard_4_009_2000.npz; teleport retries 21
+[01:57:24] finished GemsInTheRoad_Hunt_phys shard 4: 20000 trials

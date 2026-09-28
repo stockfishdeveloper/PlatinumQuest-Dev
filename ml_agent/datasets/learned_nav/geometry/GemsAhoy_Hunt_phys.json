@@ -1,0 +1,49 @@
+{
+ "schema": "geometry_v1",
+ "map": "GemsAhoy_Hunt_phys",
+ "mission": "..\\Marble Blast Platinum\\platinum\\data\\multiplayer\\hunt\\custom\\GemsAhoy_Hunt_phys.mcs",
+ "hashes": {
+  "GemsAhoy_Hunt_phys.mcs": "1b78838aed01",
+  "GemsAhoy.dif": "a530cdcf392f"
+ },
+ "time": "2026-09-27 23:38:30",
+ "triangles": 5153,
+ "floor_triangles": 1692,
+ "raster": [
+  746,
+  428
+ ],
+ "res": 0.2,
+ "levels": 4,
+ "floor_cells": 165624,
+ "multi_level_cells": 26557,
+ "edges": {
+  "void": 383,
+  "drop": 247,
+  "wall": 205
+ },
+ "edge_length_u": 2721.8,
+ "materials": {
+  "pq_neutral_7_random": "DefaultMaterial",
+  "pq_under_tile_brown": "DefaultMaterial",
+  "pq_edge_white_2": "DefaultMaterial",
+  "pq_neutral_6_random": "DefaultMaterial",
+  "pq_ray_wall_combo": "DefaultMaterial",
+  "pq_neutral_5_random": "DefaultMaterial",
+  "pq_neutral_1_random": "DefaultMaterial",
+  "pq_hot_5_random": "DefaultMaterial",
+  "pq_hot_3_random": "DefaultMaterial",
+  "pq_hot_6_random": "DefaultMaterial",
+  "pq_hot_2_random": "DefaultMaterial",
+  "pq_hot_1_random": "DefaultMaterial",
+  "pq_construction_plain_wood": "DefaultMaterial",
+  "pq_hot_4_random": "DefaultMaterial",
+  "pq_neutral_3_random": "DefaultMaterial",
+  "pq_neutral_4_random": "DefaultMaterial",
+  "pq_neutral_2_random": "DefaultMaterial",
+  "pq_wood": "DefaultMaterial",
+  "pq_torque": "DefaultMaterial"
+ },
+ "special_materials": [],
+ "seconds": 0.9
+}

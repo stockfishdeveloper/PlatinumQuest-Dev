@@ -1,0 +1,45 @@
+﻿VortexEffect_Hunt_phys: VortexEffect_Hunt_phys: PASS {"floor": {"n": 150, "ok": 149, "rate": 0.993, "pass_at": 0.95, 
+"normal_err_deg_p95": 0.0, "height_err_p95": 0.01}, "ramp": {"n": 37, "ok": 36, "rate": 0.973, "pass_at": 0.9}, "lip": 
+{"n": 80, "ok": 80, "rate": 1.0, "pass_at": 0.95}}
+GemsInTheRoad_Hunt_phys: GemsInTheRoad_Hunt_phys: PASS {"floor": {"n": 150, "ok": 149, "rate": 0.993, "pass_at": 0.95, 
+"normal_err_deg_p95": 0.0, "height_err_p95": 0.01}, "ramp": {"n": 58, "ok": 58, "rate": 1.0, "pass_at": 0.9}, "lip": 
+{"n": 80, "ok": 80, "rate": 1.0, "pass_at": 0.95}}
+Tilo_Hunt_phys: Tilo_Hunt_phys: PASS {"floor": {"n": 150, "ok": 148, "rate": 0.987, "pass_at": 0.95, 
+"normal_err_deg_p95": 0.0, "height_err_p95": 0.0244}, "ramp": {"n": 58, "ok": 58, "rate": 1.0, "pass_at": 0.9}, "lip": 
+{"n": 80, "ok": 80, "rate": 1.0, "pass_at": 0.95}}
+BasinHill_Hunt_phys: BasinHill_Hunt_phys: PASS {"floor": {"n": 150, "ok": 149, "rate": 0.993, "pass_at": 0.95, 
+"normal_err_deg_p95": 0.0, "height_err_p95": 0.0003}, "ramp": {"n": 4, "ok": 4, "rate": 1.0, "pass_at": 0.9}, "lip": 
+{"n": 80, "ok": 80, "rate": 1.0, "pass_at": 0.95}}
+ParkourPeaks_Hunt_phys: ParkourPeaks_Hunt_phys: PASS {"floor": {"n": 150, "ok": 147, "rate": 0.98, "pass_at": 0.95, 
+"normal_err_deg_p95": 0.0, "height_err_p95": 0.0346}, "ramp": {"n": 48, "ok": 48, "rate": 1.0, "pass_at": 0.9}, "lip": 
+{"n": 80, "ok": 80, "rate": 1.0, "pass_at": 0.95}}
+Duplex_Hunt_phys: Duplex_Hunt_phys: PASS {"floor": {"n": 150, "ok": 146, "rate": 0.973, "pass_at": 0.95, 
+"normal_err_deg_p95": 0.0, "height_err_p95": 0.0137}, "ramp": {"n": 42, "ok": 41, "rate": 0.976, "pass_at": 0.9}, 
+"lip": {"n": 80, "ok": 80, "rate": 1.0, "pass_at": 0.95}}
+Cragmire_Hunt_phys: Cragmire_Hunt_phys: PASS {"floor": {"n": 150, "ok": 150, "rate": 1.0, "pass_at": 0.95, 
+"normal_err_deg_p95": 0.0, "height_err_p95": 0.01}, "ramp": {"n": 27, "ok": 27, "rate": 1.0, "pass_at": 0.9}, "lip": 
+{"n": 80, "ok": 79, "rate": 0.988, "pass_at": 0.95}}
+Sprawl_Hunt_phys: Sprawl_Hunt_phys: PASS {"floor": {"n": 150, "ok": 147, "rate": 0.98, "pass_at": 0.95, 
+"normal_err_deg_p95": 0.0, "height_err_p95": 0.0181}, "ramp": {"n": 66, "ok": 64, "rate": 0.97, "pass_at": 0.9}, 
+"lip": {"n": 80, "ok": 80, "rate": 1.0, "pass_at": 0.95}}
+KingOfTheRing_Hunt_phys: KingOfTheRing_Hunt_phys: PASS {"floor": {"n": 150, "ok": 150, "rate": 1.0, "pass_at": 0.95, 
+"normal_err_deg_p95": 0.006, "height_err_p95": 0.0286}, "ramp": {"n": 149, "ok": 149, "rate": 1.0, "pass_at": 0.9}, 
+"lip": {"n": 80, "ok": 80, "rate": 1.0, "pass_at": 0.95}}
+MaximoCenter_Hunt_phys: MaximoCenter_Hunt_phys: PASS {"floor": {"n": 150, "ok": 148, "rate": 0.987, "pass_at": 0.95, 
+"normal_err_deg_p95": 0.0, "height_err_p95": 0.0194}, "ramp": {"n": 45, "ok": 44, "rate": 0.978, "pass_at": 0.9}, 
+"lip": {"n": 80, "ok": 80, "rate": 1.0, "pass_at": 0.95}}
+GemsAhoy_Hunt_phys: GemsAhoy_Hunt_phys: PASS {"floor": {"n": 150, "ok": 149, "rate": 0.993, "pass_at": 0.95, 
+"normal_err_deg_p95": 0.0, "height_err_p95": 0.016}, "ramp": {"n": 50, "ok": 49, "rate": 0.98, "pass_at": 0.9}, "lip": 
+{"n": 80, "ok": 77, "rate": 0.963, "pass_at": 0.95}}
+Acropolis2_Hunt_phys: Acropolis2_Hunt_phys: PASS {"floor": {"n": 150, "ok": 146, "rate": 0.973, "pass_at": 0.95, 
+"normal_err_deg_p95": 0.0, "height_err_p95": 0.0209}, "ramp": {"n": 71, "ok": 70, "rate": 0.986, "pass_at": 0.9}, 
+"lip": {"n": 80, "ok": 80, "rate": 1.0, "pass_at": 0.95}}
+TreasureBox_Hunt_phys: TreasureBox_Hunt_phys: PASS {"floor": {"n": 150, "ok": 149, "rate": 0.993, "pass_at": 0.95, 
+"normal_err_deg_p95": 0.0, "height_err_p95": 0.0121}, "ramp": {"n": 49, "ok": 48, "rate": 0.98, "pass_at": 0.9}, 
+"lip": {"n": 80, "ok": 79, "rate": 0.988, "pass_at": 0.95}}
+MarbleAgilityCourse_Hunt_phys: MarbleAgilityCourse_Hunt_phys: PASS {"floor": {"n": 150, "ok": 150, "rate": 1.0, 
+"pass_at": 0.95, "normal_err_deg_p95": 0.0, "height_err_p95": 0.0002}, "ramp": {"n": 4, "ok": 4, "rate": 1.0, 
+"pass_at": 0.9}, "lip": {"n": 80, "ok": 80, "rate": 1.0, "pass_at": 0.95}}
+Skatium_Hunt_phys: Skatium_Hunt_phys: PASS {"floor": {"n": 150, "ok": 147, "rate": 0.98, "pass_at": 0.95, 
+"normal_err_deg_p95": 0.0, "height_err_p95": 0.0252}, "ramp": {"n": 70, "ok": 68, "rate": 0.971, "pass_at": 0.9}, 
+"lip": {"n": 80, "ok": 80, "rate": 1.0, "pass_at": 0.95}}

@@ -1,0 +1,4 @@
+[env:8991] waiting for the game
+[env:8991] game connected (1)
+connected: ParkourPeaks_Hunt_phys, round 3600 s
+ParkourPeaks_Hunt_phys: PASS {"floor": {"n": 150, "ok": 147, "rate": 0.98, "pass_at": 0.95, "normal_err_deg_p95": 0.0, "height_err_p95": 0.0346}, "ramp": {"n": 48, "ok": 48, "rate": 1.0, "pass_at": 0.9}, "lip": {"n": 80, "ok": 80, "rate": 1.0, "pass_at": 0.95}}

@@ -1,0 +1,735 @@
+[23:49:27] [env:9108] waiting for the game
+[23:49:32] [env:9108] game connected (1)
+[23:49:35] connected: Cragmire_Hunt_phys, round 3600 s
+[23:50:41] trial failed: marble could not be respawned
+[23:51:09] trial failed: marble could not be respawned
+[23:51:41] round ended / reconnected: waiting for the next round
+[23:51:41] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[23:51:41] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[23:52:01] 2000 trials (13.7/s), wrote shard_0_000_2000.npz; teleport retries 39
+[23:53:55] round ended / reconnected: waiting for the next round
+[23:53:55] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[23:53:55] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[23:54:19] trial failed: marble could not be respawned
+Traceback (most recent call last):
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\runpy.py", line 197, in _run_module_as_main
+    return _run_code(code, main_globals, None,
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\runpy.py", line 87, in _run_code
+    exec(code, run_globals)
+  File "C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\nav\learned_nav\record3.py", line 309, in <module>
+    main()
+  File "C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\nav\learned_nav\record3.py", line 281, in main
+    r = rec.trial(start, prog)
+  File "C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\nav\learned_nav\record3.py", line 207, in trial
+    o = s.place(start['pos'], start['vel'], start['spin'], hold=hold)
+  File "C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\nav\learned_nav\session.py", line 110, in place
+    self.ready()
+  File "C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\nav\learned_nav\session.py", line 87, in ready
+    self.recover()
+  File "C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\nav\learned_nav\session.py", line 105, in recover
+    raise RuntimeError('marble could not be respawned')
+RuntimeError: marble could not be respawned
+[23:54:26] [env:9108] waiting for the game
+[23:54:31] [env:9108] game connected (1)
+[23:54:34] connected: Sprawl_Hunt_phys, round 3600 s
+[23:56:36] round ended / reconnected: waiting for the next round
+[23:56:36] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[23:56:36] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[23:56:42] 2000 trials (15.7/s), wrote shard_0_000_2000.npz; teleport retries 0
+[23:58:47] round ended / reconnected: waiting for the next round
+[23:58:47] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[23:58:47] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[23:58:56] 4000 trials (15.3/s), wrote shard_0_001_2000.npz; teleport retries 0
+[00:00:50] round ended / reconnected: waiting for the next round
+[00:00:50] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[00:00:50] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[00:01:06] 6000 trials (15.3/s), wrote shard_0_002_2000.npz; teleport retries 0
+[00:02:51] round ended / reconnected: waiting for the next round
+[00:02:51] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[00:02:51] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[00:03:10] 8000 trials (15.5/s), wrote shard_0_003_2000.npz; teleport retries 0
+[00:04:47] round ended / reconnected: waiting for the next round
+[00:04:47] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[00:04:47] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[00:05:09] 10000 trials (15.7/s), wrote shard_0_004_2000.npz; teleport retries 0
+[00:06:35] round ended / reconnected: waiting for the next round
+[00:06:35] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[00:06:35] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[00:07:00] 12000 trials (16.1/s), wrote shard_0_005_2000.npz; teleport retries 0
+[00:08:14] round ended / reconnected: waiting for the next round
+[00:08:14] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[00:08:14] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[00:08:43] 14000 trials (16.5/s), wrote shard_0_006_2000.npz; teleport retries 0
+[00:09:55] round ended / reconnected: waiting for the next round
+[00:09:55] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[00:09:55] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[00:10:28] 16000 trials (16.8/s), wrote shard_0_007_2000.npz; teleport retries 0
+[00:11:40] round ended / reconnected: waiting for the next round
+[00:11:40] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[00:11:40] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[00:12:19] 18000 trials (16.9/s), wrote shard_0_008_2000.npz; teleport retries 0
+[00:13:27] round ended / reconnected: waiting for the next round
+[00:13:27] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[00:13:27] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[00:14:08] 20000 trials (17.0/s), wrote shard_0_009_2000.npz; teleport retries 0
+[00:14:08] finished Sprawl_Hunt_phys shard 0: 20000 trials
+[00:14:15] [env:9108] waiting for the game
+[00:14:20] [env:9108] game connected (1)
+[00:14:23] connected: Tilo_Hunt_phys, round 3600 s
+[00:16:13] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[00:16:13] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[00:16:33] 2000 trials (15.4/s), wrote shard_1_000_2000.npz; teleport retries 15
+[00:18:01] round ended / reconnected: waiting for the next round
+[00:18:01] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[00:18:01] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[00:18:39] 4000 trials (15.6/s), wrote shard_1_001_2000.npz; teleport retries 34
+[00:19:49] round ended / reconnected: waiting for the next round
+[00:19:49] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[00:19:49] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[00:20:44] 6000 trials (15.8/s), wrote shard_1_002_2000.npz; teleport retries 54
+[00:21:37] round ended / reconnected: waiting for the next round
+[00:21:37] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[00:21:37] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[00:22:45] 8000 trials (15.9/s), wrote shard_1_003_2000.npz; teleport retries 70
+[00:23:25] round ended / reconnected: waiting for the next round
+[00:23:25] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[00:23:25] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[00:24:40] 10000 trials (16.2/s), wrote shard_1_004_2000.npz; teleport retries 85
+[00:25:01] round ended / reconnected: waiting for the next round
+[00:25:01] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[00:25:01] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[00:26:26] 12000 trials (16.6/s), wrote shard_1_005_2000.npz; teleport retries 101
+[00:26:35] round ended / reconnected: waiting for the next round
+[00:26:35] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[00:26:35] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[00:28:08] round ended / reconnected: waiting for the next round
+[00:28:08] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[00:28:08] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[00:28:13] 14000 trials (16.9/s), wrote shard_1_006_2000.npz; teleport retries 121
+[00:29:51] round ended / reconnected: waiting for the next round
+[00:29:51] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[00:29:51] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[00:30:10] 16000 trials (16.9/s), wrote shard_1_007_2000.npz; teleport retries 134
+[00:31:28] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[00:31:28] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[00:32:01] 18000 trials (17.0/s), wrote shard_1_008_2000.npz; teleport retries 147
+[00:33:06] round ended / reconnected: waiting for the next round
+[00:33:06] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[00:33:06] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[00:33:52] 20000 trials (17.1/s), wrote shard_1_009_2000.npz; teleport retries 159
+[00:33:52] finished Tilo_Hunt_phys shard 1: 20000 trials
+[00:33:58] [env:9108] waiting for the game
+[00:34:03] [env:9108] game connected (1)
+[00:34:06] connected: Acropolis2_Hunt_phys, round 3600 s
+[00:35:44] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[00:35:44] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[00:35:48] 2000 trials (19.7/s), wrote shard_1_000_2000.npz; teleport retries 0
+[00:37:24] round ended / reconnected: waiting for the next round
+[00:37:24] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[00:37:24] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[00:37:31] 4000 trials (19.5/s), wrote shard_1_001_2000.npz; teleport retries 0
+[00:39:13] round ended / reconnected: waiting for the next round
+[00:39:13] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[00:39:13] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[00:39:24] 6000 trials (18.9/s), wrote shard_1_002_2000.npz; teleport retries 0
+[00:40:42] round ended / reconnected: waiting for the next round
+[00:40:42] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[00:40:42] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[00:40:51] 8000 trials (19.7/s), wrote shard_1_003_2000.npz; teleport retries 0
+[00:41:59] round ended / reconnected: waiting for the next round
+[00:41:59] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[00:41:59] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[00:42:10] 10000 trials (20.6/s), wrote shard_1_004_2000.npz; teleport retries 0
+[00:43:19] round ended / reconnected: waiting for the next round
+[00:43:19] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[00:43:19] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[00:43:32] 12000 trials (21.2/s), wrote shard_1_005_2000.npz; teleport retries 0
+[00:44:40] round ended / reconnected: waiting for the next round
+[00:44:40] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[00:44:40] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[00:44:58] 14000 trials (21.5/s), wrote shard_1_006_2000.npz; teleport retries 0
+[00:46:14] round ended / reconnected: waiting for the next round
+[00:46:14] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[00:46:14] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[00:46:38] 16000 trials (21.3/s), wrote shard_1_007_2000.npz; teleport retries 0
+[00:47:48] round ended / reconnected: waiting for the next round
+[00:47:48] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[00:47:48] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[00:48:10] 18000 trials (21.3/s), wrote shard_1_008_2000.npz; teleport retries 0
+[00:49:19] round ended / reconnected: waiting for the next round
+[00:49:19] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[00:49:19] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[00:49:44] 20000 trials (21.3/s), wrote shard_1_009_2000.npz; teleport retries 0
+[00:49:44] finished Acropolis2_Hunt_phys shard 1: 20000 trials
+[00:49:50] [env:9108] waiting for the game
+[00:49:55] [env:9108] game connected (1)
+[00:49:59] connected: Duplex_Hunt_phys, round 3600 s
+[00:51:35] round ended / reconnected: waiting for the next round
+[00:51:35] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[00:51:35] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[00:51:50] 2000 trials (17.9/s), wrote shard_2_000_2000.npz; teleport retries 0
+[00:53:06] round ended / reconnected: waiting for the next round
+[00:53:06] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[00:53:06] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[00:53:37] 4000 trials (18.3/s), wrote shard_2_001_2000.npz; teleport retries 0
+[00:54:32] round ended / reconnected: waiting for the next round
+[00:54:32] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[00:54:32] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[00:55:20] 6000 trials (18.6/s), wrote shard_2_002_2000.npz; teleport retries 1
+[00:56:04] round ended / reconnected: waiting for the next round
+[00:56:04] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[00:56:04] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[00:57:07] 8000 trials (18.7/s), wrote shard_2_003_2000.npz; teleport retries 2
+[00:57:40] round ended / reconnected: waiting for the next round
+[00:57:40] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[00:57:40] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[00:58:54] 10000 trials (18.7/s), wrote shard_2_004_2000.npz; teleport retries 2
+[00:59:15] round ended / reconnected: waiting for the next round
+[00:59:15] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[00:59:15] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[01:00:41] 12000 trials (18.7/s), wrote shard_2_005_2000.npz; teleport retries 3
+[01:00:47] round ended / reconnected: waiting for the next round
+[01:00:47] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[01:00:47] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[01:02:21] round ended / reconnected: waiting for the next round
+[01:02:21] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[01:02:21] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[01:02:30] 14000 trials (18.6/s), wrote shard_2_006_2000.npz; teleport retries 3
+[01:04:04] round ended / reconnected: waiting for the next round
+[01:04:04] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[01:04:04] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[01:04:27] 16000 trials (18.4/s), wrote shard_2_007_2000.npz; teleport retries 4
+[01:05:42] round ended / reconnected: waiting for the next round
+[01:05:42] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[01:05:42] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[01:06:21] 18000 trials (18.3/s), wrote shard_2_008_2000.npz; teleport retries 4
+[01:07:14] round ended / reconnected: waiting for the next round
+[01:07:14] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[01:07:14] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[01:08:11] 20000 trials (18.3/s), wrote shard_2_009_2000.npz; teleport retries 4
+[01:08:11] finished Duplex_Hunt_phys shard 2: 20000 trials
+[01:08:18] [env:9108] waiting for the game
+[01:08:23] [env:9108] game connected (1)
+[01:08:26] connected: VortexEffect_Hunt_phys, round 3600 s
+[01:09:58] round ended / reconnected: waiting for the next round
+[01:09:58] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[01:09:58] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[01:10:13] 2000 trials (18.6/s), wrote shard_3_000_2000.npz; teleport retries 0
+[01:11:28] round ended / reconnected: waiting for the next round
+[01:11:28] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[01:11:28] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[01:11:58] 4000 trials (18.9/s), wrote shard_3_001_2000.npz; teleport retries 0
+[01:12:54] round ended / reconnected: waiting for the next round
+[01:12:54] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[01:12:54] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[01:13:41] 6000 trials (19.0/s), wrote shard_3_002_2000.npz; teleport retries 0
+[01:14:26] round ended / reconnected: waiting for the next round
+[01:14:26] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[01:14:26] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[01:15:28] 8000 trials (18.9/s), wrote shard_3_003_2000.npz; teleport retries 0
+[01:15:59] round ended / reconnected: waiting for the next round
+[01:15:59] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[01:15:59] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[01:17:22] 10000 trials (18.6/s), wrote shard_3_004_2000.npz; teleport retries 0
+[01:17:44] round ended / reconnected: waiting for the next round
+[01:17:44] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[01:17:44] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[01:19:52] 12000 trials (17.5/s), wrote shard_3_005_2000.npz; teleport retries 0
+[01:19:57] round ended / reconnected: waiting for the next round
+[01:19:57] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[01:19:57] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[01:21:42] round ended / reconnected: waiting for the next round
+[01:21:42] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[01:21:42] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[01:21:56] 14000 trials (17.3/s), wrote shard_3_006_2000.npz; teleport retries 0
+[01:23:17] round ended / reconnected: waiting for the next round
+[01:23:17] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[01:23:17] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[01:23:48] 16000 trials (17.4/s), wrote shard_3_007_2000.npz; teleport retries 0
+[01:25:01] round ended / reconnected: waiting for the next round
+[01:25:01] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[01:25:01] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[01:25:46] 18000 trials (17.3/s), wrote shard_3_008_2000.npz; teleport retries 0
+[01:27:11] round ended / reconnected: waiting for the next round
+[01:27:11] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[01:27:11] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[01:28:53] 20000 trials (16.3/s), wrote shard_3_009_2000.npz; teleport retries 0
+[01:28:53] finished VortexEffect_Hunt_phys shard 3: 20000 trials
+[01:28:57] [env:9108] waiting for the game
+[01:29:04] [env:9108] game connected (1)
+[01:29:07] connected: KingOfTheRing_Hunt_phys, round 3600 s
+[01:31:29] round ended / reconnected: waiting for the next round
+[01:31:29] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[01:31:29] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[01:31:45] 2000 trials (12.7/s), wrote shard_3_000_2000.npz; teleport retries 11
+[01:33:50] round ended / reconnected: waiting for the next round
+[01:33:50] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[01:33:50] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[01:34:22] 4000 trials (12.7/s), wrote shard_3_001_2000.npz; teleport retries 28
+[01:36:12] round ended / reconnected: waiting for the next round
+[01:36:12] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[01:36:12] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[01:37:03] 6000 trials (12.6/s), wrote shard_3_002_2000.npz; teleport retries 43
+[01:38:32] round ended / reconnected: waiting for the next round
+[01:39:15] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[01:39:15] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[01:40:08] 8000 trials (12.1/s), wrote shard_3_003_2000.npz; teleport retries 55
+[01:40:55] round ended / reconnected: waiting for the next round
+[01:40:55] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[01:40:55] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[01:41:44] 10000 trials (13.2/s), wrote shard_3_004_2000.npz; teleport retries 75
+[01:42:21] round ended / reconnected: waiting for the next round
+[01:42:21] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[01:42:21] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[01:43:21] 12000 trials (14.1/s), wrote shard_3_005_2000.npz; teleport retries 96
+[01:43:49] round ended / reconnected: waiting for the next round
+[01:43:49] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[01:43:49] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[01:44:59] 14000 trials (14.7/s), wrote shard_3_006_2000.npz; teleport retries 119
+[01:45:19] round ended / reconnected: waiting for the next round
+[01:45:19] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[01:45:19] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[01:46:35] 16000 trials (15.3/s), wrote shard_3_007_2000.npz; teleport retries 125
+[01:46:47] round ended / reconnected: waiting for the next round
+[01:46:47] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[01:46:47] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[01:48:25] 18000 trials (15.5/s), wrote shard_3_008_2000.npz; teleport retries 141
+[01:48:27] round ended / reconnected: waiting for the next round
+[01:48:27] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[01:48:27] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[01:50:06] round ended / reconnected: waiting for the next round
+[01:50:06] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[01:50:06] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[01:50:16] 20000 trials (15.8/s), wrote shard_3_009_2000.npz; teleport retries 153
+[01:50:16] finished KingOfTheRing_Hunt_phys shard 3: 20000 trials
+[01:50:21] [env:9108] waiting for the game
+[01:50:27] [env:9108] game connected (1)
+[01:50:30] connected: Cragmire_Hunt_phys, round 3600 s
+[01:52:29] round ended / reconnected: waiting for the next round
+[01:52:29] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[01:52:29] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[01:52:45] 2000 trials (14.9/s), wrote shard_4_000_2000.npz; teleport retries 27
+[01:53:19] recover: respawn not confirmed (pos 5.2 66.1 -37.4, on map False, telemetry {'sub_steps': np.float64(8.0), 'contact_steps': np.float64(0.0), 'support_steps': np.float64(0.0), 'collisions': np.float64(0.0), 'max_contacts': np.float64(0.0), 'max_approach': np.float64(0.0), 'nx': np.float64(0.0), 'ny': np.float64(0.0), 'nz': np.float64(0.0), 'friction': np.float64(0.0), 'restitution': np.float64(0.0), 'force': np.float64(0.0), 'last_step_contact': np.float64(0.0)})
+[01:54:08] round ended / reconnected: waiting for the next round
+[01:54:08] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[01:54:08] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[01:54:27] recover: respawn not confirmed (pos 74.9 -38.7 -31.0, on map False, telemetry {'sub_steps': np.float64(8.0), 'contact_steps': np.float64(0.0), 'support_steps': np.float64(0.0), 'collisions': np.float64(0.0), 'max_contacts': np.float64(0.0), 'max_approach': np.float64(0.0), 'nx': np.float64(0.0), 'ny': np.float64(0.0), 'nz': np.float64(0.0), 'friction': np.float64(0.0), 'restitution': np.float64(0.0), 'force': np.float64(0.0), 'last_step_contact': np.float64(0.0)})
+[01:54:32] 4000 trials (16.5/s), wrote shard_4_001_2000.npz; teleport retries 67
+[01:55:31] round ended / reconnected: waiting for the next round
+[01:55:31] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[01:55:31] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[01:56:11] 6000 trials (17.6/s), wrote shard_4_002_2000.npz; teleport retries 96
+[01:56:54] recover: respawn not confirmed (pos 23.0 82.9 -34.3, on map False, telemetry {'sub_steps': np.float64(8.0), 'contact_steps': np.float64(0.0), 'support_steps': np.float64(0.0), 'collisions': np.float64(0.0), 'max_contacts': np.float64(0.0), 'max_approach': np.float64(0.0), 'nx': np.float64(0.0), 'ny': np.float64(0.0), 'nz': np.float64(0.0), 'friction': np.float64(0.0), 'restitution': np.float64(0.0), 'force': np.float64(0.0), 'last_step_contact': np.float64(0.0)})
+[01:57:00] recover: respawn not confirmed (pos 61.5 54.6 -35.2, on map False, telemetry {'sub_steps': np.float64(8.0), 'contact_steps': np.float64(0.0), 'support_steps': np.float64(0.0), 'collisions': np.float64(0.0), 'max_contacts': np.float64(0.0), 'max_approach': np.float64(0.0), 'nx': np.float64(0.0), 'ny': np.float64(0.0), 'nz': np.float64(0.0), 'friction': np.float64(0.0), 'restitution': np.float64(0.0), 'force': np.float64(0.0), 'last_step_contact': np.float64(0.0)})
+[01:57:06] round ended / reconnected: waiting for the next round
+[01:57:06] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[01:57:06] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[01:57:37] recover: respawn not confirmed (pos 35.3 58.9 -37.4, on map False, telemetry {'sub_steps': np.float64(8.0), 'contact_steps': np.float64(0.0), 'support_steps': np.float64(0.0), 'collisions': np.float64(0.0), 'max_contacts': np.float64(0.0), 'max_approach': np.float64(0.0), 'nx': np.float64(0.0), 'ny': np.float64(0.0), 'nz': np.float64(0.0), 'friction': np.float64(0.0), 'restitution': np.float64(0.0), 'force': np.float64(0.0), 'last_step_contact': np.float64(0.0)})
+[01:58:07] 8000 trials (17.5/s), wrote shard_4_003_2000.npz; teleport retries 137
+[01:58:45] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[01:58:45] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[01:59:37] recover: respawn not confirmed (pos -62.1 -30.5 -34.4, on map False, telemetry {'sub_steps': np.float64(8.0), 'contact_steps': np.float64(0.0), 'support_steps': np.float64(0.0), 'collisions': np.float64(0.0), 'max_contacts': np.float64(0.0), 'max_approach': np.float64(0.0), 'nx': np.float64(0.0), 'ny': np.float64(0.0), 'nz': np.float64(0.0), 'friction': np.float64(0.0), 'restitution': np.float64(0.0), 'force': np.float64(0.0), 'last_step_contact': np.float64(0.0)})
+[01:59:55] 10000 trials (17.7/s), wrote shard_4_004_2000.npz; teleport retries 169
+[02:00:11] recover: respawn not confirmed (pos -47.3 53.0 -37.4, on map False, telemetry {'sub_steps': np.float64(8.0), 'contact_steps': np.float64(0.0), 'support_steps': np.float64(0.0), 'collisions': np.float64(0.0), 'max_contacts': np.float64(0.0), 'max_approach': np.float64(0.0), 'nx': np.float64(0.0), 'ny': np.float64(0.0), 'nz': np.float64(0.0), 'friction': np.float64(0.0), 'restitution': np.float64(0.0), 'force': np.float64(0.0), 'last_step_contact': np.float64(0.0)})
+[02:00:26] round ended / reconnected: waiting for the next round
+[02:00:26] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[02:00:26] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[02:01:54] 12000 trials (17.5/s), wrote shard_4_005_2000.npz; teleport retries 211
+[02:02:08] round ended / reconnected: waiting for the next round
+[02:02:08] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[02:02:08] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[02:03:46] round ended / reconnected: waiting for the next round
+[02:03:46] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[02:03:46] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[02:03:48] 14000 trials (17.5/s), wrote shard_4_006_2000.npz; teleport retries 250
+[02:04:50] recover: respawn not confirmed (pos 79.5 29.9 -35.2, on map False, telemetry {'sub_steps': np.float64(8.0), 'contact_steps': np.float64(0.0), 'support_steps': np.float64(0.0), 'collisions': np.float64(0.0), 'max_contacts': np.float64(0.0), 'max_approach': np.float64(0.0), 'nx': np.float64(0.0), 'ny': np.float64(0.0), 'nz': np.float64(0.0), 'friction': np.float64(0.0), 'restitution': np.float64(0.0), 'force': np.float64(0.0), 'last_step_contact': np.float64(0.0)})
+[02:05:06] recover: respawn not confirmed (pos 71.1 -55.6 -32.2, on map False, telemetry {'sub_steps': np.float64(8.0), 'contact_steps': np.float64(0.0), 'support_steps': np.float64(0.0), 'collisions': np.float64(0.0), 'max_contacts': np.float64(0.0), 'max_approach': np.float64(0.0), 'nx': np.float64(0.0), 'ny': np.float64(0.0), 'nz': np.float64(0.0), 'friction': np.float64(0.0), 'restitution': np.float64(0.0), 'force': np.float64(0.0), 'last_step_contact': np.float64(0.0)})
+[02:05:21] round ended / reconnected: waiting for the next round
+[02:05:21] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[02:05:21] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[02:05:38] 16000 trials (17.6/s), wrote shard_4_007_2000.npz; teleport retries 273
+[02:06:07] recover: respawn not confirmed (pos -0.3 73.4 -34.8, on map False, telemetry {'sub_steps': np.float64(8.0), 'contact_steps': np.float64(0.0), 'support_steps': np.float64(0.0), 'collisions': np.float64(0.0), 'max_contacts': np.float64(0.0), 'max_approach': np.float64(0.0), 'nx': np.float64(0.0), 'ny': np.float64(0.0), 'nz': np.float64(0.0), 'friction': np.float64(0.0), 'restitution': np.float64(0.0), 'force': np.float64(0.0), 'last_step_contact': np.float64(0.0)})
+[02:07:03] round ended / reconnected: waiting for the next round
+[02:07:03] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[02:07:03] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[02:07:41] 18000 trials (17.5/s), wrote shard_4_008_2000.npz; teleport retries 307
+[02:09:09] round ended / reconnected: waiting for the next round
+[02:09:09] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[02:09:09] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[02:10:05] 20000 trials (17.0/s), wrote shard_4_009_2000.npz; teleport retries 339
+[02:10:05] finished Cragmire_Hunt_phys shard 4: 20000 trials
+[02:10:11] [env:9108] waiting for the game
+[02:10:16] [env:9108] game connected (1)
+[02:10:20] connected: ParkourPeaks_Hunt_phys, round 3600 s
+[02:12:00] round ended / reconnected: waiting for the next round
+[02:12:00] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[02:12:00] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[02:12:17] 2000 trials (17.1/s), wrote shard_5_000_2000.npz; teleport retries 2
+[02:13:39] round ended / reconnected: waiting for the next round
+[02:13:39] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[02:13:39] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[02:14:10] 4000 trials (17.4/s), wrote shard_5_001_2000.npz; teleport retries 6
+[02:15:10] round ended / reconnected: waiting for the next round
+[02:15:10] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[02:15:10] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[02:15:51] 6000 trials (18.1/s), wrote shard_5_002_2000.npz; teleport retries 15
+[02:16:40] round ended / reconnected: waiting for the next round
+[02:16:40] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[02:16:40] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[02:17:35] 8000 trials (18.4/s), wrote shard_5_003_2000.npz; teleport retries 17
+[02:18:06] round ended / reconnected: waiting for the next round
+[02:18:06] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[02:18:06] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[02:19:01] 10000 trials (19.2/s), wrote shard_5_004_2000.npz; teleport retries 21
+[02:19:17] round ended / reconnected: waiting for the next round
+[02:19:17] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[02:19:17] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[02:20:24] 12000 trials (19.9/s), wrote shard_5_005_2000.npz; teleport retries 28
+[02:20:28] round ended / reconnected: waiting for the next round
+[02:20:28] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[02:20:28] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[02:21:39] round ended / reconnected: waiting for the next round
+[02:21:39] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[02:21:39] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[02:21:46] 14000 trials (20.4/s), wrote shard_5_006_2000.npz; teleport retries 31
+[02:22:54] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[02:22:54] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[02:23:18] 16000 trials (20.6/s), wrote shard_5_007_2000.npz; teleport retries 37
+[02:24:13] round ended / reconnected: waiting for the next round
+[02:24:13] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[02:24:13] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[02:24:46] 18000 trials (20.8/s), wrote shard_5_008_2000.npz; teleport retries 40
+[02:25:33] round ended / reconnected: waiting for the next round
+[02:25:33] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[02:25:33] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[02:26:18] 20000 trials (20.9/s), wrote shard_5_009_2000.npz; teleport retries 46
+[02:26:18] finished ParkourPeaks_Hunt_phys shard 5: 20000 trials
+[02:26:24] [env:9108] waiting for the game
+[02:26:29] [env:9108] game connected (1)
+[02:26:32] connected: VortexEffect_Hunt_phys, round 3600 s
+[02:28:03] round ended / reconnected: waiting for the next round
+[02:28:03] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[02:28:03] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[02:28:16] 2000 trials (19.3/s), wrote shard_6_000_2000.npz; teleport retries 0
+[02:29:25] round ended / reconnected: waiting for the next round
+[02:29:25] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[02:29:25] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[02:29:57] 4000 trials (19.5/s), wrote shard_6_001_2000.npz; teleport retries 0
+[02:30:58] round ended / reconnected: waiting for the next round
+[02:30:58] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[02:30:58] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[02:31:44] 6000 trials (19.2/s), wrote shard_6_002_2000.npz; teleport retries 0
+[02:32:40] round ended / reconnected: waiting for the next round
+[02:32:40] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[02:32:40] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[02:33:53] 8000 trials (18.2/s), wrote shard_6_003_2000.npz; teleport retries 0
+[02:34:24] round ended / reconnected: waiting for the next round
+[02:34:24] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[02:34:24] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[02:35:49] 10000 trials (18.0/s), wrote shard_6_004_2000.npz; teleport retries 0
+[02:36:05] round ended / reconnected: waiting for the next round
+[02:36:05] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[02:36:05] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[02:37:34] 12000 trials (18.1/s), wrote shard_6_005_2000.npz; teleport retries 0
+[02:37:37] round ended / reconnected: waiting for the next round
+[02:37:37] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[02:37:37] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[02:39:18] round ended / reconnected: waiting for the next round
+[02:39:18] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[02:39:18] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[02:39:32] 14000 trials (18.0/s), wrote shard_6_006_2000.npz; teleport retries 0
+[02:40:55] round ended / reconnected: waiting for the next round
+[02:40:55] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[02:40:55] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[02:41:33] 16000 trials (17.8/s), wrote shard_6_007_2000.npz; teleport retries 0
+[02:42:35] round ended / reconnected: waiting for the next round
+[02:42:35] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[02:42:35] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[02:43:23] 18000 trials (17.8/s), wrote shard_6_008_2000.npz; teleport retries 0
+[02:44:13] round ended / reconnected: waiting for the next round
+[02:44:13] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[02:44:13] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[02:45:13] 20000 trials (17.8/s), wrote shard_6_009_2000.npz; teleport retries 0
+[02:45:13] finished VortexEffect_Hunt_phys shard 6: 20000 trials
+[02:45:17] [env:9108] waiting for the game
+[02:45:22] [env:9108] game connected (1)
+[02:45:25] connected: KingOfTheRing_Hunt_phys, round 3600 s
+[02:47:09] round ended / reconnected: waiting for the next round
+[02:47:09] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[02:47:09] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[02:47:19] 2000 trials (17.6/s), wrote shard_6_000_2000.npz; teleport retries 21
+[02:48:27] round ended / reconnected: waiting for the next round
+[02:48:27] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[02:48:27] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[02:48:46] 4000 trials (19.9/s), wrote shard_6_001_2000.npz; teleport retries 43
+[02:49:49] round ended / reconnected: waiting for the next round
+[02:49:49] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[02:49:49] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[02:50:21] 6000 trials (20.3/s), wrote shard_6_002_2000.npz; teleport retries 68
+[02:51:14] round ended / reconnected: waiting for the next round
+[02:51:14] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[02:51:14] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[02:51:54] 8000 trials (20.6/s), wrote shard_6_003_2000.npz; teleport retries 88
+[02:52:37] round ended / reconnected: waiting for the next round
+[02:52:37] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[02:52:37] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[02:53:28] 10000 trials (20.7/s), wrote shard_6_004_2000.npz; teleport retries 107
+[02:54:03] round ended / reconnected: waiting for the next round
+[02:54:03] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[02:54:03] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[02:55:05] 12000 trials (20.7/s), wrote shard_6_005_2000.npz; teleport retries 123
+[02:55:32] round ended / reconnected: waiting for the next round
+[02:55:32] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[02:55:32] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[02:56:49] 14000 trials (20.5/s), wrote shard_6_006_2000.npz; teleport retries 137
+[02:57:06] round ended / reconnected: waiting for the next round
+[02:57:06] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[02:57:06] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[02:58:33] 16000 trials (20.3/s), wrote shard_6_007_2000.npz; teleport retries 156
+[02:58:40] round ended / reconnected: waiting for the next round
+[02:58:40] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[02:58:40] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[03:00:11] round ended / reconnected: waiting for the next round
+[03:00:11] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[03:00:11] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[03:00:14] 18000 trials (20.3/s), wrote shard_6_008_2000.npz; teleport retries 173
+[03:01:45] round ended / reconnected: waiting for the next round
+[03:01:45] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[03:01:45] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[03:01:58] 20000 trials (20.1/s), wrote shard_6_009_2000.npz; teleport retries 190
+[03:01:58] finished KingOfTheRing_Hunt_phys shard 6: 20000 trials
+[03:02:05] [env:9108] waiting for the game
+[03:02:10] [env:9108] game connected (1)
+[03:02:13] connected: Duplex_Hunt_phys, round 3600 s
+[03:03:51] round ended / reconnected: waiting for the next round
+[03:03:51] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[03:03:51] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[03:04:08] 2000 trials (17.4/s), wrote shard_7_000_2000.npz; teleport retries 0
+[03:05:26] round ended / reconnected: waiting for the next round
+[03:05:26] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[03:05:26] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[03:05:56] 4000 trials (17.9/s), wrote shard_7_001_2000.npz; teleport retries 1
+[03:06:56] round ended / reconnected: waiting for the next round
+[03:06:56] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[03:06:56] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[03:07:41] 6000 trials (18.3/s), wrote shard_7_002_2000.npz; teleport retries 2
+[03:08:31] round ended / reconnected: waiting for the next round
+[03:08:31] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[03:08:31] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[03:09:23] 8000 trials (18.6/s), wrote shard_7_003_2000.npz; teleport retries 4
+[03:10:00] round ended / reconnected: waiting for the next round
+[03:10:00] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[03:10:00] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[03:11:14] 10000 trials (18.5/s), wrote shard_7_004_2000.npz; teleport retries 5
+[03:11:38] round ended / reconnected: waiting for the next round
+[03:11:38] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[03:11:38] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[03:13:08] 12000 trials (18.3/s), wrote shard_7_005_2000.npz; teleport retries 5
+[03:13:18] round ended / reconnected: waiting for the next round
+[03:13:18] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[03:13:18] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[03:14:48] round ended / reconnected: waiting for the next round
+[03:14:48] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[03:14:48] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[03:14:58] 14000 trials (18.3/s), wrote shard_7_006_2000.npz; teleport retries 5
+[03:16:19] round ended / reconnected: waiting for the next round
+[03:16:19] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[03:16:19] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[03:16:43] 16000 trials (18.4/s), wrote shard_7_007_2000.npz; teleport retries 5
+[03:17:58] round ended / reconnected: waiting for the next round
+[03:17:58] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[03:17:58] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[03:18:36] 18000 trials (18.3/s), wrote shard_7_008_2000.npz; teleport retries 5
+[03:19:35] round ended / reconnected: waiting for the next round
+[03:19:35] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[03:19:35] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[03:20:34] 20000 trials (18.2/s), wrote shard_7_009_2000.npz; teleport retries 5
+[03:20:34] finished Duplex_Hunt_phys shard 7: 20000 trials
+[03:20:38] [env:9108] waiting for the game
+[03:20:43] [env:9108] game connected (1)
+[03:20:46] connected: BasinHill_Hunt_phys, round 3600 s
+[03:22:09] round ended / reconnected: waiting for the next round
+[03:22:09] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[03:22:09] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[03:22:14] 2000 trials (22.9/s), wrote shard_8_000_2000.npz; teleport retries 0
+[03:23:24] round ended / reconnected: waiting for the next round
+[03:23:24] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[03:23:24] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[03:23:32] 4000 trials (24.2/s), wrote shard_8_001_2000.npz; teleport retries 0
+[03:24:40] round ended / reconnected: waiting for the next round
+[03:24:40] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[03:24:40] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[03:24:50] 6000 trials (24.6/s), wrote shard_8_002_2000.npz; teleport retries 0
+[03:26:04] round ended / reconnected: waiting for the next round
+[03:26:04] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[03:26:04] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[03:26:16] 8000 trials (24.3/s), wrote shard_8_003_2000.npz; teleport retries 0
+[03:27:17] round ended / reconnected: waiting for the next round
+[03:27:17] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[03:27:17] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[03:27:35] 10000 trials (24.5/s), wrote shard_8_004_2000.npz; teleport retries 0
+[03:28:39] round ended / reconnected: waiting for the next round
+[03:28:39] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[03:28:39] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[03:29:02] 12000 trials (24.2/s), wrote shard_8_005_2000.npz; teleport retries 0
+[03:30:05] round ended / reconnected: waiting for the next round
+[03:30:05] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[03:30:05] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[03:30:30] 14000 trials (24.0/s), wrote shard_8_006_2000.npz; teleport retries 0
+[03:31:31] round ended / reconnected: waiting for the next round
+[03:31:31] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[03:31:31] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[03:32:02] 16000 trials (23.7/s), wrote shard_8_007_2000.npz; teleport retries 0
+[03:33:01] round ended / reconnected: waiting for the next round
+[03:33:01] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[03:33:01] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[03:33:35] 18000 trials (23.4/s), wrote shard_8_008_2000.npz; teleport retries 0
+[03:34:30] round ended / reconnected: waiting for the next round
+[03:34:30] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[03:34:30] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[03:35:08] 20000 trials (23.2/s), wrote shard_8_009_2000.npz; teleport retries 0
+[03:35:08] finished BasinHill_Hunt_phys shard 8: 20000 trials
+[03:35:14] [env:9108] waiting for the game
+[03:35:20] [env:9108] game connected (1)
+[03:35:23] connected: KingOfTheMarble_Hunt_phys, round 3600 s
+[03:37:04] round ended / reconnected: waiting for the next round
+[03:37:04] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[03:37:04] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[03:37:13] 2000 trials (18.2/s), wrote shard_9_000_2000.npz; teleport retries 21
+[03:38:27] round ended / reconnected: waiting for the next round
+[03:38:27] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[03:38:27] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[03:38:43] 4000 trials (20.0/s), wrote shard_9_001_2000.npz; teleport retries 42
+[03:39:49] round ended / reconnected: waiting for the next round
+[03:39:49] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[03:39:49] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[03:40:12] 6000 trials (20.8/s), wrote shard_9_002_2000.npz; teleport retries 62
+[03:41:10] round ended / reconnected: waiting for the next round
+[03:41:10] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[03:41:10] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[03:41:38] 8000 trials (21.3/s), wrote shard_9_003_2000.npz; teleport retries 78
+[03:42:32] round ended / reconnected: waiting for the next round
+[03:42:32] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[03:42:32] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[03:43:09] 10000 trials (21.5/s), wrote shard_9_004_2000.npz; teleport retries 99
+[03:43:57] round ended / reconnected: waiting for the next round
+[03:43:57] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[03:43:57] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[03:44:42] 12000 trials (21.5/s), wrote shard_9_005_2000.npz; teleport retries 118
+[03:45:24] round ended / reconnected: waiting for the next round
+[03:45:24] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[03:45:24] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[03:46:11] 14000 trials (21.6/s), wrote shard_9_006_2000.npz; teleport retries 132
+[03:46:46] round ended / reconnected: waiting for the next round
+[03:46:46] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[03:46:46] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[03:47:40] 16000 trials (21.7/s), wrote shard_9_007_2000.npz; teleport retries 147
+[03:48:11] round ended / reconnected: waiting for the next round
+[03:48:11] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[03:48:11] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[03:49:15] 18000 trials (21.6/s), wrote shard_9_008_2000.npz; teleport retries 166
+[03:49:40] round ended / reconnected: waiting for the next round
+[03:49:40] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[03:49:40] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[03:50:51] 20000 trials (21.5/s), wrote shard_9_009_2000.npz; teleport retries 177
+[03:50:51] finished KingOfTheMarble_Hunt_phys shard 9: 20000 trials
+[03:50:54] [env:9108] waiting for the game
+[03:50:59] [env:9108] game connected (1)
+[03:51:02] connected: KingOfTheMarble_Hunt_phys, round 3600 s
+[03:52:35] round ended / reconnected: waiting for the next round
+[03:52:35] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[03:52:35] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[03:52:41] 2000 trials (20.3/s), wrote shard_17_000_2000.npz; teleport retries 10
+[03:53:50] round ended / reconnected: waiting for the next round
+[03:53:50] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[03:53:50] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[03:54:02] 4000 trials (22.3/s), wrote shard_17_001_2000.npz; teleport retries 23
+[03:55:05] round ended / reconnected: waiting for the next round
+[03:55:05] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[03:55:05] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[03:55:22] 6000 trials (23.1/s), wrote shard_17_002_2000.npz; teleport retries 41
+[03:56:25] round ended / reconnected: waiting for the next round
+[03:56:25] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[03:56:25] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[03:56:47] 8000 trials (23.2/s), wrote shard_17_003_2000.npz; teleport retries 52
+[03:57:46] round ended / reconnected: waiting for the next round
+[03:57:46] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[03:57:46] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[03:58:13] 10000 trials (23.2/s), wrote shard_17_004_2000.npz; teleport retries 63
+[03:59:11] round ended / reconnected: waiting for the next round
+[03:59:11] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[03:59:11] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[03:59:46] 12000 trials (22.9/s), wrote shard_17_005_2000.npz; teleport retries 76
+[04:00:35] round ended / reconnected: waiting for the next round
+[04:00:35] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[04:00:35] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[04:01:17] 14000 trials (22.8/s), wrote shard_17_006_2000.npz; teleport retries 94
+[04:02:02] round ended / reconnected: waiting for the next round
+[04:02:02] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[04:02:02] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[04:02:49] 16000 trials (22.6/s), wrote shard_17_007_2000.npz; teleport retries 106
+[04:03:28] round ended / reconnected: waiting for the next round
+[04:03:28] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[04:03:28] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[04:04:23] 18000 trials (22.5/s), wrote shard_17_008_2000.npz; teleport retries 126
+[04:04:58] round ended / reconnected: waiting for the next round
+[04:04:58] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[04:04:58] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[04:06:10] 20000 trials (22.0/s), wrote shard_17_009_2000.npz; teleport retries 155
+[04:06:10] finished KingOfTheMarble_Hunt_phys shard 17: 20000 trials
+[04:06:15] [env:9108] waiting for the game
+[04:06:20] [env:9108] game connected (1)
+[04:06:24] connected: Cragmire_Hunt_phys, round 3600 s
+[04:07:08] recover: respawn not confirmed (pos 77.7 -26.2 -35.2, on map False, telemetry {'sub_steps': np.float64(8.0), 'contact_steps': np.float64(0.0), 'support_steps': np.float64(0.0), 'collisions': np.float64(0.0), 'max_contacts': np.float64(0.0), 'max_approach': np.float64(0.0), 'nx': np.float64(0.0), 'ny': np.float64(0.0), 'nz': np.float64(0.0), 'friction': np.float64(0.0), 'restitution': np.float64(0.0), 'force': np.float64(0.0), 'last_step_contact': np.float64(0.0)})
+[04:07:09] recover: respawn not confirmed (pos -65.5 -59.2 -28.3, on map False, telemetry {'sub_steps': np.float64(8.0), 'contact_steps': np.float64(0.0), 'support_steps': np.float64(0.0), 'collisions': np.float64(0.0), 'max_contacts': np.float64(0.0), 'max_approach': np.float64(0.0), 'nx': np.float64(0.0), 'ny': np.float64(0.0), 'nz': np.float64(0.0), 'friction': np.float64(0.0), 'restitution': np.float64(0.0), 'force': np.float64(0.0), 'last_step_contact': np.float64(0.0)})
+[04:08:08] round ended / reconnected: waiting for the next round
+[04:08:08] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[04:08:08] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[04:08:22] 4000 trials (16.9/s), wrote shard_0_001_2000.npz; teleport retries 39
+[04:08:22] recover: respawn not confirmed (pos 64.7 21.1 -37.4, on map False, telemetry {'sub_steps': np.float64(8.0), 'contact_steps': np.float64(0.0), 'support_steps': np.float64(0.0), 'collisions': np.float64(0.0), 'max_contacts': np.float64(0.0), 'max_approach': np.float64(0.0), 'nx': np.float64(0.0), 'ny': np.float64(0.0), 'nz': np.float64(0.0), 'friction': np.float64(0.0), 'restitution': np.float64(0.0), 'force': np.float64(0.0), 'last_step_contact': np.float64(0.0)})
+[04:09:07] recover: respawn not confirmed (pos 72.4 -40.8 -35.5, on map False, telemetry {'sub_steps': np.float64(8.0), 'contact_steps': np.float64(0.0), 'support_steps': np.float64(0.0), 'collisions': np.float64(0.0), 'max_contacts': np.float64(0.0), 'max_approach': np.float64(0.0), 'nx': np.float64(0.0), 'ny': np.float64(0.0), 'nz': np.float64(0.0), 'friction': np.float64(0.0), 'restitution': np.float64(0.0), 'force': np.float64(0.0), 'last_step_contact': np.float64(0.0)})
+[04:09:35] round ended / reconnected: waiting for the next round
+[04:09:35] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[04:09:35] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[04:10:03] 6000 trials (18.2/s), wrote shard_0_002_2000.npz; teleport retries 76
+[04:10:54] recover: respawn not confirmed (pos 74.0 -29.6 -33.4, on map False, telemetry {'sub_steps': np.float64(8.0), 'contact_steps': np.float64(0.0), 'support_steps': np.float64(0.0), 'collisions': np.float64(0.0), 'max_contacts': np.float64(0.0), 'max_approach': np.float64(0.0), 'nx': np.float64(0.0), 'ny': np.float64(0.0), 'nz': np.float64(0.0), 'friction': np.float64(0.0), 'restitution': np.float64(0.0), 'force': np.float64(0.0), 'last_step_contact': np.float64(0.0)})
+[04:11:02] round ended / reconnected: waiting for the next round
+[04:11:02] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[04:11:02] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[04:11:41] 8000 trials (18.9/s), wrote shard_0_003_2000.npz; teleport retries 111
+[04:12:28] round ended / reconnected: waiting for the next round
+[04:12:28] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[04:12:28] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[04:12:31] recover: respawn not confirmed (pos -66.2 47.7 -35.2, on map False, telemetry {'sub_steps': np.float64(8.0), 'contact_steps': np.float64(0.0), 'support_steps': np.float64(0.0), 'collisions': np.float64(0.0), 'max_contacts': np.float64(0.0), 'max_approach': np.float64(0.0), 'nx': np.float64(0.0), 'ny': np.float64(0.0), 'nz': np.float64(0.0), 'friction': np.float64(0.0), 'restitution': np.float64(0.0), 'force': np.float64(0.0), 'last_step_contact': np.float64(0.0)})
+[04:12:54] recover: respawn not confirmed (pos 87.9 -9.7 -35.5, on map False, telemetry {'sub_steps': np.float64(8.0), 'contact_steps': np.float64(0.0), 'support_steps': np.float64(0.0), 'collisions': np.float64(0.0), 'max_contacts': np.float64(0.0), 'max_approach': np.float64(0.0), 'nx': np.float64(0.0), 'ny': np.float64(0.0), 'nz': np.float64(0.0), 'friction': np.float64(0.0), 'restitution': np.float64(0.0), 'force': np.float64(0.0), 'last_step_contact': np.float64(0.0)})
+[04:13:19] 10000 trials (19.3/s), wrote shard_0_004_2000.npz; teleport retries 146
+[04:13:22] recover: respawn not confirmed (pos -85.7 16.2 -35.5, on map False, telemetry {'sub_steps': np.float64(8.0), 'contact_steps': np.float64(0.0), 'support_steps': np.float64(0.0), 'collisions': np.float64(0.0), 'max_contacts': np.float64(0.0), 'max_approach': np.float64(0.0), 'nx': np.float64(0.0), 'ny': np.float64(0.0), 'nz': np.float64(0.0), 'friction': np.float64(0.0), 'restitution': np.float64(0.0), 'force': np.float64(0.0), 'last_step_contact': np.float64(0.0)})
+[04:13:56] round ended / reconnected: waiting for the next round
+[04:13:56] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[04:13:56] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[04:14:21] recover: respawn not confirmed (pos 68.5 -62.8 -34.3, on map False, telemetry {'sub_steps': np.float64(8.0), 'contact_steps': np.float64(0.0), 'support_steps': np.float64(0.0), 'collisions': np.float64(0.0), 'max_contacts': np.float64(0.0), 'max_approach': np.float64(0.0), 'nx': np.float64(0.0), 'ny': np.float64(0.0), 'nz': np.float64(0.0), 'friction': np.float64(0.0), 'restitution': np.float64(0.0), 'force': np.float64(0.0), 'last_step_contact': np.float64(0.0)})
+[04:14:56] 12000 trials (19.5/s), wrote shard_0_005_2000.npz; teleport retries 175
+[04:15:18] round ended / reconnected: waiting for the next round
+[04:15:18] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[04:15:18] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[04:16:27] 14000 trials (19.9/s), wrote shard_0_006_2000.npz; teleport retries 206
+[04:16:28] recover: respawn not confirmed (pos -81.8 -19.2 -35.5, on map False, telemetry {'sub_steps': np.float64(8.0), 'contact_steps': np.float64(0.0), 'support_steps': np.float64(0.0), 'collisions': np.float64(0.0), 'max_contacts': np.float64(0.0), 'max_approach': np.float64(0.0), 'nx': np.float64(0.0), 'ny': np.float64(0.0), 'nz': np.float64(0.0), 'friction': np.float64(0.0), 'restitution': np.float64(0.0), 'force': np.float64(0.0), 'last_step_contact': np.float64(0.0)})
+[04:16:37] round ended / reconnected: waiting for the next round
+[04:16:37] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[04:16:37] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[04:17:54] round ended / reconnected: waiting for the next round
+[04:17:54] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[04:17:54] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[04:17:56] 16000 trials (20.2/s), wrote shard_0_007_2000.npz; teleport retries 240
+[04:18:19] recover: respawn not confirmed (pos 86.4 -4.1 -35.5, on map False, telemetry {'sub_steps': np.float64(8.0), 'contact_steps': np.float64(0.0), 'support_steps': np.float64(0.0), 'collisions': np.float64(0.0), 'max_contacts': np.float64(0.0), 'max_approach': np.float64(0.0), 'nx': np.float64(0.0), 'ny': np.float64(0.0), 'nz': np.float64(0.0), 'friction': np.float64(0.0), 'restitution': np.float64(0.0), 'force': np.float64(0.0), 'last_step_contact': np.float64(0.0)})
+[04:19:12] round ended / reconnected: waiting for the next round
+[04:19:12] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[04:19:12] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[04:19:27] 18000 trials (20.4/s), wrote shard_0_008_2000.npz; teleport retries 281
+[04:20:18] recover: respawn not confirmed (pos -52.3 -42.4 -36.7, on map False, telemetry {'sub_steps': np.float64(8.0), 'contact_steps': np.float64(0.0), 'support_steps': np.float64(0.0), 'collisions': np.float64(0.0), 'max_contacts': np.float64(0.0), 'max_approach': np.float64(0.0), 'nx': np.float64(0.0), 'ny': np.float64(0.0), 'nz': np.float64(0.0), 'friction': np.float64(0.0), 'restitution': np.float64(0.0), 'force': np.float64(0.0), 'last_step_contact': np.float64(0.0)})
+[04:20:29] round ended / reconnected: waiting for the next round
+[04:20:29] [env:9108] round over (time left 3600s of 3600s); waiting for the next round
+[04:20:29] [env:9108] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[04:20:50] recover: respawn not confirmed (pos -85.9 5.9 -35.2, on map False, telemetry {'sub_steps': np.float64(8.0), 'contact_steps': np.float64(0.0), 'support_steps': np.float64(0.0), 'collisions': np.float64(0.0), 'max_contacts': np.float64(0.0), 'max_approach': np.float64(0.0), 'nx': np.float64(0.0), 'ny': np.float64(0.0), 'nz': np.float64(0.0), 'friction': np.float64(0.0), 'restitution': np.float64(0.0), 'force': np.float64(0.0), 'last_step_contact': np.float64(0.0)})
+[04:20:56] 20000 trials (20.6/s), wrote shard_0_009_2000.npz; teleport retries 315
+[04:20:56] finished Cragmire_Hunt_phys shard 0: 20000 trials

@@ -120,6 +120,16 @@ function AIObserver::collectSelfState(%obs) {
     %obs.selfSpinY = %worldSpinX * %sinYaw + %worldSpinY * %cosYaw;
     %obs.selfSpinZ = getWord(%spin, 2) + 0;
 
+    // Full precision (operator, 2026-09-28): with the frame pinned to the world (yaw 0) the rotation above is the
+    // identity, but TorqueScript arithmetic re-prints every result with ~6 significant digits (0.001 u once a
+    // coordinate passes 100). Pass the engine's own strings through instead: position to 6 decimals, velocity and
+    // spin to 7 significant digits.
+    if (%yawRad == 0) {
+        %obs.selfPosX = getWord(%pos, 0);  %obs.selfPosY = getWord(%pos, 1);  %obs.selfPosZ = getWord(%pos, 2);
+        %obs.selfVelX = getWord(%vel, 0);  %obs.selfVelY = getWord(%vel, 1);  %obs.selfVelZ = getWord(%vel, 2);
+        %obs.selfSpinX = getWord(%spin, 0); %obs.selfSpinY = getWord(%spin, 1); %obs.selfSpinZ = getWord(%spin, 2);
+    }
+
     // Collision radius, powerup and mega-marble state: NOT collected.
     // None of these are serialized (see serializeToJSON), and the two
     // $MP::MyMarble.isMegaMarble() calls made the engine print
@@ -566,6 +576,11 @@ function AIObserver::serializeToJSON(%obs) {
     // Spin (3 values, NAV_OBS_V6, 2026-09-26): appended last so indices 0-34 are unchanged
     %json = %json @ "," @ AIObserver::safeNum(%obs.selfSpinX) @ "," @ AIObserver::safeNum(%obs.selfSpinY)
                   @ "," @ AIObserver::safeNum(%obs.selfSpinZ);
+
+    // Contact telemetry (13 values, 2026-09-27, jump physics stage 3): only after the CONTACT control word
+    // (mlAgent.cs), so the 38 numbers above are untouched. Each read covers the physics since the last one.
+    if ($AIObserver::ContactTelemetry && isObject($MP::MyMarble))
+        %json = %json @ "," @ strReplace($MP::MyMarble.getContactTelemetry(), " ", ",");
 
     %json = %json @ "]";
 

@@ -1,0 +1,5 @@
+[23:43:09] [env:8991] waiting for the game
+[23:43:13] [env:8991] game connected (1)
+[23:43:16] connected: Sprawl_Hunt_phys, round 3600 s
+[23:43:28] 300 trials (26.3/s), wrote shard_99_000_300.npz; teleport retries 0
+[23:43:28] finished Sprawl_Hunt_phys shard 99: 300 trials

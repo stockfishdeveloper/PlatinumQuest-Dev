@@ -1,0 +1,47 @@
+[23:49:25] [env:9102] waiting for the game
+[23:49:31] [env:9102] game connected (1)
+[23:49:38] connected: VortexEffect_Hunt_phys, round 3600 s
+[23:51:19] round ended / reconnected: waiting for the next round
+[23:51:19] [env:9102] round over (time left 3600s of 3600s); waiting for the next round
+[23:51:19] [env:9102] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[23:51:38] 2000 trials (16.7/s), wrote shard_0_000_2000.npz; teleport retries 0
+[23:53:05] round ended / reconnected: waiting for the next round
+[23:53:05] [env:9102] round over (time left 3600s of 3600s); waiting for the next round
+[23:53:05] [env:9102] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[23:53:47] 4000 trials (16.1/s), wrote shard_0_001_2000.npz; teleport retries 0
+[23:55:03] round ended / reconnected: waiting for the next round
+[23:55:03] [env:9102] round over (time left 3600s of 3600s); waiting for the next round
+[23:55:03] [env:9102] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[23:55:58] 6000 trials (15.8/s), wrote shard_0_002_2000.npz; teleport retries 0
+[23:56:56] round ended / reconnected: waiting for the next round
+[23:56:56] [env:9102] round over (time left 3600s of 3600s); waiting for the next round
+[23:56:56] [env:9102] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[23:58:17] 8000 trials (15.4/s), wrote shard_0_003_2000.npz; teleport retries 0
+[23:58:53] round ended / reconnected: waiting for the next round
+[23:58:53] [env:9102] round over (time left 3600s of 3600s); waiting for the next round
+[23:58:53] [env:9102] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[00:00:23] 10000 trials (15.5/s), wrote shard_0_004_2000.npz; teleport retries 0
+[00:00:42] round ended / reconnected: waiting for the next round
+[00:00:42] [env:9102] round over (time left 3600s of 3600s); waiting for the next round
+[00:00:42] [env:9102] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[00:02:25] 12000 trials (15.6/s), wrote shard_0_005_2000.npz; teleport retries 0
+[00:02:29] round ended / reconnected: waiting for the next round
+[00:02:29] [env:9102] round over (time left 3600s of 3600s); waiting for the next round
+[00:02:29] [env:9102] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[00:04:14] round ended / reconnected: waiting for the next round
+[00:04:14] [env:9102] round over (time left 3600s of 3600s); waiting for the next round
+[00:04:14] [env:9102] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[00:04:30] 14000 trials (15.7/s), wrote shard_0_006_2000.npz; teleport retries 0
+[00:05:52] round ended / reconnected: waiting for the next round
+[00:05:52] [env:9102] round over (time left 3600s of 3600s); waiting for the next round
+[00:05:52] [env:9102] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[00:06:24] 16000 trials (15.9/s), wrote shard_0_007_2000.npz; teleport retries 0
+[00:07:41] round ended / reconnected: waiting for the next round
+[00:07:41] [env:9102] round over (time left 3600s of 3600s); waiting for the next round
+[00:07:41] [env:9102] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[00:08:29] 18000 trials (15.9/s), wrote shard_0_008_2000.npz; teleport retries 0
+[00:09:30] round ended / reconnected: waiting for the next round
+[00:09:30] [env:9102] round over (time left 3600s of 3600s); waiting for the next round
+[00:09:30] [env:9102] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[00:10:39] 20000 trials (15.9/s), wrote shard_0_009_2000.npz; teleport retries 0
+[00:10:39] finished VortexEffect_Hunt_phys shard 0: 20000 trials

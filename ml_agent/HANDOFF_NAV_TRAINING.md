@@ -6,7 +6,7 @@ it here. The dated history of every experiment (sections 1 to 28.x, 2026-09-17 t
 `docs/HANDOFF_NAV_TRAINING_LOG.md`. Code comments that cite "HANDOFF 28.52" and the like point into that
 log, and new dated entries go there too.
 
-Last updated: 2026-09-27 18:30 (jump physics P0).
+Last updated: 2026-09-28 05:10 (jump physics stage 3).
 
 ## 1. Where things stand
 
@@ -40,7 +40,12 @@ Last updated: 2026-09-27 18:30 (jump physics P0).
   one kotmjump hole, chose a jump that collected the floating gem and landed safely on 67.7 % of 251 feasible
   held-out starts, against 18.7 % for the best simple rule. Separate code (`nav/learned_nav/`); the PPO navigator
   and its checkpoints are untouched. M0 on kotmjump: the navigator scores 4.6 points a round and stalls after its
-  first three gems. Details: log section 29 and `KOTMJUMP_START_HERE.md`. Next (needs the operator): stage 3.
+  first three gems. Details: log section 29 and `KOTMJUMP_START_HERE.md`.
+* **Jump physics stage 3 (2026-09-27/28 night): built and run.** Engine contact telemetry (mbx, local commits), 13
+  verified practice maps, 2.42 M recorded trials, a step model with collision branches (one-step error 0.003 u, the
+  same on two never-trained maps; 1 s rollouts 0.4 u) and a flight model. P0's held-out test chosen by the general
+  models together: 52 % (P0's own model 68 %, the fixed rule 19 %). M1 passed; M2 met with two notes (keep both
+  collision branches in planning; heavy error tails). Log section 30; `nav/learned_nav/`. Next (operator): stage 4.
 
 ## 2. Spin A/B (2026-09-26 22:00-22:40, 3x, 8 rounds per arm)
 

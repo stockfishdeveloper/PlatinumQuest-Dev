@@ -1,0 +1,54 @@
+[env:9011] waiting for the game
+[env:9011] game connected (1)
+connected: KingOfTheMarble_Hunt_phys, round 3600 s
+repeat 0 {'family': 'jump_switch', 'kind': 'floor', 'max_dp': 4.482269287109375e-05, 'events_agree': True, 'oob_decision_spread': 1, 'ok': True}
+repeat 1 {'family': 'jump', 'kind': 'air', 'max_dp': 0.0, 'events_agree': True, 'oob_decision_spread': 0, 'ok': True}
+repeat 2 {'family': 'roll', 'kind': 'air', 'max_dp': 0.0, 'events_agree': True, 'oob_decision_spread': 0, 'ok': True}
+repeat 3 {'family': 'none', 'kind': 'floor', 'max_dp': 0.0, 'events_agree': True, 'oob_decision_spread': 0, 'ok': True}
+repeat 4 {'family': 'switch', 'kind': 'slip', 'max_dp': 0.0, 'events_agree': True, 'oob_decision_spread': 0, 'ok': True}
+repeat 5 {'family': 'brake', 'kind': 'floor', 'max_dp': 0.0, 'events_agree': True, 'oob_decision_spread': 0, 'ok': True}
+repeat 6 {'family': 'jump', 'kind': 'floor', 'max_dp': 0.0, 'events_agree': True, 'oob_decision_spread': 0, 'ok': True}
+repeat 7 {'family': 'switch', 'kind': 'floor', 'max_dp': 0.0, 'events_agree': True, 'oob_decision_spread': 0, 'ok': True}
+repeat 8 {'family': 'jump', 'kind': 'slip', 'max_dp': 0.0, 'events_agree': True, 'oob_decision_spread': 0, 'ok': True}
+repeat 9 {'family': 'roll', 'kind': 'floor', 'max_dp': 0.0, 'events_agree': True, 'oob_decision_spread': 0, 'ok': True}
+natural 1 {'family': 'switch', 't': 5, 'airborne_at_cut': False, 'max_err': 0.00026261565687414975, 'nudged_replay_max_diff': 0.0012997905716462745, 'err_at_5': 0.00011088899119376094, 'ok': True}
+natural 2 {'family': 'switch', 't': 8, 'airborne_at_cut': False, 'max_err': 0.00017344554260788356, 'nudged_replay_max_diff': 0.0, 'err_at_5': 0.0001125982066585193, 'ok': True}
+natural 3 {'family': 'roll', 't': 8, 'airborne_at_cut': False, 'max_err': 9.918212890625e-05, 'nudged_replay_max_diff': 0.0, 'err_at_5': 9.918212890625e-05, 'ok': True}
+natural 4 {'family': 'jump', 't': 8, 'airborne_at_cut': True, 'max_err': 0.00014296211014895254, 'nudged_replay_max_diff': 0.0001010894775390625, 'err_at_5': 0.0, 'ok': True}
+natural 5 {'family': 'jump_switch', 't': 20, 'airborne_at_cut': True, 'max_err': 0.00015020975978696674, 'nudged_replay_max_diff': 0.0, 'err_at_5': 0.00015020975978696674, 'ok': True}
+natural 6 {'family': 'jump', 't': 6, 'airborne_at_cut': False, 'max_err': 0.0001010894775390625, 'nudged_replay_max_diff': 9.918212890625e-05, 'err_at_5': 0.0001010894775390625, 'ok': True}
+natural 7 {'family': 'jump', 't': 10, 'airborne_at_cut': True, 'max_err': 0.00014094067468769448, 'nudged_replay_max_diff': 0.0001010894775390625, 'err_at_5': 0.0, 'ok': True}
+natural 8 {'family': 'jump', 't': 6, 'airborne_at_cut': True, 'max_err': 0.00010105798338680725, 'nudged_replay_max_diff': 0.0, 'err_at_5': 3.0040740966796875e-05, 'ok': True}
+natural 9 {'family': 'jump', 't': 6, 'airborne_at_cut': True, 'max_err': 0.00014296211014895254, 'nudged_replay_max_diff': 0.0, 'err_at_5': 9.918212890625e-05, 'ok': True}
+natural 10 {'family': 'switch', 't': 23, 'airborne_at_cut': False, 'max_err': 0.00014161983322789437, 'nudged_replay_max_diff': 0.0, 'err_at_5': 0.00014161983322789437, 'ok': True}
+natural 11 {'family': 'roll', 't': 22, 'airborne_at_cut': False, 'max_err': 0.00014161983322789437, 'nudged_replay_max_diff': 0.0, 'err_at_5': 0.0, 'ok': True}
+natural 12 {'family': 'roll', 't': 11, 'airborne_at_cut': False, 'max_err': 0.00031575262263843537, 'nudged_replay_max_diff': 0.00017565479713815558, 'err_at_5': 0.0001030542072532824, 'ok': True}
+natural 13 {'family': 'switch', 't': 21, 'airborne_at_cut': False, 'max_err': 0.00014431711149617726, 'nudged_replay_max_diff': 9.918212890625e-05, 'err_at_5': 0.0, 'ok': True}
+natural 14 {'family': 'roll', 't': 17, 'airborne_at_cut': False, 'max_err': 0.00017228015003957286, 'nudged_replay_max_diff': 0.0, 'err_at_5': 1.996755599975586e-06, 'ok': True}
+natural 15 {'family': 'roll', 't': 5, 'airborne_at_cut': False, 'max_err': 0.0011005422271497564, 'nudged_replay_max_diff': 0.00037544863075137774, 'err_at_5': 0.0001886371654973267, 'ok': True}
+natural 16 {'family': 'switch', 't': 17, 'airborne_at_cut': False, 'max_err': 0.00012145127602058693, 'nudged_replay_max_diff': 0.0, 'err_at_5': 0.0, 'ok': True}
+natural 17 {'family': 'roll', 't': 5, 'airborne_at_cut': False, 'max_err': 0.00011677741030860072, 'nudged_replay_max_diff': 5.0067901611328125e-05, 'err_at_5': 4.00543212890625e-05, 'ok': True}
+natural 18 {'family': 'jump', 't': 13, 'airborne_at_cut': True, 'max_err': 0.0001717275915657912, 'nudged_replay_max_diff': 0.00010696468271491969, 'err_at_5': 5.0067901611328125e-05, 'ok': True}
+natural 19 {'family': 'jump', 't': 9, 'airborne_at_cut': True, 'max_err': 0.00015801738801837415, 'nudged_replay_max_diff': 0.0001010894775390625, 'err_at_5': 6.008148193359375e-05, 'ok': True}
+natural 20 {'family': 'jump', 't': 7, 'airborne_at_cut': True, 'max_err': 0.00017401877941828985, 'nudged_replay_max_diff': 0.0, 'err_at_5': 6.008148193359375e-05, 'ok': True}
+natural 21 {'family': 'switch', 't': 6, 'airborne_at_cut': False, 'max_err': 0.0023078902693814025, 'nudged_replay_max_diff': 0.0, 'err_at_5': 0.0010436217134189155, 'ok': True}
+natural 22 {'family': 'switch', 't': 5, 'airborne_at_cut': True, 'max_err': 0.0001422893585485828, 'nudged_replay_max_diff': 0.0, 'err_at_5': 0.0, 'ok': True}
+natural 23 {'family': 'jump_switch', 't': 10, 'airborne_at_cut': True, 'max_err': 0.0001010894775390625, 'nudged_replay_max_diff': 0.0, 'err_at_5': 9.918212890625e-05, 'ok': True}
+natural 24 {'family': 'jump_switch', 't': 15, 'airborne_at_cut': True, 'max_err': 0.00011452135597014676, 'nudged_replay_max_diff': 0.003623677112304575, 'err_at_5': 0.00011110305786132812, 'ok': True}
+natural 25 {'family': 'jump_switch', 't': 16, 'airborne_at_cut': True, 'max_err': 0.002910262770351419, 'nudged_replay_max_diff': 0.0, 'err_at_5': 0.00014026471184425533, 'ok': True}
+natural 26 {'family': 'switch', 't': 14, 'airborne_at_cut': False, 'max_err': 0.0002234855947092835, 'nudged_replay_max_diff': 0.0, 'err_at_5': 9.963957127844984e-05, 'ok': True}
+natural 27 {'family': 'jump_switch', 't': 8, 'airborne_at_cut': True, 'max_err': 0.0001010894775390625, 'nudged_replay_max_diff': 0.0, 'err_at_5': 0.0, 'ok': True}
+natural 28 {'family': 'jump', 't': 5, 'airborne_at_cut': True, 'max_err': 0.00011306672765139939, 'nudged_replay_max_diff': 9.918212890625e-05, 'err_at_5': 0.00010454484781604841, 'ok': True}
+natural 29 {'family': 'jump_switch', 't': 18, 'airborne_at_cut': True, 'max_err': 9.918212890625e-05, 'nudged_replay_max_diff': 0.0, 'err_at_5': 1.0013580322265625e-05, 'ok': True}
+natural 30 {'family': 'switch', 't': 18, 'airborne_at_cut': False, 'max_err': 0.00014431711149617726, 'nudged_replay_max_diff': 0.0, 'err_at_5': 0.0001010894775390625, 'ok': True}
+natural 31 {'family': 'jump', 't': 8, 'airborne_at_cut': True, 'max_err': 0.00014094067468769448, 'nudged_replay_max_diff': 0.0, 'err_at_5': 9.5367431640625e-06, 'ok': True}
+natural 32 {'family': 'switch', 't': 10, 'airborne_at_cut': False, 'max_err': 0.00017344554260788356, 'nudged_replay_max_diff': 0.00022263138314828677, 'err_at_5': 0.00010873560191146259, 'ok': True}
+natural 33 {'family': 'switch', 't': 7, 'airborne_at_cut': True, 'max_err': 0.006651813479418195, 'nudged_replay_max_diff': 0.0, 'err_at_5': 0.0009275932738014448, 'ok': True}
+natural 34 {'family': 'jump_switch', 't': 5, 'airborne_at_cut': True, 'max_err': 0.00014431711149617726, 'nudged_replay_max_diff': 0.0, 'err_at_5': 0.0, 'ok': True}
+natural 35 {'family': 'roll', 't': 10, 'airborne_at_cut': False, 'max_err': 0.0006091023117840891, 'nudged_replay_max_diff': 0.00014849171542474305, 'err_at_5': 0.0001458716492080604, 'ok': True}
+natural 36 {'family': 'roll', 't': 5, 'airborne_at_cut': False, 'max_err': 0.00022391046298740188, 'nudged_replay_max_diff': 0.0, 'err_at_5': 0.00014365070584068136, 'ok': True}
+natural 37 {'family': 'jump', 't': 13, 'airborne_at_cut': True, 'max_err': 0.00014161341099660395, 'nudged_replay_max_diff': 0.0001010894775390625, 'err_at_5': 0.0, 'ok': True}
+natural 38 {'family': 'roll', 't': 19, 'airborne_at_cut': False, 'max_err': 0.0001717884864684708, 'nudged_replay_max_diff': 0.0, 'err_at_5': 0.0, 'ok': True}
+natural 39 {'family': 'jump', 't': 10, 'airborne_at_cut': True, 'max_err': 0.000111499947757396, 'nudged_replay_max_diff': 0.0, 'err_at_5': 0.00010363175580974289, 'ok': True}
+natural 40 {'family': 'jump', 't': 14, 'airborne_at_cut': True, 'max_err': 4.00543212890625e-05, 'nudged_replay_max_diff': 0.00011596067939483945, 'err_at_5': 2.956390380859375e-05, 'ok': True}
+KingOfTheMarble_Hunt_phys: repeats 10/10; natural replay 40/40 within 0.02 u (max error median 0.0001436396108225649, p95 0.0023380088944299016); nudged replays over the tolerance 0, nudged p95 0.0004216657277961199

@@ -1,0 +1,167 @@
+{
+ "KingOfTheMarble_Hunt_phys": {
+  "n": 3000,
+  "release_signed_u": {
+   "p5": -0.08461998749647967,
+   "median": 0.028206229209899902,
+   "p95": 0.09541401863098137
+  },
+  "first_unsupported_signed_u": {
+   "p5": 0.19609336853027343,
+   "median": 0.6590752601623535,
+   "p95": 1.378570842742919
+  },
+  "release_within_0_to_0.25u": 0.9443333333333334,
+  "speed_across_median": 7.38501501083374
+ },
+ "VortexEffect_Hunt_phys": {
+  "n": 3000,
+  "release_signed_u": {
+   "p5": -0.3745157480239868,
+   "median": 0.027914196252822876,
+   "p95": 0.08991398811340325
+  },
+  "first_unsupported_signed_u": {
+   "p5": 0.12469549179077148,
+   "median": 0.5685491561889648,
+   "p95": 1.3501227378845213
+  },
+  "release_within_0_to_0.25u": 0.9246666666666666,
+  "speed_across_median": 6.482850074768066
+ },
+ "GemsInTheRoad_Hunt_phys": {
+  "n": 3000,
+  "release_signed_u": {
+   "p5": -0.14109987888471948,
+   "median": 0.029805481433868408,
+   "p95": 0.0866567641496658
+  },
+  "first_unsupported_signed_u": {
+   "p5": 0.18769685924053195,
+   "median": 0.637315034866333,
+   "p95": 1.4138092994689941
+  },
+  "release_within_0_to_0.25u": 0.9353333333333333,
+  "speed_across_median": 7.058715105056763
+ },
+ "Tilo_Hunt_phys": {
+  "n": 3000,
+  "release_signed_u": {
+   "p5": 0.004473042488098145,
+   "median": 0.03257113695144653,
+   "p95": 0.0965152502059936
+  },
+  "first_unsupported_signed_u": {
+   "p5": 0.20566742420196535,
+   "median": 0.6875996589660645,
+   "p95": 1.394620132446289
+  },
+  "release_within_0_to_0.25u": 0.9696666666666667,
+  "speed_across_median": 7.258840084075928
+ },
+ "BasinHill_Hunt_phys": {
+  "n": 3000,
+  "release_signed_u": {
+   "p5": -0.2137251615524291,
+   "median": 0.02901405096054077,
+   "p95": 0.09473752975463853
+  },
+  "first_unsupported_signed_u": {
+   "p5": 0.0732049465179445,
+   "median": 0.5983599424362183,
+   "p95": 1.3524665832519527
+  },
+  "release_within_0_to_0.25u": 0.9293333333333333,
+  "speed_across_median": 6.4872400760650635
+ },
+ "ParkourPeaks_Hunt_phys": {
+  "n": 3000,
+  "release_signed_u": {
+   "p5": 0.005225133895874023,
+   "median": 0.032921165227890015,
+   "p95": 0.09420335292816161
+  },
+  "first_unsupported_signed_u": {
+   "p5": 0.1770907878875733,
+   "median": 0.6904001235961914,
+   "p95": 1.4360599040985105
+  },
+  "release_within_0_to_0.25u": 0.964,
+  "speed_across_median": 7.51040506362915
+ },
+ "Duplex_Hunt_phys": {
+  "n": 3000,
+  "release_signed_u": {
+   "p5": 0.001969447731971744,
+   "median": 0.03263005405392505,
+   "p95": 0.09000616075040423
+  },
+  "first_unsupported_signed_u": {
+   "p5": 0.1988365110009909,
+   "median": 0.704015851020813,
+   "p95": 1.460054016113281
+  },
+  "release_within_0_to_0.25u": 0.9553333333333334,
+  "speed_across_median": 7.783275127410889
+ },
+ "Cragmire_Hunt_phys": {
+  "n": 3000,
+  "release_signed_u": {
+   "p5": -0.009507989883422848,
+   "median": 0.03219980001449585,
+   "p95": 0.10628612140092773
+  },
+  "first_unsupported_signed_u": {
+   "p5": 0.19251106976396648,
+   "median": 0.6618057168121823,
+   "p95": 1.3933641415173372
+  },
+  "release_within_0_to_0.25u": 0.9406666666666667,
+  "speed_across_median": 7.074458387647802
+ },
+ "Sprawl_Hunt_phys": {
+  "n": 3000,
+  "release_signed_u": {
+   "p5": -0.197508430480957,
+   "median": 0.03130149841308594,
+   "p95": 0.09277973175048826
+  },
+  "first_unsupported_signed_u": {
+   "p5": 0.033473730087280294,
+   "median": 0.6669492721557617,
+   "p95": 1.4188003540039062
+  },
+  "release_within_0_to_0.25u": 0.93,
+  "speed_across_median": 7.352859973907471
+ },
+ "KingOfTheRing_Hunt_phys": {
+  "n": 3000,
+  "release_signed_u": {
+   "p5": -0.06357200446368855,
+   "median": 0.06687223831656963,
+   "p95": 0.16961041819397538
+  },
+  "first_unsupported_signed_u": {
+   "p5": 0.1649995028972626,
+   "median": 0.5844099695825804,
+   "p95": 1.3388063133368002
+  },
+  "release_within_0_to_0.25u": 0.856,
+  "speed_across_median": 5.99106892646121
+ },
+ "MaximoCenter_Hunt_phys": {
+  "n": 3000,
+  "release_signed_u": {
+   "p5": -0.025834274291992185,
+   "median": 0.033475637435913086,
+   "p95": 0.09947072267532343
+  },
+  "first_unsupported_signed_u": {
+   "p5": 0.16812553405761724,
+   "median": 0.6366481781005859,
+   "p95": 1.4243461608886716
+  },
+  "release_within_0_to_0.25u": 0.952,
+  "speed_across_median": 6.861884832382202
+ }
+}

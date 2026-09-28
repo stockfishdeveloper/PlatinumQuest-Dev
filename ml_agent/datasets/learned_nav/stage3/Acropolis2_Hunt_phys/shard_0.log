@@ -1,0 +1,44 @@
+[00:08:48] [env:9104] waiting for the game
+[00:08:54] [env:9104] game connected (1)
+[00:08:57] connected: Acropolis2_Hunt_phys, round 3600 s
+[00:10:48] round ended / reconnected: waiting for the next round
+[00:10:48] [env:9104] round over (time left 3600s of 3600s); waiting for the next round
+[00:10:48] [env:9104] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[00:10:52] 2000 trials (17.3/s), wrote shard_0_000_2000.npz; teleport retries 0
+[00:12:21] round ended / reconnected: waiting for the next round
+[00:12:21] [env:9104] round over (time left 3600s of 3600s); waiting for the next round
+[00:12:21] [env:9104] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[00:12:25] 4000 trials (19.2/s), wrote shard_0_001_2000.npz; teleport retries 0
+[00:13:50] round ended / reconnected: waiting for the next round
+[00:13:50] [env:9104] round over (time left 3600s of 3600s); waiting for the next round
+[00:13:50] [env:9104] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[00:13:57] 6000 trials (20.0/s), wrote shard_0_002_2000.npz; teleport retries 0
+[00:15:21] round ended / reconnected: waiting for the next round
+[00:15:21] [env:9104] round over (time left 3600s of 3600s); waiting for the next round
+[00:15:21] [env:9104] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[00:15:32] 8000 trials (20.2/s), wrote shard_0_003_2000.npz; teleport retries 0
+[00:16:56] round ended / reconnected: waiting for the next round
+[00:16:56] [env:9104] round over (time left 3600s of 3600s); waiting for the next round
+[00:16:56] [env:9104] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[00:17:12] 10000 trials (20.2/s), wrote shard_0_004_2000.npz; teleport retries 0
+[00:18:27] round ended / reconnected: waiting for the next round
+[00:18:27] [env:9104] round over (time left 3600s of 3600s); waiting for the next round
+[00:18:27] [env:9104] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[00:18:46] 12000 trials (20.4/s), wrote shard_0_005_2000.npz; teleport retries 0
+[00:20:02] round ended / reconnected: waiting for the next round
+[00:20:02] [env:9104] round over (time left 3600s of 3600s); waiting for the next round
+[00:20:02] [env:9104] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[00:20:21] 14000 trials (20.4/s), wrote shard_0_006_2000.npz; teleport retries 0
+[00:21:29] round ended / reconnected: waiting for the next round
+[00:21:29] [env:9104] round over (time left 3600s of 3600s); waiting for the next round
+[00:21:29] [env:9104] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[00:21:51] 16000 trials (20.7/s), wrote shard_0_007_2000.npz; teleport retries 0
+[00:22:58] round ended / reconnected: waiting for the next round
+[00:22:58] [env:9104] round over (time left 3600s of 3600s); waiting for the next round
+[00:22:58] [env:9104] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[00:23:22] 18000 trials (20.8/s), wrote shard_0_008_2000.npz; teleport retries 0
+[00:24:37] round ended / reconnected: waiting for the next round
+[00:24:37] [env:9104] round over (time left 3600s of 3600s); waiting for the next round
+[00:24:37] [env:9104] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[00:25:03] 20000 trials (20.7/s), wrote shard_0_009_2000.npz; teleport retries 0
+[00:25:03] finished Acropolis2_Hunt_phys shard 0: 20000 trials

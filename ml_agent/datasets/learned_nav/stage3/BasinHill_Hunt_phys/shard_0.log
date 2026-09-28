@@ -1,0 +1,44 @@
+[23:49:26] [env:9105] waiting for the game
+[23:49:32] [env:9105] game connected (1)
+[23:49:39] connected: BasinHill_Hunt_phys, round 3600 s
+[23:51:16] round ended / reconnected: waiting for the next round
+[23:51:16] [env:9105] round over (time left 3600s of 3600s); waiting for the next round
+[23:51:16] [env:9105] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[23:51:23] 2000 trials (19.3/s), wrote shard_0_000_2000.npz; teleport retries 0
+[23:52:53] round ended / reconnected: waiting for the next round
+[23:52:53] [env:9105] round over (time left 3600s of 3600s); waiting for the next round
+[23:52:53] [env:9105] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[23:53:05] 4000 trials (19.5/s), wrote shard_0_001_2000.npz; teleport retries 0
+[23:54:37] round ended / reconnected: waiting for the next round
+[23:54:37] [env:9105] round over (time left 3600s of 3600s); waiting for the next round
+[23:54:37] [env:9105] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[23:54:50] 6000 trials (19.3/s), wrote shard_0_002_2000.npz; teleport retries 0
+[23:56:18] round ended / reconnected: waiting for the next round
+[23:56:18] [env:9105] round over (time left 3600s of 3600s); waiting for the next round
+[23:56:18] [env:9105] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[23:56:35] 8000 trials (19.2/s), wrote shard_0_003_2000.npz; teleport retries 0
+[23:58:06] round ended / reconnected: waiting for the next round
+[23:58:06] [env:9105] round over (time left 3600s of 3600s); waiting for the next round
+[23:58:06] [env:9105] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[23:58:29] 10000 trials (18.9/s), wrote shard_0_004_2000.npz; teleport retries 0
+[23:59:38] round ended / reconnected: waiting for the next round
+[23:59:38] [env:9105] round over (time left 3600s of 3600s); waiting for the next round
+[23:59:38] [env:9105] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[00:00:08] 12000 trials (19.1/s), wrote shard_0_005_2000.npz; teleport retries 0
+[00:01:17] round ended / reconnected: waiting for the next round
+[00:01:17] [env:9105] round over (time left 3600s of 3600s); waiting for the next round
+[00:01:17] [env:9105] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[00:01:44] 14000 trials (19.3/s), wrote shard_0_006_2000.npz; teleport retries 0
+[00:02:51] round ended / reconnected: waiting for the next round
+[00:02:51] [env:9105] round over (time left 3600s of 3600s); waiting for the next round
+[00:02:51] [env:9105] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[00:03:19] 16000 trials (19.5/s), wrote shard_0_007_2000.npz; teleport retries 0
+[00:04:17] round ended / reconnected: waiting for the next round
+[00:04:17] [env:9105] round over (time left 3600s of 3600s); waiting for the next round
+[00:04:17] [env:9105] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[00:04:49] 18000 trials (19.8/s), wrote shard_0_008_2000.npz; teleport retries 0
+[00:05:46] round ended / reconnected: waiting for the next round
+[00:05:46] [env:9105] round over (time left 3600s of 3600s); waiting for the next round
+[00:05:46] [env:9105] next round after 1 ticks / 0 s wall (time left 3600s, reconnected False)
+[00:06:21] 20000 trials (20.0/s), wrote shard_0_009_2000.npz; teleport retries 0
+[00:06:21] finished BasinHill_Hunt_phys shard 0: 20000 trials

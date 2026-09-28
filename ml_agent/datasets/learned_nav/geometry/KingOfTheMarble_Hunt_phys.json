@@ -1,0 +1,36 @@
+{
+ "schema": "geometry_v1",
+ "map": "KingOfTheMarble_Hunt_phys",
+ "mission": "..\\Marble Blast Platinum\\platinum\\data\\multiplayer\\hunt\\custom\\KingOfTheMarble_Hunt_phys.mcs",
+ "hashes": {
+  "KingOfTheMarble_Hunt_phys.mcs": "616ba23492ae",
+  "KingOfTheMarble.dif": "6079e72fb397"
+ },
+ "time": "2026-09-27 23:38:19",
+ "triangles": 1752,
+ "floor_triangles": 412,
+ "raster": [
+  341,
+  341
+ ],
+ "res": 0.2,
+ "levels": 4,
+ "floor_cells": 39828,
+ "multi_level_cells": 1486,
+ "edges": {
+  "void": 210,
+  "drop": 0,
+  "wall": 52
+ },
+ "edge_length_u": 704.0,
+ "materials": {
+  "edge_white": "DefaultMaterial",
+  "tile_underside": "DefaultMaterial",
+  "tile_beginner": "DefaultMaterial",
+  "tile_beginner_red": "DefaultMaterial",
+  "plate_1": "DefaultMaterial",
+  "beam_side": "DefaultMaterial"
+ },
+ "special_materials": [],
+ "seconds": 0.6
+}

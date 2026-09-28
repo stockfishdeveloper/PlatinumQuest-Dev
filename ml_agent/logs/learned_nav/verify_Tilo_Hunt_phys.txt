@@ -1,0 +1,4 @@
+[env:8993] waiting for the game
+[env:8993] game connected (1)
+connected: Tilo_Hunt_phys, round 3600 s
+Tilo_Hunt_phys: PASS {"floor": {"n": 150, "ok": 148, "rate": 0.987, "pass_at": 0.95, "normal_err_deg_p95": 0.0, "height_err_p95": 0.0244}, "ramp": {"n": 58, "ok": 58, "rate": 1.0, "pass_at": 0.9}, "lip": {"n": 80, "ok": 80, "rate": 1.0, "pass_at": 0.95}}

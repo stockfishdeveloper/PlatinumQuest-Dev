@@ -1,0 +1,140 @@
+[04:22:25] final3: stage 3 final run
+[04:22:25] start step features
+KingOfTheMarble_Hunt_phys: 1200000 transitions (0.13 validation), 46 s
+VortexEffect_Hunt_phys: 499950 transitions (0.16 validation), 12 s
+GemsInTheRoad_Hunt_phys: 499950 transitions (0.16 validation), 13 s
+Tilo_Hunt_phys: 499950 transitions (0.17 validation), 12 s
+BasinHill_Hunt_phys: 499950 transitions (0.16 validation), 12 s
+ParkourPeaks_Hunt_phys: 499950 transitions (0.13 validation), 12 s
+Duplex_Hunt_phys: 499950 transitions (0.13 validation), 12 s
+Cragmire_Hunt_phys: 499950 transitions (0.14 validation), 12 s
+Sprawl_Hunt_phys: 499950 transitions (0.15 validation), 12 s
+KingOfTheRing_Hunt_phys: 499950 transitions (0.19 validation), 12 s
+MaximoCenter_Hunt_phys: 499950 transitions (0.15 validation), 12 s
+GemsAhoy_Hunt_phys: 199980 transitions (0.16 validation), 4 s
+Acropolis2_Hunt_phys: 199980 transitions (0.18 validation), 5 s
+[04:25:22] end step features: exit 0, 177 s
+[04:25:22] start step ensemble training
+train 5,282,684 transitions, validation 916,816
+member 0 epoch 1: train 0.4005  validation 0.8095
+member 0 epoch 2: train 0.6099  validation 1.0148
+member 0 epoch 3: train 0.1063  validation -0.4892
+member 0 epoch 4: train -0.3787  validation 0.0550
+member 0 epoch 5: train -0.6948  validation -0.6790
+member 0 epoch 6: train -1.0602  validation -0.8911
+member 1 epoch 1: train 0.3727  validation -0.3453
+member 1 epoch 2: train 0.0656  validation -0.2598
+member 1 epoch 3: train -0.2141  validation 0.7983
+member 1 epoch 4: train -0.5015  validation -0.6482
+member 1 epoch 5: train -0.7936  validation -0.7376
+member 1 epoch 6: train -1.1034  validation -0.8800
+member 2 epoch 1: train 0.4507  validation -0.0936
+member 2 epoch 2: train 0.0069  validation 0.2752
+member 2 epoch 3: train -0.0728  validation -0.5149
+member 2 epoch 4: train -0.4960  validation -0.3613
+member 2 epoch 5: train -0.6633  validation -0.7680
+member 2 epoch 6: train -1.0323  validation -0.8409
+[04:34:02] end step ensemble training: exit 0, 520 s
+[04:46:45] flight features built (exit 0)
+[04:46:45] start flight head training
+flight samples: train 1,282,200, validation 218,036
+flight epoch 1: train 12.0979 validation 9.0961 {'path': np.float64(1.8699), 'take': np.float64(2.6184), 'safe': np.float64(0.4314), 'land': np.float64(3.7216)}
+flight epoch 2: train 7.9257 validation 6.8635 {'path': np.float64(1.3817), 'take': np.float64(1.7031), 'safe': np.float64(0.3353), 'land': np.float64(3.0883)}
+flight epoch 3: train 6.2284 validation 5.7864 {'path': np.float64(1.2282), 'take': np.float64(1.1805), 'safe': np.float64(0.2832), 'land': np.float64(2.8053)}
+flight epoch 4: train 5.4014 validation 5.2237 {'path': np.float64(1.1483), 'take': np.float64(1.0087), 'safe': np.float64(0.2652), 'land': np.float64(2.5339)}
+flight epoch 5: train 4.9323 validation 4.8937 {'path': np.float64(1.0618), 'take': np.float64(0.9153), 'safe': np.float64(0.2466), 'land': np.float64(2.4202)}
+flight epoch 6: train 4.5820 validation 4.6274 {'path': np.float64(1.0124), 'take': np.float64(0.8559), 'safe': np.float64(0.2311), 'land': np.float64(2.2961)}
+flight epoch 7: train 4.2939 validation 4.4943 {'path': np.float64(0.9756), 'take': np.float64(0.8243), 'safe': np.float64(0.227), 'land': np.float64(2.2413)}
+flight epoch 8: train 4.0475 validation 4.3529 {'path': np.float64(0.9397), 'take': np.float64(0.7944), 'safe': np.float64(0.2211), 'land': np.float64(2.1773)}
+flight epoch 9: train 3.8566 validation 4.2891 {'path': np.float64(0.9233), 'take': np.float64(0.7849), 'safe': np.float64(0.2193), 'land': np.float64(2.1424)}
+flight epoch 10: train 3.7521 validation 4.2747 {'path': np.float64(0.9199), 'take': np.float64(0.7821), 'safe': np.float64(0.2185), 'land': np.float64(2.1359)}
+[04:50:56] end flight head training: exit 0, 251 s
+[04:50:56] start step model evaluation
+val one-step: {"all": {"n": 916816, "pos_err_median_u": 0.0043, "pos_err_p95_u": 0.045, "vel_err_median": 0.1158, "vel_err_p95": 1.4654, "spin_err_median": 0.5831, "support_auc": 0.9991, "collision_auc": 0.9698, "collision_recall_at_0.5": 0.6654, "normal_err_median_deg": 0.9794, "disagreement_vs_error_corr": 0.5315, "bias_pos": [0.0002099999983329326, -1.9999999494757503e-05, -5.999999848427251e-05], "bias_vel": [0.007199999876320362, -0.0008999999845400453, -0.001500000013038516], "bias_spin": [0.003000000026077032, 0.007000000216066837, 0.0020000000949949026]}, "air": {"n": 475917, "pos_err_median_u": 0.0034, "pos_err_p95_u": 0.0172, "vel_err_median": 0.0929, "vel_err_p95": 0.5679, "spin_err_median": 0.5297, "support_auc": null, "collision_auc": 0.9608, "collision_recall_at_0.5": 0.4633, "normal_err_median_deg": null, "disagreement_vs_error_corr": 0.4691, "bias_pos": [0.00023999999393709004, -4.999999873689376e-05, 0.00033999999868683517], "bias_vel": [0.008899999782443047, -0.0020000000949949026, 0.027899999171495438], "bias_spin": [0.010999999940395355, 0.004999999888241291, 0.004999999888241291]}, "rolling": {"n": 287648, "pos_err_median_u": 0.0056, "pos_err_p95_u": 0.0318, "vel_err_median": 0.1417, "vel_err_p95": 0.8782, "spin_err_median": 0.5387, "support_auc": null, "collision_auc": null, "collision_recall_at_0.5": 0.0, "normal_err_median_deg": 0.832, "disagreement_vs_error_corr": 0.6502, "bias_pos": [-0.001979999942705035, -0.0, 0.00019999999494757503], "bias_vel": [-0.07270000129938126, -0.0007999999797903001, 0.03629999980330467], "bias_spin": [0.004999999888241291, -0.0989999994635582, -0.0010000000474974513]}, "collision": {"n": 83436, "pos_err_median_u": 0.0278, "pos_err_p95_u": 0.297, "vel_err_median": 0.8932, "vel_err_p95": 9.718, "spin_err_median": 2.3372, "support_auc": 0.9856, "collision_auc": null, "collision_recall_at_0.5": 0.6654, "normal_err_median_deg": 1.8775, "disagreement_vs_error_corr": 0.3536, "bias_pos": [0.02160000056028366, -7.999999797903001e-05, -0.008910000324249268], "bias_vel": [0.7617999911308289, -0.0052999998442828655, -0.5038999915122986], "bias_spin": [-0.012000000104308128, 1.0180000066757202, 0.006000000052154064]}}
+GemsAhoy_Hunt_phys one-step all: {"n": 199980, "pos_err_median_u": 0.004236989188939333, "pos_err_p95_u": 0.045541826635599136, "vel_err_median": 0.1140744760632515, "vel_err_p95": 1.5144672393798828, "spin_err_median": 0.5610189437866211, "support_auc": 0.9990449881736948, "collision_auc": 0.9669280446043713, "collision_recall_at_0.5": 0.6915306471863942, "normal_err_median_deg": 0.8704313039779663, "disagreement_vs_error_corr": 0.5505895428952124, "bias_pos": [-0.0006600000197067857, 9.999999747378752e-06, -2.9999999242136255e-05], "bias_vel": [-0.02590000070631504, -0.0010999999940395355, 0.00839999970048666], "bias_spin": [0.017000000923871994, -0.032999999821186066, 0.003000000026077032]}
+Acropolis2_Hunt_phys one-step all: {"n": 199980, "pos_err_median_u": 0.004495680332183838, "pos_err_p95_u": 0.05355555936694145, "vel_err_median": 0.11917519569396973, "vel_err_p95": 1.8035657405853271, "spin_err_median": 0.6247256398200989, "support_auc": 0.998419540913474, "collision_auc": 0.9759697208013213, "collision_recall_at_0.5": 0.7536787184608487, "normal_err_median_deg": 1.0721015930175781, "disagreement_vs_error_corr": 0.5741423835874285, "bias_pos": [0.0014400000218302011, -3.9999998989515007e-05, 0.00033999999868683517], "bias_vel": [0.03999999910593033, 0.0, 0.0031999999191612005], "bias_spin": [0.0020000000949949026, 0.05700000002980232, -0.0020000000949949026]}
+KingOfTheMarble_Hunt_phys rollout 16: {'median': 0.6840397691895723, 'p90': 2.8774001566298892} ballistic {'median': 9.425976611437374, 'p90': 13.766454885610253}
+Sprawl_Hunt_phys rollout 16: {'median': 0.6676340912979843, 'p90': 3.0571415771042463} ballistic {'median': 10.86556421625999, 'p90': 16.213879401571063}
+KingOfTheRing_Hunt_phys rollout 16: {'median': 0.6854127627685018, 'p90': 1.9268753675900647} ballistic {'median': 10.2178270088402, 'p90': 13.710609132436273}
+VortexEffect_Hunt_phys rollout 16: {'median': 0.8633160829948787, 'p90': 4.0673892861320455} ballistic {'median': 8.594445606880463, 'p90': 13.461371700414213}
+GemsAhoy_Hunt_phys rollout 16: {'median': 0.7585730060231186, 'p90': 3.7706057752503157} ballistic {'median': 10.225670000715677, 'p90': 14.90764255745576}
+Acropolis2_Hunt_phys rollout 16: {'median': 0.6717767865184847, 'p90': 3.2902289466780443} ballistic {'median': 10.984268845727184, 'p90': 15.964258778597996}
+wrote C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\logs\learned_nav\stage3_eval.json
+[04:52:04] end step model evaluation: exit 0, 67 s
+[04:52:04] start flight head evaluation
+KingOfTheMarble_Hunt_phys arbitration at 4/8/16 decisions (flight head vs step rollout): [(4, 0.108, 0.075), (8, 0.243, 0.263), (16, 0.574, 0.733)]
+Sprawl_Hunt_phys arbitration at 4/8/16 decisions (flight head vs step rollout): [(4, 0.132, 0.075), (8, 0.339, 0.254), (16, 0.826, 0.671)]
+validation: n 218036, path 0.428 u (p90 2.71), takeoff exact 0.900, landing 1.230034351348877 u, safe AUC 0.9706304483640396
+GemsAhoy_Hunt_phys: n 30014, path 0.462 u (p90 2.80), takeoff exact 0.894, landing 1.2874377965927124 u, safe AUC 0.9680812094560349
+Acropolis2_Hunt_phys: n 30010, path 0.540 u (p90 2.88), takeoff exact 0.889, landing 1.5819909572601318 u, safe AUC 0.955870867731131
+[04:52:42] end flight head evaluation: exit 0, 38 s
+[04:52:42] start P0 cross-check (flight head)
+{
+ "model": "flight3.pth",
+ "curve": {
+  "r0": 0.8999999999999999,
+  "a": 6.0,
+  "logloss": 0.10301340593930103
+ },
+ "held_out_feasible": 251,
+ "general_flight_head": {
+  "success": 118,
+  "rate": 0.4701195219123506,
+  "ci95": [
+   0.40928896802849585,
+   0.5318509400555848
+  ]
+ },
+ "p0_model_same_starts": {
+  "success": 170,
+  "rate": 0.6772908366533864
+ },
+ "fit_starts": 800,
+ "pickup_query": {
+  "n": 34776,
+  "positives": 3685,
+  "false_pos": 776,
+  "false_neg": 1050,
+  "auc": 0.9575903832348923
+ }
+}
+[04:53:14] end P0 cross-check (flight head): exit 0, 32 s
+[04:53:14] start P0 cross-check (step rollouts)
+{
+ "method": "step-model rollouts",
+ "curve": {
+  "r0": 0.9499999999999997,
+  "a": 4.0,
+  "logloss": 0.15424974094406346
+ },
+ "held_out_feasible": 251,
+ "success": 80,
+ "rate": 0.3187250996015936,
+ "ci95": [
+  0.26418009030305073,
+  0.3787353520737042
+ ],
+ "pickup_query": {
+  "auc": 0.9351478722655389,
+  "false_pos": 1093,
+  "false_neg": 1737,
+  "positives": 3685
+ },
+ "safe_accuracy_heldout": 0.8192431561996779,
+ "safe_accuracy_fit": 0.8199728260869565
+}
+[04:54:07] end P0 cross-check (step rollouts): exit 0, 52 s
+[04:54:07] start edge release check
+KingOfTheMarble_Hunt_phys {"n": 3000, "release_signed_u": {"p5": -0.08461998749647967, "median": 0.028206229209899902, "p95": 0.09541401863098137}, "first_unsupported_signed_u": {"p5": 0.19609336853027343, "median": 0.6590752601623535, "p95": 1.378570842742919}, "release_within_0_to_0.25u": 0.9443333333333334, "speed_across_median": 7.38501501083374}
+VortexEffect_Hunt_phys {"n": 3000, "release_signed_u": {"p5": -0.3745157480239868, "median": 0.027914196252822876, "p95": 0.08991398811340325}, "first_unsupported_signed_u": {"p5": 0.12469549179077148, "median": 0.5685491561889648, "p95": 1.3501227378845213}, "release_within_0_to_0.25u": 0.9246666666666666, "speed_across_median": 6.482850074768066}
+GemsInTheRoad_Hunt_phys {"n": 3000, "release_signed_u": {"p5": -0.14109987888471948, "median": 0.029805481433868408, "p95": 0.0866567641496658}, "first_unsupported_signed_u": {"p5": 0.18769685924053195, "median": 0.637315034866333, "p95": 1.4138092994689941}, "release_within_0_to_0.25u": 0.9353333333333333, "speed_across_median": 7.058715105056763}
+Tilo_Hunt_phys {"n": 3000, "release_signed_u": {"p5": 0.004473042488098145, "median": 0.03257113695144653, "p95": 0.0965152502059936}, "first_unsupported_signed_u": {"p5": 0.20566742420196535, "median": 0.6875996589660645, "p95": 1.394620132446289}, "release_within_0_to_0.25u": 0.9696666666666667, "speed_across_median": 7.258840084075928}
+BasinHill_Hunt_phys {"n": 3000, "release_signed_u": {"p5": -0.2137251615524291, "median": 0.02901405096054077, "p95": 0.09473752975463853}, "first_unsupported_signed_u": {"p5": 0.0732049465179445, "median": 0.5983599424362183, "p95": 1.3524665832519527}, "release_within_0_to_0.25u": 0.9293333333333333, "speed_across_median": 6.4872400760650635}
+ParkourPeaks_Hunt_phys {"n": 3000, "release_signed_u": {"p5": 0.005225133895874023, "median": 0.032921165227890015, "p95": 0.09420335292816161}, "first_unsupported_signed_u": {"p5": 0.1770907878875733, "median": 0.6904001235961914, "p95": 1.4360599040985105}, "release_within_0_to_0.25u": 0.964, "speed_across_median": 7.51040506362915}
+Duplex_Hunt_phys {"n": 3000, "release_signed_u": {"p5": 0.001969447731971744, "median": 0.03263005405392505, "p95": 0.09000616075040423}, "first_unsupported_signed_u": {"p5": 0.1988365110009909, "median": 0.704015851020813, "p95": 1.460054016113281}, "release_within_0_to_0.25u": 0.9553333333333334, "speed_across_median": 7.783275127410889}
+Cragmire_Hunt_phys {"n": 3000, "release_signed_u": {"p5": -0.009507989883422848, "median": 0.03219980001449585, "p95": 0.10628612140092773}, "first_unsupported_signed_u": {"p5": 0.19251106976396648, "median": 0.6618057168121823, "p95": 1.3933641415173372}, "release_within_0_to_0.25u": 0.9406666666666667, "speed_across_median": 7.074458387647802}
+Sprawl_Hunt_phys {"n": 3000, "release_signed_u": {"p5": -0.197508430480957, "median": 0.03130149841308594, "p95": 0.09277973175048826}, "first_unsupported_signed_u": {"p5": 0.033473730087280294, "median": 0.6669492721557617, "p95": 1.4188003540039062}, "release_within_0_to_0.25u": 0.93, "speed_across_median": 7.352859973907471}
+KingOfTheRing_Hunt_phys {"n": 3000, "release_signed_u": {"p5": -0.06357200446368855, "median": 0.06687223831656963, "p95": 0.16961041819397538}, "first_unsupported_signed_u": {"p5": 0.1649995028972626, "median": 0.5844099695825804, "p95": 1.3388063133368002}, "release_within_0_to_0.25u": 0.856, "speed_across_median": 5.99106892646121}
+MaximoCenter_Hunt_phys {"n": 3000, "release_signed_u": {"p5": -0.025834274291992185, "median": 0.033475637435913086, "p95": 0.09947072267532343}, "first_unsupported_signed_u": {"p5": 0.16812553405761724, "median": 0.6366481781005859, "p95": 1.4243461608886716}, "release_within_0_to_0.25u": 0.952, "speed_across_median": 6.861884832382202}
+[04:55:08] end edge release check: exit 0, 61 s
+[04:55:08] final3: done

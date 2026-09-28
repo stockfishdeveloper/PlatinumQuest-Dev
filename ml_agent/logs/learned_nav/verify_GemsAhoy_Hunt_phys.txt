@@ -1,0 +1,4 @@
+[env:8993] waiting for the game
+[env:8993] game connected (1)
+connected: GemsAhoy_Hunt_phys, round 3600 s
+GemsAhoy_Hunt_phys: PASS {"floor": {"n": 150, "ok": 149, "rate": 0.993, "pass_at": 0.95, "normal_err_deg_p95": 0.0, "height_err_p95": 0.016}, "ramp": {"n": 50, "ok": 49, "rate": 0.98, "pass_at": 0.9}, "lip": {"n": 80, "ok": 77, "rate": 0.963, "pass_at": 0.95}}

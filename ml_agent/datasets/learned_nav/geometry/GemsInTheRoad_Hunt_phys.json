@@ -1,0 +1,36 @@
+{
+ "schema": "geometry_v1",
+ "map": "GemsInTheRoad_Hunt_phys",
+ "mission": "..\\Marble Blast Platinum\\platinum\\data\\multiplayer\\hunt\\custom\\GemsInTheRoad_Hunt_phys.mcs",
+ "hashes": {
+  "GemsInTheRoad_Hunt_phys.mcs": "dfb5fac5c226",
+  "GemsInTheRoad.dif": "c59c4cb58625"
+ },
+ "time": "2026-09-27 23:38:21",
+ "triangles": 5698,
+ "floor_triangles": 2244,
+ "raster": [
+  746,
+  695
+ ],
+ "res": 0.2,
+ "levels": 4,
+ "floor_cells": 122885,
+ "multi_level_cells": 7703,
+ "edges": {
+  "void": 511,
+  "drop": 82,
+  "wall": 34
+ },
+ "edge_length_u": 2388.7,
+ "materials": {
+  "tile_intermediate": "DefaultMaterial",
+  "edge_white": "DefaultMaterial",
+  "edge_white_shadow": "DefaultMaterial",
+  "tile_intermediate_shadow_tiny": "DefaultMaterial",
+  "tile_intermediate_green_shadow_tiny": "DefaultMaterial",
+  "tile_intermediate_green": "DefaultMaterial"
+ },
+ "special_materials": [],
+ "seconds": 0.8
+}

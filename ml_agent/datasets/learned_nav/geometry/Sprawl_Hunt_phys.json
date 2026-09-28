@@ -1,0 +1,37 @@
+{
+ "schema": "geometry_v1",
+ "map": "Sprawl_Hunt_phys",
+ "mission": "..\\Marble Blast Platinum\\platinum\\data\\multiplayer\\hunt\\custom\\Sprawl_Hunt_phys.mcs",
+ "hashes": {
+  "Sprawl_Hunt_phys.mcs": "c976564ee8d5",
+  "Sprawl.dif": "83545896d717",
+  "arch_3_normal.dif": "71c8789b9041"
+ },
+ "time": "2026-09-27 23:38:27",
+ "triangles": 5075,
+ "floor_triangles": 1201,
+ "raster": [
+  642,
+  671
+ ],
+ "res": 0.2,
+ "levels": 4,
+ "floor_cells": 335581,
+ "multi_level_cells": 26561,
+ "edges": {
+  "void": 158,
+  "drop": 541,
+  "wall": 471
+ },
+ "edge_length_u": 3904.5,
+ "materials": {
+  "plate_1": "DefaultMaterial",
+  "tile_beginner": "DefaultMaterial",
+  "tile_beginner_red": "DefaultMaterial",
+  "tile_beginner_shadow_tiny": "DefaultMaterial",
+  "beam_side": "DefaultMaterial",
+  "beam": "DefaultMaterial"
+ },
+ "special_materials": [],
+ "seconds": 1.2
+}

@@ -1,0 +1,33 @@
+{
+ "schema": "geometry_v1",
+ "map": "Tilo_Hunt_phys",
+ "mission": "..\\Marble Blast Platinum\\platinum\\data\\multiplayer\\hunt\\custom\\Tilo_Hunt_phys.mcs",
+ "hashes": {
+  "Tilo_Hunt_phys.mcs": "c41e87ed72a5",
+  "TiloLeft.dif": "548f43acfa4a",
+  "TiloRight.dif": "216d9ebe1795"
+ },
+ "time": "2026-09-27 23:38:22",
+ "triangles": 2025,
+ "floor_triangles": 538,
+ "raster": [
+  1051,
+  436
+ ],
+ "res": 0.2,
+ "levels": 4,
+ "floor_cells": 240579,
+ "multi_level_cells": 30600,
+ "edges": {
+  "void": 186,
+  "drop": 132,
+  "wall": 129
+ },
+ "edge_length_u": 3186.6,
+ "materials": {
+  "mbu_neutral5_random_2": "DefaultMaterial",
+  "mbu_neutral4_random_2": "DefaultMaterial"
+ },
+ "special_materials": [],
+ "seconds": 0.6
+}

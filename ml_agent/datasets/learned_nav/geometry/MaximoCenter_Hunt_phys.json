@@ -1,0 +1,35 @@
+{
+ "schema": "geometry_v1",
+ "map": "MaximoCenter_Hunt_phys",
+ "mission": "..\\Marble Blast Platinum\\platinum\\data\\multiplayer\\hunt\\custom\\MaximoCenter_Hunt_phys.mcs",
+ "hashes": {
+  "MaximoCenter_Hunt_phys.mcs": "fe4b638a0c8d",
+  "MaximoCenter.dif": "3d42a026d057"
+ },
+ "time": "2026-09-27 23:38:29",
+ "triangles": 7485,
+ "floor_triangles": 2554,
+ "raster": [
+  951,
+  711
+ ],
+ "res": 0.2,
+ "levels": 4,
+ "floor_cells": 647498,
+ "multi_level_cells": 65117,
+ "edges": {
+  "void": 322,
+  "drop": 1093,
+  "wall": 523
+ },
+ "edge_length_u": 7326.0,
+ "materials": {
+  "pq_rays_blue_med": "DefaultMaterial",
+  "pq_rays_green_light": "DefaultMaterial",
+  "pq_ray_wall_combo_2": "DefaultMaterial",
+  "pq_rays_green_med": "DefaultMaterial",
+  "pq_under_tile_brown": "DefaultMaterial"
+ },
+ "special_materials": [],
+ "seconds": 1.6
+}

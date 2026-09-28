@@ -1,0 +1,41 @@
+{
+ "schema": "geometry_v1",
+ "map": "Cragmire_Hunt_phys",
+ "mission": "..\\Marble Blast Platinum\\platinum\\data\\multiplayer\\hunt\\custom\\Cragmire_Hunt_phys.mis",
+ "hashes": {
+  "Cragmire_Hunt_phys.mis": "1908ceab58bc",
+  "CragmireHexagonsSW.dif": "7fa622691e07",
+  "CragmireHexagonsSE.dif": "847486a44703",
+  "CragmireHexagonsNW.dif": "5925df6296ae",
+  "CragmireHexagonsNE.dif": "9bccee45b92a",
+  "CragmireBody2.dif": "78e8e0b7acec",
+  "CragmireBody1.dif": "f637591770c9",
+  "CragmireArches.dif": "99ee10235238"
+ },
+ "time": "2026-09-27 23:38:26",
+ "triangles": 11316,
+ "floor_triangles": 3199,
+ "raster": [
+  2014,
+  2014
+ ],
+ "res": 0.2,
+ "levels": 4,
+ "floor_cells": 78804,
+ "multi_level_cells": 18285,
+ "edges": {
+  "void": 444,
+  "drop": 522,
+  "wall": 688
+ },
+ "edge_length_u": 2914.8,
+ "materials": {
+  "mbu_pattern_cool2": "DefaultMaterial",
+  "mbu_neutral3_random": "DefaultMaterial",
+  "custom_woodblockside": "DefaultMaterial",
+  "mbu_neutral3_random_2": "DefaultMaterial",
+  "philsmbu_dirttrim": "DefaultMaterial"
+ },
+ "special_materials": [],
+ "seconds": 1.7
+}

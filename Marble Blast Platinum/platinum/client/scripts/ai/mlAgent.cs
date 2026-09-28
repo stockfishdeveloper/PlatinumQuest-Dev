@@ -400,6 +400,7 @@ function MLAgent::update(%gen) {
     //   "OOBCLICK"                     the legal quick respawn a human gets by clicking while OOB
     //   "MARK x y z"                   show the navigator's waypoint as a pad (cosmetic)
     //   "GEMRESET"                     drill maps: respawn the gem group if no gem is up
+    //   "CONTACT 1|0"                  append the engine's contact telemetry to each observation
     if (getWord(%actionStr, 0) $= "STATS") {
         AIBridge::sendState("STATS|" @ $AIBridge::DelayedReplies @ "," @ $AIBridge::LateReplies @ ","
                             @ $AIBridge::HeldTicks @ "," @ $MLAgent::ActionDelay @ "," @ $MLAgent::Tick);
@@ -539,6 +540,14 @@ function MLAgent::update(%gen) {
         // (kotmjump_p0) would stay empty after its first pickup. Does nothing while a gem is up.
         if ($Hunt::CurrentGemCount <= 0)
             spawnHuntGemGroup();
+        $AIBridge::LastAction = "";
+        %actionStr = "";
+    } else if (getWord(%actionStr, 0) $= "CONTACT") {
+        // "CONTACT 1|0" (2026-09-27, jump physics stage 3): append the engine's contact telemetry
+        // (Marble::getContactTelemetry, 13 numbers) after the 38 observation numbers. Off by default.
+        $AIObserver::ContactTelemetry = getWord(%actionStr, 1) + 0;
+        if ($AIObserver::ContactTelemetry && isObject($MP::MyMarble))
+            $MP::MyMarble.getContactTelemetry();          // start the first summary clean
         $AIBridge::LastAction = "";
         %actionStr = "";
     }

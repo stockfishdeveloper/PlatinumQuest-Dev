@@ -1,0 +1,80 @@
+{
+ "collision steps": {
+  "single mean": {
+   "pos_med": 0.0224,
+   "vel_med": 0.69,
+   "vel_bias_along": 0.748,
+   "vel_bias_up": -0.472
+  },
+  "true mode (oracle)": {
+   "pos_med": 0.0206,
+   "vel_med": 0.543,
+   "vel_bias_along": 0.06,
+   "vel_bias_up": -0.007
+  },
+  "mode chosen by P(coll)": {
+   "pos_med": 0.0212,
+   "vel_med": 0.582,
+   "vel_bias_along": 0.712,
+   "vel_bias_up": -0.382
+  },
+  "probability-weighted": {
+   "pos_med": 0.0205,
+   "vel_med": 0.585,
+   "vel_bias_along": 0.739,
+   "vel_bias_up": -0.456
+  }
+ },
+ "no-collision steps": {
+  "single mean": {
+   "pos_med": 0.0057,
+   "vel_med": 0.144,
+   "vel_bias_along": -0.06,
+   "vel_bias_up": 0.045
+  },
+  "true mode (oracle)": {
+   "pos_med": 0.0036,
+   "vel_med": 0.087,
+   "vel_bias_along": 0.001,
+   "vel_bias_up": -0.001
+  },
+  "mode chosen by P(coll)": {
+   "pos_med": 0.0036,
+   "vel_med": 0.087,
+   "vel_bias_along": -0.022,
+   "vel_bias_up": 0.022
+  },
+  "probability-weighted": {
+   "pos_med": 0.0039,
+   "vel_med": 0.096,
+   "vel_bias_along": -0.06,
+   "vel_bias_up": 0.041
+  }
+ },
+ "all": {
+  "single mean": {
+   "pos_med": 0.0061,
+   "vel_med": 0.156,
+   "vel_bias_along": 0.014,
+   "vel_bias_up": -0.002
+  },
+  "true mode (oracle)": {
+   "pos_med": 0.0039,
+   "vel_med": 0.095,
+   "vel_bias_along": 0.006,
+   "vel_bias_up": -0.001
+  },
+  "mode chosen by P(coll)": {
+   "pos_med": 0.0039,
+   "vel_med": 0.095,
+   "vel_bias_along": 0.045,
+   "vel_bias_up": -0.015
+  },
+  "probability-weighted": {
+   "pos_med": 0.0042,
+   "vel_med": 0.105,
+   "vel_bias_along": 0.013,
+   "vel_bias_up": -0.004
+  }
+ }
+}
