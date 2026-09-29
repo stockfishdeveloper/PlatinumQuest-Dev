@@ -6,7 +6,7 @@
   "kotmjump_p0.mcs": "6aeb923cadb5",
   "KingOfTheMarble.dif": "6079e72fb397"
  },
- "time": "2026-09-27 23:37:12",
+ "time": "2026-09-28 08:22:34",
  "triangles": 1752,
  "floor_triangles": 412,
  "raster": [
@@ -32,5 +32,5 @@
   "beam_side": "DefaultMaterial"
  },
  "special_materials": [],
- "seconds": 0.6
+ "seconds": 0.9
 }

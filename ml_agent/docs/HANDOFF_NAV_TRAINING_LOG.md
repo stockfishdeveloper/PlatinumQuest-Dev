@@ -4173,3 +4173,129 @@ replay after the change: Duplex 40/40 (was 35/40, median error 0.0000086 u, was 
 KOTM 40/40 (0.0000038 u, was 0.00014); repeats 30/30. So the earlier misses were reporting precision, not hidden
 engine state. The stage 3 data was recorded before the change (states good to 1e-4 to 1e-3 u); the models need no
 retraining for it. The navigator's observation carries the same values, now exact.
+
+## 31. Jump physics stage 4 (design M3): jumps from anywhere (2026-09-28, autonomous)
+
+Operator, 2026-09-28 morning: "go ahead and start working on phase 4". Training stayed stopped; no engine change; no
+commit in this repo. Code in nav/learned_nav/: planner.py, seeds.py, drills.py, drill_report.py, guide.py, watch4.py
+(+ watch4.ps1); make_drill_map.py now builds four drill maps.
+
+### 31.1 Drill maps and geometry
+
+kotmjump_p0-p3: kotmjump with one floating gem each (p0 -30.25 10.05, p1 -20.25 10.05, p2 -20.25 20.05, p3 -30.25
+20.05, all z 21.7), no powerups, one-hour round; GEMRESET puts the gem back. Geometry exported per drill map (the KOTM
+interior: 1752 triangles, 210 void / 52 wall edges); the in-game verification is KOTM's (same interior; noted in each
+verify.json). The four holes are 7 u (x) by 5 u (y) with bays toward each other; each gem floats 0.86 u above the
+rolling marble's centre, 1.5 u inside one lip and 3.5 u inside the opposite one.
+
+### 31.2 The planner (planner.py): model-predictive control on the stage 3 models
+
+Every 64 ms decision, from the observed state and the two replies that shape the next physics (the reply sent last
+decision acts first; the one before it is the step model's previous input):
+* proposals: 320 broad programs (a heading toward the gem, the current velocity or anywhere; maybe a turn or a brake
+  first; 75 % with a jump at decision 0-22 and an air direction), 96 aimed at gem-side seeds (drive to a point behind
+  the seed, turn onto its heading, fly its jump), 40 warm starts (last choice shifted, jittered); 256 air-control
+  programs while airborne. Every ground program brakes for its last 10 decisions (terminal check: it must still be
+  able to stop);
+* prediction: all programs rolled 41 decisions (2.6 s) with the step ensemble; after a predicted landing the
+  program's after-landing input takes over;
+* judgement: P(pickup) from the closest pass to the gem (the logistic curve fitted on P0 in stage 3: r0 0.85 u, slope
+  4) x safe (landed after any flight; on a floor for the last 4 decisions; never 0.5 u below the start level; no
+  flight without a jump; no bounce back into the air after landing) x an edge-clearance factor (1 u from void / drop
+  edges after the landing counts fully, 0.2 u not at all). A jump from the floor is re-judged by the flight head from
+  the observed state (the observed-state launch check);
+* robustness: the 12 best are rolled again from four perturbed starts (speed x0.96 / x1.04, heading -2 / +2 deg);
+  P(success) = mean pickup x mean safety-and-margin over the variants; approach and continuation plans are vetoed if
+  any variant falls;
+* choice: best P(success) - 0.004 x decisions to the pickup if above P_GO (0.25); a floor jump only above P_JUMP
+  (0.35). Otherwise approach: the program whose path comes closest to a seed state (position and velocity, and at
+  least the walking distance over the floor to the nearest seed, so a marble on the far side of a hole goes around
+  it). After the pickup: stay on the floor, away from edges, no new jumps.
+Planning takes ~0.3 s a decision with one game, ~1.3 s with four (lockstep: the game waits).
+
+### 31.3 Gem-side seeds (seeds.py)
+
+6000 floor states within 8 u of the gem, heading toward it within 60 deg, 2-14 u/s, rolling spin, run-up pending; 28
+jump candidates each (jump at decision 0-3; no air input or 0 / +-45 / +-90 / 180 deg), judged exactly as the planner
+judges (robustness included). Seeds: states whose best candidate reaches P_JUMP. Counts for the gated version (built
+for v4): p0 214, p1 168, p2 187, p3 185 of 6000 each (datasets/learned_nav/seeds/, older sets in v1-v3/). Robust launch
+states are rare because a flight through a gem 3.5 u into a 7 u hole tends to land right at the far lip.
+
+### 31.4 The drill runner (drills.py) and the fixture
+
+Starts per map and set (dev 30, test 64), drawn once from a hash of the map and set and frozen in
+logs/learned_nav/drills/starts_<set>_<map>.json: on the gem's floor level, 4-18 u from the gem, at least 1 u from any
+void or drop edge; 30 % at rest, otherwise 2-12 u/s with rolling spin, heading toward the gem (within 40 deg) for 35 %
+and anywhere for the rest. Fixture (engine only, before any planner trial): brake / steer 90 deg left / right then
+brake for 3 s; a start none of them keeps on the map is unsafe, run anyway and reported apart. Feasibility of the task
+from a safe start: one connected floor level, and a pickup plus continuation demonstrated in the engine for every
+target (dev runs). A trial runs until success, out of bounds or 188 decisions (12 s); a pickup late in the window gets
+up to 40 more decisions for its continuation. Success: the engine's pickup, then a landing ON a floor (a bounce back
+into the air restarts the count) and 8 decisions (0.5 s) on the map, ending over a floor at the start level.
+
+### 31.5 Dev iterations (tuning on the dev starts only)
+
+| Version | Change | Safe-start success |
+|---|---|---|
+| v0 (8 trials) | first run | 3/8; stuck in a pocket under a lip (fall rule 2 u), roll-ins |
+| v1 | fall rule 0.5 u, brake tail, clearance, diagnostics | 40/51 (78 %); landings just past a far lip clipped it |
+| v2 | + robustness, worst case over variants | 6/11: almost nothing left to fly; stalls |
+| v3 | mean over variants, seeds rebuilt the same way | 90/105 (85.7 %, 77.8-91.2); pickup jumps 70/70; all failures in the approach |
+| v4 | + no flight without a jump / no bounce after landing, walk-distance field, P_JUMP 0.35 / P_GO 0.25, seeds rebuilt | 47/54 (87 %, stopped halfway); stalls beside the seeds |
+| v5 | seed-aimed run-ups sized to the seed's speed (v^2 / 20 + 0.5 u; measured ~10 u/s^2 from rest) | 93/105 (88.6 %, 81.1-93.3); frozen for the gate |
+
+Paired on the 55 safe starts all of v3, v4 and v5 ran: 49, 48, 53. v5's failures on the dev set: 4 jumped-then-stalled,
+4 stalls, 2 took the gem then fell, 2 approach jumps that fell. Launch check (presses within 6 decisions = one launch):
+jumps sent in pickup mode at P >= 0.35 took the gem 87 of 89 times (every band 94-100 %); approach-mode jumps (no pickup
+plan) 8 of 28. The runner's jump log counts every press while the marble is still on the floor, so a launch can show
+two or three presses; drill_report groups them.
+
+### 31.6 The time-to-gem guide (guide.py)
+
+Trained on the PPO navigator's traces (logs/nav/trace_*.csv, KOTM instances only, 22.9 M decisions from 6 files;
+validation: the most recent file, 3.2 M decisions): seconds from a rolling state to the goal gem, from the goal's
+position in the velocity frame, speed, vertical speed and floor contact. Validation MAE 0.115 s against 0.202 s for
+distance over the best constant speed (median 0.047 against 0.121 s). models/learned_nav/guide_ttg.pth,
+logs/learned_nav/guide_eval.json. It has no geometry input, so it cannot know a hole is in the way. As the design
+allows, it only times proposals (planner.USE_GUIDE: the seed-aimed run-up leg), never scores or rejects a route. It was
+OFF in the gated configuration; its A/B on the dev starts is 31.8.
+
+### 31.7 The gate: PASSED (13:46, logs/learned_nav/drills/report_test_gate.json)
+
+Test starts: 64 per floating gem, 256 in all, drawn from a hash of map and set (starts_test_<map>.json, sha1 p0
+ee53cf5dd12f, p1 b7abd6ea0028, p2 2e6c9758f2e4, p3 4844034a5888), written and fixture-checked before any planner
+trial. Gated configuration: planner.py sha1 a649c1d0e805 (v5; USE_GUIDE off, P_GO 0.25, P_JUMP 0.35), the v4 seeds.
+
+| | Result |
+|---|---|
+| Feasible (fixture-safe) starts | 233 of 256 (p0 58, p1 56, p2 59, p3 60) |
+| Pickup plus continuation | **217 / 233 = 93.1 % (95 % 89.1-95.7)**; gate 80 % on >= 200: PASS |
+| By target | p0 56/58 (96.6 %), p1 52/56 (92.9 %), p2 55/59 (93.2 %), p3 54/60 (90.0 %) |
+| By start | at rest 62/68, rolling toward 74/81, across 55/58, away 26/26 |
+| Abstentions (no jump in 12 s) | 7 |
+| Unsafe starts (reported apart) | 15 of 23 solved |
+| Median time to the pickup | 2.3 s |
+| Planning | 1.28 s a decision on average with four games (p95 at most 2.05 s); lockstep |
+
+Failures on feasible starts (16): 7 stalls (pickup plans appear for a few decisions, then fall below the jump
+threshold before the launch), 3 rolled into a hole during the approach, 3 took the gem and fell after the landing, 2
+fell after a jump that missed (1 approach jump, 1 pickup-mode jump predicted 0.49), 1 took the gem at decision 187 and
+was still bouncing at the end of the window. Observed-state launch check (presses within 6 decisions = one launch):
+jumps sent with a pickup plan (P >= 0.35) took the gem 187 of 188 times; approach jumps (no pickup plan) 34 of 65.
+
+### 31.8 Guide A/B on the dev starts (after the gate)
+
+The gated planner (v5) against the same planner with USE_GUIDE on (planner.py sha1 8540e929dbd4 during the run), same
+seeds, same 105 feasible dev starts: 98/105 (93.3 %) with the guide against 93/105 (88.6 %) without; discordant
+starts 10 for the guide, 5 against (McNemar p ~0.3: not significant). Where both succeeded, the pickup came after 32.5
+decisions instead of 36.5 (median, ~0.26 s sooner). The guide run had no falls (5 stalls, 2 jumped-then-stalled). The
+default is now USE_GUIDE = True for the next work; the gate result stands for v5 with it off.
+Results: logs/learned_nav/drills/dev_kotmjump_p*.jsonl, report_dev_guide.json.
+
+### 31.9 Files and what M3 does not show
+
+nav/learned_nav/: planner.py (MPC), seeds.py, drills.py (starts, fixture, trials), drill_report.py, guide.py,
+watch4.py + watch4.ps1 (1x viewing: `powershell -ExecutionPolicy Bypass -File nav\learned_nav\watch4.ps1 -Map
+kotmjump_p2`), make_drill_map.py (four drill maps). Data: datasets/learned_nav/seeds/ (+ v1-v3 older sets), results
+logs/learned_nav/drills/ (dev_v0..v5, test_*, reports). Not shown by M3: route choice between approaches, gem groups,
+other maps (all four drills share the KOTM interior), handing control to and from PPO (M4/M5). Next (operator): M4.

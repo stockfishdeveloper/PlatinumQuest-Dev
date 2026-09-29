@@ -6,7 +6,7 @@ it here. The dated history of every experiment (sections 1 to 28.x, 2026-09-17 t
 `docs/HANDOFF_NAV_TRAINING_LOG.md`. Code comments that cite "HANDOFF 28.52" and the like point into that
 log, and new dated entries go there too.
 
-Last updated: 2026-09-28 05:10 (jump physics stage 3).
+Last updated: 2026-09-28 14:00 (jump physics stage 4, M3 gate passed).
 
 ## 1. Where things stand
 
@@ -46,6 +46,14 @@ Last updated: 2026-09-28 05:10 (jump physics stage 3).
   same on two never-trained maps; 1 s rollouts 0.4 u) and a flight model. P0's held-out test chosen by the general
   models together: 52 % (P0's own model 68 %, the fixed rule 19 %). M1 passed; M2 met with two notes (keep both
   collision branches in planning; heavy error tails). Log section 30; `nav/learned_nav/`. Next (operator): stage 4.
+* **Jump physics stage 4 / M3 (2026-09-28): gate PASSED.** A model-predictive planner on the stage 3 models (about
+  450 candidate programs rolled 2.6 s ahead every 64 ms, pickup x safe landing with edge margin, re-checked from
+  perturbed starts, seed-aimed approach by walking distance) took the floating gem and landed on 217 of 233 feasible
+  held-out starts (93.1 %, 95 % 89.1-95.7; per target 90-97 %; 7 abstentions; unsafe starts 15/23 apart). Jumps sent
+  with a pickup plan took the gem 187 of 188 times; the failures are approach stalls, roll-ins and landings near the
+  strips between holes. Time-to-gem guide from PPO's traces trained (0.115 s error vs 0.202 s). Log section 31;
+  page https://claude.ai/artifact/G82yZ3WkUWYziUizq6eTK1; watch: `nav\learned_nav\watch4.ps1 -Map kotmjump_p2`.
+  Training still stopped. Next (operator): M4.
 
 ## 2. Spin A/B (2026-09-26 22:00-22:40, 3x, 8 rounds per arm)
 

@@ -1,0 +1,15 @@
+[08:35:10] [env:9201] waiting for the game
+[08:35:16] [env:9201] game connected (1)
+[08:35:19] connected: kotmjump_p0, round 3600 s
+[08:35:19] fixture: 30 starts
+[08:35:22] fixture done: 27 safe of 30
+[08:35:22] starts starts_dev_kotmjump_p0.json sha1 c4a92eb4cce8
+[08:35:22] seeds: 220
+[08:36:41] start   0 (rest, 0.0 u/s, 14.8 u, safe True): abstain in 188 decisions, jumps 0, plan 408 ms  [0/1]
+[08:36:55] start   1 (rest, 0.0 u/s, 9.9 u, safe True): success in 36 decisions, jumps 1, plan 384 ms  [1/2]
+[08:37:38] start   2 (toward, 6.1 u/s, 15.2 u, safe True): fell_rolling in 109 decisions, jumps 0, plan 389 ms  [1/3]
+[08:37:58] start   3 (side, 11.9 u/s, 9.4 u, safe True): fell_rolling in 52 decisions, jumps 0, plan 394 ms  [1/4]
+[08:38:10] start   4 (toward, 11.9 u/s, 12.4 u, safe True): picked_fell in 34 decisions, jumps 1, plan 346 ms  [1/5]
+[08:38:27] start   5 (side, 5.1 u/s, 17.6 u, safe True): picked_no_floor in 46 decisions, jumps 1, plan 368 ms  [1/6]
+[08:38:41] start   6 (toward, 10.5 u/s, 15.4 u, safe True): success in 35 decisions, jumps 1, plan 377 ms  [2/7]
+[08:38:58] start   7 (toward, 2.8 u/s, 9.1 u, safe True): success in 49 decisions, jumps 1, plan 338 ms  [3/8]

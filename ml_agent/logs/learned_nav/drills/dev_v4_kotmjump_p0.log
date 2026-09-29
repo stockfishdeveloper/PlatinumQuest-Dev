@@ -1,0 +1,19 @@
+[10:24:47] [env:9201] waiting for the game
+[10:24:54] [env:9201] game connected (1)
+[10:25:01] connected: kotmjump_p0, round 3600 s
+[10:25:01] starts starts_dev_kotmjump_p0.json sha1 c4a92eb4cce8
+[10:25:01] seeds: 214
+[10:26:40] start   0 (rest, 0.0 u/s, 14.8 u, safe True): success in 73 decisions, jumps 2, plan 1291 ms  [1/1]
+[10:27:40] start   1 (rest, 0.0 u/s, 9.9 u, safe True): success in 47 decisions, jumps 2, plan 1269 ms  [2/2]
+[10:28:24] start   2 (toward, 6.1 u/s, 15.2 u, safe True): fell_rolling in 34 decisions, jumps 0, plan 1295 ms  [2/3]
+[10:29:49] start   3 (side, 11.9 u/s, 9.4 u, safe True): success in 63 decisions, jumps 1, plan 1341 ms  [3/4]
+[10:30:36] start   4 (toward, 11.9 u/s, 12.4 u, safe True): success in 36 decisions, jumps 2, plan 1302 ms  [4/5]
+[10:31:56] start   5 (side, 5.1 u/s, 17.6 u, safe True): success in 58 decisions, jumps 2, plan 1376 ms  [5/6]
+[10:32:43] start   6 (toward, 10.5 u/s, 15.4 u, safe True): success in 36 decisions, jumps 2, plan 1307 ms  [6/7]
+[10:35:27] start   7 (toward, 2.8 u/s, 9.1 u, safe True): success in 122 decisions, jumps 1, plan 1335 ms  [7/8]
+[10:39:43] start   8 (rest, 0.0 u/s, 10.1 u, safe True): abstain in 188 decisions, jumps 0, plan 1360 ms  [7/9]
+[10:40:45] start   9 (rest, 0.0 u/s, 8.8 u, safe True): success in 48 decisions, jumps 2, plan 1295 ms  [8/10]
+[10:41:45] start  10 (away, 4.7 u/s, 12.9 u, safe True): success in 45 decisions, jumps 1, plan 1312 ms  [9/11]
+[10:43:49] start  11 (toward, 2.5 u/s, 9.4 u, safe True): success in 91 decisions, jumps 1, plan 1360 ms  [10/12]
+[10:46:10] start  12 (toward, 10.6 u/s, 11.0 u, safe True): success in 105 decisions, jumps 2, plan 1340 ms  [11/13]
+[10:46:53] start  13 (rest, 0.0 u/s, 6.4 u, safe True): success in 33 decisions, jumps 2, plan 1314 ms  [12/14]

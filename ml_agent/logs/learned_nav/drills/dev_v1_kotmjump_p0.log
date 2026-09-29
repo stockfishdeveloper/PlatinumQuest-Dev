@@ -1,0 +1,22 @@
+[08:42:09] [env:9201] waiting for the game
+[08:42:23] [env:9201] game connected (1)
+[08:42:24] connected: kotmjump_p0, round 3600 s
+[08:42:24] starts starts_dev_kotmjump_p0.json sha1 c4a92eb4cce8
+[08:42:24] seeds: 220
+[08:43:20] start   0 (rest, 0.0 u/s, 14.8 u, safe True): picked_no_floor in 70 decisions, jumps 3, plan 771 ms  [0/1]
+[08:43:44] start   1 (rest, 0.0 u/s, 9.9 u, safe True): fell_rolling in 30 decisions, jumps 0, plan 788 ms  [0/2]
+[08:44:22] start   2 (toward, 6.1 u/s, 15.2 u, safe True): picked_no_floor in 48 decisions, jumps 1, plan 799 ms  [0/3]
+[08:45:17] start   3 (side, 11.9 u/s, 9.4 u, safe True): picked_fell in 68 decisions, jumps 1, plan 799 ms  [0/4]
+[08:45:47] start   4 (toward, 11.9 u/s, 12.4 u, safe True): success in 36 decisions, jumps 1, plan 813 ms  [1/5]
+[08:46:37] start   5 (side, 5.1 u/s, 17.6 u, safe True): success in 65 decisions, jumps 1, plan 765 ms  [2/6]
+[08:47:05] start   6 (toward, 10.5 u/s, 15.4 u, safe True): success in 35 decisions, jumps 1, plan 812 ms  [3/7]
+[08:47:39] start   7 (toward, 2.8 u/s, 9.1 u, safe True): success in 43 decisions, jumps 1, plan 779 ms  [4/8]
+[08:48:08] start   8 (rest, 0.0 u/s, 10.1 u, safe True): success in 36 decisions, jumps 1, plan 814 ms  [5/9]
+[08:48:49] start   9 (rest, 0.0 u/s, 8.8 u, safe True): success in 52 decisions, jumps 1, plan 775 ms  [6/10]
+[08:49:24] start  10 (away, 4.7 u/s, 12.9 u, safe True): picked_no_floor in 44 decisions, jumps 1, plan 801 ms  [6/11]
+[08:49:53] start  11 (toward, 2.5 u/s, 9.4 u, safe True): success in 36 decisions, jumps 1, plan 788 ms  [7/12]
+[08:51:13] start  12 (toward, 10.6 u/s, 11.0 u, safe True): success in 98 decisions, jumps 1, plan 815 ms  [8/13]
+[08:51:40] start  13 (rest, 0.0 u/s, 6.4 u, safe True): success in 33 decisions, jumps 1, plan 804 ms  [9/14]
+[08:52:16] start  14 (rest, 0.0 u/s, 10.3 u, safe True): success in 45 decisions, jumps 1, plan 795 ms  [10/15]
+[08:52:38] start  15 (toward, 9.4 u/s, 16.1 u, safe True): fell_rolling in 28 decisions, jumps 0, plan 778 ms  [10/16]
+[08:53:17] start  16 (rest, 0.0 u/s, 13.3 u, safe True): picked_no_floor in 49 decisions, jumps 3, plan 795 ms  [10/17]

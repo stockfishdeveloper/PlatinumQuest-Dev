@@ -1,0 +1,184 @@
+{
+ "set": "dev",
+ "starts": 120,
+ "safe_starts": 105,
+ "unsafe_starts": 15,
+ "gate": {
+  "success": 90,
+  "n": 105,
+  "rate": 0.8571,
+  "ci95": [
+   0.7776,
+   0.9115
+  ]
+ },
+ "gate_pass": false,
+ "by_target": {
+  "kotmjump_p0": {
+   "success": 25,
+   "n": 27,
+   "rate": 0.9259,
+   "ci95": [
+    0.7663,
+    0.9794
+   ]
+  },
+  "kotmjump_p1": {
+   "success": 22,
+   "n": 28,
+   "rate": 0.7857,
+   "ci95": [
+    0.6046,
+    0.8979
+   ]
+  },
+  "kotmjump_p2": {
+   "success": 19,
+   "n": 24,
+   "rate": 0.7917,
+   "ci95": [
+    0.5953,
+    0.9076
+   ]
+  },
+  "kotmjump_p3": {
+   "success": 24,
+   "n": 26,
+   "rate": 0.9231,
+   "ci95": [
+    0.7586,
+    0.9786
+   ]
+  }
+ },
+ "by_category": {
+  "rest": {
+   "success": 29,
+   "n": 34,
+   "rate": 0.8529,
+   "ci95": [
+    0.6987,
+    0.9355
+   ]
+  },
+  "toward": {
+   "success": 32,
+   "n": 36,
+   "rate": 0.8889,
+   "ci95": [
+    0.7468,
+    0.9559
+   ]
+  },
+  "side": {
+   "success": 19,
+   "n": 22,
+   "rate": 0.8636,
+   "ci95": [
+    0.6666,
+    0.9525
+   ]
+  },
+  "away": {
+   "success": 10,
+   "n": 13,
+   "rate": 0.7692,
+   "ci95": [
+    0.4974,
+    0.9182
+   ]
+  }
+ },
+ "status_safe_starts": {
+  "success": 90,
+  "fell_rolling": 4,
+  "missed": 4,
+  "abstain": 6,
+  "dropped": 1
+ },
+ "abstentions": 6,
+ "unsafe": {
+  "success": 7,
+  "n": 15,
+  "rate": 0.4667,
+  "ci95": [
+   0.2481,
+   0.6988
+  ],
+  "status": {
+   "missed": 1,
+   "success": 7,
+   "fell_rolling": 7
+  }
+ },
+ "jumps_per_trial": 0.97,
+ "no_takeoff": 7,
+ "launch_check_calibration": [
+  {
+   "p_succ": [
+    0.0,
+    0.45
+   ],
+   "jumps": 32,
+   "picked": 20,
+   "rate": 0.625
+  },
+  {
+   "p_succ": [
+    0.45,
+    0.6
+   ],
+   "jumps": 10,
+   "picked": 10,
+   "rate": 1.0
+  },
+  {
+   "p_succ": [
+    0.6,
+    0.75
+   ],
+   "jumps": 23,
+   "picked": 23,
+   "rate": 1.0
+  },
+  {
+   "p_succ": [
+    0.75,
+    0.9
+   ],
+   "jumps": 26,
+   "picked": 26,
+   "rate": 1.0
+  },
+  {
+   "p_succ": [
+    0.9,
+    1.01
+   ],
+   "jumps": 11,
+   "picked": 11,
+   "rate": 1.0
+  }
+ ],
+ "plan_ms_mean": 1312.9,
+ "plan_ms_p95_max": 2009.5,
+ "starts_sha1": [
+  [
+   "kotmjump_p0",
+   "c4a92eb4cce8"
+  ],
+  [
+   "kotmjump_p1",
+   "a96a22fa6354"
+  ],
+  [
+   "kotmjump_p2",
+   "f1d2c02fe595"
+  ],
+  [
+   "kotmjump_p3",
+   "9345f8282746"
+  ]
+ ],
+ "time_to_pickup_median_s": 1.92
+}

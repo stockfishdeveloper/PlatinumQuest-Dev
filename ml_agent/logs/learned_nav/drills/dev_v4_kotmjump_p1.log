@@ -1,0 +1,22 @@
+[10:24:48] [env:9202] waiting for the game
+[10:24:54] [env:9202] game connected (1)
+[10:24:59] connected: kotmjump_p1, round 3600 s
+[10:24:59] starts starts_dev_kotmjump_p1.json sha1 a96a22fa6354
+[10:24:59] seeds: 168
+[10:26:03] start   0 (rest, 0.0 u/s, 9.3 u, safe True): success in 49 decisions, jumps 2, plan 1258 ms  [1/1]
+[10:27:17] start   1 (side, 8.9 u/s, 11.8 u, safe True): success in 55 decisions, jumps 1, plan 1332 ms  [2/2]
+[10:28:25] start   2 (toward, 2.3 u/s, 13.2 u, safe True): success in 52 decisions, jumps 2, plan 1319 ms  [3/3]
+[10:32:44] start   3 (rest, 0.0 u/s, 8.8 u, safe True): abstain in 188 decisions, jumps 0, plan 1373 ms  [3/4]
+[10:33:35] start   4 (rest, 0.0 u/s, 12.7 u, safe True): success in 39 decisions, jumps 2, plan 1302 ms  [4/5]
+[10:34:36] start   5 (toward, 6.0 u/s, 16.3 u, safe True): success in 47 decisions, jumps 4, plan 1282 ms  [5/6]
+[10:35:38] start   6 (rest, 0.0 u/s, 9.4 u, safe True): success in 47 decisions, jumps 2, plan 1311 ms  [6/7]
+[10:37:08] start   7 (side, 2.5 u/s, 15.3 u, safe True): success in 68 decisions, jumps 2, plan 1318 ms  [7/8]
+[10:38:10] start   8 (toward, 3.9 u/s, 16.4 u, safe True): success in 48 decisions, jumps 4, plan 1305 ms  [8/9]
+[10:39:54] start   9 (side, 10.8 u/s, 8.9 u, safe True): success in 78 decisions, jumps 2, plan 1324 ms  [9/10]
+[10:40:58] start  10 (away, 7.4 u/s, 12.0 u, safe True): success in 49 decisions, jumps 2, plan 1309 ms  [10/11]
+[10:42:03] start  11 (rest, 0.0 u/s, 17.8 u, safe True): success in 50 decisions, jumps 4, plan 1289 ms  [11/12]
+[10:43:01] start  12 (toward, 5.6 u/s, 14.9 u, safe False): success in 45 decisions, jumps 4, plan 1280 ms  [12/13]
+[10:43:51] start  13 (rest, 0.0 u/s, 11.7 u, safe True): success in 38 decisions, jumps 1, plan 1303 ms  [13/14]
+[10:44:37] start  14 (toward, 9.6 u/s, 16.9 u, safe True): success in 35 decisions, jumps 2, plan 1310 ms  [14/15]
+[10:45:35] start  15 (rest, 0.0 u/s, 11.6 u, safe True): success in 43 decisions, jumps 2, plan 1342 ms  [15/16]
+[10:47:10] start  16 (toward, 5.5 u/s, 9.7 u, safe True): success in 69 decisions, jumps 2, plan 1373 ms  [16/17]

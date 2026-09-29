@@ -1,6 +1,6 @@
 """Build the P0 drill map `kotmjump_p0` from `kotmjump` (KOTMJUMP_START_HERE.md, decision 1).
 
-    python -m nav.learned_nav.make_drill_map            # writes .../hunt/custom/kotmjump_p0.mcs
+    python -m nav.learned_nav.make_drill_map            # writes .../hunt/custom/kotmjump_p0.mcs .. kotmjump_p3.mcs
 
 The drill map is kotmjump with:
 * one gem only: the floating gem of the first gem group (over the big hole at x -30.25, y 10.05);
@@ -20,6 +20,9 @@ CUSTOM = os.path.join(HERE, '..', 'Marble Blast Platinum', 'platinum', 'data', '
 SRC = os.path.join(CUSTOM, 'kotmjump.mcs')
 DST = os.path.join(CUSTOM, 'kotmjump_p0.mcs')
 TARGET = '-30.25 10.05 21.7'
+# stage 4 (2026-09-28): one drill map per floating gem of kotmjump
+DRILLS = {'kotmjump_p0': '-30.25 10.05 21.7', 'kotmjump_p1': '-20.25 10.05 21.7',
+          'kotmjump_p2': '-20.25 20.05 21.7', 'kotmjump_p3': '-30.25 20.05 21.7'}
 POWERUPS = ('SuperSpeedItem_MBU', 'SuperJumpItem_MBU', 'BlastItem_MBU', 'MegaMarbleItem_MBU')
 
 
@@ -39,12 +42,13 @@ def block_end(text, start):
         i += 1
 
 
-def main():
+def make(name, TARGET):
+    DST = os.path.join(CUSTOM, name + '.mcs')
     t = open(SRC, encoding='utf-8').read()
     # the game looks the info function up as MP_PQ_<alphanumerics of the file name>_GetMissionInfo
     # (shared/mission.cs getMissionInfo), so the underscore of kotmjump_p0 is dropped
-    t = t.replace('MP_PQ_kotmjump_', 'MP_PQ_kotmjumpp0_')
-    t = t.replace('name = "KOTM Jump";', 'name = "KOTM Jump P0 drill";')
+    t = t.replace('MP_PQ_kotmjump_', 'MP_PQ_%s_' % re.sub(r'[^A-Za-z0-9]', '', name))
+    t = t.replace('name = "KOTM Jump";', 'name = "KOTM Jump %s drill";' % name.split('_')[-1].upper())
     t = re.sub(r'desc = "[^"]*";', 'desc = "Drill map for the jump physics prototype: one floating gem, no powerups, one-hour round.";', t, count=1)
     for key, val in (('Time', '3600000'), ('gems', '1'), ('gems1', '1'), ('gems2', '0'), ('maxScore', '1')):
         t, n = re.subn(r'(\n\t\t%s = )"[^"]*";' % key, r'\1"%s";' % val, t, count=1)
@@ -107,7 +111,14 @@ def main():
     assert t.count('GemItem') == 1
     open(DST + '.tmp', 'w', encoding='utf-8').write(t)
     os.replace(DST + '.tmp', DST)
+    if os.path.exists(DST + '.dso'):
+        os.remove(DST + '.dso')
     print(f'wrote {os.path.normpath(DST)}: 1 gem at {TARGET}, {removed} powerups removed, 1 h round')
+
+
+def main():
+    for name, target in DRILLS.items():
+        make(name, target)
 
 
 if __name__ == '__main__':

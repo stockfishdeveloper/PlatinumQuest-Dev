@@ -99,6 +99,14 @@ never saw. Choosing the jumps of stage 2's test without ever seeing that data, i
 model trained only there: 68 %; the best simple rule: 19 %). Stage 3's checks are met; stage 4 (planning the run-up
 from anywhere) starts when the operator says so.
 
+**Progress, 2026-09-28 afternoon:** stage 4 is done and its check passed. The marble now plans its own run-up and
+jump: every 64 ms it tries a few hundred possible input sequences in the physics model, keeps the ones that take the
+gem and land with room to spare, and sends the first input of the best. From 233 starting spots it had never been
+tuned on (at rest, rolling toward the gem, across it or away from it, 4 to 18 units out), it took the floating gem
+and landed safely 93 % of the time (the bar was 80 %), and at least 90 % for each of the four gems. When it decided
+to jump for the gem, it got it 187 times out of 188; the misses come from circling without committing, or rolling
+too close to a hole's edge.
+
 ## Moments to watch
 
 The best discoveries on this project have come from watching the game at normal speed. Natural points to

@@ -1,0 +1,75 @@
+rows: train 22893996 from 6 files, validation 3238655 (trace_20260926_191104.csv), 35 s
+epoch 0: validation MAE 0.119 s
+epoch 1: validation MAE 0.120 s
+epoch 2: validation MAE 0.116 s
+epoch 3: validation MAE 0.115 s
+epoch 4: validation MAE 0.116 s
+epoch 5: validation MAE 0.113 s
+epoch 6: validation MAE 0.113 s
+epoch 7: validation MAE 0.115 s
+{
+ "train_files": [
+  "trace_20260925_012339.csv",
+  "trace_20260925_124449.csv",
+  "trace_20260926_010448.csv",
+  "trace_20260926_034246.csv",
+  "trace_20260926_084758.csv",
+  "trace_20260926_110334.csv"
+ ],
+ "val_file": "trace_20260926_191104.csv",
+ "rows_train": 22893996,
+ "rows_val": 3238655,
+ "baseline_s_per_u": 0.11907180398702621,
+ "mae_guide_s": 0.11490403860807419,
+ "mae_distance_baseline_s": 0.20188139379024506,
+ "median_err_guide_s": 0.046936847269535065,
+ "median_err_baseline_s": 0.1214379072189331,
+ "by_time_to_go": [
+  {
+   "t_s": [
+    0,
+    1
+   ],
+   "rows": 2239710,
+   "mae_guide": 0.05211680755019188,
+   "mae_distance": 0.1221938207745552
+  },
+  {
+   "t_s": [
+    1,
+    2
+   ],
+   "rows": 796905,
+   "mae_guide": 0.149852454662323,
+   "mae_distance": 0.22685159742832184
+  },
+  {
+   "t_s": [
+    2,
+    4
+   ],
+   "rows": 186827,
+   "mae_guide": 0.48487186431884766,
+   "mae_distance": 0.7696645259857178
+  },
+  {
+   "t_s": [
+    4,
+    8
+   ],
+   "rows": 14400,
+   "mae_guide": 2.705064535140991,
+   "mae_distance": 3.3782951831817627
+  },
+  {
+   "t_s": [
+    8,
+    21.0
+   ],
+   "rows": 813,
+   "mae_guide": 7.932984828948975,
+   "mae_distance": 8.517210960388184
+  }
+ ],
+ "time": "2026-09-28 09:07:23"
+}

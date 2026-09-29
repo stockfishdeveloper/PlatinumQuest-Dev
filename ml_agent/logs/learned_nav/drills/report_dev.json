@@ -1,0 +1,192 @@
+{
+ "set": "dev",
+ "starts": 120,
+ "safe_starts": 105,
+ "unsafe_starts": 15,
+ "gate": {
+  "success": 98,
+  "n": 105,
+  "rate": 0.9333,
+  "ci95": [
+   0.8687,
+   0.9673
+  ]
+ },
+ "gate_pass": false,
+ "by_target": {
+  "kotmjump_p0": {
+   "success": 24,
+   "n": 27,
+   "rate": 0.8889,
+   "ci95": [
+    0.7194,
+    0.9615
+   ]
+  },
+  "kotmjump_p1": {
+   "success": 25,
+   "n": 28,
+   "rate": 0.8929,
+   "ci95": [
+    0.728,
+    0.9629
+   ]
+  },
+  "kotmjump_p2": {
+   "success": 23,
+   "n": 24,
+   "rate": 0.9583,
+   "ci95": [
+    0.7976,
+    0.9926
+   ]
+  },
+  "kotmjump_p3": {
+   "success": 26,
+   "n": 26,
+   "rate": 1.0,
+   "ci95": [
+    0.8713,
+    1.0
+   ]
+  }
+ },
+ "by_category": {
+  "rest": {
+   "success": 31,
+   "n": 34,
+   "rate": 0.9118,
+   "ci95": [
+    0.7704,
+    0.9695
+   ]
+  },
+  "toward": {
+   "success": 35,
+   "n": 36,
+   "rate": 0.9722,
+   "ci95": [
+    0.8583,
+    0.9951
+   ]
+  },
+  "side": {
+   "success": 19,
+   "n": 22,
+   "rate": 0.8636,
+   "ci95": [
+    0.6666,
+    0.9525
+   ]
+  },
+  "away": {
+   "success": 13,
+   "n": 13,
+   "rate": 1.0,
+   "ci95": [
+    0.7719,
+    1.0
+   ]
+  }
+ },
+ "status_safe_starts": {
+  "missed": 2,
+  "success": 98,
+  "abstain": 5
+ },
+ "abstentions": 5,
+ "unsafe": {
+  "success": 9,
+  "n": 15,
+  "rate": 0.6,
+  "ci95": [
+   0.3575,
+   0.8018
+  ],
+  "status": {
+   "fell_rolling": 4,
+   "success": 9,
+   "fell_after_jump": 2
+  }
+ },
+ "jumps_per_trial": 1.87,
+ "no_takeoff": 11,
+ "launch_check_calibration": [
+  {
+   "p_succ": [
+    0.0,
+    0.35
+   ],
+   "jumps": 23,
+   "picked": 10,
+   "rate": 0.435
+  },
+  {
+   "p_succ": [
+    0.35,
+    0.45
+   ],
+   "jumps": 14,
+   "picked": 14,
+   "rate": 1.0
+  },
+  {
+   "p_succ": [
+    0.45,
+    0.6
+   ],
+   "jumps": 16,
+   "picked": 16,
+   "rate": 1.0
+  },
+  {
+   "p_succ": [
+    0.6,
+    0.75
+   ],
+   "jumps": 21,
+   "picked": 21,
+   "rate": 1.0
+  },
+  {
+   "p_succ": [
+    0.75,
+    0.9
+   ],
+   "jumps": 27,
+   "picked": 27,
+   "rate": 1.0
+  },
+  {
+   "p_succ": [
+    0.9,
+    1.01
+   ],
+   "jumps": 10,
+   "picked": 10,
+   "rate": 1.0
+  }
+ ],
+ "plan_ms_mean": 1215.5,
+ "plan_ms_p95_max": 1864.7,
+ "starts_sha1": [
+  [
+   "kotmjump_p0",
+   "c4a92eb4cce8"
+  ],
+  [
+   "kotmjump_p1",
+   "a96a22fa6354"
+  ],
+  [
+   "kotmjump_p2",
+   "f1d2c02fe595"
+  ],
+  [
+   "kotmjump_p3",
+   "9345f8282746"
+  ]
+ ],
+ "time": "2026-09-28 14:45",
+ "time_to_pickup_median_s": 2.3
+}

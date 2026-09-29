@@ -1,0 +1,10 @@
+[env:9072] waiting for the game
+[env:9072] game connected (1)
+connected: kotmjump_p0, round 3600 s
+[env:9071] waiting for the game
+[env:9071] game connected (1)
+connected: kotmjump_p0, round 3600 s
+  1: start 28 (away, 10.3 u/s, 5.6 u from the gem): success after 4.2 s, 4 jump press(es); replay ended 0.072 u from the planned run
+  2: start 27 (rest, 0.0 u/s, 16.7 u from the gem): success after 4.4 s, 2 jump press(es); replay ended 0.000 u from the planned run
+  3: start 15 (toward, 9.4 u/s, 16.1 u from the gem): success after 5.0 s, 5 jump press(es); replay ended 0.001 u from the planned run
+  4: start 16 (rest, 0.0 u/s, 13.3 u from the gem): success after 2.8 s, 2 jump press(es); replay ended 0.001 u from the planned run

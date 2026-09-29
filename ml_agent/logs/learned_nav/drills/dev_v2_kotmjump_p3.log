@@ -1,0 +1,8 @@
+[09:03:48] [env:9204] waiting for the game
+[09:03:52] [env:9204] game connected (1)
+[09:03:55] connected: kotmjump_p3, round 3600 s
+[09:03:55] starts starts_dev_kotmjump_p3.json sha1 9345f8282746
+[09:03:55] seeds: 66
+[09:08:24] start   0 (toward, 10.1 u/s, 9.9 u, safe False): missed in 188 decisions, jumps 4, plan 1419 ms  [0/1]
+[09:12:37] start   1 (side, 5.3 u/s, 12.2 u, safe True): missed in 188 decisions, jumps 5, plan 1341 ms  [0/2]
+[09:13:35] start   2 (rest, 0.0 u/s, 15.9 u, safe True): success in 45 decisions, jumps 1, plan 1287 ms  [1/3]

@@ -1,0 +1,36 @@
+[13:46:55] [env:9222] waiting for the game
+[13:47:19] [env:9222] game connected (1)
+[13:47:27] connected: kotmjump_p1, round 3600 s
+[13:47:27] starts starts_dev_kotmjump_p1.json sha1 a96a22fa6354
+[13:47:27] seeds: 168; provenance {"planner_py": "8540e929dbd4", "drills_py": "0c8aa1cb7418", "seeds_npz": "80fbe6b717ea", "use_guide": true, "p_go": 0.25, "p_jump": 0.35}
+[13:50:58] start   0 (rest, 0.0 u/s, 9.3 u, safe True): success in 151 decisions, jumps 2, plan 1378 ms  [1/1]
+[13:51:59] start   1 (side, 8.9 u/s, 11.8 u, safe True): success in 48 decisions, jumps 2, plan 1277 ms  [2/2]
+[13:54:00] start   2 (toward, 2.3 u/s, 13.2 u, safe True): success in 95 decisions, jumps 2, plan 1268 ms  [3/3]
+[13:58:02] start   3 (rest, 0.0 u/s, 8.8 u, safe True): abstain in 188 decisions, jumps 0, plan 1286 ms  [3/4]
+[13:58:52] start   4 (rest, 0.0 u/s, 12.7 u, safe True): success in 41 decisions, jumps 2, plan 1203 ms  [4/5]
+[14:02:36] start   5 (toward, 6.0 u/s, 16.3 u, safe True): success in 178 decisions, jumps 1, plan 1257 ms  [5/6]
+[14:03:33] start   6 (rest, 0.0 u/s, 9.4 u, safe True): success in 46 decisions, jumps 2, plan 1215 ms  [6/7]
+[14:07:28] start   7 (side, 2.5 u/s, 15.3 u, safe True): missed in 188 decisions, jumps 4, plan 1248 ms  [6/8]
+[14:09:43] start   8 (toward, 3.9 u/s, 16.4 u, safe True): success in 108 decisions, jumps 3, plan 1242 ms  [7/9]
+[14:11:09] start   9 (side, 10.8 u/s, 8.9 u, safe True): success in 73 decisions, jumps 2, plan 1183 ms  [8/10]
+[14:12:19] start  10 (away, 7.4 u/s, 12.0 u, safe True): success in 55 decisions, jumps 2, plan 1266 ms  [9/11]
+[14:13:24] start  11 (rest, 0.0 u/s, 17.8 u, safe True): success in 52 decisions, jumps 2, plan 1236 ms  [10/12]
+[14:14:35] start  12 (toward, 5.6 u/s, 14.9 u, safe False): success in 58 decisions, jumps 3, plan 1218 ms  [11/13]
+[14:15:22] start  13 (rest, 0.0 u/s, 11.7 u, safe True): success in 38 decisions, jumps 2, plan 1251 ms  [12/14]
+[14:16:06] start  14 (toward, 9.6 u/s, 16.9 u, safe True): success in 36 decisions, jumps 2, plan 1214 ms  [13/15]
+[14:20:31] start  15 (rest, 0.0 u/s, 11.6 u, safe True): success in 210 decisions, jumps 2, plan 1255 ms  [14/16]
+[14:23:30] start  16 (toward, 5.5 u/s, 9.7 u, safe True): success in 143 decisions, jumps 1, plan 1252 ms  [15/17]
+[14:24:38] start  17 (rest, 0.0 u/s, 17.7 u, safe True): success in 56 decisions, jumps 3, plan 1209 ms  [16/18]
+[14:25:24] start  18 (toward, 6.4 u/s, 15.1 u, safe True): success in 37 decisions, jumps 2, plan 1234 ms  [17/19]
+[14:27:58] start  19 (toward, 6.8 u/s, 10.2 u, safe True): success in 118 decisions, jumps 1, plan 1301 ms  [18/20]
+[14:30:28] start  20 (side, 2.5 u/s, 16.4 u, safe True): success in 136 decisions, jumps 2, plan 1098 ms  [19/21]
+[14:32:52] start  21 (toward, 9.1 u/s, 7.7 u, safe True): success in 124 decisions, jumps 1, plan 1154 ms  [20/22]
+[14:34:12] start  22 (toward, 2.7 u/s, 15.3 u, safe True): success in 68 decisions, jumps 2, plan 1183 ms  [21/23]
+[14:34:50] start  23 (toward, 4.4 u/s, 9.6 u, safe True): success in 33 decisions, jumps 2, plan 1137 ms  [22/24]
+[14:36:24] start  24 (away, 8.0 u/s, 17.9 u, safe True): success in 81 decisions, jumps 5, plan 1158 ms  [23/25]
+[14:37:04] start  25 (side, 2.5 u/s, 9.5 u, safe True): success in 35 decisions, jumps 2, plan 1133 ms  [24/26]
+[14:37:46] start  26 (toward, 10.7 u/s, 15.9 u, safe True): success in 37 decisions, jumps 1, plan 1139 ms  [25/27]
+[14:38:02] start  27 (toward, 11.8 u/s, 12.8 u, safe False): fell_rolling in 15 decisions, jumps 0, plan 1066 ms  [25/28]
+[14:41:52] start  28 (side, 8.1 u/s, 17.6 u, safe True): abstain in 188 decisions, jumps 0, plan 1215 ms  [25/29]
+[14:43:19] start  29 (side, 2.2 u/s, 15.2 u, safe True): success in 71 decisions, jumps 2, plan 1223 ms  [26/30]
+[14:43:19] finished
