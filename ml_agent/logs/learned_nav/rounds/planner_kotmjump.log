@@ -1,0 +1,21 @@
+[05:55:22] [env:9351] waiting for the game
+[05:55:45] [env:9351] game connected (1)
+[05:55:48] connected: kotmjump, round 180 s
+[05:58:46]   t 13 s: points 5, floor 3, floating 1, falls 0, groups 1
+[06:01:28]   t 26 s: points 10, floor 6, floating 2, falls 0, groups 2
+[06:04:32]   t 38 s: points 14, floor 8, floating 3, falls 0, groups 3
+[06:07:26]   t 51 s: points 18, floor 11, floating 4, falls 0, groups 4
+[06:10:11]   t 64 s: points 22, floor 13, floating 5, falls 0, groups 5
+[06:12:47]   t 77 s: points 27, floor 16, floating 6, falls 0, groups 6
+[06:15:37]   t 90 s: points 33, floor 19, floating 8, falls 0, groups 7
+[06:17:35]   t 102 s: points 36, floor 22, floating 8, falls 0, groups 8
+[06:19:26]   t 115 s: points 43, floor 26, floating 9, falls 0, groups 9
+[06:21:22]   t 128 s: points 48, floor 28, floating 11, falls 0, groups 10
+[06:23:16]   t 141 s: points 52, floor 31, floating 12, falls 0, groups 11
+[06:24:53]   t 154 s: points 62, floor 37, floating 13, falls 0, groups 13
+[06:26:20]   t 166 s: points 64, floor 38, floating 14, falls 0, groups 14
+[06:27:45]   t 179 s: points 65, floor 39, floating 14, falls 0, groups 14
+[06:28:01] round ended / reconnected: waiting for the next round
+[06:28:01] [env:9351] round over (time left 180s of 180s); waiting for the next round
+[06:28:01] [env:9351] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[06:28:01] round 1: points 65, gems floor 39 floating 14, falls 0, groups cleared 14 [9.54, 10.3, 12.29, 13.7, 15.68, 11.9, 11.78, 7.68, 14.27, 13.5, 9.54, 12.16, 8.32, 14.21], longest gap 8.3 s

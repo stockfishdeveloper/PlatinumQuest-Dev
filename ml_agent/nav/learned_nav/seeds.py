@@ -57,7 +57,7 @@ def sample_states(g, gem, rng, n):
 def build(map_name, gem, seed=0, log=print):
     import torch
     dev = 'cuda' if torch.cuda.is_available() else 'cpu'
-    g = Geometry(map_name); eidx = D3.EdgeIndex(g); steps = D3.load_ensemble(dev)
+    g = Geometry(map_name); eidx = D3.EdgeIndex(g); steps = PL.FastEnsemble(D3.load_ensemble(dev), dev)
     gem = np.asarray(gem, float)
     rng = np.random.default_rng(seed)
     S = sample_states(g, gem, rng, N_STATES)
@@ -125,6 +125,24 @@ def build(map_name, gem, seed=0, log=print):
     json.dump(meta, open(os.path.join(SEED_DIR, f'{map_name}.json'), 'w'), indent=1)
     log(f'{map_name}: {keep.sum()} seeds of {len(S)} states ({time.time() - t0:.0f} s)')
     return out
+
+
+def for_gem(map_name, gem, tol=0.1):
+    """Seeds for a gem at this position on this map's geometry: any seed set built for the same gem position on an
+    identical geometry (same raster and edges; e.g. the drill maps kotmjump_p0-p3 and kotmjump), else None."""
+    import glob
+    gem = np.asarray(gem, float)
+    g = None
+    for f in sorted(glob.glob(os.path.join(SEED_DIR, '*.npz'))):
+        z = np.load(f)
+        if 'gem' not in z or np.linalg.norm(z['gem'] - gem) > tol:
+            continue
+        src = os.path.splitext(os.path.basename(f))[0]
+        g = g or Geometry(map_name)
+        h = Geometry(src)
+        if np.array_equal(g.heights, h.heights, equal_nan=True) and np.array_equal(g.edges, h.edges):
+            return load(src)
+    return None
 
 
 def load(map_name):

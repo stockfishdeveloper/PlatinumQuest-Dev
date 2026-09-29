@@ -1,0 +1,8 @@
+[00:00:53] [env:9204] waiting for the game
+[00:00:58] [env:9204] game connected (1)
+[00:01:01] connected: kotmjump_p3, round 3600 s
+[00:01:01] starts starts_dev_kotmjump_p3.json sha1 9345f8282746
+[00:01:01] seeds: 178; provenance {"planner_py": "4aeca337e8e6", "drills_py": "736cd6961bf7", "seeds_npz": "ffea2a0e044a", "use_guide": true, "p_go": 0.25, "p_jump": 0.35}
+[00:02:48] start   0 (toward, 10.1 u/s, 9.9 u, safe False): success in 82 decisions, jumps 3, plan 1274 ms  [1/1]
+[00:04:32] start   1 (side, 5.3 u/s, 12.2 u, safe True): success in 74 decisions, jumps 1, plan 1408 ms  [2/2]
+[00:05:32] start   2 (rest, 0.0 u/s, 15.9 u, safe True): success in 43 decisions, jumps 2, plan 1398 ms  [3/3]

@@ -38,7 +38,8 @@ from nav.joystick import action_to_joystick                                     
 from nav.gems import visible_gems                                               # noqa: E402
 
 OUT_DIR = os.path.join(HERE, 'logs', 'learned_nav', 'drills')
-N_STARTS = {'dev': 30, 'test': 64}  # test: ~15 % of starts are unsafe (dev fixture), and the gate needs >= 200 safe
+N_STARTS = {'dev': 30, 'test': 64, 'test5': 64}  # test: ~15 % of starts are unsafe (dev fixture), and the gate needs >= 200
+                                               # safe; test5: stage 5's own frozen set (a new hash, never seen)
 D_MIN, D_MAX = 4.0, 18.0
 CLEAR = 1.0
 TIMEOUT_DEC = 188            # 12 s to take the gem
@@ -256,7 +257,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--port', type=int, required=True)
     ap.add_argument('--map', required=True)
-    ap.add_argument('--set', required=True, choices=('dev', 'test'))
+    ap.add_argument('--set', required=True, choices=('dev', 'test', 'test5'))
     a = ap.parse_args()
     os.makedirs(OUT_DIR, exist_ok=True)
     log_f = open(os.path.join(OUT_DIR, f'{a.set}_{a.map}.log'), 'a', buffering=1)

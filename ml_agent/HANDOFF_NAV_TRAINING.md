@@ -6,7 +6,7 @@ it here. The dated history of every experiment (sections 1 to 28.x, 2026-09-17 t
 `docs/HANDOFF_NAV_TRAINING_LOG.md`. Code comments that cite "HANDOFF 28.52" and the like point into that
 log, and new dated entries go there too.
 
-Last updated: 2026-09-28 14:00 (jump physics stage 4, M3 gate passed).
+Last updated: 2026-09-29 06:10 (jump physics stage 5: whole rounds work, single-gem check not met).
 
 ## 1. Where things stand
 
@@ -54,6 +54,16 @@ Last updated: 2026-09-28 14:00 (jump physics stage 4, M3 gate passed).
   strips between holes. Time-to-gem guide from PPO's traces trained (0.115 s error vs 0.202 s). Log section 31;
   page https://claude.ai/artifact/G82yZ3WkUWYziUizq6eTK1; watch: `nav\learned_nav\watch4.ps1 -Map kotmjump_p2`.
   Training still stopped. Next (operator): M4.
+* **Jump physics stage 5 / M4 (2026-09-28/29 night): whole rounds work, the single-gem check did not pass.** Whole
+  3-minute kotmjump rounds with the navigator driving and the planner taking only the floating gems (hybrid.py): 72.75
+  points a round (85, 85, 67, 54, memory kept current; 60.75 with it reset, not a settled difference) against 5.25 for
+  the navigator alone (9, 4, 4, 4; 33 falls a round); 14 floating gems and 2.25 falls a round, 1 fall within 3 s of 111
+  handbacks; planner alone 65 (1 round, no falls). Single floating gems on 228 new frozen starts: 90.8 % (86.3-93.9) against a bar of
+  95 % per gem (p0 84.7 %, p1 90.2 %, p2 94.2 %, p3 94.6 %): tuning on the same 105 dev starts reached 95.2 % there but
+  overfitted. Largest failure: landing on the strip between two holes at speed and rolling into the next (no
+  stopping-distance check). Planning 570 -> 400 ms a decision with identical results. Log section 32; page
+  https://claude.ai/artifact/P6coTg3eQAtKZveks1cXMp; results
+  logs/learned_nav/drills/report_test5_gate.json and logs/learned_nav/rounds/. Training still stopped.
 
 ## 2. Spin A/B (2026-09-26 22:00-22:40, 3x, 8 rounds per arm)
 

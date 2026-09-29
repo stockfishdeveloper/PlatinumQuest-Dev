@@ -107,6 +107,14 @@ and landed safely 93 % of the time (the bar was 80 %), and at least 90 % for eac
 to jump for the gem, it got it 187 times out of 188; the misses come from circling without committing, or rolling
 too close to a hole's edge.
 
+**Progress, 2026-09-29 morning:** stage 5 ran overnight, with one clear success and one miss. The success: in full
+3-minute rounds of the jump map, today's navigator drives and hands over to the planner only for the floating gems.
+The score went from about 5 points a round (the navigator alone, stuck at the first floating gem and falling about
+33 times a round) to 73 on average, and up to 87; the planner alone managed 65 in its one round without a fall. The miss: on 228 new starting spots for a single
+floating gem, the planner succeeded 90.8 % of the time, short of the 95 % bar for each gem. Tuning had reached 95 % on
+the practice starts but did not carry over. The main remaining failure: after taking the gem the marble lands at speed
+on the narrow strip between two holes and rolls into the next one.
+
 ## Moments to watch
 
 The best discoveries on this project have come from watching the game at normal speed. Natural points to

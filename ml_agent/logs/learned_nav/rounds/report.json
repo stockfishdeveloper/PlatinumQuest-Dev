@@ -1,0 +1,81 @@
+{
+ "navigator_alone": {
+  "rounds": 4,
+  "points_mean": 5.25,
+  "points": [
+   9.0,
+   4.0,
+   4.0,
+   4.0
+  ],
+  "gems_mean": 4.0,
+  "falls_mean": 32.75,
+  "checkpoint": "nav_latest.pth"
+ },
+ "hyb_current": {
+  "rounds": 4,
+  "points_mean": 72.75,
+  "points_sd": 15.11,
+  "points": [
+   85.0,
+   85.0,
+   67.0,
+   54.0
+  ],
+  "gems_floor_mean": 44.0,
+  "gems_float_mean": 14.0,
+  "falls_nav_mean": 1.25,
+  "falls_planner_mean": 1.0,
+  "falls_after_handback_total": 0,
+  "handovers_total": 60,
+  "planner_share": 0.474,
+  "plan_ms_mean": 1729.0
+ },
+ "hyb_reset": {
+  "rounds": 4,
+  "points_mean": 60.75,
+  "points_sd": 36.77,
+  "points": [
+   60.0,
+   87.0,
+   9.0,
+   87.0
+  ],
+  "gems_floor_mean": 36.25,
+  "gems_float_mean": 12.25,
+  "falls_nav_mean": 1.25,
+  "falls_planner_mean": 1.0,
+  "falls_after_handback_total": 1,
+  "handovers_total": 51,
+  "planner_share": 0.416,
+  "plan_ms_mean": 1838.0
+ },
+ "planner": {
+  "rounds": 1,
+  "points_mean": 65.0,
+  "points_sd": null,
+  "points": [
+   65.0
+  ],
+  "gems_floor_mean": 39.0,
+  "gems_float_mean": 14.0,
+  "falls_mean": 0.0,
+  "plan_ms_mean": 676.0
+ },
+ "smoke_hybrid_current": {
+  "rounds": 1,
+  "points_mean": 74.0,
+  "points_sd": null,
+  "points": [
+   74.0
+  ],
+  "gems_floor_mean": 44.0,
+  "gems_float_mean": 16.0,
+  "falls_nav_mean": 1.0,
+  "falls_planner_mean": 0.0,
+  "falls_after_handback_total": 1,
+  "handovers_total": 16,
+  "planner_share": 0.539,
+  "plan_ms_mean": 2791.0
+ }
+}

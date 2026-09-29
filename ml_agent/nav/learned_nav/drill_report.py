@@ -10,6 +10,8 @@ import os
 import sys
 import time
 
+import numpy as np
+
 HERE = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, HERE)
 from nav.learned_nav.drills import OUT_DIR                                      # noqa: E402
@@ -74,6 +76,10 @@ def main(set_name='test'):
            'plan_ms_mean': round(sum(r['ms_mean'] for r in rows) / max(1, len(rows)), 1),
            'plan_ms_p95_max': round(max((r['ms_p95'] for r in rows), default=0.0), 1),
            'starts_sha1': sorted({(r['map'], r['starts_sha1']) for r in rows}), 'time': time.strftime('%Y-%m-%d %H:%M')}
+    # stage 5 (design M4): completion time counting every failure; a success ends at its last decision (pickup,
+    # landing, 0.5 s on the floor), a failure counts the whole 12 s window (a lower bound on what it really costs)
+    ct = [0.064 * (r['decisions'] if r['success'] else 188) for r in safe]
+    rep['completion_time_mean_s'] = round(float(np.mean(ct)), 2) if ct else None
     tp = rep['time_to_pickup_s']
     rep['time_to_pickup_median_s'] = tp[len(tp) // 2] if tp else None
     del rep['time_to_pickup_s']

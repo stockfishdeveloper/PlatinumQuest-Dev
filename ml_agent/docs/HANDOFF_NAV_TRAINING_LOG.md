@@ -4299,3 +4299,94 @@ watch4.py + watch4.ps1 (1x viewing: `powershell -ExecutionPolicy Bypass -File na
 kotmjump_p2`), make_drill_map.py (four drill maps). Data: datasets/learned_nav/seeds/ (+ v1-v3 older sets), results
 logs/learned_nav/drills/ (dev_v0..v5, test_*, reports). Not shown by M3: route choice between approaches, gem groups,
 other maps (all four drills share the KOTM interior), handing control to and from PPO (M4/M5). Next (operator): M4.
+
+## 32. Jump physics stage 5 (design M4): reliability, whole gem groups, handing control back and forth (2026-09-28/29 night, autonomous)
+
+Operator, 2026-09-28 evening: "alright proceed with the next stage! i'm going to bed". Training stayed stopped; an
+mlAgent.cs change was approved if needed (none was); no engine change; nothing committed in this repo. Stage numbering:
+the overview's stage 5 "Reliable and smart" is the design's M4.
+
+Summary: whole rounds of kotmjump went from 5.25 points (navigator alone, 4 rounds, 33 falls a round) to 72.75
+(navigator plus planner for the floating gems, memory kept current: 85, 85, 67, 54), 14 floating gems and 2.25 falls a
+round, no fall within 3 s of any of 60 handbacks. The single-gem reliability check was NOT met: 90.8 %
+(207/228) on a new frozen test set against a bar of 95 % per gem (p0 84.7 %, p1 90.2 %, p2 94.2 %, p3 94.6 %); the
+planner tuned to 95.2 % on the dev starts but that did not carry over.
+
+### 32.1 Planning speed (same results, faster)
+
+Profile of one decision (570 ms, one game): half in eval3.predict (each ensemble member moved each output to the CPU
+separately: dozens of small transfers and ~60 kernel launches per step), a third in the terrain features.
+* planner.FastEnsemble: the three members on the GPU with one transfer each way, captured as CUDA graphs for padded
+  batch sizes 64 / 256 / 512 (one replay per step). Same outputs as eval3.predict to 1e-6.
+* Geometry.heights_at: the raster levels laid out per cell (one row gather per query). Identical values.
+* EdgeIndex.nearest: edge columns laid out per cell. Identical features (checked on four maps, 20000 random states).
+One game: 570 -> 400 ms a decision. Several games are GPU-bound at ~4.4 decisions/s in total (processes or threads
+alike). On this card (GeForce RTX 3070) TF32 is no faster than fp32, and fp16 only 23 % faster with ~1e-3 output noise:
+both left off. Rule learned the hard way: no GPU benchmarks while drills run (they halved the drill rate).
+
+### 32.2 Single-gem reliability: dev iterations (the 30 dev starts per gem only)
+
+| Version | Change | Feasible dev starts | Mean time per start (failure = 12 s) |
+|---|---|---|---|
+| v5 (M3 gate) | | 93/105 | 5.35 s |
+| guide | v5 + guide-timed run-ups | 98/105 | 5.38 s |
+| v6 | horizon 40 -> 48; continuation judged over 1.5 s after the landing; commitment to the last pickup plan (kept above 0.15 unless another is 0.1 better); approach jumps must be safe from every perturbed start | 99/105 | 5.52 s |
+| v7 (stopped at 38) | an unverified approach jump is never sent | roll-ins: marbles committed to a run-up had the jump taken away | |
+| v8 | ... unless every program without a jump falls (then the jump is the way out) | 100/105 (95.2 %) | 4.93 s |
+
+Why: in the M3 test 7 of 16 failures were stalls. Pickup plans appeared for a few decisions and vanished: their jumps
+were late in the 2.6 s horizon, and the landing had to show 4 settled decisions before it ended, so a run-up one
+decision slower made the plan vanish. The longer horizon then made easy jumps look unsafe (the fixed after-landing
+brake could not stop the marble before the next hole 2 s later, a continuation the planner never flies since it
+replans after landing), so the continuation is judged over 1.5 s past the landing.
+
+### 32.3 The gate: 64 new starts per gem (test5), v8 frozen first: NOT MET
+
+planner.py sha1 7b6d0882d06a (USE_GUIDE on), seeds v5 (datasets/learned_nav/seeds/, 162-212 per gem). Fixture: 228
+feasible of 256. Result: 207/228 = 90.8 % (95 % 86.3-93.9); per gem p0 50/59 = 84.7 %, p1 55/61 = 90.2 %, p2 49/52 =
+94.2 %, p3 53/56 = 94.6 %; bar 95 % each. Failures: 7 took the gem then fell, 6 jumped without the gem then stalled, 4
+stalls, 2 fell after an approach jump, 2 rolled in. Mean time per start (failure = 12 s) 5.33 s; the M3 gate's planner
+on its own (different) test set: 93.1 %, 5.08 s. So on held-out starts v8 is not better than v5: six versions tuned on
+the same 105 dev starts overfitted them. (A paired run of both planners on test5 would settle it; v5's code was not
+kept separately.) Launch check: jumps sent with a pickup plan (P >= 0.35) took the gem 180 of 186 times.
+The falls after a pickup share one cause: the flight lands on the 3 u strip between two holes at speed and rolls into
+the next hole. The planner's clearance measures the distance to the nearest edge in any direction, not whether the
+marble can stop before the edge it is heading for. First fix next: a stopping-distance check along the landing
+velocity.
+
+### 32.4 Whole rounds of kotmjump (rounds.py, hybrid.py, round_report.py)
+
+Real 3-minute rounds: 4 groups of 4 gems (1 yellow and 2 red on the floor, 1 red floating over the group's hole); a new
+group spawns only when all 4 are taken. Arms:
+* navigator alone: nav/real_run.py, nav_latest (update 26110), 4 rounds;
+* hybrid (hybrid.py): the navigator drives as in real_run (its chooser, the gem as goal, stuck-breaker); when its target
+  floats, the planner owns the marble until the pickup and a landing held 4 decisions, then hands back. Memory at
+  handback: 'current' (the navigator runs on every observation while the planner drives, its actions discarded) or
+  'reset';
+* planner alone (rounds.py): gem order by the guide over all permutations (+1.5 s for a floating gem), floor gems with
+  a smaller budget (160 broad programs) and walking distance to the gem.
+
+| Arm | Rounds | Points | Floating gems a round | Falls a round | Falls within 3 s of a handback |
+|---|---|---|---|---|---|
+| navigator alone | 4 | 5.25 (9, 4, 4, 4) | 0 | 32.8 | |
+| hybrid, memory current | 4 | 72.75 (85, 85, 67, 54; sd 15.1) | 14.0 | 2.25 (1.25 navigator, 1.0 planner) | 0 of 60 |
+| hybrid, memory reset | 4 | 60.75 (60, 87, 9, 87; sd 36.8) | 12.25 | 2.25 | 1 of 51 |
+| planner alone | 1 | 65 | 14 | 0 (longest gap between pickups 8.3 s) | |
+
+(A first hybrid round with the pre-v6 planner scored 74.) The memory comparison is not settled by 4 rounds each: the
+difference in means (12 points) is well inside the spread, and the reset arm's 9-point round was the navigator
+stalling on a floor gem, not a handover problem. The stage 5 check "handovers that don't cause falls": 1 fall within
+3 s of 111 handbacks.
+
+The navigator alone takes its first gems, then keeps trying to roll to the floating gem and falls (33 falls a round).
+In one reset round the navigator itself stalled on a floor gem for 140 s (100 stuck-breaker resets) after its second
+handback; the planner only takes floating gems, so nothing took over. Next: let the planner take over a floor gem too
+when the navigator stalls. Planner-alone rounds are slow to run (0.4-2 s a decision, ~2800 decisions a round).
+
+### 32.5 Files
+
+nav/learned_nav/: planner.py (FastEnsemble, commitment, horizon 48, set_target, floor-gem walking field), rounds.py,
+hybrid.py, round_report.py, drills.py (test5 set, replies recorded, provenance), drill_report.py (completion time),
+seeds.py (for_gem: seeds reused on identical geometry), geometry.py and dynamics3.py (faster, identical results),
+watch4.py (1x viewing via a hidden planning game and a replay). Data: datasets/learned_nav/geometry/kotmjump.*,
+seeds v5; results logs/learned_nav/drills/ (dev_v6..v8, test5_*, report_test5_gate.json) and logs/learned_nav/rounds/.

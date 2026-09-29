@@ -1,0 +1,16 @@
+[01:47:28] [env:9201] waiting for the game
+[01:47:34] [env:9201] game connected (1)
+[01:47:40] connected: kotmjump_p0, round 3600 s
+[01:47:40] starts starts_dev_kotmjump_p0.json sha1 c4a92eb4cce8
+[01:47:40] seeds: 212; provenance {"planner_py": "434a04d2e0fc", "drills_py": "3d394ae97449", "seeds_npz": "ce8ab3d25188", "use_guide": true, "p_go": 0.25, "p_jump": 0.35}
+[01:49:37] start   0 (rest, 0.0 u/s, 14.8 u, safe True): success in 71 decisions, jumps 2, plan 1621 ms  [1/1]
+[01:50:38] start   1 (rest, 0.0 u/s, 9.9 u, safe True): success in 38 decisions, jumps 2, plan 1597 ms  [2/2]
+[01:51:47] start   2 (toward, 6.1 u/s, 15.2 u, safe True): success in 42 decisions, jumps 2, plan 1623 ms  [3/3]
+[01:55:29] start   3 (side, 11.9 u/s, 9.4 u, safe True): success in 134 decisions, jumps 1, plan 1654 ms  [4/4]
+[01:56:23] start   4 (toward, 11.9 u/s, 12.4 u, safe True): success in 33 decisions, jumps 2, plan 1632 ms  [5/5]
+[01:57:43] start   5 (side, 5.1 u/s, 17.6 u, safe True): success in 49 decisions, jumps 1, plan 1628 ms  [6/6]
+[01:58:34] start   6 (toward, 10.5 u/s, 15.4 u, safe True): success in 32 decisions, jumps 2, plan 1600 ms  [7/7]
+[02:01:28] start   7 (toward, 2.8 u/s, 9.1 u, safe True): success in 106 decisions, jumps 1, plan 1632 ms  [8/8]
+[02:02:47] start   8 (rest, 0.0 u/s, 10.1 u, safe True): success in 48 decisions, jumps 1, plan 1641 ms  [9/9]
+[02:04:07] start   9 (rest, 0.0 u/s, 8.8 u, safe True): success in 49 decisions, jumps 2, plan 1627 ms  [10/10]
+[02:08:18] start  10 (away, 4.7 u/s, 12.9 u, safe True): success in 150 decisions, jumps 1, plan 1671 ms  [11/11]

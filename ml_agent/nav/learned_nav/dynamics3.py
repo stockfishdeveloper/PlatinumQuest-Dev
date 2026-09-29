@@ -87,6 +87,7 @@ class EdgeIndex:
                 segs = np.unique(owner[idx[c][ok]])[:self.K]
                 table.reshape(-1, self.K)[c, :len(segs)] = segs
         self.table = table
+        self.cols = None
 
     def nearest(self, px, py, pz_floor, cos_y, sin_y):
         """(N, N_EDGE * 7): distance, outward normal in frame (2), one-hot void/drop/wall (3), drop (clipped)."""
@@ -98,28 +99,40 @@ class EdgeIndex:
         cj = np.clip(np.floor(py - self.y0).astype(np.int64), 0, self.H - 1)
         cand = self.table[cj, ci]                                  # (N, K)
         valid = cand >= 0
-        s = self.e[np.where(valid, cand, 0)]                        # (N, K, 11)
-        ax, ay = s[..., 0], s[..., 1]; bx, by = s[..., 3], s[..., 4]
+        if self.cols is None and self.table.size * 10 * 8 <= 200e6:
+            # each edge column laid out per cell (same values as self.e[cand]): contiguous row gathers instead of an
+            # (N, K, 11) gather and strided slices (2026-09-28, planner speed)
+            safe = np.where(self.table >= 0, self.table, 0).reshape(-1, self.K)
+            self.cols = [np.ascontiguousarray(self.e[safe, c]) for c in range(10)]
+        if self.cols is not None:
+            cell = cj * self.W + ci
+            s = [col[cell] for col in self.cols]                    # 10 x (N, K)
+            ax, ay, bx, by = s[0], s[1], s[3], s[4]
+        else:
+            s = self.e[np.where(valid, cand, 0)]                    # (N, K, 11)
+            ax, ay = s[..., 0], s[..., 1]; bx, by = s[..., 3], s[..., 4]
+            s = [s[..., c] for c in range(10)]
         dx, dy = bx - ax, by - ay
         L2 = np.maximum(dx * dx + dy * dy, 1e-12)
         t = np.clip(((px[:, None] - ax) * dx + (py[:, None] - ay) * dy) / L2, 0, 1)
         qx, qy = ax + t * dx, ay + t * dy
         d = np.hypot(px[:, None] - qx, py[:, None] - qy)
-        zs = s[..., 2] + t * (s[..., 5] - s[..., 2])
+        zs = s[2] + t * (s[5] - s[2])
         ok = valid & (d <= EDGE_REACH) & (zs >= pz_floor[:, None] - 1.0) & (zs <= pz_floor[:, None] + 0.6)
         d = np.where(ok, d, np.inf)
         order = np.argsort(d, axis=1)[:, :N_EDGE]
         rows = np.arange(N)[:, None]
-        dsel = d[rows, order]; ssel = s[rows, order]
+        dsel = d[rows, order]
         has = np.isfinite(dsel)
-        nx, ny = ssel[..., 6], ssel[..., 7]
+        nx, ny = s[6][rows, order], s[7][rows, order]
         out[..., 0] = np.where(has, dsel, EDGE_REACH)
         out[..., 1] = np.where(has, cos_y[:, None] * nx + sin_y[:, None] * ny, 0)
         out[..., 2] = np.where(has, -sin_y[:, None] * nx + cos_y[:, None] * ny, 0)
-        typ = ssel[..., 8]
+        typ = s[8][rows, order]
         for k, tv in enumerate((VOID, DROP, WALL)):
             out[..., 3 + k] = np.where(has & (typ == tv), 1.0, 0.0)
-        drop = np.where(np.isfinite(ssel[..., 9]), ssel[..., 9], 5.0)
+        dropv = s[9][rows, order]
+        drop = np.where(np.isfinite(dropv), dropv, 5.0)
         out[..., 6] = np.where(has, np.clip(drop, -3, 5) / 5.0, 0)
         return out.reshape(N, -1)
 

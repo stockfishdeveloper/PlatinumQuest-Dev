@@ -236,9 +236,21 @@ class Geometry:
         self.res = float(d['res'])
         e = self.edges
         self._emin = np.minimum(e[:, 0:2], e[:, 3:5]); self._emax = np.maximum(e[:, 0:2], e[:, 3:5])
+        # the levels of each raster cell side by side (cell-major): one row gather per query instead of K strided ones
+        # (the planner makes ~10^5 queries a decision; same values as _heights_at)
+        self._hT = np.ascontiguousarray(self.heights.reshape(self.heights.shape[0], -1).T)
 
     def heights_at(self, qx, qy):
-        return _heights_at(self.xs, self.ys, self.heights, qx, qy)
+        qx = np.asarray(qx, dtype=np.float64); qy = np.asarray(qy, dtype=np.float64)
+        i = np.rint((qx - self.xs[0]) / RES).astype(np.int64); j = np.rint((qy - self.ys[0]) / RES).astype(np.int64)
+        nx = len(self.xs)
+        ok = (i >= 0) & (i < nx) & (j >= 0) & (j < len(self.ys))
+        if ok.all():
+            return np.ascontiguousarray(self._hT[j * nx + i].T)          # (K, N) contiguous, as callers reduce over K
+        out = np.full((self.heights.shape[0], len(qx)), np.nan, dtype=np.float32)
+        if ok.any():
+            out[:, ok] = self._hT[j[ok] * nx + i[ok]].T
+        return out
 
     def _level_below(self, x, y, z, tol=0.3):
         i = int(round((x - self.xs[0]) / self.res)); j = int(round((y - self.ys[0]) / self.res))

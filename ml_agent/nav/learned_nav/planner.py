@@ -32,7 +32,8 @@ from nav.joystick import action_to_joystick                                     
 
 R = 0.19
 SQ2 = math.sqrt(2.0)
-H = 40                       # program decisions (2.56 s) after the pending reply
+H = 48                       # program decisions (3.07 s) after the pending reply (40 until stage 5: a late jump
+                             # landed too close to the end of the horizon to show it had settled, and its plan vanished)
 N_BROAD = 320
 N_SEED = 96
 N_WARM = 40
@@ -42,6 +43,7 @@ P_GO = 0.25                  # below this best P(success) the planner approaches
 P_JUMP = 0.35                # a jump from the floor is sent only above this (after the flight-head check); dev v3:
                              # all 70 floor jumps sent at >= 0.45 took the gem, so 0.45 was conservative
 LAST_JUMP = 22               # latest jump decision in a program: time left in the horizon to land and settle
+CONT_WIN = 24                # decisions after a landing over which the continuation is judged (1.5 s)
 SETTLE_N = 4                 # decisions on a floor at the end of the horizon for a safe continuation
 TAIL = 10                    # every ground program brakes for its last TAIL decisions: the plan must still be able to
                              # stop (terminal check; without it a program rolling toward a hole just past the horizon
@@ -51,6 +53,8 @@ CLEAR_MIN = 0.2              # ... and none at all below this (landing errors ~1
 SKIP_CLEAR = 3               # the first decisions of a rolling program are not charged (the marble may start near a lip)
 FALL_DZ = 0.5                # below the start floor level by this much: fallen (2.0 until the first drill: a pocket
                              # under a hole's lip 1 u down counted as safe, and the marble was stuck there)
+P_KEEP = 0.15                # a kept pickup plan (commitment) is dropped below this
+SWITCH = 0.10                # ... or when another plan beats it by this much
 K_ROBUST = 12                # best candidates re-checked from perturbed starts (first dev drills: landings 0.1-0.3 u
                              # past a hole's far lip clipped it in the game and bounced back in)
 VARIANTS = (('s', 0.96), ('s', 1.04), ('h', math.radians(2.0)), ('h', -math.radians(2.0)))
@@ -125,6 +129,64 @@ def world_input(mode, ang, thr, vel_send):
     return u
 
 
+class FastEnsemble:
+    """The step ensemble's planning outputs: eval3.predict's 'mu' (contact mode picked by each member's own collision
+    probability, members averaged) and 'p' (sigmoid of the averaged contact logits), computed on the device with one
+    transfer each way per step (eval3.predict moved every member's every output separately: about half the planner's
+    time, profile 2026-09-28). Same arithmetic in float32."""
+
+    BUCKETS = (64, 256, 512)     # batch sizes captured as CUDA graphs (rows padded up); larger batches run eagerly
+
+    def __init__(self, models, dev):
+        import torch
+        self.models = models; self.dev = dev
+        self.tstd = [torch.as_tensor(m.tstd, device=dev) for m in models]
+        self.tmean = [torch.as_tensor(m.tmean, device=dev) for m in models]
+        self.graphs = {}
+        if str(dev).startswith('cuda'):
+            # one graph replay per step instead of ~60 kernel launches: with four planners on one GPU the launches
+            # queued behind each other (1.3 s a decision against 0.57 s alone)
+            for b in self.BUCKETS:
+                x = torch.zeros((b, D3.N_FEAT), device=dev)
+                s = torch.cuda.Stream(); s.wait_stream(torch.cuda.current_stream())
+                with torch.cuda.stream(s), torch.no_grad():
+                    for _ in range(3):
+                        self._forward(x)
+                torch.cuda.current_stream().wait_stream(s)
+                g = torch.cuda.CUDAGraph()
+                with torch.cuda.graph(g), torch.no_grad():
+                    out = self._forward(x)
+                self.graphs[b] = (g, x, out)
+
+    def _forward(self, x):
+        import torch
+        mus, logits = [], []
+        for m, s, mu0 in zip(self.models, self.tstd, self.tmean):
+            o = m(x)
+            if getattr(m, 'has_modes', False):
+                md = m.last_modes * s + mu0
+                pc = torch.sigmoid(o[2][:, 1])
+                mus.append(torch.where((pc >= 0.5)[:, None], md[:, 1], md[:, 0]))
+            else:
+                mus.append(o[0] * s + mu0)
+            logits.append(o[2])
+        return torch.cat([torch.stack(mus).mean(0), torch.sigmoid(torch.stack(logits).mean(0))], 1)
+
+    def __call__(self, F):
+        import torch
+        n = len(F)
+        b = next((b for b in self.BUCKETS if b >= n), None) if self.graphs else None
+        if b is None:
+            with torch.inference_mode():
+                out = self._forward(torch.as_tensor(F, device=self.dev)).cpu().numpy()
+        else:
+            g, x, o = self.graphs[b]
+            x[:n].copy_(torch.from_numpy(np.ascontiguousarray(F, dtype=np.float32)))
+            g.replay()
+            out = o[:n].cpu().numpy()
+        return out[:, :D3.N_CONT], out[:, D3.N_CONT:]
+
+
 def simulate(steps, g, eidx, dev, P, V, W, Uc, Jc, Up, Jp, progs, airborne0, floor_ref):
     """Roll each program forward from its start (P, V, W: (n, 3)); Uc, Jc: the pending reply (acts first); Up, Jp:
     the reply before it. State index k = k decisions after the observation; program decision d is built at state d
@@ -139,7 +201,7 @@ def simulate(steps, g, eidx, dev, P, V, W, Uc, Jc, Up, Jp, progs, airborne0, flo
     sup_t = np.zeros((n, H + 1)); gap_t = np.zeros((n, H + 1)); coll_t = np.zeros((n, H + 1))
     Ul = np.zeros((n, H + 1, 2)); Jl = np.zeros((n, H + 1))
     jumped_at = np.full(n, -1)
-    unplanned = np.zeros(n, bool); reair = np.zeros(n, bool)
+    unplanned = np.zeros(n, bool); reair = np.zeros(n, bool); in_air_t = np.zeros((n, H + 1), bool)
     for t in range(H + 1):
         if t == 0:
             U = Uc.copy(); J = Jc.copy()
@@ -151,9 +213,12 @@ def simulate(steps, g, eidx, dev, P, V, W, Uc, Jc, Up, Jp, progs, airborne0, flo
             U = world_input(md, an, th, vel[:, d])
             J = np.where(post, 0.0, progs.jump[:, d].astype(float))
         F, yaw = D3.features(g, eidx, P, V, W, U, J, Up, Jp)
-        pr = E3.predict(steps, F, dev)
-        P, V, W = D3.apply_step(P, V, W, pr['mu'], yaw)
-        sup = pr['p'][:, 0]; coll = pr['p'][:, 1]; last = pr['p'][:, 2]
+        if isinstance(steps, FastEnsemble):
+            mu, pc = steps(F)
+        else:
+            pr = E3.predict(steps, F, dev); mu, pc = pr['mu'], pr['p']
+        P, V, W = D3.apply_step(P, V, W, mu, yaw)
+        sup = pc[:, 0]; coll = pc[:, 1]; last = pc[:, 2]
         lv, _ = D3.level_below(g, P[:, 0], P[:, 1], P[:, 2] + 0.3)
         gap = np.where(np.isfinite(lv), P[:, 2] - R - lv, 9.0)
         jumped_at = np.where((J > 0) & (jumped_at < 0), t, jumped_at)
@@ -162,6 +227,7 @@ def simulate(steps, g, eidx, dev, P, V, W, Uc, Jc, Up, Jp, progs, airborne0, flo
         # are unplanned flights: the model's edge bounces are not reliable enough to plan on (dev v3 falls)
         unplanned |= in_air & (jumped_at < 0) & ~started_air
         reair |= in_air & (landed >= 0) & (t + 1 > landed + 1)
+        in_air_t[:, t] = in_air
         airborne |= in_air
         land_now = airborne & (landed < 0) & (sup >= 0.5) & (last >= 0.5)
         landed = np.where(land_now, t + 1, landed)
@@ -177,7 +243,7 @@ def simulate(steps, g, eidx, dev, P, V, W, Uc, Jc, Up, Jp, progs, airborne0, flo
     clear = np.where(sup_t >= 0.5, clear, np.inf)
     return {'path': path, 'vel': vel, 'landed': landed, 'airborne': airborne, 'started_air': started_air,
             'sup': sup_t, 'gap': gap_t, 'coll': coll_t, 'U': Ul, 'J': Jl, 'jumped_at': jumped_at, 'clear_t': clear,
-            'unplanned': unplanned, 'reair': reair,
+            'unplanned': unplanned, 'reair': reair, 'in_air_t': in_air_t,
             'floor_ref': np.broadcast_to(np.asarray(floor_ref, float), (n,))}
 
 
@@ -191,16 +257,27 @@ def closest_pass(path, gem):
 
 
 def judge(sim, gem):
+    """Pickup chance and a safe continuation. After a flight the continuation is judged over CONT_WIN decisions from
+    the landing (falls, bounces, settling, clearance); what the fixed after-landing input would do later is left to the
+    next plans (the planner keeps steering after a landing). A program that never flies is judged to the horizon."""
     path = sim['path']
+    n = len(path)
     dmin, t_close, _ = closest_pass(path, gem)
-    fell = (path[:, :, 2] < sim['floor_ref'][:, None] + R - FALL_DZ).any(1)
-    settled = (sim['sup'][:, -SETTLE_N:] >= 0.5).all(1) & (sim['gap'][:, -SETTLE_N:] < 0.5).all(1)
-    safe = ~fell & settled & (~sim['airborne'] | (sim['landed'] >= 0)) & ~sim['unplanned'] & ~sim['reair']
-    # clearance after the landing (or from SKIP_CLEAR on for a program that never left the floor); clear_t index
-    # t is the state after transition t, i.e. state t + 1
-    idx = np.arange(H + 1)[None, :] + 1
-    lnd = sim['landed'][:, None]
-    window = np.where(lnd >= 0, idx >= lnd, (~sim['airborne'])[:, None] & (idx > SKIP_CLEAR))
+    lnd = sim['landed']
+    end = np.where(lnd >= 0, np.minimum(H + 1, lnd + CONT_WIN), H + 1)          # last state judged
+    st = np.arange(H + 2)[None, :]                                              # state index
+    fell = ((path[:, :, 2] < sim['floor_ref'][:, None] + R - FALL_DZ) & (st <= end[:, None])).any(1)
+    tt = np.arange(H + 1)[None, :]                                              # transition t -> state t + 1
+    win = (tt + 1 > end[:, None] - SETTLE_N) & (tt + 1 <= end[:, None])
+    ok_t = (sim['sup'] >= 0.5) & (sim['gap'] < 0.5)
+    settled = np.where(win, ok_t, True).all(1)
+    reair = (sim['in_air_t'] & (lnd[:, None] >= 0) & (tt + 1 > lnd[:, None] + 1) & (tt + 1 <= end[:, None])).any(1)
+    safe = ~fell & settled & (~sim['airborne'] | (lnd >= 0)) & ~sim['unplanned'] & ~reair
+    # clearance after the landing (or from SKIP_CLEAR on for a program that never left the floor), to the end of the
+    # judged window; clear_t index t is the state after transition t, i.e. state t + 1
+    idx = tt + 1
+    window = np.where(lnd[:, None] >= 0, (idx >= lnd[:, None]) & (idx <= end[:, None]),
+                      (~sim['airborne'])[:, None] & (idx > SKIP_CLEAR))
     clear = np.where(window, sim['clear_t'], np.inf).min(1)
     q = np.clip((clear - CLEAR_MIN) / (CLEAR_OK - CLEAR_MIN), 0.0, 1.0)
     pp = p_pick(dmin)
@@ -214,7 +291,7 @@ class Planner:
         self.dev = dev or ('cuda' if torch.cuda.is_available() else 'cpu')
         self.g = g; self.eidx = D3.EdgeIndex(g)
         self.gem = np.asarray(gem, dtype=np.float64)
-        self.steps = D3.load_ensemble(self.dev)
+        self.steps = FastEnsemble(D3.load_ensemble(self.dev), self.dev)
         self.fmodel = None
         if use_flight:
             from nav.learned_nav import flight3 as F3
@@ -225,8 +302,9 @@ class Planner:
         if seeds is not None and len(seeds['x']):
             from scipy.spatial import cKDTree
             self.seed_tree = cKDTree(self._seed_key(seeds['x'], seeds['y'], seeds['vx'], seeds['vy']))
-        self.best = None
+        self.best = None; self.last_kind = None
         self.walk = None
+        self.n_broad = N_BROAD       # broad proposals per decision (a caller may lower it for a floor gem)
         self.rng = rng or np.random.default_rng(0)
         self.guide = None
         if USE_GUIDE:
@@ -239,7 +317,18 @@ class Planner:
         return np.c_[x, y, 0.25 * np.asarray(vx), 0.25 * np.asarray(vy)]
 
     def reset(self):
-        self.best = None
+        self.best = None; self.last_kind = None
+
+    def set_target(self, gem, seeds=None):
+        """A new gem to take (whole groups, stage 5): its seeds (None for a floor gem) and a fresh walking field."""
+        self.gem = np.asarray(gem, dtype=np.float64)
+        self.seeds = seeds
+        self.seed_tree = None
+        if seeds is not None and len(seeds['x']):
+            from scipy.spatial import cKDTree
+            self.seed_tree = cKDTree(self._seed_key(seeds['x'], seeds['y'], seeds['vx'], seeds['vy']))
+        self.walk = None
+        self.reset()
 
     # ------------------------------------------------------------------ proposals
     def _broad(self, n, p, v):
@@ -345,7 +434,7 @@ class Planner:
         if airborne:
             parts.append(self._air(N_AIR, p, v))
         else:
-            parts.append(self._broad(N_BROAD, p, v))
+            parts.append(self._broad(self.n_broad, p, v))
             if self.seed_tree is not None:
                 parts.append(self._seeded(N_SEED, p, v))
         return Programs.cat(parts)
@@ -403,11 +492,18 @@ class Planner:
                 ps[jump_now & (ps < P_JUMP)] = 0.0
             kind = None
             info['p_nominal'] = float(ps.max())
-            if ps.max() >= P_GO:
+            # commitment: the last pickup plan, shifted one decision (program 0 when there is one), is always
+            # re-checked and kept while it stays above P_KEEP, unless another beats it by SWITCH. Without it, plans
+            # appeared and vanished between decisions and 7 of the 16 M3 test failures were stalls
+            inc = 0 if (self.best is not None and self.last_kind == 'pickup') else None
+            keep = inc is not None and ps[inc] >= P_KEEP
+            if ps.max() >= P_GO or keep:
                 # robustness: the best candidates again from perturbed starts; P(success) is the mean pickup chance
-                # times the WORST safety x margin (a landing just past a lip fails under a 4 % slower start)
+                # times the mean safety x margin over the variants
                 top = np.argsort(-(ps - 0.004 * jd['t_close']))[:K_ROBUST]
                 top = top[ps[top] > 0]
+                if keep and inc not in top:
+                    top = np.r_[top, inc]
                 sim2, jd2 = rob(top)
                 pp2 = jd2['p_pick'].reshape(len(top), N_VAR).mean(1)
                 # the MEAN over the variants (the worst case left almost nothing to fly: dev drills v2, 2026-09-28)
@@ -415,16 +511,32 @@ class Planner:
                 ps_top = np.minimum(ps[top], 0.5 * (jd['p_pick'][top] + pp2) * sf2)
                 ps_top[jump_now[top] & (ps_top < P_JUMP)] = 0.0
                 ps = np.zeros(n); ps[top] = ps_top
-                if ps.max() >= P_GO:
-                    k = int(np.argmax(np.where(ps > 0, ps - 0.004 * jd['t_close'], -1.0))); kind = 'pickup'
+                k = int(np.argmax(np.where(ps > 0, ps - 0.004 * jd['t_close'], -1.0)))
+                if keep and ps[inc] >= P_KEEP and ps[k] < ps[inc] + SWITCH:
+                    k = inc
+                if ps[k] >= P_GO or (k == inc and keep and ps[inc] >= P_KEEP):
+                    kind = 'pickup'
+                info['kept'] = bool(k == inc)
             if kind is None:
                 cost = self.seed_cost(sim, jd) + APPROACH_JUMP * (sim['jumped_at'] >= 0)
                 top = np.argsort(cost)[:K_ROBUST]
                 sim2, jd2 = rob(top)
                 fell2 = jd2['fell'].reshape(len(top), N_VAR).any(1)
-                k = int(top[int(np.argmin(cost[top] + 100.0 * fell2))]); kind = 'approach'
+                # a jump without a pickup plan must be safe from every perturbed start (M3 test: such jumps took the
+                # gem about half the time and caused falls)
+                unsafe_jump = (sim['jumped_at'][top] >= 0) & ~jd2['safe'].reshape(len(top), N_VAR).all(1)
+                veto = fell2 | unsafe_jump
+                k = int(top[int(np.argmin(cost[top] + 100.0 * veto))]); kind = 'approach'
+                if jump_now[k] and veto[list(top).index(k)]:
+                    # a jump that failed the check is replaced by the best program that does not jump now (dev v6: three
+                    # such jumps fell), unless that one falls too: then the jump is the only way out (dev v7: marbles
+                    # committed to a run-up rolled into the hole when the jump was taken away)
+                    alt = int(np.argmin(np.where(jump_now, np.inf, cost)))
+                    if not jd['fell'][alt]:
+                        k = alt
+                    info['escape_jump'] = bool(jd['fell'][alt])
             info['p_succ'] = float(ps[k]); info['p_best'] = float(ps.max()); info['n_go'] = int((ps >= P_GO).sum())
-        self.best = progs.take(np.array([k]))
+        self.best = progs.take(np.array([k])); self.last_kind = kind
         info.update({'kind': kind, 'dmin': float(jd['dmin'][k]), 't_close': int(jd['t_close'][k]),
                      'safe': bool(jd['safe'][k]), 'fell': bool(jd['fell'][k]), 'clear': float(min(jd['clear'][k], 9.0)),
                      'landed': int(sim['landed'][k]), 'jump_at': int(sim['jumped_at'][k]),
@@ -492,8 +604,13 @@ class Planner:
             rows.append(ia[m]); cols.append(ib[m]); wts.append(np.full(int(m.sum()), w * g.res))
         r = np.concatenate(rows); c = np.concatenate(cols); w = np.concatenate(wts)
         G = coo_matrix((np.r_[w, w], (np.r_[r, c], np.r_[c, r])), shape=(len(cells), len(cells))).tocsr()
-        si = np.clip(np.rint((self.seeds['y'] - g.ys[0]) / g.res).astype(int), 0, ny - 1)
-        sj = np.clip(np.rint((self.seeds['x'] - g.xs[0]) / g.res).astype(int), 0, nx - 1)
+        if self.seeds is not None and len(self.seeds['x']):
+            sx, sy = self.seeds['x'], self.seeds['y']
+        else:                                                    # a floor gem: walk to the gem itself (a 1 u disc)
+            a = np.linspace(0, 2 * math.pi, 16, endpoint=False)
+            sx = self.gem[0] + np.r_[0.0, 0.5 * np.cos(a), np.cos(a)]; sy = self.gem[1] + np.r_[0.0, 0.5 * np.sin(a), np.sin(a)]
+        si = np.clip(np.rint((sy - g.ys[0]) / g.res).astype(int), 0, ny - 1)
+        sj = np.clip(np.rint((sx - g.xs[0]) / g.res).astype(int), 0, nx - 1)
         src = np.unique(idx[si, sj][idx[si, sj] >= 0])
         D = np.full(ny * nx, np.inf)
         if len(src):
@@ -513,7 +630,10 @@ class Planner:
         path, vel = sim['path'], sim['vel']
         n = len(path)
         if self.seed_tree is None:
-            c = np.linalg.norm(path[:, 1:, :2] - self.gem[:2], axis=2).min(1)
+            # no seeds (a floor gem): walking distance to it (straight-line where off the walkable floor)
+            walk = self.walk_at(path[:, 1:, 0].ravel(), path[:, 1:, 1].ravel(), float(sim['floor_ref'][0])).reshape(n, -1)
+            straight = np.linalg.norm(path[:, 1:, :2] - self.gem[:2], axis=2)
+            c = (np.where(np.isfinite(walk), walk, straight + 5.0) + 0.03 * np.arange(path.shape[1] - 1)[None, :]).min(1)
         else:
             q = self._seed_key(path[:, 1:, 0].ravel(), path[:, 1:, 1].ravel(), vel[:, 1:, 0].ravel(), vel[:, 1:, 1].ravel())
             dist, _ = self.seed_tree.query(q)
