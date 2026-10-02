@@ -6,16 +6,32 @@ it here. The dated history of every experiment (sections 1 to 28.x, 2026-09-17 t
 `docs/HANDOFF_NAV_TRAINING_LOG.md`. Code comments that cite "HANDOFF 28.52" and the like point into that
 log, and new dated entries go there too.
 
-Last updated: 2026-10-01 13:00 (log 36: engine flight physics in the planner, jump key one decision late; KOTM goal not met).
+Last updated: 2026-10-02 16:30 (log 36-37: engine flight physics in the planner; whole-spawn gem order trained in; best checkpoint 28897: navigator alone 160.1 / 170 best, hybrid 158.9 / 164 best; training stopped by the operator at 29794).
 
 ## 1. Where things stand
 
 * **Goal:** a 170-level KOTM round, the level of the human's best rounds. The earlier goal of 150 was
   reached on 2026-09-26.
-* **Model:** `models/nav/nav_latest.pth` = `nav_v6_start_26110.pth`, which is 26113 (the best checkpoint,
-  154.0 at 3x) converted to observation V6 (with the marble's spin). The operator made it the checkpoint to
-  train from on 2026-09-26 22:50. The V6 run's endpoint is kept as `nav_v6_end_26595.pth` (150.0).
-* **Verified KOTM scores** (3x, 8 deterministic rounds each, `nav/real_run.py`, greedy gem chooser):
+* **Model (2026-10-02):** the best checkpoint is `models/nav/nav_best_20261002_tour_28897.pth` (a copy of
+  `nav_night_28897_151.pth`, update 28897), trained 10-01/10-02 from 26110 on the WHOLE-SPAWN gem order
+  (NAV_TOUR=walk, gems.plan_tour) with all 8 instances on KOTM. `nav_latest.pth` is the endpoint of that run,
+  update 29794 (`nav_tour_end_29794.pth`), stopped by the operator at 15:30 on 10-02. Play it with the same
+  chooser: the hybrid's ORDER_TOUR = 'walk' (hybrid.py), or NAV_TOUR=walk for real_run.py; on greedy routes
+  this policy is slower. The earlier base, 26113 / `nav_v6_start_26110.pth` (154.0, greedy), is still on disk.
+* **Verified KOTM scores of 28897** (8 rounds each, 10-02, log 37.3-37.6; `NAV_CKPT=<pth>` picks the
+  checkpoint for hybrid.py, `NAV_PLANNER_OFF=1 --shortcuts 0 --rescue 0` is the navigator alone):
+
+  | arm | rounds | mean | best | falls/round |
+  |---|---|---|---|---|
+  | navigator alone, whole-spawn order | 162 163 170 165 150 156 157 158 | 160.1 | 170 | 1.0 |
+  | hybrid (oracle + consult at the pickup), same | 163 163 164 152 158 157 162 152 | 158.9 | 164 | 1.5 |
+  | hybrid on 27493 (the earlier snapshot) | 159 158 158 162 162 152 150 162 | 157.9 | 162 | 1.6 |
+  | hybrid on 26110, greedy order (10-01) | | 149.9 | 153 | 2.3 |
+
+  The planner is worth about -1 point on KOTM at this level (inside noise): its 0.6 shortcuts and 1.5 jump
+  hints a round save ~0.1 u per gem and no time, its 0.6 falls give that back. The operator's goal, a round
+  above 167 WITH the planner, is not met; the navigator alone has one 170 round.
+* **Earlier verified KOTM scores** (3x, 8 deterministic rounds each, `nav/real_run.py`, greedy gem chooser):
 
   | checkpoint | points | falls/round | note |
   |---|---|---|---|
@@ -136,6 +152,23 @@ Last updated: 2026-10-01 13:00 (log 36: engine flight physics in the planner, ju
   slower (2.6-2.8 s) than the navigator's own centre legs with the oracle (1.4-2.0 s); g6s (aligned-only big
   consults + the support guard) 147.1; g6t (big consults off, the g6q configuration with the new physics) 149.2
   (sd 1.9, best 153): the physics are right now and the hybrid's score is unchanged (log 36.5-36.6). Goal not met.
+* **10-01 evening to 10-02 (log 37): the gem ORDER, then training on it.** The operator saw the marble take one
+  centre gem, carry on to the ring and come back for the second centre gem: the greedy chooser (nearest gem plus
+  a momentum penalty, never looking past the next gem). The whole-spawn chooser of 09-26 (gems.plan_tour: every
+  order of the visible gems scored over walk-only terrain fields with turn costs) scored 139 on the untrained
+  policy (falls on unfamiliar routes, as in log 28.50), so the operator ordered training on it: 21:14-01:37 and
+  02:01-06:16 (from 22:17 all 8 instances on KOTM, Islands dropped by the operator), then 06:37-11:17, 11:30-14:55,
+  14:59-15:30. Training-side 50-round means 138 -> 150.7 (28897), falls 2.8 -> 1.5 a round, speed held at
+  8.0-8.2 u/s (the 09-26 attempt had lost speed), s/gem 1.49 -> 1.42; plateau from ~02:30 with a trickle of new
+  highs (~1 point per 500 updates); training rounds of 165-167 appeared on 10-02 (the summary and the dashboard
+  had been dropping every round with more than 130 gems as "merged double rounds"; cut raised to 190). Gates in
+  the table above. The hybrid's score follows the navigator's: the whole-spawn routes are 5 % shorter per gem.
+  Not done: a jump oracle inside the training loop (the learned rollout is 80-400 ms a decision against the
+  trainer's 440 decisions/s; an analytic ballistic check, nav/learned_nav/fastjump.py, was written and validated
+  on the drills, 62/90 recall on the test crossings, 18 false goes in 203 pickup states, then the operator
+  stopped that work; it is not wired in anywhere). Repo: *.npz are gitignored (kept on disk); the four unpushed
+  commits were rewritten without the .npz and the intermediate .pth (2.9 GB -> 150 MB) and pushed; the old
+  history is the local branch backup/navigator-architecture-before-rewrite-20261002.
 
 ## 2. Spin A/B (2026-09-26 22:00-22:40, 3x, 8 rounds per arm)
 

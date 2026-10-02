@@ -5124,3 +5124,32 @@ The planner is worth about -1 point here (inside noise): its 0.6 shortcuts and 1
 reached 170 (a round above 167, but without the planner, so not the operator's goal). Also found and fixed today:
 the summary and the dashboard dropped every round with more than 130 gems as a "merged double round", hiding 17
 of today's best training rounds (165-167); cut now 190. Training resumed 14:59 from 29700.
+
+### 37.7 Afternoon of 10-02: the analytic jump check (stopped), training stopped, repo cleanup
+
+Operator at 15:21: "try to train the navigator and planner together and save the best checkpoint so far".
+Best checkpoint copied to models/nav/nav_best_20261002_tour_28897.pth. The learned rollout cannot run in the
+trainer (80-400 ms a decision vs ~440 decisions/s over 8 games), so an analytic "jump now" check from the engine's
+constants was written (nav/learned_nav/fastjump.py: the key fires 2 decisions later, the fire step adds JUMP_DZ /
+JUMP_VZ, ballistic flight with or without the input toward the gem, landing on the gem's floor level with floor
+around it, the gem reachable over continuous floor, stopping room after a slide landing; 0.2 ms a call). Against
+the drills: no-input flights 10/11 recall with 10 false goes in 120 (the groove), planner-chosen crossings 62/90
+on the test set and 18/34 on the ring set, 18 "jump" verdicts in 203 pickup states. The operator stopped the work
+at 15:28; nothing is wired in. 15:30: training stopped on the operator's order; endpoint nav_tour_end_29794.pth,
+nav_latest = 29794. Then: *.npz gitignored and untracked (1,276 files, 72 MB, kept on disk); the four unpushed
+commits (2.9 GB, 2.5 GB of it stage-3 .npz in "Phase 3 done") rebuilt with plumbing (read-tree / rm --cached /
+commit-tree, same authors, dates and messages) without the .npz and the intermediate .pth over 3 MB (kept:
+nav_latest, nav_best_20261002_tour_28897, nav_night_28897_151, step3_0-2, flight3, guide_ttg), 150 MB, pushed as
+7e142edcf; the old history is on backup/navigator-architecture-before-rewrite-20261002.
+
+### 37.8 Where this leaves the project (10-02 16:30)
+
+* KOTM: navigator alone (28897, whole-spawn order) 160.1 mean with a 170; hybrid 158.9 with a 164. The planner is
+  not the lever on this map; the navigator's falls (1.0 a round, 70 % beside the holes at 7-8 u/s) are: every
+  round above 165 had none.
+* The planner's physics are right (log 36) and it crosses gaps the navigator cannot, which matters on maps with
+  real jumps; on KOTM the navigator's own jumps and routes cover what it offers.
+* Training with the whole-spawn chooser works (no speed loss) and trickles up; a continued run from 29794 is
+  the cheapest next gain, judged by hybrid/navigator gates on snapshots (NAV_CKPT), not by the training bars.
+* Open builds: the planner's jump hint inside the training loop (fastjump.py is the cheap form; the operator
+  stopped it), the real-time consult path (features on the GPU), the learned ground model at edges.

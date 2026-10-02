@@ -118,3 +118,6 @@ ml_agent/logs/nav/game_loop.txt
 ml_agent/logs/nav/dashboard*.txt
 ml_agent/logs/probe_sync/
 ml_agent/logs/multi_probe_*.txt
+
+# ml_agent numpy archives (datasets, geometry, demos): too large for the repo; kept on disk only (2026-10-02)
+*.npz
