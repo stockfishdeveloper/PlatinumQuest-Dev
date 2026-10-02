@@ -1,0 +1,15 @@
+[11:56:55] [env:9224] waiting for the game
+[11:57:00] [env:9224] game connected (1)
+[11:57:03] connected: kotmjump_p3, round 3600 s
+[11:57:03] starts starts_devb_kotmjump_p3.json sha1 8c1a77ff5321
+[11:57:03] seeds: 259; provenance {"planner_py": "7081bace7fad", "drills_py": "b4f39db0c347", "seeds_npz": "2a0dd76c5422", "use_guide": true, "p_go": 0.25, "p_jump": 0.35, "planner_module": "planner"}
+[11:58:51] start   0 (toward, 7.5 u/s, 17.5 u, safe True): fell_after_jump in 21 decisions, jumps 2, plan 4981 ms  [0/1]
+[11:58:51] recover: respawn not confirmed (pos -34.2 19.6 -7.8, on map False, telemetry {'sub_steps': np.float64(8.0), 'contact_steps': np.float64(0.0), 'support_steps': np.float64(0.0), 'collisions': np.float64(0.0), 'max_contacts': np.float64(0.0), 'max_approach': np.float64(0.0), 'nx': np.float64(0.0), 'ny': np.float64(0.0), 'nz': np.float64(0.0), 'friction': np.float64(0.0), 'restitution': np.float64(0.0), 'force': np.float64(0.0), 'last_step_contact': np.float64(0.0)})
+[12:01:14] start   1 (toward, 4.1 u/s, 11.9 u, safe True): fell_after_jump in 27 decisions, jumps 1, plan 5317 ms  [0/2]
+[12:01:14] recover: respawn not confirmed (pos -7.3 30.6 -6.5, on map False, telemetry {'sub_steps': np.float64(8.0), 'contact_steps': np.float64(0.0), 'support_steps': np.float64(0.0), 'collisions': np.float64(0.0), 'max_contacts': np.float64(0.0), 'max_approach': np.float64(0.0), 'nx': np.float64(0.0), 'ny': np.float64(0.0), 'nz': np.float64(0.0), 'friction': np.float64(0.0), 'restitution': np.float64(0.0), 'force': np.float64(0.0), 'last_step_contact': np.float64(0.0)})
+[12:05:21] start   2 (toward, 9.1 u/s, 17.2 u, safe True): fell_after_jump in 72 decisions, jumps 6, plan 3425 ms  [0/3]
+[12:05:21] recover: respawn not confirmed (pos -3.1 16.8 -13.1, on map False, telemetry {'sub_steps': np.float64(8.0), 'contact_steps': np.float64(0.0), 'support_steps': np.float64(0.0), 'collisions': np.float64(0.0), 'max_contacts': np.float64(0.0), 'max_approach': np.float64(0.0), 'nx': np.float64(0.0), 'ny': np.float64(0.0), 'nz': np.float64(0.0), 'friction': np.float64(0.0), 'restitution': np.float64(0.0), 'force': np.float64(0.0), 'last_step_contact': np.float64(0.0)})
+[12:10:30] start   3 (rest, 0.0 u/s, 16.9 u, safe True): success in 118 decisions, jumps 3, plan 2615 ms  [1/4]
+[12:12:08] start   4 (side, 6.0 u/s, 9.7 u, safe True): success in 38 decisions, jumps 1, plan 2565 ms  [2/5]
+[12:14:01] start   5 (toward, 4.0 u/s, 15.3 u, safe True): success in 44 decisions, jumps 1, plan 2572 ms  [3/6]
+[12:16:11] start   6 (away, 7.5 u/s, 8.5 u, safe False): success in 50 decisions, jumps 1, plan 2595 ms  [4/7]

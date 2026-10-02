@@ -115,6 +115,27 @@ floating gem, the planner succeeded 90.8 % of the time, short of the 95 % bar fo
 the practice starts but did not carry over. The main remaining failure: after taking the gem the marble lands at speed
 on the narrow strip between two holes and rolls into the next one.
 
+**Progress, 2026-09-29 afternoon (stage 5b, then a first stage 6 measurement on the real KOTM map):** the aim was
+to let the planner take shortcut jumps on King of the Marble and beat the best score (154.0 over 8 rounds). Not
+reached: over 8 rounds each, the navigator alone scored 151.0, with planner shortcuts 148.4 (the planner found almost
+none, so this is noise), and with extra jump legs chosen by a new route planner 146.1 (the jumps started from poor
+positions and caused falls). The useful finding: the physics model predicted jumps too low, most of all fast jumps
+near a hole's edge, so the planner turned down jumps the game really makes. In the game a jump from flat floor is
+always the same, so the planner now uses the measured takeoff there (no loss on the floating-gem drills). With it,
+the planner makes the human's favourite shortcut (a centre gem across the hole to a corner gem) in 22 of 24 tries,
+as fast as the human. What still stops it scoring: the navigator's route rarely sets that jump up, and taking the
+marble away from the navigator in mid-route costs more than it saves. Details: log section 33.
+
+**Progress, 2026-09-30 morning (stage 6b, overnight):** the crossing was measured from the marble's real states after a
+pickup, 180 of them. The planner's crossing takes 2.06 s on average, the navigator walks the same legs in 2.10 s: it only
+pays when the marble already points roughly at the far gem (then 1.66 s, the human's time), and a turn of more than 30
+degrees costs more than the jump saves. One planner fix helped a little (it no longer slows down before jumping to make
+the landing look safer). In real King of the Marble rounds the hybrid took no shortcut at all: a single quick question
+to the planner just after a pickup rarely finds a plan that the drill's continuous planning finds a moment later.
+Scores this morning: navigator alone 152 (best round 162), hybrid 151.5 (best 156). The 167 target was not reached.
+Next: ask the planner over several decisions right at the pickup, and choose the gem order so that crossings start
+aligned, the way the human does. Details: log section 34.
+
 ## Moments to watch
 
 The best discoveries on this project have come from watching the game at normal speed. Natural points to

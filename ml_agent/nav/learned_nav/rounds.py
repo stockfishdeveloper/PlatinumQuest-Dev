@@ -41,6 +41,9 @@ CONT_MAX = 40                # decisions of continuation after a floating pickup
 LAND_HOLD = 4                # ... ending once the marble has been on a floor this many decisions
 FLOOR_BROAD = 160            # broad proposals per decision toward a floor gem (planner.N_BROAD for a floating one)
 ARRIVE_SPEED = 6.0           # u/s assumed when a leg of the order starts at a gem
+TURN_S = 0.9                 # s per (1 - cos turn) at the start of a leg, scaled by speed / ARRIVE_SPEED (turn drill)
+LEG_TIME_W = 0.015           # planner.time_w on every leg (the hybrid's shortcut value; the default 0.004 let a braking
+LEG_P_SAT = 0.6              # turn at P 0.95 beat a fast turn at 0.8 a second quicker) and the ranking saturation
 
 
 def is_floating(g, gem):
@@ -53,6 +56,7 @@ def choose_order(p, v, gems, floating, guide):
     k = len(gems)
     perms = list(itertools.permutations(range(k)))
     X, Y, VX, VY, GX, GY, which = [], [], [], [], [], [], []
+    turn = np.zeros(len(perms))
     for pi, perm in enumerate(perms):
         pos = np.asarray(p[:2], float); vel = np.asarray(v[:2], float)
         for leg, i in enumerate(perm):
@@ -60,10 +64,15 @@ def choose_order(p, v, gems, floating, guide):
             X.append(pos[0]); Y.append(pos[1]); VX.append(vel[0]); VY.append(vel[1]); GX.append(gx); GY.append(gy)
             which.append((pi, i))
             d = np.array([gx, gy]) - pos
-            vel = d / max(1e-6, np.linalg.norm(d)) * ARRIVE_SPEED; pos = np.array([gx, gy])
+            # the turn at the start of the leg, costed from the turn drill (log 34.8: 90 deg ~0.9 s at speed, more
+            # beyond); the guide alone sent the marble backwards on a third of the legs (log 34.12)
+            sp = float(np.linalg.norm(vel)); dn = float(np.linalg.norm(d))
+            if sp > 0.5 and dn > 1e-6:
+                turn[pi] += TURN_S * (1.0 - float(np.dot(vel, d)) / (sp * dn)) * min(1.0, sp / ARRIVE_SPEED)
+            vel = d / max(1e-6, dn) * ARRIVE_SPEED; pos = np.array([gx, gy])
     n = len(X)
     t = guide(np.array(X), np.array(Y), np.array(VX), np.array(VY), np.zeros(n), np.ones(n), np.array(GX), np.array(GY))
-    tot = np.zeros(len(perms))
+    tot = turn.copy()
     for (pi, i), ti in zip(which, t):
         tot[pi] += max(0.0, float(ti)) + (FLOAT_SETUP if floating[i] else 0.0)
     b = int(np.argmin(tot))
@@ -88,10 +97,12 @@ def play(port, map_name, n_rounds, tag, log):
     done = 0
     while done < n_rounds:
         st = {'map': map_name, 'tag': tag, 'gems_floor': 0, 'gems_float': 0, 'falls': 0, 'groups': [], 'points': 0.0,
-              'decisions': 0, 'ms': [], 'float_attempts': 0, 'longest_gap_s': 0.0, 'jumps': 0}
+              'decisions': 0, 'ms': [], 'float_attempts': 0, 'longest_gap_s': 0.0, 'jumps': 0,
+              'legs': [], 'trace': []}      # stage 6b: every leg (gem, decisions, pickup speed) and a per-decision trace
         try:
             s.ready()
             target = None; target_float = False; order_gems = []
+            leg_i0 = 0; leg_gem = None
             cont = 0; landed_n = 0; last_pick_i = 0; group_key = None; group_t0 = 0
             Uc, Jc = PL.reply_vector(NOOP_ACTION + (0.0,)); Up, Jp = Uc.copy(), Jc
             msg = s.env.msg
@@ -124,7 +135,16 @@ def play(port, map_name, n_rounds, tag, log):
                     # a floor gem needs no jump search: a smaller budget (a round is ~2800 decisions)
                     planner.n_broad = PL.N_BROAD if target_float else FLOOR_BROAD
                     planner.floor_ref = DR.floor_ref_of(g, target)
+                    planner.time_w = LEG_TIME_W; planner.p_sat = LEG_P_SAT      # stage 6b: time decides among trusted plans
+                    # leave this gem aligned toward the order's next gem (planner.exit_dir; stage 6b, log 34.12: legs that
+                    # start turned away take 2.5-3 s against 1.15-1.25 s aligned, and the turn itself costs ~1 s beyond 90 deg)
+                    planner.exit_dir = None
+                    if len(order) > 1 and not target_float and not floating[order[1]]:
+                        nxt = np.asarray(gems[order[1]], float); uu = nxt[:2] - target[:2]
+                        if np.linalg.norm(uu) > 1e-6:
+                            uu = uu / np.linalg.norm(uu); planner.exit_dir = (float(uu[0]), float(uu[1]))
                     st['float_attempts'] += int(target_float)
+                    leg_i0 = i; leg_gem = [round(float(c), 2) for c in target]
                 if target is None and cont == 0:                   # no gem in view yet: brake and wait
                     js = tuple(action_to_joystick(0.0, 0.0, 1.0, 0, 1, v[0], v[1]))
                 else:                                              # a target, or the continuation after a pickup
@@ -132,6 +152,9 @@ def play(port, map_name, n_rounds, tag, log):
                     js = tuple(float(a) for a in js[:4]) + (int(js[4]), float(js[5]))
                     st['ms'].append(info['ms'])
                     st['jumps'] += int(js[4] and not airborne)
+                    st['trace'].append([i, round(float(p[0]), 2), round(float(p[1]), 2), round(math.hypot(v[0], v[1]), 2),
+                                        (info['kind'] or '-')[0], int(info.get('tag', -1)), int(js[4]), 0,
+                                        round(float(np.linalg.norm(np.asarray(target[:2]) - p[:2])), 2) if target is not None else -1.0])
                 msg, sinfo = s.step(js)
                 Up, Jp = Uc, Jc
                 Uc, Jc = PL.reply_vector(js)
@@ -146,6 +169,9 @@ def play(port, map_name, n_rounds, tag, log):
                     else:
                         st['gems_floor'] += 1
                     st['longest_gap_s'] = max(st['longest_gap_s'], (i - last_pick_i) * 0.064); last_pick_i = i
+                    st['legs'].append({'gem': leg_gem, 'i0': leg_i0, 'pick_i': i, 't': round((i - leg_i0) * 0.064, 3),
+                                       'pick_speed': round(math.hypot(msg.obs[RAW_VEL][0], msg.obs[RAW_VEL][1]), 2),
+                                       'floating': bool(gone and is_floating(g, gone[0]))})
                     target = None
                 if sinfo['fell']:
                     st['falls'] += 1

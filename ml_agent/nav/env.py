@@ -83,6 +83,9 @@ class HuntEnv:
                 pass
         self.log(f'[env:{self.port}] waiting for the game')
         self.conn, addr = self.srv.accept()
+        # no Nagle: a reply is one small segment per decision; with Nagle on, a segment can wait for the game's
+        # delayed ACK (~200 ms) (lockstep timing probe 2026-09-29)
+        self.conn.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
         self.buf = b''
         self.connections += 1
         self.reconnected = self.connections > 1

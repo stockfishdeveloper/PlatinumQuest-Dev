@@ -1,0 +1,3 @@
+upd 26336 trainer=1 games=8 KOTM all: n=16 mean=140.5 max=151 min=131 falls/rd=2.7 | last 14: n=14 mean=140.8 max=151 min=131 falls/rd=2.6 | last 50: n=16 mean=140.5 max=151 min=131 falls/rd=2.7 | last time 22:19:24
+upd 26388 trainer=1 games=8 KOTM all: n=184 mean=140.3 max=155 min=122 falls/rd=2.7 | last 14: n=14 mean=142.9 max=151 min=135 falls/rd=2.5 | last 50: n=50 mean=141.1 max=155 min=128 falls/rd=2.8 | last time 22:34:34
+upd 26439 trainer=1 games=8 KOTM all: n=344 mean=140.1 max=157 min=84 falls/rd=2.8 | last 14: n=14 mean=138.9 max=146 min=129 falls/rd=3.6 | last 50: n=50 mean=138.8 max=153 min=124 falls/rd=3.4 | last time 22:49:38

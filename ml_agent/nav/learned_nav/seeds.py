@@ -31,6 +31,7 @@ REACH = 8.0
 P_SEED = PL.P_JUMP
 JUMPS = (0, 1, 2, 3)
 AIRS = (np.nan, 0.0, math.pi / 4, -math.pi / 4, math.pi / 2, -math.pi / 2, math.pi)
+BRAKE_AFTER = (6, 9)         # air-brake variants: brake this many decisions after the jump
 BATCH = 6000
 
 
@@ -61,7 +62,10 @@ def build(map_name, gem, seed=0, log=print):
     gem = np.asarray(gem, float)
     rng = np.random.default_rng(seed)
     S = sample_states(g, gem, rng, N_STATES)
-    cands = [(j, a) for j in JUMPS for a in AIRS]
+    # (jump decision, air direction, air brake from this many decisions after the jump or NaN): the brake variants let a
+    # fast flight through the gem slow down before landing (planner.stopping_room)
+    cands = [(j, a, np.nan) for j in JUMPS for a in AIRS] + [(j, a, b) for j in JUMPS for a in (0.0, math.pi / 4, -math.pi / 4)
+                                                           for b in BRAKE_AFTER]
     nc = len(cands)
     t0 = time.time()
     best_p = np.zeros(len(S)); best_c = np.zeros(len(S), int)
@@ -79,12 +83,14 @@ def build(map_name, gem, seed=0, log=print):
             pr = PL.Programs(n)
             pr.ang[:] = hd[:, None]
             for k in range(n):
-                j, a = cands[c_[k]]
+                j, a, bk = cands[c_[k]]
                 pr.jump[k, j] = 1
                 if np.isnan(a):
                     pr.mode[k, j:] = PL.MODE_NONE
                 else:
                     pr.ang[k, j:] = hd[k] + a
+                if np.isfinite(bk):
+                    pr.mode[k, j + int(bk):] = PL.MODE_BRAKE
             pr.after[:] = PL.MODE_BRAKE
             if var is not None:
                 kind, a = var
@@ -115,25 +121,28 @@ def build(map_name, gem, seed=0, log=print):
     keep = best_p >= P_SEED
     out = {'x': S[keep, 0], 'y': S[keep, 1], 'z': S[keep, 2], 'vx': S[keep, 3], 'vy': S[keep, 4],
            'j': np.array([cands[c][0] for c in best_c[keep]], int), 'air': np.array([cands[c][1] for c in best_c[keep]]),
+           'brake': np.array([cands[c][2] for c in best_c[keep]]),
            'p': best_p[keep]}
-    os.makedirs(SEED_DIR, exist_ok=True)
-    np.savez(os.path.join(SEED_DIR, f'{map_name}.npz'), gem=gem, **out)
+    out_dir = os.path.join(SEED_DIR, getattr(PL, 'SEED_VERSION', ''))       # one set per planner version (its judgement)
+    os.makedirs(out_dir, exist_ok=True)
+    np.savez(os.path.join(out_dir, f'{map_name}.npz'), gem=gem, **out)
     meta = {'map': map_name, 'gem': gem.tolist(), 'states': int(len(S)), 'seeds': int(keep.sum()),
             'p_seed': P_SEED, 'reach': REACH, 'time': time.strftime('%Y-%m-%d %H:%M:%S'),
             'speed_hist': np.histogram(np.hypot(out['vx'], out['vy']), bins=[0, 4, 6, 8, 10, 12, 14])[0].tolist(),
             'jump_hist': np.bincount(out['j'], minlength=4).tolist()}
-    json.dump(meta, open(os.path.join(SEED_DIR, f'{map_name}.json'), 'w'), indent=1)
+    json.dump(meta, open(os.path.join(out_dir, f'{map_name}.json'), 'w'), indent=1)
     log(f'{map_name}: {keep.sum()} seeds of {len(S)} states ({time.time() - t0:.0f} s)')
     return out
 
 
-def for_gem(map_name, gem, tol=0.1):
+def for_gem(map_name, gem, tol=0.1, version=None):
     """Seeds for a gem at this position on this map's geometry: any seed set built for the same gem position on an
     identical geometry (same raster and edges; e.g. the drill maps kotmjump_p0-p3 and kotmjump), else None."""
     import glob
     gem = np.asarray(gem, float)
     g = None
-    for f in sorted(glob.glob(os.path.join(SEED_DIR, '*.npz'))):
+    version = version if version is not None else getattr(PL, 'SEED_VERSION', '')
+    for f in sorted(glob.glob(os.path.join(SEED_DIR, version, '*.npz'))):
         z = np.load(f)
         if 'gem' not in z or np.linalg.norm(z['gem'] - gem) > tol:
             continue
@@ -141,16 +150,16 @@ def for_gem(map_name, gem, tol=0.1):
         g = g or Geometry(map_name)
         h = Geometry(src)
         if np.array_equal(g.heights, h.heights, equal_nan=True) and np.array_equal(g.edges, h.edges):
-            return load(src)
+            return load(src, version)
     return None
 
 
-def load(map_name):
-    p = os.path.join(SEED_DIR, f'{map_name}.npz')
+def load(map_name, version=None):
+    p = os.path.join(SEED_DIR, version, f'{map_name}.npz') if version else os.path.join(SEED_DIR, f'{map_name}.npz')
     if not os.path.exists(p):
         return None
     z = np.load(p)
-    return {k: z[k] for k in ('x', 'y', 'z', 'vx', 'vy', 'j', 'air', 'p')}
+    return {k: z[k] for k in ('x', 'y', 'z', 'vx', 'vy', 'j', 'air', 'p', 'brake') if k in z}
 
 
 if __name__ == '__main__':

@@ -61,8 +61,15 @@ def sane(key, v):
 GAME_RE = re.compile(r'\[(\d\d:\d\d:\d\d)\] \[(\d+)\] GAME map=(\S+) points=([\d.]+) gems=(\d+) falls=(\d+)')
 
 
+RECENT_LOGS = 4                # trainer logs parsed (the newest runs; 12 still took 4 s a push)
+RECENT_GAMES = 3000            # training rounds sent to the page
+
+
 def parse_logs():
     files = sorted(glob.glob(os.path.join(LOG_DIR, 'train_nav_*.log')))
+    # 2026-10-01: only the newest RECENT_LOGS runs. Parsing all 137 logs since September made every state push 7.4 MB
+    # and 9 s, the browser's event stream kept aborting and the page looked frozen (operator: "dashboard not updating")
+    files = files[-RECENT_LOGS:]
     by_update = {}
     events = []            # (update_at_time, kind, text)
     last_update = 0
@@ -121,7 +128,7 @@ def parse_logs():
             m = GAME_RE.search(line)
             if m:
                 pts = sane('points', float(m.group(4)))
-                if pts is not None and int(m.group(5)) <= 130:
+                if pts is not None and int(m.group(5)) <= 190:     # 130 until 10-02: it hid a clean 167-point, 136-gem round
                     games.append((last_update, int(m.group(2)), m.group(3), pts, int(m.group(5)), int(m.group(6)), m.group(1)))
                 continue
             m = MAP_RE.search(line)
@@ -220,6 +227,14 @@ def build_state():
             d['update'].append(u['update'])
             for k in ('arrive', 'falls100', 'speed', 'sgem', 'pickup', 'gems'):
                 d[k].append(v.get(k))
+        if not u.get('maps') and u.get('map') and '+' not in u['map']:
+            # a single-map run logs NO MAPS line (the trainer writes it only for a mix): the NAV line's own numbers
+            # ARE that map's numbers. Without this the per-map charts (falls, speed, reward) went blank when all
+            # eight instances moved to KOTM (operator, 2026-10-02: "some graphs do not have any values")
+            d = pm.setdefault(u['map'], {k: [] for k in ('update', 'arrive', 'falls100', 'speed', 'sgem', 'pickup', 'gems')})
+            d['update'].append(u['update'])
+            for k in ('arrive', 'falls100', 'speed', 'sgem', 'pickup', 'gems'):
+                d[k].append(u.get(k))
     per_map = {}
     if pm:
         for mp, d in pm.items():
@@ -258,7 +273,7 @@ def build_state():
                                                              'ent', 'kl', 'clip', 'gn', 'dstd', 'wall_s', 'steps', 'ep', 'sgem', 'pickup')},
         'pm': pm, 'human_sgem': HUMAN_S_PER_GEM, 'evals': eval_series(), 'human_points': HUMAN_POINTS,
         'jumps': _jumps_by_update(updates),
-        'games': [{'update': g[0], 'inst': g[1], 'map': g[2], 'points': g[3], 'gems': g[4], 'falls': g[5], 'time': g[6]} for g in games],
+        'games': [{'update': g[0], 'inst': g[1], 'map': g[2], 'points': g[3], 'gems': g[4], 'falls': g[5], 'time': g[6]} for g in games[-RECENT_GAMES:]],
     }
 
 
@@ -516,7 +531,7 @@ function update(st) {
   document.getElementById('g-sgem-sub').textContent = 'human 1.57 s (KOTM)' + ((pmSel && pmSel.best_sgem) ? ' | best ' + fmt(pmSel.best_sgem) : '');
   {
     const bmap = SEL === 'ALL' ? 'KingOfTheMarble_Hunt' : SEL;
-    const all = (st.games || []).filter(g => g.map === bmap && g.gems <= 130);
+    const all = (st.games || []).filter(g => g.map === bmap && g.gems <= 190);
     const best = all.length ? all.reduce((a, b) => (b.points > a.points ? b : a)) : null;
     document.getElementById('g-best-label').textContent = 'Best points per game (' + bmap.replace('_Hunt', '') + ')';
     document.getElementById('g-best').textContent = best ? best.points.toFixed(0) : '--';

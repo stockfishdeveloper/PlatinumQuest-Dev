@@ -1,0 +1,26 @@
+crossdrill: planner nav.learned_nav.planner, set ring, 21 starts to run (0 done), map kotmjump_p0
+[env:9671] waiting for the game
+[env:9671] game connected (1)
+connected: kotmjump_p0, round 3600 s
+start   0 A [-12.45, 13.0] -> B [-23.2, 13.0] speed  9.0 angle   +0: ok 1 t 0.90 fell 0 jump_at 1 @ 9.67 first_plan 0 kinds ppppppppppppppcccccccccccccccccccccccc (t_nav 1.18) [ok 1 fell 0 of 1, median t 0.90]
+start   2 A [-12.45, 13.0] -> B [-23.2, 13.0] speed 13.0 angle   +0: ok 0 t - fell 0 jump_at 2 @ 13.97 first_plan 36 kinds aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaappppaaaaaaaappaaaaapppppppappppppp (t_nav 1.19) [ok 1 fell 0 of 1, median t 0.90]
+start   4 A [-13.830835149278244, 22.369164850721756] -> B [-23.2, 13.0] speed 11.0 angle   +0: ok 1 t 1.02 fell 0 jump_at 3 @ 12.63 first_plan 4 kinds aaaapaapppppppppcccccccccccccccccccccccc (t_nav 1.51) [ok 2 fell 0 of 2, median t 0.96]
+start   6 A [-17.268406798341108, 27.320132753924945] -> B [-23.2, 13.0] speed  9.0 angle   +0: ok 1 t 1.22 fell 0 jump_at 3 @ 10.95 first_plan 0 kinds pppppapppppppppppppcccccccccccccccccccccccc (t_nav 1.95) [ok 3 fell 0 of 3, median t 1.02]
+start   8 A [-17.268406798341108, 27.320132753924945] -> B [-23.2, 13.0] speed 13.0 angle   +0: ok 1 t 1.34 fell 0 jump_at 1 @ 13.46 first_plan 0 kinds pppppppppppppppppppppcccccccccccccccccccccccc (t_nav 1.98) [ok 4 fell 0 of 4, median t 1.12]
+start  10 A [-23.2, 27.75] -> B [-23.2, 13.0] speed 11.0 angle   +0: ok 1 t 1.02 fell 0 jump_at 3 @ 12.55 first_plan 0 kinds ppaapappppppppppcccccccccccccccccccccccc (t_nav 1.54) [ok 5 fell 0 of 5, median t 1.02]
+start  12 A [-29.13159320165889, 27.320132753924945] -> B [-23.2, 13.0] speed  9.0 angle   +0: ok 1 t 1.73 fell 0 jump_at 4 @ 7.36 first_plan 1 kinds apppppappppppppppppppppppppcccccccccccccccccccccccc (t_nav 1.63) [ok 6 fell 0 of 6, median t 1.12]
+start  14 A [-29.13159320165889, 27.320132753924945] -> B [-23.2, 13.0] speed 13.0 angle   +0: ok 0 t 0.96 fell 1 jump_at 1 @ 13.46 first_plan 6 kinds aaaaaappppppppacccccccccccccccc (t_nav 1.63) [ok 6 fell 1 of 7, median t 1.12]
+start  16 A [-36.6350288425444, 26.435028842544405] -> B [-23.2, 13.0] speed 11.0 angle   +0: ok 0 t - fell 0 jump_at 2 @ 12.11 first_plan 51 kinds aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaapaaaaaaaaaaaaaaaaaa (t_nav 2.65) [ok 6 fell 1 of 7, median t 1.12]
+start  18 A [-37.52013275392494, 18.93159320165889] -> B [-23.2, 13.0] speed  9.0 angle   +0: ok 1 t 2.11 fell 0 jump_at 6 @ 5.93 first_plan 1 kinds apapppppappppppppppappappppppppppcccccccccccccccccccccccc (t_nav 1.63) [ok 7 fell 1 of 8, median t 1.22]
+start  20 A [-37.52013275392494, 18.93159320165889] -> B [-23.2, 13.0] speed 13.0 angle   +0: ok 1 t 2.94 fell 0 jump_at 1 @ 13.46 first_plan 27 kinds aaaaaaaaaaaaaaaaaaaaaaaaaaapppppppppppppppppppcccccccccccccccccccccccc (t_nav 1.63) [ok 8 fell 1 of 9, median t 1.28]
+start  22 A [-37.7, 13.000000000000002] -> B [-23.2, 13.0] speed 11.0 angle   +0: ok 1 t 1.09 fell 0 jump_at 3 @ 12.03 first_plan 0 kinds pppapapppppppppppcccccccccccccccccccccccc (t_nav 1.56) [ok 9 fell 1 of 10, median t 1.22]
+start  24 A [-37.52013275392495, 7.06840679834111] -> B [-23.2, 13.0] speed  9.0 angle   +0: ok 1 t 1.22 fell 0 jump_at 3 @ 11.06 first_plan 0 kinds pppppppppppppppppppcccccccccccccccccccccccc (t_nav 1.95) [ok 10 fell 1 of 11, median t 1.22]
+start  26 A [-37.52013275392495, 7.06840679834111] -> B [-23.2, 13.0] speed 13.0 angle   +0: ok 1 t 1.15 fell 0 jump_at 1 @ 13.49 first_plan 0 kinds pppappppppppppppppcccccccccccccccccccccccc (t_nav 1.98) [ok 11 fell 1 of 12, median t 1.22]
+start  28 A [-32.569164850721755, 3.630835149278246] -> B [-23.2, 13.0] speed 11.0 angle   +0: ok 1 t 1.28 fell 0 jump_at 2 @ 12.18 first_plan 1 kinds apppapppppppppppppppcccccccccccccccccccccccc (t_nav 1.51) [ok 12 fell 1 of 13, median t 1.22]
+start  30 A [-23.200000000000003, 2.5] -> B [-23.2, 13.0] speed  9.0 angle   +0: ok 1 t 0.83 fell 0 jump_at 0 @ 9.0 first_plan 0 kinds pppppppppppppcccccccccccccccccccccccc (t_nav 1.18) [ok 13 fell 1 of 14, median t 1.22]
+start  32 A [-23.200000000000003, 2.5] -> B [-23.2, 13.0] speed 13.0 angle   +0: ok 1 t 0.83 fell 0 jump_at 1 @ 13.49 first_plan 0 kinds pppapppppppppcccccccccccccccccccccccc (t_nav 1.21) [ok 14 fell 1 of 15, median t 1.18]
+start  34 A [-18.894811385892737, 2.6063552592480246] -> B [-23.2, 13.0] speed 11.0 angle   +0: ok 0 t - fell 0 jump_at 3 @ 12.64 first_plan 0 kinds ppppppaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaapppap (t_nav 1.42) [ok 14 fell 1 of 15, median t 1.18]
+start  36 A [-13.830835149278247, 3.6308351492782425] -> B [-23.2, 13.0] speed  9.0 angle   +0: ok 1 t 1.28 fell 0 jump_at 5 @ 8.98 first_plan 6 kinds aaaaaapaapppppppppppcccccccccccccccccccccccc (t_nav 2.17) [ok 15 fell 1 of 16, median t 1.22]
+start  38 A [-13.830835149278247, 3.6308351492782425] -> B [-23.2, 13.0] speed 13.0 angle   +0: ok 1 t 1.09 fell 0 jump_at 2 @ 13.9 first_plan 5 kinds aaaaapappppppppppcccccccccccccccccccccccc (t_nav 2.18) [ok 16 fell 1 of 17, median t 1.18]
+start  40 A [-12.806355259248022, 8.694811385892741] -> B [-23.2, 13.0] speed 11.0 angle   +0: ok 1 t 0.83 fell 0 jump_at 0 @ 11.0 first_plan 0 kinds pppppppppppppcccccccccccccccccccccccc (t_nav 1.42) [ok 17 fell 1 of 18, median t 1.15]
+done: ok 17, fell 1, of 21; median leg time 1.15 s

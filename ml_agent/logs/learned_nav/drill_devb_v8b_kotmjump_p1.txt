@@ -1,0 +1,5 @@
+[12:19:08] [env:9202] waiting for the game
+[12:19:14] [env:9202] game connected (1)
+[12:19:21] connected: kotmjump_p1, round 3600 s
+[12:19:21] starts starts_devb_kotmjump_p1.json sha1 7cfeda285809
+[12:19:21] seeds: 162; provenance {"planner_py": "e648cad9132d", "drills_py": "0de8437a616a", "seeds_npz": "a9863c5faf19", "use_guide": true, "p_go": 0.25, "p_jump": 0.35, "planner_module": "planner_v8"}

@@ -1,0 +1,37 @@
+open spot (4.0, -15.0) floor 0.50, radius 12.0 u
+[env:9651] waiting for the game
+[env:9651] game connected (1)
+connected: Skatium_Hunt_phys, round 3600 s
+steer30                rep 0: fell 0, heading after 8/16/24 decisions    18    24    27 deg, speed 12.8 16.1 18.1
+steer30                rep 1: fell 0, heading after 8/16/24 decisions    18    24    27 deg, speed 12.8 16.1 18.1
+steer60                rep 0: fell 0, heading after 8/16/24 decisions    34    48    54 deg, speed 11.2 14.8 17.3
+steer60                rep 1: fell 0, heading after 8/16/24 decisions    34    48    54 deg, speed 11.2 14.8 17.3
+steer90                rep 0: fell 0, heading after 8/16/24 decisions    43    72    82 deg, speed  8.6 12.5 15.8
+steer90                rep 1: fell 0, heading after 8/16/24 decisions    43    72    82 deg, speed  8.6 12.5 15.8
+steer120               rep 0: fell 0, heading after 8/16/24 decisions    47    96   109 deg, speed  6.1  9.5 13.7
+steer120               rep 1: fell 0, heading after 8/16/24 decisions    47    96   109 deg, speed  6.1  9.5 13.7
+steer150               rep 0: fell 0, heading after 8/16/24 decisions    41   127   141 deg, speed  3.7  6.5 12.0
+steer150               rep 1: fell 0, heading after 8/16/24 decisions    41   127   141 deg, speed  3.7  6.5 12.0
+steer180               rep 0: fell 0, heading after 8/16/24 decisions    -3  -176  -178 deg, speed  2.3  5.0 11.2
+steer180               rep 1: fell 0, heading after 8/16/24 decisions    -3  -176  -178 deg, speed  2.3  5.0 11.2
+brake2_steer90         rep 0: fell 0, heading after 8/16/24 decisions    31    70    81 deg, speed  7.2 11.1 14.9
+brake2_steer90         rep 1: fell 0, heading after 8/16/24 decisions    31    70    81 deg, speed  7.2 11.1 14.9
+brake4_steer90         rep 0: fell 0, heading after 8/16/24 decisions    19    69    82 deg, speed  5.5  9.4 13.9
+brake4_steer90         rep 1: fell 0, heading after 8/16/24 decisions    19    69    82 deg, speed  5.5  9.4 13.9
+brake6_steer90         rep 0: fell 0, heading after 8/16/24 decisions    -3    70    83 deg, speed  3.9  7.4 12.8
+brake6_steer90         rep 1: fell 0, heading after 8/16/24 decisions    -3    70    83 deg, speed  3.9  7.4 12.8
+over150x2_steer90      rep 0: fell 0, heading after 8/16/24 decisions    42    73    82 deg, speed  7.5 11.8 15.4
+over150x2_steer90      rep 1: fell 0, heading after 8/16/24 decisions    42    73    82 deg, speed  7.5 11.8 15.4
+over150x4_steer90      rep 0: fell 0, heading after 8/16/24 decisions    41    75    83 deg, speed  6.2 11.0 15.0
+over150x4_steer90      rep 1: fell 0, heading after 8/16/24 decisions    41    75    83 deg, speed  6.2 11.0 15.0
+over150x6_steer90      rep 0: fell 0, heading after 8/16/24 decisions    40    78    85 deg, speed  4.6 10.1 14.5
+over150x6_steer90      rep 1: fell 0, heading after 8/16/24 decisions    40    78    85 deg, speed  4.6 10.1 14.5
+over180x2_steer90      rep 0: fell 0, heading after 8/16/24 decisions    38    73    82 deg, speed  7.0 11.3 15.1
+over180x2_steer90      rep 1: fell 0, heading after 8/16/24 decisions    38    73    82 deg, speed  7.0 11.3 15.1
+over180x4_steer90      rep 0: fell 0, heading after 8/16/24 decisions    30    74    83 deg, speed  5.1  9.9 14.3
+over180x4_steer90      rep 1: fell 0, heading after 8/16/24 decisions    30    74    83 deg, speed  5.1  9.9 14.3
+jump_steer90           rep 0: fell 0, heading after 8/16/24 decisions    23    58    73 deg, speed  9.1 11.4 14.7
+jump_steer90           rep 1: fell 0, heading after 8/16/24 decisions    23    58    73 deg, speed  9.1 11.4 14.7
+brake2_jump_steer90    rep 0: fell 0, heading after 8/16/24 decisions    16    58    72 deg, speed  7.7 10.0 13.6
+brake2_jump_steer90    rep 1: fell 0, heading after 8/16/24 decisions    16    58    72 deg, speed  7.7 10.0 13.6
+done

@@ -1,0 +1,2 @@
+centre2: python 29184 game 40940 -> C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\logs\learned_nav\centre2_kotmjump_p0.txt
+centre2: done

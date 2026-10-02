@@ -1,0 +1,4 @@
+[env:9071] waiting for the game
+[env:9071] game connected (1)
+connected: kotmjump, round 180 s
+hybrid: navigator update 26110, memory at handback "current", map kotmjump

@@ -1,0 +1,28 @@
+[env:9491] waiting for the game
+[env:9491] game connected (1)
+connected: kotmjump_p0, round 3600 s
+trial  0 speed 8.0 heading 167: ok 1 t_pick 23 dmin 0.17 fell 0 jumps 3 kinds apappppppppppppppppppppcccccccccccccccc
+trial  1 speed 7.2 heading 130: ok 1 t_pick 22 dmin 0.66 fell 0 jumps 2 kinds aapappppppppppppppppppcccccccccccccccc
+trial  2 speed 8.2 heading 102: ok 1 t_pick 25 dmin 0.32 fell 0 jumps 3 kinds apappppppppppppppppppppppcccccccccccccccc
+trial  3 speed 7.3 heading 155: ok 1 t_pick 24 dmin 0.37 fell 0 jumps 1 kinds apaappppppppppppppppppppcccccccccccccccc
+trial  4 speed 6.5 heading 128: ok 1 t_pick 22 dmin 0.29 fell 0 jumps 1 kinds pppaapppppppppppppppppcccccccccccccccc
+trial  5 speed 9.0 heading 120: ok 1 t_pick 22 dmin 0.43 fell 0 jumps 2 kinds apapppppppppppppppppppcccccccccccccccc
+trial  6 speed 9.8 heading 151: ok 1 t_pick 29 dmin 0.34 fell 0 jumps 4 kinds apppppppppppppppppppappppppppcccccccccccccccc
+trial  7 speed 6.6 heading 168: ok 1 t_pick 23 dmin 0.42 fell 0 jumps 1 kinds aaaaappppppppppppppppppcccccccccccccccc
+trial  8 speed 8.5 heading 154: ok 1 t_pick 21 dmin 0.49 fell 0 jumps 1 kinds apaapppppppppppppppppcccccccccccccccc
+trial  9 speed 6.2 heading 137: ok 1 t_pick 23 dmin 0.24 fell 0 jumps 1 kinds aaapaapppppppppppppppppcccccccccccccccc
+trial 10 speed 8.6 heading 160: ok 1 t_pick 21 dmin 0.23 fell 0 jumps 2 kinds apaapppppppppppppppppcccccccccccccccc
+trial 11 speed 9.4 heading 136: ok 0 t_pick None dmin 6.99 fell 1 jumps 1 kinds aapaaaaaaaaaaaaaa
+trial 12 speed 6.6 heading 157: ok 1 t_pick 23 dmin 0.25 fell 0 jumps 3 kinds aapapppppppppppppppppppcccccccccccccccc
+trial 13 speed 6.8 heading 156: ok 1 t_pick 25 dmin 0.16 fell 0 jumps 1 kinds aaaapppppppppppppppppppppcccccccccccccccc
+trial 14 speed 9.4 heading 160: ok 1 t_pick 23 dmin 0.45 fell 0 jumps 1 kinds apaapppppppppppppppppppcccccccccccccccc
+trial 15 speed 7.1 heading 100: ok 1 t_pick 26 dmin 0.35 fell 0 jumps 1 kinds aaaappppppppppppppppppppppcccccccccccccccc
+trial 16 speed 9.3 heading 120: ok 1 t_pick 34 dmin 0.27 fell 0 jumps 2 kinds ppapppppppppppppppppppppppppppppppcccccccccccccccc
+trial 17 speed 9.2 heading 167: ok 1 t_pick 24 dmin 0.20 fell 0 jumps 2 kinds apapppppppppppppppppppppcccccccccccccccc
+trial 18 speed 9.6 heading 130: ok 1 t_pick 20 dmin 0.17 fell 0 jumps 2 kinds apapppppppppppppppppcccccccccccccccc
+trial 19 speed 8.7 heading 164: ok 1 t_pick 22 dmin 0.25 fell 0 jumps 1 kinds apaappppppppppppppppppcccccccccccccccc
+trial 20 speed 8.6 heading 117: ok 1 t_pick 44 dmin 0.14 fell 0 jumps 3 kinds apaappppppppppppppppppppppppppppppppppppppppcccccccccccccccc
+trial 21 speed 9.3 heading 104: ok 1 t_pick 30 dmin 0.15 fell 0 jumps 2 kinds apaappppppppppppppppppppppppppcccccccccccccccc
+trial 22 speed 7.5 heading 122: ok 1 t_pick 25 dmin 0.50 fell 0 jumps 2 kinds aapappppppppppappppppppppcccccccccccccccc
+trial 23 speed 7.6 heading 100: ok 0 t_pick None dmin 9.00 fell 1 jumps 1 kinds aaaaaaaaaaaaaaaa
+done

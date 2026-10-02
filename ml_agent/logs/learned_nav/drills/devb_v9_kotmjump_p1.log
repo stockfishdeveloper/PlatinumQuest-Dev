@@ -1,0 +1,11 @@
+[11:56:54] [env:9222] waiting for the game
+[11:57:02] [env:9222] game connected (1)
+[11:57:07] connected: kotmjump_p1, round 3600 s
+[11:57:07] starts starts_devb_kotmjump_p1.json sha1 7cfeda285809
+[11:57:07] seeds: 234; provenance {"planner_py": "7081bace7fad", "drills_py": "b4f39db0c347", "seeds_npz": "3ffa7da81f5d", "use_guide": true, "p_go": 0.25, "p_jump": 0.35, "planner_module": "planner"}
+[12:02:22] start   0 (rest, 0.0 u/s, 9.9 u, safe True): fell_rolling in 56 decisions, jumps 0, plan 5553 ms  [0/1]
+[12:02:22] recover: respawn not confirmed (pos -23.9 -10.5 -5.9, on map False, telemetry {'sub_steps': np.float64(8.0), 'contact_steps': np.float64(0.0), 'support_steps': np.float64(0.0), 'collisions': np.float64(0.0), 'max_contacts': np.float64(0.0), 'max_approach': np.float64(0.0), 'nx': np.float64(0.0), 'ny': np.float64(0.0), 'nz': np.float64(0.0), 'friction': np.float64(0.0), 'restitution': np.float64(0.0), 'force': np.float64(0.0), 'last_step_contact': np.float64(0.0)})
+[12:04:19] start   1 (toward, 2.5 u/s, 17.3 u, safe True): fell_rolling in 35 decisions, jumps 0, plan 3349 ms  [0/2]
+[12:10:03] start   2 (toward, 11.3 u/s, 14.7 u, safe False): success in 138 decisions, jumps 2, plan 2486 ms  [1/3]
+[12:12:27] start   3 (side, 11.5 u/s, 9.0 u, safe True): picked_fell in 59 decisions, jumps 1, plan 2436 ms  [1/4]
+[12:15:14] start   4 (rest, 0.0 u/s, 7.6 u, safe True): success in 68 decisions, jumps 1, plan 2447 ms  [2/5]

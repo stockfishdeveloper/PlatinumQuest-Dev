@@ -1,0 +1,25 @@
+[23:25:31] [env:9612] waiting for the game
+[23:25:56] [env:9612] game connected (1)
+[23:25:58] connected: KingOfTheMarble_Hunt, round 180 s
+[23:25:58] hybrid: navigator update 26110, memory at handback "current", map KingOfTheMarble_Hunt, shortcuts 0, rescue 0, route 0, guard 0
+[23:27:20]   t 19 s: points 18, floor 14, floating 0, falls nav 0 planner 0, groups 3, owner nav
+[23:28:41]   t 38 s: points 34, floor 27, floating 0, falls nav 0 planner 0, groups 6, owner nav
+[23:30:01]   t 58 s: points 52, floor 42, floating 0, falls nav 0 planner 0, groups 10, owner nav
+[23:31:22]   t 77 s: points 70, floor 56, floating 0, falls nav 0 planner 0, groups 14, owner nav
+[23:32:44]   t 96 s: points 85, floor 68, floating 0, falls nav 0 planner 0, groups 17, owner nav
+[23:34:08]   t 115 s: points 101, floor 80, floating 0, falls nav 1 planner 0, groups 20, owner nav
+[23:35:28]   t 134 s: points 116, floor 92, floating 0, falls nav 1 planner 0, groups 23, owner nav
+[23:36:49]   t 154 s: points 133, floor 106, floating 0, falls nav 1 planner 0, groups 26, owner nav
+[23:38:09]   t 173 s: points 151, floor 120, floating 0, falls nav 1 planner 0, groups 30, owner nav
+[23:38:45] round ended / reconnected: waiting for the next round
+[23:38:45] [env:9612] round over (time left 180s of 180s); waiting for the next round
+[23:38:45] [env:9612] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[23:38:45] round 1: points 157, gems floor 125 floating 0, falls nav 1 planner 0 (after handback 0), handovers 0, groups 31 [5.5, 5.7, 5.25, 5.57, 5.12, 6.4, 5.12, 5.63, 4.42, 5.5, 5.76, 6.59, 5.38, 4.42, 6.27, 4.8, 6.46, 7.74, 5.31, 6.21, 6.46, 6.21, 6.59, 7.68, 5.31, 5.44, 5.38, 4.99, 5.44, 5.06, 5.25]
+[23:40:09]   t 19 s: points 12, floor 10, floating 0, falls nav 2 planner 0, groups 2, owner nav
+[23:41:31]   t 38 s: points 30, floor 24, floating 0, falls nav 2 planner 0, groups 6, owner nav
+[23:42:54]   t 58 s: points 46, floor 37, floating 0, falls nav 2 planner 0, groups 9, owner nav
+[23:44:14]   t 77 s: points 63, floor 50, floating 0, falls nav 2 planner 0, groups 12, owner nav
+[23:45:32]   t 96 s: points 79, floor 63, floating 0, falls nav 2 planner 0, groups 15, owner nav
+[23:46:51]   t 115 s: points 94, floor 76, floating 0, falls nav 2 planner 0, groups 19, owner nav
+[23:48:10]   t 134 s: points 109, floor 88, floating 0, falls nav 3 planner 0, groups 22, owner nav
+[23:49:29]   t 154 s: points 125, floor 101, floating 0, falls nav 3 planner 0, groups 25, owner nav

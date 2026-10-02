@@ -14,7 +14,7 @@ f, alive, games = sys.argv[1], sys.argv[2], sys.argv[3]
 rx = re.compile(r'\[(\d\d:\d\d:\d\d)\] \[(\d+)\] GAME map=(\S+) points=([\d.]+) gems=(\d+) falls=(\d+) rtf=([\d.]+)')
 txt = open(f, encoding='utf-8', errors='replace').read()
 g = [m.groups() for m in rx.finditer(txt)]
-k = [x for x in g if x[2].startswith('King') and int(x[4]) <= 130]   # drop merged double rounds
+k = [x for x in g if x[2].startswith('King') and int(x[4]) <= 190]   # drop merged double rounds (130 until 10-02: it dropped a clean 167-point, 136-gem round)
 upd = re.findall(r'NAV upd=(\d+)', txt)
 def s(rows):
     p = [float(r[3]) for r in rows]; fl = [int(r[5]) for r in rows]
@@ -32,7 +32,12 @@ if len(k) >= 50:
         dst = f'models/nav/nav_night_{u}_{m50:.0f}.pth'
         shutil.copy('models/nav/nav_latest.pth', dst)
         st = {'best50': m50, 'update': u, 'file': dst, 'falls50': sum(int(r[5]) for r in k[-50:]) / 50}
-        json.dump(st, open('logs/nav/night_best.json', 'w'))
+        # OneDrive refuses python open-for-write on existing files (Errno 22, also through shutil.copy): write a fresh
+        # file beside it and rename over it
+        tmp = 'logs/nav/night_best.json.new'
+        with open(tmp, 'w') as fh:
+            json.dump(st, fh)
+        os.replace(tmp, 'logs/nav/night_best.json')
         print(f'NEW 50-ROUND HIGH {m50:.1f} at upd {u}: snapshot {dst}')
 PY
   sleep 900

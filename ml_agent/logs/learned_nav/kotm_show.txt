@@ -1,0 +1,5 @@
+[env:9621] waiting for the game
+[env:9621] game connected (1)
+connected: KingOfTheMarble_Hunt, round 180 s
+hybrid: navigator update 26110, memory at handback "current", map KingOfTheMarble_Hunt, shortcuts 1, rescue 1, route 1, guard 0
+  t 19 s: points 15, floor 12, floating 0, falls nav 0 planner 0, groups 3, owner nav

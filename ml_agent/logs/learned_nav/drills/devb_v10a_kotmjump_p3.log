@@ -1,0 +1,14 @@
+[14:06:26] [env:9444] waiting for the game
+[14:06:39] [env:9444] game connected (1)
+[14:06:40] connected: kotmjump_p3, round 3600 s
+[14:06:40] starts starts_devb_kotmjump_p3.json sha1 8c1a77ff5321
+[14:06:40] seeds: 178; provenance {"planner_py": "1769b0a30138", "drills_py": "0de8437a616a", "seeds_npz": "ffea2a0e044a", "use_guide": true, "p_go": 0.25, "p_jump": 0.35, "planner_module": "planner"}
+[14:09:22] start   0 (toward, 7.5 u/s, 17.5 u, safe True): success in 128 decisions, jumps 3, plan 1240 ms  [1/1]
+[14:09:54] start   1 (toward, 4.1 u/s, 11.9 u, safe True): fell_after_jump in 27 decisions, jumps 1, plan 1205 ms  [1/2]
+[14:10:20] start   2 (toward, 9.1 u/s, 17.2 u, safe True): fell_rolling in 22 decisions, jumps 0, plan 1175 ms  [1/3]
+[14:11:26] start   3 (rest, 0.0 u/s, 16.9 u, safe True): success in 55 decisions, jumps 2, plan 1198 ms  [2/4]
+[14:12:16] start   4 (side, 6.0 u/s, 9.7 u, safe True): success in 41 decisions, jumps 1, plan 1211 ms  [3/5]
+[14:12:58] start   5 (toward, 4.0 u/s, 15.3 u, safe True): fell_after_jump in 39 decisions, jumps 1, plan 1057 ms  [3/6]
+[14:13:56] start   6 (away, 7.5 u/s, 8.5 u, safe False): success in 56 decisions, jumps 4, plan 1045 ms  [4/7]
+[14:15:23] start   7 (rest, 0.0 u/s, 8.8 u, safe True): success in 80 decisions, jumps 2, plan 1074 ms  [5/8]
+[14:16:10] start   8 (rest, 0.0 u/s, 17.9 u, safe True): fell_after_jump in 46 decisions, jumps 3, plan 1035 ms  [5/9]

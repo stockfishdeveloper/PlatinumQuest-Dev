@@ -1,0 +1,12 @@
+Recording demos to C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\demos\demo_20260930_213014.npz
+Terrain map: C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\terrain_maps\terrain_KingOfTheMarble_Hunt.npz
+Listening on 127.0.0.1:8888. Now host the map and play; recording starts by itself at GO. Ctrl+C to stop.
+Game connected from ('127.0.0.1', 52954)
+  [21:30:24] game switched to recording mode after 3 tick(s); recording.
+  [21:30:24] 20 ticks so far...
+  [21:30:34] 645 ticks (10s) | games 0 | 10 pts / 8 pickups (80.6 ticks each) | OOB 0 | move 95.0% jump 0.0% brake 5.739999771118164% | speed mean 9.32 p90 12.21 pickup 9.11 | frame check 0.834 vs mirrored 0.085 OK | terrain@2u 89.0%
+  saved C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\demos\demo_20260930_213014.npz (1,269 ticks)
+  [21:30:44] 1,270 ticks (20s) | games 0 | 19 pts / 15 pickups (84.7 ticks each) | OOB 0 | move 95.7% jump 0.0% brake 5.670000076293945% | speed mean 9.37 p90 12.05 pickup 8.95 | frame check 0.823 vs mirrored -0.022 OK | terrain@2u 88.2%
+  [21:30:54] 1,896 ticks (30s) | games 0 | 30 pts / 24 pickups (79.0 ticks each) | OOB 0 | move 96.0% jump 0.25999999046325684% brake 8.970000267028809% | speed mean 9.37 p90 12.44 pickup 9.12 | frame check 0.833 vs mirrored -0.016 OK | terrain@2u 87.3%
+  [21:31:46] 1,978 ticks (32s) | games 0 | 30 pts / 24 pickups (82.4 ticks each) | OOB 0 | move 94.6% jump 0.25% brake 10.520000457763672% | speed mean 9.3 p90 12.46 pickup 9.12 | frame check 0.83 vs mirrored -0.009 OK | terrain@2u 87.8%
+  saved C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\demos\demo_20260930_213014.npz (1,978 ticks)

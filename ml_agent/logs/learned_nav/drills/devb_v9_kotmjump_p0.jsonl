@@ -1,0 +1,1 @@
+{"status": "bad_teleport", "id": 0, "safe_start": false, "cat": "toward", "speed": 11.144998283516387, "dist": 16.763548861364725, "starts_sha1": "0ef85b579fb5", "map": "kotmjump_p0", "set": "devb", "provenance": {"planner_py": "7081bace7fad", "drills_py": "b4f39db0c347", "seeds_npz": "7878bb90a6ec", "use_guide": true, "p_go": 0.25, "p_jump": 0.35, "planner_module": "planner"}}

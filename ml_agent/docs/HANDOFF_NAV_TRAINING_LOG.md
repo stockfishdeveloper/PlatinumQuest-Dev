@@ -4390,3 +4390,737 @@ hybrid.py, round_report.py, drills.py (test5 set, replies recorded, provenance),
 seeds.py (for_gem: seeds reused on identical geometry), geometry.py and dynamics3.py (faster, identical results),
 watch4.py (1x viewing via a hidden planning game and a replay). Data: datasets/learned_nav/geometry/kotmjump.*,
 seeds v5; results logs/learned_nav/drills/ (dev_v6..v8, test5_*, report_test5_gate.json) and logs/learned_nav/rounds/.
+
+## 33. Stage 5b: KOTM shortcuts (2026-09-29, autonomous)
+
+Operator, 2026-09-29: proceed with the recommended plan; the long-term goal is an architecture that is good on (nearly)
+all maps; the short-term measure is the real KOTM map: take shortcuts and beat the best score (154.0 = 8-round mean at
+3x, nav_v6_start_26110; best single round 167; human 177). Training stayed stopped; no engine change; nothing committed.
+
+### 33.1 Evaluation hygiene and the v9 regression
+
+* New start sets: devb (60 per gem, iterate here), val (30 per gem, untouched), test6 (64 per gem, only for a gate).
+  planner_v8.py is the frozen gated planner; seeds are versioned per planner (datasets/learned_nav/seeds/<version>/).
+  compare_versions.py pairs two tags on the same starts (exact McNemar).
+* v9 (a straight-ahead stopping-room check after landings, air brake, escape-only approach jumps) regressed: the
+  stopping check ignores braking while turning. Ablation v9s (stopping check alone) 7/13 vs v8 13/13 on the same
+  starts. Reverted: STOP_CHECK, AIR_BRAKE off, APPROACH_JUMPS 'robust' (v8 behaviour).
+
+### 33.2 KOTM rounds today (3x, nav_latest = 26110)
+
+| arm | rounds | points |
+|---|---|---|
+| navigator alone (hybrid with shortcuts and rescue off, or consult-only) | 7 | 152.1 (143, 152, 159, 160, 156, 153, 142) |
+| shortcuts (probe the planner when the walk detours round a hole), several versions | 8 | 150.8 (143, 150, 143, 149, 160, 156, 152, 153) |
+| route jump legs (route.py, below) | 2 | 134, 127 (3 planner falls) |
+
+First shortcut round: 115 points, 7 falls, all within 3 s of a handback (the planner handed back fast marbles next to
+holes). Handing back only below 4 u/s fixed the falls but the braking cost 6-25 decisions per shortcut; now the planner
+rolls on toward the navigator's next gem and hands back once the marble moves down its walking field with an edge
+clearance of 1 u (hybrid.py HANDBACK_*; planner continue_cost with cont_next). Shortcuts stayed rare (1-3 a round).
+
+### 33.3 Where the human gains (demos, the 163 / 177 / 172 rounds)
+
+* Leg times on the same gem pairs: human 1.27 s, navigator 1.36 s. About 40 % of that difference is the hole-crossing
+  legs: the human crosses a hole on ~16 legs a round, 0.67 s faster each (1.54 vs 2.20 s on those pairs), mostly the
+  diagonals from a centre gem to a corner (e.g. -27.2 17 -> -37.2 27, straight 14.1 u, walk 18.1 u, void 7.1 u).
+* 29 of the human's 41 hole-crossing legs go to the second-nearest gem: the order is chosen around the jump. The
+  navigator's greedy chooser takes those legs about once a round.
+* The human enters the void at 10-14 u/s (median 11.2), ~2.4 u after the previous pickup (picked up at ~7.8 u/s).
+* The navigator's leg time, fitted on 689 of its KOTM legs (fine walking field): 0.211 + 0.090 x walk + 0.384 if the walk
+  detours 3 u or more + 0.253 x (1 - cos turn) s, residual sd 0.29 s (route.py). The coarse terrain walk field
+  overestimated its time on detour legs by ~0.4-1 s.
+
+### 33.4 Route chooser (route.py): tried, off by default
+
+Keeps the navigator's greedy target (a walking tour chooser at inference cost points, 28.50-28.54) and only overrides
+it with a jump-first order that beats greedy's best order by ROUTE_GAIN_S; the planner then drives that leg. On the
+human's recorded states it matches few of the human's crossings (7-9 of 41). In game: 134 and 127 points; the jump legs
+took 2.2-2.7 s and arrived at 3-4 u/s. Off (hybrid --route 0). Known bug: the greedy target's walking time is inf when
+the marble is within 0.4 u of an edge (WALK_CLEAR); take the nearest finite cell.
+
+### 33.5 The physics model underestimates jumps (the main finding)
+
+Offline, from a centre-gem pickup state the planner found no pickup plan to the corner at any heading, speed or time
+weight. In game (teleport on kotmjump_p0, same geometry; logs/learned_nav/diagjump*.jsonl; scripts in nav/learned_nav/stage5b/, see its README), the same straight-line jumps at 9-12 u/s
+cross the hole and take the gem; with no air input after the takeoff most land safely (with forward air input they
+overshoot off the map; air brake falls short). The step model's replay disagreed:
+* the jump itself: in the game a jump from flat floor is deterministic (1,915 recorded: +0.4268 u and vz 6.108 in the
+  decision it fires, +0.3448 u and vz 4.828 in the next, then 20 u/s^2), and it fires in 3,857 of 3,883 cases on flat
+  floor (KOTM, Sprawl, Tilo). The model's apex is low on its own training data: median -0.06 u, 27 % below -0.15 u,
+  and -0.25 u median (57 % below -0.15 u) for 12-20 u/s takeoffs within 1.5 u of a lip; on some takeoffs it predicted no
+  jump at all;
+* a false collision at 11 u/s beside the corner of the 2 x 2 centre hole (collision p 0.94, a launch of +3.6 u/s the
+  game does not have).
+Fix for the first (planner.py JUMP_PRIOR, jump_fires): where the jump certainly fires (resting on flat floor, the key
+acting), the two decisions of the takeoff take the measured vertical kinematics; horizontal motion and everything after
+stay the model's. Replay of the 32 recorded trials: apex 1.31-1.35 (game 1.33); median path error at decision 16
+1.96 -> 0.58 u, at 20 4.59 -> 0.81 u. The judge now agrees with the game on 19 of 24 programs (gem taken and no fall);
+the remaining 5 are landings near the far lip the model sees bouncing back into the hole. The flight head (launch
+check) is also unreliable there (1.00 for jumps that overshoot, 0.12-0.26 for safe ones).
+Also added for floor-gem jump legs (off elsewhere): straight-line jump proposals (_line; the first version pressed jump
+too late: a program decision acts one decision after it is sent), steering toward the gem for 2-13 decisions after the
+landing before braking (Programs.after_n), and a larger time weight among pickup plans (planner.time_w).
+
+The first version of the prior HURT the floating-gem drills: devb v10a 13/20 vs v8 20/20 on the same starts (McNemar
+p 0.016); every fall was a jump pressed at the lip that the game never took (the old model's low apex there was partly a
+correct hedge). Stage 3 data, 10,971 presses on floor: the jump fires 97-100 % with 0.1 u or more of floor ahead along
+the velocity at any speed, 65-93 % at the lip itself. jump_fires now also requires the same floor JUMP_LIP_U = 0.6 u
+ahead (margin for the model's position error). v10b vs v8 on devb (paired, first 45 feasible starts): 39 vs 38,
+p = 1.0: no regression. Replay accuracy kept (median error 0.57 u at decision 16).
+
+Closed loop in game (nav/learned_nav/stage5b/cornerdrill.py, logs/learned_nav/cornerdrill.*): from pickup-like states
+at the centre gem (6-10 u/s, heading 100-170 deg) the planner with the shortcut settings takes the corner gem across the
+hole in 15 of 16 trials, 21-29 decisions (1.35-1.86 s; human 1.27-1.69 s, navigator 2.2-2.4 s on that pair), no fall
+after the pickup; the one failure an approach jump at 9.4 u/s that fell.
+
+### 33.6 Fall guard (guard.py): tried, harmful, off
+
+A safety filter over the navigator: near a void, keep its action only if one of 11 recovery programs (brake; steer
+toward the target, along the velocity or away from the nearest void edge) stays up with 0.4 u clearance after it,
+else send the best recovery. One round: 122 points, 6 falls (navigator alone ~1.2 a round), 209 overrides in 2,353
+checks; every fall came ~20 decisions after a burst of overrides. Interrupting the navigator puts it in states it
+handles badly (as the fast handbacks did). Off (hybrid --guard 0). A check costs ~0.3-0.7 s.
+
+### 33.7 Stage 6 measurement on KOTM (8 rounds per arm, 3x, run in parallel, 15:08-16:10)
+
+| arm | points (mean, sd) | rounds | falls a round | planner |
+|---|---|---|---|---|
+| navigator alone | 151.0 (6.0) | 153 158 147 145 155 156 153 141 | 1.00 | none |
+| shortcuts + rescue | 148.4 (7.4) | 147 153 141 158 137 156 151 144 | 1.75 | 0.6 shortcuts, 17 decisions a round |
+| shortcuts + rescue + route legs | 146.1 (3.8) | 148 152 148 143 148 147 141 142 | 2.38 | 6.0 route legs, 276 decisions a round |
+
+* The shortcut arm is effectively the navigator (the planner acted 17 decisions a round): its -2.6 is round noise
+  (sd 6-7, se ~2.3 per arm). Today's navigator-only rounds over all runs: 22 rounds, mean ~152.
+* Route legs cost ~5 points: in real rounds they took 2.30 s median from takeover to pickup (the teleport test's
+  1.35-1.86 s came from ideal pickup states), 3 planner falls and 4 navigator falls within 3 s of a handback.
+* Short-term goal (beat 154.0) NOT met. The planner can fly the human's key crossing (33.5), but the navigator's
+  route rarely sets it up, and taking control mid-leg (route legs, guard, fast handbacks) costs more than it saves.
+
+Code state (nothing committed): planner.py = v8 + JUMP_PRIOR (with the lip margin) + time_w / approach_line /
+land_steer / _line / after_n (off unless a caller sets them) + cont_next continuation + the ps > 0 ranking fix;
+route.py, guard.py new (both off by default in hybrid.py); hybrid.py shortcuts on by default, route/guard off,
+probe/leg/fall logs per round. Frozen v8: planner_v8.py. Drills with the prior: devb v10b 58/67 vs v8 55/67.
+
+### 33.8 Orphan marbles in every -autotrain game (evening, operator question)
+
+The operator saw a second, motionless marble on an arm-end slope during the 1x KOTM rounds. A new read-only bridge
+word MARBLES (mlAgent.cs; the reply is a DEBUG line: server marbles id:pos:client, client ghosts, $MP::MyMarble, the
+player) showed three server marbles for our one client from the countdown on: the player and two orphans sitting
+exactly on spawn points (e.g. -45.25 27 and -13 35.25; which points varies per launch, sometimes both on one). The
+-autotrain startup (level preview, then Play) spawns the player more than once and GameConnection::createPlayer
+creates a new marble even when one exists ("Attempting to create an angus ghost!"), leaving the old one behind. Not
+new: the 2026-09-20 engine build (marbleblast_mbx_pretelemetry.exe) gives the same two orphans (same object ids), and
+kotmjump has them too; they were out of view in the stage 4/5 viewing (centre holes). On the server they hang at spawn
+height (~1.8 u above the slope); a respawn on those two spawn points lands on one.
+
+A removal (delete every server marble that is not its client's player, at start() and GO) worked, but an
+interleaved A/B (4 games at once, KOTM navigator only, 10 rounds each) read 150.8 (1.2 falls/rd) with the orphans
+removed vs 153.2 (1.0) kept: -2.4 +- 1.8, not significant but not shown harmless, and every baseline includes them.
+REMOVED on the operator's request the same evening: the orphans stay; the operator will fix it later. Only the
+read-only MARBLES word remains in mlAgent.cs.
+
+## 34. Stage 6b: the crossing leg from real pickup states (2026-09-29 night / 09-30, autonomous)
+
+Operator, 2026-09-29 evening: edits in nav/learned_nav/ approved, parallel work allowed if the machine is not
+overloaded, iterate overnight; the goal is ONE real KOTM round above 167 (the navigator-only best) with the planner
+involved. Stated odds 15-20 %. Training stayed stopped; no navigator change.
+
+### 34.1 Why the route legs of stage 6 were slow: what the data says
+
+Stage 6's route jump legs (log 33.7) took 2.34 s median from takeover (32 legs; the navigator walks the same pairs in
+2.20 s) and started from ordinary pickups (mean speed 7.0 u/s). Of 88 shortcut consultations, 80 came back as
+'approach' (no pickup plan from the pickup state): the planner rolls toward a launch seed first. Two of the three
+planner falls were jumps sent at 4-8 u/s that fell short; the third rolled in at 3-5 u/s without a jump.
+The human (strong rounds, voidentry.py): crossings start from ordinary pickups too: speed median 7.8 u/s, heading
+median 30 deg off the line (49 % within 30 deg), void entry at 11.2 u/s 2.6 u after the pickup, leg 1.66 s median.
+Same pairs, human vs navigator (human_legs.py): all legs 1.27 vs 1.36 s; hole-crossing pairs 1.54 vs 2.20 s; the
+human crosses on 12 % of legs (~16 a round), the navigator ~1.6.
+
+### 34.2 The locked-session stall (2 h lost; the cause is still open)
+
+The first runs crawled: a navigator-only KOTM round took 12 min instead of 40 s. The screen was locked (LockApp.exe).
+Probe (scratchpad step_probe*.py): bare decisions 0.7 ms; any reply slower than ~3 ms made the game's next
+observation arrive 200-250 ms late in ~20 % of decisions, and every decision once the reply took 20 ms or more. Per
+game, not global. Tested and ruled out: the engine's 1 ms sleep in the lockstep wait (a busy-wait changed nothing;
+the game is not spinning, 13 % CPU during a wait), TCP_NODELAY, process priority, Windows power throttling
+(SetProcessInformation exemption, nav/learned_nav/unthrottle.py), the audio update (skipped in the engine), the SDL
+joystick poll (disabled). Engine stage timing (new $AI::SlowLogMs / SLOWLOG word, ai_mainloop_slow.txt) puts every
+stall in TimeManager::process or Game->processEvents; net, platform and input stages never stall. Left in: engine
+$AI::SpinWaitMs and $AI::SlowLogMs (mbx local commits b5a18bdd, cb44e8a6; both off by default), mlAgent.cs words
+SPINWAIT and SLOWLOG, env.py TCP_NODELAY. Consequence for the night: the planner is GPU-bound at ~4.4 decisions/s over
+all games, so 6-8 parallel games hide the stall; navigator-only rounds run 8 in parallel.
+
+### 34.3 Crossing drill (crossdrill.py, cross_starts.py)
+
+Starts: the navigator's real states right after a pickup (hybrid.py now logs them: 'pickups'), one KOTM round per
+set (s6b_st0 -> dev, s6b_st1 -> test), every crossing pair (a straight line crossing one void run of 3 u or more
+that a jump can clear, at most 17.5 u) within 60 deg of the heading: dev 89 starts, test 91. Teleport to the state
+(velocity, spin, a push along the heading as the pending reply), planner with the shortcut settings aimed at gem B,
+success = within 0.9 u of B and 16 decisions on the map afterwards; the navigator's fitted walking time for the same
+leg is stored for comparison. Per-decision records (position, speed, plan kind, program tag, jump, P(success),
+airborne, distance to the gem) let the leg be split into run-up, flight and landing-to-pickup.
+
+v0 = the stage 5b planner with the shortcut settings (time weight 0.015, straight-line proposals, after-landing
+steering, jump prior). First 13 trials (dev 6/7 ok, one fall on a 5.5 u/s jump; test 6/6): median leg time about
+2.1 s on dev and 1.9 s on test against fitted navigator walking times of 2.0-2.4 s: the crossing as flown saves
+nothing yet (human 1.66 s median). The records show where the time goes: (1) the planner BRAKES before the jump (one
+trial 10 -> 6 u/s over 12 decisions, jumped at 6.6 u/s) because a slower flight judges safer and 0.015 P per decision
+does not outweigh a 0.9 vs 0.6 P; (2) approach jumps fire far from the lip (decision 4-10, 1-2 u into the run-up) and
+land 6-10 u short of the gem, then roll; (3) 8-17 'approach' decisions before the first pickup plan on some starts.
+v1 = ranking saturation (planner.P_SAT, 0.6 on crossing legs): among pickup plans P above 0.6 counts as 0.6, so
+trusted plans rank by time (stage 4/5: jumps sent with P >= 0.35 took the gem 187/188 and 180/186). The one v0 fall
+(dev 12) is the pathology in full: a 0.9 plan from decision 2, then braking from 9.4 to 5.5 u/s over 8 decisions, a
+jump pressed at the lip that never fired, and a roll into the hole.
+v2 = v1 without the flight-head launch check (planner.flight_check 0): the head is unreliable near the far lip (33.5)
+and multiplies fast jumps below P_JUMP, which looked like the reason the jumps fire at 6-9 u/s.
+Paired on the same dev starts (08:10, drills still running): v0 vs v1 on 23 starts: ok 22 vs 23, v1 0.08 s faster on
+the both-ok legs, expected time (a failure = the walk plus 3.5 s) 2.31 vs 2.06 s; v1 vs v2 on 10 starts: 10 vs 10,
++0.01 s: the flight check was not what held the speed back (v2 stopped). Jump speed median stays 9.1 u/s (human void
+entry 11.2). The leg as flown averages 2.06 s against the navigator's fitted 2.10 s on the same legs: faster on about
+two thirds of them, but the slow ones (a late jump at 5-7 u/s after braking, or a landing 6-10 u short) eat the gain.
+
+### 34.4 What the crossing costs, by start angle (v1, 26 dev starts)
+
+| start heading off the line | n | leg time median | navigator fitted | gain |
+|---|---|---|---|---|
+| 0-15 deg | 6 | 1.66 s | 1.99 s | +0.19 s |
+| 15-30 deg | 5 | 1.73 s | 2.01 s | +0.18 s |
+| 30-45 deg | 6 | 2.30 s | 1.96 s | -0.25 s |
+| 45-60 deg | 9 | 2.30 s | 2.35 s | +0.09 s |
+
+Fit over the 26 legs: t = 1.12 + 0.039 x straight + 1.47 x (1 - cos turn), residual sd 0.34 s. The turn term is ~5x the
+walking turn cost route.py used for jump legs; route.py's crossing model now carries these constants (JUMP_K 0.039,
+JUMP_EXTRA_S 1.12, JUMP_TURN_S 1.47; the earlier guess was 0.09 x straight + 0.3). Aligned starts reach the human's
+1.66 s. The human's crossings are aligned because the order is chosen around the jump (29 of 41 to the second-nearest
+gem, log 33.3); ours start from whatever heading the greedy leg leaves.
+
+### 34.5 KOTM gate (08:11-08:50, 3x, run in parallel; GPU contention capped it at 4 games per arm)
+
+| arm | rounds | points | mean (sd) | best | falls a round |
+|---|---|---|---|---|---|
+| navigator alone | 6 | 153 146 162 150 152 149 | 152.0 (5.5) | 162 | 2.0 |
+| hybrid, shortcuts + rescue, v1 settings | 4 | 156 155 141 154 | 151.5 (7.0) | 156 | 1.75 |
+
+The hybrid arm took NO shortcut: 9 consultations a round, 36 of 37 answered 'approach' (no pickup plan from that
+state), the one pickup plan (1.66 s vs the navigator's fitted 1.85 s) missed the 0.3 s margin. So the arm is the
+navigator plus 1 planner decision a round, and its 151.5 is round noise. The goal (a round above 167 with the planner)
+was NOT met; the operator's stated odds were 15-20 %.
+Why the consultation fails where the drill succeeds: the drill plans from the pickup state continuously (commitment
+and warm proposals build up; the first pickup plan appears at decision 1-2), while the hybrid asks one cold question
+(set_target resets the planner's state, one decision, 480 programs) a few decisions after the pickup, and a single
+cold decision finds a pickup plan on roughly a third of the drill starts too. Next step, in order: (1) consult over
+2-3 consecutive decisions right at the pickup, with the planner state kept; (2) take crossings only within ~30 deg of
+the line, or choose the previous leg's exit so the crossing is aligned (the human's order); (3) then the speed at the
+lip (jumps still fire at 6-9 u/s; the human enters the void at 11).
+
+### 34.6 Files
+
+nav/learned_nav/: crossdrill.py (the drill, --report / --analyze), cross_starts.py, cross_fit.py, run_one.ps1 and
+run_many.ps1 (launchers), unthrottle.py, stage6b/ (probes, README); planner.py P_SAT (p_sat) and flight_check;
+hybrid.py pickups log, SHORT_P_SAT, SHORT_FLIGHT_CHECK; route.py calibrated crossing constants; session.py SPINWAIT;
+env.py TCP_NODELAY; mlAgent.cs SPINWAIT / SLOWLOG words. Data: datasets/learned_nav/cross/starts_{dev,test}.json;
+results logs/learned_nav/cross/{v0,v1,v2}_dev.jsonl, v0_test.jsonl, rounds/g6b_nav*, g6c_hyb*. Engine (mbx worktree,
+local commits only): b5a18bdd, cb44e8a6; exe backups marbleblast_mbx_prespin.exe, marbleblast_mbx_spin0.exe.
+Nothing committed in this repo.
+
+### 34.7 Daytime 09-30: consult by driving, setup orders, and the real gap is the TURN
+
+Screen unlocked (the operator set the display timeout to never): the bridge answers in 0.3 ms at any reply delay; the
+stall of 34.2 is gone.
+* hybrid.py consult-by-driving: at a pickup (leg started within CONSULT_AT_DEC = 2 decisions) the planner owns the
+  marble for CONSULT_DEC = 3 decisions with its state kept; a pickup plan that beats the navigator's fitted time by
+  SHORTCUT_MARGIN_S commits the shortcut, else hand back. Only crossings within SHORTCUT_MAX_ANGLE = 35 deg.
+  Smoke round: 0 consults, 146 points: the greedy target right after a pickup is a near floor gem, never a crossing.
+* route.py: the greedy baseline now walks every leg (it let later legs jump, which the navigator never does); a
+  jump-first order and a SETUP order (walk to the greedy gem A, jump to B second; the navigator gets B as its next-gem
+  hint on the way to A, the consult runs on B at A's pickup) are searched with the drill-calibrated crossing time.
+  hybrid.py carries the setup (st['setups'], probe candidate B). Offline on 60 real pickup states: 1 jump-first order,
+  0 setups. The visible group lies BEHIND the marble at a pickup (the crossing candidates need a 100-146 deg turn), so
+  with the planner's measured turn cost no crossing pays. Smoke round 2 (before the setup code): 0 consults, 153.
+* The human's crossings, same fit (42 legs, strong rounds): t = 0.10 + 0.101 x straight + 0.33 x (1 - cos turn);
+  by angle: 0-30 deg 1.41 s (n 24, arriving at 11.4 u/s), 30-60 deg 1.79 s, 90-180 deg 2.11 s (n 8, from 5.4 u/s).
+  Planner v1: 1.66 s aligned, 2.30 s at 30-60 deg, turn cost 1.47 s per (1 - cos): the planner turns 4-5x slower
+  than the human, and that, not the flight, is what keeps crossings from paying from the navigator's real states.
+  Next lever (general physics, transferable): the run-up turn. A turn-and-cross drill from 30-150 deg, the human's
+  recorded inputs during their turns (demos carry the keys) as the reference technique, then proposals that turn
+  the way the human does (brake-turn or a tight full-throttle arc) judged by the same model.
+
+### 34.8 Turn drill: the turn is physics-limited, the planner is near the limit (turndrill.py, Skatium, 09-30)
+
+Operator rule (2026-09-30): the human is the benchmark and at most a guide; never hardcode or replay human movements
+into the planner. So the turn was measured from the engine over the input space: the marble at 8 u/s on a 12 u open
+disc of the same floor material as KOTM (friction 1, restitution 1 for both), 16 fixed input programs, 1.5 s each,
+deterministic (repeats identical). Decisions to turn the velocity by 60 / 90 / 120 deg, and the speed then:
+
+| program | 60 deg | 90 deg | 120 deg |
+|---|---|---|---|
+| steer at +90 (held) | 11 dec, 9.9 u/s | not within 24 | |
+| steer at +120 | 9 dec, 6.2 | 14 dec, 8.3 | not within 24 |
+| steer at +150 | 10 dec, 3.3 | 11 dec, 3.5 | 14 dec, 5.0 |
+| brake 2-6 then +90 | 12-14 dec, 5.9-8.7 | 28-30 dec | |
+| over-steer +150 for 2-6 then +90 | 10-11 dec, 5.7-8.9 | 25-29 dec | |
+| jump then +90 in the air | 14 dec, 10.7 | | |
+
+A 60 deg turn costs 0.6-0.7 s, a 90 deg turn 0.9 s at speed (steering well past the target direction, 120-150 deg,
+is the fastest way; braking first or jumping never helps). The crossing drill's fitted planner turn cost, 1.47 s per
+(1 - cos), is 0.74 s at 60 deg: the planner already turns about as fast as the physics allows. The human's smaller
+fitted turn cost (0.33) comes from where the human's turns start: the wide-angle crossings begin at 5.4 u/s (slow =
+easy to turn) and the aligned ones at 11.4 u/s. So the human's edge on crossings is arriving at the launch gem
+ALIGNED AND FAST, which is set up by the leg before; it is not a turning technique the planner lacks.
+Consequence: the lever is the leg before the crossing (drive to A aimed at B, carrying speed), i.e. a two-leg plan
+owned by the planner, judged against the navigator's two walking legs; the human's numbers stay the benchmark.
+
+### 34.9 Two-leg plans in the hybrid, and where the human's crossings actually come from (09-30 afternoon)
+
+Built (hybrid.py, planner.py, route.py): a setup order (route.choose 'setup': walk to the greedy gem A, jump to B
+second, the jump costed as aligned plus SETUP_EXTRA_S 0.4); the planner drives the A leg with an exit objective
+(planner.exit_dir: pickup plans get EXIT_W x the velocity along the A -> B line at the pickup; N_EXIT proposals that
+run up onto that line, with the turn drill's over-steer), then the consult on B. Consult skip counters.
+* Demos (42 human crossings <= 18 u): EVERY one goes to a gem of the group that has just spawned: the crossing is the
+  leg between groups. At the launch gem the human's velocity is 25 deg off the line (median), the previous leg within
+  45 deg of it 69 %, speed 8.4 u/s.
+* Our navigator (126 pickups, 2 rounds): 63 group-clearing pickups, 41 with a crossing candidate in the new group
+  (<= 18 u, void >= 3 u); best candidate within 30 deg of the heading 41 %, within 45 deg 56 %: about 8 aligned chances
+  a round exist for us too.
+* Route model verdict from the navigator's real pickup states (96): jump-first orders 1-2, setup orders that pay 3;
+  even with the HUMAN's crossing pace as the what-if 3 (9 without the setup cost). Median setup margin +1.1 s.
+* Rounds (1 each): 155 (2 setups, both picked A fast: 10.4 and 9.3 u/s, no consult on B), 148 (0 consults of 269
+  evaluations: 207 skipped for angle > 35 deg, 47 no walking gain, 15 far), 149 with the gate at 60 deg (4 consults:
+  2 pickup plans of 27-40 decisions = 1.7-2.6 s, not 0.3 s under the fitted walk of 1.96-2.0; 2 no plan).
+Ceiling of this mechanism as the numbers stand: ~8 aligned chances a round x ~0.3 s = about 2 points. Not the 15.
+
+### 34.10 The pure controller on KOTM (design M5 arm, first run) and its two stalls (09-30, 13:00-14:00)
+
+rounds.py (planner alone, order by the guide, floor gems by walking distance), 3 rounds at 3x: 85, 86, 84 points; 0-2
+falls; groups take 8-16 s (navigator 5.5); leg time mean 2.58 s / median 2.43 (navigator 1.36) although the pickup
+speed is HIGHER (median 10.3 u/s vs 7.7): the planner does not brake into gems, it stalls between them. Per-decision
+trace (rounds.py 'trace', 'legs'): 143 jumps a round on floor legs (three quarters of the broad proposals carry a jump
+and nothing charged for it), and full stops in the open: (1) after ~2 s on the same plan the marble brakes to
+0.1-0.9 u/s: the warm start shifts the previous best program one decision forward each step and its TAIL brake slid to
+the front (Programs.shifted now keeps the tail at the end, extending the decision before it); (2) after a pickup the
+next target is often behind the marble, which reverses from 12-16 u/s (the guide's order; momentum). Fixes 1 and the
+jump charge (planner FLOOR_JUMP_CHARGE 0.15 in P units on plain floor legs) are in; measured next.
+
+### 34.11 Why the pure controller stops to turn (09-30, 14:00-14:40)
+
+Turn drill replayed through the step model (turndrill.py --model): the model reproduces every program within ~5 deg
+and 0.7 u/s at 8, 16 and 24 decisions. The physics is right; the choice is wrong.
+Leg time by the angle between the marble's heading at the leg start and the direction to the gem (pl_fix rounds,
+137 legs): 0-45 deg 1.22 s (the navigator's pace), 45-90 deg 2.30 s (min speed 2.1 u/s), 90-135 deg 3.46 s (0.7 u/s),
+135-180 deg 2.94 s. The planner brakes to a near stop to turn while the turn drill turns 90 deg in 0.9 s at speed.
+Offline from three of those 90-130 deg starts (KOTM, 9-16 u/s): 142-154 of the 160 proposals were judged to FALL,
+because a rolling program was judged safe to the end of the 3 s horizon and almost any full-throttle 3 s path on this
+floor reaches a hole; the survivors brake, or hop a hole (hence 140+ jumps a round). Tail fix (Programs.shifted) and a
+floor-jump ranking charge: 84 / 90 (before: 85, 86, 84), jumps unchanged. Judged window for rolling programs cut to
+GROUND_WIN = 16 decisions past the closest pass (clearance likewise): 80 / 83, legs unchanged (45-90 deg 2.50 s).
+Most decisions are 'pickup' plans, ranked by P - 0.004 x t_close (TIME_W): a braking turn at P 0.95 beats a fast turn
+at 0.8 that is a second quicker. rounds.py now sets the hybrid's shortcut weights on every leg (time_w 0.015, P_SAT
+0.6); measured next.
+
+### 34.12 Pure controller, one lever at a time (09-30, 14:00-15:40; 2 KOTM rounds per step, 3x)
+
+| step | change | points | legs starting 0-45 / 45-90 / 90-135 deg off the gem (median s) |
+|---|---|---|---|
+| baseline | rounds.py as in stage 5 | 85, 86, 84 | 1.22 / 2.30 / 3.46 |
+| tail + jump charge | Programs.shifted keeps the brake tail at the end; FLOOR_JUMP_CHARGE | 84, 90 | (1.22 / 2.30 / 3.46 measured here) |
+| ground window | rolling programs judged GROUND_WIN 16 past the closest pass, clearance too | 80, 83 | 1.31 / 2.50 / 3.04 |
+| leg weights | time_w 0.015, P_SAT 0.6 on every leg | 89, 90 | 1.28 / 2.30 / 2.94 |
+| rolling clearance | ROLL_CLEAR_OK 0.5 for programs that never fly | 83, 91 | 1.15 / 2.46 / 2.75 |
+| turn-costed order | TURN_S 0.9 x (1 - cos) per leg in choose_order | 81, 82 | 1.25 / 2.69 / 3.01 |
+
+Aligned legs are now faster than the navigator's (1.15-1.25 s for ~12 u; navigator 1.29). The whole deficit is the
+legs that start turned away, a third of them more than 90 deg (navigator: 12 %), and no order rule changed that share:
+the planner passes through each gem at 10-11 u/s and keeps going, so the group's next gem is behind it; the turn
+beyond 90 deg then costs ~1 s by physics (34.8). Next: the exit objective (planner.exit_dir, built for the crossing
+setup) on every leg, aimed at the order's next gem.
+
+### 34.13 Exit objective and the next-leg turn charge (09-30, 15:40-16:20)
+
+* exit_dir bonus (velocity along the line to the order's next gem at the pickup) on every leg: 88 (one round; the
+  other game stalled after connecting and was stopped). Turned-away starts unchanged (30 %): the bonus is blind to a
+  gem behind the marble (the velocity along the exit line is clipped at zero), so it never asks for a slower arrival.
+* Replaced by a two-leg TIME charge (planner.exit_bonus, now a charge): the next leg's turn cost from the state at the
+  closest pass, TURN_S 0.9 x (1 - cos) x min(1, speed / 6) from the turn drill, in P per decision like time_w.
+  Rounds: 91, 96 (the day's best; baseline 85, 86, 84). Pickup speed 8.6-9.0 (it arrives slower when the next gem is
+  behind), 45-90 deg legs 2.24 s (from 2.3-2.7), 90-135 deg 3.07, aligned 1.28; 25 % of legs still start more than
+  90 deg off.
+Day's arc for the pure controller: 85 -> 93 with seven levers, all physics-derived, none map-specific; the navigator
+is at 152. The remaining deficit is the third of the legs that start turned away; by the turn drill those cost ~1 s
+each by physics, so the answer is not a faster turn but not arriving in that state: a real multi-leg plan over the
+group (speed at each pickup chosen for the leg after), which the two-leg charge only approximates.
+
+### 34.14 The human's own jump, replayed: the model is wrong at 12-14 u/s (09-30 evening)
+
+The operator recorded the jump the hybrid keeps declining (record_demos.py, which had silently dropped every tick since
+the observation grew to 38 numbers on 09-26; fixed): from the centre gem (-23.2, 13) at 13.2 u/s, 16 deg off the
+line, straight over the hole to the corner gem (-13.2, 3) in 1.31 s. From that exact state: the hybrid's gate would
+have consulted (detour 3.4 u, angle 16), but the planner finds NO pickup plan (P 0.00 over 416 programs: 0 of 342
+jumping programs pass within 0.85 u of the gem; 321 'fall'). In the game from the same state (crossdrill, 5 trials)
+the planner jumps anyway (an escape jump) and makes it in 1.79-2.30 s.
+The human's inputs run through the step model from that state (validation only): the game LOSES speed in the air
+(13.2 -> 12.3 u/s) and sheds a third of it on landing (12 -> 8); the model GAINS speed in the air (-> 14.1) and keeps
+11.5 after landing, overshooting the gem by 3.5 u. Over 16 recorded human jumps, by takeoff speed: model air speed
+minus real +0.6 (9-11 u/s) to +1.5 u/s (13+); speed 2 decisions after landing +1.1 to +3.0 u/s too high. The planner
+rejects the very jumps the human makes because its physics is optimistic about speed at 12+ u/s, in the air and at the
+landing. General, map-independent, and fixable with data: collect flights and landings at 11-15 u/s with air inputs
+(record3) and refit the step model; the human recordings stay the benchmark.
+
+### 34.15 From the operator's jump to a planner that finds it (09-30, 22:00-23:00)
+
+Three model-side causes, each measured, each general:
+1. Air speed. On the step model's own held-out data (KOTM, Sprawl, Tilo), the game's horizontal speed change in flight
+   falls with speed like drag (no input: -0.01 u/s a step at 4.5 u/s, -0.13 at 10, -0.28 at 14.5, -0.44 at 20, about
+   -0.0011 v^2) and the forward input adds +0.33 a step at 3-6 u/s but nothing by 13-16; the model keeps +0.18-0.25 at
+   11-16 u/s with the input and under-shoots the drag without it, on every map. Over a flight that is +1.4 u/s.
+   Fix: planner.AIR_DRAG_RESID 0.0009: airborne steps lose AIR_DRAG_RESID x v^2 of horizontal speed in simulate().
+   Validation on 16 recorded human jumps (inputs replayed through the model, benchmark only): air speed error
+   +0.73/+1.17 u/s (takeoff 6-11 / 11-20) -> +0.05/+0.14; landing position error 1.01/1.31 u -> 0.69/0.54; speed two
+   decisions after landing +1.20/+2.07 -> -0.16/-0.22.
+2. After the landing the model predicts a short bounce where the game rolls and brakes (support 0 for 5 decisions);
+   left for the model refit: it costs ~1 u of lateral error at the end of a fast crossing.
+3. Proposals. With the model corrected, the human's inputs reach 1.17 u from the gem; the planner's own line programs
+   only 1.75: they steer at the gem in the air (+-8 deg) or not at all, and after landing either steer at it at full
+   throttle (too wide at 10 u/s) or brake straight. The human held ~100 deg off the velocity in the air and brake-turned
+   after landing. Added, as proposal families the judge ranks like any other: air input 30-110 deg past the gem's
+   direction (either side) in _line, and a brake-turn after landing (60-150 deg past the gem's direction) in
+   _land_steer. From the operator's state: p_succ 0.79-0.95, pickup predicted at decision 17 (1.09 s; the human 1.31).
+
+### 34.16 v3 on the dev set, and the falls at speed (09-30, 23:00-23:40)
+
+In the game from the operator's state (5 trials, planner with 34.15's changes): 5/5, three in 1.15 s (the operator
+1.31), two late pickups after a miss (2.8, 3.1 s), no fall. Dev set, v3 (air residual, wide air inputs, brake-turn
+after landing; 86 starts): 81 ok, 5 falls, median leg 1.73 s (v1 2.05, walking 2.10); aligned starts 1.54 s vs 2.00
+walking, 30-60 deg 1.89 vs 2.19. Paired v1 vs v3 on 26 starts: 26 vs 25, v3 0.16 s faster on both-ok legs, expected
+time equal because of the falls. The five falls: a press at 11-13 u/s that never fired, the marble rolling off the
+lip (in one case pressed with floor under it, 2 u before the edge). Engine data (12 KOTM shards, 3,386 presses on
+flat floor with 0.8 u ahead): the jump fires 99.2-99.8 % at 10-14 u/s, 98.5 % at 14-16. So the presses acted late:
+at 12 u/s the marble covers 0.8 u a decision and a press timed from the predicted path arrives over the void. Fix:
+jump_fires needs JUMP_LIP_U + JUMP_LIP_K x speed of floor ahead (one decision of travel, JUMP_LIP_K 0.064), so the
+plan presses one decision earlier at speed. v4 = v3 + this; measured on dev next, v3 on the untouched test set.
+
+### 34.17 Crossing drill, final numbers (09-30, 22:45)
+
+| planner | set | starts | ok | falls | leg median | walking fitted | expected time (fall = walk + 3.5 s) |
+|---|---|---|---|---|---|---|---|
+| v0 (stage 5b) | dev | 35 | 34 | 1 | 1.98 s | 2.11 s | 2.32 s |
+| v1 (+ saturation) | dev | 26 | 26 | 0 | 2.05 s | 2.11 s | 2.06 s |
+| v3 (+ air residual, wide air inputs, brake-turn) | dev | 89 | 84 | 5 | 1.73 s | 2.10 s | 2.15 s |
+| v4 (+ speed-scaled lip margin) | dev | 89 | 85 | 4 | 1.79 s | 2.10 s | 2.09 s |
+| v0 | TEST | 36 | 35 | 1 | 1.98 s | 2.06 s | 2.22 s |
+| v3 | TEST | 91 | 90 | 1 | 1.73 s | 2.07 s | 1.95 s |
+
+Paired on the test set, v0 vs v3 (36 shared starts): 35 vs 36 ok, v3 0.30 s faster on the legs both flew, expected
+time 2.22 vs 1.84 s. By start angle (v4, dev): within 30 deg 1.54 s vs 2.00 walking; 30-60 deg 1.98 vs 2.19. v4's
+four dev falls are all roll-ins during the approach (no press at all), not failed takeoffs. v4 goes to the gate.
+
+### 34.18 KOTM gate with the v4 planner (09-30, 22:45-23:15, 3x, 4 games x 2 rounds per arm, same session)
+
+| arm | rounds | points | mean (sd) | best | falls a round | planner |
+|---|---|---|---|---|---|---|
+| navigator alone (hybrid, shortcuts 0) | 8 | 156 159 161 151 146 151 160 146 | 153.8 (6.1) | 161 | 1.62 | none |
+| hybrid, consult at the pickup + setups (g6d, instant handback) | 8 | 144 145 152 140 148 150 150 151 | 147.5 | 152 | 2.5 / 1.75 | 1.5 shortcuts, 2 setups |
+| hybrid, same, failed consult -> safe continuation (g6e) | 8 | 146 154 153 142 147 142 140 142 | 145.8 (5.3) | 154 | 1.88 | 1.6 shortcuts, 2.4 setups |
+| hybrid, setups OFF (g6f) | 8 | 148 151 151 147 148 147 149 154 | 149.4 (2.4) | 154 | 1.12 | 1.9 shortcuts, 0.9 failed consults |
+
+Accounting (g6e legs): the crossings pay (shortcut legs 1.4-2.4 s for walks of 19-25 u that the navigator's fit puts
+at 2.3-2.9 s; 15 of 15 committed consults succeeded in g6f) but the setup legs lose (the planner's floor leg to the
+first gem 2.0-2.9 s where the navigator walks it in 1.3 s, 2.4 a round) and the handovers cost: g6d had a fall within
+3 s of a handback every round (instant handback at ~10 u/s beside the hole after a failed consult; now the safe
+continuation), and each failed consult (0.9 a round) ends in braking to 4 u/s before the handback. Net with setups
+off: 4 points below the navigator (-4.4 +- 2.3), fewer falls, lower variance, best round 154. The operator's goal
+(a round above 167 with the planner) is not met; the navigator's best tonight was 161.
+What would close the gap, in order: a cheaper exit from a failed consult (hand back at once when clear of edges), a
+faster handback after a crossing pickup, and the consult on more legs than the greedy target (the second-nearest gem
+across the hole) once the planner's time estimate at the consult is trusted. The remaining structural ceiling of the
+hybrid on this map is a few points; beyond it lies the navigator's own driving (pickup speed, order), which is
+training, off-limits under the standing rule without the operator.
+
+## 35. Night of 09-30 / 10-01: the hybrid's handovers, real-time planning, needless jumps (autonomous)
+
+Operator, 23:30, after watching the hybrid at 1x: the crossings are real time savers, but (1) after a crossing pickup
+the marble carries its momentum far past the gem, stops and comes back where the human barely passes the gem and
+turns at once; (2) the frame rate drops to ~0.5 fps while the planner thinks, unacceptable for a real game; (3) a
+couple of needless jumps on open floor. Goal: a round above 167 with the hybrid. Approved: the "what is left" items
+(cheap failed-consult exit, faster handback, consulting the across-gem when not nearest) and training if the rest is
+optimized first.
+
+### 35.1 Momentum after the pickup and the handovers (hybrid.py)
+
+* EXIT_TO_NEXT: on a consult leg the planner's exit_dir is set toward the navigator's next gem, so the crossing plan is
+  charged the next leg's turn time (planner.exit_bonus, 34.13): a plan that lands slower or aligned for the next gem
+  outranks one that flies through at 13 u/s.
+* HANDBACK_ANY_DIR: after a planner pickup the marble is handed back as soon as the continuation is safe, clear of edges
+  (>= 1 u) and on the floor, whatever the direction (the old rule waited for the marble to roll DOWN the walking field
+  toward the next gem, 10-25 decisions).
+* A failed consult hands back at once when the state is clear and on the floor (consult_back), else the continuation.
+* Jump counters by owner (jumps_planner / jumps_nav) for the needless-jump question.
+
+### 35.2 Gates through the night (8 KOTM rounds each, 3x, 4 games x 2 rounds)
+
+| batch | change | mean (sd) | best | falls nav / after handback | shortcuts | planner jumps |
+|---|---|---|---|---|---|---|
+| g6e_nav | navigator alone | 153.8 (6.1) | 161 | 1.62 / - | - | - |
+| g6f | consult at the pickup, setups off | 149.4 (2.4) | 154 | 1.12 / 0.12 | 1.9 | |
+| g6g | + exit charge toward the next gem, handback when clear, cheap failed-consult exit | 151.0 (7.9) | 164 | 1.75 / 0.50 | 2.0 | 5.5 |
+| g6h | + no jump outside a committed pickup plan, keep braking instead of the capped handback | 154.2 (3.7) | 161 | 0.88 / 0.25 | 1.5 | 3.5 |
+| g6i | + consult on the aligned across-gem even when not the nearest | 137.9 | 146 | 3.0 / 1.12 | 3.1 | 6.6 |
+
+g6i: 11 retargets a round, 70 % of the consults failed (31 approach, 12 pickup plans not 0.3 s under the walk), each
+failure retargeting the navigator and handing a 10-13 u/s marble back beside a hole. Off (ACROSS_CONSULT False), and
+the instant handback after a failed consult now also needs the marble at or under HANDBACK_FAST 9 u/s. g6h is the
+configuration that matches the navigator with half its falls; g6j = g6h + the speed condition, measured next.
+Needless jumps: the planner's, in approach and continuation plans during consults (5.5 a round in g6g for 2
+crossings); now suppressed outside a committed pickup plan (CONT_JUMP_NOW 50 in the continuation as well).
+
+### 35.3 The takeoff margin had killed the operator's jump; latency (10-01, 00:00-00:20)
+
+From the operator's recorded state the planner again found NO plan (p 0.00): the speed-scaled takeoff margin of 34.16
+(JUMP_LIP_U + 0.064 x speed = 1.44 u of floor ahead at 13 u/s) forbade a press with ~1 u of floor left, which the game
+fires 99 % of the time (34.16) and the operator made. The margin exists for presses timed from the PREDICTED path
+several decisions out, where the model's position error has built up; a press acting on the next step needs none.
+jump_fires now takes the rollout step: margin x min(1, (t - 1) / 2). The operator's state: p 0.70-0.90 again, with or
+without the exit charge. g6j/g6h ran with the strict margin (fewer crossings than possible).
+Latency of one consult decision from that state (GPU free, the model's CUDA graphs): 457 programs 411-457 ms; 257
+programs 311-324 ms; horizon 32 instead of 48: 209 ms; 65 programs: 204 ms. The floor is ~200 ms of fixed cost
+(terrain features on the CPU per step, the robust re-check); a real-time budget at 1x is 64 ms, at 3x 21 ms. A
+2x cut is available by budget; below that the feature extraction has to move to the GPU or the rollout be shortened.
+Not done tonight: the score comes first.
+
+### 35.4 The planner as a jump oracle, no takeover (10-01, 00:30)
+
+Six hybrid batches tonight (35.2, 35.3) all sit at or under the navigator (147-154 vs 153.8 / 155.4): the crossings
+gain ~2 points a round and the takeover machinery (consult decisions driven by the planner, continuations, extra
+jumps, stuck-breaks after handbacks) costs more. The variant without any handover: the navigator keeps driving; when it
+is on the floor at >= 6 u/s, its floor target lies across a void on the line within 18 u, the heading within 40 deg of
+the line and the void begins within 3 u along the velocity, the planner's model rolls out 8 fixed programs (jump NOW,
+air input none / at the gem / 60 and 100 deg past it either side, land-steer to the gem after, one plain brake) and
+judges them as any plan; if the best P(success) >= 0.5 the jump bit is set on the navigator's own action (planner.
+jump_oracle, hybrid ORACLE_*). 77 ms a query on a free GPU (8 programs, 48 steps); the operator's state: 0.91.
+
+### 35.5 Oracle results and the night's conclusion (10-01, 00:30-00:45)
+
+| batch | arm | mean (sd) | best | falls | planner |
+|---|---|---|---|---|---|
+| g6e_nav, g6l_nav | navigator alone (two batches) | 153.8 (6.1), 155.4 (4.3) | 161, 162 | 1.62, 0.75 | none |
+| g6m | + oracle (P 0.5, >= 6 u/s), consults off | 152.0 (2.1) | 156 | 1.00 | 9.6 oracle jumps a round, 155 ms a query |
+| g6n | + oracle (P 0.75, >= 8 u/s) | 153.8 (1.9) | 156 | 1.12 | 3.0 oracle jumps at 9.6 u/s |
+| g6o | oracle + the pickup consult | 152.1 (4.0) | 161 | 1.0 (0 after handbacks) | 2.3 oracle jumps, 1.5 shortcuts |
+
+Every hybrid variant tonight lands at the navigator's level, within round noise: the takeover design (consult at the
+pickup) 147-154 with best rounds of 164, the oracle 152-154 with the lowest spread of any arm. The crossing skill is
+real (test set 90/91 at 1.73 s; the operator's own jump reproduced at 1.15 s) but on this map it is worth ~2 points a
+round and the integration costs eat it. No round above 167; the navigator's best tonight 162, the hybrid's 164.
+Not started: training. The one training idea the physics work makes possible, the oracle inside the training loop so
+the policy learns routes around a jump it can rely on, needs the planner's model in the trainer's decision loop
+(8 instances, one CUDA context) and is a build plus an unattended multi-hour run with the history of post-26113 runs
+losing points; it is the next thing to do WITH the operator, not alone at 1 am.
+
+### 35.6 Crossings into the centre (10-01 morning, operator's observation)
+
+The operator saw the hybrid never jump from the outer ring into the centre. Numbers: of 104 committed crossings in
+last night's rounds, 2 went to a centre gem (consults toward the centre 13, 11 failed); in the drills the direction
+was asked only 5 times (the navigator's corner pickups rarely point at the centre) and made 5/5, but with the first
+pickup plan at decision 5-7 (0 for centre -> corner). Offline from a corner start aimed at the centre (9-13 u/s): the
+line programs reach the gem (p_pick > 0.5 on 11-30 of 96) but the judge marks nearly all 'fell' / 'not settled':
+after the predicted landing on the centre blocks the model has the marble CLIMB 3 u (a bounce off the block edges or
+the 1.3 u slots) and fall. In the game (crossdrill, 6 starts, 9-13 u/s): 6/6, no fall, 0.90-1.28 s against 2.2 s
+walking, the planner finding its plan after 3-7 decisions as the state nears the lip. So the model's known corner /
+lip bounce (stage 4) also hits centre landings; the hybrid's 3-decision consult then expires first. CONSULT_DEC 3 -> 8;
+the bounce itself is a step-model error to refit (centre landings), listed with the post-landing bounce of 34.15.
+
+### 35.7 Across-gem consult, second try (10-01, 10:40-10:55)
+
+CONSULT_DEC 8, ACROSS_CONSULT on at 20 deg: 138.6 (sd 4.0), 6.25 crossings a round (centre 9 of 42 legs, side 28,
+corner 5), consults 50 of 65 committed, legs 1.3-2.9 s; falls 3.25 a round (planner 1.25, navigator 2.0). With
+CONSULT_DEC 8 and ACROSS off (g6p): 148.5, 2.4 crossings, 1.25 falls, none into the centre. More crossings cost more
+falls than they save on this map as long as the model misjudges the centre landing (35.6) and the navigator gets the
+marble back fast beside holes. ACROSS off again; CONSULT_DEC stays 8. The next general step is the step model: refit
+or correct its landing-and-bounce behaviour on the centre blocks and after fast landings (34.15 item 2, 35.6), with
+the crossing drill (now 91 test starts plus the 6 corner -> centre starts) as the check.
+
+## 36. The physics of a crossing, measured against the engine (2026-10-01, 11:00-)
+
+The operator (10-01 morning): the hybrid never jumps from the ring into the centre, "fix the physics". Measured
+with fixed programs instead of the planner (nav/learned_nav/centredrill.py): from 42 ring starts (16 directions round
+the centre gem, RUNUP 4 u beyond the far lip, 9/11/13 u/s, aimed at the gem) the marble rolls straight at the gem and
+presses the jump when the void begins within 1/2/3 u ahead, flies with no input / the line to the gem / 60 deg past
+it, and brakes after the landing: 378 trials in the game, then the identical input sequence through the step
+ensemble (planner.simulate) from the recorded start.
+
+### 36.1 What the game does in the air (and what the model did)
+
+| | game | step model (before) |
+|---|---|---|
+| horizontal speed, no input | constant to 0.01 u/s over the flight | -12 % over a 0.9 s flight (plus the AIR_DRAG_RESID correction of 34.15 on top) |
+| horizontal speed, input toward the gem | +0.44 u/s a decision | +0.30 u/s, then the residual took it to +0.10 |
+| landing decision | 16 in both cases | 20-22 without input, 15 with |
+| apex | 22.17 | 21.86 |
+| landing, no input | BOUNCE: vz +2.8 after -6.7, a 0.3 u hop, horizontal -0.3 u/s | not landed at all (sank through the block) |
+| landing, with input | SLIDE: speed kept, vz folded into the floor plane (13.2 + 6.7 -> 19.0 u/s horizontal) | 1.6-2.1 u short |
+
+The engine (marble.cc, OpenPQ-TGEMIT mbx): with no contact the acceleration is gravity (20) plus airAcceleration (5)
+times the camera-frame move (up to sqrt 2 on the adapter's diagonal): no drag, no cap. On contact (velocityCancel):
+a move that is not centred and an approach shallower than maxDotSlide (0.5, i.e. the normal speed under half the
+total) slides, keeping |v|; otherwise a bounce with bounceRestitution 0.5 and a bounce-friction impulse (0.2).
+The lateral error of the model was small all along (0.4 u mean): the "1.3 u drift" of 35.6 was the along-track and
+timing error seen sideways on diagonal crossings.
+
+### 36.2 The jump key acts one decision after the steering
+
+Turn drill (steer at decision 0: the heading moves in state 1 -> 2) against the centre drill (jump sent at d: vz
+rises in d + 2 -> d + 3, 183 of 187). The step model had learned it (it fires on the PREVIOUS reply's key, Jp, with
+exactly the measured impulse) but the jump prior (JUMP_PRIOR, stage 5b) fired on the current key: every planned
+flight ran one decision early and 0.7-0.9 u ahead, which JUMP_LIP_K (34.16) then papered over with a speed-scaled
+margin. Also found: at the fire step beside a lip the step model predicted a 6.5 u/s horizontal loss (the game: +0.4).
+
+### 36.3 Changes (planner.py)
+
+* AIR_EXACT: airborne steps and flat-floor landings from the engine's physics (air_exact): flight under gravity and
+  5 x the input, the landing resolved as slide / cancel / bounce at the contact time within the step, the hop of a
+  bounce flown on, a bounce under 1.5 u/s up counts as settled. A step near a wall or lip (anything within 2.4 u above
+  the marble at its end, the level under the midpoint higher than the landing floor) stays with the step model.
+* AIR_DRAG_RESID 0.0009 -> 0 (it was compensating the model's weak air control).
+* JUMP_PRIOR fires on Jp (the key sent one decision before the steering reply), the fire step's horizontal motion is
+  the air step under the input still acting; JUMP_LIP_K 0.064 -> 0.
+* On the same inputs the model's landing now matches the game's to 0.1 u and the same decision when there is an air
+  input; without input the bounce and hop match to 0.05 u.
+
+Remaining (ground model): braking after a landing ~12 u/s^2 against the engine's 14.4; acceleration on the run-up
+~4 % high; the 7 u centre block at 11-13 u/s is at the physical limit of a brake-only landing (one fixed-program
+success in the game survived only by a bumper under the pit, which no model has).
+
+### 36.4 Drills with the corrected physics (10-01, 12:00-12:30)
+
+Crossing drill, untouched TEST set (91 navigator pickup states, planner v5 = exact air + late key + air brake):
+90/91, mean 1.87 s (v3 before the physics: 90/91, 1.91 s): no regression. New RING set (datasets/learned_nav/cross/
+starts_ring.json: the 42 centredrill starts, aimed at the centre gem): v5 35/42 (3 falls, 4 timeouts), median
+1.1 s against the route model's 1.2-2.6 s walk; by direction every start from 0/45/67.5/90/180/202.5/225/270/
+315/337.5 deg makes it (one timeout at 0 deg 13 u/s: an approach plan jumped from 7 u out and overflew the gem
+1.4 u up), the failures sit at 112.5-157.5 deg: fast slide landings at 18-19 u/s that cannot stop on the 7 u block
+(falls), a landing into the groove whose far wall throws the marble 4 u up (timeout), and one start (135 deg,
+13 u/s, 4 u to the lip) with no plan at all, where the marble ran off the lip: the approach branch picks the
+least-cost plan even when every plan is vetoed, and the escape jump only triggers when the chosen plan jumps.
+Air-brake proposals (v6): 34/42, 2 falls (one new: 180 deg 9 u/s, a pickup plan at p 0.26-0.31 followed to the
+lip and then forbidden to jump by P_JUMP 0.35 > P_GO 0.25; P_JUMP = P_GO now).
+Human jumps (18 recorded presses at 6+ u/s, inputs replayed): at the game's landing decision the model is
++0.4-0.7 u ahead along the line, 0.4 u lateral, 0.0 u in height (before: lateral 0.33, along +0.19 with the drag
+residual hiding a short flight).
+
+### 36.5 KOTM gates with the corrected physics (10-01, 12:20-13:10)
+
+| batch | arm | rounds | mean (sd) | best | falls a round (nav / planner) |
+|---|---|---|---|---|---|
+| g6e_nav, g6l_nav (09-30, 10-01) | navigator alone | 8 + 8 | 153.8 (6.1), 155.4 (4.3) | 162 | 1.6 / - |
+| g6q (10-01 morning, old physics) | hybrid: oracle + consult at the pickup | 8 | 152-154 | 164 | ~1.2 |
+| g6r | + exact air, late key, air brake; BIG consults from any heading, window 24 | 8 | 141.3 (3.9) | 146 | 1.9 / 1.9 |
+| g6s | + support guard, P_JUMP = P_GO; big consults only when aligned, window 16 | 8 | 147.1 (4.6) | 153 | 1.2 / 1.4 |
+
+The big-detour consults do produce centre crossings (hybrid shortcut legs into the centre 1.8-2.8 s) but the
+navigator with the oracle already takes the same legs in 1.4-2.0 s (it jumps on its own; walk 21 u legs in 1.47 s),
+so the takeover gains nothing, and every failed big consult ends in the planner's "safe continuation" toward the
+navigator's gem, where 10 of the 11 planner falls of g6s happened ('c' decisions after 8-12 'a' decisions with
+p 0): the continuation drives the marble off the strips and the centre block's edges. The ground model near edges
+is still the learned one; the support guard (no floor under the bottom = airborne) did not stop these, the marble
+was on the floor and simply rolled over the edge while the rollout predicted a turn or a stop that the real brake
+(14.4 u/s^2 against the model's ~12) should have made easier, not harder. BIG consults OFF (BIG_GAIN_U inf); g6t =
+the g6q configuration with the new physics.
+
+### 36.6 g6t: the g6q configuration with the new physics (10-01, 12:45-13:00)
+
+g6t (oracle + consult at the pickup, BIG consults off, exact air, late key, air brake, support guard, P_JUMP 0.25),
+8 rounds: 149.2 (sd 1.9), best 153; 3.0 oracle jumps and 2.4 shortcuts a round, falls 1.4 navigator / 0.4 planner.
+g6q with the old physics: 152-154. Navigator alone 153.8 / 155.4. So the corrected physics made every rollout more
+honest (the drills say so) and the hybrid's KOTM score no better: the crossings it adds are worth about what the
+handovers cost, as before, and the spread is now tight. Goal (> 167 with the planner) NOT met today.
+What is left in this direction: (1) the planner's turn-and-run-up from slow, misaligned states (its takeovers 1.8-2.8 s
+against the navigator's 1.4-2.0 s on the same legs); (2) the learned ground model at edges (the continuation falls
+of g6s: rollouts that stop or turn before an edge the real marble rolls over, while the real brake is stronger than
+the model's); (3) the real-time path (a consult decision still 300-450 ms, ~1.1 s on the gate machines with four
+games). Nothing committed in this repo.
+
+## 37. Gem order: whole-spawn chooser and training on it (2026-10-01 evening - 10-02 night)
+
+The operator (1x viewing, 10-01 evening): the marble takes grossly inefficient routes through some spawns, e.g. two
+gems in the centre and two on the ring, entering the centre at speed: takes one centre gem, carries on to the ring,
+and comes back for the second centre gem. Cause: the navigator's target comes from the GREEDY chooser
+(nav/real_run.choose: straight-line distance + 1.6 x speed x (1 - cos turn), sticky at 60 %), which never looks past
+the next gem; the policy only sees "target" and "next". The whole-spawn planner (nav/gems.plan_tour, log 28.50) was
+parked on 09-26 after a 2.6 h training run on it gained nothing (the policy slowed and overshot gems, 28.52).
+
+### 37.1 Choosers on the untrained policy (10-01, 19:30-21:00)
+
+| gate | chooser | mean | u between pickups | s per gem | falls |
+|---|---|---|---|---|---|
+| g6u | greedy (the policy's training chooser) | 149.9 | 10.99 | 1.52 | 2.25 |
+| g6v | route.Route.order, walk-or-jump legs (new) | 139.2 | 11.09 | 1.62 | 2.75 |
+| g6w | route.Route.order, walk-only legs | 139.0 | 11.06 | 1.62 | 2.75 |
+
+Same lesson as 28.50: on routes it was not trained on the policy falls (14 of 22 falls near the centre) and the
+distance does not even shorten. route.py gained Route.order (whole-spawn order over the fitted walk/jump leg times,
+ORDER_SWITCH_S 0.3, ORDER_JUMPS) for later; the hybrid's ORDER_TOUR = 'walk' now uses the TRAINER's own chooser
+(gems.plan_tour over walk-only terrain fields, exactly vec_worker.pick with NAV_TOUR=walk) so training and play
+see identical targets.
+
+### 37.2 Training on the whole-spawn chooser (10-01 21:14 - 10-02 01:37)
+
+Operator: "launch it ... train for at least 4 hours or until metrics drop precipitously and stay down; if metrics
+improve keep training as long as they keep improving; if training does not help, think of something else". From
+nav_latest = 26110, NAV_TOUR=walk; at 22:17 restarted with all 8 instances on KOTM (operator: Islands out,
+"everything should be for kotm now"). Training-side KOTM rounds (8 games at speed): 50-round means 138 -> 143-145,
+falls 2.8 -> 2.1 a round, speed 8.0 u/s throughout (the 09-26 run lost 0.4 u/s), sgem 1.47; best 50-round mean
+145.2 at 26592 (nav_night_26592_145.pth), plateau from ~00:30 at 142-144; stopped at 01:37, endpoint
+nav_tour_end_27004.pth. Dashboard fixed meanwhile (parsed all 137 logs per push: 7.4 MB / 9 s; now the 4 newest).
+
+### 37.3 Hybrid gates on the trained policy, tour chooser (10-02 01:37-)
+
+| gate | navigator | rounds | mean | best | u between pickups | s per gem | falls |
+|---|---|---|---|---|---|---|---|
+| g7a | snapshot 26592 | 4 | 153.2 | 162 | 10.40 | 1.47 | 2.25 |
+| g7b | endpoint 27004 | 4 | 154.2 | 159 | 10.53 | 1.47 | 1.75 |
+| g6u (ref) | 26110, greedy | 8 | 149.9 | 153 | 10.99 | 1.52 | 2.25 |
+| navigator alone (ref) | 26110, greedy | 16 | 153.8 / 155.4 | 162 | 10.7 | 1.42-1.47 | 1.6 |
+
+The route gain is real this time (5 % less distance per gem, no speed loss) and the hybrid is back at the
+navigator's level with 4-round means; g7c = 8 more rounds on the endpoint.
+g7c (endpoint 27004, 8 rounds): 141, 147, 159, 155, 162, 151, 155, 154 = 153.0; with g7b the endpoint stands at
+153.4 over 12 rounds, best 162, falls ~1.9 a round. Equal to the navigator alone (153.8 / 155.4), not above it,
+and no round above 167. The 160+ navigator rounds all had zero falls; the hybrid's rounds average ~2, worth 10-15
+points, so falls are the lever now. 02:05: training RESUMED from the endpoint (same config: KOTM only, walk tour)
+for the rest of the night with the 50-round snapshots; the training-side fall rate had been falling (2.8 -> 2.1)
+when it was stopped. Morning: gate the best snapshot with the hybrid (NAV_CKPT=<snapshot> ORDER_TOUR 'walk').
+
+### 37.4 Night 2 of training and the morning gate (10-02 02:01-06:40)
+
+Training resumed 02:01 from 27004 (KOTM only, walk tour): training-side 50-round means 145-148 (new highs at 27117
+146.3 and 27493 148.2), speed 8.1 u/s, falls 1.7-2.1; plateau; paused 06:16 at update 27928 (nav_tour_end_27928.pth).
+Hybrid gate g7d on the best snapshot nav_night_27493_148.pth (ORDER_TOUR 'walk', 8 rounds): 159, 158, 158, 162,
+162, 152, 150, 162 = 157.9 (sd 4.3), best 162. First hybrid batch ABOVE the navigator alone (153.8 / 155.4 on
+greedy routes). Still no round above 167. Training resumed again at 06:40 from 27928.
+
+### 37.5 Day 10-02: training continued, second snapshot gate (06:37-11:40)
+
+Training 06:37-11:17 from 27928 (all KOTM, walk tour): 50-round highs 149.9 at 28328 and 150.7 at 28897, falls
+1.5-1.9 a round, speed 8.2 u/s, sgem 1.43; endpoint nav_tour_end_28954.pth. Gate g7e, hybrid on
+nav_night_28897_151.pth (8 rounds): 163, 163, 164, 152, 158, 157, 162, 152 = 158.9 (sd 4.5), best 164
+(g7d on 27493: 157.9, best 162). The hybrid's score follows the training-side metric, so training stays on while
+it trickles up (~1 point per 500 updates). Dashboard: per-map charts fed from the NAV line in single-map runs;
+summary snapshot write via rename (OneDrive). Training resumed 11:35 from 28954.
+
+### 37.6 Navigator alone vs the hybrid on the same snapshot (10-02, 14:55)
+
+Operator: "is the only way we're making good scores the navigator-only runs?" and "please tell me we've been
+training on hybrid and not navigator only". Facts: the trainer trains the NAVIGATOR; the planner has no trainable
+part and is only added at play time. What changed in this run was what the navigator trains on (whole-spawn gem
+order, KOTM only). A/B on nav_night_28897_151.pth, 8 rounds each, same chooser (ORDER_TOUR 'walk'):
+
+| arm | rounds | mean (sd) | best | falls nav / planner | u/gem | s/gem |
+|---|---|---|---|---|---|---|
+| navigator alone (NAV_PLANNER_OFF=1, --shortcuts 0 --rescue 0) | 162 163 170 165 150 156 157 158 | 160.1 (5.8) | 170 | 1.00 / 0 | 10.56 | 1.429 |
+| hybrid (oracle + consult at the pickup) | 163 163 164 152 158 157 162 152 | 158.9 (4.6) | 164 | 0.88 / 0.62 | 10.44 | 1.428 |
+
+The planner is worth about -1 point here (inside noise): its 0.6 shortcuts and 1.5 oracle jumps a round save
+~0.1 u per gem and no time, and its 0.6 falls a round give it back. The navigator alone on the trained policy
+reached 170 (a round above 167, but without the planner, so not the operator's goal). Also found and fixed today:
+the summary and the dashboard dropped every round with more than 130 gems as a "merged double round", hiding 17
+of today's best training rounds (165-167); cut now 190. Training resumed 14:59 from 29700.

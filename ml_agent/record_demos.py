@@ -112,7 +112,9 @@ class DemoRecorder:
             self.game += 1
             self.frame_history.clear()
             return
-        if len(obs) != OBS_BASE:
+        if len(obs) > OBS_BASE:
+            obs = obs[:OBS_BASE]              # 2026-09-26: the observation grew by the spin (38 numbers); the first 35
+        if len(obs) != OBS_BASE:              # are the old layout the rest of this file expects
             self.malformed += 1
             return
         # Fields: obs|gemDelta|oob|done|<human inputs, recording mode only>|tick

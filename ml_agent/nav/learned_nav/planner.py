@@ -38,17 +38,35 @@ N_BROAD = 320
 N_SEED = 96
 N_WARM = 40
 N_AIR = 256
+N_LINE = 96                  # straight-line jump proposals on a floor-gem jump leg (approach_line)
 PICK_R0, PICK_A = 0.85, 4.0  # P(pickup) = sigmoid(PICK_A (PICK_R0 - closest pass)), P0 cross-check fit (rollouts)
 P_GO = 0.25                  # below this best P(success) the planner approaches instead (0.30 until dev v3)
-P_JUMP = 0.35                # a jump from the floor is sent only above this (after the flight-head check); dev v3:
+P_JUMP = 0.25                # a jump from the floor is sent only above this (after the flight-head check). = P_GO since log
+                             # 36.5 (0.35 before): a plan accepted at P_GO was followed to the lip and then forbidden to jump
+                             # there, and the marble ran off (ring drill v6, 180 deg 9 u/s). Was, dev v3:
                              # all 70 floor jumps sent at >= 0.45 took the gem, so 0.45 was conservative
 LAST_JUMP = 22               # latest jump decision in a program: time left in the horizon to land and settle
 CONT_WIN = 24                # decisions after a landing over which the continuation is judged (1.5 s)
+GROUND_WIN = 16              # ... and after the closest pass to the gem for a program that never flies (1 s; the plan is
+                             # replanned there; the brake tail still has to be able to stop it inside the window)
+A_STOP = 13.0                # u/s^2 of braking assumed after a landing (measured 14 on flat floor, stage 3 brake trials)
+STOP_MARGIN = 1.15           # ... times the stopping distance, plus STOP_PAD u, must be floor straight ahead of a landing
+STOP_PAD = 0.4               # (stage 5 gate: flights landing at 15 u/s on the 3 u strip between two holes rolled into the next)
+FS_APPROACH = 0.0            # flight-head P(safe) a jump without a pickup plan needs at launch (0 = no check, as v8);
+                             # tried 0.8 in v9 together with the stopping room: untested alone
+# feature switches (stage 5b ablations; a variant module sets them before use)
+STOP_CHECK = False           # stopping_room() after landings. OFF: straight-ahead stopping room ignores braking while
+                             # turning and forbade landings v8 survived (devb ablation v9s: 7/13 vs v8 13/13)
+AIR_BRAKE = False            # air-brake variants in the proposals (and the seeds' brake timing); untested alone
+APPROACH_JUMPS = 'robust'    # 'robust': a jump without a pickup plan if safe from every perturbed start (v8);
+                             # 'escape': only when every program without a jump falls
 SETTLE_N = 4                 # decisions on a floor at the end of the horizon for a safe continuation
 TAIL = 10                    # every ground program brakes for its last TAIL decisions: the plan must still be able to
                              # stop (terminal check; without it a program rolling toward a hole just past the horizon
                              # looked safe, first dev drills 2026-09-28)
 CLEAR_OK = 1.0               # on-floor clearance from void/drop edges after a landing (or while rolling) counted full
+ROLL_CLEAR_OK = 0.5          # ... for a program that never flies (stage 6b, log 34.12: the rolling error is a few hundredths
+                             # of a unit a second, and the 1 u rule sank every sweeping turn on KOTM's floor)
 CLEAR_MIN = 0.2              # ... and none at all below this (landing errors ~1 u: stage 3 flight eval, first drills)
 SKIP_CLEAR = 3               # the first decisions of a rolling program are not charged (the marble may start near a lip)
 FALL_DZ = 0.5                # below the start floor level by this much: fallen (2.0 until the first drill: a pocket
@@ -60,11 +78,56 @@ K_ROBUST = 12                # best candidates re-checked from perturbed starts 
 VARIANTS = (('s', 0.96), ('s', 1.04), ('h', math.radians(2.0)), ('h', -math.radians(2.0)))
 N_VAR = len(VARIANTS)
 APPROACH_JUMP = 3.0          # approach cost of a jump that takes no gem (u of seed distance)
+CONT_SPEED_COST = 0.3        # continuation cost per u/s left at the end of the horizon (stage 5b: slow before handback)
+CONT_JUMP = 3.0              # continuation toward a next gem: cost of a program that jumps (u of walking distance)
+CONT_JUMP_NOW = 50.0         # continuation: cost of jumping NOW (was 5; hops on open floor after pickups, log 35.1)
+TIME_W = 0.004               # P(success) worth one decision of earlier pickup, among pickup plans (a caller raises it
+                             # for floor-gem shortcuts: the stage 5b jumps to KOTM corner gems picked the slow, careful
+                             # plans and arrived at 2-6 u/s, 2.0-2.6 s a leg)
+FLOOR_JUMP_CHARGE = 0.15     # ranking charge (in P units) for a jump in a pickup plan on a plain floor leg
+TURN_S = 0.9                 # s per (1 - cos turn) at speed (turn drill: 90 deg 0.9 s), scaled by speed / TURN_REF_SPEED
+TURN_REF_SPEED = 6.0
+EXIT_W = 0.05                # (unused since the turn charge; kept for the attribute)  two-leg plans (exit_dir): ranking bonus per u/s of velocity along the exit direction at the
+                             # pickup (up to EXIT_VMAX): a plan leaving the gem aligned and fast toward the jump gem beats one
+                             # arriving from the wrong side (the human's crossings start aligned at 11 u/s, log 34.8)
+EXIT_VMAX = 12.0
+N_EXIT = 96                  # proposals that approach the gem from behind the exit line (a run-up onto it)
+P_SAT = 1.0                  # ranking saturation among pickup plans: P(success) above this counts as this, so plans the
+                             # model already trusts are ranked by time alone. 1.0 = off. Stage 6b crossing legs set 0.6:
+                             # jumps sent with P >= 0.35 took the gem 180/186 (stage 5) and 187/188 (stage 4), but the
+                             # planner still braked from 10 to 6 u/s before a crossing for a 0.9 plan over a 0.6 one
 WALK_CLEAR = 0.4             # the walking-distance field keeps this far from any edge of the floor
 USE_GUIDE = True             # time the seed-aimed run-ups with the time-to-gem guide (guide.py); proposals only.
                              # The M3 gate ran with it OFF (v5, 93.1 %). Dev A/B after the gate (log 31.8): 98/105
                              # with it against 93/105 without, pickups ~0.26 s sooner (not significant: 10 vs 5)
+AIR_DRAG_RESID = 0.0         # per-step horizontal speed correction of airborne steps, x v^2 (u/s); 0 = off (log 34.15).
+                             # OFF since AIR_EXACT (log 36.1): the game has NO air drag; the residual compensated the
+                             # model's weak air control and made aligned flights land 2 u short
+AIR_EXACT = True             # flight and flat-floor landings from the ENGINE's physics (marble.cc, log 36.1) instead of the
+                             # step model: in the air a = gravity + AIR_ACCEL x the input vector (no drag, no cap); a
+                             # landing with input and a shallow approach SLIDES (the speed is kept, redirected along the
+                             # floor), one without input (or steep) BOUNCES with restitution 0.5 and the bounce-friction
+                             # impulse. Steps near walls, lips or sloped floor stay with the step model. Measured on the
+                             # centre drill (centredrill.py): the model flew 2-4 u long without input, 2 u short with it
+AIR_ACCEL = 5.0              # MarbleData airAcceleration (u/s^2 per unit of input; the adapter sends up to sqrt 2)
+AIR_GAP_MIN = 0.05           # bottom this far above the floor = airborne for the exact step
+BOUNCE_E = 0.5               # bounceRestitution; BOUNCE_FRICTION = bounceKineticFriction; MAX_DOT_SLIDE, MIN_BOUNCE_VEL as the datablock
+BOUNCE_FRICTION = 0.2
+MAX_DOT_SLIDE = 0.5
+MIN_BOUNCE_VEL = 0.1
+LAND_VZ_SETTLE = 1.5         # a bounce slower than this up (hop < 6 cm) counts as landed and settled
+JUMP_PRIOR = True            # the jump impulse from the measured constant where it certainly fires (jump_fires): the
+                             # step model underestimates it (apex -0.06 u median on its own data, -0.25 u for 12-20 u/s
+                             # takeoffs within 1.5 u of a lip; it predicted no jump at all on some KOTM diagonal
+                             # crossings the game flew: stage 5b, 2026-09-29)
+JUMP_LIP_U = 0.6             # jump_fires: the floor must reach this far ahead along the velocity
+JUMP_LIP_K = 0.0             # ... plus this times the speed. 0.064 until log 36.2 (one decision of travel; crossing drill v3: 5 falls in 86, every one
+                             # a press at 11-13 u/s that acted past the lip; the engine fires 99 % at any speed with floor ahead)
+JUMP_DZ = (0.4268, 0.3448)   # a jump from flat floor, the decision it fires and the next: height gained and vertical
+JUMP_VZ = (6.108, 4.828)     # speed after each (every recorded one identical to 1e-4: 1,915 on KOTM and Sprawl); then
+                             # gravity (20 u/s^2), which the model predicts well once airborne
 MODE_DIR, MODE_BRAKE, MODE_NONE = 0, 1, 2
+SEED_VERSION = 'v8'          # the seed set this planner's judgement built (datasets/learned_nav/seeds/<version>/)
 
 
 def reply_vector(js):
@@ -78,12 +141,14 @@ def p_pick(dmin):
 
 
 class Programs:
-    """n programs of H decisions: mode, direction (world rad), throttle, jump key; after-landing mode/direction."""
-    KEYS = ('mode', 'ang', 'thr', 'jump', 'after', 'after_ang', 'tag')
+    """n programs of H decisions: mode, direction (world rad), throttle, jump key; after-landing mode/direction, held
+    after_n decisions from the landing and then a brake (after_n H + 1: held to the end)."""
+    KEYS = ('mode', 'ang', 'thr', 'jump', 'after', 'after_ang', 'after_n', 'tag')
 
     def __init__(self, n):
         self.mode = np.full((n, H), MODE_DIR, np.int8); self.ang = np.zeros((n, H)); self.thr = np.ones((n, H))
         self.jump = np.zeros((n, H), np.int8); self.after = np.full(n, MODE_BRAKE, np.int8); self.after_ang = np.zeros(n)
+        self.after_n = np.full(n, H + 1, np.int16)
         self.tag = np.zeros(n, np.int8)                      # 0 broad, 1 seed, 2 warm, 3 air
 
     @staticmethod
@@ -100,13 +165,21 @@ class Programs:
         return out
 
     def shifted(self):
-        """The same programs one decision later (the first decision was executed)."""
+        """The same programs one decision later (the first decision was executed). The brake tail (the last TAIL
+        decisions of every ground program) stays at the END: the decision before it is extended by one, so a plan
+        followed for many decisions does not brake to a stop in the open (stage 6b, log 34.10: the planner-alone
+        rounds stalled to 0.1-0.9 u/s mid-leg after ~2 s on the same plan, 2.4 s legs against the navigator's 1.36)."""
         out = self.take(slice(None))
         for k in ('mode', 'ang', 'thr', 'jump'):
             a = getattr(out, k)
             a[:, :-1] = a[:, 1:].copy()
             if k == 'jump':
                 a[:, -1] = 0
+        j = H - TAIL - 1                                          # the first decision of the (shifted) tail
+        tailed = out.mode[:, H - 1] == MODE_BRAKE                 # programs that carry a brake tail at all
+        for k in ('mode', 'ang', 'thr'):
+            a = getattr(out, k)
+            a[tailed, j] = a[tailed, j - 1]
         return out
 
     def __len__(self):
@@ -187,6 +260,79 @@ class FastEnsemble:
         return out[:, :D3.N_CONT], out[:, D3.N_CONT:]
 
 
+def air_exact(g, P, V, W, U, J):
+    """Engine physics for airborne steps (AIR_EXACT). Returns (mask, P1, V1, W1, sup, coll, last): mask marks the rows
+    whose step is computed here: the marble starts in the air (bottom > AIR_GAP_MIN above the level below) and the
+    step's path stays clear of walls and lips (nothing within 2.4 u above the marble at the end, the level below the
+    midpoint and the end at or under the start's or the landing floor). Rows that would meet a flat floor during the
+    step land here as well (velocityCancel: slide, cancel or bounce). The rest is the step model's."""
+    n = len(P); dt = D3.DT; G = D3.G
+    a = np.c_[AIR_ACCEL * U[:, 0], AIR_ACCEL * U[:, 1], np.full(n, -G)]
+    P1 = P + V * dt + 0.5 * a * dt * dt; V1 = V + a * dt; W1 = W.copy()
+    ztop = P[:, 2] + 0.3
+    lv0, ab0 = D3.level_below(g, P[:, 0], P[:, 1], ztop)
+    Pm = 0.5 * (P + P1)
+    lvm, abm = D3.level_below(g, Pm[:, 0], Pm[:, 1], ztop)
+    lv1, ab1 = D3.level_below(g, P1[:, 0], P1[:, 1], ztop)
+    gap0 = np.where(np.isfinite(lv0), P[:, 2] - R - lv0, 9.0)
+    gapm = np.where(np.isfinite(lvm), Pm[:, 2] - R - lvm, 9.0)
+    gap1 = np.where(np.isfinite(lv1), P1[:, 2] - R - lv1, 9.0)
+    airborne = gap0 > AIR_GAP_MIN
+    clear = ~ab1 & ~abm & (gapm > 0.0)
+    fly = airborne & clear & (gap1 > 0.0)
+    # landing: the end point is at or under a floor that the midpoint is still above, the floor level the same at both
+    flat = np.isfinite(lv1) & np.isfinite(lvm) & (np.abs(lv1 - lvm) < 0.05)
+    land = airborne & clear & (gap1 <= 0.0) & flat
+    sup = np.zeros(n); coll = np.zeros(n); last = np.zeros(n)
+    if land.any():
+        i = np.nonzero(land)[0]
+        h = P[i, 2] - R - lv1[i]                                 # height above the landing floor at the start
+        vz = V[i, 2]
+        ok = h > 0.0
+        i = i[ok]; h = h[ok]; vz = vz[ok]
+        land[:] = False; land[i] = True
+        tau = (vz + np.sqrt(vz * vz + 2.0 * G * h)) / G          # time to contact (vz < 0 or h small)
+        tau = np.clip(tau, 0.0, dt)
+        Pc = P[i] + V[i] * tau[:, None] + 0.5 * a[i] * tau[:, None] ** 2
+        Vc = V[i] + a[i] * tau[:, None]
+        speed = np.linalg.norm(Vc, axis=1); vh = np.hypot(Vc[:, 0], Vc[:, 1])
+        centred = np.hypot(U[i, 0], U[i, 1]) < 0.01
+        slide = ~centred & (Vc[:, 2] > -MAX_DOT_SLIDE * speed) & (vh > 1e-6)
+        cancel = ~slide & (Vc[:, 2] > -MIN_BOUNCE_VEL)
+        bounce = ~slide & ~cancel
+        Vn = Vc.copy(); Wn = W[i].copy()
+        # slide: the velocity loses its normal part and is rescaled to its old length
+        Vn[slide, 0] = Vc[slide, 0] / vh[slide] * speed[slide]; Vn[slide, 1] = Vc[slide, 1] / vh[slide] * speed[slide]; Vn[slide, 2] = 0.0
+        Vn[cancel, 2] = 0.0
+        if bounce.any():
+            b = bounce
+            normal_vel = -Vc[b, 2]
+            vatc = np.c_[Vc[b, 0] - R * Wn[b, 1], Vc[b, 1] + R * Wn[b, 0]]          # horizontal velocity of the contact point
+            mag = np.hypot(vatc[:, 0], vatc[:, 1])
+            ang_v = np.minimum(BOUNCE_FRICTION * 5.0 * normal_vel / (2.0 * R), mag / R)
+            k = mag > 1e-6
+            d = np.zeros_like(vatc); d[k] = vatc[k] / mag[k, None]
+            # delta omega = (n x dir) ang_v; the velocity loses R ang_v along dir
+            Wn[b, 0] += -d[:, 1] * ang_v; Wn[b, 1] += d[:, 0] * ang_v
+            Vn[b, 0] -= R * ang_v * d[:, 0]; Vn[b, 1] -= R * ang_v * d[:, 1]
+            Vn[b, 2] = -BOUNCE_E * Vc[b, 2]
+            settle = Vn[b, 2] < LAND_VZ_SETTLE
+            Vn[np.nonzero(b)[0][settle], 2] = 0.0
+        rem = (dt - tau)[:, None]
+        Pn = Pc + Vn * rem + 0.5 * a[i] * rem ** 2
+        Vn2 = Vn + a[i] * rem
+        on_floor = Vn[:, 2] <= 0.0                                # slid, cancelled or settled: stays on the floor
+        Pn[on_floor, 2] = lv1[i][on_floor] + R; Vn2[on_floor, 2] = 0.0
+        below = Pn[:, 2] - R < lv1[i]                             # a small hop that ends within the step
+        Pn[below, 2] = lv1[i][below] + R; Vn2[below, 2] = 0.0
+        P1[i] = Pn; V1[i] = Vn2; W1[i] = Wn
+        coll[i] = 1.0
+        landed_now = on_floor | below
+        sup[i[landed_now]] = 1.0; last[i[landed_now]] = 1.0
+    mask = fly | land
+    return mask, P1, V1, W1, sup, coll, last
+
+
 def simulate(steps, g, eidx, dev, P, V, W, Uc, Jc, Up, Jp, progs, airborne0, floor_ref):
     """Roll each program forward from its start (P, V, W: (n, 3)); Uc, Jc: the pending reply (acts first); Up, Jp:
     the reply before it. State index k = k decisions after the observation; program decision d is built at state d
@@ -202,13 +348,15 @@ def simulate(steps, g, eidx, dev, P, V, W, Uc, Jc, Up, Jp, progs, airborne0, flo
     Ul = np.zeros((n, H + 1, 2)); Jl = np.zeros((n, H + 1))
     jumped_at = np.full(n, -1)
     unplanned = np.zeros(n, bool); reair = np.zeros(n, bool); in_air_t = np.zeros((n, H + 1), bool)
+    after_fire = np.zeros(n, bool)
     for t in range(H + 1):
         if t == 0:
             U = Uc.copy(); J = Jc.copy()
         else:
             d = t - 1
             post = (landed >= 0) & (landed <= d)
-            md = np.where(post, progs.after, progs.mode[:, d]); an = np.where(post, progs.after_ang, progs.ang[:, d])
+            md = np.where(post, np.where(d - landed >= progs.after_n, MODE_BRAKE, progs.after), progs.mode[:, d])
+            an = np.where(post, progs.after_ang, progs.ang[:, d])
             th = np.where(post, 1.0, progs.thr[:, d])
             U = world_input(md, an, th, vel[:, d])
             J = np.where(post, 0.0, progs.jump[:, d].astype(float))
@@ -217,10 +365,51 @@ def simulate(steps, g, eidx, dev, P, V, W, Uc, Jc, Up, Jp, progs, airborne0, flo
             mu, pc = steps(F)
         else:
             pr = E3.predict(steps, F, dev); mu, pc = pr['mu'], pr['p']
+        # the jump key acts one decision LATER than the direction (turn drill and centre drill, log 36.2: steering sent
+        # at decision d moves state d + 1 -> d + 2, the jump sent at d fires in d + 2 -> d + 3): the key that fires in
+        # this transition is the one sent before the one that steers it (Jp)
+        fires = jump_fires(g, P, V, Jp, t) if JUMP_PRIOR else None
+        z_before = P[:, 2].copy(); W_before = W.copy()
+        air_before = airborne.copy()
+        if AIR_EXACT:
+            ex, Px, Vx, Wx, sup_x, coll_x, last_x = air_exact(g, P, V, W, U, J)
+            if fires is not None:
+                ex &= ~fires
         P, V, W = D3.apply_step(P, V, W, mu, yaw)
+        if AIR_EXACT and ex.any():
+            P[ex] = Px[ex]; V[ex] = Vx[ex]; W[ex] = Wx[ex]
+            pc = pc.copy(); pc[ex, 0] = sup_x[ex]; pc[ex, 1] = coll_x[ex]; pc[ex, 2] = last_x[ex]
+        if AIR_DRAG_RESID > 0:
+            # measured residual of the step model in the air (log 34.15): the game's horizontal speed change in flight
+            # falls with speed like drag (~ -0.0011 v^2 per step with no input) and the model keeps ~ +0.1-0.25 u/s a
+            # step too much above 9 u/s on every map checked; the same for the forward input. Correct the horizontal
+            # velocity of airborne steps by -AIR_DRAG_RESID x v^2
+            sp_h = np.hypot(V[:, 0], V[:, 1])
+            fac = np.where(air_before & (sp_h > 1e-6), np.maximum(0.0, 1.0 - AIR_DRAG_RESID * sp_h), 1.0)
+            V[:, 0] *= fac; V[:, 1] *= fac
+        if JUMP_PRIOR:
+            # the jump's first two decisions from the measured kinematics (vertical only; horizontal from the model)
+            if after_fire.any():
+                P[after_fire, 2] = z_before[after_fire] + JUMP_DZ[1]; V[after_fire, 2] = JUMP_VZ[1]
+            if fires.any():
+                P[fires, 2] = z_before[fires] + JUMP_DZ[0]; V[fires, 2] = JUMP_VZ[0]
+                if AIR_EXACT:
+                    # the impulse is along the normal (marble.cc): horizontally the fire step is an air step under the
+                    # input that was still acting (the game gains +0.4 u/s at 13 u/s, log 36.2); the step model
+                    # predicted a 6.5 u/s loss for a fire at a lip (centre drill)
+                    f = fires
+                    ah = AIR_ACCEL * Up[f]
+                    P[f, 0:2] = path[f, t, 0:2] + vel[f, t, 0:2] * D3.DT + 0.5 * ah * D3.DT ** 2
+                    V[f, 0:2] = vel[f, t, 0:2] + ah * D3.DT
+                    W[f] = W_before[f]
+            after_fire = fires
         sup = pc[:, 0]; coll = pc[:, 1]; last = pc[:, 2]
         lv, _ = D3.level_below(g, P[:, 0], P[:, 1], P[:, 2] + 0.3)
         gap = np.where(np.isfinite(lv), P[:, 2] - R - lv, 9.0)
+        # support needs floor: the step model sometimes carries a marble over an edge still 'supported' (phantom floor;
+        # hybrid gate g6r, log 36.5: three planner rolls into holes at 6-7 u/s with no fall predicted). No level within
+        # 0.5 u under the bottom = airborne, whatever the model says; the judge then counts an unplanned flight
+        sup = np.where(gap > 0.5, 0.0, sup)
         jumped_at = np.where((J > 0) & (jumped_at < 0), t, jumped_at)
         in_air = (sup < 0.5) & (gap > 0.5)
         # leaving the floor without a jump (a lip or corner throws the marble) and bouncing back up after a landing
@@ -241,10 +430,82 @@ def simulate(steps, g, eidx, dev, P, V, W, Uc, Jc, Up, Jp, progs, airborne0, flo
     risky = (E[..., 3] + E[..., 4]) > 0
     clear = np.where(risky, E[..., 0], D3.EDGE_REACH).min(1).reshape(n, H + 1)
     clear = np.where(sup_t >= 0.5, clear, np.inf)
-    return {'path': path, 'vel': vel, 'landed': landed, 'airborne': airborne, 'started_air': started_air,
+    stop_ok = stopping_room(g, path, vel, landed) if STOP_CHECK else np.ones(n, bool)
+    return {'path': path, 'vel': vel, 'landed': landed, 'airborne': airborne, 'started_air': started_air, 'stop_ok': stop_ok,
             'sup': sup_t, 'gap': gap_t, 'coll': coll_t, 'U': Ul, 'J': Jl, 'jumped_at': jumped_at, 'clear_t': clear,
             'unplanned': unplanned, 'reair': reair, 'in_air_t': in_air_t,
             'floor_ref': np.broadcast_to(np.asarray(floor_ref, float), (n,))}
+
+
+def gem_disc(gem):
+    """Source points of a walk to a floor gem: the gem and rings at 0.5 and 1 u (the pickup radius is ~1 u)."""
+    a = np.linspace(0, 2 * math.pi, 16, endpoint=False)
+    return gem[0] + np.r_[0.0, 0.5 * np.cos(a), np.cos(a)], gem[1] + np.r_[0.0, 0.5 * np.sin(a), np.sin(a)]
+
+
+def walk_distance_field(g, sx, sy, floor_ref):
+    """Walking distance over the floor to the nearest source point (multi-source Dijkstra on the terrain raster): floor
+    cells from floor_ref - 0.5 up to floor_ref + 4, kept WALK_CLEAR from anything else; inf elsewhere."""
+    from scipy.ndimage import binary_erosion
+    from scipy.sparse import coo_matrix
+    from scipy.sparse.csgraph import dijkstra
+    Hh = g.heights
+    ok = np.isfinite(Hh) & (Hh >= floor_ref - 0.5) & (Hh <= floor_ref + 4.0)
+    trav = binary_erosion(ok.any(0), iterations=max(1, int(round(WALK_CLEAR / g.res))))
+    ny, nx = trav.shape
+    idx = -np.ones((ny, nx), np.int64); cells = np.nonzero(trav.ravel())[0]; idx.ravel()[cells] = np.arange(len(cells))
+    def pair(A, dj, di):                                  # A[j, i] and A[j + dj, i + di] over the valid cells
+        if di >= 0:
+            return A[:ny - dj, :nx - di], A[dj:, di:]
+        return A[:ny - dj, -di:], A[dj:, :nx + di]
+    rows, cols, wts = [], [], []
+    for dj, di, w in ((0, 1, 1.0), (1, 0, 1.0), (1, 1, SQ2), (1, -1, SQ2)):
+        a, b = pair(trav, dj, di); ia, ib = pair(idx, dj, di)
+        m = a & b
+        rows.append(ia[m]); cols.append(ib[m]); wts.append(np.full(int(m.sum()), w * g.res))
+    r = np.concatenate(rows); c = np.concatenate(cols); w = np.concatenate(wts)
+    G = coo_matrix((np.r_[w, w], (np.r_[r, c], np.r_[c, r])), shape=(len(cells), len(cells))).tocsr()
+    si = np.clip(np.rint((np.asarray(sy) - g.ys[0]) / g.res).astype(int), 0, ny - 1)
+    sj = np.clip(np.rint((np.asarray(sx) - g.xs[0]) / g.res).astype(int), 0, nx - 1)
+    src = np.unique(idx[si, sj][idx[si, sj] >= 0])
+    D = np.full(ny * nx, np.inf)
+    if len(src):
+        D[cells] = dijkstra(G, directed=False, indices=src, min_only=True)
+    return D.reshape(ny, nx)
+
+
+def field_at(g, D, x, y):
+    """A raster field's value at world (x, y) (nearest cell, clipped to the raster)."""
+    i = np.clip(np.rint((np.asarray(y) - g.ys[0]) / g.res).astype(int), 0, D.shape[0] - 1)
+    j = np.clip(np.rint((np.asarray(x) - g.xs[0]) / g.res).astype(int), 0, D.shape[1] - 1)
+    return D[i, j]
+
+
+def jump_fires(g, P, V, J, t=3):
+    """Rows whose acting jump key fires for certain: the marble resting on flat floor (bottom within 0.05 u of the
+    floor, |vz| < 0.3, the floor level within 0.02 u at 0.3 u around). Measured in the stage 3 recordings: in that
+    state the jump fired 3,857 times in 3,883 (KOTM, Sprawl, Tilo) with the vertical speed after it exactly JUMP_VZ."""
+    m = J > 0
+    if not m.any():
+        return m
+    lv0, _ = D3.level_below(g, P[:, 0], P[:, 1], P[:, 2] + 0.3)
+    m &= np.isfinite(lv0) & (P[:, 2] - R - lv0 < 0.05) & (np.abs(V[:, 2]) < 0.3)
+    sp = np.hypot(V[:, 0], V[:, 1])
+    ux = np.where(sp > 0.1, V[:, 0] / np.maximum(sp, 1e-6), 0.0); uy = np.where(sp > 0.1, V[:, 1] / np.maximum(sp, 1e-6), 0.0)
+    # plus up to one decision of travel for presses that act later in the rollout (34.16: at 12 u/s a press timed from
+    # the predicted path acted over the void); a press acting on the next step needs no such margin (the state is
+    # known; the operator's own crossing pressed with ~1 u of floor left at 13 u/s and the game fired it, log 35.3)
+    ahead = JUMP_LIP_U + JUMP_LIP_K * sp * min(1.0, max(0.0, (t - 1) / 2.0))
+    # flat around, and the same floor JUMP_LIP_U ahead along the velocity. Stage 3 data (10,971 presses on floor): the
+    # jump fires 97-100 % with 0.1 u or more of floor ahead at any speed, 65-93 % at the lip itself; the rest of the
+    # margin covers the model's position error (the first version of this prior had none: devb 13/20 vs v8 20/20,
+    # every fall a jump pressed at the lip that the game never took)
+    for dx, dy in ((0.3, 0.0), (-0.3, 0.0), (0.0, 0.3), (0.0, -0.3), (ux * ahead, uy * ahead), (0.5 * ux * ahead, 0.5 * uy * ahead)):
+        if not m.any():
+            break
+        lv, _ = D3.level_below(g, P[:, 0] + dx, P[:, 1] + dy, P[:, 2] + 0.3)
+        m &= np.isfinite(lv) & (np.abs(lv - lv0) < 0.02)
+    return m
 
 
 def closest_pass(path, gem):
@@ -256,6 +517,32 @@ def closest_pass(path, gem):
     return d.min(1), d.argmin(1) + 1, d
 
 
+def stopping_room(g, path, vel, landed, step=0.25):
+    """After a landing: is there floor straight ahead (along the landing velocity, at the landing floor's level) for the
+    marble to brake to a stop? Programs that never land pass. Geometry only, independent of the model's rollout."""
+    n = len(path)
+    ok = np.ones(n, bool)
+    idx = np.nonzero(landed >= 0)[0]
+    if not len(idx):
+        return ok
+    L = np.minimum(landed[idx], path.shape[1] - 1)
+    P = path[idx, L]; V = vel[idx, L]
+    spd = np.hypot(V[:, 0], V[:, 1])
+    need = STOP_MARGIN * spd * spd / (2.0 * A_STOP) + STOP_PAD
+    kmax = int(np.ceil(min(float(need.max()), 16.0) / step)) + 1
+    ux = np.where(spd > 0.1, V[:, 0] / np.maximum(spd, 1e-6), 0.0); uy = np.where(spd > 0.1, V[:, 1] / np.maximum(spd, 1e-6), 0.0)
+    d = np.arange(1, kmax + 1) * step
+    qx = (P[:, 0:1] + ux[:, None] * d[None, :]).ravel(); qy = (P[:, 1:2] + uy[:, None] * d[None, :]).ravel()
+    z0 = np.repeat(P[:, 2] - R, kmax)
+    lv, _ = D3.level_below(g, qx, qy, z0 + 0.3)
+    floor = (np.isfinite(lv) & (lv > z0 - 0.5)).reshape(len(idx), kmax)
+    # free distance: up to the first sample without floor at the landing level
+    first_gap = np.where(floor.all(1), kmax, np.argmin(floor, axis=1))
+    free = first_gap * step
+    ok[idx] = (free >= need) | (spd <= 0.1)
+    return ok
+
+
 def judge(sim, gem):
     """Pickup chance and a safe continuation. After a flight the continuation is judged over CONT_WIN decisions from
     the landing (falls, bounces, settling, clearance); what the fixed after-landing input would do later is left to the
@@ -264,7 +551,10 @@ def judge(sim, gem):
     n = len(path)
     dmin, t_close, _ = closest_pass(path, gem)
     lnd = sim['landed']
-    end = np.where(lnd >= 0, np.minimum(H + 1, lnd + CONT_WIN), H + 1)          # last state judged
+    # last state judged: CONT_WIN after a landing; GROUND_WIN after the closest pass for a program that never flies
+    # (stage 6b, log 34.11: judged to the horizon, 95 % of the proposals from a KOTM floor state at 9-16 u/s 'fell',
+    # only the braking and hopping ones survived, and the planner alone stopped to turn: 2.4 s legs)
+    end = np.where(lnd >= 0, np.minimum(H + 1, lnd + CONT_WIN), np.minimum(H + 1, t_close + GROUND_WIN))
     st = np.arange(H + 2)[None, :]                                              # state index
     fell = ((path[:, :, 2] < sim['floor_ref'][:, None] + R - FALL_DZ) & (st <= end[:, None])).any(1)
     tt = np.arange(H + 1)[None, :]                                              # transition t -> state t + 1
@@ -272,14 +562,15 @@ def judge(sim, gem):
     ok_t = (sim['sup'] >= 0.5) & (sim['gap'] < 0.5)
     settled = np.where(win, ok_t, True).all(1)
     reair = (sim['in_air_t'] & (lnd[:, None] >= 0) & (tt + 1 > lnd[:, None] + 1) & (tt + 1 <= end[:, None])).any(1)
-    safe = ~fell & settled & (~sim['airborne'] | (lnd >= 0)) & ~sim['unplanned'] & ~reair
+    safe = ~fell & settled & (~sim['airborne'] | (lnd >= 0)) & ~sim['unplanned'] & ~reair & sim['stop_ok']
     # clearance after the landing (or from SKIP_CLEAR on for a program that never left the floor), to the end of the
     # judged window; clear_t index t is the state after transition t, i.e. state t + 1
     idx = tt + 1
     window = np.where(lnd[:, None] >= 0, (idx >= lnd[:, None]) & (idx <= end[:, None]),
-                      (~sim['airborne'])[:, None] & (idx > SKIP_CLEAR))
+                      (~sim['airborne'])[:, None] & (idx > SKIP_CLEAR) & (idx <= end[:, None]))
     clear = np.where(window, sim['clear_t'], np.inf).min(1)
-    q = np.clip((clear - CLEAR_MIN) / (CLEAR_OK - CLEAR_MIN), 0.0, 1.0)
+    c_ok = np.where(lnd >= 0, CLEAR_OK, ROLL_CLEAR_OK)
+    q = np.clip((clear - CLEAR_MIN) / (c_ok - CLEAR_MIN), 0.0, 1.0)
     pp = p_pick(dmin)
     return {'dmin': dmin, 't_close': t_close, 'fell': fell, 'settled': settled, 'safe': safe, 'p_pick': pp,
             'clear': clear, 'margin': q, 'p_succ': pp * safe * (0.4 + 0.6 * q)}
@@ -303,8 +594,18 @@ class Planner:
             from scipy.spatial import cKDTree
             self.seed_tree = cKDTree(self._seed_key(seeds['x'], seeds['y'], seeds['vx'], seeds['vy']))
         self.best = None; self.last_kind = None
-        self.walk = None
+        self.walk = None; self._walk_cache = {}
+        self.cont_next = False       # the target is the NEXT gem, driven toward after a pickup (continue_cost)
+        self.time_w = TIME_W         # P(success) given up per decision of a later pickup, choosing among pickup plans
+        self.approach_line = False   # approach a floor gem by the straight line (a jump leg) instead of the walk
+        self.land_steer = False      # after-landing steering toward the gem in the proposals (floor-gem jump legs)
         self.n_broad = N_BROAD       # broad proposals per decision (a caller may lower it for a floor gem)
+        self.p_sat = P_SAT           # P(success) above this counts as this when ranking pickup plans (time decides)
+        self.exit_dir = None         # stage 6b two-leg plans: unit xy direction the marble should leave the gem in (toward
+                                     # the next, jump gem); pickup plans are rewarded for their velocity along it at the pickup
+        self.exit_w = EXIT_W
+        self.flight_check = 1.0      # 0: no flight-head launch check (crossing legs, stage 6b: the head is unreliable near
+                                     # the far lip, log 33.5, and it kept fast jumps below P_JUMP; robustness still applies)
         self.rng = rng or np.random.default_rng(0)
         self.guide = None
         if USE_GUIDE:
@@ -319,10 +620,14 @@ class Planner:
     def reset(self):
         self.best = None; self.last_kind = None
 
-    def set_target(self, gem, seeds=None):
-        """A new gem to take (whole groups, stage 5): its seeds (None for a floor gem) and a fresh walking field."""
+    def set_target(self, gem, seeds=None, cont_next=False):
+        """A new gem to take (whole groups, stage 5): its seeds (None for a floor gem) and a fresh walking field.
+        cont_next: the gem is the next one after a pickup, only driven toward (continue_cost), not taken."""
         self.gem = np.asarray(gem, dtype=np.float64)
         self.seeds = seeds
+        self.cont_next = bool(cont_next)
+        self.time_w = TIME_W; self.approach_line = False; self.land_steer = False; self.p_sat = P_SAT; self.flight_check = 1.0
+        self.exit_dir = None; self.exit_w = EXIT_W
         self.seed_tree = None
         if seeds is not None and len(seeds['x']):
             from scipy.spatial import cKDTree
@@ -351,7 +656,100 @@ class Planner:
                 pr.mode[i, j:] = MODE_NONE                               # jump with no air input
             elif q >= 0.55:
                 pr.ang[i, j:] = tg + rng.normal(0, math.radians(35))     # air input toward the gem
+                if AIR_BRAKE and rng.random() < 0.5:                     # then brake in the air before landing, so
+                    m = int(rng.integers(4, 12))                         # the landing has room to stop (stopping_room)
+                    pr.mode[i, min(H, j + m):] = MODE_BRAKE
         pr.after[:] = np.where(rng.random(n) < 0.7, MODE_BRAKE, MODE_NONE)
+        self._land_steer(pr, tg)
+        pr.mode[:, H - TAIL:] = MODE_BRAKE
+        return pr
+
+    def _land_steer(self, pr, tg, frac=0.5):
+        """Floor-gem jump legs (land_steer): after the landing, steer toward the gem for 2-13 decisions, then brake.
+        With only a brake or no input after the landing, 15 of 16 programs through a KOTM corner gem went off the map
+        (a fast landing short of the gem cannot brake straight; the human lands and turns): stage 5b, 2026-09-29."""
+        if not self.land_steer:
+            return
+        rng = self.rng; n = len(pr)
+        m = rng.random(n) < frac
+        k = int(m.sum())
+        pr.after[m] = MODE_DIR; pr.after_ang[m] = tg + rng.normal(0, math.radians(25), k)
+        pr.after_n[m] = rng.integers(2, 14, k)
+        # a brake-turn after the landing: steer well past the gem's direction (60-150 deg, either side), which turns
+        # the velocity fastest at speed (turn drill, log 34.8) while shedding it; a fast landing beside the gem has no
+        # other way to it (log 34.15: from the operator's 13 u/s crossing every after-landing input passed 3 u wide)
+        m2 = m & (rng.random(n) < 0.5)
+        k2 = int(m2.sum())
+        pr.after_ang[m2] = tg + rng.choice([-1.0, 1.0], k2) * rng.uniform(math.radians(60), math.radians(150), k2)
+        pr.after_n[m2] = rng.integers(2, 10, k2)
+
+    def jump_oracle(self, p, v, w, tel, Uc, Jc, Up, Jp, floor_ref):
+        """The planner as a jump ORACLE for the navigator (log 35.4): no takeover. A few fixed programs that press the
+        jump NOW (acting next decision) and fly with one of several air inputs (none, at the gem, 60 deg past it either
+        side), then steer to the gem after landing; judged like any plan. Returns (p_succ of the best, its t_close,
+        its p_pick) so the caller can set the jump bit on the navigator's own action."""
+        tg = math.atan2(self.gem[1] - p[1], self.gem[0] - p[0])
+        n = 10
+        pr = Programs(n); pr.tag[:] = 6
+        pr.ang[:] = tg
+        pr.jump[:, 0] = 1
+        airs = (None, 0.0, math.radians(60), -math.radians(60), 0.0, math.radians(100), -math.radians(100), None,
+                math.pi, math.radians(150))                       # the last two: air brake (log 36.3)
+        for i, a in enumerate(airs):
+            if a is None:
+                pr.mode[i, 1:] = MODE_NONE
+            else:
+                pr.ang[i, 1:] = tg + a
+            pr.after[i] = MODE_DIR; pr.after_ang[i] = tg; pr.after_n[i] = 10 if i < 4 else 4
+        pr.after[7] = MODE_BRAKE; pr.after[8] = MODE_BRAKE; pr.after[9] = MODE_BRAKE
+        pr.mode[:, H - TAIL:] = MODE_BRAKE
+        sim = simulate(self.steps, self.g, self.eidx, self.dev, np.tile(p, (n, 1)), np.tile(v, (n, 1)), np.tile(w, (n, 1)),
+                       np.tile(Uc, (n, 1)), np.full(n, float(Jc)), np.tile(Up, (n, 1)), np.full(n, float(Jp)), pr, False, floor_ref)
+        jd = judge(sim, self.gem)
+        ps = jd['p_succ'] * (sim['jumped_at'] >= 0)
+        k = int(np.argmax(ps))
+        return float(ps[k]), int(jd['t_close'][k]), float(jd['p_pick'][k])
+
+    def _line(self, n, p, v, floor_ref):
+        """Floor-gem jump legs (approach_line): roll along the straight line to the gem and jump shortly before the
+        first void on it, air input toward the gem (the broad samples found 2 such plans in 2000 from a KOTM centre
+        gem to a corner gem). None when the line crosses no void."""
+        rng = self.rng
+        d = math.hypot(self.gem[0] - p[0], self.gem[1] - p[1])
+        if d < 1.0:
+            return None
+        m = max(2, int(d / 0.25) + 1)
+        t = np.linspace(0.0, 1.0, m)
+        lv, _ = D3.level_below(self.g, p[0] + t * (self.gem[0] - p[0]), p[1] + t * (self.gem[1] - p[1]), np.full(m, floor_ref + 1.0))
+        void = ~(np.isfinite(lv) & (lv >= floor_ref - 0.6))
+        if not void.any():
+            return None
+        lip = float(np.argmax(void)) * d / (m - 1)
+        tg = math.atan2(self.gem[1] - p[1], self.gem[0] - p[0])
+        sp = max(4.0, float(np.dot(v[:2], [math.cos(tg), math.sin(tg)])))
+        j_lip = lip / sp / 0.064
+        pr = Programs(n); pr.tag[:] = 4
+        pr.ang[:] = (tg + rng.normal(0, math.radians(4), n))[:, None]
+        for i in range(n):
+            # anywhere on the run-up: program decision d acts from state d + 1 (after the pending reply), so a press
+            # timed at the lip fires over the void (the first version never took off)
+            j = int(np.clip(math.floor(j_lip * rng.uniform(0.0, 1.0)) - 1, 0, LAST_JUMP)); pr.jump[i, j] = 1
+            q = rng.random()
+            if q < 0.1:
+                pr.mode[i, j:] = MODE_NONE
+            elif q < 0.45:
+                pr.ang[i, j:] = tg + rng.normal(0, math.radians(8))
+            elif q < 0.75:
+                # air input well past the gem's direction (30-110 deg, either side): sheds speed and bends the flight
+                # toward the gem; the human's recorded crossing held ~100 deg off the velocity in the air (log 34.15)
+                pr.ang[i, j:] = tg + rng.choice([-1.0, 1.0]) * rng.uniform(math.radians(30), math.radians(110))
+            else:
+                # AIR BRAKE (log 36.3): the input against the flight direction decelerates 7 u/s^2 in the air (engine
+                # airAcceleration 5 x sqrt 2), a 0.9 s flight lands 6 u/s slower; a slide landing on a 7 u block at
+                # 18 u/s cannot stop (ring drill v5), at 9-12 it can
+                pr.ang[i, j:] = tg + rng.choice([-1.0, 1.0]) * rng.uniform(math.radians(130), math.radians(180))
+        pr.after[:] = np.where(rng.random(n) < 0.7, MODE_BRAKE, MODE_NONE)
+        self._land_steer(pr, tg, frac=0.7)
         pr.mode[:, H - TAIL:] = MODE_BRAKE
         return pr
 
@@ -392,6 +790,9 @@ class Planner:
                     pr.mode[r, j:] = MODE_NONE
                 else:
                     pr.ang[r, j:] = hs + s['air'][k]
+                bk = s['brake'][k] if ('brake' in s and AIR_BRAKE) else np.nan
+                if np.isfinite(bk):                                      # the seed's air brake after the gem
+                    pr.mode[r, min(H, j + int(bk)):] = MODE_BRAKE
         pr.after[:] = MODE_BRAKE
         pr.mode[:, H - TAIL:] = MODE_BRAKE
         return pr
@@ -407,8 +808,11 @@ class Planner:
             if rng.random() < 0.4:
                 k = int(rng.integers(1, 16)); pr.ang[i, k:] = rng.uniform(-math.pi, math.pi)
         pr.mode[rng.random(n) < 0.1] = MODE_NONE
+        for i in np.nonzero(rng.random(n) < (0.3 if AIR_BRAKE else 0.0))[0]:   # air brake from some decision on
+            pr.mode[i, int(rng.integers(0, 12)):] = MODE_BRAKE
         pr.after[:] = np.where(rng.random(n) < 0.7, MODE_BRAKE, MODE_NONE)
         pr.after_ang[:] = pr.ang[:, -1]
+        self._land_steer(pr, tg)
         return pr
 
     def _warm(self, n):
@@ -426,7 +830,7 @@ class Planner:
                     j2 = int(np.clip(j + rng.integers(-2, 3), 0, H - 1)); k.jump[i] = 0; k.jump[i, j2] = 1
         return k
 
-    def propose(self, p, v, airborne):
+    def propose(self, p, v, airborne, floor_ref=None):
         parts = []
         w = self._warm(N_WARM)
         if w is not None:
@@ -437,7 +841,56 @@ class Planner:
             parts.append(self._broad(self.n_broad, p, v))
             if self.seed_tree is not None:
                 parts.append(self._seeded(N_SEED, p, v))
+            if self.approach_line and floor_ref is not None:
+                ln = self._line(N_LINE, p, v, floor_ref)
+                if ln is not None:
+                    parts.append(ln)
+            if self.exit_dir is not None:
+                parts.append(self._exitline(N_EXIT, p, v))
         return Programs.cat(parts)
+
+    def jump_charge(self, sim):
+        """Ranking charge for a plan that jumps on a plain floor leg (no seeds, no line crossing): a jump on the floor
+        costs control and speed for nothing (planner-alone rounds: 143 jumps a round, log 34.10)."""
+        if self.seeds is not None or self.approach_line:
+            return 0.0
+        return FLOOR_JUMP_CHARGE * (sim['jumped_at'] >= 0)
+
+    def exit_bonus(self, sim, jd):
+        """Two-leg plans (exit_dir set): the ranking is charged the TURN the next leg will cost from the state at the
+        closest pass, from the turn drill (log 34.8: TURN_S x (1 - cos) at speed, scaled down at low speed), in the
+        same units as the time weight (P per decision). A plan that leaves the gem aligned costs nothing; one that
+        flies through at 11 u/s with the next gem behind is charged the ~1.5 s turn, so arriving slower can win.
+        The earlier bonus (velocity along the exit line) was blind to gems behind the marble (log 34.12)."""
+        n = len(jd['t_close'])
+        if self.exit_dir is None:
+            return np.zeros(n)
+        t = np.clip(jd['t_close'], 0, sim['vel'].shape[1] - 1)
+        v = sim['vel'][np.arange(n), t, :2]
+        sp = np.linalg.norm(v, axis=1)
+        cos = np.where(sp > 0.5, (v[:, 0] * self.exit_dir[0] + v[:, 1] * self.exit_dir[1]) / np.maximum(sp, 1e-6), 1.0)
+        turn_s = TURN_S * (1.0 - cos) * np.minimum(1.0, sp / TURN_REF_SPEED)
+        return -self.time_w * turn_s / 0.064
+
+    def _exitline(self, n, p, v):
+        """Two-leg plans: drive to a point BACK u behind the gem on the exit line, turn onto the line, roll through the
+        gem at full throttle (a run-up onto the crossing); no jump. The broad samples rarely contain this shape."""
+        rng = self.rng
+        pr = Programs(n); pr.tag[:] = 5
+        u = np.asarray(self.exit_dir, float)
+        sp = max(3.0, math.hypot(v[0], v[1]))
+        for i in range(n):
+            back = rng.uniform(1.5, 6.0)
+            wx, wy = self.gem[0] - back * u[0], self.gem[1] - back * u[1]
+            d = math.hypot(wx - p[0], wy - p[1])
+            k1 = int(np.clip(round(d / sp / 0.064 * rng.uniform(0.6, 1.1)), 0, H - TAIL))
+            a1 = math.atan2(wy - p[1], wx - p[0]) + rng.normal(0, 0.1)
+            a2 = math.atan2(u[1], u[0]) + rng.normal(0, 0.08)
+            pr.ang[i, :k1] = a1; pr.ang[i, k1:] = a2
+            if rng.random() < 0.3:                                       # over-steer into the turn (turn drill: fastest)
+                k0 = max(0, k1 - int(rng.integers(2, 6))); pr.ang[i, k0:k1] = a2 + np.sign((a2 - a1 + math.pi) % (2 * math.pi) - math.pi) * rng.uniform(0.4, 0.9)
+        pr.after[:] = MODE_DIR; pr.after_ang[:] = math.atan2(u[1], u[0]); pr.after_n[:] = H + 1
+        return pr
 
     # ------------------------------------------------------------------ flight-head launch check
     def flight_safe(self, p, v, w, tel, sim, idx):
@@ -462,7 +915,7 @@ class Planner:
         last decision (acts next); Up, Jp: the one before it; picked: the gem has been taken."""
         t0 = time.perf_counter()
         p = np.asarray(p, float); v = np.asarray(v, float); w = np.asarray(w, float)
-        progs = self.propose(p, v, airborne)
+        progs = self.propose(p, v, airborne, floor_ref)
         n = len(progs)
         sim = simulate(self.steps, self.g, self.eidx, self.dev, np.tile(p, (n, 1)), np.tile(v, (n, 1)), np.tile(w, (n, 1)),
                        np.tile(Uc, (n, 1)), np.full(n, float(Jc)), np.tile(Up, (n, 1)), np.full(n, float(Jp)),
@@ -482,7 +935,7 @@ class Planner:
             if not airborne and jump_now.any():
                 # a jump from the floor now: re-judge its landing with the flight head from the observed state
                 cand = np.nonzero(jump_now & (ps >= 0.5 * P_GO))[0]
-                if self.fmodel is not None and len(cand):
+                if self.fmodel is not None and self.flight_check > 0 and len(cand):
                     cand = cand[np.argsort(-ps[cand])[:16]]
                     fs = self.flight_safe(p, v, w, tel, sim, cand)
                     ps[cand] = jd['p_pick'][cand] * fs * jd['safe'][cand] * (0.4 + 0.6 * jd['margin'][cand])
@@ -500,7 +953,10 @@ class Planner:
             if ps.max() >= P_GO or keep:
                 # robustness: the best candidates again from perturbed starts; P(success) is the mean pickup chance
                 # times the mean safety x margin over the variants
-                top = np.argsort(-(ps - 0.004 * jd['t_close']))[:K_ROBUST]
+                # ranked among the programs that can succeed (with a larger time_w, programs that never reach the gem
+                # but end early filled the top K and left none: stage 5b route run, 2026-09-29)
+                psr = np.minimum(ps, self.p_sat) + self.exit_bonus(sim, jd) - self.jump_charge(sim)
+                top = np.argsort(-np.where(ps > 0, psr - self.time_w * jd['t_close'], -np.inf))[:K_ROBUST]
                 top = top[ps[top] > 0]
                 if keep and inc not in top:
                     top = np.r_[top, inc]
@@ -511,8 +967,9 @@ class Planner:
                 ps_top = np.minimum(ps[top], 0.5 * (jd['p_pick'][top] + pp2) * sf2)
                 ps_top[jump_now[top] & (ps_top < P_JUMP)] = 0.0
                 ps = np.zeros(n); ps[top] = ps_top
-                k = int(np.argmax(np.where(ps > 0, ps - 0.004 * jd['t_close'], -1.0)))
-                if keep and ps[inc] >= P_KEEP and ps[k] < ps[inc] + SWITCH:
+                psr = np.minimum(ps, self.p_sat) + self.exit_bonus(sim, jd) - self.jump_charge(sim)
+                k = int(np.argmax(np.where(ps > 0, psr - self.time_w * jd['t_close'], -1.0)))
+                if keep and ps[inc] >= P_KEEP and psr[k] - self.time_w * jd['t_close'][k] < psr[inc] - self.time_w * jd['t_close'][inc] + SWITCH:
                     k = inc
                 if ps[k] >= P_GO or (k == inc and keep and ps[inc] >= P_KEEP):
                     kind = 'pickup'
@@ -535,6 +992,19 @@ class Planner:
                     if not jd['fell'][alt]:
                         k = alt
                     info['escape_jump'] = bool(jd['fell'][alt])
+                if APPROACH_JUMPS == 'escape' and jump_now[k] and not airborne:
+                    alt = int(np.argmin(np.where(jump_now, np.inf, cost)))
+                    if not jd['fell'][alt]:
+                        k = alt                                          # a jump only when every alternative falls
+                if jump_now[k] and not airborne and self.fmodel is not None and FS_APPROACH > 0:
+                    # every jump from the floor passes the observed-state launch check, not only pickup jumps (stage 5
+                    # gate: jumps without a pickup plan, sent from the lip at run-up speed, fell in with the gem)
+                    fs = float(self.flight_safe(p, v, w, tel, sim, [k])[0])
+                    info['approach_flight_safe'] = fs
+                    if fs < FS_APPROACH:
+                        alt = int(np.argmin(np.where(jump_now, np.inf, cost)))
+                        if not jd['fell'][alt]:
+                            k = alt
             info['p_succ'] = float(ps[k]); info['p_best'] = float(ps.max()); info['n_go'] = int((ps >= P_GO).sum())
         self.best = progs.take(np.array([k])); self.last_kind = kind
         info.update({'kind': kind, 'dmin': float(jd['dmin'][k]), 't_close': int(jd['t_close'][k]),
@@ -573,10 +1043,20 @@ class Planner:
                         np.full(m, float(Jp)), sub, airborne, floor_ref)
         return sim2, judge(sim2, self.gem)
 
-    @staticmethod
-    def continue_cost(sim, jd, jump_now):
-        """After the pickup: stay on the floor, away from edges; no new jumps."""
-        return 100.0 * jd['fell'] + 20.0 * (~jd['settled']) + 10.0 * np.maximum(0.0, 1.5 - jd['clear']) + 5.0 * jump_now
+    def continue_cost(self, sim, jd, jump_now):
+        """After the pickup: stay on the floor, away from edges; no new jumps. Without a next gem, slow down (a hybrid
+        hands back to the navigator). With one (cont_next): keep rolling toward it, costed as the approach to a floor
+        gem (the least walking distance left over the path, sooner preferred): the stage 5b shortcuts braked 6-25
+        decisions after every pickup before handing back and lost what the jump had saved."""
+        base = (100.0 * jd['fell'] + 20.0 * (~jd['settled']) + 10.0 * np.maximum(0.0, 1.5 - jd['clear']) + CONT_JUMP_NOW * jump_now)
+        if not self.cont_next:
+            speed_end = np.linalg.norm(sim['vel'][:, -1, :2], axis=1)
+            return base + CONT_SPEED_COST * speed_end
+        path = sim['path']; n = len(path)
+        walk = self.walk_at(path[:, 1:, 0].ravel(), path[:, 1:, 1].ravel(), float(sim['floor_ref'][0])).reshape(n, -1)
+        straight = np.linalg.norm(path[:, 1:, :2] - self.gem[:2], axis=2)
+        prog = (np.where(np.isfinite(walk), walk, straight + 5.0) + 0.03 * np.arange(path.shape[1] - 1)[None, :]).min(1)
+        return base + prog + CONT_JUMP * (sim['jumped_at'] >= 0)
 
     def walk_field(self, floor_ref):
         """Walking distance over the floor to the nearest seed (multi-source Dijkstra on the terrain raster): floor
@@ -584,45 +1064,20 @@ class Planner:
         the far side of a hole goes around it (straight-line seed distance pulled it into the hole's edge: dev v3)."""
         if self.walk is not None:
             return self.walk
-        from scipy.ndimage import binary_erosion
-        from scipy.sparse import coo_matrix
-        from scipy.sparse.csgraph import dijkstra
-        g = self.g
-        Hh = g.heights
-        ok = np.isfinite(Hh) & (Hh >= floor_ref - 0.5) & (Hh <= floor_ref + 4.0)
-        trav = binary_erosion(ok.any(0), iterations=max(1, int(round(WALK_CLEAR / g.res))))
-        ny, nx = trav.shape
-        idx = -np.ones((ny, nx), np.int64); cells = np.nonzero(trav.ravel())[0]; idx.ravel()[cells] = np.arange(len(cells))
-        def pair(A, dj, di):                                  # A[j, i] and A[j + dj, i + di] over the valid cells
-            if di >= 0:
-                return A[:ny - dj, :nx - di], A[dj:, di:]
-            return A[:ny - dj, -di:], A[dj:, :nx + di]
-        rows, cols, wts = [], [], []
-        for dj, di, w in ((0, 1, 1.0), (1, 0, 1.0), (1, 1, SQ2), (1, -1, SQ2)):
-            a, b = pair(trav, dj, di); ia, ib = pair(idx, dj, di)
-            m = a & b
-            rows.append(ia[m]); cols.append(ib[m]); wts.append(np.full(int(m.sum()), w * g.res))
-        r = np.concatenate(rows); c = np.concatenate(cols); w = np.concatenate(wts)
-        G = coo_matrix((np.r_[w, w], (np.r_[r, c], np.r_[c, r])), shape=(len(cells), len(cells))).tocsr()
+        ck = (tuple(np.round(self.gem, 2)), round(float(floor_ref), 2), self.seeds is None)
+        if ck in self._walk_cache:
+            self.walk = self._walk_cache[ck]
+            return self.walk
         if self.seeds is not None and len(self.seeds['x']):
             sx, sy = self.seeds['x'], self.seeds['y']
         else:                                                    # a floor gem: walk to the gem itself (a 1 u disc)
-            a = np.linspace(0, 2 * math.pi, 16, endpoint=False)
-            sx = self.gem[0] + np.r_[0.0, 0.5 * np.cos(a), np.cos(a)]; sy = self.gem[1] + np.r_[0.0, 0.5 * np.sin(a), np.sin(a)]
-        si = np.clip(np.rint((sy - g.ys[0]) / g.res).astype(int), 0, ny - 1)
-        sj = np.clip(np.rint((sx - g.xs[0]) / g.res).astype(int), 0, nx - 1)
-        src = np.unique(idx[si, sj][idx[si, sj] >= 0])
-        D = np.full(ny * nx, np.inf)
-        if len(src):
-            D[cells] = dijkstra(G, directed=False, indices=src, min_only=True)
-        self.walk = D.reshape(ny, nx)
+            sx, sy = gem_disc(self.gem)
+        self.walk = walk_distance_field(self.g, sx, sy, floor_ref)
+        self._walk_cache[ck] = self.walk
         return self.walk
 
     def walk_at(self, x, y, floor_ref):
-        D = self.walk_field(floor_ref); g = self.g
-        i = np.clip(np.rint((y - g.ys[0]) / g.res).astype(int), 0, D.shape[0] - 1)
-        j = np.clip(np.rint((x - g.xs[0]) / g.res).astype(int), 0, D.shape[1] - 1)
-        return D[i, j]
+        return field_at(self.g, self.walk_field(floor_ref), x, y)
 
     def seed_cost(self, sim, jd):
         """Approach cost: how close the predicted path comes to a seed launch state (sooner is better): the larger of
@@ -633,7 +1088,9 @@ class Planner:
             # no seeds (a floor gem): walking distance to it (straight-line where off the walkable floor)
             walk = self.walk_at(path[:, 1:, 0].ravel(), path[:, 1:, 1].ravel(), float(sim['floor_ref'][0])).reshape(n, -1)
             straight = np.linalg.norm(path[:, 1:, :2] - self.gem[:2], axis=2)
-            c = (np.where(np.isfinite(walk), walk, straight + 5.0) + 0.03 * np.arange(path.shape[1] - 1)[None, :]).min(1)
+            # a jump leg (approach_line) closes the straight line on the floor: toward the lip, not round the hole
+            on_floor = walk if not self.approach_line else np.where(np.isfinite(walk), straight, np.inf)
+            c = (np.where(np.isfinite(on_floor), on_floor, straight + 5.0) + 0.03 * np.arange(path.shape[1] - 1)[None, :]).min(1)
         else:
             q = self._seed_key(path[:, 1:, 0].ravel(), path[:, 1:, 1].ravel(), vel[:, 1:, 0].ravel(), vel[:, 1:, 1].ravel())
             dist, _ = self.seed_tree.query(q)
@@ -641,4 +1098,5 @@ class Planner:
             dist = np.maximum(dist, walk)                    # inf where off the walkable floor (airborne over a hole)
             c = (dist.reshape(n, -1) + 0.03 * np.arange(path.shape[1] - 1)[None, :]).min(1)
             c = np.where(np.isfinite(c), c, 50.0)
-        return c + 100.0 * jd['fell'] + 20.0 * (~jd['safe']) + 5.0 * np.maximum(0.0, CLEAR_OK - jd['clear'])
+        c_ok = np.where(sim['landed'] >= 0, CLEAR_OK, ROLL_CLEAR_OK)
+        return c + 100.0 * jd['fell'] + 20.0 * (~jd['safe']) + 5.0 * np.maximum(0.0, c_ok - jd['clear'])

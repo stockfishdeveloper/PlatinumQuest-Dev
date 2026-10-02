@@ -1,0 +1,8 @@
+g6s_hyb0: python 4676 game 19564
+g6s_hyb1: python 35684 game 37628
+g6s_hyb2: python 39432 game 15576
+g6s_hyb3: python 34596 game 28456
+g6s_hyb0: [12:41:28] round 2: points 151, gems floor 119 floating 0, falls nav 2 planner 1 (after handback 0), handovers 0, groups 29 [10.05, 5.38, 5.18, 5.7, 5.31, 6.34, 5.12, 5.38, 5.31, 5.76, 5.44, 5.76, 5.12, 4.99, 5.57, 4.93, 5.57, 6.21, 6.66, 5.95, 6.08, 9.41, 4.99, 6.66, 7.87, 5.31, 5.38, 5.38, 5.12]
+g6s_hyb1: [12:44:42] round 2: points 146, gems floor 116 floating 0, falls nav 0 planner 1 (after handback 0), handovers 0, groups 29 [7.23, 7.23, 5.63, 6.72, 5.38, 6.46, 7.04, 5.38, 5.18, 7.1, 6.46, 6.53, 7.1, 5.06, 5.38, 5.76, 8.7, 4.54, 5.38, 5.95, 5.57, 5.5, 5.38, 5.06, 6.02, 7.42, 4.29, 5.38, 5.31]
+g6s_hyb2: [12:41:30] round 2: points 151, gems floor 119 floating 0, falls nav 0 planner 2 (after handback 0), handovers 0, groups 29 [4.99, 6.78, 5.06, 5.57, 4.67, 6.53, 5.25, 5.5, 5.57, 5.25, 5.38, 6.4, 7.04, 6.08, 5.38, 6.27, 6.4, 8.19, 5.63, 5.5, 5.06, 5.5, 5.31, 6.53, 5.63, 7.81, 6.85, 7.62, 5.57]
+g6s_hyb3: [12:45:12] round 2: points 144, gems floor 114 floating 0, falls nav 3 planner 0 (after handback 0), handovers 0, groups 28 [4.86, 5.06, 4.03, 12.54, 4.61, 6.34, 5.63, 7.87, 5.5, 6.59, 6.59, 6.59, 6.85, 5.38, 5.12, 6.98, 5.18, 4.99, 5.7, 10.88, 5.63, 4.8, 5.38, 4.86, 5.57, 7.42, 5.38, 6.59]

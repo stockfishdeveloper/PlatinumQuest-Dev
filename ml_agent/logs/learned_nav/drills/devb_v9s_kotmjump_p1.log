@@ -1,0 +1,14 @@
+[12:19:34] [env:9232] waiting for the game
+[12:19:40] [env:9232] game connected (1)
+[12:19:48] connected: kotmjump_p1, round 3600 s
+[12:19:48] starts starts_devb_kotmjump_p1.json sha1 7cfeda285809
+[12:19:48] seeds: 234; provenance {"planner_py": "14c8a0818bbb", "drills_py": "0de8437a616a", "seeds_npz": "3ffa7da81f5d", "use_guide": true, "p_go": 0.25, "p_jump": 0.35, "planner_module": "planner_v9s"}
+[12:45:36] [env:9232] waiting for the game
+[12:46:01] [env:9232] game connected (1)
+[12:46:08] connected: kotmjump_p1, round 3600 s
+[12:46:08] starts starts_devb_kotmjump_p1.json sha1 7cfeda285809
+[12:46:08] seeds: 234; provenance {"planner_py": "14c8a0818bbb", "drills_py": "0de8437a616a", "seeds_npz": "3ffa7da81f5d", "use_guide": true, "p_go": 0.25, "p_jump": 0.35, "planner_module": "planner_v9s"}
+[12:55:55] start   0 (rest, 0.0 u/s, 9.9 u, safe True): missed in 188 decisions, jumps 1, plan 3096 ms  [0/1]
+[13:04:04] start   1 (toward, 2.5 u/s, 17.3 u, safe True): missed in 188 decisions, jumps 2, plan 2592 ms  [0/2]
+[13:07:47] start   2 (toward, 11.3 u/s, 14.7 u, safe False): success in 89 decisions, jumps 4, plan 2503 ms  [1/3]
+[13:11:49] start   3 (side, 11.5 u/s, 9.0 u, safe True): success in 94 decisions, jumps 1, plan 2569 ms  [2/4]

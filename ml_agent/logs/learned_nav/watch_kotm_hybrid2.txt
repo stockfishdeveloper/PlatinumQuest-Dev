@@ -1,0 +1,12 @@
+[env:9071] waiting for the game
+[env:9071] game connected (1)
+connected: KingOfTheMarble_Hunt, round 180 s
+hybrid: navigator update 26110, memory at handback "current", map KingOfTheMarble_Hunt, shortcuts 1, rescue 1, route 0, guard 0
+  t 19 s: points 14, floor 11, floating 0, falls nav 0 planner 0, groups 2, owner nav
+  t 38 s: points 30, floor 24, floating 0, falls nav 0 planner 0, groups 6, owner nav
+  t 58 s: points 46, floor 37, floating 0, falls nav 0 planner 0, groups 9, owner nav
+  t 77 s: points 65, floor 52, floating 0, falls nav 0 planner 0, groups 13, owner nav
+  t 96 s: points 83, floor 67, floating 0, falls nav 0 planner 0, groups 16, owner nav
+  t 115 s: points 102, floor 82, floating 0, falls nav 0 planner 0, groups 20, owner planner
+  t 134 s: points 116, floor 93, floating 0, falls nav 0 planner 0, groups 23, owner nav
+  t 154 s: points 134, floor 108, floating 0, falls nav 0 planner 0, groups 27, owner nav

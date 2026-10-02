@@ -31,12 +31,12 @@ def rate(rows):
     return {'success': k, 'n': n, 'rate': round(k / n, 4) if n else None, 'ci95': wilson(k, n)}
 
 
-def main(set_name='test'):
+def main(set_name='test', tag=''):
     rows = []
     for m in DRILLS:
-        p = os.path.join(OUT_DIR, f'{set_name}_{m}.jsonl')
+        p = os.path.join(OUT_DIR, f'{set_name}_{tag}_{m}.jsonl' if tag else f'{set_name}_{m}.jsonl')
         if os.path.exists(p):
-            rows += [json.loads(l) for l in open(p)]
+            rows += [r for r in (json.loads(l) for l in open(p)) if 'success' in r]   # not refused teleports
     safe = [r for r in rows if r['safe_start']]
     unsafe = [r for r in rows if not r['safe_start']]
     status = {}
@@ -83,9 +83,9 @@ def main(set_name='test'):
     tp = rep['time_to_pickup_s']
     rep['time_to_pickup_median_s'] = tp[len(tp) // 2] if tp else None
     del rep['time_to_pickup_s']
-    json.dump(rep, open(os.path.join(OUT_DIR, f'report_{set_name}.json'), 'w'), indent=1)
+    json.dump(rep, open(os.path.join(OUT_DIR, f'report_{set_name}{("_" + tag) if tag else ""}.json'), 'w'), indent=1)
     print(json.dumps(rep, indent=1))
 
 
 if __name__ == '__main__':
-    main(sys.argv[1] if len(sys.argv) > 1 else 'test')
+    main(sys.argv[1] if len(sys.argv) > 1 else 'test', sys.argv[2] if len(sys.argv) > 2 else '')

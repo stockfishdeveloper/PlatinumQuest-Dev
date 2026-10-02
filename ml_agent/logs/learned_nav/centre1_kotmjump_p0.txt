@@ -1,0 +1,101 @@
+centredrill: 42 starts, 95 trials to run (0 done)
+[env:9662] waiting for the game
+[env:9662] game connected (1)
+connected: kotmjump_p0, round 3600 s
+  0.0 deg  9.0 u/s lip 1.0 air gem   : FELL jump@5 off@8 land@None pick@None dmin 1.76
+  0.0 deg  9.0 u/s lip 2.0 air past60: FELL jump@4 off@8 land@None pick@None dmin 1.60
+  0.0 deg 11.0 u/s lip 1.0 air none  : FELL jump@5 off@7 land@None pick@None dmin 1.77
+  0.0 deg 11.0 u/s lip 2.0 air gem   : FELL jump@3 off@7 land@17 pick@None dmin 1.41
+  0.0 deg 11.0 u/s lip 3.0 air past60: FELL jump@2 off@6 land@16 pick@None dmin 1.56
+  0.0 deg 13.0 u/s lip 2.0 air none  : FELL jump@3 off@6 land@None pick@None dmin 1.61
+  0.0 deg 13.0 u/s lip 3.0 air gem   : FELL jump@2 off@6 land@16 pick@None dmin 1.41
+ 45.0 deg  9.0 u/s lip 1.0 air past60: FELL jump@5 off@7 land@None pick@None dmin 3.32
+ 45.0 deg  9.0 u/s lip 3.0 air none  : OK   jump@2 off@6 land@16 pick@18 dmin 0.45
+ 45.0 deg 11.0 u/s lip 1.0 air gem   : FELL jump@4 off@7 land@None pick@None dmin 3.72
+ 45.0 deg 11.0 u/s lip 2.0 air past60: FELL jump@3 off@7 land@17 pick@None dmin 1.27
+ 45.0 deg 13.0 u/s lip 1.0 air none  : FELL jump@4 off@6 land@None pick@None dmin 5.18
+ 45.0 deg 13.0 u/s lip 2.0 air gem   : FELL jump@3 off@6 land@None pick@None dmin 5.09
+ 45.0 deg 13.0 u/s lip 3.0 air past60: FELL jump@2 off@6 land@16 pick@None dmin 1.49
+ 67.5 deg  9.0 u/s lip 2.0 air none  : FELL jump@4 off@7 land@None pick@None dmin 5.20
+ 67.5 deg  9.0 u/s lip 3.0 air gem   : OK   jump@2 off@6 land@16 pick@17 dmin 0.34
+ 67.5 deg 11.0 u/s lip 1.0 air past60: FELL jump@None off@None land@None pick@None dmin 3.98
+ 67.5 deg 11.0 u/s lip 3.0 air none  : OK   jump@2 off@6 land@16 pick@19 dmin 0.47
+ 67.5 deg 13.0 u/s lip 1.0 air gem   : FELL jump@4 off@6 land@None pick@None dmin 3.63
+ 67.5 deg 13.0 u/s lip 2.0 air past60: FELL jump@3 off@6 land@None pick@None dmin 4.01
+ 90.0 deg  9.0 u/s lip 1.0 air none  : FELL jump@5 off@8 land@None pick@None dmin 4.35
+ 90.0 deg  9.0 u/s lip 2.0 air gem   : FELL jump@4 off@8 land@18 pick@17 dmin 0.38
+ 90.0 deg  9.0 u/s lip 3.0 air past60: FELL jump@3 off@7 land@17 pick@None dmin 1.92
+ 90.0 deg 11.0 u/s lip 2.0 air none  : FELL jump@3 off@7 land@17 pick@17 dmin 0.46
+ 90.0 deg 11.0 u/s lip 3.0 air gem   : FELL jump@2 off@6 land@16 pick@15 dmin 0.51
+ 90.0 deg 13.0 u/s lip 1.0 air past60: FELL jump@4 off@6 land@None pick@None dmin 3.36
+ 90.0 deg 13.0 u/s lip 3.0 air none  : FELL jump@2 off@6 land@16 pick@16 dmin 0.32
+112.5 deg  9.0 u/s lip 1.0 air gem   : FELL jump@5 off@7 land@8 pick@None dmin 8.05
+112.5 deg  9.0 u/s lip 2.0 air past60: FELL jump@4 off@7 land@8 pick@None dmin 5.35
+112.5 deg 11.0 u/s lip 1.0 air none  : FELL jump@None off@None land@None pick@None dmin 7.02
+112.5 deg 11.0 u/s lip 2.0 air gem   : FELL jump@3 off@7 land@17 pick@16 dmin 0.47
+112.5 deg 11.0 u/s lip 3.0 air past60: FELL jump@2 off@6 land@16 pick@None dmin 2.31
+112.5 deg 13.0 u/s lip 2.0 air none  : miss jump@3 off@6 land@7 pick@None dmin 4.60
+112.5 deg 13.0 u/s lip 3.0 air gem   : FELL jump@2 off@6 land@16 pick@15 dmin 0.37
+135.0 deg  9.0 u/s lip 1.0 air past60: FELL jump@5 off@8 land@None pick@None dmin 7.08
+135.0 deg  9.0 u/s lip 3.0 air none  : miss jump@2 off@6 land@16 pick@None dmin 4.98
+135.0 deg 11.0 u/s lip 1.0 air gem   : FELL jump@None off@None land@None pick@None dmin 5.82
+135.0 deg 11.0 u/s lip 2.0 air past60: miss jump@3 off@7 land@17 pick@None dmin 3.09
+135.0 deg 13.0 u/s lip 1.0 air none  : FELL jump@4 off@6 land@None pick@None dmin 6.10
+135.0 deg 13.0 u/s lip 2.0 air gem   : FELL jump@3 off@6 land@None pick@None dmin 5.42
+135.0 deg 13.0 u/s lip 3.0 air past60: FELL jump@2 off@6 land@16 pick@None dmin 2.81
+157.5 deg  9.0 u/s lip 2.0 air none  : FELL jump@4 off@7 land@None pick@None dmin 6.90
+157.5 deg  9.0 u/s lip 3.0 air gem   : miss jump@2 off@6 land@16 pick@None dmin 1.20
+157.5 deg 11.0 u/s lip 1.0 air past60: FELL jump@None off@None land@None pick@None dmin 4.96
+157.5 deg 11.0 u/s lip 3.0 air none  : miss jump@2 off@6 land@16 pick@None dmin 1.59
+157.5 deg 13.0 u/s lip 1.0 air gem   : FELL jump@4 off@6 land@7 pick@None dmin 7.85
+157.5 deg 13.0 u/s lip 2.0 air past60: FELL jump@3 off@6 land@7 pick@None dmin 5.24
+180.0 deg  9.0 u/s lip 1.0 air none  : FELL jump@5 off@7 land@None pick@None dmin 4.18
+180.0 deg  9.0 u/s lip 2.0 air gem   : FELL jump@4 off@7 land@None pick@None dmin 3.81
+180.0 deg  9.0 u/s lip 3.0 air past60: FELL jump@2 off@6 land@17 pick@None dmin 2.56
+180.0 deg 11.0 u/s lip 2.0 air none  : FELL jump@3 off@7 land@17 pick@16 dmin 0.44
+180.0 deg 11.0 u/s lip 3.0 air gem   : FELL jump@2 off@6 land@16 pick@15 dmin 0.45
+180.0 deg 13.0 u/s lip 1.0 air past60: FELL jump@4 off@6 land@None pick@None dmin 3.32
+180.0 deg 13.0 u/s lip 3.0 air none  : FELL jump@2 off@6 land@16 pick@15 dmin 0.39
+202.5 deg  9.0 u/s lip 1.0 air gem   : FELL jump@5 off@7 land@None pick@None dmin 4.25
+202.5 deg  9.0 u/s lip 2.0 air past60: FELL jump@4 off@7 land@None pick@None dmin 4.76
+202.5 deg 11.0 u/s lip 1.0 air none  : FELL jump@None off@None land@None pick@None dmin 3.87
+202.5 deg 11.0 u/s lip 2.0 air gem   : FELL jump@3 off@7 land@17 pick@16 dmin 0.34
+recover: respawn not confirmed (pos -1.8 22.1 -4.7, on map False, telemetry {'sub_steps': np.float64(8.0), 'contact_steps': np.float64(0.0), 'support_steps': np.float64(0.0), 'collisions': np.float64(0.0), 'max_contacts': np.float64(0.0), 'max_approach': np.float64(0.0), 'nx': np.float64(0.0), 'ny': np.float64(0.0), 'nz': np.float64(0.0), 'friction': np.float64(0.0), 'restitution': np.float64(0.0), 'force': np.float64(0.0), 'last_step_contact': np.float64(0.0)})
+202.5 deg 11.0 u/s lip 3.0 air past60: FELL jump@2 off@6 land@16 pick@None dmin 2.12
+202.5 deg 13.0 u/s lip 2.0 air none  : FELL jump@3 off@6 land@None pick@None dmin 4.01
+202.5 deg 13.0 u/s lip 3.0 air gem   : FELL jump@2 off@6 land@16 pick@15 dmin 0.42
+225.0 deg  9.0 u/s lip 1.0 air past60: FELL jump@5 off@7 land@None pick@None dmin 3.25
+225.0 deg  9.0 u/s lip 3.0 air none  : FELL jump@2 off@6 land@16 pick@17 dmin 0.57
+225.0 deg 11.0 u/s lip 1.0 air gem   : FELL jump@4 off@7 land@None pick@None dmin 5.08
+225.0 deg 11.0 u/s lip 2.0 air past60: FELL jump@3 off@7 land@17 pick@None dmin 1.42
+225.0 deg 13.0 u/s lip 1.0 air none  : FELL jump@4 off@6 land@None pick@None dmin 5.23
+225.0 deg 13.0 u/s lip 2.0 air gem   : FELL jump@3 off@6 land@None pick@None dmin 5.15
+225.0 deg 13.0 u/s lip 3.0 air past60: FELL jump@2 off@6 land@16 pick@None dmin 1.61
+270.0 deg  9.0 u/s lip 2.0 air none  : FELL jump@4 off@7 land@None pick@None dmin 2.01
+270.0 deg  9.0 u/s lip 3.0 air gem   : FELL jump@2 off@6 land@16 pick@None dmin 1.03
+270.0 deg 11.0 u/s lip 1.0 air past60: FELL jump@4 off@7 land@None pick@None dmin 1.60
+270.0 deg 11.0 u/s lip 3.0 air none  : FELL jump@2 off@6 land@16 pick@None dmin 1.09
+270.0 deg 13.0 u/s lip 1.0 air gem   : FELL jump@4 off@6 land@None pick@None dmin 1.32
+270.0 deg 13.0 u/s lip 2.0 air past60: FELL jump@3 off@6 land@None pick@None dmin 1.46
+292.5 deg  9.0 u/s lip 1.0 air none  : FELL jump@5 off@8 land@None pick@None dmin 2.27
+292.5 deg  9.0 u/s lip 2.0 air gem   : FELL jump@4 off@8 land@18 pick@None dmin 1.28
+292.5 deg  9.0 u/s lip 3.0 air past60: FELL jump@2 off@6 land@16 pick@None dmin 1.37
+292.5 deg 11.0 u/s lip 2.0 air none  : miss jump@3 off@7 land@17 pick@None dmin 1.17
+292.5 deg 11.0 u/s lip 3.0 air gem   : FELL jump@2 off@6 land@16 pick@None dmin 1.17
+292.5 deg 13.0 u/s lip 1.0 air past60: FELL jump@4 off@6 land@None pick@None dmin 1.62
+292.5 deg 13.0 u/s lip 3.0 air none  : miss jump@2 off@6 land@16 pick@None dmin 1.28
+315.0 deg  9.0 u/s lip 1.0 air gem   : FELL jump@5 off@7 land@None pick@None dmin 3.03
+315.0 deg  9.0 u/s lip 2.0 air past60: FELL jump@4 off@7 land@None pick@None dmin 3.34
+315.0 deg 11.0 u/s lip 1.0 air none  : FELL jump@4 off@7 land@None pick@None dmin 3.27
+315.0 deg 11.0 u/s lip 2.0 air gem   : FELL jump@3 off@7 land@18 pick@None dmin 1.08
+315.0 deg 11.0 u/s lip 3.0 air past60: miss jump@2 off@6 land@16 pick@None dmin 1.35
+315.0 deg 13.0 u/s lip 2.0 air none  : FELL jump@3 off@6 land@None pick@None dmin 2.99
+315.0 deg 13.0 u/s lip 3.0 air gem   : FELL jump@2 off@6 land@17 pick@None dmin 1.18
+337.5 deg  9.0 u/s lip 1.0 air past60: FELL jump@5 off@8 land@None pick@None dmin 2.08
+337.5 deg  9.0 u/s lip 3.0 air none  : OK   jump@2 off@6 land@16 pick@15 dmin 0.34
+337.5 deg 11.0 u/s lip 1.0 air gem   : FELL jump@5 off@7 land@None pick@None dmin 1.77
+337.5 deg 11.0 u/s lip 2.0 air past60: miss jump@3 off@7 land@17 pick@None dmin 1.42
+337.5 deg 13.0 u/s lip 1.0 air none  : FELL jump@4 off@6 land@None pick@None dmin 1.75
+337.5 deg 13.0 u/s lip 2.0 air gem   : FELL jump@3 off@6 land@None pick@None dmin 1.55
+337.5 deg 13.0 u/s lip 3.0 air past60: miss jump@2 off@6 land@16 pick@None dmin 1.45
+done

@@ -1,0 +1,26 @@
+[14:16:53] [env:9464] waiting for the game
+[14:17:04] [env:9464] game connected (1)
+[14:17:04] connected: kotmjump_p3, round 3600 s
+[14:17:04] starts starts_devb_kotmjump_p3.json sha1 8c1a77ff5321
+[14:17:04] seeds: 178; provenance {"planner_py": "c2a89a59394f", "drills_py": "0de8437a616a", "seeds_npz": "ffea2a0e044a", "use_guide": true, "p_go": 0.25, "p_jump": 0.35, "planner_module": "planner"}
+[14:20:08] start   0 (toward, 7.5 u/s, 17.5 u, safe True): success in 151 decisions, jumps 3, plan 1200 ms  [1/1]
+[14:20:52] start   1 (toward, 4.1 u/s, 11.9 u, safe True): success in 35 decisions, jumps 1, plan 1240 ms  [2/2]
+[14:24:55] start   2 (toward, 9.1 u/s, 17.2 u, safe True): missed in 188 decisions, jumps 3, plan 1292 ms  [2/3]
+[14:26:01] start   3 (rest, 0.0 u/s, 16.9 u, safe True): success in 53 decisions, jumps 2, plan 1234 ms  [3/4]
+[14:27:44] start   4 (side, 6.0 u/s, 9.7 u, safe True): success in 75 decisions, jumps 1, plan 1375 ms  [4/5]
+[14:28:49] start   5 (toward, 4.0 u/s, 15.3 u, safe True): success in 47 decisions, jumps 1, plan 1382 ms  [5/6]
+[14:30:11] start   6 (away, 7.5 u/s, 8.5 u, safe False): success in 49 decisions, jumps 2, plan 1672 ms  [6/7]
+[14:32:49] start   7 (rest, 0.0 u/s, 8.8 u, safe True): fell_after_jump in 89 decisions, jumps 1, plan 1763 ms  [6/8]
+[14:34:21] start   8 (rest, 0.0 u/s, 17.9 u, safe True): success in 52 decisions, jumps 2, plan 1772 ms  [7/9]
+[14:36:58] start   9 (toward, 5.6 u/s, 13.0 u, safe True): success in 88 decisions, jumps 2, plan 1777 ms  [8/10]
+[14:39:18] start  10 (toward, 9.8 u/s, 9.0 u, safe True): fell_after_jump in 72 decisions, jumps 1, plan 1948 ms  [8/11]
+[14:40:36] start  11 (toward, 7.6 u/s, 13.4 u, safe True): success in 37 decisions, jumps 2, plan 2096 ms  [9/12]
+[14:42:04] start  12 (toward, 7.6 u/s, 17.5 u, safe True): success in 41 decisions, jumps 2, plan 2127 ms  [10/13]
+[14:45:04] start  13 (rest, 0.0 u/s, 6.4 u, safe True): success in 86 decisions, jumps 1, plan 2091 ms  [11/14]
+[14:46:40] start  14 (rest, 0.0 u/s, 9.8 u, safe True): success in 47 decisions, jumps 1, plan 2043 ms  [12/15]
+[14:49:14] start  15 (side, 4.6 u/s, 9.3 u, safe True): success in 75 decisions, jumps 2, plan 2056 ms  [13/16]
+[14:52:47] start  16 (away, 10.4 u/s, 5.4 u, safe True): success in 107 decisions, jumps 1, plan 1981 ms  [14/17]
+[14:54:18] start  17 (side, 11.4 u/s, 14.9 u, safe False): fell_after_jump in 51 decisions, jumps 3, plan 1782 ms  [14/18]
+[14:55:16] start  18 (rest, 0.0 u/s, 8.6 u, safe True): success in 40 decisions, jumps 2, plan 1450 ms  [15/19]
+[14:59:36] start  19 (toward, 10.6 u/s, 9.0 u, safe True): success in 202 decisions, jumps 1, plan 1284 ms  [16/20]
+[14:59:36] finished

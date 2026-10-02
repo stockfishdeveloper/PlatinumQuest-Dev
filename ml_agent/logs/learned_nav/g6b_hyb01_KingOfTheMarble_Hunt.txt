@@ -1,0 +1,4 @@
+[08:11:13] [env:9702] waiting for the game
+[08:11:49] [env:9702] game connected (1)
+[08:11:51] connected: KingOfTheMarble_Hunt, round 180 s
+[08:11:51] hybrid: navigator update 26110, memory at handback "current", map KingOfTheMarble_Hunt, shortcuts 1, rescue 1, route 0, guard 0

@@ -1,0 +1,21 @@
+[12:57:03] [env:9671] waiting for the game
+[12:57:16] [env:9671] game connected (1)
+[12:57:17] connected: KingOfTheMarble_Hunt, round 180 s
+[13:00:10]   t 13 s: points 6, floor 5, floating 0, falls 0, groups 1
+[13:03:18]   t 26 s: points 14, floor 11, floating 0, falls 0, groups 2
+[13:06:29]   t 38 s: points 20, floor 16, floating 0, falls 0, groups 4
+[13:09:11]   t 51 s: points 26, floor 21, floating 0, falls 1, groups 5
+[13:11:32]   t 64 s: points 31, floor 25, floating 0, falls 1, groups 6
+[13:13:51]   t 77 s: points 36, floor 29, floating 0, falls 1, groups 7
+[13:16:14]   t 90 s: points 44, floor 35, floating 0, falls 1, groups 8
+[13:18:35]   t 102 s: points 49, floor 39, floating 0, falls 2, groups 9
+[13:20:56]   t 115 s: points 53, floor 43, floating 0, falls 2, groups 10
+[13:23:15]   t 128 s: points 59, floor 47, floating 0, falls 2, groups 11
+[13:25:36]   t 141 s: points 67, floor 54, floating 0, falls 2, groups 13
+[13:27:53]   t 154 s: points 74, floor 59, floating 0, falls 2, groups 14
+[13:30:12]   t 166 s: points 80, floor 64, floating 0, falls 2, groups 16
+[13:32:31]   t 179 s: points 85, floor 69, floating 0, falls 2, groups 17
+[13:32:36] round ended / reconnected: waiting for the next round
+[13:32:36] [env:9671] round over (time left 180s of 180s); waiting for the next round
+[13:32:36] [env:9671] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[13:32:36] round 1: points 85, gems floor 69 floating 0, falls 2, groups cleared 17 [8.64, 9.73, 9.28, 9.09, 11.07, 8.51, 14.98, 10.56, 9.79, 11.9, 12.42, 12.16, 10.5, 7.68, 9.79, 7.87, 9.34], longest gap 6.8 s

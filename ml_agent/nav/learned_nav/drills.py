@@ -38,8 +38,10 @@ from nav.joystick import action_to_joystick                                     
 from nav.gems import visible_gems                                               # noqa: E402
 
 OUT_DIR = os.path.join(HERE, 'logs', 'learned_nav', 'drills')
-N_STARTS = {'dev': 30, 'test': 64, 'test5': 64}  # test: ~15 % of starts are unsafe (dev fixture), and the gate needs >= 200
+N_STARTS = {'dev': 30, 'test': 64, 'test5': 64,  # test: ~15 % of starts are unsafe (dev fixture), and the gate needs >= 200
                                                # safe; test5: stage 5's own frozen set (a new hash, never seen)
+            'devb': 60, 'val': 30, 'test6': 64}  # 2026-09-29: devb = the larger tuning set, val = checked only for a
+                                               # candidate that did well on devb (dev overfitted in stage 5), test6 = the next gate
 D_MIN, D_MAX = 4.0, 18.0
 CLEAR = 1.0
 TIMEOUT_DEC = 188            # 12 s to take the gem
@@ -257,10 +259,18 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--port', type=int, required=True)
     ap.add_argument('--map', required=True)
-    ap.add_argument('--set', required=True, choices=('dev', 'test', 'test5'))
+    ap.add_argument('--set', required=True, choices=tuple(N_STARTS))
+    ap.add_argument('--planner', default='planner')        # a planner module in nav/learned_nav (e.g. planner_v8)
+    ap.add_argument('--tag', default='')                   # results go to <set>_<tag>_<map>.jsonl
+    ap.add_argument('--limit', type=int, default=0)        # only the first N starts of the set (0 = all)
     a = ap.parse_args()
+    global PL
+    if a.planner != 'planner':
+        import importlib
+        PL = importlib.import_module(f'nav.learned_nav.{a.planner}')
+    stem = f'{a.set}_{a.tag}_{a.map}' if a.tag else f'{a.set}_{a.map}'
     os.makedirs(OUT_DIR, exist_ok=True)
-    log_f = open(os.path.join(OUT_DIR, f'{a.set}_{a.map}.log'), 'a', buffering=1)
+    log_f = open(os.path.join(OUT_DIR, f'{stem}.log'), 'a', buffering=1)
 
     def log(m):
         line = f'[{time.strftime("%H:%M:%S")}] {m}'
@@ -291,20 +301,20 @@ def main():
         log(f'fixture done: {sum(st["safe"] for st in S["starts"])} safe of {len(S["starts"])}')
     sha = hashlib.sha1(open(sf, 'rb').read()).hexdigest()[:12]
     log(f'starts {os.path.basename(sf)} sha1 {sha}')
-    seeds = SEEDS.load(a.map)
+    seeds = SEEDS.load(a.map, getattr(PL, 'SEED_VERSION', None))
     sha_of = lambda p: hashlib.sha1(open(p, 'rb').read()).hexdigest()[:12] if os.path.exists(p) else None
     prov = {'planner_py': sha_of(PL.__file__), 'drills_py': sha_of(__file__),
-            'seeds_npz': sha_of(os.path.join(SEEDS.SEED_DIR, f'{a.map}.npz')), 'use_guide': PL.USE_GUIDE,
-            'p_go': PL.P_GO, 'p_jump': PL.P_JUMP}
+            'seeds_npz': sha_of(os.path.join(SEEDS.SEED_DIR, getattr(PL, 'SEED_VERSION', ''), f'{a.map}.npz')), 'use_guide': PL.USE_GUIDE,
+            'p_go': PL.P_GO, 'p_jump': PL.P_JUMP, 'planner_module': a.planner}
     log(f'seeds: {0 if seeds is None else len(seeds["x"])}; provenance {json.dumps(prov)}')
     planner = PL.Planner(g, d.gem, seeds=seeds, rng=np.random.default_rng(12345))
-    out = os.path.join(OUT_DIR, f'{a.set}_{a.map}.jsonl')
+    out = os.path.join(OUT_DIR, f'{stem}.jsonl')
     done = set()
     if os.path.exists(out):
         for line in open(out):
             done.add(json.loads(line)['id'])
     n_ok = n_run = 0
-    for st in S['starts']:
+    for st in (S['starts'][:a.limit] if a.limit else S['starts']):
         if st['id'] in done:
             continue
         r = None
@@ -321,6 +331,9 @@ def main():
                   'starts_sha1': sha, 'map': a.map, 'set': a.set, 'provenance': prov})
         with open(out, 'a') as f:
             f.write(json.dumps(r) + '\n')
+        if 'success' not in r:                                  # the game refused the start three times: no trial
+            log(f'start {st["id"]:3d}: teleport refused three times, skipped')
+            continue
         n_run += 1; n_ok += int(r['success'])
         log(f'start {st["id"]:3d} ({st["cat"]}, {st["speed"]:.1f} u/s, {st["dist"]:.1f} u, safe {st["safe"]}): {r["status"]}'
             f' in {r["decisions"]} decisions, jumps {r["n_jumps"]}, plan {r["ms_mean"]:.0f} ms  [{n_ok}/{n_run}]')

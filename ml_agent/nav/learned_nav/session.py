@@ -15,6 +15,7 @@ from nav.protocol import RAW_POS, RAW_VEL, RAW_SPIN, NOOP_ACTION, CONTACT_FIELDS
 
 R = 0.19
 SETTLE = 2
+SPIN_WAIT_MS = 600000        # lockstep spin-wait (see contact_on); the engine advances anyway after AI::WaitTimeoutMs
 
 
 class RoundOver(RuntimeError):
@@ -38,6 +39,9 @@ class Session:
 
     def contact_on(self):
         self.env.control('CONTACT 1')
+        # lockstep waits spin instead of sleeping (SPINWAIT, mlAgent.cs): under a locked or occluded session each
+        # 1 ms engine sleep cost ~200 ms (probe 2026-09-29: replies over 3 ms made a decision 40-260 ms of wall time)
+        self.env.control(f'SPINWAIT {SPIN_WAIT_MS}')
 
     # -- stepping
     def obs(self):

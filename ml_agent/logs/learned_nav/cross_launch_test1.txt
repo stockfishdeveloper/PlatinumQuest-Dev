@@ -1,0 +1,2 @@
+cross_v5_test_1: python 22384 game 22400 -> C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\logs\learned_nav\cross_v5_test_1_kotmjump_p0.txt
+cross_v5_test_1: done: ok 44, fell 1, of 45; median leg time 1.76 s

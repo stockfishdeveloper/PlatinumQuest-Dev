@@ -1,0 +1,7 @@
+[08:15:11] [env:9714] waiting for the game
+[08:15:14] [env:9714] game connected (1)
+[08:15:15] connected: KingOfTheMarble_Hunt, round 180 s
+[08:15:15] hybrid: navigator update 26110, memory at handback "current", map KingOfTheMarble_Hunt, shortcuts 0, rescue 0, route 0, guard 0
+[08:19:38]   t 19 s: points 5, floor 4, floating 0, falls nav 3 planner 0, groups 1, owner nav
+[08:22:30]   t 38 s: points 21, floor 16, floating 0, falls nav 3 planner 0, groups 4, owner nav
+[08:24:32]   t 58 s: points 37, floor 28, floating 0, falls nav 3 planner 0, groups 7, owner nav

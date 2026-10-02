@@ -352,6 +352,20 @@ function MLAgent::update(%gen) {
         }
         $AIBridge::LastAction = "";
         %actionStr = "";
+    } else if (getWord(%actionStr, 0) $= "SPINWAIT") {
+        // "SPINWAIT ms" (2026-09-29): in lockstep, busy-wait this many ms for the reply before the
+        // engine sleeps 1 ms at a time (built engine $AI::SpinWaitMs, default 4). Tried against the
+        // locked-session stall of 2026-09-29 (log 34): not the cause; harmless, a learned_nav session sets it.
+        $AI::SpinWaitMs = getWord(%actionStr, 1) + 0;
+        echo("MLAgent: AI::SpinWaitMs = " @ $AI::SpinWaitMs @ " (Python server)");
+        AIBridge::sendState("DEBUG|spinwait=" @ $AI::SpinWaitMs @ "|lockstep=" @ $AI::Lockstep @ "|fixedstep=" @ $AI::FixedStepMs);
+        $AIBridge::LastAction = "";
+        %actionStr = "";
+    } else if (getWord(%actionStr, 0) $= "SLOWLOG") {
+        // "SLOWLOG ms" (2026-09-30, diagnostic): main-loop stages slower than this are logged by the engine
+        $AI::SlowLogMs = getWord(%actionStr, 1) + 0;
+        $AIBridge::LastAction = "";
+        %actionStr = "";
     } else if (getWord(%actionStr, 0) $= "SLEEPTIME") {
         // Probe control: background sleep pref (ms per frame when unfocused)
         $Pref::backgroundSleepTime = getWord(%actionStr, 1) + 0;
@@ -527,6 +541,34 @@ function MLAgent::update(%gen) {
            @ "|serverVel=" @ (isObject(%sp) ? %sp.getVelocity() : "?");
         echo("MLAgent: DEBUG requested -> " @ %d);
         AIBridge::sendState(%d);
+        $AIBridge::LastAction = "";
+        %actionStr = "";
+    } else if (getWord(%actionStr, 0) $= "MARBLES") {
+        // "MARBLES" (2026-09-29, diagnostic, read-only): every Marble object on the server (MissionCleanup,
+        // MissionGroup) and on the client (ServerConnection ghosts), as a DEBUG line:
+        // DEBUG|server=id:pos:client;...|client=id:pos;...|mine=<$MP::MyMarble>|player=<client 0's player>
+        %s = "";
+        for (%g = 0; %g < 2; %g ++) {
+            %grp = getWord("MissionCleanup MissionGroup", %g);
+            if (isObject(%grp)) {
+                for (%i = 0; %i < %grp.getCount(); %i ++) {
+                    %o = %grp.getObject(%i);
+                    if (%o.getClassName() $= "Marble")
+                        %s = %s @ %o @ ":" @ %o.getPosition() @ ":" @ %o.client @ ";";
+                }
+            }
+        }
+        %c = "";
+        if (isObject(ServerConnection)) {
+            for (%i = 0; %i < ServerConnection.getCount(); %i ++) {
+                %o = ServerConnection.getObject(%i);
+                if (%o.getClassName() $= "Marble")
+                    %c = %c @ %o @ ":" @ %o.getPosition() @ ";";
+            }
+        }
+        %cl = (isObject(ClientGroup) && ClientGroup.getCount() > 0) ? ClientGroup.getObject(0) : 0;
+        AIBridge::sendState("DEBUG|server=" @ %s @ "|client=" @ %c @ "|mine=" @ $MP::MyMarble
+            @ "|player=" @ (isObject(%cl) ? %cl.player : "?") @ "|clients=" @ (isObject(ClientGroup) ? ClientGroup.getCount() : 0));
         $AIBridge::LastAction = "";
         %actionStr = "";
     } else if (getWord(%actionStr, 0) $= "DELAY") {
