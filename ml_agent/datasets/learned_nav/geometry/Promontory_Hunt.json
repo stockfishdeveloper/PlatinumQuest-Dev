@@ -1,0 +1,44 @@
+{
+ "schema": "geometry_v1",
+ "map": "Promontory_Hunt",
+ "mission": "..\\Marble Blast Platinum\\platinum\\data\\multiplayer\\hunt\\advanced\\Promontory_Hunt.mcs",
+ "hashes": {
+  "Promontory_Hunt.mcs": "da6ff0fd0ecf",
+  "Promontory1a.dif": "a670c0ca94fc",
+  "Promontory1b.dif": "084651fbc0d7",
+  "Promontory2.dif": "b58a98eb4bd2",
+  "arch_8_normal.dif": "d2e353458d71",
+  "arch_4_normal.dif": "c5d587053377"
+ },
+ "time": "2026-10-02 18:17:13",
+ "triangles": 13592,
+ "floor_triangles": 3115,
+ "raster": [
+  1331,
+  1411
+ ],
+ "res": 0.2,
+ "levels": 4,
+ "floor_cells": 1297035,
+ "multi_level_cells": 535310,
+ "edges": {
+  "void": 181,
+  "drop": 1441,
+  "wall": 1023
+ },
+ "edge_length_u": 11456.3,
+ "materials": {
+  "plate_1": "DefaultMaterial",
+  "tile_advanced": "DefaultMaterial",
+  "tile_advanced_blue": "DefaultMaterial",
+  "friction_high": "HighFrictionMaterial",
+  "edge_white": "DefaultMaterial",
+  "beam_side": "DefaultMaterial",
+  "tile_advanced_green": "DefaultMaterial",
+  "beam": "DefaultMaterial"
+ },
+ "special_materials": [
+  "HighFrictionMaterial"
+ ],
+ "seconds": 3.4
+}

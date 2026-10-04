@@ -87,7 +87,7 @@ class DemoRecorder:
         self.stamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         self.path = os.path.join(out_dir, f'demo_{self.stamp}.npz')
         self.frame_history = deque(maxlen=HIST_LEN)
-        self.rows = {k: [] for k in ('obs_raw', 'obs_model', 'action', 'has_move', 'use_pow', 'yaw',
+        self.rows = {k: [] for k in ('obs_raw', 'obs_full', 'obs_model', 'action', 'has_move', 'use_pow', 'yaw',
                                      'inputs_raw', 'gem_delta', 'oob', 'done', 'tick', 'game')}
         self.tick = 0
         self.game = 0
@@ -112,6 +112,7 @@ class DemoRecorder:
             self.game += 1
             self.frame_history.clear()
             return
+        obs_full = np.array(obs, dtype=np.float32)   # 2026-10-03: the whole observation (61 numbers: spin, powerup block)
         if len(obs) > OBS_BASE:
             obs = obs[:OBS_BASE]              # 2026-09-26: the observation grew by the spin (38 numbers); the first 35
         if len(obs) != OBS_BASE:              # are the old layout the rest of this file expects
@@ -149,7 +150,7 @@ class DemoRecorder:
         obs_model = np.concatenate([norm] + hist + [terrain]).astype(np.float32)
 
         r = self.rows
-        r['obs_raw'].append(raw); r['obs_model'].append(obs_model); r['action'].append(action)
+        r['obs_raw'].append(raw); r['obs_full'].append(obs_full); r['obs_model'].append(obs_model); r['action'].append(action)
         r['has_move'].append(has_move); r['use_pow'].append(1.0 if use_pow > 0.5 else 0.0); r['yaw'].append(yaw)
         r['inputs_raw'].append(np.array(inp[:6], dtype=np.float32))
         r['gem_delta'].append(gem_delta); r['oob'].append(oob); r['done'].append(done)

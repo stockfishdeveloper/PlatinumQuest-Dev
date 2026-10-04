@@ -1,0 +1,24 @@
+C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\nav\real_run.py:303: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  ck = torch.load(ckpt, map_location=dev)
+warm-up: model ready in 0.00 s
+[env:9922] waiting for the game
+[env:9922] game connected (1)
+real run: nav_032425.pth (update 32425) on KingOfTheMarble_Hunt, 4 round(s), port 9922
+  round 1: {'round': 1, 'gems': 119, 'points': 152.0, 'minutes': 3.03, 'decisions': 2840, 'countdown_decisions': 48, 'gems_per_min': 39.3, 'points_per_min': 50.2, 'falls': 1, 'falls_per_100u': 0.066, 'travelled_u': 1517.9, 'speed': 8.35, 'blind_pct': 0.0, 'stuck_breaks': 0, 'snapped_pct': 0.0, 'pathed_pct': 0.0, 'smooth': 1.0, 'pow_uses': {'0': 4, '2': 1, '6': 2}}
+[env:9922] round over (time left 180s of 180s); waiting for the next round
+[env:9922] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+stuck-breaker #1 at (-30.9,16.0) decision 713: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #2 at (-21.5,28.6) decision 971: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #3 at (-27.6,14.1) decision 2172: state reset, path waypoint + sampling for 24 decisions
+  round 2: {'round': 2, 'gems': 120, 'points': 152.0, 'minutes': 3.03, 'decisions': 2840, 'countdown_decisions': 41, 'gems_per_min': 39.6, 'points_per_min': 50.2, 'falls': 1, 'falls_per_100u': 0.067, 'travelled_u': 1492.7, 'speed': 8.21, 'blind_pct': 0.0, 'stuck_breaks': 3, 'snapped_pct': 0.0, 'pathed_pct': 0.8, 'smooth': 1.0, 'pow_uses': {'0': 1, '1': 4}}
+[env:9922] round over (time left 180s of 180s); waiting for the next round
+[env:9922] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+stuck-breaker #1 at (-20.5,16.6) decision 414: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #2 at (-26.8,16.0) decision 1468: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #3 at (-23.4,16.8) decision 1926: state reset, path waypoint + sampling for 24 decisions
+  round 3: {'round': 3, 'gems': 112, 'points': 140.0, 'minutes': 3.03, 'decisions': 2837, 'countdown_decisions': 41, 'gems_per_min': 37.0, 'points_per_min': 46.3, 'falls': 4, 'falls_per_100u': 0.279, 'travelled_u': 1435.7, 'speed': 7.91, 'blind_pct': 0.0, 'stuck_breaks': 3, 'snapped_pct': 0.0, 'pathed_pct': 1.1, 'smooth': 1.0, 'pow_uses': {'0': 5, '1': 3}}
+[env:9922] round over (time left 180s of 180s); waiting for the next round
+[env:9922] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+  round 4: {'round': 4, 'gems': 110, 'points': 141.0, 'minutes': 3.03, 'decisions': 2837, 'countdown_decisions': 41, 'gems_per_min': 36.4, 'points_per_min': 46.6, 'falls': 4, 'falls_per_100u': 0.264, 'travelled_u': 1512.5, 'speed': 8.33, 'blind_pct': 0.0, 'stuck_breaks': 0, 'snapped_pct': 0.0, 'pathed_pct': 0.0, 'smooth': 1.0, 'pow_uses': {'0': 3, '1': 2, '6': 2}}
+REAL RUN {"gems_per_min": 38.075, "points_per_min": 48.325, "falls_per_100u": 0.169, "speed": 8.2, "blind_pct": 0.0} vs human {"gems_per_min": 1.02, "points_per_min": 1.02, "speed": 1.02, "falls_ratio": 3.7}
+wrote C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\logs\nav\real_run_KingOfTheMarble_Hunt_nav_032425_g18b_32425fix.json

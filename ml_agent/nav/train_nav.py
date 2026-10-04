@@ -176,7 +176,12 @@ def main():
         ck = torch.load(latest, map_location=dev)
         if ck.get('obs_version') != NAV_OBS_VERSION:
             raise SystemExit(f'checkpoint obs version {ck.get("obs_version")} != {NAV_OBS_VERSION}; move models/nav aside')
-        model.load_state_dict(ck['model']); opt.load_state_dict(ck['opt'])
+        model.load_state_dict(ck['model'])
+        ost = ck['opt']; n_now = len(list(model.parameters())); ids = list(ost['param_groups'][0]['params'])
+        if len(ids) < n_now:                       # a checkpoint from before the use head: its params come last, fresh Adam state
+            ost = dict(ost); ost['param_groups'] = [dict(ost['param_groups'][0], params=ids + list(range(len(ids), n_now)))]
+            log(f'optimizer state padded for {n_now - len(ids)} new parameter tensors (use head)')
+        opt.load_state_dict(ost)
         update, steps = ck['update'], ck['steps']
         log(f'resumed {latest}: update {update}, steps {steps:,}, trained on {ck.get("mission")}')
     else:

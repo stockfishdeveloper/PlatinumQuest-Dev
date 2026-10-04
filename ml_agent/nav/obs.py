@@ -13,12 +13,17 @@ import math
 import numpy as np
 
 from terrain_obs import EDGE_DIM
-from nav.protocol import RAW_POS, RAW_VEL, RAW_SPIN
+from nav.protocol import (RAW_POS, RAW_VEL, RAW_SPIN, RAW_POW_HELD, RAW_POW_BLAST, RAW_POW_SPECIAL, RAW_POW_MEGA,
+                          RAW_POW_MEGA_LEFT, RAW_POW_BOUNCE_LEFT, RAW_POW_SHOCK_LEFT, RAW_POW_HELI_LEFT, RAW_POW_ITEMS,
+                          POW_RESPAWN_S)
 from nav.terrain import CROP_SHAPE, JUMP_DROP, JUMP_RISE
 from nav.physics import crossable, speed_for_gap, MIN_JUMP_GAP, jump_verdict
 from terrain_obs import RAY_RANGE
 
-NAV_OBS_VERSION = 'NAV_OBS_V6'   # V6 (2026-09-26, HANDOFF 28.56): the marble's spin, appended (SPIN_DIM 3)
+NAV_OBS_VERSION = 'NAV_OBS_V9'   # V9 (2026-10-03, log 40.12): Super Speed redirect flag + aim appended (POW_DIM 30)
+                                 # V8 (2026-10-03, log 40.11): Super Speed run-clear flag appended (POW_DIM 27)
+                                 # V7 (2026-10-02, POWERUP_PLAN phase 1): the powerup block, appended (POW_DIM 26)
+                                 # V6 (2026-09-26, HANDOFF 28.56): the marble's spin, appended (SPIN_DIM 3)
                                  # V5 (2026-09-25, HANDOFF 28.39): landing-predictor verdicts (GAP_DIM 4 -> 5)
                                  # V4 (2026-09-24, HANDOFF 28.36) adds the speed ratio for the gap ahead (GAP_DIM 3 -> 4)
                                  # V3 (2026-09-23, HANDOFF 28.27) appends GAP_DIM: the gap along the velocity
@@ -38,7 +43,76 @@ SPIN_DIM = 3                  # V6: the spin as a ROLLING VELOCITY, /VEL_SCALE l
                               # [0] r*wy, [1] -r*wx = the velocity pure rolling on flat floor would give (rolling
                               # east spins about +y, |v|/|w| = 0.190 = r; measured live 2026-09-26), so a gap
                               # between vec[4:6] and these two IS the skid; [2] r*wz = spin about the vertical
-VEC_DIM = VEC_SPIN + SPIN_DIM # 61
+VEC_POW = VEC_SPIN + SPIN_DIM # 61: where the powerup block starts (V7, 2026-10-02, POWERUP_PLAN phase 1)
+POW_DIM = 30                  # 40.15: [28-29] = the kick aim toward the CURRENT waypoint (v + 25 a on its line), [26] =
+                              # that kick survivable (floor for the stop, or the next gem on the line); [27] = approach
+                              # information: a redirect at the gem ahead toward the next gem would be survivable.
+                              # [27] V9 (original meaning): Super Speed REDIRECT possible at the waypoint ahead: arriving at the current
+                              # speed along the line to it, a kick aimed by ss_redirect_aim() turns the velocity onto
+                              # the line to the NEXT waypoint and the floor runs to that gem; [28], [29] = that aim
+                              # (world unit vector; the worker fires along it). Computed while a Super Speed is held and
+                              # the next waypoint is known, at any distance, so the approach can be planned on it.
+                              # [26] V8: Super Speed run clear (1 = a boost fired now along the line to the waypoint
+                              # has floor for the whole overshoot, or the next waypoint lies on that line within the
+                              # floor; only computed while a Super Speed is held, else 0); before it (V7):
+                              # held type one-hot (7: SJ, SS, bounce, shock, heli, mega, blast pickup), blast meter,
+                              # special blast armed, mega active, mega left /5, bounce left /5, shock left /5, heli
+                              # left /5, then the NEAREST in-scope powerup item: type one-hot (7), unit dx, dy,
+                              # distance /50, dz /10, seconds to respawn /7 (0 = there now); no item: all 0
+VEC_DIM = VEC_POW + POW_DIM   # 91 (88 in V8, 87 in V7)
+SS_DV = 25.0                  # u/s a Super Speed adds along the camera yaw (powerup_physics.SUPER_SPEED_DV)
+SS_VMAX = 32.0                # u/s the boosted marble reaches at most on the floor (seen ~30)
+SS_DECEL = 14.0               # u/s^2 the floor takes off a boosted marble with no input (planner FAST_DECEL)
+SS_RUN_MARGIN = 2.0           # u of floor past the stopping point / past the next waypoint
+SS_LAM_MAX = 24.0             # u/s: a kick whose resolved speed (solver) is above this is not approved (40.22). The
+                              # operator's demo kicks resolved to 12-25 u/s by the solver (the game reads ~1.7 less;
+                              # median 17), all big turns, so this keeps every kick the operator makes and refuses the 25-33 u/s straight runs the policy
+                              # also fired overshot and fell one time in five and taught it that kicks do not pay.
+SS_NEXT_COS = 0.866           # the next waypoint counts as 'on the line' within 30 deg of the line to this one
+SS_SCAN_U = 48.0              # how far along the line the floor is followed
+SS_REDIRECT_MIN_SPEED = 3.0   # u/s: below this a redirect is just a boost toward the next gem (still fine) 
+
+
+def ss_redirect_aim(vx, vy, nx, ny, dv=SS_DV):
+    """Unit kick direction (ax, ay) so that (vx, vy) + dv (ax, ay) is parallel to the unit line (nx, ny) to the next
+    waypoint, and the resulting speed. lam = n.v + sqrt((n.v)^2 + dv^2 - |v|^2) > 0 always for dv > |v|."""
+    nv = nx * vx + ny * vy
+    disc = nv * nv + dv * dv - (vx * vx + vy * vy)
+    if disc < 0.0:
+        # 40.21: the marble moves away faster than the kick can turn it (|v| > dv against the line): the best use is a
+        # pure BRAKE, the kick straight against the velocity; the marble keeps rolling the old way at |v| - dv.
+        # Returned as the aim plus the resultant along n, which is then NEGATIVE (still moving away).
+        sv = math.hypot(vx, vy)
+        ax, ay = -vx / sv, -vy / sv
+        return (ax, ay), nv * (1.0 - dv / sv)
+    lam = nv + math.sqrt(disc)
+    ax, ay = (lam * nx - vx) / dv, (lam * ny - vy) / dv
+    na = math.hypot(ax, ay)
+    return ((ax / na, ay / na) if na > 1e-6 else (nx, ny)), lam
+
+
+def ss_aim(vec):
+    """The world direction a Super Speed use is fired along, from the observation: the redirect aim when the redirect
+    flag is on and the waypoint is within USE_REDIRECT_U, else the line to the waypoint. Shared by the worker and the
+    evaluators so training and play fire the same way."""
+    # 40.15: [28-29] = the aim toward the CURRENT waypoint (resultant on its line), set whenever a Super Speed is held
+    if vec[VEC_POW + 1] > 0.5 and (vec[VEC_POW + 28] != 0.0 or vec[VEC_POW + 29] != 0.0):
+        return float(vec[VEC_POW + 28]), float(vec[VEC_POW + 29])
+    return float(vec[0]), float(vec[1])
+
+
+SS_REDIRECT_U = 3.0           # u from the waypoint: the outer limit of the redirect window
+SS_KEY_LAG_S = 0.128          # s between the use sent and the kick (2 decisions)
+SS_FIRE_U = 0.8               # u: the kick must land within this of the gem (or past it), else the swing misses the pickup
+SS_NEXT_MARGIN = 6.0          # u of floor past the NEXT gem for the braking after a redirect (23 u/s arrives there)
+
+
+def ss_redirect_window(vec):
+    """True while a redirect use sent NOW lands the kick at the pickup: the waypoint is within the distance covered
+    during the key lag + SS_FIRE_U (log 40.14: at 3 u the kick came 1-2 u early and swung the marble off the gem)."""
+    dist = vec[2] * WAYPOINT_DIST_SCALE
+    speed = math.hypot(vec[4], vec[5]) * VEL_SCALE
+    return dist <= min(SS_REDIRECT_U, SS_KEY_LAG_S * speed + SS_FIRE_U)
 MARBLE_RADIUS = 0.19          # u (the probe's v/|w| on the floor, 0.1898)
 SPIN_CLIP = 3.0               # rolling-speed features clipped to +-3 (60 u/s); rolling tops out near 1
 GAP_MIN_SPEED = 1.0           # u/s: below this the gap features use the waypoint bearing
@@ -128,6 +202,76 @@ class ObsBuilder:
         vec[VEC_SPIN + 0] = max(-SPIN_CLIP, min(SPIN_CLIP, wy * k))
         vec[VEC_SPIN + 1] = max(-SPIN_CLIP, min(SPIN_CLIP, -wx * k))
         vec[VEC_SPIN + 2] = max(-SPIN_CLIP, min(SPIN_CLIP, wz * k))
+        # POWERUP block (V7): what the marble holds and can use, and the nearest powerup item (raw 38-60,
+        # observer.cs collectPowerups). The planner reads the raw block itself; the policy gets this summary.
+        if len(raw) > RAW_POW_HELD:
+            held = int(raw[RAW_POW_HELD])
+            if 1 <= held <= 7:
+                vec[VEC_POW + held - 1] = 1.0
+            vec[VEC_POW + 7] = max(0.0, min(1.0, float(raw[RAW_POW_BLAST])))
+            vec[VEC_POW + 8] = 1.0 if raw[RAW_POW_SPECIAL] > 0.5 else 0.0
+            vec[VEC_POW + 9] = 1.0 if raw[RAW_POW_MEGA] > 0.5 else 0.0
+            vec[VEC_POW + 10] = min(1.0, max(0.0, float(raw[RAW_POW_MEGA_LEFT])) / 5.0)
+            vec[VEC_POW + 11] = min(1.0, max(0.0, float(raw[RAW_POW_BOUNCE_LEFT])) / 5.0)
+            vec[VEC_POW + 12] = min(1.0, max(0.0, float(raw[RAW_POW_SHOCK_LEFT])) / 5.0)
+            vec[VEC_POW + 13] = min(1.0, max(0.0, float(raw[RAW_POW_HELI_LEFT])) / 5.0)
+            it = raw[RAW_POW_ITEMS]
+            t0 = int(it[0])
+            if 1 <= t0 <= 7:
+                vec[VEC_POW + 14 + t0 - 1] = 1.0
+                idx, idy, idz, left = float(it[1]), float(it[2]), float(it[3]), float(it[4])
+                dd = math.hypot(idx, idy)
+                vec[VEC_POW + 21] = idx / dd if dd > 1e-6 else 0.0
+                vec[VEC_POW + 22] = idy / dd if dd > 1e-6 else 0.0
+                vec[VEC_POW + 23] = min(dd / WAYPOINT_DIST_SCALE, 1.0)
+                vec[VEC_POW + 24] = max(-1.0, min(1.0, idz / 10.0))
+                vec[VEC_POW + 25] = min(1.0, max(0.0, left) / POW_RESPAWN_S)
+            if held == 2 and on_floor and d > 1e-6:
+                # V8: can a Super Speed fired NOW along the line to the waypoint be survived? The boosted marble
+                # (its speed along the line + SS_DV, at most SS_VMAX) rolls v^2 / (2 SS_DECEL) u before it stops
+                # (the floor's own braking; log 40.5: the overnight falls were overshoots past the gem at ~30 u/s).
+                # Clear if the floor along the line continues that far (plus a margin) and past the waypoint, or if
+                # the next waypoint lies on the line and the floor continues to it.
+                # 40.15: the kick is AIMED so that v + 25 a points at the waypoint (ss_redirect_aim): a turn right after a
+                # pickup and a straight run are the same rule; the aim goes out in [28-29] and the worker fires along it.
+                aim0, lam0 = ss_redirect_aim(vx, vy, ux, uy)
+                if aim0 is not None and lam0 < 0.0:
+                    # 40.21: the brake case: the marble keeps rolling AWAY from the waypoint at |v| - 25 along its old
+                    # heading; survivable if the floor that way covers the remaining stop (+ margin)
+                    vec[VEC_POW + 28] = aim0[0]; vec[VEC_POW + 29] = aim0[1]
+                    sv = math.hypot(vx, vy); hx, hy = vx / sv, vy / sv
+                    rest = max(0.0, sv - SS_DV)
+                    lip_h, _, _ = self.terrain.gap_along(x, y, z, hx, hy, max_u=SS_SCAN_U)
+                    vec[VEC_POW + 26] = 1.0 if lip_h > rest * rest / (2.0 * SS_DECEL) + SS_RUN_MARGIN else 0.0
+                elif aim0 is not None:
+                    vec[VEC_POW + 28] = aim0[0]; vec[VEC_POW + 29] = aim0[1]
+                    v_after = min(SS_VMAX, lam0)
+                    stop_u = v_after * v_after / (2.0 * SS_DECEL)
+                    lip, _, _ = self.terrain.gap_along(x, y, z, ux, uy, max_u=SS_SCAN_U)
+                    need = max(stop_u, d) + SS_RUN_MARGIN
+                    ok = lip > need and v_after <= SS_LAM_MAX
+                    if not ok and next_goal is not None:
+                        ndx, ndy = next_goal[0] - x, next_goal[1] - y
+                        nd = math.hypot(ndx, ndy)
+                        if nd > d and (ndx * ux + ndy * uy) / max(nd, 1e-6) >= SS_NEXT_COS and lip > nd + SS_NEXT_MARGIN:
+                            ok = True
+                    vec[VEC_POW + 26] = 1.0 if ok else 0.0
+            if held == 2 and next_goal is not None and d > 1e-6:
+                # V9: the REDIRECT at the waypoint ahead. Predicted pickup velocity: the current speed along the line
+                # to the waypoint (at least SS_REDIRECT_MIN_SPEED). Kick aim: ss_redirect_aim toward the next waypoint
+                # from the gem. Survivable if the floor from the gem along that line runs to the next gem + margin.
+                sp0 = max(SS_REDIRECT_MIN_SPEED, math.hypot(vx, vy))
+                pvx, pvy = sp0 * ux, sp0 * uy
+                n2x, n2y = next_goal[0] - gx, next_goal[1] - gy
+                n2 = math.hypot(n2x, n2y)
+                if n2 > 1e-6:
+                    n2x, n2y = n2x / n2, n2y / n2
+                    aim, lam = ss_redirect_aim(pvx, pvy, n2x, n2y)
+                    if aim is not None:
+                        gzf = self.terrain.floor_z(gx, gy, gz)
+                        lip2, _, _ = self.terrain.gap_along(gx, gy, gzf, n2x, n2y, max_u=SS_SCAN_U)
+                        if lip2 > n2 + SS_NEXT_MARGIN:
+                            vec[VEC_POW + 27] = 1.0        # approach information only (40.15): the use fires after the pickup
         return crop.astype(np.float32), vec, on_floor
 
 

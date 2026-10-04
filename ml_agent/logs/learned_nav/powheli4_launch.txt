@@ -1,0 +1,2 @@
+powheli4: python 26308 game 40392 -> C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\logs\learned_nav\powheli4_Promontory_Hunt.txt
+powheli4: done

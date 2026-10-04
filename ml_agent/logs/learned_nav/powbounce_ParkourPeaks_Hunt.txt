@@ -1,0 +1,17 @@
+[env:9685] waiting for the game
+[env:9685] game connected (1)
+connected: ParkourPeaks_Hunt, round 240 s
+mission items: super_speed x8, super_bounce x7, shock_absorber x5
+super_bounce #0 at (-2.0, -5.0, 11.3): pickup True; SuperBounceItem act 000000 sched 000000
+   after use: held none act 001000 sched 001000; obs left bounce 4.77 shock 0.00
+   drop: restitution 0.89 (vz -10.24 -> 9.138); 001000 001000
+super_bounce #1 at (5.0, 6.0, 8.3): pickup True; SuperBounceItem act 000000 sched 000000
+   after use: held none act 001000 sched 001000; obs left bounce 4.77 shock 0.00
+   drop: restitution 0.89 (vz -10.24 -> 9.138); 001000 001000
+shock_absorber #0 at (-7.0, -10.0, 11.1): pickup True; ShockAbsorberItem act 000000 sched 000000
+   after use: held none act 000100 sched 000100; obs left bounce 0.00 shock 4.77
+   drop: restitution -0.0 (vz -10.24 -> -0.0); 000100 000100
+shock_absorber #1 at (-12.0, 17.0, 11.1): pickup True; ShockAbsorberItem act 000000 sched 000000
+   after use: held none act 000100 sched 000100; obs left bounce 0.00 shock 4.77
+   drop: restitution -0.0 (vz -10.24 -> -0.0); 000100 000100
+done

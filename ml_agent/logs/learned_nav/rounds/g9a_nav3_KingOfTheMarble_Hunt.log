@@ -1,0 +1,10 @@
+[00:33:26] [env:9904] waiting for the game
+[00:33:32] [env:9904] game connected (1)
+[00:33:35] connected: KingOfTheMarble_Hunt, round 180 s
+[00:33:35] hybrid: navigator update 28895, memory at handback "current", map KingOfTheMarble_Hunt, shortcuts 0, rescue 0, route 0, guard 0
+[00:36:04]   t 19 s: points 5, floor 4, floating 0, falls nav 1 planner 0, groups 1, owner nav
+[00:37:34] recover: respawn not confirmed (pos -47.3 16.6 -13.7, on map False, telemetry {'sub_steps': np.float64(8.0), 'contact_steps': np.float64(0.0), 'support_steps': np.float64(0.0), 'collisions': np.float64(0.0), 'max_contacts': np.float64(0.0), 'max_approach': np.float64(0.0), 'nx': np.float64(0.0), 'ny': np.float64(0.0), 'nz': np.float64(0.0), 'friction': np.float64(0.0), 'restitution': np.float64(0.0), 'force': np.float64(0.0), 'last_step_contact': np.float64(0.0)})
+[00:39:01] recover: respawn not confirmed (pos -4.6 9.2 -7.0, on map False, telemetry {'sub_steps': np.float64(8.0), 'contact_steps': np.float64(0.0), 'support_steps': np.float64(0.0), 'collisions': np.float64(0.0), 'max_contacts': np.float64(0.0), 'max_approach': np.float64(0.0), 'nx': np.float64(0.0), 'ny': np.float64(0.0), 'nz': np.float64(0.0), 'friction': np.float64(0.0), 'restitution': np.float64(0.0), 'force': np.float64(0.0), 'last_step_contact': np.float64(0.0)})
+[00:46:39]   t 38 s: points 10, floor 8, floating 0, falls nav 5 planner 0, groups 2, owner nav
+[00:47:01] [env:9904] send failed ([WinError 10054] An existing connection was forcibly closed by the remote host); waiting for the game to come back
+[00:47:01] [env:9904] waiting for the game

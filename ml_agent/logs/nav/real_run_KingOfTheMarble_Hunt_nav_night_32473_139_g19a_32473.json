@@ -1,0 +1,111 @@
+{
+ "map": "KingOfTheMarble_Hunt",
+ "ckpt": "nav_night_32473_139.pth",
+ "update": 32470,
+ "rounds": [
+  {
+   "round": 1,
+   "gems": 120,
+   "points": 149.0,
+   "minutes": 3.03,
+   "decisions": 2839,
+   "countdown_decisions": 48,
+   "gems_per_min": 39.6,
+   "points_per_min": 49.2,
+   "falls": 2,
+   "falls_per_100u": 0.13,
+   "travelled_u": 1534.9,
+   "speed": 8.45,
+   "blind_pct": 0.0,
+   "stuck_breaks": 2,
+   "snapped_pct": 0.0,
+   "pathed_pct": 0.5,
+   "smooth": 1.0,
+   "pow_uses": {}
+  },
+  {
+   "round": 2,
+   "gems": 113,
+   "points": 143.0,
+   "minutes": 3.03,
+   "decisions": 2836,
+   "countdown_decisions": 41,
+   "gems_per_min": 37.4,
+   "points_per_min": 47.3,
+   "falls": 5,
+   "falls_per_100u": 0.34,
+   "travelled_u": 1468.6,
+   "speed": 8.09,
+   "blind_pct": 0.0,
+   "stuck_breaks": 2,
+   "snapped_pct": 0.0,
+   "pathed_pct": 0.5,
+   "smooth": 1.0,
+   "pow_uses": {}
+  },
+  {
+   "round": 3,
+   "gems": 119,
+   "points": 149.0,
+   "minutes": 3.03,
+   "decisions": 2836,
+   "countdown_decisions": 41,
+   "gems_per_min": 39.3,
+   "points_per_min": 49.3,
+   "falls": 5,
+   "falls_per_100u": 0.338,
+   "travelled_u": 1480.6,
+   "speed": 8.16,
+   "blind_pct": 0.0,
+   "stuck_breaks": 2,
+   "snapped_pct": 0.0,
+   "pathed_pct": 0.5,
+   "smooth": 1.0,
+   "pow_uses": {
+    "1": 2
+   }
+  },
+  {
+   "round": 4,
+   "gems": 119,
+   "points": 152.0,
+   "minutes": 3.03,
+   "decisions": 2837,
+   "countdown_decisions": 41,
+   "gems_per_min": 39.3,
+   "points_per_min": 50.2,
+   "falls": 4,
+   "falls_per_100u": 0.261,
+   "travelled_u": 1530.5,
+   "speed": 8.43,
+   "blind_pct": 0.0,
+   "stuck_breaks": 1,
+   "snapped_pct": 0.0,
+   "pathed_pct": 0.0,
+   "smooth": 1.0,
+   "pow_uses": {}
+  }
+ ],
+ "mean": {
+  "gems_per_min": 38.9,
+  "points_per_min": 49.0,
+  "falls_per_100u": 0.267,
+  "speed": 8.282,
+  "blind_pct": 0.0
+ },
+ "human": {
+  "gems_per_min": 37.5,
+  "points_per_min": 47.3,
+  "speed": 8.05,
+  "falls_per_100u": 0.046
+ },
+ "vs_human": {
+  "gems_per_min": 1.04,
+  "points_per_min": 1.04,
+  "speed": 1.03,
+  "falls_ratio": 5.8
+ },
+ "value_weight": 0.0,
+ "h_reset": "never",
+ "when": "2026-10-03T13:29:32.813096"
+}

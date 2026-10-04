@@ -66,7 +66,135 @@ function AIObserver::collectState() {
     // 4. Collect game state (4 dims serialized)
     AIObserver::collectGameState(%obs);
 
+    // 5. Powerups (23 dims serialized, NAV_OBS_V7, 2026-10-02)
+    AIObserver::collectPowerups(%obs);
+
     return %obs;
+}
+
+//------------------------------------------------------------------------------
+// Powerups (2026-10-02, NAV_OBS_V7; ml_agent/POWERUP_PLAN.md phase 1). Seven types are in scope, coded
+//   1 Super Jump, 2 Super Speed, 3 Super Bounce, 4 Shock Absorber, 5 Helicopter, 6 Mega Marble, 7 Blast (pickup);
+// (1-6 are the datablocks' powerUpId; a Blast pickup has none). Read on the LISTEN server from the server-side
+// objects (ClientGroup.getObject(0).player holds the powerup state; the mission's Item objects hold the respawn
+// schedule), never from the client-side caches (observer-gem-source lesson).
+//   held        powerUpId of the held powerup (0 none)
+//   blast       the regular blast meter 0..1 ($MP::BlastValue, usable from $MP::BlastRequiredAmount)
+//   special     1 while a picked-up Blast is armed (fires at $MP::BlastRechargePower instead of sqrt(meter))
+//   mega        1 while the marble is mega;  megaLeft  seconds left of it
+//   bounceLeft, shockLeft, heliLeft  seconds left of the active Super Bounce / Shock Absorber / Helicopter
+//   item[i]     the $AIObserver::MaxPowItems nearest in-scope powerup items: type, camera-relative dx dy, dz,
+//               seconds until it respawns (0 = there now); absent slots -999
+//------------------------------------------------------------------------------
+$AIObserver::MaxPowItems = 3;
+
+function AIObserver::powerupType(%db) {
+    if (!isObject(%db))
+        return 0;
+    %id = %db.powerUpId + 0;
+    if (%id >= 1 && %id <= 6)
+        return %id;
+    %name = %db.getName();
+    if (strpos(%name, "BlastItem") == 0)
+        return 7;
+    return 0;
+}
+
+function AIObserver::scanPowerupItems(%group) {
+    // recursive scan of the mission's server-side objects for the seven item types (once per mission)
+    if (!isObject(%group))
+        return;
+    %n = %group.getCount();
+    for (%i = 0; %i < %n; %i++) {
+        %o = %group.getObject(%i);
+        if (%o.getClassName() $= "SimGroup" || %o.getClassName() $= "SimSet") {
+            AIObserver::scanPowerupItems(%o);
+        } else if (%o.getClassName() $= "Item") {
+            %t = AIObserver::powerupType(%o.getDatablock());
+            if (%t > 0) {
+                $AIObserver::PowItem[$AIObserver::PowItemCount] = %o;
+                $AIObserver::PowItemType[$AIObserver::PowItemCount] = %t;
+                $AIObserver::PowItemCount++;
+            }
+        }
+    }
+}
+
+function AIObserver::collectPowerups(%obs) {
+    %player = -1;
+    if (isObject(ClientGroup) && ClientGroup.getCount() > 0 && isObject(ClientGroup.getObject(0).player))
+        %player = ClientGroup.getObject(0).player;
+
+    %obs.powHeld = 0; %obs.powMega = 0; %obs.powMegaLeft = 0;
+    %obs.powBounceLeft = 0; %obs.powShockLeft = 0; %obs.powHeliLeft = 0;
+    if (isObject(%player)) {
+        if (isObject(%player.powerUpData))
+            %obs.powHeld = AIObserver::powerupType(%player.powerUpData);
+        %obs.powMega = %player.megaMarble ? 1 : 0;
+        if (isEventPending(%player.megaSchedule))
+            %obs.powMegaLeft = getEventTimeLeft(%player.megaSchedule) / 1000.0;
+        if (isEventPending(%player.powerupSchedule[3]))
+            %obs.powBounceLeft = getEventTimeLeft(%player.powerupSchedule[3]) / 1000.0;
+        if (isEventPending(%player.powerupSchedule[4]))
+            %obs.powShockLeft = getEventTimeLeft(%player.powerupSchedule[4]) / 1000.0;
+        if (isEventPending(%player.powerupSchedule[5]))
+            %obs.powHeliLeft = getEventTimeLeft(%player.powerupSchedule[5]) / 1000.0;
+    }
+    %obs.powBlast = ($MP::BlastValue $= "") ? 0 : $MP::BlastValue + 0;
+    %obs.powSpecial = $MP::SpecialBlast ? 1 : 0;
+
+    // the items: cached per mission
+    %mission = isObject(MissionInfo) ? MissionInfo.name : "";
+    if ($AIObserver::PowItemMission !$= %mission || $AIObserver::PowItemCount $= "") {
+        $AIObserver::PowItemCount = 0;
+        AIObserver::scanPowerupItems(MissionGroup);
+        $AIObserver::PowItemMission = %mission;
+        echo("AIObserver: " @ $AIObserver::PowItemCount @ " powerup items in " @ %mission);
+    }
+
+    %myPos = $MP::MyMarble.getPosition();
+    %mx = getWord(%myPos, 0); %my = getWord(%myPos, 1); %mz = getWord(%myPos, 2);
+    %yawRad = ($AIObserver::ForceYaw !$= "") ? $AIObserver::ForceYaw : $MP::MyMarble.getCameraYaw();
+    %cosYaw = mCos(%yawRad); %sinYaw = mSin(%yawRad);
+
+    // nearest MaxPowItems by straight distance (insertion sort over a short list)
+    %k = 0;
+    for (%i = 0; %i < $AIObserver::PowItemCount; %i++) {
+        %o = $AIObserver::PowItem[%i];
+        if (!isObject(%o))
+            continue;
+        %p = %o.getPosition();
+        %dx = getWord(%p, 0) - %mx; %dy = getWord(%p, 1) - %my; %dz = getWord(%p, 2) - %mz;
+        %d = mSqrt(%dx * %dx + %dy * %dy + %dz * %dz);
+        %left = 0;
+        if (isEventPending(%o._respawnSchedule))
+            %left = getEventTimeLeft(%o._respawnSchedule) / 1000.0;
+        else if (%o.isHidden())
+            %left = 7;
+        // insert
+        %j = %k;
+        while (%j > 0 && %obs.powTmpD[%j - 1] > %d) {
+            %obs.powTmpD[%j] = %obs.powTmpD[%j - 1]; %obs.powTmpT[%j] = %obs.powTmpT[%j - 1];
+            %obs.powTmpX[%j] = %obs.powTmpX[%j - 1]; %obs.powTmpY[%j] = %obs.powTmpY[%j - 1];
+            %obs.powTmpZ[%j] = %obs.powTmpZ[%j - 1]; %obs.powTmpL[%j] = %obs.powTmpL[%j - 1];
+            %j--;
+        }
+        %obs.powTmpD[%j] = %d; %obs.powTmpT[%j] = $AIObserver::PowItemType[%i];
+        %obs.powTmpX[%j] = %dx * %cosYaw - %dy * %sinYaw; %obs.powTmpY[%j] = %dx * %sinYaw + %dy * %cosYaw;
+        %obs.powTmpZ[%j] = %dz; %obs.powTmpL[%j] = %left;
+        if (%k < $AIObserver::MaxPowItems)
+            %k++;
+    }
+    for (%i = 0; %i < $AIObserver::MaxPowItems; %i++) {
+        if (%i < %k) {
+            %obs.powItem[%i, "t"] = %obs.powTmpT[%i]; %obs.powItem[%i, "x"] = %obs.powTmpX[%i];
+            %obs.powItem[%i, "y"] = %obs.powTmpY[%i]; %obs.powItem[%i, "z"] = %obs.powTmpZ[%i];
+            %obs.powItem[%i, "l"] = %obs.powTmpL[%i];
+        } else {
+            %obs.powItem[%i, "t"] = -999; %obs.powItem[%i, "x"] = -999; %obs.powItem[%i, "y"] = -999;
+            %obs.powItem[%i, "z"] = -999; %obs.powItem[%i, "l"] = -999;
+        }
+    }
 }
 
 //-----------------------------------------------------------------------------
@@ -576,6 +704,17 @@ function AIObserver::serializeToJSON(%obs) {
     // Spin (3 values, NAV_OBS_V6, 2026-09-26): appended last so indices 0-34 are unchanged
     %json = %json @ "," @ AIObserver::safeNum(%obs.selfSpinX) @ "," @ AIObserver::safeNum(%obs.selfSpinY)
                   @ "," @ AIObserver::safeNum(%obs.selfSpinZ);
+
+    // NAV_OBS_V7 (2026-10-02): the powerup block, 8 + 3 x 5 = 23 numbers (indices 38-60; nav/protocol.py RAW_POW_*)
+    %json = %json @ "," @ AIObserver::safeNum(%obs.powHeld) @ "," @ AIObserver::safeNum(%obs.powBlast)
+                  @ "," @ AIObserver::safeNum(%obs.powSpecial) @ "," @ AIObserver::safeNum(%obs.powMega)
+                  @ "," @ AIObserver::safeNum(%obs.powMegaLeft) @ "," @ AIObserver::safeNum(%obs.powBounceLeft)
+                  @ "," @ AIObserver::safeNum(%obs.powShockLeft) @ "," @ AIObserver::safeNum(%obs.powHeliLeft);
+    for (%i = 0; %i < $AIObserver::MaxPowItems; %i++) {
+        %json = %json @ "," @ AIObserver::safeNum(%obs.powItem[%i, "t"]) @ "," @ AIObserver::safeNum(%obs.powItem[%i, "x"])
+                      @ "," @ AIObserver::safeNum(%obs.powItem[%i, "y"]) @ "," @ AIObserver::safeNum(%obs.powItem[%i, "z"])
+                      @ "," @ AIObserver::safeNum(%obs.powItem[%i, "l"]);
+    }
 
     // Contact telemetry (13 values, 2026-09-27, jump physics stage 3): only after the CONTACT control word
     // (mlAgent.cs), so the 38 numbers above are untouched. Each read covers the physics since the last one.

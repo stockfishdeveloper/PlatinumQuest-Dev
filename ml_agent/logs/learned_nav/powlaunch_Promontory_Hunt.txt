@@ -1,0 +1,14 @@
+[env:9689] waiting for the game
+[env:9689] game connected (1)
+connected: Promontory_Hunt, round 300 s
+mission items: super_jump x12, super_speed x9, blast x6, helicopter x12, mega x10
+tarmac spot (0, -126, -14.88), 2 triangles in the cell
+tarmac: spin 90.0 rad/s, mega False: peak speed 5.3 u/s at decision 0, speed at 2.5 s 3.8, z max 0.43; vx by decision 4.6 4.6 3.9 3.9 2.4 0.5 -0.9 -1.9 -2.8 -3.4
+tarmac: spin 90.0 rad/s, mega True: peak speed 8.4 u/s at decision 25, speed at 2.5 s 0.2, z max 3.48; vx by decision 4.6 4.6 4.6 4.6 6.7 7.8 8.3 5.9 3.3 1.3
+tarmac: spin 150.0 rad/s, mega False: peak speed 8.1 u/s at decision 0, speed at 2.5 s 3.2, z max 1.86; vx by decision 7.6 7.6 7.2 6.9 4.8 2.5 0.7 -0.8 -1.9 -2.7
+tarmac: spin 150.0 rad/s, mega True: peak speed 18.9 u/s at decision 19, speed at 2.5 s 12.9, z max 10.81; vx by decision 7.6 7.6 7.6 9.4 9.4 17.9 17.9 11.0 11.0 11.0
+tarmac: spin 250.0 rad/s, mega False: peak speed 11.4 u/s at decision 17, speed at 2.5 s 7.0, z max 3.20; vx by decision 8.0 8.0 8.2 8.3 9.4 9.3 7.7 7.9 6.8 6.8
+tarmac: spin 250.0 rad/s, mega True: peak speed 37.0 u/s at decision 37, speed at 2.5 s 37.0, z max 5.01; vx by decision 8.0 8.0 9.6 11.6 21.6 25.1 25.1 25.1 25.1 31.4
+tarmac: spin 400.0 rad/s, mega False: peak speed 19.3 u/s at decision 37, speed at 2.5 s 19.3, z max 3.82; vx by decision 8.0 8.0 8.3 8.4 10.0 18.0 18.0 17.3 17.3 17.3
+tarmac: spin 400.0 rad/s, mega True: peak speed 37.6 u/s at decision 36, speed at 2.5 s 37.6, z max 5.10; vx by decision 8.0 8.0 9.6 11.6 21.6 25.4 25.4 25.4 25.4 37.6
+done

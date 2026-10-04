@@ -1,0 +1,8 @@
+[env:9686] waiting for the game
+[env:9686] game connected (1)
+connected: Promontory_Hunt, round 300 s
+mission items: super_jump x12, super_speed x9, blast x6, helicopter x12, mega x10
+plain: drop restitution 0.47 (vz -7.68 -> 3.615); jump apex +0.88 u, hang 2.37 s; air vx after 1.5 s of throttle 11.5; effects left bounce 0.0 shock 0.0 heli 0.0
+helicopter used: held none; effect seconds left: bounce 0.00 shock 0.00 heli 4.81
+helicopter: drop restitution 0.48 (vz -4.16 -> 1.985); jump apex +0.86 u, hang 2.24 s; air vx after 1.5 s of throttle 11.5; effects left bounce 0.0 shock 0.0 heli 0.0
+done

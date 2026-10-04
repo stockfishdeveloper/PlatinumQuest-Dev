@@ -1,0 +1,11 @@
+[00:32:44] [env:9901] waiting for the game
+[00:33:02] [env:9901] game connected (1)
+[00:33:08] connected: KingOfTheMarble_Hunt, round 180 s
+[00:33:08] hybrid: navigator update 28895, memory at handback "current", map KingOfTheMarble_Hunt, shortcuts 0, rescue 0, route 0, guard 0
+[00:36:23] recover: respawn not confirmed (pos -58.2 10.8 -5.6, on map False, telemetry {'sub_steps': np.float64(8.0), 'contact_steps': np.float64(0.0), 'support_steps': np.float64(0.0), 'collisions': np.float64(0.0), 'max_contacts': np.float64(0.0), 'max_approach': np.float64(0.0), 'nx': np.float64(0.0), 'ny': np.float64(0.0), 'nz': np.float64(0.0), 'friction': np.float64(0.0), 'restitution': np.float64(0.0), 'force': np.float64(0.0), 'last_step_contact': np.float64(0.0)})
+[00:36:43] recover: respawn not confirmed (pos -41.4 -17.3 -10.0, on map False, telemetry {'sub_steps': np.float64(8.0), 'contact_steps': np.float64(0.0), 'support_steps': np.float64(0.0), 'collisions': np.float64(0.0), 'max_contacts': np.float64(0.0), 'max_approach': np.float64(0.0), 'nx': np.float64(0.0), 'ny': np.float64(0.0), 'nz': np.float64(0.0), 'friction': np.float64(0.0), 'restitution': np.float64(0.0), 'force': np.float64(0.0), 'last_step_contact': np.float64(0.0)})
+[00:39:35]   t 19 s: points 6, floor 5, floating 0, falls nav 4 planner 0, groups 1, owner nav
+[00:42:23] recover: respawn not confirmed (pos 8.3 -29.7 -8.1, on map False, telemetry {'sub_steps': np.float64(8.0), 'contact_steps': np.float64(0.0), 'support_steps': np.float64(0.0), 'collisions': np.float64(0.0), 'max_contacts': np.float64(0.0), 'max_approach': np.float64(0.0), 'nx': np.float64(0.0), 'ny': np.float64(0.0), 'nz': np.float64(0.0), 'friction': np.float64(0.0), 'restitution': np.float64(0.0), 'force': np.float64(0.0), 'last_step_contact': np.float64(0.0)})
+[00:43:41]   t 38 s: points 18, floor 15, floating 0, falls nav 6 planner 0, groups 3, owner nav
+[00:47:01] [env:9901] send failed ([WinError 10054] An existing connection was forcibly closed by the remote host); waiting for the game to come back
+[00:47:01] [env:9901] waiting for the game

@@ -6,7 +6,11 @@ it here. The dated history of every experiment (sections 1 to 28.x, 2026-09-17 t
 `docs/HANDOFF_NAV_TRAINING_LOG.md`. Code comments that cite "HANDOFF 28.52" and the like point into that
 log, and new dated entries go there too.
 
-Last updated: 2026-10-02 16:30 (log 36-37: engine flight physics in the planner; whole-spawn gem order trained in; best checkpoint 28897: navigator alone 160.1 / 170 best, hybrid 158.9 / 164 best; training stopped by the operator at 29794).
+Last updated: 2026-10-03 23:05 (log 40.11-40.22: the Super Speed as a physics-aimed post-pickup turn; the
+operator's demo measured (20 fires a round, 90-150 deg turns to ~17 u/s); approvals capped at a brakeable 24 u/s;
+training running from the 28897 lineage (obs V9, update ~30420) with the use prior sampled at >= 27 %; overnight
+handoff OVERNIGHT_2026-10-03_SUPERSPEED.md. Gates of phase 4 checkpoints 132-156 against 160.1 without uses;
+no use learned to deterministic play yet).
 
 ## 1. Where things stand
 
@@ -169,6 +173,28 @@ Last updated: 2026-10-02 16:30 (log 36-37: engine flight physics in the planner;
   stopped that work; it is not wired in anywhere). Repo: *.npz are gitignored (kept on disk); the four unpushed
   commits were rewritten without the .npz and the intermediate .pth (2.9 GB -> 150 MB) and pushed; the old
   history is the local branch backup/navigator-architecture-before-rewrite-20261002.
+* **Night of 10-02/03 (log 40.3-40.7): powerup training with the use prior; goal not met, still training.** From
+  update 29295 at 23:36 to 30916 at 06:18 (5,218 KOTM rounds, no crash): training rounds 109 -> 126 a round (phase 4a
+  ended at 138-140; 127-130 by 07:50), falls 3.7 -> 2.5; 8-round gates of seven checkpoints 132.1-138.3 (best round 154,
+  the last 31275 at 138.1) against 160.1 for
+  28897 without uses, and 128.1 for 28897 with the prior's rule alone. As coded, the head cannot cancel the prior
+  (model.py adds USE_PRIOR after the -9 clamp), so every approved use fires in deterministic play; the Super Speed
+  overshoot (about 30 u/s past the gem) and the blasts approved at that speed cost the points. Gates beside the trainer:
+  CPU real_run (logs/nav/gate_scripts/rr_gate.sh); the hybrid gate overflows the 8 GB GPU.
+* **10-03 13:10 (log 40.8): the use floor fix is in and training restarted.** model.py USE_PRIOR_FLOOR -4: where the prior
+  approves, the head can now take the use logit down to -4 (no fire in deterministic play). The same checkpoint (32425)
+  under the new rule, before any training with it: 144.5 (best 156), falls 2.5 a round, Super Speed uses 0.1 a round
+  (old rule 138.1, falls 5.0). Training relaunched 13:19 from nav_latest (32445; the old run's endpoint is
+  nav_p4b_end_32445.pth, its logs *_phase4b_20261003.txt). First high 139.0 at 32473: gate 147.9 (best 152) with almost
+  no uses. **Training STOPPED 13:36 by the operator** at 32510 (nav_p4c_stop_32510.pth = nav_latest); resume with
+  start_training.ps1.
+
+* **10-03 night (log 40.23-40.25): training STOPPED 23:41 by the operator** at 30575 (nav_p4f_stop_30575.pth =
+  nav_latest), after 45 minutes of the 24 u/s cap run (138.8 a round, Super Speed turns reaching the gem 56 %). The
+  operator's goal: one round over 175 WITH the powerup model. Fixed for evaluation: real_run's stuck-breaker fired only
+  falsely on KOTM (loops through gem clusters); NAV_STUCK_PICKUP (default on) lifted 28897 from 159.6 to 162 in 8-round
+  batches. The approval admits 13 of the operator's 20 demo kicks; the gap is the Super Speed supply and the kicks'
+  hit rate (proposals in 40.25).
 
 ## 2. Spin A/B (2026-09-26 22:00-22:40, 3x, 8 rounds per arm)
 

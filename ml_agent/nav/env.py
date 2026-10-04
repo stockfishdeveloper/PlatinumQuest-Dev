@@ -256,7 +256,7 @@ class HuntEnv:
         return self.msg
 
     # ------------------------------------------------------------------ stepping
-    def step(self, joystick, use_pow=0, repeat=None):
+    def step(self, joystick, use_pow=0, repeat=None, pow_yaw=None, use_blast=0):
         """Reply `joystick` = (fwd, back, left, right, jump) to the pending observation and hold it
         for `repeat` observations. Returns (last_msg, info) with info: fell (any oob in the
         window), gem_delta, round_ended, reconnected, ticks."""
@@ -265,7 +265,7 @@ class HuntEnv:
         fell = False; gems = 0.0
         m = self.msg
         for i in range(repeat):
-            self._send(format_action(*joystick, use_pow=use_pow, tick=m.tick))
+            self._send(format_action(*joystick, use_pow=use_pow, tick=m.tick, pow_yaw=pow_yaw, use_blast=use_blast))
             m = self._recv_obs()
             fell |= bool(m.oob); gems += m.gem_delta
             # NOTE: m.done is the old trainer's 15000-step episode cap, not the round end;
@@ -276,11 +276,11 @@ class HuntEnv:
         return m, {'fell': fell, 'gem_delta': gems, 'round_ended': self.round_ended,
                    'reconnected': self.reconnected, 'ticks': self.ticks}
 
-    def step_async(self, joystick, use_pow=0):
+    def step_async(self, joystick, use_pow=0, pow_yaw=None, use_blast=0):
         """Send the reply to the pending observation without waiting for the next one (vector env:
         send to every instance first, then collect; the lockstepped games run in parallel)."""
         self.round_ended = False; self.reconnected = False
-        self._send(format_action(*joystick, use_pow=use_pow, tick=self.msg.tick))
+        self._send(format_action(*joystick, use_pow=use_pow, tick=self.msg.tick, pow_yaw=pow_yaw, use_blast=use_blast))
 
     def step_wait(self):
         """Second half of step_async: the next observation and the same info dict as step()."""

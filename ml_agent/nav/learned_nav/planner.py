@@ -28,6 +28,7 @@ HERE = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)
 sys.path.insert(0, HERE)
 from nav.learned_nav import dynamics3 as D3                                      # noqa: E402
 from nav.learned_nav import eval3 as E3                                          # noqa: E402
+from nav.learned_nav import powerup_physics as PW                                # noqa: E402
 from nav.joystick import action_to_joystick                                      # noqa: E402
 
 R = 0.19
@@ -110,6 +111,8 @@ AIR_EXACT = True             # flight and flat-floor landings from the ENGINE's 
                              # impulse. Steps near walls, lips or sloped floor stay with the step model. Measured on the
                              # centre drill (centredrill.py): the model flew 2-4 u long without input, 2 u short with it
 AIR_ACCEL = 5.0              # MarbleData airAcceleration (u/s^2 per unit of input; the adapter sends up to sqrt 2)
+FAST_GROUND = 18.0           # u/s: above this on the floor the step model is out of its data (log 39); analytic rolling
+FAST_DECEL = 14.0            # u/s^2 measured after a Super Speed boost with no input (24.3 -> 16.6 in 11 decisions)
 AIR_GAP_MIN = 0.05           # bottom this far above the floor = airborne for the exact step
 BOUNCE_E = 0.5               # bounceRestitution; BOUNCE_FRICTION = bounceKineticFriction; MAX_DOT_SLIDE, MIN_BOUNCE_VEL as the datablock
 BOUNCE_FRICTION = 0.2
@@ -143,13 +146,15 @@ def p_pick(dmin):
 class Programs:
     """n programs of H decisions: mode, direction (world rad), throttle, jump key; after-landing mode/direction, held
     after_n decisions from the landing and then a brake (after_n H + 1: held to the end)."""
-    KEYS = ('mode', 'ang', 'thr', 'jump', 'after', 'after_ang', 'after_n', 'tag')
+    KEYS = ('mode', 'ang', 'thr', 'jump', 'after', 'after_ang', 'after_n', 'tag', 'use', 'use_yaw')
 
     def __init__(self, n):
         self.mode = np.full((n, H), MODE_DIR, np.int8); self.ang = np.zeros((n, H)); self.thr = np.ones((n, H))
         self.jump = np.zeros((n, H), np.int8); self.after = np.full(n, MODE_BRAKE, np.int8); self.after_ang = np.zeros(n)
         self.after_n = np.full(n, H + 1, np.int16)
         self.tag = np.zeros(n, np.int8)                      # 0 broad, 1 seed, 2 warm, 3 air
+        self.use = np.zeros((n, H), np.int8)                 # powerups (log 39): 1 = fire the held one, 2 = the blast meter
+        self.use_yaw = np.zeros((n, H))                      # camera yaw the use fires along (Super Speed)
 
     @staticmethod
     def cat(parts):
@@ -170,10 +175,10 @@ class Programs:
         followed for many decisions does not brake to a stop in the open (stage 6b, log 34.10: the planner-alone
         rounds stalled to 0.1-0.9 u/s mid-leg after ~2 s on the same plan, 2.4 s legs against the navigator's 1.36)."""
         out = self.take(slice(None))
-        for k in ('mode', 'ang', 'thr', 'jump'):
+        for k in ('mode', 'ang', 'thr', 'jump', 'use', 'use_yaw'):
             a = getattr(out, k)
             a[:, :-1] = a[:, 1:].copy()
-            if k == 'jump':
+            if k in ('jump', 'use'):
                 a[:, -1] = 0
         j = H - TAIL - 1                                          # the first decision of the (shifted) tail
         tailed = out.mode[:, H - 1] == MODE_BRAKE                 # programs that carry a brake tail at all
@@ -260,14 +265,17 @@ class FastEnsemble:
         return out[:, :D3.N_CONT], out[:, D3.N_CONT:]
 
 
-def air_exact(g, P, V, W, U, J):
+def air_exact(g, P, V, W, U, J, gmult=None, amult=None, rest=None, force=None):
     """Engine physics for airborne steps (AIR_EXACT). Returns (mask, P1, V1, W1, sup, coll, last): mask marks the rows
     whose step is computed here: the marble starts in the air (bottom > AIR_GAP_MIN above the level below) and the
     step's path stays clear of walls and lips (nothing within 2.4 u above the marble at the end, the level below the
     midpoint and the end at or under the start's or the landing floor). Rows that would meet a flat floor during the
     step land here as well (velocityCancel: slide, cancel or bounce). The rest is the step model's."""
     n = len(P); dt = D3.DT; G = D3.G
-    a = np.c_[AIR_ACCEL * U[:, 0], AIR_ACCEL * U[:, 1], np.full(n, -G)]
+    gm = np.ones(n) if gmult is None else gmult                 # helicopter: gravity x0.25, air control x2 (log 38)
+    am = np.ones(n) if amult is None else amult
+    ee = np.full(n, BOUNCE_E) if rest is None else rest         # Super Bounce 0.9 / Shock Absorber 0.01
+    a = np.c_[AIR_ACCEL * am * U[:, 0], AIR_ACCEL * am * U[:, 1], -G * gm]
     P1 = P + V * dt + 0.5 * a * dt * dt; V1 = V + a * dt; W1 = W.copy()
     ztop = P[:, 2] + 0.3
     lv0, ab0 = D3.level_below(g, P[:, 0], P[:, 1], ztop)
@@ -278,6 +286,8 @@ def air_exact(g, P, V, W, U, J):
     gapm = np.where(np.isfinite(lvm), Pm[:, 2] - R - lvm, 9.0)
     gap1 = np.where(np.isfinite(lv1), P1[:, 2] - R - lv1, 9.0)
     airborne = gap0 > AIR_GAP_MIN
+    if force is not None:
+        airborne |= force                                        # an impulse this step (Super Jump, blast): it flies
     clear = ~ab1 & ~abm & (gapm > 0.0)
     fly = airborne & clear & (gap1 > 0.0)
     # landing: the end point is at or under a floor that the midpoint is still above, the floor level the same at both
@@ -291,7 +301,8 @@ def air_exact(g, P, V, W, U, J):
         ok = h > 0.0
         i = i[ok]; h = h[ok]; vz = vz[ok]
         land[:] = False; land[i] = True
-        tau = (vz + np.sqrt(vz * vz + 2.0 * G * h)) / G          # time to contact (vz < 0 or h small)
+        gi = G * gm[i]
+        tau = (vz + np.sqrt(vz * vz + 2.0 * gi * h)) / gi        # time to contact (vz < 0 or h small)
         tau = np.clip(tau, 0.0, dt)
         Pc = P[i] + V[i] * tau[:, None] + 0.5 * a[i] * tau[:, None] ** 2
         Vc = V[i] + a[i] * tau[:, None]
@@ -315,7 +326,7 @@ def air_exact(g, P, V, W, U, J):
             # delta omega = (n x dir) ang_v; the velocity loses R ang_v along dir
             Wn[b, 0] += -d[:, 1] * ang_v; Wn[b, 1] += d[:, 0] * ang_v
             Vn[b, 0] -= R * ang_v * d[:, 0]; Vn[b, 1] -= R * ang_v * d[:, 1]
-            Vn[b, 2] = -BOUNCE_E * Vc[b, 2]
+            Vn[b, 2] = -ee[i][b] * Vc[b, 2]
             settle = Vn[b, 2] < LAND_VZ_SETTLE
             Vn[np.nonzero(b)[0][settle], 2] = 0.0
         rem = (dt - tau)[:, None]
@@ -333,7 +344,7 @@ def air_exact(g, P, V, W, U, J):
     return mask, P1, V1, W1, sup, coll, last
 
 
-def simulate(steps, g, eidx, dev, P, V, W, Uc, Jc, Up, Jp, progs, airborne0, floor_ref):
+def simulate(steps, g, eidx, dev, P, V, W, Uc, Jc, Up, Jp, progs, airborne0, floor_ref, pow=None):
     """Roll each program forward from its start (P, V, W: (n, 3)); Uc, Jc: the pending reply (acts first); Up, Jp:
     the reply before it. State index k = k decisions after the observation; program decision d is built at state d
     (its brake direction uses that state's velocity) and acts from state d + 1 to d + 2."""
@@ -349,6 +360,16 @@ def simulate(steps, g, eidx, dev, P, V, W, Uc, Jc, Up, Jp, progs, airborne0, flo
     jumped_at = np.full(n, -1)
     unplanned = np.zeros(n, bool); reair = np.zeros(n, bool); in_air_t = np.zeros((n, H + 1), bool)
     after_fire = np.zeros(n, bool)
+    # powerups (log 39): pow = {'held': type 0-7, 'meter': blast meter, 'special': bool, 'use_p': use sent two decisions
+    # ago (fires at t 0), 'use_c': use sent last decision (fires at t 1), 'use_yaw_p', 'use_yaw_c', 'heli_left',
+    # 'bounce_left', 'shock_left' (seconds)}. A use fires two decisions after it is sent (powdrill, log 38.1).
+    pw = pow or {}
+    held = np.full(n, int(pw.get('held', 0))); meter = np.full(n, float(pw.get('meter', 0.0)))
+    special = np.full(n, bool(pw.get('special', False)))
+    gmult = np.ones(n); amult = np.ones(n); rest = np.full(n, BOUNCE_E)
+    heli_end = np.full(n, float(pw.get('heli_left', 0.0)) / D3.DT)
+    bounce_end = np.full(n, float(pw.get('bounce_left', 0.0)) / D3.DT); shock_end = np.full(n, float(pw.get('shock_left', 0.0)) / D3.DT)
+    used_at = np.full(n, -1); impulse = np.zeros(n, bool)
     for t in range(H + 1):
         if t == 0:
             U = Uc.copy(); J = Jc.copy()
@@ -360,6 +381,35 @@ def simulate(steps, g, eidx, dev, P, V, W, Uc, Jc, Up, Jp, progs, airborne0, flo
             th = np.where(post, 1.0, progs.thr[:, d])
             U = world_input(md, an, th, vel[:, d])
             J = np.where(post, 0.0, progs.jump[:, d].astype(float))
+        # the powerup use that fires in this transition, and the effects active during it
+        if t == 0:
+            uf = np.full(n, int(pw.get('use_p', 0))); uy = np.full(n, float(pw.get('use_yaw_p', 0.0)))
+        elif t == 1:
+            uf = np.full(n, int(pw.get('use_c', 0))); uy = np.full(n, float(pw.get('use_yaw_c', 0.0)))
+        else:
+            uf = progs.use[:, t - 2].astype(int); uy = progs.use_yaw[:, t - 2]
+        impulse[:] = False
+        if uf.any():
+            fire_h = (uf == 1) & (held > 0)
+            if fire_h.any():
+                sj = fire_h & (held == 1); ss = fire_h & (held == 2)
+                V[sj, 2] += PW.SUPER_JUMP_VZ; impulse |= sj
+                V[ss, 0] += PW.SUPER_SPEED_DV * np.sin(uy[ss]); V[ss, 1] += PW.SUPER_SPEED_DV * np.cos(uy[ss])
+                heli_end[fire_h & (held == 5)] = t + PW.EFFECT_S[5] / D3.DT
+                bounce_end[fire_h & (held == 3)] = t + PW.EFFECT_S[3] / D3.DT
+                shock_end[fire_h & (held == 4)] = t + PW.EFFECT_S[4] / D3.DT
+                used_at[fire_h & (used_at < 0)] = t
+                held[fire_h] = 0
+            fire_b = (uf == 2) & ((meter >= PW.BLAST_REQUIRED) | special)
+            if fire_b.any():
+                vb = np.where(special[fire_b], PW.BLAST_POWER * PW.BLAST_SPECIAL_POWER, PW.BLAST_POWER * np.sqrt(np.maximum(meter[fire_b], 0.0)))
+                V[fire_b, 2] += vb; impulse |= fire_b
+                meter[fire_b] = PW.BLAST_AFTER; special[fire_b] = False
+                used_at[fire_b & (used_at < 0)] = t
+        meter = np.minimum(1.0, meter + D3.DT / PW.BLAST_CHARGE_S)
+        heli_on = t < heli_end
+        gmult[:] = np.where(heli_on, PW.HELI_GRAVITY_MULT, 1.0); amult[:] = np.where(heli_on, PW.HELI_AIR_ACCEL_MULT, 1.0)
+        rest[:] = np.where(t < shock_end, PW.SHOCK_RESTITUTION, np.where(t < bounce_end, PW.SUPER_BOUNCE_RESTITUTION, BOUNCE_E))
         F, yaw = D3.features(g, eidx, P, V, W, U, J, Up, Jp)
         if isinstance(steps, FastEnsemble):
             mu, pc = steps(F)
@@ -372,13 +422,24 @@ def simulate(steps, g, eidx, dev, P, V, W, Uc, Jc, Up, Jp, progs, airborne0, flo
         z_before = P[:, 2].copy(); W_before = W.copy()
         air_before = airborne.copy()
         if AIR_EXACT:
-            ex, Px, Vx, Wx, sup_x, coll_x, last_x = air_exact(g, P, V, W, U, J)
+            ex, Px, Vx, Wx, sup_x, coll_x, last_x = air_exact(g, P, V, W, U, J, gmult, amult, rest, impulse)
             if fires is not None:
                 ex &= ~fires
+        P_before = P.copy(); V_before = V.copy()
         P, V, W = D3.apply_step(P, V, W, mu, yaw)
         if AIR_EXACT and ex.any():
             P[ex] = Px[ex]; V[ex] = Vx[ex]; W[ex] = Wx[ex]
             pc = pc.copy(); pc[ex, 0] = sup_x[ex]; pc[ex, 1] = coll_x[ex]; pc[ex, 2] = last_x[ex]
+        # FAST GROUND (log 39): the step model never saw a marble rolling above ~18 u/s (a Super Speed boost gives 25-31)
+        # and brakes it 11 u/s in one step; the game loses ~0.9 u/s a decision with no input (14 u/s^2, powdrill).
+        # Above FAST_GROUND on the floor: the measured deceleration along the velocity instead of the model's.
+        sp_b = np.hypot(V_before[:, 0], V_before[:, 1])
+        fast = (~ex) & (sp_b > FAST_GROUND) & (~air_before)
+        if fast.any():
+            f = fast; k = np.maximum(0.0, 1.0 - FAST_DECEL * D3.DT / sp_b[f])
+            V[f, 0] = V_before[f, 0] * k; V[f, 1] = V_before[f, 1] * k
+            P[f, 0] = P_before[f, 0] + 0.5 * (V_before[f, 0] + V[f, 0]) * D3.DT
+            P[f, 1] = P_before[f, 1] + 0.5 * (V_before[f, 1] + V[f, 1]) * D3.DT
         if AIR_DRAG_RESID > 0:
             # measured residual of the step model in the air (log 34.15): the game's horizontal speed change in flight
             # falls with speed like drag (~ -0.0011 v^2 per step with no input) and the model keeps ~ +0.1-0.25 u/s a
@@ -431,7 +492,7 @@ def simulate(steps, g, eidx, dev, P, V, W, Uc, Jc, Up, Jp, progs, airborne0, flo
     clear = np.where(risky, E[..., 0], D3.EDGE_REACH).min(1).reshape(n, H + 1)
     clear = np.where(sup_t >= 0.5, clear, np.inf)
     stop_ok = stopping_room(g, path, vel, landed) if STOP_CHECK else np.ones(n, bool)
-    return {'path': path, 'vel': vel, 'landed': landed, 'airborne': airborne, 'started_air': started_air, 'stop_ok': stop_ok,
+    return {'path': path, 'vel': vel, 'landed': landed, 'airborne': airborne, 'started_air': started_air, 'stop_ok': stop_ok, 'used_at': used_at,
             'sup': sup_t, 'gap': gap_t, 'coll': coll_t, 'U': Ul, 'J': Jl, 'jumped_at': jumped_at, 'clear_t': clear,
             'unplanned': unplanned, 'reair': reair, 'in_air_t': in_air_t,
             'floor_ref': np.broadcast_to(np.asarray(floor_ref, float), (n,))}
@@ -682,6 +743,58 @@ class Planner:
         k2 = int(m2.sum())
         pr.after_ang[m2] = tg + rng.choice([-1.0, 1.0], k2) * rng.uniform(math.radians(60), math.radians(150), k2)
         pr.after_n[m2] = rng.integers(2, 10, k2)
+
+    def use_oracle(self, p, v, w, tel, Uc, Jc, Up, Jp, floor_ref, pow, airborne=False):
+        """The planner as a POWERUP oracle (log 39): fixed programs that fire the held powerup (or the blast) NOW with
+        a few air inputs / yaws, judged like any plan, against the same programs without the use. Returns
+        (gain, best) with best = {'use': 1|2, 'yaw', 'p_succ', 't_close', 'p_pick'} of the best use and gain = its
+        ranked score minus the best no-use program's (positive = the use helps), or (None, None) if nothing applies."""
+        held = int(pow.get('held', 0)); meter = float(pow.get('meter', 0.0)); special = bool(pow.get('special', False))
+        can_blast = special or meter >= PW.BLAST_REQUIRED
+        if held not in (1, 2, 5) and not can_blast:
+            return None, None
+        tg = math.atan2(self.gem[1] - p[1], self.gem[0] - p[0])
+        tgy = PW.SUPER_SPEED_YAW(self.gem[0] - p[0], self.gem[1] - p[1])
+        progs = []
+        airs = (None, 0.0, math.radians(60), -math.radians(60))
+        def base(nn, tag):
+            pr = Programs(nn); pr.tag[:] = tag; pr.ang[:] = tg
+            for i in range(nn):
+                a = airs[i % len(airs)]
+                if a is None:
+                    pr.mode[i, 1:] = MODE_NONE
+                else:
+                    pr.ang[i, 1:] = tg + a
+                pr.after[i] = MODE_DIR; pr.after_ang[i] = tg; pr.after_n[i] = 8
+            pr.mode[:, H - TAIL:] = MODE_BRAKE
+            return pr
+        # the no-use reference (walking on as the proposals would)
+        ref = base(len(airs), 7); progs.append(ref)
+        if held == 2:
+            yaws = (tgy, tgy + math.radians(30), tgy - math.radians(30), tgy + math.radians(60), tgy - math.radians(60))
+            pr = base(len(yaws) * 2, 8); pr.use[:, 0] = 1
+            for i in range(len(pr)):
+                pr.use_yaw[i, 0] = yaws[i % len(yaws)]
+                if i >= len(yaws):
+                    pr.mode[i, 1:H - TAIL] = MODE_BRAKE                # boost then brake (a short hop to the gem)
+            progs.append(pr)
+        if held in (1, 5):
+            pr = base(len(airs), 8); pr.use[:, 0] = 1; progs.append(pr)
+        if can_blast:
+            pr = base(len(airs), 9); pr.use[:, 0] = 2; progs.append(pr)
+        pr = Programs.cat(progs); n = len(pr)
+        sim = simulate(self.steps, self.g, self.eidx, self.dev, np.tile(p, (n, 1)), np.tile(v, (n, 1)), np.tile(w, (n, 1)),
+                       np.tile(Uc, (n, 1)), np.full(n, float(Jc)), np.tile(Up, (n, 1)), np.full(n, float(Jp)), pr, airborne, floor_ref, pow=pow)
+        jd = judge(sim, self.gem)
+        score = np.minimum(jd['p_succ'], self.p_sat) - self.time_w * jd['t_close']
+        no_use = pr.use[:, 0] == 0
+        ref_best = float(np.max(np.where(no_use, score, -np.inf)))
+        use_rows = np.nonzero(~no_use)[0]
+        k = int(use_rows[np.argmax(score[use_rows])])
+        best = {'use': int(pr.use[k, 0]), 'yaw': float(pr.use_yaw[k, 0]), 'p_succ': float(jd['p_succ'][k]),
+                't_close': int(jd['t_close'][k]), 'p_pick': float(jd['p_pick'][k]), 'tag': int(pr.tag[k]),
+                'ref_p': float(np.max(np.where(no_use, jd['p_succ'], 0.0))), 'ref_t': int(jd['t_close'][int(np.argmax(np.where(no_use, score, -np.inf)))])}
+        return float(score[k] - ref_best), best
 
     def jump_oracle(self, p, v, w, tel, Uc, Jc, Up, Jp, floor_ref):
         """The planner as a jump ORACLE for the navigator (log 35.4): no takeover. A few fixed programs that press the

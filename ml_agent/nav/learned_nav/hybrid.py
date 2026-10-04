@@ -46,7 +46,9 @@ from nav.learned_nav import dynamics3 as D3                                     
 from nav.learned_nav import guard as GD                                          # noqa: E402
 from nav.learned_nav.rounds import is_floating, same_gem, OUT_DIR, CONT_MAX, LAND_HOLD   # noqa: E402
 from nav.gems import visible_gems, plan_tour                                     # noqa: E402
-from nav.protocol import RAW_POS, RAW_VEL, RAW_SPIN, NOOP_ACTION                 # noqa: E402
+from nav.protocol import (RAW_POS, RAW_VEL, RAW_SPIN, NOOP_ACTION, RAW_POW_HELD, RAW_POW_BLAST, RAW_POW_SPECIAL,   # noqa: E402
+                          RAW_POW_HELI_LEFT, RAW_POW_BOUNCE_LEFT, RAW_POW_SHOCK_LEFT)
+from nav.learned_nav import powerup_physics as PW                                # noqa: E402
 from nav.joystick import action_to_joystick as js_of                             # noqa: E402
 
 AFTER_HANDBACK_S = 3.0       # a fall this soon after the navigator takes back over counts against the handover
@@ -96,6 +98,14 @@ ACROSS_MAX_ANGLE = 20.0      # ... within this of the heading (drill: aligned cr
 HANDBACK_FAST = 9.0          # u/s: the instant handback after a failed consult needs the marble at most this fast (g6i: handed
                              # back clear but at 10-13 u/s, a fall within 3 s of a handback every round)
 CONT_HARD_MAX = 90           # decisions after a planner pickup after which it hands back whatever the speed (5.8 s)
+POW_ORACLE = True            # the planner as a powerup oracle for the navigator (POWERUP_PLAN phase 3, log 39)
+POLICY_USE = True            # the navigator's own use bit (action element 5, phase 4, log 40) fires too
+POW_ORACLE_EVERY = 4         # decisions between two questions (a question costs ~100 ms)
+POW_GAIN = 0.10              # the use's ranked score (p_succ saturated minus time_w x t_close) must beat no-use by this
+POW_MAX_U = 30.0             # the gem at most this far
+POW_LIP_U = 3.0              # a void beginning within this ahead = a crossing question (Super Jump / blast vs the jump)
+POW_RUN_ANGLE = 30.0         # a Super Speed run: heading within this of the line to the gem ...
+POW_RUN_U = 8.0              # ... and the gem at least this far over continuous floor
 ORDER_TOUR = 'walk'          # 'walk': the trainer's whole-spawn chooser (gems.plan_tour, walk-only fields; training parity);
                              # True: route.Route.order (fitted walk/jump leg times; g6v 139.2, g6w walk-only 139.0 against
                              # greedy 149.9: the policy falls on routes it was not trained on, as in log 28.50); False:
@@ -137,11 +147,26 @@ def _bump(stuck, gem):
 STUCK_S, STUCK_U, STUCK_DETOUR = 3.0, 1.0, 24     # nav/real_run.py's stuck-breaker (defaults there)
 
 
+def pow_state(ob, use_hist):
+    """The planner's powerup dict from the raw observation (protocol.RAW_POW_*) and the uses sent in the last two
+    decisions (they fire two decisions after they are sent)."""
+    h = list(use_hist) + [(0, 0.0, 0)] * (2 - len(use_hist))
+    prev2, prev1 = h[-2], h[-1]
+    code = lambda u: 2 if u[2] else (1 if u[0] else 0)
+    return {'held': int(ob[RAW_POW_HELD]) if len(ob) > RAW_POW_HELD else 0,
+            'meter': float(ob[RAW_POW_BLAST]) if len(ob) > RAW_POW_BLAST else 0.0,
+            'special': bool(ob[RAW_POW_SPECIAL] > 0.5) if len(ob) > RAW_POW_SPECIAL else False,
+            'heli_left': float(ob[RAW_POW_HELI_LEFT]) if len(ob) > RAW_POW_HELI_LEFT else 0.0,
+            'bounce_left': float(ob[RAW_POW_BOUNCE_LEFT]) if len(ob) > RAW_POW_BOUNCE_LEFT else 0.0,
+            'shock_left': float(ob[RAW_POW_SHOCK_LEFT]) if len(ob) > RAW_POW_SHOCK_LEFT else 0.0,
+            'use_p': code(prev2), 'use_yaw_p': prev2[1], 'use_c': code(prev1), 'use_yaw_c': prev1[1]}
+
+
 def play(port, map_name, n_rounds, memory, tag, log, shortcuts=1, rescue=True, route_on=False, guard_on=False):
     import torch
     from terrain_obs import TerrainMap
     from nav.terrain import TerrainGrid, CROP_SHAPE
-    from nav.obs import ObsBuilder, NAV_OBS_VERSION, VEC_DIM
+    from nav.obs import ObsBuilder, NAV_OBS_VERSION, VEC_DIM, ss_aim
     from nav.model import NavActorCritic, action_to_joystick
     from nav.real_run import choose
     g = Geometry(map_name)
@@ -183,6 +208,7 @@ def play(port, map_name, n_rounds, memory, tag, log, shortcuts=1, rescue=True, r
               'probe_log': [], 'legs': [],    # every consultation; every leg from gem choice to pickup (who drove)
               'pickups': [], 'setups': 0,     # the state right after every pickup (stage 6b: crossing drill starts)
               'consult_seen': 0, 'consult_skip': {'far': 0, 'angle': 0, 'nogain': 0}, 'consult_cont': 0, 'consult_back': 0, 'big_consults': 0, 'handbacks_stoproom': 0,
+              'pow_asked': 0, 'pow_uses': 0, 'pow_ms': [], 'pow_log': [], 'policy_uses': 0, 'policy_use_log': [],
               'jumps_planner': 0, 'jumps_nav': 0, 'jumps_suppressed': 0, 'across': 0,
               'oracle_asked': 0, 'oracle_jumps': 0, 'oracle_ms': [], 'oracle_log': []}
         try:
@@ -194,6 +220,7 @@ def play(port, map_name, n_rounds, memory, tag, log, shortcuts=1, rescue=True, r
             shortcut = False; probe_next = 0; no_plan = 0; walk_fields = {}; leg = None; last_info = None
             trial_i0 = None; trial_t_nav = 0.0; trial_walk = 0.0; trial_big = False     # a consult in progress (CONSULT_DEC)
             oracle_gem = None                                        # the gem the oracle's planner target was set to
+            use_now = 0; yaw_now = None; blast_now = 0; use_hist = []; pow_next = 0   # powerup oracle state (log 39)
             setup = None                                             # (gem A, gem B): walk to A, then jump to B
             setup_i0 = None                                          # decision the planner took the setup's first leg
             cont_i0 = 0                                              # decision the current continuation started
@@ -484,6 +511,16 @@ def play(port, map_name, n_rounds, memory, tag, log, shortcuts=1, rescue=True, r
                         h = o['h_next']
                         a = o['action_game'][0].tolist()
                         js_nav = tuple(action_to_joystick(a[0], a[1], a[2], a[3], a[4], float(v[0]), float(v[1])))
+                        if POLICY_USE and owner == 'nav' and len(a) > 5 and a[5] > 0.5:
+                            pwn = pow_state(ob, use_hist)
+                            if pwn['held'] > 0:
+                                use_now = 1; yaw_now = math.atan2(*ss_aim(vec)) if pwn['held'] == 2 else None   # V9 physics aim
+                            elif pwn['special'] or pwn['meter'] >= PW.BLAST_REQUIRED:
+                                blast_now = 1
+                            if use_now or blast_now:
+                                st['policy_uses'] += 1
+                                if len(st['policy_use_log']) < 200:
+                                    st['policy_use_log'].append([i, pwn['held'], round(pwn['meter'], 2), round(float(p[0]), 1), round(float(p[1]), 1)])
                     else:
                         js_nav = tuple(js_of(0.0, 0.0, 1.0, 0, 1, v[0], v[1]))     # no gem in view: brake and wait
                 if (ORACLE and owner == 'nav' and js_nav is not None and target is not None and not airborne and sup
@@ -511,6 +548,52 @@ def play(port, map_name, n_rounds, memory, tag, log, shortcuts=1, rescue=True, r
                                 js_nav = tuple(js_nav[:4]) + (1,) + tuple(js_nav[5:]); st['oracle_jumps'] += 1
                                 st['oracle_log'].append({'i': i, 'speed': round(spd, 2), 'angle': round(ang, 1), 'straight': round(straight, 2),
                                                          'p': round(po, 3), 't_close': tco, 'gem': [round(float(c), 2) for c in tg3]})
+                # POWERUP ORACLE (POWERUP_PLAN phase 3, log 39): holding a Super Jump / Super Speed / Helicopter, or with
+                # the blast meter usable, ask the planner every POW_ORACLE_EVERY decisions whether firing NOW (aimed at
+                # the gem, a few variants) beats carrying on; if so set the use bit (and the yaw) on the navigator's
+                # action. The navigator keeps driving; the bridge latches the yaw over the two-decision key lag.
+                pw = pow_state(ob, use_hist)
+                if (POW_ORACLE and owner == 'nav' and js_nav is not None and target is not None and not airborne and sup
+                        and not is_floating(g, target[:3]) and i >= pow_next
+                        and (pw['held'] in (1, 2, 5) or pw['special'] or pw['meter'] >= PW.BLAST_REQUIRED)):
+                    straight = math.hypot(target[0] - p[0], target[1] - p[1])
+                    spd = math.hypot(v[0], v[1]); line = math.atan2(target[1] - p[1], target[0] - p[0])
+                    ang = abs(math.degrees((math.atan2(v[1], v[0]) - line + math.pi) % (2 * math.pi) - math.pi)) if spd > 0.5 else 180.0
+                    # when is a question worth 200 ms (g8a asked 560 times a round, used once): (a) a void begins
+                    # within POW_LIP_U ahead along the velocity and the heading is within ORACLE_ANGLE of the line (a
+                    # crossing: a Super Jump / blast flies further than the jump), (b) a Super Speed held, the heading
+                    # within POW_RUN_ANGLE of the line and the line to the gem all floor (a run)
+                    ask = False
+                    if 3.0 <= straight <= POW_MAX_U and spd > 1.0 and lv is not None:
+                        ux, uy = v[0] / spd, v[1] / spd
+                        dd = np.arange(0.25, POW_LIP_U + 0.01, 0.25)
+                        lvs, _ = D3.level_below(g, p[0] + dd * ux, p[1] + dd * uy, np.full(len(dd), p[2] + 0.3))
+                        void = ~(np.isfinite(lvs) & (lvs >= lv - 0.6))
+                        if ang <= ORACLE_ANGLE and void.any() and not void[0]:
+                            ask = True
+                        elif pw['held'] == 2 and ang <= POW_RUN_ANGLE and straight >= POW_RUN_U:
+                            m = int(straight / 0.5) + 1; tt = np.linspace(0.0, 1.0, m)
+                            lvl, _ = D3.level_below(g, p[0] + tt * (target[0] - p[0]), p[1] + tt * (target[1] - p[1]), np.full(m, p[2] + 0.3))
+                            ask = bool((np.isfinite(lvl) & (lvl >= lv - 0.6)).all())
+                    if ask:
+                        pow_next = i + POW_ORACLE_EVERY
+                        st['pow_asked'] += 1
+                        tg3 = np.asarray(target[:3], float)
+                        if oracle_gem is None or not same_gem(oracle_gem, tg3):
+                            planner.set_target(tg3, None); planner.floor_ref = DR.floor_ref_of(g, tg3); oracle_gem = tg3
+                        t0o = time.perf_counter()
+                        gain, best = planner.use_oracle(p, v, w, tel, Uc, Jc, Up, Jp, planner.floor_ref, pw)
+                        st['pow_ms'].append(1000.0 * (time.perf_counter() - t0o))
+                        if best is not None and gain >= POW_GAIN and best['p_succ'] >= ORACLE_P:
+                            if best['use'] == 1:
+                                use_now = 1; yaw_now = best['yaw'] if pw['held'] == 2 else None
+                            else:
+                                blast_now = 1
+                            st['pow_uses'] += 1
+                            st['pow_log'].append({'i': i, 'held': pw['held'], 'meter': round(pw['meter'], 2), 'use': best['use'],
+                                                  'yaw': round(best['yaw'], 2), 'gain': round(gain, 3), 'p': round(best['p_succ'], 3),
+                                                  't_close': best['t_close'], 'ref_p': round(best['ref_p'], 3), 'ref_t': best['ref_t'],
+                                                  'straight': round(straight, 2), 'gem': [round(float(c), 2) for c in tg3]})
                 if (guard_on and owner == 'nav' and js_nav is not None and target is not None and not airborne
                         and lv is not None and guard.near_void(p, v)):
                     # fall guard (guard.py): keep the navigator's action only if the marble can still stay up after it
@@ -541,7 +624,9 @@ def play(port, map_name, n_rounds, memory, tag, log, shortcuts=1, rescue=True, r
                 if js[4] and not airborne:
                     st['jumps_planner' if owner == 'planner' else 'jumps_nav'] += 1    # needless jumps? (operator, 09-30)
                 recent.append(list(p) + list(v) + list(w) + list(js)); recent = recent[-30:]
-                msg, sinfo = s.step(js)
+                msg, sinfo = s.step(js, use_pow=use_now, pow_yaw=yaw_now, use_blast=blast_now)
+                use_hist.append((use_now, yaw_now if yaw_now is not None else 0.0, blast_now)); use_hist = use_hist[-2:]
+                use_now = 0; yaw_now = None; blast_now = 0
                 Up, Jp = Uc, Jc
                 Uc, Jc = PL.reply_vector(js)
                 i += 1

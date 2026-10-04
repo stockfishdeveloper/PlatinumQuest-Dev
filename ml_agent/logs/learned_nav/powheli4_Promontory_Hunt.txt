@@ -1,0 +1,22 @@
+[env:9688] waiting for the game
+[env:9688] game connected (1)
+connected: Promontory_Hunt, round 300 s
+mission items: super_jump x12, super_speed x9, blast x6, helicopter x12, mega x10
+helicopter: using item #4 at (-93.0, 52.0, -15.767) (floor spread 0.00 u)
+plain jump: apex +0.88 u, hang 3.46 s, vz [6.1, 4.8, -3.0, -4.3, -5.5, 6.9]; heli left 0.0
+plain air control: vx after 0.5 / 1.0 / 1.5 s of throttle 3.7 / 10.4 / -7.2; in the air 0.13 s
+plain drop 3 u: fastest fall -7.68 u/s, restitution 0.47
+helicopter used (item #4): heli left 4.87 bounce 0.00 shock 0.00
+helicopter jump: apex +0.87 u, hang 3.46 s, vz [0.7, 0.3, 0.0, -0.3, -0.6, -0.9]; heli left 0.2
+helicopter used (item #9): heli left 4.87 bounce 0.00 shock 0.00
+helicopter air control: vx after 0.5 / 1.0 / 1.5 s of throttle 4.7 / 8.0 / 11.0; in the air 0.26 s
+helicopter used (item #10): heli left 4.87 bounce 0.00 shock 0.00
+helicopter drop 3 u: fastest fall -4.16 u/s, restitution 0.48
+tarmac spot (0, -126, -14.88), 2 triangles in the cell
+tarmac: spin 30.0 rad/s, mega False: peak speed 3.8 u/s at decision 30, speed at 2.5 s 3.6, z max 0.37; vx by decision 1.5 1.5 1.5 -0.1 -1.4 -2.3 -3.1 -3.7 -3.3 -2.5
+tarmac: spin 30.0 rad/s, mega True: peak speed 4.2 u/s at decision 16, speed at 2.5 s 2.9, z max 2.04; vx by decision 1.5 1.5 1.5 1.5 3.9 3.9 -0.8 -0.9 2.2 2.2
+tarmac: spin 60.0 rad/s, mega False: peak speed 4.1 u/s at decision 39, speed at 2.5 s 4.1, z max 0.37; vx by decision 3.0 3.0 2.3 2.3 0.7 -0.5 -1.6 -2.5 -3.2 -3.8
+tarmac: spin 60.0 rad/s, mega True: peak speed 6.1 u/s at decision 22, speed at 2.5 s 1.7, z max 2.05; vx by decision 3.0 3.0 3.0 3.0 5.2 5.2 6.0 3.3 1.1 0.2
+tarmac: spin 90.0 rad/s, mega False: peak speed 5.3 u/s at decision 0, speed at 2.5 s 3.8, z max 0.43; vx by decision 4.6 4.6 3.9 3.9 2.4 0.5 -0.9 -1.9 -2.8 -3.4
+tarmac: spin 90.0 rad/s, mega True: peak speed 8.4 u/s at decision 25, speed at 2.5 s 0.2, z max 3.48; vx by decision 4.6 4.6 4.6 4.6 6.7 7.8 8.3 5.9 3.3 1.3
+done

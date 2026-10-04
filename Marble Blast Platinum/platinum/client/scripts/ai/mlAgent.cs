@@ -10,6 +10,8 @@ $MLAgent::UpdateInterval = 16; // 60 Hz (16ms) - matches game physics tick rate
 $MLAgent::AutoStart = true;  // Auto-start when Hunt mode begins
 $MLAgent::TrainingSpeed = 3.0;  // Game speed multiplier (1.0 = normal, 3.0 = 3x speed, etc.)
 $MLAgent::DiagnosticMode = false; // When true: send obs but don't execute actions or change speed
+$MLAgent::PowYawHoldTicks = 12;   // 2026-10-02: ticks the powerup yaw (action word 8) overrides the steering yaw after a
+                                  // use (the key fires 2 decisions = 8 ticks later; Super Speed takes the yaw then)
 $MLAgent::RecordMode = false;     // When true (with DiagnosticMode): append the human's inputs to each message
 // Lockstep experiment (2026-09-16), OFF. Idea: freeze the simulation (tiny
 // time scale) after each observation until the reply arrives, so physics
@@ -543,6 +545,31 @@ function MLAgent::update(%gen) {
         AIBridge::sendState(%d);
         $AIBridge::LastAction = "";
         %actionStr = "";
+    } else if (getWord(%actionStr, 0) $= "RADIUS") {
+        // "RADIUS" (2026-10-02, POWERUP_PLAN phase 2, read-only): the marble's collision radius and powerup
+        // state as a DEBUG line, for the mega marble measurements
+        %pl = (isObject(ClientGroup) && ClientGroup.getCount() > 0) ? ClientGroup.getObject(0).player : -1;
+        AIBridge::sendState("DEBUG|radius=" @ $MP::MyMarble.getCollisionRadius()
+            @ "|mega=" @ (isObject(%pl) ? (%pl.megaMarble ? 1 : 0) : -1)
+            @ "|camyaw=" @ $MP::MyMarble.getCameraYaw()
+            @ "|srvyaw=" @ (isObject(%pl) ? %pl.getCameraYaw() : -99)
+            @ "|globalyaw=" @ $cameraYaw @ "|mvyaw=" @ $mvYaw
+            @ "|blast=" @ $MP::BlastValue @ "|special=" @ ($MP::SpecialBlast ? 1 : 0)
+            @ "|held=" @ ((isObject(%pl) && isObject(%pl.powerUpData)) ? %pl.powerUpData.getName() : "none")
+            @ "|act=" @ (isObject(%pl) ? (%pl.powerupActive[1] + 0) @ (%pl.powerupActive[2] + 0) @ (%pl.powerupActive[3] + 0) @ (%pl.powerupActive[4] + 0) @ (%pl.powerupActive[5] + 0) @ (%pl.powerupActive[6] + 0) : "")
+            @ "|sched=" @ (isObject(%pl) ? (isEventPending(%pl.powerupSchedule[1]) ? 1 : 0) @ (isEventPending(%pl.powerupSchedule[2]) ? 1 : 0) @ (isEventPending(%pl.powerupSchedule[3]) ? 1 : 0) @ (isEventPending(%pl.powerupSchedule[4]) ? 1 : 0) @ (isEventPending(%pl.powerupSchedule[5]) ? 1 : 0) @ (isEventPending(%pl.powerupSchedule[6]) ? 1 : 0) : ""));
+        $AIBridge::LastAction = "";
+        %actionStr = "";
+    } else if (getWord(%actionStr, 0) $= "YAWSET") {
+        // "YAWSET yaw mode" (2026-10-02, diagnostic): mode 0 = client marble setCameraYaw, 1 = server marble
+        // setCameraYaw, 2 = $mvYaw delta (the move's yaw), 3 = all three; RADIUS reads the yaws back
+        %y = getWord(%actionStr, 1) + 0; %mode = getWord(%actionStr, 2) + 0;
+        %pl = (isObject(ClientGroup) && ClientGroup.getCount() > 0) ? ClientGroup.getObject(0).player : -1;
+        if (%mode == 0 || %mode == 3) { $MP::MyMarble.setCameraYaw(%y); $cameraYaw = %y; }
+        if ((%mode == 1 || %mode == 3) && isObject(%pl)) %pl.setCameraYaw(%y);
+        if (%mode == 2 || %mode == 3) { $MLAgent::YawDelta = %y - $MP::MyMarble.getCameraYaw(); }
+        $AIBridge::LastAction = "";
+        %actionStr = "";
     } else if (getWord(%actionStr, 0) $= "MARBLES") {
         // "MARBLES" (2026-09-29, diagnostic, read-only): every Marble object on the server (MissionCleanup,
         // MissionGroup) and on the client (ServerConnection ghosts), as a DEBUG line:
@@ -711,15 +738,53 @@ function MLAgent::executeAction(%actionStr) {
     %jump = getWord(%words, 4);
     %camYaw = getWord(%words, 5);
     %usePow = getWord(%words, 6);
+    // 2026-10-02 (POWERUP_PLAN phase 1): word 8 = the camera yaw to fire the held powerup along (Super Speed is
+    // directional: the engine boosts along the marble's camera yaw, log 28.57), applied on the use tick in place
+    // of the steering yaw; word 9 = fire the REGULAR blast (the meter) this tick. A tick's word is "t<n>" and is
+    // skipped by getWord on these positions only when present, so the words are read by position, not by count.
+    %powYaw = getWord(%words, 7);
+    %useBlast = getWord(%words, 8);
+    if (strpos(%powYaw, "t") == 0) %powYaw = "";
+    if (strpos(%useBlast, "t") == 0) %useBlast = "";
+    // Measured 2026-10-02 (powdrill aimlag): the use key fires two decisions after it is sent, like the jump key,
+    // and Super Speed boosts along the camera yaw AT THE FIRE TICK. So the powerup yaw is latched for
+    // $MLAgent::PowYawHoldTicks ticks from the use and overrides the steering yaw meanwhile; the steering itself
+    // keeps working because the F/B/L/R rotation below uses the marble's current camera yaw.
+    if ((%usePow + 0) == 1 && %powYaw !$= "") {
+        $MLAgent::PowYaw = %powYaw + 0;
+        $MLAgent::PowYawHold = $MLAgent::PowYawHoldTicks;
+    }
+    if ($MLAgent::PowYawHold > 0) {
+        %camYaw = $MLAgent::PowYaw;
+        $MLAgent::PowYawHold--;
+    }
+    // The engine's use trigger only fires its own powerups (doPowerUp ids 1-5: marble.cc processMove); the Mega
+    // Marble (id 6) is script-driven and in play goes through the mouse click's server command. Send that command
+    // once per use for it (measured 2026-10-02: the trigger alone left the mega held and unused).
+    if ((%usePow + 0) == 1 && !$MLAgent::PowUseSent) {
+        %pl = (isObject(ClientGroup) && ClientGroup.getCount() > 0) ? ClientGroup.getObject(0).player : -1;
+        if (isObject(%pl) && isObject(%pl.powerUpData) && (%pl.powerUpData.powerUpId + 0) == 6)
+            commandToServer('UsePowerup');
+        $MLAgent::PowUseSent = true;
+    } else if ((%usePow + 0) != 1) {
+        $MLAgent::PowUseSent = false;
+    }
 
     // If a camera yaw was provided, set it (must use setMarbleCamYaw to keep
     // both $cameraYaw and $MP::MyMarble camera in sync — observer reads $cameraYaw
     // while engine applies movement relative to marble's internal camera).
     // Also zero $mvYaw — the engine applies this as a per-tick delta to the
     // marble's camera, so any residual from mouse input causes drift.
+    if ((%useBlast + 0) == 1) {
+        input_useBlast(1);          // performs the blast at once when the meter allows (client/scripts/blast.cs)
+        input_useBlast(0);
+    }
     if (%camYaw !$= "") {
         setMarbleCamYaw(%camYaw + 0);
         $mvYaw = 0;
+        if ($MLAgent::YawDelta !$= "") {          // YAWSET mode 2 diagnostic: one tick of move yaw delta
+            $mvYaw = $MLAgent::YawDelta; $MLAgent::YawDelta = "";
+        }
         $mvYawLeftSpeed = 0;
         $mvYawRightSpeed = 0;
     }

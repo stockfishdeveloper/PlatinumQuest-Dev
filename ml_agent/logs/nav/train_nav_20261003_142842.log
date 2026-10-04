@@ -1,0 +1,1321 @@
+[14:28:43] optimizer state padded for 4 new parameter tensors (use head)
+[14:28:43] resumed C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\models\nav\nav_latest.pth: update 28895, steps 227,867,979, trained on KingOfTheMarble_Hunt
+[14:28:44] 8 instance worker(s) on ports 8888..8895; training mode True (64 ms per decision); arrive radius 0.65 u; device cuda
+[14:28:56] [0] [env:8888] waiting for the game
+[14:28:56] [0] [env:8888] game connected (1)
+[14:28:56] [0] real-gem training mode: True
+[14:28:56] [0] mission KingOfTheMarble_Hunt: terrain 99x99 @ 0.5 u, walkable 1488 cells
+[14:28:56] [0] gem chooser: greedy
+[14:28:56] [0] ready on 8888, mission KingOfTheMarble_Hunt
+[14:28:59] [1] [env:8889] waiting for the game
+[14:28:59] [1] [env:8889] game connected (1)
+[14:28:59] [1] real-gem training mode: True
+[14:28:59] [1] mission KingOfTheMarble_Hunt: terrain 99x99 @ 0.5 u, walkable 1488 cells
+[14:28:59] [1] gem chooser: greedy
+[14:28:59] [1] ready on 8889, mission KingOfTheMarble_Hunt
+[14:29:01] [2] [env:8890] waiting for the game
+[14:29:01] [2] [env:8890] game connected (1)
+[14:29:01] [2] real-gem training mode: True
+[14:29:01] [2] mission KingOfTheMarble_Hunt: terrain 99x99 @ 0.5 u, walkable 1488 cells
+[14:29:01] [2] gem chooser: greedy
+[14:29:01] [2] ready on 8890, mission KingOfTheMarble_Hunt
+[14:29:03] [3] [env:8891] waiting for the game
+[14:29:03] [3] [env:8891] game connected (1)
+[14:29:03] [3] real-gem training mode: True
+[14:29:03] [3] mission KingOfTheMarble_Hunt: terrain 99x99 @ 0.5 u, walkable 1488 cells
+[14:29:03] [3] gem chooser: greedy
+[14:29:03] [3] ready on 8891, mission KingOfTheMarble_Hunt
+[14:29:05] [4] [env:8892] waiting for the game
+[14:29:05] [4] [env:8892] game connected (1)
+[14:29:05] [4] real-gem training mode: True
+[14:29:05] [4] mission KingOfTheMarble_Hunt: terrain 99x99 @ 0.5 u, walkable 1488 cells
+[14:29:05] [4] gem chooser: greedy
+[14:29:05] [4] ready on 8892, mission KingOfTheMarble_Hunt
+[14:29:07] [5] [env:8893] waiting for the game
+[14:29:07] [5] [env:8893] game connected (1)
+[14:29:07] [5] real-gem training mode: True
+[14:29:07] [5] mission KingOfTheMarble_Hunt: terrain 99x99 @ 0.5 u, walkable 1488 cells
+[14:29:07] [5] gem chooser: greedy
+[14:29:07] [5] ready on 8893, mission KingOfTheMarble_Hunt
+[14:29:09] [6] [env:8894] waiting for the game
+[14:29:09] [6] [env:8894] game connected (1)
+[14:29:09] [6] real-gem training mode: True
+[14:29:09] [6] mission KingOfTheMarble_Hunt: terrain 99x99 @ 0.5 u, walkable 1488 cells
+[14:29:09] [6] gem chooser: greedy
+[14:29:09] [6] ready on 8894, mission KingOfTheMarble_Hunt
+[14:29:09] [7] [env:8895] waiting for the game
+[14:29:09] [7] [env:8895] game connected (1)
+[14:29:09] [7] real-gem training mode: True
+[14:29:09] [7] mission KingOfTheMarble_Hunt: terrain 99x99 @ 0.5 u, walkable 1488 cells
+[14:29:09] [7] gem chooser: greedy
+[14:29:09] [7] ready on 8895, mission KingOfTheMarble_Hunt
+[14:29:16] [3] fall without OOB flag: 4 decisions off the map at [-52.2   5.5  22.7] (time left 144s)
+[14:29:17] [4] fall without OOB flag: 4 decisions off the map at [-25.8  21.2  14.2] (time left 142s)
+[14:29:18] [0] fall without OOB flag: 4 decisions off the map at [-52.4   4.6  22.8] (time left 137s)
+[14:29:18] [4] fall without OOB flag: 4 decisions off the map at [ -4.4 -16.1  18.8] (time left 135s)
+[14:29:20] [1] fall without OOB flag: 4 decisions off the map at [-52.2  24.8  22.4] (time left 129s)
+[14:29:27] NAV upd=28896 map=KingOfTheMarble_Hunt r=0.65 steps=227,876,179 segs=1 arrive=0% falls100=0.96 speed=7.6 gems=25.0 pickup=8.0 sgem=1.59 carry=0.0 turn=20.0 rew=892.5 pl=-0.015 vl=0.409 ent=0.31 entd=0.02 ec=0.0050 kl=0.034 clip=0.23 gn=4.72 ep=3 dstd=0.22 flips=0 upd_s=2.8 wall_s=18 inst=8 dps=466 prof=fwd:10,send:1,recv:4,handle:0,w_game:25,w_obs:22,w_begin:0
+[14:29:27] [2] fall without OOB flag: 4 decisions off the map at [-6.8  5.5 14.3] (time left 106s)
+[14:29:29] [5] fall without OOB flag: 4 decisions off the map at [-20.1 -14.3  15.4] (time left 98s)
+[14:29:44] NAV upd=28897 map=KingOfTheMarble_Hunt r=0.65 steps=227,884,379 segs=3 arrive=0% falls100=0.69 speed=7.2 gems=40.3 pickup=7.7 sgem=1.59 carry=0.0 turn=20.1 rew=1468.1 pl=-0.005 vl=0.381 ent=0.31 entd=0.03 ec=0.0049 kl=0.042 clip=0.28 gn=5.85 ep=3 dstd=0.22 flips=0 upd_s=2.5 wall_s=18 inst=8 dps=464 prof=fwd:10,send:1,recv:4,handle:0,w_game:26,w_obs:23,w_begin:0
+[14:29:45] [6] fall without OOB flag: 4 decisions off the map at [10.1 12.3 19.3] (time left 34s)
+[14:29:52] [4] fall without OOB flag: 4 decisions off the map at [ 1.3 32.2 22.6] (time left 1s)
+[14:29:52] [4] GAME map=KingOfTheMarble_Hunt points=139 gems=109 falls=2 rtf=2.7 pow=blast:3,f1:1,f2:2,f6:1,u1:1,u2:2,u6:1
+[14:29:52] [4] [env:8892] round over (time left 180s of 180s); waiting for the next round
+[14:29:52] [4] [env:8892] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:29:52] [3] GAME map=KingOfTheMarble_Hunt points=131 gems=105 falls=3 rtf=2.7 pow=blast:1,f1:2,f2:2,u1:2,u2:3
+[14:29:52] [3] [env:8891] round over (time left 180s of 180s); waiting for the next round
+[14:29:52] [3] [env:8891] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:29:52] [3] new round (game connection 1); rtf 91.8
+[14:29:52] [2] GAME map=KingOfTheMarble_Hunt points=135 gems=107 falls=4 rtf=2.7 pow=f1:2,f2:2,u1:3,u2:3
+[14:29:52] [2] [env:8890] round over (time left 180s of 180s); waiting for the next round
+[14:29:52] [2] [env:8890] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:29:52] [2] new round (game connection 1); rtf 76.6
+[14:29:52] [5] GAME map=KingOfTheMarble_Hunt points=123 gems=96 falls=4 rtf=2.7 pow=blast:3,f1:3,f2:2,u1:5,u2:1
+[14:29:52] [5] [env:8893] round over (time left 180s of 180s); waiting for the next round
+[14:29:52] [5] [env:8893] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:29:52] [5] new round (game connection 1); rtf 74.3
+[14:29:52] [6] GAME map=KingOfTheMarble_Hunt points=144 gems=117 falls=3 rtf=2.7 pow=blast:2,f1:1,f2:2,u1:2,u2:2
+[14:29:52] [6] [env:8894] round over (time left 180s of 180s); waiting for the next round
+[14:29:52] [6] [env:8894] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:29:52] [6] new round (game connection 1); rtf 78.8
+[14:29:52] [0] GAME map=KingOfTheMarble_Hunt points=136 gems=107 falls=1 rtf=2.7 pow=blast:1,f1:3,f2:1,u1:2,u2:2
+[14:29:52] [0] [env:8888] round over (time left 180s of 180s); waiting for the next round
+[14:29:52] [0] [env:8888] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:29:52] [0] new round (game connection 1); rtf 92.1
+[14:29:52] [1] GAME map=KingOfTheMarble_Hunt points=143 gems=114 falls=1 rtf=2.7 pow=blast:2,f1:2,f2:2,u1:2,u2:1
+[14:29:52] [1] [env:8889] round over (time left 180s of 180s); waiting for the next round
+[14:29:52] [1] [env:8889] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:29:52] [1] new round (game connection 1); rtf 101.9
+[14:29:53] [7] GAME map=KingOfTheMarble_Hunt points=150 gems=118 falls=1 rtf=2.7 pow=blast:3,f1:1,f2:1,f6:1,u2:1,u6:1
+[14:29:53] [7] [env:8895] round over (time left 180s of 180s); waiting for the next round
+[14:29:53] [7] [env:8895] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:29:53] [7] new round (game connection 1); rtf 95.2
+[14:29:54] [2] fall without OOB flag: 4 decisions off the map at [-12.8 -13.8  23.2] (time left 171s)
+[14:29:57] [7] fall without OOB flag: 4 decisions off the map at [-52.7  25.6  18.5] (time left 165s)
+[14:29:58] [1] fall without OOB flag: 4 decisions off the map at [-19.2   8.2  14.3] (time left 159s)
+[14:29:58] [2] fall without OOB flag: 4 decisions off the map at [ 3.9  3.3 23.5] (time left 152s)
+[14:30:00] [2] fall without OOB flag: 4 decisions off the map at [-25.   14.   14.2] (time left 144s)
+[14:30:03] NAV upd=28898 map=KingOfTheMarble_Hunt r=0.65 steps=227,892,579 segs=6 arrive=0% falls100=0.62 speed=7.5 gems=53.2 pickup=8.1 sgem=1.55 carry=0.0 turn=19.8 rew=1973.2 pl=-0.005 vl=0.519 ent=0.31 entd=0.02 ec=0.0049 kl=0.038 clip=0.26 gn=5.73 ep=3 dstd=0.22 flips=0 upd_s=2.7 wall_s=19 inst=8 dps=435 prof=fwd:11,send:1,recv:4,handle:0,w_game:28,w_obs:24,w_begin:0
+[14:30:04] [5] fall without OOB flag: 4 decisions off the map at [-15.7  20.9  13.5] (time left 138s)
+[14:30:05] [6] fall without OOB flag: 4 decisions off the map at [ 5.2 10.9 16.9] (time left 135s)
+[14:30:08] [7] fall without OOB flag: 4 decisions off the map at [-51.3  13.8  21.4] (time left 125s)
+[14:30:12] [4] fall without OOB flag: 4 decisions off the map at [-33.4  20.   13.9] (time left 104s)
+[14:30:19] [5] fall without OOB flag: 4 decisions off the map at [-27.  -13.8  16.1] (time left 74s)
+[14:30:19] [0] fall without OOB flag: 4 decisions off the map at [-29.1 -14.7  23.6] (time left 77s)
+[14:30:22] NAV upd=28899 map=KingOfTheMarble_Hunt r=0.65 steps=227,900,779 segs=9 arrive=0% falls100=0.60 speed=7.5 gems=48.7 pickup=8.0 sgem=1.57 carry=0.0 turn=19.7 rew=1799.7 pl=-0.012 vl=0.396 ent=0.31 entd=0.03 ec=0.0049 kl=0.025 clip=0.21 gn=4.91 ep=3 dstd=0.22 flips=0 upd_s=2.9 wall_s=19 inst=8 dps=433 prof=fwd:11,send:1,recv:4,handle:0,w_game:28,w_obs:24,w_begin:0
+[14:30:23] [6] fall without OOB flag: 4 decisions off the map at [-43.1  12.5  13.8] (time left 65s)
+[14:30:25] [0] fall without OOB flag: 4 decisions off the map at [-13.2  11.7  14. ] (time left 59s)
+[14:30:35] [0] fall without OOB flag: 4 decisions off the map at [-42.5  15.5  13.8] (time left 12s)
+[14:30:35] [1] fall without OOB flag: 4 decisions off the map at [ 2.5 15.7 22.4] (time left 13s)
+[14:30:38] [2] GAME map=KingOfTheMarble_Hunt points=114 gems=91 falls=3 rtf=4.0 pow=blast:2,f1:1,f2:3,u1:1,u2:5
+[14:30:38] [2] [env:8890] round over (time left 180s of 180s); waiting for the next round
+[14:30:38] [2] [env:8890] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:30:38] [2] new round (game connection 1); rtf 79.2
+[14:30:38] [5] GAME map=KingOfTheMarble_Hunt points=132 gems=106 falls=2 rtf=4.0 pow=blast:2,f1:3,f2:2,u1:2,u2:2,u6:1
+[14:30:38] [5] [env:8893] round over (time left 180s of 180s); waiting for the next round
+[14:30:38] [5] [env:8893] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:30:38] [5] new round (game connection 1); rtf 88.5
+[14:30:38] [6] GAME map=KingOfTheMarble_Hunt points=132 gems=105 falls=2 rtf=4.0 pow=f1:3,f2:1,u1:3,u2:1
+[14:30:38] [6] [env:8894] round over (time left 180s of 180s); waiting for the next round
+[14:30:38] [6] [env:8894] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:30:38] [6] new round (game connection 1); rtf 69.7
+[14:30:38] [0] GAME map=KingOfTheMarble_Hunt points=121 gems=94 falls=3 rtf=4.0 pow=blast:1,f1:3,f2:2,u1:3,u2:2
+[14:30:38] [0] [env:8888] round over (time left 180s of 180s); waiting for the next round
+[14:30:38] [0] [env:8888] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:30:38] [0] new round (game connection 1); rtf 85.6
+[14:30:38] [3] GAME map=KingOfTheMarble_Hunt points=141 gems=109 falls=3 rtf=4.0 pow=f1:2,f2:1,u1:2,u2:2
+[14:30:38] [3] [env:8891] round over (time left 180s of 180s); waiting for the next round
+[14:30:38] [3] [env:8891] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:30:38] [3] new round (game connection 1); rtf 69.2
+[14:30:38] [1] GAME map=KingOfTheMarble_Hunt points=134 gems=109 falls=3 rtf=4.0 pow=f1:1,f2:3,u1:2,u2:3
+[14:30:38] [1] [env:8889] round over (time left 180s of 180s); waiting for the next round
+[14:30:38] [1] [env:8889] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:30:38] [1] new round (game connection 1); rtf 92.0
+[14:30:42] DIRGAIN effective goal-bearing norm 21.09 (gain 30)
+[14:30:42] NAV upd=28900 map=KingOfTheMarble_Hunt r=0.65 steps=227,908,973 segs=15 arrive=0% falls100=0.46 speed=7.6 gems=57.0 pickup=8.0 sgem=1.56 carry=0.0 turn=19.9 rew=2121.1 pl=-0.007 vl=0.539 ent=0.32 entd=0.03 ec=0.0049 kl=0.040 clip=0.25 gn=5.89 ep=3 dstd=0.22 flips=0 upd_s=2.9 wall_s=20 inst=8 dps=419 prof=fwd:11,send:1,recv:4,handle:0,w_game:29,w_obs:24,w_begin:0
+[14:30:42] saved C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\models\nav\nav_028900.pth
+[14:30:42] [4] GAME map=KingOfTheMarble_Hunt points=138 gems=109 falls=2 rtf=3.7 pow=blast:4,f1:3,f2:1,u1:3,u2:1
+[14:30:42] [4] [env:8892] round over (time left 180s of 180s); waiting for the next round
+[14:30:42] [4] [env:8892] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:30:42] [4] new round (game connection 1); rtf 75.4
+[14:30:43] [7] GAME map=KingOfTheMarble_Hunt points=129 gems=102 falls=2 rtf=3.7 pow=blast:2,f1:2,f2:4,u1:2,u2:4
+[14:30:43] [7] [env:8895] round over (time left 180s of 180s); waiting for the next round
+[14:30:43] [7] [env:8895] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:30:43] [7] new round (game connection 1); rtf 81.5
+[14:30:47] [0] fall without OOB flag: 4 decisions off the map at [-24.   15.3  12.7] (time left 157s)
+[14:30:48] [5] fall without OOB flag: 4 decisions off the map at [-24.8  29.4  13.9] (time left 152s)
+[14:30:52] [3] fall without OOB flag: 4 decisions off the map at [-28.3  44.2  16.7] (time left 137s)
+[14:31:01] NAV upd=28901 map=KingOfTheMarble_Hunt r=0.65 steps=227,917,171 segs=16 arrive=0% falls100=0.48 speed=7.6 gems=55.1 pickup=8.0 sgem=1.57 carry=0.0 turn=19.9 rew=2045.0 pl=-0.009 vl=0.321 ent=0.32 entd=0.02 ec=0.0048 kl=0.029 clip=0.22 gn=4.95 ep=3 dstd=0.22 flips=0 upd_s=2.9 wall_s=20 inst=8 dps=411 prof=fwd:12,send:1,recv:4,handle:0,w_game:30,w_obs:25,w_begin:0
+[14:31:06] [4] fall without OOB flag: 4 decisions off the map at [-43.2  16.8  13.8] (time left 90s)
+[14:31:09] [7] fall without OOB flag: 4 decisions off the map at [-19.7 -14.4  28.6] (time left 82s)
+[14:31:11] [3] fall without OOB flag: 4 decisions off the map at [-11.7 -10.6  20.5] (time left 67s)
+[14:31:12] [7] fall without OOB flag: 4 decisions off the map at [-22.8  -4.7  14.2] (time left 64s)
+[14:31:21] NAV upd=28902 map=KingOfTheMarble_Hunt r=0.65 steps=227,925,371 segs=22 arrive=0% falls100=0.49 speed=7.7 gems=53.5 pickup=8.0 sgem=1.56 carry=0.0 turn=20.2 rew=1989.1 pl=-0.003 vl=0.445 ent=0.32 entd=0.03 ec=0.0048 kl=0.040 clip=0.25 gn=6.47 ep=3 dstd=0.22 flips=0 upd_s=2.9 wall_s=20 inst=8 dps=417 prof=fwd:11,send:1,recv:4,handle:0,w_game:29,w_obs:25,w_begin:0
+[14:31:27] [5] fall without OOB flag: 4 decisions off the map at [-10.8  15.8  13.7] (time left 13s)
+[14:31:28] [3] fall without OOB flag: 4 decisions off the map at [-24.6  17.   11.2] (time left 5s)
+[14:31:29] [6] GAME map=KingOfTheMarble_Hunt points=110 gems=87 falls=8 rtf=3.6 pow=blast:3,f1:1,f2:2,f6:1,u1:2,u2:2
+[14:31:29] [6] [env:8894] round over (time left 180s of 180s); waiting for the next round
+[14:31:29] [6] [env:8894] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:31:29] [6] new round (game connection 1); rtf 89.5
+[14:31:29] [3] GAME map=KingOfTheMarble_Hunt points=138 gems=110 falls=2 rtf=3.6 pow=f1:1,f2:3,u2:3
+[14:31:29] [3] [env:8891] round over (time left 180s of 180s); waiting for the next round
+[14:31:29] [3] [env:8891] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:31:29] [3] new round (game connection 1); rtf 92.0
+[14:31:29] [2] GAME map=KingOfTheMarble_Hunt points=130 gems=101 falls=4 rtf=3.6 pow=blast:3,f1:2,f2:1,u1:2,u2:1
+[14:31:29] [2] [env:8890] round over (time left 180s of 180s); waiting for the next round
+[14:31:29] [2] [env:8890] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:31:29] [2] new round (game connection 1); rtf 95.1
+[14:31:30] [4] GAME map=KingOfTheMarble_Hunt points=130 gems=104 falls=4 rtf=3.8 pow=blast:2,f1:1,f2:1,f6:1,u1:1,u2:1
+[14:31:30] [4] [env:8892] round over (time left 180s of 180s); waiting for the next round
+[14:31:30] [4] [env:8892] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:31:30] [4] new round (game connection 1); rtf 46.2
+[14:31:30] [5] GAME map=KingOfTheMarble_Hunt points=137 gems=108 falls=1 rtf=3.6 pow=blast:1,f1:2,f2:1,u1:2,u2:1
+[14:31:30] [5] [env:8893] round over (time left 180s of 180s); waiting for the next round
+[14:31:30] [5] [env:8893] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:31:30] [5] new round (game connection 1); rtf 83.3
+[14:31:30] [7] GAME map=KingOfTheMarble_Hunt points=131 gems=104 falls=4 rtf=3.9 pow=blast:1,f1:1,f2:2,u1:1,u2:3
+[14:31:30] [7] [env:8895] round over (time left 180s of 180s); waiting for the next round
+[14:31:30] [7] [env:8895] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:31:30] [7] new round (game connection 1); rtf 66.7
+[14:31:31] [0] GAME map=KingOfTheMarble_Hunt points=136 gems=106 falls=2 rtf=3.5 pow=f1:2,f2:1,u1:3
+[14:31:31] [0] [env:8888] round over (time left 180s of 180s); waiting for the next round
+[14:31:31] [0] [env:8888] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:31:31] [0] new round (game connection 1); rtf 86.2
+[14:31:31] [1] GAME map=KingOfTheMarble_Hunt points=137 gems=110 falls=2 rtf=3.5 pow=f1:3,f2:2,u1:3,u2:1
+[14:31:31] [1] [env:8889] round over (time left 180s of 180s); waiting for the next round
+[14:31:31] [1] [env:8889] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:31:31] [1] new round (game connection 1); rtf 87.1
+[14:31:41] NAV upd=28903 map=KingOfTheMarble_Hunt r=0.65 steps=227,933,571 segs=24 arrive=0% falls100=0.47 speed=7.7 gems=57.4 pickup=8.0 sgem=1.55 carry=0.0 turn=20.3 rew=2138.2 pl=0.001 vl=0.321 ent=0.32 entd=0.02 ec=0.0048 kl=0.042 clip=0.29 gn=6.98 ep=3 dstd=0.22 flips=0 upd_s=2.9 wall_s=20 inst=8 dps=409 prof=fwd:11,send:1,recv:5,handle:0,w_game:29,w_obs:25,w_begin:0
+[14:31:44] [5] fall without OOB flag: 4 decisions off the map at [ 2.4 15.8 18.5] (time left 133s)
+[14:31:53] [4] fall without OOB flag: 4 decisions off the map at [-25.5  15.7  14.1] (time left 98s)
+[14:31:57] [4] fall without OOB flag: 4 decisions off the map at [ 1.1 25.4 21.9] (time left 80s)
+[14:32:01] NAV upd=28904 map=KingOfTheMarble_Hunt r=0.65 steps=227,941,771 segs=28 arrive=0% falls100=0.49 speed=7.7 gems=54.6 pickup=8.0 sgem=1.55 carry=0.0 turn=20.4 rew=2031.8 pl=-0.005 vl=0.373 ent=0.32 entd=0.02 ec=0.0047 kl=0.043 clip=0.26 gn=5.93 ep=3 dstd=0.22 flips=0 upd_s=2.7 wall_s=20 inst=8 dps=406 prof=fwd:12,send:1,recv:5,handle:0,w_game:30,w_obs:25,w_begin:0
+[14:32:02] [1] fall without OOB flag: 4 decisions off the map at [ 4.1  2.  23.6] (time left 73s)
+[14:32:14] [1] fall without OOB flag: 4 decisions off the map at [-24.4  13.1  13.9] (time left 20s)
+[14:32:14] [2] fall without OOB flag: 4 decisions off the map at [-32.7  28.9  13.7] (time left 17s)
+[14:32:18] [6] GAME map=KingOfTheMarble_Hunt points=117 gems=93 falls=6 rtf=3.8 pow=blast:4,f1:3,f2:1,u1:3,u2:1
+[14:32:18] [6] [env:8894] round over (time left 180s of 180s); waiting for the next round
+[14:32:18] [6] [env:8894] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:32:18] [6] new round (game connection 1); rtf 79.9
+[14:32:18] [3] fall without OOB flag: 4 decisions off the map at [-22.3  15.7  13.9] (time left 2s)
+[14:32:19] [2] GAME map=KingOfTheMarble_Hunt points=130 gems=102 falls=4 rtf=3.8 pow=blast:2,f1:2,f2:3,u1:2,u2:2
+[14:32:19] [2] [env:8890] round over (time left 180s of 180s); waiting for the next round
+[14:32:19] [2] [env:8890] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:32:19] [2] new round (game connection 1); rtf 81.0
+[14:32:19] [3] GAME map=KingOfTheMarble_Hunt points=135 gems=108 falls=3 rtf=3.7 pow=f2:1,u2:3
+[14:32:19] [3] [env:8891] round over (time left 180s of 180s); waiting for the next round
+[14:32:19] [3] [env:8891] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:32:19] [3] new round (game connection 1); rtf 92.5
+[14:32:22] NAV upd=28905 map=KingOfTheMarble_Hunt r=0.65 steps=227,949,968 segs=34 arrive=0% falls100=0.47 speed=7.7 gems=55.1 pickup=7.9 sgem=1.54 carry=0.0 turn=20.4 rew=2052.3 pl=-0.010 vl=0.377 ent=0.32 entd=0.02 ec=0.0047 kl=0.035 clip=0.21 gn=5.86 ep=3 dstd=0.22 flips=0 upd_s=3.0 wall_s=20 inst=8 dps=401 prof=fwd:12,send:1,recv:5,handle:0,w_game:30,w_obs:25,w_begin:0
+[14:32:22] [1] GAME map=KingOfTheMarble_Hunt points=131 gems=104 falls=4 rtf=3.6 pow=blast:1,f1:3,f2:2,u1:2,u2:2
+[14:32:22] [1] [env:8889] round over (time left 180s of 180s); waiting for the next round
+[14:32:22] [1] [env:8889] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:32:22] [1] new round (game connection 1); rtf 95.9
+[14:32:22] [5] GAME map=KingOfTheMarble_Hunt points=129 gems=103 falls=4 rtf=3.5 pow=f1:2,f2:1,u1:2,u2:1
+[14:32:22] [5] [env:8893] round over (time left 180s of 180s); waiting for the next round
+[14:32:22] [5] [env:8893] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:32:22] [5] new round (game connection 1); rtf 81.8
+[14:32:22] [0] GAME map=KingOfTheMarble_Hunt points=127 gems=102 falls=6 rtf=3.6 pow=blast:1,f1:2,f2:3,u1:2,u2:2
+[14:32:22] [0] [env:8888] round over (time left 180s of 180s); waiting for the next round
+[14:32:22] [0] [env:8888] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:32:22] [0] new round (game connection 1); rtf 94.6
+[14:32:23] [4] GAME map=KingOfTheMarble_Hunt points=139 gems=109 falls=1 rtf=3.5 pow=blast:2,f2:3,u2:3
+[14:32:23] [4] [env:8892] round over (time left 180s of 180s); waiting for the next round
+[14:32:23] [4] [env:8892] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:32:23] [4] new round (game connection 1); rtf 96.3
+[14:32:23] [7] GAME map=KingOfTheMarble_Hunt points=146 gems=117 falls=1 rtf=3.5 pow=blast:1,f1:1
+[14:32:23] [7] [env:8895] round over (time left 180s of 180s); waiting for the next round
+[14:32:23] [7] [env:8895] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:32:23] [7] new round (game connection 1); rtf 94.7
+[14:32:42] NAV upd=28906 map=KingOfTheMarble_Hunt r=0.65 steps=227,958,163 segs=35 arrive=0% falls100=0.48 speed=7.7 gems=54.6 pickup=7.9 sgem=1.54 carry=0.0 turn=20.4 rew=2033.6 pl=-0.015 vl=0.250 ent=0.32 entd=0.02 ec=0.0047 kl=0.026 clip=0.18 gn=4.55 ep=3 dstd=0.22 flips=0 upd_s=2.9 wall_s=20 inst=8 dps=410 prof=fwd:12,send:1,recv:4,handle:0,w_game:29,w_obs:24,w_begin:0
+[14:32:43] [6] fall without OOB flag: 4 decisions off the map at [-52.2   4.8  22.3] (time left 97s)
+[14:32:48] [3] fall without OOB flag: 4 decisions off the map at [-17.8 -14.5  20.8] (time left 85s)
+[14:32:51] [5] fall without OOB flag: 4 decisions off the map at [-33.1  43.7  19.3] (time left 75s)
+[14:32:54] [0] fall without OOB flag: 4 decisions off the map at [-27.  -13.4  16.2] (time left 59s)
+[14:32:55] [0] fall without OOB flag: 4 decisions off the map at [-34.5   9.6  14. ] (time left 54s)
+[14:33:01] NAV upd=28907 map=KingOfTheMarble_Hunt r=0.65 steps=227,966,363 segs=41 arrive=0% falls100=0.48 speed=7.8 gems=54.0 pickup=7.9 sgem=1.54 carry=0.0 turn=20.4 rew=2010.6 pl=-0.011 vl=0.326 ent=0.32 entd=0.02 ec=0.0046 kl=0.024 clip=0.22 gn=5.57 ep=3 dstd=0.22 flips=0 upd_s=2.6 wall_s=20 inst=8 dps=420 prof=fwd:11,send:1,recv:4,handle:0,w_game:29,w_obs:25,w_begin:0
+[14:33:07] [6] fall without OOB flag: 4 decisions off the map at [-33.8  22.6  13.5] (time left 8s)
+[14:33:09] [6] GAME map=KingOfTheMarble_Hunt points=141 gems=112 falls=2 rtf=3.6 pow=f1:1,f2:2,u1:1,u2:1
+[14:33:09] [6] [env:8894] round over (time left 180s of 180s); waiting for the next round
+[14:33:09] [6] [env:8894] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:33:09] [6] new round (game connection 1); rtf 71.7
+[14:33:10] [0] GAME map=KingOfTheMarble_Hunt points=130 gems=101 falls=5 rtf=3.9 pow=f2:3,u2:2
+[14:33:10] [0] [env:8888] round over (time left 180s of 180s); waiting for the next round
+[14:33:10] [0] [env:8888] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:33:10] [0] new round (game connection 1); rtf 54.3
+[14:33:10] [5] GAME map=KingOfTheMarble_Hunt points=135 gems=106 falls=4 rtf=3.9 pow=blast:1,f1:1,f2:2,u2:2
+[14:33:10] [5] [env:8893] round over (time left 180s of 180s); waiting for the next round
+[14:33:10] [5] [env:8893] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:33:10] [5] new round (game connection 1); rtf 91.0
+[14:33:10] [1] GAME map=KingOfTheMarble_Hunt points=132 gems=103 falls=5 rtf=3.8 pow=f1:1,f2:1,u1:1
+[14:33:10] [1] [env:8889] round over (time left 180s of 180s); waiting for the next round
+[14:33:10] [1] [env:8889] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:33:10] [1] new round (game connection 1); rtf 90.3
+[14:33:10] [2] GAME map=KingOfTheMarble_Hunt points=141 gems=111 falls=3 rtf=3.6 pow=f1:1
+[14:33:10] [2] [env:8890] round over (time left 180s of 180s); waiting for the next round
+[14:33:10] [2] [env:8890] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:33:10] [2] new round (game connection 1); rtf 75.7
+[14:33:10] [3] GAME map=KingOfTheMarble_Hunt points=146 gems=116 falls=1 rtf=3.6 pow=blast:1,f1:1,f2:3,u1:1,u2:2
+[14:33:10] [3] [env:8891] round over (time left 180s of 180s); waiting for the next round
+[14:33:10] [3] [env:8891] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:33:10] [3] new round (game connection 1); rtf 76.2
+[14:33:11] [4] GAME map=KingOfTheMarble_Hunt points=135 gems=108 falls=5 rtf=3.8 pow=blast:1,f2:2,u2:1
+[14:33:11] [4] [env:8892] round over (time left 180s of 180s); waiting for the next round
+[14:33:11] [4] [env:8892] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:33:11] [4] new round (game connection 1); rtf 91.5
+[14:33:12] [7] GAME map=KingOfTheMarble_Hunt points=139 gems=111 falls=1 rtf=3.8 pow=f1:4,u1:4
+[14:33:12] [7] [env:8895] round over (time left 180s of 180s); waiting for the next round
+[14:33:12] [7] [env:8895] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:33:12] [7] new round (game connection 1); rtf 88.5
+[14:33:15] [2] fall without OOB flag: 4 decisions off the map at [ 3.9  4.4 23.3] (time left 165s)
+[14:33:20] NAV upd=28908 map=KingOfTheMarble_Hunt r=0.65 steps=227,974,563 segs=42 arrive=0% falls100=0.49 speed=7.7 gems=53.0 pickup=7.9 sgem=1.55 carry=0.0 turn=20.4 rew=1970.9 pl=-0.015 vl=0.303 ent=0.32 entd=0.02 ec=0.0046 kl=0.025 clip=0.18 gn=5.01 ep=3 dstd=0.22 flips=0 upd_s=1.9 wall_s=19 inst=8 dps=435 prof=fwd:11,send:1,recv:5,handle:0,w_game:29,w_obs:25,w_begin:0
+[14:33:38] NAV upd=28909 map=KingOfTheMarble_Hunt r=0.65 steps=227,982,763 segs=45 arrive=0% falls100=0.49 speed=7.7 gems=52.0 pickup=7.9 sgem=1.55 carry=0.0 turn=20.4 rew=1934.3 pl=-0.013 vl=0.314 ent=0.31 entd=0.02 ec=0.0046 kl=0.029 clip=0.20 gn=4.41 ep=3 dstd=0.22 flips=0 upd_s=1.9 wall_s=18 inst=8 dps=457 prof=fwd:11,send:1,recv:4,handle:0,w_game:28,w_obs:25,w_begin:0
+[14:33:54] [5] GAME map=KingOfTheMarble_Hunt points=123 gems=98 falls=7 rtf=4.2 pow=f1:3,u1:2
+[14:33:54] [5] [env:8893] round over (time left 180s of 180s); waiting for the next round
+[14:33:54] [5] [env:8893] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:33:54] [5] new round (game connection 1); rtf 68.4
+[14:33:54] [6] GAME map=KingOfTheMarble_Hunt points=143 gems=115 falls=2 rtf=4.1 pow=f1:1
+[14:33:54] [6] [env:8894] round over (time left 180s of 180s); waiting for the next round
+[14:33:54] [6] [env:8894] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:33:54] [6] new round (game connection 1); rtf 62.7
+[14:33:54] [2] GAME map=KingOfTheMarble_Hunt points=133 gems=109 falls=5 rtf=4.2 pow=blast:2,f1:3,u1:2,u2:1
+[14:33:54] [2] [env:8890] round over (time left 180s of 180s); waiting for the next round
+[14:33:54] [2] [env:8890] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:33:54] [2] new round (game connection 1); rtf 88.6
+[14:33:56] NAV upd=28910 map=KingOfTheMarble_Hunt r=0.65 steps=227,990,960 segs=48 arrive=0% falls100=0.48 speed=7.7 gems=53.2 pickup=7.9 sgem=1.54 carry=0.0 turn=20.5 rew=1980.5 pl=-0.003 vl=0.339 ent=0.31 entd=0.02 ec=0.0045 kl=0.036 clip=0.23 gn=6.28 ep=3 dstd=0.22 flips=0 upd_s=1.9 wall_s=18 inst=8 dps=450 prof=fwd:11,send:1,recv:4,handle:0,w_game:28,w_obs:25,w_begin:0
+[14:33:57] [3] GAME map=KingOfTheMarble_Hunt points=130 gems=103 falls=5 rtf=4.0 pow=f1:3,f2:2,u1:3,u2:3
+[14:33:57] [3] [env:8891] round over (time left 180s of 180s); waiting for the next round
+[14:33:57] [3] [env:8891] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:33:57] [3] new round (game connection 1); rtf 97.0
+[14:33:57] [0] GAME map=KingOfTheMarble_Hunt points=135 gems=107 falls=2 rtf=3.9 pow=f6:1
+[14:33:57] [0] [env:8888] round over (time left 180s of 180s); waiting for the next round
+[14:33:57] [0] [env:8888] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:33:57] [0] new round (game connection 1); rtf 78.9
+[14:33:57] [4] GAME map=KingOfTheMarble_Hunt points=132 gems=103 falls=4 rtf=4.0 pow=blast:1,f1:2,f2:1,f6:1,u1:4,u2:1
+[14:33:57] [4] [env:8892] round over (time left 180s of 180s); waiting for the next round
+[14:33:57] [4] [env:8892] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:33:57] [4] new round (game connection 1); rtf 75.8
+[14:33:57] [1] GAME map=KingOfTheMarble_Hunt points=149 gems=118 falls=1 rtf=3.9 pow=f1:2,u1:1
+[14:33:57] [1] [env:8889] round over (time left 180s of 180s); waiting for the next round
+[14:33:57] [1] [env:8889] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:33:57] [1] new round (game connection 1); rtf 99.0
+[14:33:58] [7] GAME map=KingOfTheMarble_Hunt points=131 gems=103 falls=5 rtf=4.0 pow=blast:1,f1:1,f2:1,f6:1,u1:1,u2:1
+[14:33:58] [7] [env:8895] round over (time left 180s of 180s); waiting for the next round
+[14:33:58] [7] [env:8895] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:33:58] [7] new round (game connection 1); rtf 94.2
+[14:34:03] [5] fall without OOB flag: 4 decisions off the map at [-22.8   5.3  13.8] (time left 148s)
+[14:34:06] [7] fall without OOB flag: 4 decisions off the map at [-17.8  15.1  13.8] (time left 151s)
+[14:34:06] [4] fall without OOB flag: 4 decisions off the map at [-23.   13.7  12. ] (time left 144s)
+[14:34:15] NAV upd=28911 map=KingOfTheMarble_Hunt r=0.65 steps=227,999,155 segs=48 arrive=0% falls100=0.48 speed=7.7 gems=53.2 pickup=7.9 sgem=1.54 carry=0.0 turn=20.5 rew=1980.5 pl=-0.007 vl=0.180 ent=0.31 entd=0.02 ec=0.0045 kl=0.029 clip=0.23 gn=5.43 ep=3 dstd=0.22 flips=0 upd_s=2.3 wall_s=19 inst=8 dps=441 prof=fwd:11,send:1,recv:4,handle:0,w_game:28,w_obs:24,w_begin:0
+[14:34:24] [7] fall without OOB flag: 4 decisions off the map at [-9.6  1.  15.3] (time left 77s)
+[14:34:27] [0] fall without OOB flag: 4 decisions off the map at [-34.6  32.1  13.8] (time left 56s)
+[14:34:33] NAV upd=28912 map=KingOfTheMarble_Hunt r=0.65 steps=228,007,355 segs=51 arrive=0% falls100=0.48 speed=7.8 gems=52.8 pickup=7.9 sgem=1.54 carry=0.0 turn=20.5 rew=1966.3 pl=-0.012 vl=0.270 ent=0.31 entd=0.02 ec=0.0045 kl=0.028 clip=0.20 gn=4.80 ep=3 dstd=0.22 flips=0 upd_s=2.0 wall_s=18 inst=8 dps=449 prof=fwd:11,send:1,recv:4,handle:0,w_game:28,w_obs:25,w_begin:0
+[14:34:35] [4] fall without OOB flag: 4 decisions off the map at [-25.5  16.5  14. ] (time left 32s)
+[14:34:41] [5] GAME map=KingOfTheMarble_Hunt points=148 gems=117 falls=2 rtf=3.9 pow=-
+[14:34:41] [5] [env:8893] round over (time left 180s of 180s); waiting for the next round
+[14:34:41] [5] [env:8893] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:34:41] [5] new round (game connection 1); rtf 89.8
+[14:34:41] [2] GAME map=KingOfTheMarble_Hunt points=134 gems=104 falls=5 rtf=3.9 pow=f6:1,u2:1
+[14:34:41] [2] [env:8890] round over (time left 180s of 180s); waiting for the next round
+[14:34:41] [2] [env:8890] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:34:41] [2] new round (game connection 1); rtf 99.8
+[14:34:42] [6] GAME map=KingOfTheMarble_Hunt points=148 gems=119 falls=1 rtf=3.9 pow=f2:1
+[14:34:42] [6] [env:8894] round over (time left 180s of 180s); waiting for the next round
+[14:34:42] [6] [env:8894] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:34:42] [6] new round (game connection 1); rtf 97.7
+[14:34:42] [4] GAME map=KingOfTheMarble_Hunt points=131 gems=100 falls=4 rtf=4.1 pow=f1:1,f2:1,u1:1
+[14:34:42] [4] [env:8892] round over (time left 180s of 180s); waiting for the next round
+[14:34:42] [4] [env:8892] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:34:42] [4] new round (game connection 1); rtf 88.3
+[14:34:42] [1] GAME map=KingOfTheMarble_Hunt points=140 gems=111 falls=4 rtf=4.1 pow=f1:3,u1:2
+[14:34:42] [1] [env:8889] round over (time left 180s of 180s); waiting for the next round
+[14:34:42] [1] [env:8889] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:34:42] [1] new round (game connection 1); rtf 93.5
+[14:34:42] [3] GAME map=KingOfTheMarble_Hunt points=145 gems=115 falls=2 rtf=4.0 pow=blast:1,f1:1
+[14:34:42] [3] [env:8891] round over (time left 180s of 180s); waiting for the next round
+[14:34:42] [3] [env:8891] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:34:42] [3] new round (game connection 1); rtf 85.7
+[14:34:42] [0] GAME map=KingOfTheMarble_Hunt points=144 gems=116 falls=1 rtf=4.1 pow=blast:1,f2:2,u2:1
+[14:34:42] [0] [env:8888] round over (time left 180s of 180s); waiting for the next round
+[14:34:42] [0] [env:8888] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:34:42] [0] new round (game connection 1); rtf 77.7
+[14:34:44] [7] GAME map=KingOfTheMarble_Hunt points=137 gems=110 falls=1 rtf=4.1 pow=f1:2,f6:1,u1:2
+[14:34:44] [7] [env:8895] round over (time left 180s of 180s); waiting for the next round
+[14:34:44] [7] [env:8895] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:34:44] [7] new round (game connection 1); rtf 95.8
+[14:34:52] NAV upd=28913 map=KingOfTheMarble_Hunt r=0.65 steps=228,015,555 segs=54 arrive=0% falls100=0.46 speed=7.8 gems=54.6 pickup=7.9 sgem=1.53 carry=0.0 turn=20.5 rew=2038.0 pl=-0.010 vl=0.302 ent=0.31 entd=0.02 ec=0.0045 kl=0.028 clip=0.20 gn=4.98 ep=3 dstd=0.22 flips=0 upd_s=1.9 wall_s=18 inst=8 dps=449 prof=fwd:11,send:1,recv:4,handle:0,w_game:28,w_obs:25,w_begin:0
+[14:34:56] [1] fall without OOB flag: 4 decisions off the map at [-14.4 -13.1  23. ] (time left 127s)
+[14:34:57] [7] fall without OOB flag: 4 decisions off the map at [-23.9  24.7  14.1] (time left 130s)
+[14:35:10] NAV upd=28914 map=KingOfTheMarble_Hunt r=0.65 steps=228,023,755 segs=56 arrive=0% falls100=0.46 speed=7.8 gems=54.1 pickup=7.9 sgem=1.53 carry=0.0 turn=20.5 rew=2019.0 pl=-0.007 vl=0.199 ent=0.31 entd=0.02 ec=0.0044 kl=0.024 clip=0.20 gn=5.28 ep=3 dstd=0.22 flips=0 upd_s=2.0 wall_s=18 inst=8 dps=446 prof=fwd:11,send:1,recv:4,handle:0,w_game:28,w_obs:25,w_begin:0
+[14:35:28] NAV upd=28915 map=KingOfTheMarble_Hunt r=0.65 steps=228,031,955 segs=58 arrive=0% falls100=0.46 speed=7.8 gems=54.6 pickup=7.9 sgem=1.52 carry=0.0 turn=20.5 rew=2039.7 pl=-0.012 vl=0.240 ent=0.31 entd=0.02 ec=0.0044 kl=0.025 clip=0.21 gn=4.95 ep=3 dstd=0.22 flips=0 upd_s=1.9 wall_s=18 inst=8 dps=457 prof=fwd:11,send:1,recv:4,handle:0,w_game:28,w_obs:25,w_begin:0
+[14:35:28] [5] GAME map=KingOfTheMarble_Hunt points=142 gems=112 falls=1 rtf=3.9 pow=f1:2,f2:1,u1:2,u2:1
+[14:35:28] [5] [env:8893] round over (time left 180s of 180s); waiting for the next round
+[14:35:28] [5] [env:8893] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:35:28] [5] new round (game connection 1); rtf 97.3
+[14:35:28] [2] GAME map=KingOfTheMarble_Hunt points=143 gems=112 falls=2 rtf=3.9 pow=f1:2,u1:2
+[14:35:28] [2] [env:8890] round over (time left 180s of 180s); waiting for the next round
+[14:35:28] [2] [env:8890] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:35:28] [2] new round (game connection 1); rtf 77.2
+[14:35:29] [3] GAME map=KingOfTheMarble_Hunt points=133 gems=106 falls=6 rtf=4.0 pow=f1:2,f2:1,u1:1,u2:1
+[14:35:29] [3] [env:8891] round over (time left 180s of 180s); waiting for the next round
+[14:35:29] [3] [env:8891] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:35:29] [3] new round (game connection 1); rtf 91.2
+[14:35:29] [1] GAME map=KingOfTheMarble_Hunt points=132 gems=105 falls=3 rtf=3.9 pow=blast:1,f1:2,f2:1,u1:3,u2:1
+[14:35:29] [1] [env:8889] round over (time left 180s of 180s); waiting for the next round
+[14:35:29] [1] [env:8889] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:35:29] [1] new round (game connection 1); rtf 75.0
+[14:35:29] [4] GAME map=KingOfTheMarble_Hunt points=148 gems=120 falls=1 rtf=3.9 pow=f2:2,u2:1
+[14:35:29] [4] [env:8892] round over (time left 180s of 180s); waiting for the next round
+[14:35:29] [4] [env:8892] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:35:29] [4] new round (game connection 1); rtf 91.2
+[14:35:30] [0] GAME map=KingOfTheMarble_Hunt points=145 gems=115 falls=2 rtf=3.9 pow=f1:3,u1:3
+[14:35:30] [0] [env:8888] round over (time left 180s of 180s); waiting for the next round
+[14:35:30] [0] [env:8888] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:35:30] [0] new round (game connection 1); rtf 83.6
+[14:35:30] [6] GAME map=KingOfTheMarble_Hunt points=147 gems=114 falls=0 rtf=3.8 pow=f2:1
+[14:35:30] [6] [env:8894] round over (time left 180s of 180s); waiting for the next round
+[14:35:30] [6] [env:8894] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:35:30] [6] new round (game connection 1); rtf 100.3
+[14:35:31] [7] GAME map=KingOfTheMarble_Hunt points=142 gems=114 falls=3 rtf=4.0 pow=blast:1,f1:1,u2:1
+[14:35:31] [7] [env:8895] round over (time left 180s of 180s); waiting for the next round
+[14:35:31] [7] [env:8895] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:35:31] [7] new round (game connection 1); rtf 94.9
+[14:35:47] NAV upd=28916 map=KingOfTheMarble_Hunt r=0.65 steps=228,040,155 segs=61 arrive=0% falls100=0.47 speed=7.8 gems=53.2 pickup=7.9 sgem=1.52 carry=0.0 turn=20.5 rew=1985.0 pl=-0.012 vl=0.301 ent=0.31 entd=0.02 ec=0.0044 kl=0.027 clip=0.18 gn=5.28 ep=3 dstd=0.22 flips=0 upd_s=2.2 wall_s=19 inst=8 dps=439 prof=fwd:11,send:1,recv:4,handle:0,w_game:28,w_obs:25,w_begin:0
+[14:35:54] [7] fall without OOB flag: 4 decisions off the map at [-28.8  17.8  14. ] (time left 84s)
+[14:36:05] NAV upd=28917 map=KingOfTheMarble_Hunt r=0.65 steps=228,048,355 segs=62 arrive=0% falls100=0.47 speed=7.8 gems=53.5 pickup=7.9 sgem=1.52 carry=0.0 turn=20.5 rew=1993.9 pl=-0.011 vl=0.188 ent=0.31 entd=0.02 ec=0.0043 kl=0.028 clip=0.21 gn=5.42 ep=3 dstd=0.22 flips=0 upd_s=2.1 wall_s=18 inst=8 dps=450 prof=fwd:11,send:1,recv:4,handle:0,w_game:28,w_obs:25,w_begin:0
+[14:36:09] [7] fall without OOB flag: 4 decisions off the map at [-35.1  29.2  13.9] (time left 25s)
+[14:36:14] [2] GAME map=KingOfTheMarble_Hunt points=135 gems=107 falls=4 rtf=4.1 pow=f1:1,f2:1,u1:1
+[14:36:14] [2] [env:8890] round over (time left 180s of 180s); waiting for the next round
+[14:36:14] [2] [env:8890] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:36:14] [2] new round (game connection 1); rtf 91.7
+[14:36:14] [5] GAME map=KingOfTheMarble_Hunt points=136 gems=108 falls=3 rtf=4.1 pow=f2:1
+[14:36:14] [5] [env:8893] round over (time left 180s of 180s); waiting for the next round
+[14:36:14] [5] [env:8893] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:36:14] [5] new round (game connection 1); rtf 82.5
+[14:36:14] [3] GAME map=KingOfTheMarble_Hunt points=140 gems=108 falls=2 rtf=4.0 pow=f1:1
+[14:36:14] [3] [env:8891] round over (time left 180s of 180s); waiting for the next round
+[14:36:14] [3] [env:8891] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:36:14] [3] new round (game connection 1); rtf 90.2
+[14:36:15] [6] GAME map=KingOfTheMarble_Hunt points=136 gems=107 falls=5 rtf=4.1 pow=f1:2,u1:3
+[14:36:15] [6] [env:8894] round over (time left 180s of 180s); waiting for the next round
+[14:36:15] [6] [env:8894] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:36:15] [6] new round (game connection 1); rtf 95.0
+[14:36:15] [4] GAME map=KingOfTheMarble_Hunt points=136 gems=105 falls=3 rtf=4.1 pow=blast:1,f1:1,f2:1,u2:1
+[14:36:15] [4] [env:8892] round over (time left 180s of 180s); waiting for the next round
+[14:36:15] [4] [env:8892] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:36:15] [4] new round (game connection 1); rtf 88.0
+[14:36:15] [1] GAME map=KingOfTheMarble_Hunt points=142 gems=110 falls=2 rtf=4.0 pow=f2:1
+[14:36:15] [1] [env:8889] round over (time left 180s of 180s); waiting for the next round
+[14:36:15] [1] [env:8889] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:36:15] [1] new round (game connection 1); rtf 79.8
+[14:36:15] [7] GAME map=KingOfTheMarble_Hunt points=134 gems=106 falls=4 rtf=4.1 pow=f1:1,f2:1,u1:1,u2:1
+[14:36:15] [7] [env:8895] round over (time left 180s of 180s); waiting for the next round
+[14:36:15] [7] [env:8895] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:36:15] [7] new round (game connection 1); rtf 86.4
+[14:36:15] [0] GAME map=KingOfTheMarble_Hunt points=139 gems=111 falls=2 rtf=4.0 pow=f1:1,f2:1,u1:1
+[14:36:15] [0] [env:8888] round over (time left 180s of 180s); waiting for the next round
+[14:36:15] [0] [env:8888] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:36:15] [0] new round (game connection 1); rtf 90.0
+[14:36:20] [6] fall without OOB flag: 4 decisions off the map at [-23.9 -10.9  20.6] (time left 159s)
+[14:36:23] NAV upd=28918 map=KingOfTheMarble_Hunt r=0.65 steps=228,056,555 segs=64 arrive=0% falls100=0.46 speed=7.8 gems=54.0 pickup=7.9 sgem=1.52 carry=0.0 turn=20.5 rew=2015.3 pl=-0.009 vl=0.262 ent=0.31 entd=0.02 ec=0.0043 kl=0.025 clip=0.21 gn=5.00 ep=3 dstd=0.22 flips=0 upd_s=2.0 wall_s=18 inst=8 dps=447 prof=fwd:11,send:1,recv:4,handle:0,w_game:28,w_obs:24,w_begin:0
+[14:36:33] [3] fall without OOB flag: 4 decisions off the map at [-25.  45.  29.] (time left 109s)
+[14:36:35] [0] fall without OOB flag: 4 decisions off the map at [-16.1  11.2  13.5] (time left 104s)
+[14:36:41] NAV upd=28919 map=KingOfTheMarble_Hunt r=0.65 steps=228,064,755 segs=64 arrive=0% falls100=0.46 speed=7.8 gems=54.0 pickup=7.9 sgem=1.52 carry=0.0 turn=20.5 rew=2015.3 pl=-0.001 vl=0.187 ent=0.31 entd=0.02 ec=0.0043 kl=0.036 clip=0.26 gn=7.29 ep=3 dstd=0.22 flips=0 upd_s=1.9 wall_s=18 inst=8 dps=452 prof=fwd:11,send:1,recv:4,handle:0,w_game:28,w_obs:25,w_begin:0
+[14:36:55] [7] fall without OOB flag: 4 decisions off the map at [-29.9  16.1  14. ] (time left 18s)
+[14:37:00] DIRGAIN effective goal-bearing norm 21.07 (gain 30)
+[14:37:00] NAV upd=28920 map=KingOfTheMarble_Hunt r=0.65 steps=228,072,955 segs=70 arrive=0% falls100=0.45 speed=7.9 gems=55.8 pickup=7.9 sgem=1.51 carry=0.0 turn=20.5 rew=2084.6 pl=-0.011 vl=0.305 ent=0.31 entd=0.02 ec=0.0043 kl=0.021 clip=0.20 gn=4.66 ep=3 dstd=0.22 flips=0 upd_s=2.0 wall_s=18 inst=8 dps=446 prof=fwd:11,send:1,recv:4,handle:0,w_game:28,w_obs:26,w_begin:0
+[14:37:00] [2] GAME map=KingOfTheMarble_Hunt points=128 gems=102 falls=6 rtf=4.0 pow=f2:1
+[14:37:00] [2] [env:8890] round over (time left 180s of 180s); waiting for the next round
+[14:37:00] [2] [env:8890] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:37:00] [2] new round (game connection 1); rtf 93.8
+[14:37:01] [5] GAME map=KingOfTheMarble_Hunt points=142 gems=111 falls=3 rtf=3.9 pow=blast:1,f1:2,f2:2,u1:2,u2:1
+[14:37:01] [5] [env:8893] round over (time left 180s of 180s); waiting for the next round
+[14:37:01] [5] [env:8893] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:37:01] [5] new round (game connection 1); rtf 100.4
+[14:37:01] [3] GAME map=KingOfTheMarble_Hunt points=151 gems=124 falls=1 rtf=3.9 pow=f1:1,f2:2,u2:2
+[14:37:01] [3] [env:8891] round over (time left 180s of 180s); waiting for the next round
+[14:37:01] [3] [env:8891] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:37:01] [3] new round (game connection 1); rtf 97.4
+[14:37:01] [6] GAME map=KingOfTheMarble_Hunt points=141 gems=111 falls=2 rtf=3.9 pow=f1:1,f2:1,u2:1
+[14:37:01] [6] [env:8894] round over (time left 180s of 180s); waiting for the next round
+[14:37:01] [6] [env:8894] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:37:01] [6] new round (game connection 1); rtf 91.7
+[14:37:02] [1] GAME map=KingOfTheMarble_Hunt points=139 gems=110 falls=4 rtf=3.9 pow=f2:1,u2:1
+[14:37:02] [1] [env:8889] round over (time left 180s of 180s); waiting for the next round
+[14:37:02] [1] [env:8889] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:37:02] [1] new round (game connection 1); rtf 94.5
+[14:37:02] [7] GAME map=KingOfTheMarble_Hunt points=150 gems=120 falls=2 rtf=4.0 pow=f1:1,u1:1
+[14:37:02] [7] [env:8895] round over (time left 180s of 180s); waiting for the next round
+[14:37:02] [7] [env:8895] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:37:02] [7] new round (game connection 1); rtf 83.4
+[14:37:02] [4] GAME map=KingOfTheMarble_Hunt points=152 gems=119 falls=1 rtf=3.9 pow=f1:1
+[14:37:02] [4] [env:8892] round over (time left 180s of 180s); waiting for the next round
+[14:37:02] [4] [env:8892] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:37:02] [4] new round (game connection 1); rtf 92.3
+[14:37:03] [0] GAME map=KingOfTheMarble_Hunt points=140 gems=112 falls=1 rtf=3.9 pow=blast:2,f1:1,f2:1,u1:1
+[14:37:03] [0] [env:8888] round over (time left 180s of 180s); waiting for the next round
+[14:37:03] [0] [env:8888] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:37:03] [0] new round (game connection 1); rtf 62.9
+[14:37:12] [4] fall without OOB flag: 4 decisions off the map at [-22.5   7.8  14.1] (time left 141s)
+[14:37:18] NAV upd=28921 map=KingOfTheMarble_Hunt r=0.65 steps=228,081,155 segs=70 arrive=0% falls100=0.45 speed=7.9 gems=55.8 pickup=7.9 sgem=1.51 carry=0.0 turn=20.5 rew=2084.6 pl=-0.014 vl=0.240 ent=0.31 entd=0.02 ec=0.0042 kl=0.024 clip=0.18 gn=4.37 ep=3 dstd=0.22 flips=0 upd_s=2.2 wall_s=19 inst=8 dps=437 prof=fwd:11,send:1,recv:4,handle:0,w_game:29,w_obs:25,w_begin:0
+[14:37:20] [0] fall without OOB flag: 4 decisions off the map at [-24.9  18.7  13.7] (time left 118s)
+[14:37:24] [3] fall without OOB flag: 4 decisions off the map at [-24.3 -13.6  14.3] (time left 93s)
+[14:37:36] NAV upd=28922 map=KingOfTheMarble_Hunt r=0.65 steps=228,089,355 segs=71 arrive=0% falls100=0.45 speed=7.9 gems=55.7 pickup=7.9 sgem=1.51 carry=0.0 turn=20.5 rew=2082.1 pl=-0.006 vl=0.195 ent=0.32 entd=0.02 ec=0.0042 kl=0.028 clip=0.21 gn=6.30 ep=3 dstd=0.22 flips=0 upd_s=1.9 wall_s=18 inst=8 dps=457 prof=fwd:11,send:1,recv:4,handle:0,w_game:28,w_obs:25,w_begin:0
+[14:37:45] [5] GAME map=KingOfTheMarble_Hunt points=133 gems=106 falls=6 rtf=4.2 pow=f2:1
+[14:37:45] [5] [env:8893] round over (time left 180s of 180s); waiting for the next round
+[14:37:45] [5] [env:8893] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:37:45] [5] new round (game connection 1); rtf 95.1
+[14:37:46] [2] GAME map=KingOfTheMarble_Hunt points=156 gems=125 falls=1 rtf=4.1 pow=-
+[14:37:46] [2] [env:8890] round over (time left 180s of 180s); waiting for the next round
+[14:37:46] [2] [env:8890] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:37:46] [2] new round (game connection 1); rtf 92.5
+[14:37:47] [3] GAME map=KingOfTheMarble_Hunt points=141 gems=111 falls=2 rtf=4.1 pow=f1:1,u2:1
+[14:37:47] [3] [env:8891] round over (time left 180s of 180s); waiting for the next round
+[14:37:47] [3] [env:8891] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:37:47] [3] new round (game connection 1); rtf 91.7
+[14:37:47] [6] GAME map=KingOfTheMarble_Hunt points=144 gems=115 falls=2 rtf=4.1 pow=f1:2,u1:1
+[14:37:47] [6] [env:8894] round over (time left 180s of 180s); waiting for the next round
+[14:37:47] [6] [env:8894] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:37:47] [6] new round (game connection 1); rtf 78.2
+[14:37:47] [1] GAME map=KingOfTheMarble_Hunt points=157 gems=126 falls=1 rtf=4.1 pow=f1:1
+[14:37:47] [1] [env:8889] round over (time left 180s of 180s); waiting for the next round
+[14:37:47] [1] [env:8889] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:37:47] [1] new round (game connection 1); rtf 92.2
+[14:37:47] [4] GAME map=KingOfTheMarble_Hunt points=147 gems=116 falls=1 rtf=4.1 pow=f2:1,u2:1
+[14:37:47] [4] [env:8892] round over (time left 180s of 180s); waiting for the next round
+[14:37:47] [4] [env:8892] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:37:47] [4] new round (game connection 1); rtf 78.1
+[14:37:48] [3] fall without OOB flag: 4 decisions off the map at [-25.5  14.2  13.8] (time left 177s)
+[14:37:48] [0] GAME map=KingOfTheMarble_Hunt points=147 gems=117 falls=1 rtf=4.1 pow=f1:1
+[14:37:48] [0] [env:8888] round over (time left 180s of 180s); waiting for the next round
+[14:37:48] [0] [env:8888] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:37:48] [0] new round (game connection 1); rtf 71.8
+[14:37:48] [7] GAME map=KingOfTheMarble_Hunt points=143 gems=112 falls=0 rtf=4.0 pow=blast:1,f1:1
+[14:37:48] [7] [env:8895] round over (time left 180s of 180s); waiting for the next round
+[14:37:48] [7] [env:8895] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:37:48] [7] new round (game connection 1); rtf 77.3
+[14:37:51] [5] fall without OOB flag: 4 decisions off the map at [-15.1  17.5  14. ] (time left 154s)
+[14:37:55] NAV upd=28923 map=KingOfTheMarble_Hunt r=0.65 steps=228,097,555 segs=73 arrive=0% falls100=0.45 speed=7.9 gems=55.9 pickup=7.9 sgem=1.51 carry=0.0 turn=20.5 rew=2089.3 pl=-0.014 vl=0.297 ent=0.32 entd=0.02 ec=0.0042 kl=0.023 clip=0.17 gn=4.70 ep=3 dstd=0.22 flips=0 upd_s=2.0 wall_s=18 inst=8 dps=448 prof=fwd:11,send:1,recv:5,handle:0,w_game:29,w_obs:25,w_begin:0
+[14:38:00] [0] fall without OOB flag: 4 decisions off the map at [-51.9   6.2  22.4] (time left 138s)
+[14:38:02] [3] fall without OOB flag: 4 decisions off the map at [ 2.  20.2 21.2] (time left 122s)
+[14:38:14] NAV upd=28924 map=KingOfTheMarble_Hunt r=0.65 steps=228,105,755 segs=75 arrive=0% falls100=0.45 speed=7.9 gems=55.3 pickup=7.9 sgem=1.51 carry=0.0 turn=20.6 rew=2068.0 pl=-0.008 vl=0.244 ent=0.32 entd=0.02 ec=0.0041 kl=0.032 clip=0.23 gn=5.50 ep=3 dstd=0.22 flips=0 upd_s=2.3 wall_s=19 inst=8 dps=434 prof=fwd:11,send:1,recv:4,handle:0,w_game:29,w_obs:25,w_begin:0
+[14:38:20] [6] fall without OOB flag: 4 decisions off the map at [-25.7  15.8  13.9] (time left 53s)
+[14:38:32] NAV upd=28925 map=KingOfTheMarble_Hunt r=0.65 steps=228,113,955 segs=77 arrive=0% falls100=0.44 speed=7.9 gems=56.0 pickup=7.9 sgem=1.51 carry=0.0 turn=20.6 rew=2094.5 pl=-0.012 vl=0.249 ent=0.32 entd=0.02 ec=0.0041 kl=0.026 clip=0.20 gn=4.47 ep=3 dstd=0.22 flips=0 upd_s=2.0 wall_s=18 inst=8 dps=448 prof=fwd:11,send:1,recv:4,handle:0,w_game:28,w_obs:25,w_begin:0
+[14:38:32] saved C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\models\nav\nav_028925.pth
+[14:38:33] [5] GAME map=KingOfTheMarble_Hunt points=134 gems=105 falls=3 rtf=3.8 pow=f1:1,f2:1,u1:1
+[14:38:33] [5] [env:8893] round over (time left 180s of 180s); waiting for the next round
+[14:38:33] [5] [env:8893] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:38:33] [5] new round (game connection 1); rtf 59.4
+[14:38:34] [2] GAME map=KingOfTheMarble_Hunt points=138 gems=110 falls=4 rtf=3.9 pow=f1:2,u1:1
+[14:38:34] [2] [env:8890] round over (time left 180s of 180s); waiting for the next round
+[14:38:34] [2] [env:8890] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:38:34] [2] new round (game connection 1); rtf 81.5
+[14:38:35] [3] GAME map=KingOfTheMarble_Hunt points=130 gems=100 falls=2 rtf=3.8 pow=f2:1,u1:1,u2:1
+[14:38:35] [3] [env:8891] round over (time left 180s of 180s); waiting for the next round
+[14:38:35] [3] [env:8891] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:38:35] [3] new round (game connection 1); rtf 89.9
+[14:38:35] [4] GAME map=KingOfTheMarble_Hunt points=132 gems=106 falls=5 rtf=3.9 pow=f1:1,f2:1,u1:1
+[14:38:35] [4] [env:8892] round over (time left 180s of 180s); waiting for the next round
+[14:38:35] [4] [env:8892] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:38:35] [4] new round (game connection 1); rtf 96.5
+[14:38:35] [6] GAME map=KingOfTheMarble_Hunt points=143 gems=113 falls=1 rtf=3.8 pow=f2:1
+[14:38:35] [6] [env:8894] round over (time left 180s of 180s); waiting for the next round
+[14:38:35] [6] [env:8894] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:38:35] [6] new round (game connection 1); rtf 85.7
+[14:38:36] [0] GAME map=KingOfTheMarble_Hunt points=137 gems=109 falls=3 rtf=3.9 pow=f1:2,f2:2,u1:2,u2:1
+[14:38:36] [0] [env:8888] round over (time left 180s of 180s); waiting for the next round
+[14:38:36] [0] [env:8888] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:38:36] [0] new round (game connection 1); rtf 96.2
+[14:38:36] [1] GAME map=KingOfTheMarble_Hunt points=153 gems=122 falls=0 rtf=3.8 pow=f1:1
+[14:38:36] [1] [env:8889] round over (time left 180s of 180s); waiting for the next round
+[14:38:36] [1] [env:8889] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:38:36] [1] new round (game connection 1); rtf 95.5
+[14:38:36] [7] GAME map=KingOfTheMarble_Hunt points=149 gems=118 falls=1 rtf=3.8 pow=f1:3,u1:2
+[14:38:36] [7] [env:8895] round over (time left 180s of 180s); waiting for the next round
+[14:38:36] [7] [env:8895] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:38:36] [7] new round (game connection 1); rtf 82.4
+[14:38:50] NAV upd=28926 map=KingOfTheMarble_Hunt r=0.65 steps=228,122,155 segs=79 arrive=0% falls100=0.45 speed=7.9 gems=55.9 pickup=7.9 sgem=1.51 carry=0.0 turn=20.5 rew=2092.4 pl=-0.014 vl=0.270 ent=0.32 entd=0.02 ec=0.0041 kl=0.023 clip=0.18 gn=4.73 ep=3 dstd=0.22 flips=0 upd_s=2.2 wall_s=19 inst=8 dps=443 prof=fwd:11,send:1,recv:4,handle:0,w_game:28,w_obs:24,w_begin:0
+[14:38:52] [7] fall without OOB flag: 4 decisions off the map at [-15.7  16.6  13.9] (time left 120s)
+[14:38:57] [1] fall without OOB flag: 4 decisions off the map at [-50.9   9.2  21.1] (time left 98s)
+[14:39:00] [7] fall without OOB flag: 4 decisions off the map at [-21.4  24.5  14.2] (time left 86s)
+[14:39:09] NAV upd=28927 map=KingOfTheMarble_Hunt r=0.65 steps=228,130,355 segs=82 arrive=0% falls100=0.44 speed=7.9 gems=56.2 pickup=7.9 sgem=1.51 carry=0.0 turn=20.5 rew=2104.7 pl=-0.010 vl=0.237 ent=0.32 entd=0.02 ec=0.0041 kl=0.027 clip=0.19 gn=5.13 ep=3 dstd=0.22 flips=0 upd_s=2.0 wall_s=18 inst=8 dps=446 prof=fwd:11,send:1,recv:4,handle:0,w_game:28,w_obs:26,w_begin:0
+[14:39:14] [1] fall without OOB flag: 4 decisions off the map at [-23.6  16.1  14.2] (time left 33s)
+[14:39:18] [2] GAME map=KingOfTheMarble_Hunt points=137 gems=109 falls=5 rtf=4.1 pow=f1:2,u1:1
+[14:39:18] [2] [env:8890] round over (time left 180s of 180s); waiting for the next round
+[14:39:18] [2] [env:8890] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:39:18] [2] new round (game connection 1); rtf 94.1
+[14:39:19] [5] GAME map=KingOfTheMarble_Hunt points=135 gems=105 falls=3 rtf=4.0 pow=blast:1,f1:1
+[14:39:19] [5] [env:8893] round over (time left 180s of 180s); waiting for the next round
+[14:39:19] [5] [env:8893] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:39:19] [5] new round (game connection 1); rtf 70.1
+[14:39:19] [6] fall without OOB flag: 4 decisions off the map at [-14.6 -12.4  22.4] (time left 4s)
+[14:39:20] [0] fall without OOB flag: 4 decisions off the map at [-53.9  13.5  16.7] (time left 5s)
+[14:39:20] [4] GAME map=KingOfTheMarble_Hunt points=142 gems=112 falls=3 rtf=4.0 pow=f6:1
+[14:39:20] [4] [env:8892] round over (time left 180s of 180s); waiting for the next round
+[14:39:20] [4] [env:8892] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:39:20] [4] new round (game connection 1); rtf 76.8
+[14:39:20] [6] GAME map=KingOfTheMarble_Hunt points=141 gems=110 falls=2 rtf=4.1 pow=f2:1,u2:1
+[14:39:20] [6] [env:8894] round over (time left 180s of 180s); waiting for the next round
+[14:39:20] [6] [env:8894] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:39:20] [6] new round (game connection 1); rtf 81.4
+[14:39:21] [3] GAME map=KingOfTheMarble_Hunt points=140 gems=111 falls=1 rtf=4.0 pow=blast:1,f1:2,u1:1
+[14:39:21] [3] [env:8891] round over (time left 180s of 180s); waiting for the next round
+[14:39:21] [3] [env:8891] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:39:21] [3] new round (game connection 1); rtf 89.8
+[14:39:21] [0] GAME map=KingOfTheMarble_Hunt points=151 gems=120 falls=2 rtf=4.1 pow=f1:1,f2:2,u1:1,u2:1
+[14:39:21] [0] [env:8888] round over (time left 180s of 180s); waiting for the next round
+[14:39:21] [0] [env:8888] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:39:21] [0] new round (game connection 1); rtf 90.4
+[14:39:21] [1] GAME map=KingOfTheMarble_Hunt points=126 gems=100 falls=3 rtf=4.1 pow=f1:3,f2:1,u1:2,u2:1
+[14:39:21] [1] [env:8889] round over (time left 180s of 180s); waiting for the next round
+[14:39:21] [1] [env:8889] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:39:21] [1] new round (game connection 1); rtf 97.3
+[14:39:21] [7] GAME map=KingOfTheMarble_Hunt points=134 gems=107 falls=3 rtf=4.1 pow=blast:1,f2:2,u2:1
+[14:39:21] [7] [env:8895] round over (time left 180s of 180s); waiting for the next round
+[14:39:21] [7] [env:8895] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:39:21] [7] new round (game connection 1); rtf 94.3
+[14:39:27] NAV upd=28928 map=KingOfTheMarble_Hunt r=0.65 steps=228,138,555 segs=85 arrive=0% falls100=0.43 speed=7.9 gems=57.9 pickup=7.9 sgem=1.50 carry=0.0 turn=20.5 rew=2170.1 pl=-0.014 vl=0.333 ent=0.32 entd=0.02 ec=0.0040 kl=0.020 clip=0.15 gn=4.66 ep=3 dstd=0.22 flips=0 upd_s=1.9 wall_s=18 inst=8 dps=447 prof=fwd:11,send:1,recv:4,handle:0,w_game:28,w_obs:24,w_begin:0
+[14:39:45] NAV upd=28929 map=KingOfTheMarble_Hunt r=0.65 steps=228,146,755 segs=87 arrive=0% falls100=0.43 speed=7.9 gems=57.6 pickup=7.9 sgem=1.51 carry=0.0 turn=20.5 rew=2157.1 pl=-0.005 vl=0.237 ent=0.32 entd=0.02 ec=0.0040 kl=0.033 clip=0.24 gn=5.59 ep=3 dstd=0.22 flips=0 upd_s=1.9 wall_s=18 inst=8 dps=453 prof=fwd:11,send:1,recv:4,handle:0,w_game:28,w_obs:25,w_begin:0
+[14:40:01] [2] fall without OOB flag: 4 decisions off the map at [ 3.3 16.  21. ] (time left 12s)
+[14:40:03] NAV upd=28930 map=KingOfTheMarble_Hunt r=0.65 steps=228,154,955 segs=87 arrive=0% falls100=0.43 speed=7.9 gems=57.6 pickup=7.9 sgem=1.51 carry=0.0 turn=20.5 rew=2157.1 pl=-0.009 vl=0.128 ent=0.32 entd=0.02 ec=0.0040 kl=0.023 clip=0.21 gn=5.90 ep=3 dstd=0.22 flips=0 upd_s=2.2 wall_s=18 inst=8 dps=448 prof=fwd:11,send:1,recv:4,handle:0,w_game:28,w_obs:25,w_begin:0
+[14:40:06] [2] GAME map=KingOfTheMarble_Hunt points=143 gems=114 falls=0 rtf=3.9 pow=f2:2,u2:1
+[14:40:06] [2] [env:8890] round over (time left 180s of 180s); waiting for the next round
+[14:40:06] [2] [env:8890] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:40:06] [2] new round (game connection 1); rtf 86.0
+[14:40:06] [3] GAME map=KingOfTheMarble_Hunt points=126 gems=101 falls=6 rtf=4.0 pow=f1:1,f2:1,u1:1,u2:1
+[14:40:06] [3] [env:8891] round over (time left 180s of 180s); waiting for the next round
+[14:40:06] [3] [env:8891] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:40:06] [3] new round (game connection 1)
+[14:40:07] [5] GAME map=KingOfTheMarble_Hunt points=151 gems=119 falls=0 rtf=3.9 pow=f2:1
+[14:40:07] [5] [env:8893] round over (time left 180s of 180s); waiting for the next round
+[14:40:07] [5] [env:8893] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:40:07] [5] new round (game connection 1); rtf 89.7
+[14:40:07] [6] GAME map=KingOfTheMarble_Hunt points=135 gems=108 falls=4 rtf=4.0 pow=f1:1,f2:1,u1:2,u2:1
+[14:40:07] [6] [env:8894] round over (time left 180s of 180s); waiting for the next round
+[14:40:07] [6] [env:8894] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:40:07] [6] new round (game connection 1); rtf 66.0
+[14:40:07] [0] GAME map=KingOfTheMarble_Hunt points=135 gems=109 falls=5 rtf=4.0 pow=f1:1,f2:1,u2:1
+[14:40:07] [0] [env:8888] round over (time left 180s of 180s); waiting for the next round
+[14:40:07] [0] [env:8888] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:40:07] [0] new round (game connection 1); rtf 68.6
+[14:40:08] [4] GAME map=KingOfTheMarble_Hunt points=144 gems=113 falls=2 rtf=3.9 pow=f1:1
+[14:40:08] [4] [env:8892] round over (time left 180s of 180s); waiting for the next round
+[14:40:08] [4] [env:8892] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:40:08] [4] new round (game connection 1); rtf 86.9
+[14:40:08] [7] GAME map=KingOfTheMarble_Hunt points=147 gems=116 falls=2 rtf=3.9 pow=f1:1,f2:1,u1:1
+[14:40:08] [7] [env:8895] round over (time left 180s of 180s); waiting for the next round
+[14:40:08] [7] [env:8895] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:40:08] [7] new round (game connection 1); rtf 78.3
+[14:40:09] [1] GAME map=KingOfTheMarble_Hunt points=156 gems=124 falls=0 rtf=3.9 pow=f6:1
+[14:40:09] [1] [env:8889] round over (time left 180s of 180s); waiting for the next round
+[14:40:09] [1] [env:8889] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:40:09] [1] new round (game connection 1); rtf 60.1
+[14:40:14] [5] fall without OOB flag: 4 decisions off the map at [-21.1  12.8  14.2] (time left 153s)
+[14:40:14] [6] fall without OOB flag: 4 decisions off the map at [-30.4  17.6  13.8] (time left 150s)
+[14:40:22] NAV upd=28931 map=KingOfTheMarble_Hunt r=0.65 steps=228,163,148 segs=90 arrive=0% falls100=0.43 speed=7.9 gems=57.8 pickup=7.9 sgem=1.50 carry=0.0 turn=20.5 rew=2167.0 pl=-0.012 vl=0.344 ent=0.32 entd=0.02 ec=0.0039 kl=0.031 clip=0.20 gn=5.07 ep=3 dstd=0.22 flips=0 upd_s=2.2 wall_s=19 inst=8 dps=437 prof=fwd:11,send:1,recv:4,handle:0,w_game:28,w_obs:24,w_begin:0
+[14:40:40] NAV upd=28932 map=KingOfTheMarble_Hunt r=0.65 steps=228,171,348 segs=91 arrive=0% falls100=0.43 speed=7.9 gems=57.8 pickup=7.9 sgem=1.50 carry=0.0 turn=20.5 rew=2166.9 pl=0.002 vl=0.208 ent=0.32 entd=0.02 ec=0.0039 kl=0.047 clip=0.30 gn=6.85 ep=3 dstd=0.22 flips=0 upd_s=2.1 wall_s=18 inst=8 dps=451 prof=fwd:11,send:1,recv:4,handle:0,w_game:28,w_obs:25,w_begin:0
+[14:40:51] [2] GAME map=KingOfTheMarble_Hunt points=147 gems=115 falls=1 rtf=4.0 pow=blast:1,f1:1,f2:1,u1:1
+[14:40:51] [2] [env:8890] round over (time left 180s of 180s); waiting for the next round
+[14:40:51] [2] [env:8890] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:40:51] [2] new round (game connection 1); rtf 78.9
+[14:40:52] [5] GAME map=KingOfTheMarble_Hunt points=139 gems=110 falls=3 rtf=4.1 pow=f1:1
+[14:40:52] [5] [env:8893] round over (time left 180s of 180s); waiting for the next round
+[14:40:52] [5] [env:8893] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:40:52] [5] new round (game connection 1); rtf 55.4
+[14:40:52] [6] GAME map=KingOfTheMarble_Hunt points=137 gems=109 falls=3 rtf=4.1 pow=f1:1,f2:1,u1:1
+[14:40:52] [6] [env:8894] round over (time left 180s of 180s); waiting for the next round
+[14:40:52] [6] [env:8894] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:40:52] [6] new round (game connection 1); rtf 67.4
+[14:40:52] [3] GAME map=KingOfTheMarble_Hunt points=147 gems=119 falls=2 rtf=4.1 pow=f2:1
+[14:40:52] [3] [env:8891] round over (time left 180s of 180s); waiting for the next round
+[14:40:52] [3] [env:8891] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:40:52] [3] new round (game connection 1); rtf 50.9
+[14:40:53] [4] GAME map=KingOfTheMarble_Hunt points=135 gems=107 falls=4 rtf=4.1 pow=f1:1,f6:1,u1:1
+[14:40:53] [4] [env:8892] round over (time left 180s of 180s); waiting for the next round
+[14:40:53] [4] [env:8892] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:40:53] [4] new round (game connection 1); rtf 73.0
+[14:40:53] [0] GAME map=KingOfTheMarble_Hunt points=143 gems=113 falls=2 rtf=4.0 pow=f2:1,u2:1
+[14:40:53] [0] [env:8888] round over (time left 180s of 180s); waiting for the next round
+[14:40:53] [0] [env:8888] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:40:53] [0] new round (game connection 1); rtf 73.9
+[14:40:54] [1] GAME map=KingOfTheMarble_Hunt points=154 gems=122 falls=2 rtf=4.1 pow=f2:1
+[14:40:54] [1] [env:8889] round over (time left 180s of 180s); waiting for the next round
+[14:40:54] [1] [env:8889] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:40:54] [1] new round (game connection 1); rtf 81.0
+[14:40:54] [7] GAME map=KingOfTheMarble_Hunt points=137 gems=110 falls=2 rtf=4.0 pow=f1:1,f2:2,u1:1,u2:1
+[14:40:54] [7] [env:8895] round over (time left 180s of 180s); waiting for the next round
+[14:40:54] [7] [env:8895] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:40:54] [7] new round (game connection 1); rtf 77.0
+[14:40:56] [4] fall without OOB flag: 4 decisions off the map at [-22.1  15.9  13.8] (time left 168s)
+[14:40:59] NAV upd=28933 map=KingOfTheMarble_Hunt r=0.65 steps=228,179,548 segs=92 arrive=0% falls100=0.42 speed=7.9 gems=58.2 pickup=7.9 sgem=1.50 carry=0.0 turn=20.5 rew=2181.1 pl=-0.011 vl=0.300 ent=0.32 entd=0.02 ec=0.0039 kl=0.022 clip=0.19 gn=6.22 ep=3 dstd=0.22 flips=0 upd_s=1.9 wall_s=18 inst=8 dps=449 prof=fwd:11,send:1,recv:4,handle:0,w_game:28,w_obs:24,w_begin:0
+[14:41:17] NAV upd=28934 map=KingOfTheMarble_Hunt r=0.65 steps=228,187,748 segs=94 arrive=0% falls100=0.43 speed=7.9 gems=57.5 pickup=7.9 sgem=1.50 carry=0.0 turn=20.5 rew=2153.4 pl=-0.011 vl=0.204 ent=0.32 entd=0.02 ec=0.0038 kl=0.029 clip=0.20 gn=5.43 ep=3 dstd=0.22 flips=0 upd_s=2.8 wall_s=19 inst=8 dps=439 prof=fwd:11,send:1,recv:4,handle:0,w_game:28,w_obs:24,w_begin:0
+[14:41:21] [6] fall without OOB flag: 4 decisions off the map at [-55.1  29.5  23.9] (time left 72s)
+[14:41:35] NAV upd=28935 map=KingOfTheMarble_Hunt r=0.65 steps=228,195,948 segs=97 arrive=0% falls100=0.42 speed=7.9 gems=58.3 pickup=7.8 sgem=1.50 carry=0.0 turn=20.5 rew=2183.3 pl=-0.015 vl=0.277 ent=0.32 entd=0.02 ec=0.0038 kl=0.027 clip=0.19 gn=5.10 ep=3 dstd=0.22 flips=0 upd_s=1.9 wall_s=18 inst=8 dps=453 prof=fwd:11,send:1,recv:4,handle:0,w_game:28,w_obs:25,w_begin:0
+[14:41:39] [3] GAME map=KingOfTheMarble_Hunt points=142 gems=116 falls=5 rtf=4.0 pow=f2:2,u2:1
+[14:41:39] [3] [env:8891] round over (time left 180s of 180s); waiting for the next round
+[14:41:39] [3] [env:8891] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:41:39] [3] new round (game connection 1); rtf 89.0
+[14:41:39] [6] GAME map=KingOfTheMarble_Hunt points=125 gems=100 falls=3 rtf=3.9 pow=f1:1,f2:1,f6:1,u1:1,u2:1
+[14:41:39] [6] [env:8894] round over (time left 180s of 180s); waiting for the next round
+[14:41:39] [6] [env:8894] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:41:39] [6] new round (game connection 1); rtf 90.9
+[14:41:40] [2] GAME map=KingOfTheMarble_Hunt points=140 gems=110 falls=2 rtf=3.8 pow=f2:1
+[14:41:40] [2] [env:8890] round over (time left 180s of 180s); waiting for the next round
+[14:41:40] [2] [env:8890] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:41:40] [2] new round (game connection 1); rtf 96.8
+[14:41:40] [5] GAME map=KingOfTheMarble_Hunt points=143 gems=113 falls=2 rtf=3.8 pow=f2:1
+[14:41:40] [5] [env:8893] round over (time left 180s of 180s); waiting for the next round
+[14:41:40] [5] [env:8893] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:41:40] [5] new round (game connection 1); rtf 55.6
+[14:41:40] [4] GAME map=KingOfTheMarble_Hunt points=142 gems=114 falls=3 rtf=3.9 pow=f1:1
+[14:41:40] [4] [env:8892] round over (time left 180s of 180s); waiting for the next round
+[14:41:40] [4] [env:8892] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:41:40] [4] new round (game connection 1); rtf 81.7
+[14:41:40] [0] GAME map=KingOfTheMarble_Hunt points=136 gems=108 falls=5 rtf=3.9 pow=f1:1,u1:1
+[14:41:40] [0] [env:8888] round over (time left 180s of 180s); waiting for the next round
+[14:41:40] [0] [env:8888] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:41:40] [0] new round (game connection 1); rtf 92.7
+[14:41:41] [1] GAME map=KingOfTheMarble_Hunt points=127 gems=99 falls=5 rtf=3.9 pow=f1:2,u1:1
+[14:41:41] [1] [env:8889] round over (time left 180s of 180s); waiting for the next round
+[14:41:41] [1] [env:8889] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:41:41] [1] new round (game connection 1); rtf 97.5
+[14:41:42] [6] fall without OOB flag: 4 decisions off the map at [-22.1  16.7  14.2] (time left 174s)
+[14:41:42] [7] GAME map=KingOfTheMarble_Hunt points=151 gems=121 falls=1 rtf=3.8 pow=f2:1
+[14:41:42] [7] [env:8895] round over (time left 180s of 180s); waiting for the next round
+[14:41:42] [7] [env:8895] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:41:42] [7] new round (game connection 1); rtf 67.1
+[14:41:43] [5] fall without OOB flag: 4 decisions off the map at [-38.8  42.9  22.7] (time left 168s)
+[14:41:51] [0] fall without OOB flag: 4 decisions off the map at [-34.1  16.   13.7] (time left 134s)
+[14:41:55] NAV upd=28936 map=KingOfTheMarble_Hunt r=0.65 steps=228,204,148 segs=98 arrive=0% falls100=0.43 speed=7.9 gems=57.7 pickup=7.9 sgem=1.50 carry=0.0 turn=20.6 rew=2161.5 pl=-0.011 vl=0.315 ent=0.32 entd=0.02 ec=0.0037 kl=0.016 clip=0.16 gn=5.09 ep=3 dstd=0.22 flips=0 upd_s=2.2 wall_s=19 inst=8 dps=430 prof=fwd:11,send:1,recv:5,handle:0,w_game:29,w_obs:26,w_begin:0
+[14:42:13] NAV upd=28937 map=KingOfTheMarble_Hunt r=0.65 steps=228,212,348 segs=99 arrive=0% falls100=0.43 speed=7.9 gems=57.6 pickup=7.9 sgem=1.50 carry=0.0 turn=20.6 rew=2155.8 pl=-0.010 vl=0.189 ent=0.32 entd=0.02 ec=0.0037 kl=0.022 clip=0.19 gn=5.16 ep=3 dstd=0.22 flips=0 upd_s=2.0 wall_s=18 inst=8 dps=451 prof=fwd:11,send:1,recv:4,handle:0,w_game:28,w_obs:25,w_begin:0
+[14:42:15] SEG n=100 last=fell arrive=0% falls100=0.43 speed=7.9 timeout=1% rew=2166.0 dps=525
+[14:42:25] [6] GAME map=KingOfTheMarble_Hunt points=134 gems=107 falls=2 rtf=4.0 pow=f2:1
+[14:42:25] [6] [env:8894] round over (time left 180s of 180s); waiting for the next round
+[14:42:25] [6] [env:8894] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:42:25] [6] new round (game connection 1); rtf 77.0
+[14:42:25] [2] GAME map=KingOfTheMarble_Hunt points=144 gems=113 falls=3 rtf=4.0 pow=f2:1
+[14:42:25] [2] [env:8890] round over (time left 180s of 180s); waiting for the next round
+[14:42:25] [2] [env:8890] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:42:25] [2] new round (game connection 1); rtf 93.5
+[14:42:26] [3] GAME map=KingOfTheMarble_Hunt points=142 gems=111 falls=0 rtf=3.9 pow=f1:1,f2:1,u1:1
+[14:42:26] [3] [env:8891] round over (time left 180s of 180s); waiting for the next round
+[14:42:26] [3] [env:8891] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:42:26] [3] new round (game connection 1); rtf 77.8
+[14:42:26] [5] GAME map=KingOfTheMarble_Hunt points=138 gems=109 falls=2 rtf=4.0 pow=blast:1,f1:1,f2:2,u1:1,u2:2
+[14:42:26] [5] [env:8893] round over (time left 180s of 180s); waiting for the next round
+[14:42:26] [5] [env:8893] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:42:26] [5] new round (game connection 1); rtf 72.8
+[14:42:26] [0] GAME map=KingOfTheMarble_Hunt points=148 gems=120 falls=1 rtf=4.0 pow=blast:1
+[14:42:26] [0] [env:8888] round over (time left 180s of 180s); waiting for the next round
+[14:42:26] [0] [env:8888] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:42:26] [0] new round (game connection 1); rtf 86.2
+[14:42:27] [4] GAME map=KingOfTheMarble_Hunt points=146 gems=114 falls=0 rtf=3.9 pow=f1:2,u1:1
+[14:42:27] [4] [env:8892] round over (time left 180s of 180s); waiting for the next round
+[14:42:27] [4] [env:8892] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:42:27] [4] new round (game connection 1); rtf 81.2
+[14:42:28] [1] GAME map=KingOfTheMarble_Hunt points=142 gems=111 falls=2 rtf=4.0 pow=f1:1,f2:1,u1:1
+[14:42:28] [1] [env:8889] round over (time left 180s of 180s); waiting for the next round
+[14:42:28] [1] [env:8889] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:42:28] [1] new round (game connection 1); rtf 78.6
+[14:42:28] [7] GAME map=KingOfTheMarble_Hunt points=155 gems=123 falls=1 rtf=4.0 pow=f1:1,f2:1,u1:1
+[14:42:28] [7] [env:8895] round over (time left 180s of 180s); waiting for the next round
+[14:42:28] [7] [env:8895] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:42:28] [7] new round (game connection 1); rtf 96.2
+[14:42:31] NAV upd=28938 map=KingOfTheMarble_Hunt r=0.65 steps=228,220,548 segs=100 arrive=0% falls100=0.43 speed=7.9 gems=57.8 pickup=7.9 sgem=1.50 carry=0.0 turn=20.6 rew=2166.0 pl=-0.012 vl=0.292 ent=0.32 entd=0.02 ec=0.0037 kl=0.019 clip=0.19 gn=4.52 ep=3 dstd=0.22 flips=0 upd_s=2.0 wall_s=19 inst=8 dps=442 prof=fwd:11,send:1,recv:4,handle:0,w_game:29,w_obs:25,w_begin:0
+[14:42:35] [5] fall without OOB flag: 4 decisions off the map at [-25.8  14.5  14. ] (time left 149s)
+[14:42:45] [4] fall without OOB flag: 4 decisions off the map at [-13.4 -15.5  23.9] (time left 109s)
+[14:42:49] NAV upd=28939 map=KingOfTheMarble_Hunt r=0.65 steps=228,228,748 segs=100 arrive=0% falls100=0.43 speed=7.9 gems=57.8 pickup=7.9 sgem=1.50 carry=0.0 turn=20.6 rew=2166.0 pl=-0.004 vl=0.184 ent=0.32 entd=0.02 ec=0.0036 kl=0.033 clip=0.24 gn=6.14 ep=3 dstd=0.22 flips=0 upd_s=1.9 wall_s=18 inst=8 dps=452 prof=fwd:11,send:1,recv:4,handle:0,w_game:28,w_obs:25,w_begin:0
+[14:42:56] [6] fall without OOB flag: 4 decisions off the map at [-23.5  24.3  14. ] (time left 62s)
+[14:42:57] [4] fall without OOB flag: 4 decisions off the map at [-32.4 -12.7  22.2] (time left 66s)
+[14:42:57] [7] fall without OOB flag: 4 decisions off the map at [-28.6   8.2  14.1] (time left 70s)
+[14:43:08] DIRGAIN effective goal-bearing norm 21.11 (gain 30)
+[14:43:08] NAV upd=28940 map=KingOfTheMarble_Hunt r=0.65 steps=228,236,948 segs=104 arrive=0% falls100=0.42 speed=7.9 gems=58.8 pickup=7.9 sgem=1.50 carry=0.0 turn=20.6 rew=2204.5 pl=-0.005 vl=0.268 ent=0.32 entd=0.02 ec=0.0036 kl=0.032 clip=0.22 gn=5.41 ep=3 dstd=0.22 flips=0 upd_s=2.0 wall_s=19 inst=8 dps=443 prof=fwd:11,send:1,recv:4,handle:0,w_game:29,w_obs:26,w_begin:0
+[14:43:13] [6] GAME map=KingOfTheMarble_Hunt points=139 gems=109 falls=2 rtf=3.9 pow=f2:1
+[14:43:13] [6] [env:8894] round over (time left 180s of 180s); waiting for the next round
+[14:43:13] [6] [env:8894] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:43:13] [6] new round (game connection 1); rtf 60.4
+[14:43:13] [3] GAME map=KingOfTheMarble_Hunt points=149 gems=119 falls=3 rtf=3.9 pow=f1:1,f2:1,f6:1,u1:1,u2:1
+[14:43:13] [3] [env:8891] round over (time left 180s of 180s); waiting for the next round
+[14:43:13] [3] [env:8891] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:43:13] [3] new round (game connection 1); rtf 71.9
+[14:43:13] [4] GAME map=KingOfTheMarble_Hunt points=125 gems=99 falls=5 rtf=4.0 pow=f2:3,u2:2
+[14:43:13] [4] [env:8892] round over (time left 180s of 180s); waiting for the next round
+[14:43:13] [4] [env:8892] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:43:13] [4] new round (game connection 1); rtf 76.0
+[14:43:13] [2] GAME map=KingOfTheMarble_Hunt points=148 gems=118 falls=1 rtf=3.9 pow=f2:2,u2:1
+[14:43:13] [2] [env:8890] round over (time left 180s of 180s); waiting for the next round
+[14:43:13] [2] [env:8890] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:43:13] [2] new round (game connection 1); rtf 70.0
+[14:43:14] [5] GAME map=KingOfTheMarble_Hunt points=152 gems=119 falls=0 rtf=3.9 pow=f1:1
+[14:43:14] [5] [env:8893] round over (time left 180s of 180s); waiting for the next round
+[14:43:14] [5] [env:8893] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:43:14] [5] new round (game connection 1); rtf 97.5
+[14:43:14] [0] GAME map=KingOfTheMarble_Hunt points=146 gems=116 falls=1 rtf=3.9 pow=f1:1,f2:1,f6:1,u1:1,u2:1
+[14:43:14] [0] [env:8888] round over (time left 180s of 180s); waiting for the next round
+[14:43:14] [0] [env:8888] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:43:14] [0] new round (game connection 1); rtf 76.1
+[14:43:15] [1] GAME map=KingOfTheMarble_Hunt points=142 gems=113 falls=2 rtf=3.9 pow=f1:1,f6:1,u1:1
+[14:43:15] [1] [env:8889] round over (time left 180s of 180s); waiting for the next round
+[14:43:15] [1] [env:8889] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:43:15] [1] new round (game connection 1); rtf 74.6
+[14:43:16] [7] GAME map=KingOfTheMarble_Hunt points=141 gems=113 falls=2 rtf=3.9 pow=f2:2,u2:1
+[14:43:16] [7] [env:8895] round over (time left 180s of 180s); waiting for the next round
+[14:43:16] [7] [env:8895] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:43:16] [7] new round (game connection 1); rtf 82.8
+[14:43:16] [4] fall without OOB flag: 4 decisions off the map at [-17.1  20.7  13.8] (time left 170s)
+[14:43:19] [5] fall without OOB flag: 4 decisions off the map at [-24.3  12.6  13.7] (time left 159s)
+[14:43:27] NAV upd=28941 map=KingOfTheMarble_Hunt r=0.65 steps=228,245,148 segs=105 arrive=0% falls100=0.42 speed=7.9 gems=58.5 pickup=7.9 sgem=1.50 carry=0.0 turn=20.6 rew=2193.1 pl=-0.011 vl=0.267 ent=0.33 entd=0.02 ec=0.0035 kl=0.020 clip=0.17 gn=4.63 ep=3 dstd=0.22 flips=0 upd_s=2.0 wall_s=19 inst=8 dps=440 prof=fwd:11,send:1,recv:4,handle:0,w_game:29,w_obs:25,w_begin:0
+[14:43:45] NAV upd=28942 map=KingOfTheMarble_Hunt r=0.65 steps=228,253,348 segs=106 arrive=0% falls100=0.42 speed=7.9 gems=58.3 pickup=7.9 sgem=1.50 carry=0.0 turn=20.6 rew=2184.1 pl=-0.001 vl=0.199 ent=0.33 entd=0.02 ec=0.0035 kl=0.035 clip=0.23 gn=7.42 ep=3 dstd=0.22 flips=0 upd_s=2.0 wall_s=18 inst=8 dps=454 prof=fwd:11,send:1,recv:4,handle:0,w_game:28,w_obs:25,w_begin:0
+[14:43:58] [4] GAME map=KingOfTheMarble_Hunt points=148 gems=119 falls=1 rtf=4.1 pow=f1:1,f6:1,u1:1
+[14:43:58] [4] [env:8892] round over (time left 180s of 180s); waiting for the next round
+[14:43:58] [4] [env:8892] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:43:58] [4] new round (game connection 1); rtf 93.4
+[14:43:58] [6] GAME map=KingOfTheMarble_Hunt points=151 gems=119 falls=0 rtf=4.0 pow=f2:1
+[14:43:58] [6] [env:8894] round over (time left 180s of 180s); waiting for the next round
+[14:43:58] [6] [env:8894] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:43:58] [6] new round (game connection 1); rtf 96.6
+[14:43:59] [3] GAME map=KingOfTheMarble_Hunt points=146 gems=117 falls=0 rtf=4.0 pow=f1:1
+[14:43:59] [3] [env:8891] round over (time left 180s of 180s); waiting for the next round
+[14:43:59] [3] [env:8891] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:43:59] [3] new round (game connection 1); rtf 91.2
+[14:43:59] [2] GAME map=KingOfTheMarble_Hunt points=153 gems=122 falls=0 rtf=4.0 pow=f1:1
+[14:43:59] [2] [env:8890] round over (time left 180s of 180s); waiting for the next round
+[14:43:59] [2] [env:8890] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:43:59] [2] new round (game connection 1); rtf 72.4
+[14:43:59] [5] GAME map=KingOfTheMarble_Hunt points=146 gems=116 falls=0 rtf=4.1 pow=f1:2,u1:1
+[14:43:59] [5] [env:8893] round over (time left 180s of 180s); waiting for the next round
+[14:43:59] [5] [env:8893] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:43:59] [5] new round (game connection 1); rtf 72.4
+[14:43:59] [0] GAME map=KingOfTheMarble_Hunt points=142 gems=114 falls=1 rtf=4.0 pow=f1:1,f6:1,u1:1
+[14:43:59] [0] [env:8888] round over (time left 180s of 180s); waiting for the next round
+[14:43:59] [0] [env:8888] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:43:59] [0] new round (game connection 1); rtf 93.6
+[14:44:00] [1] GAME map=KingOfTheMarble_Hunt points=141 gems=111 falls=4 rtf=4.1 pow=blast:1,f1:1,f2:1,u1:1
+[14:44:00] [1] [env:8889] round over (time left 180s of 180s); waiting for the next round
+[14:44:00] [1] [env:8889] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:44:00] [1] new round (game connection 1); rtf 83.1
+[14:44:01] [7] GAME map=KingOfTheMarble_Hunt points=151 gems=118 falls=2 rtf=4.1 pow=f2:1
+[14:44:01] [7] [env:8895] round over (time left 180s of 180s); waiting for the next round
+[14:44:01] [7] [env:8895] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:44:01] [7] new round (game connection 1); rtf 77.4
+[14:44:04] NAV upd=28943 map=KingOfTheMarble_Hunt r=0.65 steps=228,261,548 segs=106 arrive=0% falls100=0.42 speed=7.9 gems=58.3 pickup=7.9 sgem=1.50 carry=0.0 turn=20.6 rew=2184.1 pl=-0.007 vl=0.203 ent=0.33 entd=0.02 ec=0.0034 kl=0.023 clip=0.18 gn=5.99 ep=3 dstd=0.22 flips=0 upd_s=2.9 wall_s=19 inst=8 dps=424 prof=fwd:11,send:1,recv:4,handle:0,w_game:29,w_obs:25,w_begin:0
+[14:44:11] [1] fall without OOB flag: 4 decisions off the map at [-32.1  21.1  13.8] (time left 147s)
+[14:44:13] [5] fall without OOB flag: 4 decisions off the map at [ 2.9 15.1 24.7] (time left 137s)
+[14:44:14] [1] fall without OOB flag: 4 decisions off the map at [-16.8 -16.   21.9] (time left 134s)
+[14:44:25] NAV upd=28944 map=KingOfTheMarble_Hunt r=0.65 steps=228,269,748 segs=108 arrive=0% falls100=0.42 speed=7.9 gems=57.9 pickup=7.9 sgem=1.50 carry=0.0 turn=20.6 rew=2168.2 pl=-0.012 vl=0.290 ent=0.33 entd=0.02 ec=0.0034 kl=0.022 clip=0.18 gn=5.45 ep=3 dstd=0.22 flips=0 upd_s=3.0 wall_s=21 inst=8 dps=396 prof=fwd:12,send:1,recv:4,handle:0,w_game:30,w_obs:26,w_begin:0
+[14:44:32] [7] fall without OOB flag: 4 decisions off the map at [-24.4  24.4  14.2] (time left 77s)
+[14:44:45] NAV upd=28945 map=KingOfTheMarble_Hunt r=0.65 steps=228,277,948 segs=111 arrive=0% falls100=0.42 speed=7.9 gems=58.0 pickup=7.9 sgem=1.50 carry=0.0 turn=20.6 rew=2171.8 pl=-0.008 vl=0.216 ent=0.33 entd=0.02 ec=0.0034 kl=0.032 clip=0.22 gn=5.56 ep=3 dstd=0.22 flips=0 upd_s=2.6 wall_s=20 inst=8 dps=415 prof=fwd:12,send:1,recv:4,handle:0,w_game:30,w_obs:25,w_begin:0
+[14:44:50] [3] GAME map=KingOfTheMarble_Hunt points=144 gems=116 falls=4 rtf=3.6 pow=f1:1,f2:1,u1:1
+[14:44:50] [3] [env:8891] round over (time left 180s of 180s); waiting for the next round
+[14:44:50] [3] [env:8891] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:44:50] [3] new round (game connection 1); rtf 93.0
+[14:44:51] [2] GAME map=KingOfTheMarble_Hunt points=145 gems=117 falls=5 rtf=3.6 pow=f1:1,u1:1
+[14:44:51] [2] [env:8890] round over (time left 180s of 180s); waiting for the next round
+[14:44:51] [2] [env:8890] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:44:51] [2] new round (game connection 1); rtf 92.9
+[14:44:51] [4] GAME map=KingOfTheMarble_Hunt points=141 gems=113 falls=2 rtf=3.5 pow=f1:1,f2:1,u1:1
+[14:44:51] [4] [env:8892] round over (time left 180s of 180s); waiting for the next round
+[14:44:51] [4] [env:8892] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:44:51] [4] new round (game connection 1); rtf 75.2
+[14:44:51] [5] GAME map=KingOfTheMarble_Hunt points=130 gems=102 falls=6 rtf=3.6 pow=f1:3,f2:2,u1:3,u2:2
+[14:44:51] [5] [env:8893] round over (time left 180s of 180s); waiting for the next round
+[14:44:51] [5] [env:8893] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:44:51] [5] new round (game connection 1); rtf 79.5
+[14:44:51] [6] GAME map=KingOfTheMarble_Hunt points=141 gems=111 falls=1 rtf=3.5 pow=f1:1,f2:1,u1:1
+[14:44:51] [6] [env:8894] round over (time left 180s of 180s); waiting for the next round
+[14:44:51] [6] [env:8894] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:44:51] [6] new round (game connection 1); rtf 82.7
+[14:44:52] [1] GAME map=KingOfTheMarble_Hunt points=140 gems=110 falls=0 rtf=3.5 pow=f1:2,f2:1,u1:1,u2:1
+[14:44:52] [1] [env:8889] round over (time left 180s of 180s); waiting for the next round
+[14:44:52] [1] [env:8889] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:44:52] [1] new round (game connection 1); rtf 76.3
+[14:44:52] [0] GAME map=KingOfTheMarble_Hunt points=155 gems=122 falls=0 rtf=3.5 pow=f1:1,u1:1
+[14:44:52] [0] [env:8888] round over (time left 180s of 180s); waiting for the next round
+[14:44:52] [0] [env:8888] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:44:52] [0] new round (game connection 1); rtf 63.3
+[14:44:53] [7] GAME map=KingOfTheMarble_Hunt points=140 gems=112 falls=3 rtf=3.6 pow=blast:1,f1:1,f2:1,u1:1,u2:1
+[14:44:53] [7] [env:8895] round over (time left 180s of 180s); waiting for the next round
+[14:44:53] [7] [env:8895] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:44:53] [7] new round (game connection 1); rtf 98.1
+[14:44:59] [1] fall without OOB flag: 4 decisions off the map at [ 5.4 -2.9 18. ] (time left 154s)
+[14:45:03] NAV upd=28946 map=KingOfTheMarble_Hunt r=0.65 steps=228,286,148 segs=111 arrive=0% falls100=0.42 speed=7.9 gems=58.0 pickup=7.9 sgem=1.50 carry=0.0 turn=20.6 rew=2171.8 pl=-0.015 vl=0.272 ent=0.33 entd=0.02 ec=0.0033 kl=0.018 clip=0.18 gn=4.67 ep=3 dstd=0.22 flips=0 upd_s=2.2 wall_s=19 inst=8 dps=434 prof=fwd:11,send:1,recv:5,handle:0,w_game:29,w_obs:25,w_begin:0
+[14:45:06] [5] fall without OOB flag: 4 decisions off the map at [-30.4  11.   13.8] (time left 122s)
+[14:45:12] [4] fall without OOB flag: 4 decisions off the map at [-14.9  15.9  13.9] (time left 100s)
+[14:45:22] NAV upd=28947 map=KingOfTheMarble_Hunt r=0.65 steps=228,294,348 segs=113 arrive=0% falls100=0.43 speed=7.9 gems=57.5 pickup=7.9 sgem=1.50 carry=0.0 turn=20.6 rew=2153.8 pl=-0.011 vl=0.266 ent=0.33 entd=0.02 ec=0.0033 kl=0.029 clip=0.20 gn=5.13 ep=3 dstd=0.22 flips=0 upd_s=2.1 wall_s=19 inst=8 dps=443 prof=fwd:11,send:1,recv:4,handle:0,w_game:28,w_obs:25,w_begin:0
+[14:45:24] [6] fall without OOB flag: 4 decisions off the map at [-22.4  10.2  14.1] (time left 57s)
+[14:45:36] [5] GAME map=KingOfTheMarble_Hunt points=137 gems=110 falls=4 rtf=4.1 pow=f1:2,u1:1
+[14:45:36] [5] [env:8893] round over (time left 180s of 180s); waiting for the next round
+[14:45:36] [5] [env:8893] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:45:36] [5] new round (game connection 1); rtf 88.8
+[14:45:36] [2] GAME map=KingOfTheMarble_Hunt points=140 gems=112 falls=3 rtf=4.0 pow=f2:2,u1:1,u2:1
+[14:45:36] [2] [env:8890] round over (time left 180s of 180s); waiting for the next round
+[14:45:36] [2] [env:8890] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:45:36] [2] new round (game connection 1); rtf 87.8
+[14:45:36] [3] GAME map=KingOfTheMarble_Hunt points=143 gems=114 falls=3 rtf=4.0 pow=f1:2,u1:1
+[14:45:36] [3] [env:8891] round over (time left 180s of 180s); waiting for the next round
+[14:45:36] [3] [env:8891] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:45:36] [3] new round (game connection 1); rtf 76.6
+[14:45:37] [6] GAME map=KingOfTheMarble_Hunt points=141 gems=111 falls=4 rtf=4.1 pow=f2:1
+[14:45:37] [6] [env:8894] round over (time left 180s of 180s); waiting for the next round
+[14:45:37] [6] [env:8894] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:45:37] [6] new round (game connection 1); rtf 98.0
+[14:45:37] [4] GAME map=KingOfTheMarble_Hunt points=152 gems=119 falls=0 rtf=4.0 pow=f1:2,u1:1
+[14:45:37] [4] [env:8892] round over (time left 180s of 180s); waiting for the next round
+[14:45:37] [4] [env:8892] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:45:37] [4] new round (game connection 1); rtf 93.6
+[14:45:38] [1] GAME map=KingOfTheMarble_Hunt points=117 gems=92 falls=3 rtf=4.0 pow=f1:2,f2:2,u1:2,u2:1
+[14:45:38] [1] [env:8889] round over (time left 180s of 180s); waiting for the next round
+[14:45:38] [1] [env:8889] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:45:38] [1] new round (game connection 1); rtf 93.1
+[14:45:38] [0] GAME map=KingOfTheMarble_Hunt points=138 gems=110 falls=3 rtf=4.0 pow=f1:2,u1:1
+[14:45:38] [0] [env:8888] round over (time left 180s of 180s); waiting for the next round
+[14:45:38] [0] [env:8888] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:45:38] [0] new round (game connection 1); rtf 75.9
+[14:45:40] NAV upd=28948 map=KingOfTheMarble_Hunt r=0.65 steps=228,302,541 segs=117 arrive=0% falls100=0.42 speed=7.9 gems=58.4 pickup=7.9 sgem=1.50 carry=0.0 turn=20.6 rew=2185.5 pl=-0.014 vl=0.334 ent=0.33 entd=0.02 ec=0.0032 kl=0.031 clip=0.19 gn=4.84 ep=3 dstd=0.22 flips=0 upd_s=1.9 wall_s=18 inst=8 dps=449 prof=fwd:11,send:1,recv:4,handle:0,w_game:28,w_obs:24,w_begin:0
+[14:45:41] [7] GAME map=KingOfTheMarble_Hunt points=151 gems=119 falls=2 rtf=3.9 pow=f1:1
+[14:45:41] [7] [env:8895] round over (time left 180s of 180s); waiting for the next round
+[14:45:41] [7] [env:8895] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:45:41] [7] new round (game connection 1); rtf 82.6
+[14:45:47] [6] fall without OOB flag: 4 decisions off the map at [-26.8  17.7  13.9] (time left 146s)
+[14:45:59] NAV upd=28949 map=KingOfTheMarble_Hunt r=0.65 steps=228,310,740 segs=117 arrive=0% falls100=0.42 speed=7.9 gems=58.4 pickup=7.9 sgem=1.50 carry=0.0 turn=20.6 rew=2185.5 pl=-0.007 vl=0.165 ent=0.33 entd=0.02 ec=0.0032 kl=0.026 clip=0.22 gn=5.52 ep=3 dstd=0.22 flips=0 upd_s=2.2 wall_s=19 inst=8 dps=443 prof=fwd:11,send:1,recv:4,handle:0,w_game:28,w_obs:26,w_begin:0
+[14:46:18] NAV upd=28950 map=KingOfTheMarble_Hunt r=0.65 steps=228,318,940 segs=118 arrive=0% falls100=0.42 speed=8.0 gems=58.6 pickup=7.9 sgem=1.50 carry=0.0 turn=20.6 rew=2195.5 pl=-0.011 vl=0.193 ent=0.33 entd=0.02 ec=0.0031 kl=0.021 clip=0.17 gn=4.64 ep=3 dstd=0.22 flips=0 upd_s=2.5 wall_s=19 inst=8 dps=435 prof=fwd:11,send:1,recv:4,handle:0,w_game:29,w_obs:26,w_begin:0
+[14:46:18] saved C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\models\nav\nav_028950.pth
+[14:46:23] [5] GAME map=KingOfTheMarble_Hunt points=143 gems=114 falls=4 rtf=3.9 pow=f2:1,u2:1
+[14:46:23] [5] [env:8893] round over (time left 180s of 180s); waiting for the next round
+[14:46:23] [5] [env:8893] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:46:23] [5] new round (game connection 1); rtf 87.8
+[14:46:25] [3] GAME map=KingOfTheMarble_Hunt points=146 gems=116 falls=2 rtf=3.8 pow=f2:3,u2:2
+[14:46:25] [3] [env:8891] round over (time left 180s of 180s); waiting for the next round
+[14:46:25] [3] [env:8891] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:46:25] [3] new round (game connection 1); rtf 49.7
+[14:46:25] [6] GAME map=KingOfTheMarble_Hunt points=146 gems=115 falls=2 rtf=3.8 pow=f1:2,u1:1
+[14:46:25] [6] [env:8894] round over (time left 180s of 180s); waiting for the next round
+[14:46:25] [6] [env:8894] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:46:25] [6] new round (game connection 1); rtf 62.5
+[14:46:25] [2] GAME map=KingOfTheMarble_Hunt points=144 gems=114 falls=1 rtf=3.8 pow=f1:1
+[14:46:25] [2] [env:8890] round over (time left 180s of 180s); waiting for the next round
+[14:46:25] [2] [env:8890] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:46:25] [2] new round (game connection 1); rtf 70.0
+[14:46:26] [4] GAME map=KingOfTheMarble_Hunt points=148 gems=114 falls=1 rtf=3.8 pow=f1:2,u1:1
+[14:46:26] [4] [env:8892] round over (time left 180s of 180s); waiting for the next round
+[14:46:26] [4] [env:8892] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:46:26] [4] new round (game connection 1); rtf 77.2
+[14:46:27] [1] GAME map=KingOfTheMarble_Hunt points=141 gems=111 falls=3 rtf=3.8 pow=f1:2,u1:1
+[14:46:27] [1] [env:8889] round over (time left 180s of 180s); waiting for the next round
+[14:46:27] [1] [env:8889] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:46:27] [1] new round (game connection 1); rtf 94.3
+[14:46:27] [7] GAME map=KingOfTheMarble_Hunt points=148 gems=118 falls=2 rtf=4.0 pow=f2:1
+[14:46:27] [7] [env:8895] round over (time left 180s of 180s); waiting for the next round
+[14:46:27] [7] [env:8895] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:46:27] [7] new round (game connection 1); rtf 49.7
+[14:46:27] [0] GAME map=KingOfTheMarble_Hunt points=153 gems=121 falls=0 rtf=3.8 pow=f1:1
+[14:46:27] [0] [env:8888] round over (time left 180s of 180s); waiting for the next round
+[14:46:27] [0] [env:8888] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:46:27] [0] new round (game connection 1); rtf 64.6
+[14:46:31] [6] fall without OOB flag: 4 decisions off the map at [-17.5 -13.2  15.1] (time left 159s)
+[14:46:37] NAV upd=28951 map=KingOfTheMarble_Hunt r=0.65 steps=228,327,140 segs=120 arrive=0% falls100=0.41 speed=8.0 gems=59.5 pickup=7.9 sgem=1.49 carry=0.0 turn=20.6 rew=2230.2 pl=-0.012 vl=0.312 ent=0.33 entd=0.02 ec=0.0031 kl=0.027 clip=0.19 gn=5.11 ep=3 dstd=0.22 flips=0 upd_s=2.1 wall_s=19 inst=8 dps=429 prof=fwd:11,send:1,recv:5,handle:0,w_game:29,w_obs:25,w_begin:0
+[14:46:55] NAV upd=28952 map=KingOfTheMarble_Hunt r=0.65 steps=228,335,340 segs=120 arrive=0% falls100=0.41 speed=8.0 gems=59.5 pickup=7.9 sgem=1.49 carry=0.0 turn=20.6 rew=2230.2 pl=-0.005 vl=0.126 ent=0.33 entd=0.02 ec=0.0030 kl=0.029 clip=0.20 gn=5.99 ep=3 dstd=0.22 flips=0 upd_s=1.9 wall_s=18 inst=8 dps=454 prof=fwd:11,send:1,recv:4,handle:0,w_game:28,w_obs:25,w_begin:0
+[14:47:03] [7] fall without OOB flag: 4 decisions off the map at [-29.5  44.   16.3] (time left 46s)
+[14:47:10] [5] GAME map=KingOfTheMarble_Hunt points=156 gems=124 falls=0 rtf=3.9 pow=f1:1,u1:1
+[14:47:10] [5] [env:8893] round over (time left 180s of 180s); waiting for the next round
+[14:47:10] [5] [env:8893] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:47:10] [5] new round (game connection 1); rtf 73.4
+[14:47:10] [2] GAME map=KingOfTheMarble_Hunt points=127 gems=100 falls=7 rtf=4.1 pow=f2:1
+[14:47:10] [2] [env:8890] round over (time left 180s of 180s); waiting for the next round
+[14:47:10] [2] [env:8890] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:47:10] [2] new round (game connection 1); rtf 64.7
+[14:47:11] [6] GAME map=KingOfTheMarble_Hunt points=150 gems=118 falls=1 rtf=4.0 pow=f2:2,u2:1
+[14:47:11] [6] [env:8894] round over (time left 180s of 180s); waiting for the next round
+[14:47:11] [6] [env:8894] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:47:11] [6] new round (game connection 1); rtf 67.2
+[14:47:11] [3] GAME map=KingOfTheMarble_Hunt points=146 gems=116 falls=1 rtf=3.9 pow=f1:1
+[14:47:11] [3] [env:8891] round over (time left 180s of 180s); waiting for the next round
+[14:47:11] [3] [env:8891] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:47:11] [3] new round (game connection 1); rtf 72.2
+[14:47:14] NAV upd=28953 map=KingOfTheMarble_Hunt r=0.65 steps=228,343,536 segs=123 arrive=0% falls100=0.41 speed=8.0 gems=59.3 pickup=7.9 sgem=1.49 carry=0.0 turn=20.6 rew=2224.4 pl=-0.008 vl=0.304 ent=0.33 entd=0.02 ec=0.0030 kl=0.029 clip=0.23 gn=5.35 ep=3 dstd=0.22 flips=0 upd_s=2.2 wall_s=19 inst=8 dps=424 prof=fwd:12,send:1,recv:5,handle:0,w_game:29,w_obs:26,w_begin:0
+[14:47:14] [4] GAME map=KingOfTheMarble_Hunt points=146 gems=114 falls=2 rtf=3.8 pow=f1:2,u1:1
+[14:47:14] [4] [env:8892] round over (time left 180s of 180s); waiting for the next round
+[14:47:14] [4] [env:8892] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:47:14] [4] new round (game connection 1); rtf 71.5
+[14:47:15] [0] GAME map=KingOfTheMarble_Hunt points=141 gems=111 falls=4 rtf=3.9 pow=f2:1
+[14:47:15] [0] [env:8888] round over (time left 180s of 180s); waiting for the next round
+[14:47:15] [0] [env:8888] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:47:15] [0] new round (game connection 1); rtf 82.6
+[14:47:16] [1] GAME map=KingOfTheMarble_Hunt points=153 gems=121 falls=0 rtf=3.8 pow=f1:2,u1:1
+[14:47:16] [1] [env:8889] round over (time left 180s of 180s); waiting for the next round
+[14:47:16] [1] [env:8889] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:47:16] [1] new round (game connection 1); rtf 90.7
+[14:47:16] [7] GAME map=KingOfTheMarble_Hunt points=151 gems=117 falls=0 rtf=3.8 pow=f2:2,u2:1
+[14:47:16] [7] [env:8895] round over (time left 180s of 180s); waiting for the next round
+[14:47:16] [7] [env:8895] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:47:16] [7] new round (game connection 1); rtf 79.0
+[14:47:23] [3] fall without OOB flag: 4 decisions off the map at [-17.5  18.3  14.3] (time left 142s)
+[14:47:34] NAV upd=28954 map=KingOfTheMarble_Hunt r=0.65 steps=228,351,732 segs=123 arrive=0% falls100=0.41 speed=8.0 gems=59.3 pickup=7.9 sgem=1.49 carry=0.0 turn=20.6 rew=2224.4 pl=-0.014 vl=0.205 ent=0.32 entd=0.02 ec=0.0029 kl=0.021 clip=0.17 gn=4.41 ep=3 dstd=0.22 flips=0 upd_s=2.3 wall_s=19 inst=8 dps=420 prof=fwd:12,send:1,recv:4,handle:0,w_game:29,w_obs:25,w_begin:0
+[14:47:52] NAV upd=28955 map=KingOfTheMarble_Hunt r=0.65 steps=228,359,932 segs=125 arrive=0% falls100=0.41 speed=8.0 gems=59.4 pickup=7.9 sgem=1.49 carry=0.0 turn=20.6 rew=2225.2 pl=-0.012 vl=0.215 ent=0.32 entd=0.02 ec=0.0029 kl=0.027 clip=0.20 gn=4.46 ep=3 dstd=0.22 flips=0 upd_s=2.1 wall_s=18 inst=8 dps=446 prof=fwd:11,send:1,recv:4,handle:0,w_game:28,w_obs:26,w_begin:0
+[14:47:53] [5] fall without OOB flag: 4 decisions off the map at [-31.6  16.7  13.8] (time left 23s)
+[14:47:59] [5] GAME map=KingOfTheMarble_Hunt points=149 gems=118 falls=2 rtf=3.8 pow=f1:2,u1:1
+[14:47:59] [5] [env:8893] round over (time left 180s of 180s); waiting for the next round
+[14:47:59] [5] [env:8893] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:47:59] [5] new round (game connection 1); rtf 74.7
+[14:47:59] [2] GAME map=KingOfTheMarble_Hunt points=136 gems=108 falls=3 rtf=3.8 pow=blast:1,f1:1,f2:2,u1:1,u2:1
+[14:47:59] [2] [env:8890] round over (time left 180s of 180s); waiting for the next round
+[14:47:59] [2] [env:8890] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:47:59] [2] new round (game connection 1); rtf 75.6
+[14:48:00] [3] GAME map=KingOfTheMarble_Hunt points=142 gems=113 falls=2 rtf=3.8 pow=f1:1,f2:1,u1:1,u2:1
+[14:48:00] [3] [env:8891] round over (time left 180s of 180s); waiting for the next round
+[14:48:00] [3] [env:8891] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:48:00] [3] new round (game connection 1); rtf 83.3
+[14:48:00] [6] GAME map=KingOfTheMarble_Hunt points=146 gems=115 falls=1 rtf=3.7 pow=f1:1
+[14:48:00] [6] [env:8894] round over (time left 180s of 180s); waiting for the next round
+[14:48:00] [6] [env:8894] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:48:00] [6] new round (game connection 1); rtf 77.3
+[14:48:01] [4] GAME map=KingOfTheMarble_Hunt points=148 gems=118 falls=2 rtf=4.0 pow=blast:1,f2:1
+[14:48:01] [4] [env:8892] round over (time left 180s of 180s); waiting for the next round
+[14:48:01] [4] [env:8892] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:48:01] [4] new round (game connection 1); rtf 90.6
+[14:48:02] [1] GAME map=KingOfTheMarble_Hunt points=140 gems=110 falls=3 rtf=4.0 pow=blast:1,u2:1
+[14:48:02] [1] [env:8889] round over (time left 180s of 180s); waiting for the next round
+[14:48:02] [1] [env:8889] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:48:02] [1] new round (game connection 1); rtf 71.3
+[14:48:02] [0] GAME map=KingOfTheMarble_Hunt points=151 gems=122 falls=0 rtf=3.9 pow=f1:1,f2:1,u2:1
+[14:48:02] [0] [env:8888] round over (time left 180s of 180s); waiting for the next round
+[14:48:02] [0] [env:8888] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:48:02] [0] new round (game connection 1); rtf 95.9
+[14:48:03] [7] GAME map=KingOfTheMarble_Hunt points=148 gems=118 falls=2 rtf=4.0 pow=f1:1,f2:1,u1:1
+[14:48:03] [7] [env:8895] round over (time left 180s of 180s); waiting for the next round
+[14:48:03] [7] [env:8895] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:48:03] [7] new round (game connection 1); rtf 92.4
+[14:48:10] NAV upd=28956 map=KingOfTheMarble_Hunt r=0.65 steps=228,368,132 segs=127 arrive=0% falls100=0.41 speed=8.0 gems=60.0 pickup=7.9 sgem=1.49 carry=0.0 turn=20.6 rew=2249.0 pl=-0.010 vl=0.278 ent=0.32 entd=0.02 ec=0.0028 kl=0.039 clip=0.19 gn=5.15 ep=3 dstd=0.22 flips=0 upd_s=2.0 wall_s=18 inst=8 dps=446 prof=fwd:11,send:1,recv:4,handle:0,w_game:28,w_obs:25,w_begin:0
+[14:48:10] [3] fall without OOB flag: 4 decisions off the map at [-17.6  45.   18.3] (time left 145s)
+[14:48:19] [1] fall without OOB flag: 4 decisions off the map at [ 2.5 27.1 22.8] (time left 116s)
+[14:48:29] NAV upd=28957 map=KingOfTheMarble_Hunt r=0.65 steps=228,376,332 segs=129 arrive=0% falls100=0.41 speed=8.0 gems=59.8 pickup=7.9 sgem=1.49 carry=0.0 turn=20.6 rew=2242.8 pl=-0.002 vl=0.229 ent=0.32 entd=0.02 ec=0.0028 kl=0.038 clip=0.27 gn=6.39 ep=3 dstd=0.22 flips=0 upd_s=2.5 wall_s=19 inst=8 dps=436 prof=fwd:11,send:1,recv:4,handle:0,w_game:29,w_obs:25,w_begin:0
+[14:48:45] [2] GAME map=KingOfTheMarble_Hunt points=151 gems=120 falls=1 rtf=4.0 pow=f2:1
+[14:48:45] [2] [env:8890] round over (time left 180s of 180s); waiting for the next round
+[14:48:45] [2] [env:8890] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:48:45] [2] new round (game connection 1); rtf 85.2
+[14:48:45] [5] GAME map=KingOfTheMarble_Hunt points=155 gems=122 falls=0 rtf=4.0 pow=f2:1
+[14:48:45] [5] [env:8893] round over (time left 180s of 180s); waiting for the next round
+[14:48:45] [5] [env:8893] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:48:45] [5] new round (game connection 1); rtf 78.8
+[14:48:48] NAV upd=28958 map=KingOfTheMarble_Hunt r=0.65 steps=228,384,530 segs=129 arrive=0% falls100=0.41 speed=8.0 gems=59.8 pickup=7.9 sgem=1.49 carry=0.0 turn=20.6 rew=2242.8 pl=-0.007 vl=0.174 ent=0.32 entd=0.02 ec=0.0027 kl=0.029 clip=0.22 gn=6.23 ep=3 dstd=0.22 flips=0 upd_s=2.5 wall_s=19 inst=8 dps=438 prof=fwd:11,send:1,recv:4,handle:0,w_game:28,w_obs:25,w_begin:0
+[14:48:48] [3] GAME map=KingOfTheMarble_Hunt points=133 gems=106 falls=3 rtf=3.8 pow=f2:3,u2:2
+[14:48:48] [3] [env:8891] round over (time left 180s of 180s); waiting for the next round
+[14:48:48] [3] [env:8891] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:48:48] [3] new round (game connection 1); rtf 91.5
+[14:48:49] [6] GAME map=KingOfTheMarble_Hunt points=152 gems=120 falls=2 rtf=3.8 pow=f1:1
+[14:48:49] [6] [env:8894] round over (time left 180s of 180s); waiting for the next round
+[14:48:49] [6] [env:8894] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:48:49] [6] new round (game connection 1); rtf 101.9
+[14:48:50] [4] GAME map=KingOfTheMarble_Hunt points=150 gems=119 falls=1 rtf=3.8 pow=f1:1
+[14:48:50] [4] [env:8892] round over (time left 180s of 180s); waiting for the next round
+[14:48:50] [4] [env:8892] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:48:50] [4] new round (game connection 1); rtf 86.7
+[14:48:50] [1] GAME map=KingOfTheMarble_Hunt points=140 gems=111 falls=2 rtf=3.8 pow=f2:2,u2:1
+[14:48:50] [1] [env:8889] round over (time left 180s of 180s); waiting for the next round
+[14:48:50] [1] [env:8889] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:48:50] [1] new round (game connection 1); rtf 89.4
+[14:48:51] [0] GAME map=KingOfTheMarble_Hunt points=150 gems=118 falls=1 rtf=3.8 pow=f1:1
+[14:48:51] [0] [env:8888] round over (time left 180s of 180s); waiting for the next round
+[14:48:51] [0] [env:8888] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:48:51] [0] new round (game connection 1); rtf 96.7
+[14:48:51] [7] GAME map=KingOfTheMarble_Hunt points=146 gems=115 falls=1 rtf=3.8 pow=blast:1,f1:1,f2:1,u1:1
+[14:48:51] [7] [env:8895] round over (time left 180s of 180s); waiting for the next round
+[14:48:51] [7] [env:8895] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:48:51] [7] new round (game connection 1); rtf 97.6
+[14:49:06] NAV upd=28959 map=KingOfTheMarble_Hunt r=0.65 steps=228,392,724 segs=129 arrive=0% falls100=0.41 speed=8.0 gems=59.8 pickup=7.9 sgem=1.49 carry=0.0 turn=20.6 rew=2242.8 pl=-0.000 vl=0.191 ent=0.32 entd=0.02 ec=0.0027 kl=0.033 clip=0.26 gn=7.96 ep=3 dstd=0.22 flips=0 upd_s=2.1 wall_s=18 inst=8 dps=449 prof=fwd:11,send:1,recv:4,handle:0,w_game:28,w_obs:26,w_begin:0
+[14:49:24] DIRGAIN effective goal-bearing norm 20.99 (gain 30)
+[14:49:24] NAV upd=28960 map=KingOfTheMarble_Hunt r=0.65 steps=228,400,924 segs=130 arrive=0% falls100=0.41 speed=8.0 gems=59.9 pickup=7.9 sgem=1.49 carry=0.0 turn=20.6 rew=2245.3 pl=-0.002 vl=0.200 ent=0.32 entd=0.02 ec=0.0026 kl=0.040 clip=0.27 gn=7.21 ep=3 dstd=0.22 flips=0 upd_s=2.0 wall_s=18 inst=8 dps=457 prof=fwd:11,send:1,recv:4,handle:0,w_game:28,w_obs:24,w_begin:0
+[14:49:26] [0] fall without OOB flag: 4 decisions off the map at [-23.1   9.6  13.9] (time left 39s)
+[14:49:33] [2] GAME map=KingOfTheMarble_Hunt points=148 gems=118 falls=2 rtf=3.9 pow=f1:1
+[14:49:33] [2] [env:8890] round over (time left 180s of 180s); waiting for the next round
+[14:49:33] [2] [env:8890] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:49:33] [2] new round (game connection 1); rtf 88.9
+[14:49:33] [5] GAME map=KingOfTheMarble_Hunt points=144 gems=114 falls=3 rtf=3.9 pow=f2:2,u2:1
+[14:49:33] [5] [env:8893] round over (time left 180s of 180s); waiting for the next round
+[14:49:33] [5] [env:8893] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:49:33] [5] new round (game connection 1); rtf 81.9
+[14:49:33] [3] GAME map=KingOfTheMarble_Hunt points=150 gems=121 falls=2 rtf=4.1 pow=blast:1,f1:1
+[14:49:33] [3] [env:8891] round over (time left 180s of 180s); waiting for the next round
+[14:49:33] [3] [env:8891] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:49:33] [3] new round (game connection 1); rtf 73.2
+[14:49:34] [6] GAME map=KingOfTheMarble_Hunt points=144 gems=114 falls=1 rtf=4.0 pow=f1:2,u1:1,u2:1
+[14:49:34] [6] [env:8894] round over (time left 180s of 180s); waiting for the next round
+[14:49:34] [6] [env:8894] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:49:34] [6] new round (game connection 1); rtf 91.9
+[14:49:35] [4] GAME map=KingOfTheMarble_Hunt points=147 gems=118 falls=1 rtf=4.0 pow=-
+[14:49:35] [4] [env:8892] round over (time left 180s of 180s); waiting for the next round
+[14:49:35] [4] [env:8892] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:49:35] [4] new round (game connection 1); rtf 96.9
+[14:49:35] [1] GAME map=KingOfTheMarble_Hunt points=149 gems=119 falls=2 rtf=4.1 pow=u1:1
+[14:49:35] [1] [env:8889] round over (time left 180s of 180s); waiting for the next round
+[14:49:35] [1] [env:8889] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:49:35] [1] new round (game connection 1); rtf 92.7
+[14:49:36] [0] GAME map=KingOfTheMarble_Hunt points=151 gems=119 falls=2 rtf=4.1 pow=blast:1,f1:1,f6:1,u6:1
+[14:49:36] [0] [env:8888] round over (time left 180s of 180s); waiting for the next round
+[14:49:36] [0] [env:8888] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:49:36] [0] new round (game connection 1); rtf 85.2
+[14:49:37] [7] GAME map=KingOfTheMarble_Hunt points=154 gems=123 falls=0 rtf=4.0 pow=f2:1
+[14:49:37] [7] [env:8895] round over (time left 180s of 180s); waiting for the next round
+[14:49:37] [7] [env:8895] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:49:37] [7] new round (game connection 1); rtf 96.2
+[14:49:43] NAV upd=28961 map=KingOfTheMarble_Hunt r=0.65 steps=228,409,124 segs=131 arrive=0% falls100=0.41 speed=8.0 gems=60.1 pickup=7.9 sgem=1.49 carry=0.0 turn=20.6 rew=2254.7 pl=-0.004 vl=0.261 ent=0.31 entd=0.02 ec=0.0026 kl=0.030 clip=0.26 gn=5.99 ep=3 dstd=0.22 flips=0 upd_s=1.9 wall_s=19 inst=8 dps=440 prof=fwd:11,send:1,recv:4,handle:0,w_game:29,w_obs:24,w_begin:0
+[14:49:50] [3] fall without OOB flag: 4 decisions off the map at [-8.3  8.7 14. ] (time left 118s)
+[14:50:01] NAV upd=28962 map=KingOfTheMarble_Hunt r=0.65 steps=228,417,324 segs=133 arrive=0% falls100=0.41 speed=8.0 gems=59.5 pickup=7.9 sgem=1.49 carry=0.0 turn=20.8 rew=2232.2 pl=-0.004 vl=0.213 ent=0.31 entd=0.02 ec=0.0026 kl=0.026 clip=0.22 gn=7.30 ep=3 dstd=0.22 flips=0 upd_s=2.0 wall_s=18 inst=8 dps=454 prof=fwd:11,send:1,recv:4,handle:0,w_game:28,w_obs:25,w_begin:0
+[14:50:12] [2] fall without OOB flag: 4 decisions off the map at [ 5.1 19.3 22.5] (time left 23s)
+[14:50:14] [5] fall without OOB flag: 4 decisions off the map at [-24.    3.4  13.8] (time left 27s)
+[14:50:16] [6] fall without OOB flag: 4 decisions off the map at [-16.5 -13.   23.3] (time left 12s)
+[14:50:19] NAV upd=28963 map=KingOfTheMarble_Hunt r=0.65 steps=228,425,524 segs=137 arrive=0% falls100=0.40 speed=8.0 gems=58.9 pickup=7.9 sgem=1.49 carry=0.0 turn=21.1 rew=2211.4 pl=-0.013 vl=0.218 ent=0.31 entd=0.02 ec=0.0025 kl=0.024 clip=0.20 gn=4.80 ep=3 dstd=0.22 flips=0 upd_s=1.9 wall_s=18 inst=8 dps=452 prof=fwd:11,send:1,recv:4,handle:0,w_game:29,w_obs:25,w_begin:0
+[14:50:19] [2] GAME map=KingOfTheMarble_Hunt points=146 gems=114 falls=2 rtf=4.0 pow=f1:2,f2:1,u1:2,u2:1
+[14:50:19] [2] [env:8890] round over (time left 180s of 180s); waiting for the next round
+[14:50:19] [2] [env:8890] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:50:19] [2] new round (game connection 1); rtf 97.1
+[14:50:20] [3] GAME map=KingOfTheMarble_Hunt points=142 gems=111 falls=0 rtf=3.9 pow=f1:1,f2:1,f6:1,u1:1,u2:1
+[14:50:20] [3] [env:8891] round over (time left 180s of 180s); waiting for the next round
+[14:50:20] [3] [env:8891] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:50:20] [3] new round (game connection 1); rtf 79.4
+[14:50:21] [6] GAME map=KingOfTheMarble_Hunt points=142 gems=109 falls=1 rtf=3.9 pow=f2:2,u2:1
+[14:50:21] [6] [env:8894] round over (time left 180s of 180s); waiting for the next round
+[14:50:21] [6] [env:8894] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:50:21] [6] new round (game connection 1); rtf 100.7
+[14:50:21] [1] GAME map=KingOfTheMarble_Hunt points=143 gems=114 falls=4 rtf=4.0 pow=-
+[14:50:21] [1] [env:8889] round over (time left 180s of 180s); waiting for the next round
+[14:50:21] [1] [env:8889] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:50:21] [1] new round (game connection 1); rtf 68.7
+[14:50:22] [5] GAME map=KingOfTheMarble_Hunt points=72 gems=56 falls=0 rtf=3.8 pow=f2:1
+[14:50:22] [5] [env:8893] round over (time left 180s of 180s); waiting for the next round
+[14:50:22] [5] [env:8893] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:50:22] [5] new round (game connection 1); rtf 91.2
+[14:50:22] [4] GAME map=KingOfTheMarble_Hunt points=138 gems=109 falls=2 rtf=3.9 pow=blast:2,f2:1
+[14:50:22] [4] [env:8892] round over (time left 180s of 180s); waiting for the next round
+[14:50:22] [4] [env:8892] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:50:22] [4] new round (game connection 1); rtf 85.7
+[14:50:23] [0] GAME map=KingOfTheMarble_Hunt points=154 gems=122 falls=1 rtf=3.9 pow=f2:1
+[14:50:23] [0] [env:8888] round over (time left 180s of 180s); waiting for the next round
+[14:50:23] [0] [env:8888] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:50:23] [0] new round (game connection 1); rtf 74.4
+[14:50:24] [7] GAME map=KingOfTheMarble_Hunt points=147 gems=116 falls=1 rtf=3.9 pow=f1:2,u1:1
+[14:50:24] [7] [env:8895] round over (time left 180s of 180s); waiting for the next round
+[14:50:24] [7] [env:8895] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:50:24] [7] new round (game connection 1); rtf 96.2
+[14:50:38] NAV upd=28964 map=KingOfTheMarble_Hunt r=0.65 steps=228,433,724 segs=137 arrive=0% falls100=0.40 speed=8.0 gems=58.9 pickup=7.9 sgem=1.49 carry=0.0 turn=21.1 rew=2211.4 pl=-0.010 vl=0.215 ent=0.31 entd=0.02 ec=0.0025 kl=0.030 clip=0.22 gn=4.87 ep=3 dstd=0.22 flips=0 upd_s=1.9 wall_s=19 inst=8 dps=439 prof=fwd:11,send:1,recv:4,handle:0,w_game:29,w_obs:24,w_begin:0
+[14:50:56] NAV upd=28965 map=KingOfTheMarble_Hunt r=0.65 steps=228,441,924 segs=137 arrive=0% falls100=0.40 speed=8.0 gems=58.9 pickup=7.9 sgem=1.49 carry=0.0 turn=21.1 rew=2211.4 pl=-0.008 vl=0.146 ent=0.31 entd=0.02 ec=0.0025 kl=0.032 clip=0.22 gn=6.40 ep=3 dstd=0.22 flips=0 upd_s=2.0 wall_s=18 inst=8 dps=451 prof=fwd:11,send:1,recv:4,handle:0,w_game:28,w_obs:25,w_begin:0
+[14:51:05] [2] GAME map=KingOfTheMarble_Hunt points=148 gems=119 falls=3 rtf=4.1 pow=f2:1
+[14:51:05] [2] [env:8890] round over (time left 180s of 180s); waiting for the next round
+[14:51:05] [2] [env:8890] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:51:05] [2] new round (game connection 1); rtf 90.3
+[14:51:06] [3] GAME map=KingOfTheMarble_Hunt points=142 gems=112 falls=2 rtf=4.0 pow=f2:1
+[14:51:06] [3] [env:8891] round over (time left 180s of 180s); waiting for the next round
+[14:51:06] [3] [env:8891] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:51:06] [3] new round (game connection 1); rtf 75.7
+[14:51:07] [1] GAME map=KingOfTheMarble_Hunt points=139 gems=110 falls=3 rtf=4.1 pow=f2:1
+[14:51:07] [1] [env:8889] round over (time left 180s of 180s); waiting for the next round
+[14:51:07] [1] [env:8889] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:51:07] [1] new round (game connection 1); rtf 99.9
+[14:51:07] [6] GAME map=KingOfTheMarble_Hunt points=161 gems=130 falls=0 rtf=4.0 pow=f2:1
+[14:51:07] [6] [env:8894] round over (time left 180s of 180s); waiting for the next round
+[14:51:07] [6] [env:8894] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:51:07] [6] new round (game connection 1); rtf 68.3
+[14:51:08] [5] GAME map=KingOfTheMarble_Hunt points=145 gems=115 falls=1 rtf=4.0 pow=f1:1,f2:1,u2:1
+[14:51:08] [5] [env:8893] round over (time left 180s of 180s); waiting for the next round
+[14:51:08] [5] [env:8893] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:51:08] [5] new round (game connection 1); rtf 92.2
+[14:51:08] [4] GAME map=KingOfTheMarble_Hunt points=152 gems=120 falls=1 rtf=4.0 pow=f1:1,u1:1
+[14:51:08] [4] [env:8892] round over (time left 180s of 180s); waiting for the next round
+[14:51:08] [4] [env:8892] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:51:08] [4] new round (game connection 1); rtf 82.4
+[14:51:08] [0] GAME map=KingOfTheMarble_Hunt points=145 gems=117 falls=3 rtf=4.1 pow=f1:1
+[14:51:08] [0] [env:8888] round over (time left 180s of 180s); waiting for the next round
+[14:51:08] [0] [env:8888] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:51:08] [0] new round (game connection 1); rtf 90.5
+[14:51:09] [7] fall without OOB flag: 4 decisions off the map at [-26.6  15.9  14. ] (time left 1s)
+[14:51:10] [7] GAME map=KingOfTheMarble_Hunt points=153 gems=120 falls=1 rtf=4.1 pow=-
+[14:51:10] [7] [env:8895] round over (time left 180s of 180s); waiting for the next round
+[14:51:10] [7] [env:8895] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:51:10] [7] new round (game connection 1); rtf 80.4
+[14:51:14] NAV upd=28966 map=KingOfTheMarble_Hunt r=0.65 steps=228,450,124 segs=140 arrive=0% falls100=0.40 speed=8.0 gems=59.7 pickup=7.9 sgem=1.48 carry=0.0 turn=21.1 rew=2240.6 pl=-0.010 vl=0.293 ent=0.31 entd=0.02 ec=0.0024 kl=0.023 clip=0.17 gn=4.62 ep=3 dstd=0.22 flips=0 upd_s=2.0 wall_s=18 inst=8 dps=448 prof=fwd:11,send:1,recv:4,handle:0,w_game:28,w_obs:25,w_begin:0
+[14:51:33] NAV upd=28967 map=KingOfTheMarble_Hunt r=0.65 steps=228,458,324 segs=140 arrive=0% falls100=0.40 speed=8.0 gems=59.7 pickup=7.9 sgem=1.48 carry=0.0 turn=21.1 rew=2240.6 pl=-0.012 vl=0.151 ent=0.31 entd=0.02 ec=0.0024 kl=0.026 clip=0.20 gn=4.93 ep=3 dstd=0.22 flips=0 upd_s=2.6 wall_s=19 inst=8 dps=435 prof=fwd:11,send:1,recv:4,handle:0,w_game:28,w_obs:26,w_begin:0
+[14:51:43] [3] fall without OOB flag: 4 decisions off the map at [-9.2  2.4 15. ] (time left 39s)
+[14:51:49] [0] fall without OOB flag: 4 decisions off the map at [-25.6  15.   13.9] (time left 23s)
+[14:51:52] NAV upd=28968 map=KingOfTheMarble_Hunt r=0.65 steps=228,466,524 segs=141 arrive=0% falls100=0.40 speed=8.0 gems=59.9 pickup=7.9 sgem=1.48 carry=0.0 turn=21.1 rew=2248.9 pl=-0.009 vl=0.186 ent=0.31 entd=0.02 ec=0.0024 kl=0.024 clip=0.18 gn=5.53 ep=3 dstd=0.22 flips=0 upd_s=2.5 wall_s=19 inst=8 dps=438 prof=fwd:11,send:1,recv:4,handle:0,w_game:28,w_obs:26,w_begin:0
+[14:51:53] [2] GAME map=KingOfTheMarble_Hunt points=141 gems=112 falls=2 rtf=3.8 pow=f2:2,u2:1
+[14:51:53] [2] [env:8890] round over (time left 180s of 180s); waiting for the next round
+[14:51:53] [2] [env:8890] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:51:53] [2] new round (game connection 1); rtf 94.7
+[14:51:54] [3] GAME map=KingOfTheMarble_Hunt points=144 gems=115 falls=2 rtf=3.8 pow=f2:1,u2:1
+[14:51:54] [3] [env:8891] round over (time left 180s of 180s); waiting for the next round
+[14:51:54] [3] [env:8891] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:51:54] [3] new round (game connection 1); rtf 73.4
+[14:51:55] [1] GAME map=KingOfTheMarble_Hunt points=144 gems=114 falls=2 rtf=3.8 pow=f1:2,u1:1
+[14:51:55] [1] [env:8889] round over (time left 180s of 180s); waiting for the next round
+[14:51:55] [1] [env:8889] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:51:55] [1] new round (game connection 1); rtf 74.7
+[14:51:56] [5] GAME map=KingOfTheMarble_Hunt points=146 gems=115 falls=2 rtf=3.8 pow=f1:2,u1:1
+[14:51:56] [5] [env:8893] round over (time left 180s of 180s); waiting for the next round
+[14:51:56] [5] [env:8893] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:51:56] [5] new round (game connection 1); rtf 80.1
+[14:51:56] [6] GAME map=KingOfTheMarble_Hunt points=148 gems=117 falls=0 rtf=3.8 pow=f1:1,f2:1,u1:1
+[14:51:56] [6] [env:8894] round over (time left 180s of 180s); waiting for the next round
+[14:51:56] [6] [env:8894] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:51:56] [6] new round (game connection 1); rtf 96.8
+[14:51:57] [0] GAME map=KingOfTheMarble_Hunt points=139 gems=108 falls=1 rtf=3.8 pow=f2:2,u1:1,u2:1
+[14:51:57] [0] [env:8888] round over (time left 180s of 180s); waiting for the next round
+[14:51:57] [0] [env:8888] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:51:57] [0] new round (game connection 1); rtf 88.2
+[14:51:57] [4] GAME map=KingOfTheMarble_Hunt points=150 gems=119 falls=1 rtf=3.8 pow=blast:1,f2:1
+[14:51:57] [4] [env:8892] round over (time left 180s of 180s); waiting for the next round
+[14:51:57] [4] [env:8892] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:51:57] [4] new round (game connection 1); rtf 93.7
+[14:51:59] [7] GAME map=KingOfTheMarble_Hunt points=150 gems=119 falls=0 rtf=3.8 pow=f1:1
+[14:51:59] [7] [env:8895] round over (time left 180s of 180s); waiting for the next round
+[14:51:59] [7] [env:8895] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:51:59] [7] new round (game connection 1); rtf 92.7
+[14:52:10] NAV upd=28969 map=KingOfTheMarble_Hunt r=0.65 steps=228,474,724 segs=141 arrive=0% falls100=0.40 speed=8.0 gems=59.9 pickup=7.9 sgem=1.48 carry=0.0 turn=21.1 rew=2248.9 pl=-0.014 vl=0.219 ent=0.31 entd=0.02 ec=0.0023 kl=0.022 clip=0.19 gn=4.46 ep=3 dstd=0.22 flips=0 upd_s=2.0 wall_s=18 inst=8 dps=456 prof=fwd:11,send:1,recv:4,handle:0,w_game:28,w_obs:25,w_begin:0
+[14:52:28] NAV upd=28970 map=KingOfTheMarble_Hunt r=0.65 steps=228,482,924 segs=142 arrive=0% falls100=0.40 speed=8.0 gems=60.0 pickup=7.9 sgem=1.48 carry=0.0 turn=21.0 rew=2251.4 pl=-0.013 vl=0.195 ent=0.31 entd=0.02 ec=0.0023 kl=0.027 clip=0.19 gn=4.92 ep=3 dstd=0.22 flips=0 upd_s=2.1 wall_s=18 inst=8 dps=449 prof=fwd:11,send:1,recv:4,handle:0,w_game:28,w_obs:25,w_begin:0
+[14:52:29] [1] fall without OOB flag: 4 decisions off the map at [-53.5   3.9  23.2] (time left 50s)
+[14:52:31] [5] fall without OOB flag: 4 decisions off the map at [-22.3  23.7  13.9] (time left 38s)
+[14:52:33] [1] fall without OOB flag: 4 decisions off the map at [-54.7   9.7  18.2] (time left 34s)
+[14:52:38] [7] fall without OOB flag: 4 decisions off the map at [-22.7  16.1  12.7] (time left 24s)
+[14:52:38] [2] GAME map=KingOfTheMarble_Hunt points=137 gems=110 falls=2 rtf=4.1 pow=blast:2
+[14:52:38] [2] [env:8890] round over (time left 180s of 180s); waiting for the next round
+[14:52:38] [2] [env:8890] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:52:38] [2] new round (game connection 1); rtf 91.4
+[14:52:40] [1] GAME map=KingOfTheMarble_Hunt points=133 gems=102 falls=2 rtf=4.1 pow=f1:1,f2:2,u2:2
+[14:52:40] [1] [env:8889] round over (time left 180s of 180s); waiting for the next round
+[14:52:40] [1] [env:8889] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:52:40] [1] new round (game connection 1); rtf 74.9
+[14:52:40] [3] GAME map=KingOfTheMarble_Hunt points=141 gems=111 falls=1 rtf=4.0 pow=f1:1,f6:1,u1:1
+[14:52:40] [3] [env:8891] round over (time left 180s of 180s); waiting for the next round
+[14:52:40] [3] [env:8891] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:52:40] [3] new round (game connection 1); rtf 90.7
+[14:52:41] [5] GAME map=KingOfTheMarble_Hunt points=152 gems=121 falls=2 rtf=4.1 pow=f1:1
+[14:52:41] [5] [env:8893] round over (time left 180s of 180s); waiting for the next round
+[14:52:41] [5] [env:8893] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:52:41] [5] new round (game connection 1); rtf 89.5
+[14:52:41] [6] GAME map=KingOfTheMarble_Hunt points=149 gems=119 falls=2 rtf=4.1 pow=-
+[14:52:41] [6] [env:8894] round over (time left 180s of 180s); waiting for the next round
+[14:52:41] [6] [env:8894] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:52:41] [6] new round (game connection 1); rtf 67.1
+[14:52:42] [4] GAME map=KingOfTheMarble_Hunt points=145 gems=114 falls=3 rtf=4.1 pow=f1:1
+[14:52:42] [4] [env:8892] round over (time left 180s of 180s); waiting for the next round
+[14:52:42] [4] [env:8892] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:52:42] [4] new round (game connection 1); rtf 77.3
+[14:52:42] [0] GAME map=KingOfTheMarble_Hunt points=149 gems=120 falls=1 rtf=4.1 pow=f2:1
+[14:52:42] [0] [env:8888] round over (time left 180s of 180s); waiting for the next round
+[14:52:42] [0] [env:8888] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:52:42] [0] new round (game connection 1); rtf 73.5
+[14:52:44] [7] GAME map=KingOfTheMarble_Hunt points=138 gems=110 falls=3 rtf=4.1 pow=blast:1,f2:1
+[14:52:44] [7] [env:8895] round over (time left 180s of 180s); waiting for the next round
+[14:52:44] [7] [env:8895] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:52:44] [7] new round (game connection 1); rtf 50.3
+[14:52:47] NAV upd=28971 map=KingOfTheMarble_Hunt r=0.65 steps=228,491,124 segs=145 arrive=0% falls100=0.39 speed=8.0 gems=60.7 pickup=7.9 sgem=1.48 carry=0.0 turn=21.0 rew=2280.6 pl=-0.015 vl=0.357 ent=0.31 entd=0.02 ec=0.0023 kl=0.021 clip=0.18 gn=4.28 ep=3 dstd=0.22 flips=0 upd_s=2.0 wall_s=19 inst=8 dps=436 prof=fwd:11,send:1,recv:5,handle:0,w_game:29,w_obs:23,w_begin:0
+[14:52:59] [1] fall without OOB flag: 4 decisions off the map at [-20.1   6.7  13.8] (time left 104s)
+[14:53:05] NAV upd=28972 map=KingOfTheMarble_Hunt r=0.65 steps=228,499,324 segs=145 arrive=0% falls100=0.39 speed=8.0 gems=60.7 pickup=7.9 sgem=1.48 carry=0.0 turn=21.0 rew=2280.6 pl=-0.010 vl=0.165 ent=0.31 entd=0.02 ec=0.0023 kl=0.027 clip=0.21 gn=5.25 ep=3 dstd=0.22 flips=0 upd_s=1.9 wall_s=18 inst=8 dps=456 prof=fwd:11,send:1,recv:4,handle:0,w_game:28,w_obs:25,w_begin:0
+[14:53:14] [3] fall without OOB flag: 4 decisions off the map at [-23.7  24.5  14.2] (time left 49s)
+[14:53:23] NAV upd=28973 map=KingOfTheMarble_Hunt r=0.65 steps=228,507,524 segs=147 arrive=0% falls100=0.39 speed=8.0 gems=60.9 pickup=7.9 sgem=1.48 carry=0.0 turn=21.0 rew=2288.9 pl=-0.006 vl=0.223 ent=0.31 entd=0.02 ec=0.0022 kl=0.034 clip=0.23 gn=5.38 ep=3 dstd=0.22 flips=0 upd_s=2.0 wall_s=18 inst=8 dps=449 prof=fwd:11,send:1,recv:4,handle:0,w_game:28,w_obs:26,w_begin:0
+[14:53:24] [0] fall without OOB flag: 4 decisions off the map at [-28.7  20.   13.7] (time left 22s)
+[14:53:26] [2] GAME map=KingOfTheMarble_Hunt points=153 gems=119 falls=0 rtf=3.9 pow=f2:1
+[14:53:26] [2] [env:8890] round over (time left 180s of 180s); waiting for the next round
+[14:53:26] [2] [env:8890] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:53:26] [2] new round (game connection 1); rtf 41.0
+[14:53:27] [1] GAME map=KingOfTheMarble_Hunt points=147 gems=114 falls=2 rtf=3.9 pow=f2:1
+[14:53:27] [1] [env:8889] round over (time left 180s of 180s); waiting for the next round
+[14:53:27] [1] [env:8889] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:53:27] [1] new round (game connection 1); rtf 56.1
+[14:53:27] [3] GAME map=KingOfTheMarble_Hunt points=143 gems=114 falls=1 rtf=3.9 pow=f1:1,f2:2,u1:1,u2:1
+[14:53:27] [3] [env:8891] round over (time left 180s of 180s); waiting for the next round
+[14:53:27] [3] [env:8891] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:53:27] [3] new round (game connection 1); rtf 55.1
+[14:53:28] [5] GAME map=KingOfTheMarble_Hunt points=143 gems=113 falls=2 rtf=3.9 pow=f1:1
+[14:53:28] [5] [env:8893] round over (time left 180s of 180s); waiting for the next round
+[14:53:28] [5] [env:8893] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:53:28] [5] new round (game connection 1); rtf 77.1
+[14:53:29] [6] GAME map=KingOfTheMarble_Hunt points=145 gems=115 falls=3 rtf=3.9 pow=f1:2,u1:1
+[14:53:29] [6] [env:8894] round over (time left 180s of 180s); waiting for the next round
+[14:53:29] [6] [env:8894] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:53:29] [6] new round (game connection 1); rtf 96.8
+[14:53:30] [0] GAME map=KingOfTheMarble_Hunt points=139 gems=107 falls=2 rtf=3.9 pow=f1:2,u1:1
+[14:53:30] [0] [env:8888] round over (time left 180s of 180s); waiting for the next round
+[14:53:30] [0] [env:8888] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:53:30] [0] new round (game connection 1); rtf 72.0
+[14:53:30] [4] GAME map=KingOfTheMarble_Hunt points=153 gems=122 falls=0 rtf=3.9 pow=f1:1
+[14:53:30] [4] [env:8892] round over (time left 180s of 180s); waiting for the next round
+[14:53:30] [4] [env:8892] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:53:30] [4] new round (game connection 1); rtf 90.0
+[14:53:30] [7] GAME map=KingOfTheMarble_Hunt points=133 gems=104 falls=5 rtf=4.0 pow=f2:1
+[14:53:30] [7] [env:8895] round over (time left 180s of 180s); waiting for the next round
+[14:53:30] [7] [env:8895] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:53:30] [7] new round (game connection 1); rtf 100.7
+[14:53:31] [1] fall without OOB flag: 4 decisions off the map at [-20.   16.1  13.8] (time left 164s)
+[14:53:42] NAV upd=28974 map=KingOfTheMarble_Hunt r=0.65 steps=228,515,724 segs=149 arrive=0% falls100=0.39 speed=8.0 gems=61.4 pickup=7.9 sgem=1.48 carry=0.0 turn=21.0 rew=2308.5 pl=0.001 vl=0.287 ent=0.31 entd=0.02 ec=0.0022 kl=0.025 clip=0.21 gn=7.75 ep=3 dstd=0.22 flips=0 upd_s=1.9 wall_s=19 inst=8 dps=432 prof=fwd:11,send:1,recv:4,handle:0,w_game:29,w_obs:25,w_begin:0
+[14:54:00] NAV upd=28975 map=KingOfTheMarble_Hunt r=0.65 steps=228,523,924 segs=150 arrive=0% falls100=0.39 speed=8.0 gems=61.5 pickup=7.9 sgem=1.48 carry=0.0 turn=21.0 rew=2309.5 pl=-0.009 vl=0.176 ent=0.31 entd=0.02 ec=0.0022 kl=0.033 clip=0.18 gn=6.50 ep=3 dstd=0.22 flips=0 upd_s=2.0 wall_s=18 inst=8 dps=448 prof=fwd:11,send:1,recv:4,handle:0,w_game:28,w_obs:25,w_begin:0
+[14:54:00] saved C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\models\nav\nav_028975.pth
+[14:54:12] [2] GAME map=KingOfTheMarble_Hunt points=150 gems=120 falls=2 rtf=4.0 pow=f6:1
+[14:54:12] [2] [env:8890] round over (time left 180s of 180s); waiting for the next round
+[14:54:12] [2] [env:8890] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:54:12] [2] new round (game connection 1); rtf 91.5
+[14:54:13] [1] GAME map=KingOfTheMarble_Hunt points=132 gems=107 falls=3 rtf=4.0 pow=f1:2,f2:1,u1:1,u2:1
+[14:54:13] [1] [env:8889] round over (time left 180s of 180s); waiting for the next round
+[14:54:13] [1] [env:8889] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:54:13] [1] new round (game connection 1); rtf 93.9
+[14:54:13] [3] GAME map=KingOfTheMarble_Hunt points=141 gems=112 falls=3 rtf=4.0 pow=f2:2,u2:1
+[14:54:13] [3] [env:8891] round over (time left 180s of 180s); waiting for the next round
+[14:54:13] [3] [env:8891] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:54:13] [3] new round (game connection 1); rtf 93.7
+[14:54:14] [5] GAME map=KingOfTheMarble_Hunt points=136 gems=106 falls=3 rtf=4.0 pow=f2:1
+[14:54:14] [5] [env:8893] round over (time left 180s of 180s); waiting for the next round
+[14:54:14] [5] [env:8893] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:54:14] [5] new round (game connection 1); rtf 88.8
+[14:54:15] [6] GAME map=KingOfTheMarble_Hunt points=158 gems=124 falls=1 rtf=4.0 pow=f2:2,u1:1,u2:1
+[14:54:15] [6] [env:8894] round over (time left 180s of 180s); waiting for the next round
+[14:54:15] [6] [env:8894] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:54:15] [6] new round (game connection 1); rtf 88.7
+[14:54:16] [0] GAME map=KingOfTheMarble_Hunt points=150 gems=116 falls=2 rtf=4.0 pow=f2:1
+[14:54:16] [0] [env:8888] round over (time left 180s of 180s); waiting for the next round
+[14:54:16] [0] [env:8888] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:54:16] [0] new round (game connection 1); rtf 71.7
+[14:54:16] [7] GAME map=KingOfTheMarble_Hunt points=156 gems=127 falls=1 rtf=4.0 pow=f1:1
+[14:54:16] [7] [env:8895] round over (time left 180s of 180s); waiting for the next round
+[14:54:16] [7] [env:8895] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:54:16] [7] new round (game connection 1); rtf 90.5
+[14:54:17] [4] GAME map=KingOfTheMarble_Hunt points=153 gems=119 falls=0 rtf=3.9 pow=f1:1
+[14:54:17] [4] [env:8892] round over (time left 180s of 180s); waiting for the next round
+[14:54:17] [4] [env:8892] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:54:17] [4] new round (game connection 1); rtf 84.3
+[14:54:19] NAV upd=28976 map=KingOfTheMarble_Hunt r=0.65 steps=228,532,124 segs=152 arrive=0% falls100=0.39 speed=8.0 gems=61.9 pickup=7.9 sgem=1.48 carry=0.0 turn=21.0 rew=2327.4 pl=-0.015 vl=0.297 ent=0.31 entd=0.02 ec=0.0021 kl=0.024 clip=0.19 gn=4.15 ep=3 dstd=0.22 flips=0 upd_s=2.1 wall_s=19 inst=8 dps=433 prof=fwd:11,send:1,recv:5,handle:0,w_game:29,w_obs:26,w_begin:0
+[14:54:21] [6] fall without OOB flag: 4 decisions off the map at [-18.6  17.   14.1] (time left 165s)
+[14:54:39] NAV upd=28977 map=KingOfTheMarble_Hunt r=0.65 steps=228,540,324 segs=153 arrive=0% falls100=0.39 speed=8.0 gems=61.9 pickup=7.9 sgem=1.48 carry=0.0 turn=21.0 rew=2325.4 pl=-0.012 vl=0.184 ent=0.31 entd=0.02 ec=0.0021 kl=0.031 clip=0.20 gn=4.24 ep=3 dstd=0.22 flips=0 upd_s=2.7 wall_s=19 inst=8 dps=421 prof=fwd:11,send:1,recv:4,handle:0,w_game:29,w_obs:26,w_begin:0
+[14:54:58] NAV upd=28978 map=KingOfTheMarble_Hunt r=0.65 steps=228,548,524 segs=154 arrive=0% falls100=0.39 speed=8.0 gems=62.0 pickup=7.9 sgem=1.48 carry=0.0 turn=21.0 rew=2329.3 pl=-0.006 vl=0.206 ent=0.31 entd=0.02 ec=0.0021 kl=0.027 clip=0.22 gn=6.28 ep=3 dstd=0.22 flips=0 upd_s=2.9 wall_s=19 inst=8 dps=430 prof=fwd:11,send:1,recv:4,handle:0,w_game:28,w_obs:25,w_begin:0
+[14:55:02] [2] GAME map=KingOfTheMarble_Hunt points=147 gems=118 falls=2 rtf=3.7 pow=blast:1,f1:1,f6:1,u1:1
+[14:55:02] [2] [env:8890] round over (time left 180s of 180s); waiting for the next round
+[14:55:02] [2] [env:8890] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:55:02] [2] new round (game connection 1); rtf 75.1
+[14:55:02] [1] GAME map=KingOfTheMarble_Hunt points=151 gems=122 falls=3 rtf=3.7 pow=f1:2,u1:1
+[14:55:02] [1] [env:8889] round over (time left 180s of 180s); waiting for the next round
+[14:55:02] [1] [env:8889] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:55:02] [1] new round (game connection 1); rtf 91.2
+[14:55:03] [3] GAME map=KingOfTheMarble_Hunt points=148 gems=117 falls=3 rtf=3.7 pow=f1:1
+[14:55:03] [3] [env:8891] round over (time left 180s of 180s); waiting for the next round
+[14:55:03] [3] [env:8891] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:55:03] [3] new round (game connection 1); rtf 75.8
+[14:55:04] [5] GAME map=KingOfTheMarble_Hunt points=141 gems=113 falls=2 rtf=3.7 pow=f1:1
+[14:55:04] [5] [env:8893] round over (time left 180s of 180s); waiting for the next round
+[14:55:04] [5] [env:8893] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:55:04] [5] new round (game connection 1); rtf 87.2
+[14:55:04] [6] GAME map=KingOfTheMarble_Hunt points=146 gems=116 falls=3 rtf=3.8 pow=f2:1
+[14:55:04] [6] [env:8894] round over (time left 180s of 180s); waiting for the next round
+[14:55:04] [6] [env:8894] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:55:04] [6] new round (game connection 1); rtf 90.1
+[14:55:06] [0] GAME map=KingOfTheMarble_Hunt points=144 gems=114 falls=0 rtf=3.7 pow=f2:2,u2:1
+[14:55:06] [0] [env:8888] round over (time left 180s of 180s); waiting for the next round
+[14:55:06] [0] [env:8888] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:55:06] [0] new round (game connection 1); rtf 83.1
+[14:55:06] [4] GAME map=KingOfTheMarble_Hunt points=148 gems=118 falls=2 rtf=3.7 pow=f2:1
+[14:55:06] [4] [env:8892] round over (time left 180s of 180s); waiting for the next round
+[14:55:06] [4] [env:8892] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:55:06] [4] new round (game connection 1); rtf 94.8
+[14:55:07] [7] GAME map=KingOfTheMarble_Hunt points=144 gems=115 falls=0 rtf=3.7 pow=f6:1,u2:1
+[14:55:07] [7] [env:8895] round over (time left 180s of 180s); waiting for the next round
+[14:55:07] [7] [env:8895] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[14:55:07] [7] new round (game connection 1); rtf 96.3
+[14:55:17] NAV upd=28979 map=KingOfTheMarble_Hunt r=0.65 steps=228,556,724 segs=155 arrive=0% falls100=0.38 speed=8.0 gems=62.4 pickup=7.9 sgem=1.47 carry=0.0 turn=21.0 rew=2344.0 pl=-0.011 vl=0.309 ent=0.31 entd=0.02 ec=0.0021 kl=0.038 clip=0.19 gn=4.93 ep=3 dstd=0.22 flips=0 upd_s=2.2 wall_s=19 inst=8 dps=440 prof=fwd:11,send:1,recv:4,handle:0,w_game:29,w_obs:25,w_begin:0

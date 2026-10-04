@@ -51,8 +51,8 @@ class Session:
         e = self.env.msg.extra
         return dict(zip(CONTACT_FIELDS, e)) if e is not None else None
 
-    def step(self, js):
-        msg, info = self.env.step(js, repeat=1)
+    def step(self, js, use_pow=0, pow_yaw=None, use_blast=0):
+        msg, info = self.env.step(js, repeat=1, use_pow=use_pow, pow_yaw=pow_yaw, use_blast=use_blast)
         if info['fell']:
             self.oob_pending = True
         if info['round_ended'] or info['reconnected']:

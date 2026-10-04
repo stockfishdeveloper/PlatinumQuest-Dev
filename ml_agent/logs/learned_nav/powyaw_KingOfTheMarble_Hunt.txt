@@ -1,0 +1,13 @@
+[env:9675] waiting for the game
+[env:9675] game connected (1)
+connected: KingOfTheMarble_Hunt, round 180 s
+YAWSET 1.0 mode 0: after 1 dec {'radius': '0.18975', 'mega': '0', 'camyaw': '0', 'srvyaw': '0', 'globalyaw': '0', 'mvyaw': '0', 'blast': '0.21252', 'special': '0'}; after 4 dec {'radius': '0.18975', 'mega': '0', 'camyaw': '0', 'srvyaw': '0', 'globalyaw': '0', 'mvyaw': '0', 'blast': '0.22532', 'special': '0'}
+YAWSET 1.0 mode 1: after 1 dec {'radius': '0.18975', 'mega': '0', 'camyaw': '1', 'srvyaw': '0', 'globalyaw': '0', 'mvyaw': '0', 'blast': '0.24836', 'special': '0'}; after 4 dec {'radius': '0.18975', 'mega': '0', 'camyaw': '0', 'srvyaw': '0', 'globalyaw': '0', 'mvyaw': '0', 'blast': '0.26116', 'special': '0'}
+YAWSET 1.0 mode 2: after 1 dec {'radius': '0.18975', 'mega': '0', 'camyaw': '0', 'srvyaw': '0', 'globalyaw': '0', 'mvyaw': '0', 'blast': '0.2842', 'special': '0'}; after 4 dec {'radius': '0.18975', 'mega': '0', 'camyaw': '0', 'srvyaw': '0', 'globalyaw': '0', 'mvyaw': '0', 'blast': '0.297', 'special': '0'}
+YAWSET 1.0 mode 3: after 1 dec {'radius': '0.18975', 'mega': '0', 'camyaw': '1', 'srvyaw': '0', 'globalyaw': '0', 'mvyaw': '0', 'blast': '0.32004', 'special': '0'}; after 4 dec {'radius': '0.18975', 'mega': '0', 'camyaw': '0', 'srvyaw': '0', 'globalyaw': '0', 'mvyaw': '0', 'blast': '0.33284', 'special': '0'}
+word-6 yaw 1.0 x3: {'radius': '0.18975', 'mega': '0', 'camyaw': '1', 'srvyaw': '1', 'globalyaw': '1', 'mvyaw': '0', 'blast': '0.34564', 'special': '0'}
+mode 1 yaw 0.0: yaws before fire {'radius': '0.18975', 'mega': '0', 'camyaw': '0', 'srvyaw': '0', 'globalyaw': '0', 'mvyaw': '0', 'blast': '0.483879', 'special': '0'}; boost 24.1 u/s at world angle 90 deg
+mode 1 yaw 1.5708: yaws before fire {'radius': '0.18975', 'mega': '0', 'camyaw': '1.5708', 'srvyaw': '0', 'globalyaw': '0', 'mvyaw': '0', 'blast': '1', 'special': '0'}; boost 24.1 u/s at world angle 90 deg
+mode 2 yaw 0.0: yaws before fire {'radius': '0.18975', 'mega': '0', 'camyaw': '0', 'srvyaw': '0', 'globalyaw': '0', 'mvyaw': '0', 'blast': '1', 'special': '0'}; boost 24.1 u/s at world angle 90 deg
+mode 2 yaw 1.5708: yaws before fire {'radius': '0.18975', 'mega': '0', 'camyaw': '0', 'srvyaw': '0', 'globalyaw': '0', 'mvyaw': '0', 'blast': '1', 'special': '0'}; boost 24.1 u/s at world angle 90 deg
+done

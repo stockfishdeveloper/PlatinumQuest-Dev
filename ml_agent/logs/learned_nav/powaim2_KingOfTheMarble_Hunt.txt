@@ -1,0 +1,19 @@
+[env:9677] waiting for the game
+[env:9677] game connected (1)
+connected: KingOfTheMarble_Hunt, round 180 s
+aim 1 dec at yaw 1.5708: client 1.5708 server 1.5708 -> boost 24.1 u/s at world angle -0 deg
+aim 2 dec at yaw 1.5708: client 1.5708 server 1.5708 -> boost 24.1 u/s at world angle -0 deg
+aim 3 dec at yaw 1.5708: client 1.5708 server 1.5708 -> boost 24.1 u/s at world angle -0 deg
+aim 4 dec at yaw 1.5708: client 1.5708 server 1.5708 -> boost 24.1 u/s at world angle -0 deg
+aim 6 dec at yaw 1.5708: client 1.5708 server 1.5708 -> boost 24.1 u/s at world angle -0 deg
+mega use held 2 dec: [('super_jump', 1, 9.94), ('none', 1, 9.87), ('none', 1, 9.81), ('none', 1, 9.74), ('none', 1, 9.68), ('none', 1, 9.62), ('none', 1, 9.55), ('none', 1, 9.49), ('none', 1, 9.42), ('none', 1, 9.36), ('none', 1, 9.3), ('none', 1, 9.23)]; radius 0.6666
+normal: {'radius': '0.6666', 'mega': '1', 'camyaw': '0', 'srvyaw': '0', 'globalyaw': '0', 'mvyaw': '0', 'blast': '1', 'special': '0'}
+normal: speed after 1 s 0.24, 2 s 12.07 u/s; jump apex +1.79 u
+mega used: block {'held': 'none', 'blast': 1.0, 'special': 0, 'mega': 1, 'mega_left': 9.49, 'items': [('super_jump', np.float64(-0.7), np.float64(0.0), np.float64(-9.2), np.float64(6.5)), ('super_speed', np.float64(5.3), np.float64(-6.0), np.float64(-9.2), np.float64(0.0)), ('super_speed', np.float64(-0.7), np.float64(12.0), np.float64(-9.2), np.float64(0.0))]}; radius {'radius': '0.6666', 'mega': '1', 'camyaw': '0', 'srvyaw': '0', 'globalyaw': '0', 'mvyaw': '0', 'blast': '1', 'special': '0'}; vz on use [0.0, 0.0, 24.592, 23.312, 22.032]
+mega: speed after 1 s 0.24, 2 s 12.07 u/s; jump apex +1.79 u; mega_left now 4.75
+mega ended after ~4.8 s more; radius back to 0.6666
+jump then mega after 1 dec: apex +23.67 u (plain jump 1.79, mega jump 1.79); vz [0.0, 6.108, 30.828, 29.548, 28.268, 26.988]
+jump then mega after 2 dec: apex +22.11 u (plain jump 1.79, mega jump 1.79); vz [6.108, 4.828, 29.548, 28.268, 26.988, 25.708]
+jump then mega after 3 dec: apex +14.03 u (plain jump 1.79, mega jump 1.79); vz [4.828, 3.548, 22.268, 20.988, 19.708, 18.428]
+jump then mega after 4 dec: apex +12.48 u (plain jump 1.79, mega jump 1.79); vz [3.548, 2.268, 20.988, 19.708, 18.428, 17.148]
+done

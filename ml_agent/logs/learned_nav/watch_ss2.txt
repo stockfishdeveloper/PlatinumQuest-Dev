@@ -1,0 +1,30 @@
+C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\nav\real_run.py:305: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  ck = torch.load(ckpt, map_location=dev)
+warm-up: model ready in 0.20 s
+[env:8920] waiting for the game
+[env:8920] game connected (1)
+WATCH mode: every frame drawn, 4 sim slice(s) per 64 ms decision, real time
+real run: nav_latest.pth (update 30420) on KingOfTheMarble_Hunt, 3 round(s), port 8920
+stuck-breaker #1 at (-11.3,26.1) decision 164: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #2 at (-11.9,22.4) decision 534: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #3 at (-19.4,17.9) decision 617: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #4 at (-25.6,17.3) decision 1353: state reset, path waypoint + sampling for 24 decisions
+  round 1: {'round': 1, 'gems': 117, 'points': 147.0, 'minutes': 3.03, 'decisions': 2841, 'countdown_decisions': 45, 'gems_per_min': 38.6, 'points_per_min': 48.5, 'falls': 5, 'falls_per_100u': 0.34, 'travelled_u': 1472.5, 'speed': 8.1, 'blind_pct': 0.0, 'stuck_breaks': 4, 'snapped_pct': 0.0, 'pathed_pct': 2.4, 'smooth': 1.0, 'pow_uses': {'0': 1, '1': 2, '2': 7}}
+[env:8920] round over (time left 180s of 180s); waiting for the next round
+[env:8920] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+stuck-breaker #1 at (-23.8,17.1) decision 356: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #2 at (-23.5,18.1) decision 620: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #3 at (-25.6,13.8) decision 1225: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #4 at (-35.3,27.1) decision 1380: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #5 at (-22.6,15.5) decision 1748: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #6 at (-23.2,13.9) decision 1892: state reset, path waypoint + sampling for 24 decisions
+  round 2: {'round': 2, 'gems': 101, 'points': 126.0, 'minutes': 3.03, 'decisions': 2840, 'countdown_decisions': 46, 'gems_per_min': 33.3, 'points_per_min': 41.6, 'falls': 8, 'falls_per_100u': 0.567, 'travelled_u': 1410.5, 'speed': 7.76, 'blind_pct': 0.0, 'stuck_breaks': 6, 'snapped_pct': 0.0, 'pathed_pct': 0.9, 'smooth': 1.0, 'pow_uses': {'0': 2, '1': 3, '2': 2}}
+[env:8920] round over (time left 180s of 180s); waiting for the next round
+[env:8920] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+stuck-breaker #1 at (-23.3,16.3) decision 229: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #2 at (-23.0,12.8) decision 1570: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #3 at (-38.4,17.8) decision 2622: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #4 at (-26.9,13.9) decision 2707: state reset, path waypoint + sampling for 24 decisions
+  round 3: {'round': 3, 'gems': 100, 'points': 127.0, 'minutes': 3.03, 'decisions': 2841, 'countdown_decisions': 46, 'gems_per_min': 33.0, 'points_per_min': 41.9, 'falls': 7, 'falls_per_100u': 0.482, 'travelled_u': 1453.2, 'speed': 7.99, 'blind_pct': 0.0, 'stuck_breaks': 4, 'snapped_pct': 0.0, 'pathed_pct': 1.5, 'smooth': 1.0, 'pow_uses': {'0': 2, '1': 3, '2': 7}}
+REAL RUN {"gems_per_min": 34.967, "points_per_min": 44.0, "falls_per_100u": 0.463, "speed": 7.95, "blind_pct": 0.0} vs human {"gems_per_min": 0.93, "points_per_min": 0.93, "speed": 0.99, "falls_ratio": 10.1}
+wrote C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\logs\nav\real_run_KingOfTheMarble_Hunt_nav_latest_watch_ss2.json

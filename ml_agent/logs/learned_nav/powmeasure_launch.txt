@@ -1,0 +1,2 @@
+powmeasure: python 31712 game 43144 -> C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\logs\learned_nav\powmeasure_KingOfTheMarble_Hunt.txt
+powmeasure: done

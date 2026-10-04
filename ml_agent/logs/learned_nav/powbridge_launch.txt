@@ -1,0 +1,2 @@
+powbridge: python 27956 game 27824 -> C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\logs\learned_nav\powbridge_KingOfTheMarble_Hunt.txt
+powbridge: blast at meter 0.264: vz before 3.25 -> 1.97, 5.85; meter after 0.033

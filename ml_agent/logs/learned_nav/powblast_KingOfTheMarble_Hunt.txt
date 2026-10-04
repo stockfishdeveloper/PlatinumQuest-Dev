@@ -1,0 +1,26 @@
+[env:9678] waiting for the game
+[env:9678] game connected (1)
+connected: KingOfTheMarble_Hunt, round 180 s
+blast at meter 0.200: vz max 3.11 on decision 1, apex +0.46 u; expected 10*sqrt(m) = 4.47
+blast at meter 0.248: vz max 3.62 on decision 1, apex +0.58 u; expected 10*sqrt(m) = 4.98
+blast at meter 0.300: vz max 4.10 on decision 1, apex +0.70 u; expected 10*sqrt(m) = 5.47
+blast at meter 0.399: vz max 4.95 on decision 1, apex +0.94 u; expected 10*sqrt(m) = 6.32
+blast at meter 0.499: vz max 5.69 on decision 1, apex +1.18 u; expected 10*sqrt(m) = 7.07
+blast at meter 0.599: vz max 6.36 on decision 1, apex +1.43 u; expected 10*sqrt(m) = 7.74
+blast at meter 0.699: vz max 6.98 on decision 1, apex +1.67 u; expected 10*sqrt(m) = 8.36
+blast at meter 0.799: vz max 7.56 on decision 1, apex +1.92 u; expected 10*sqrt(m) = 8.94
+blast at meter 0.899: vz max 8.10 on decision 1, apex +2.16 u; expected 10*sqrt(m) = 9.48
+blast at meter 0.998: vz max 8.61 on decision 1, apex +2.40 u; expected 10*sqrt(m) = 9.99
+PICKUP blast (special 1, meter 1.0): vz max 8.91, apex +2.55 u; expected 10*1.03 = 10.3
+normal: {'radius': '0.18975', 'mega': '0', 'camyaw': '0', 'srvyaw': '0', 'globalyaw': '0', 'mvyaw': '0', 'blast': '0.03584', 'special': '0'}
+normal braking from 17.8: 17.8 17.8 16.9 16.0 15.1 14.2 13.3 12.0 10.8 9.6 8.4 7.2
+normal: speed after 1 s 11.74, 2 s 17.36 u/s; jump apex +1.33 u
+mega used: block {'held': 'none', 'blast': 0.758, 'special': 0, 'mega': 1, 'mega_left': 9.49, 'items': [('super_jump', np.float64(-0.7), np.float64(0.0), np.float64(-9.2), np.float64(6.5)), ('super_speed', np.float64(5.3), np.float64(-6.0), np.float64(-9.2), np.float64(0.0)), ('super_speed', np.float64(-0.7), np.float64(12.0), np.float64(-9.2), np.float64(0.0))]}; radius {'radius': '0.6666', 'mega': '1', 'camyaw': '0', 'srvyaw': '0', 'globalyaw': '0', 'mvyaw': '0', 'blast': '0.760321', 'special': '0'}; vz on use [0.0, 0.0, 24.592, 23.312, 22.032]; z [20.84, 20.84, 22.065, 23.593, 25.039, 26.403, 27.685, 28.885]
+mega braking from 12.1: 12.1 11.9 10.7 9.6 8.5 7.3 6.1 5.0 3.9 2.9 2.0 1.2
+mega: speed after 1 s 0.24, 2 s 12.07 u/s; jump apex +1.79 u; mega_left now 2.38
+mega ended after ~2.4 s more; radius back to 0.6666
+jump then mega after 1 dec: apex +23.67 u, vz peak 30.83 (plain jump 1.33, mega jump 1.79); vz [0.0, 6.108, 30.828, 29.548, 28.268, 26.988]
+jump then mega after 2 dec: apex +22.11 u, vz peak 29.55 (plain jump 1.33, mega jump 1.79); vz [6.108, 4.828, 29.548, 28.268, 26.988, 25.708]
+jump then mega after 3 dec: apex +14.03 u, vz peak 22.27 (plain jump 1.33, mega jump 1.79); vz [4.828, 3.548, 22.268, 20.988, 19.708, 18.428]
+jump then mega after 4 dec: apex +12.48 u, vz peak 20.99 (plain jump 1.33, mega jump 1.79); vz [3.548, 2.268, 20.988, 19.708, 18.428, 17.148]
+done

@@ -1,0 +1,2 @@
+powaim: python 29620 game 42848 -> C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\logs\learned_nav\powaim_KingOfTheMarble_Hunt.txt
+powaim: done

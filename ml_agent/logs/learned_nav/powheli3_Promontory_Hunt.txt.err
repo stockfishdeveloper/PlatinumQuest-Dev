@@ -1,0 +1,12 @@
+Traceback (most recent call last):
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\runpy.py", line 197, in _run_module_as_main
+    return _run_code(code, main_globals, None,
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\runpy.py", line 87, in _run_code
+    exec(code, run_globals)
+  File "C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\nav\learned_nav\powdrill.py", line 562, in <module>
+    main()
+  File "C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\nav\learned_nav\powdrill.py", line 551, in main
+    rows += d.test_effects()
+  File "C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\nav\learned_nav\powdrill.py", line 483, in test_effects
+    which = (list(res) and len(res)) % len(self.items[name])
+TypeError: unsupported operand type(s) for %: 'list' and 'int'

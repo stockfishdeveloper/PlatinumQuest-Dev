@@ -1,0 +1,2 @@
+powspin: python 42388 game 24800 -> C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\logs\learned_nav\powspin_KingOfTheMarble_Hunt.txt
+powspin: done

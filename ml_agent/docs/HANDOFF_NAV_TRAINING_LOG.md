@@ -5153,3 +5153,617 @@ nav_latest, nav_best_20261002_tour_28897, nav_night_28897_151, step3_0-2, flight
   the cheapest next gain, judged by hybrid/navigator gates on snapshots (NAV_CKPT), not by the training bars.
 * Open builds: the planner's jump hint inside the training loop (fastjump.py is the cheap form; the operator
   stopped it), the real-time consult path (features on the GPU), the learned ground model at edges.
+
+## 38. Powerups (2026-10-02 evening; ml_agent/POWERUP_PLAN.md)
+
+Operator: push KOTM past the 170 ceiling with powerups, aiming at ~180; usage must transfer to every map. In scope,
+exactly seven: Super Speed, Super Jump, Helicopter, Super Bounce, Shock Absorber, Mega Marble, Blast; opponents out.
+Inventory of the 60 Hunt mission files: Super Jump 253 items, Super Speed 234, Blast 222, Mega 186, Helicopter 127,
+Shock Absorber 9, Super Bounce 8 (KOTM: 3 SJ, 3 SS, 2 Blast, 1 Mega; Bounce/Shock only on Citadel, Sweep,
+ParkourPeaks, Apex, TripleTrail; Helicopter e.g. Promontory x12).
+
+### 38.1 Phase 1: the bridge (observer.cs, mlAgent.cs, protocol.py, obs.py, env.py)
+
+* Observation NAV_OBS_V7: 23 numbers appended after the spin (raw 38-60, protocol.RAW_POW_*): held type (1-7),
+  blast meter 0..1, special-blast armed, mega active, mega seconds left, bounce / shock / helicopter seconds left,
+  then the 3 nearest in-scope items x (type, camera-relative dx, dy, dz, seconds to respawn; 0 = there). Read on
+  the listen server from ClientGroup.getObject(0).player (powerUpData, megaSchedule, powerupSchedule[id]) and
+  from the mission's Item objects (scanned once per mission; _respawnSchedule gives the time left). The policy
+  vector (obs.py VEC_POW, 26 numbers): held one-hot, meter, special, mega + time, effect times, the nearest item
+  (type one-hot, bearing, distance, dz, respawn). VEC_DIM 61 -> 87; nav_latest and the best checkpoint migrated
+  with zero columns (nav_v7_latest_29794.pth = nav_latest, nav_v7_best_28897.pth; V6 copies kept).
+* Action: word 8 = powerup yaw, word 9 = fire the regular blast (input_useBlast); format_action(pow_yaw,
+  use_blast). RADIUS control word (collision radius, mega flag, the yaws, meter) for the drills; YAWSET diagnostic.
+* The use key, like the jump key, fires two decisions after it is sent; Super Speed boosts along the marble's camera
+  yaw AT THE FIRE TICK, so the bridge latches the powerup yaw for $MLAgent::PowYawHoldTicks (12) ticks over the
+  steering yaw (the steering keeps working: it is rotated by the current camera yaw). Before the latch every boost
+  went along world +y (yaw 0). Yaw convention: forward = (sin yaw, cos yaw); yaw pi/2 fired along world +x.
+* The engine's trigger only fires its own powerups (doPowerUp ids 1-5); the Mega Marble (id 6) is script-driven
+  and is used through commandToServer('UsePowerup') (the mouse click's path), sent by the bridge once per use.
+
+### 38.2 Phase 2 measurements on KOTM (nav/learned_nav/powdrill.py; logs/learned_nav/powerups/)
+
+| powerup | measured |
+|---|---|
+| Super Jump | +20.0 u/s vertical impulse at the fire tick (18.6 seen one decision later); from the floor |
+| Super Speed | +25.0 u/s ADDED to the velocity along the camera yaw, whatever the velocity (from rest 24.1 on the floor; at 6.3 u/s -> 31.3; in the air +25.0 with vz untouched); one -x trial gave no boost (to retest) |
+| Blast, regular | meter fills 0 -> 1 in 25 s, usable from 0.20; impulse 10 x sqrt(meter) upward: vz seen one decision after the fire 3.11 (m 0.20) ... 8.61 (m 1.00) = 10 sqrt(m) - 1.28; apex 0.46 u (0.2) to 2.40 u (1.0); meter -> 0.03 after |
+| Blast pickup (special) | fires at 10 x 1.03: vz 8.91 one decision later, apex 2.55 u; arms with meter 1 |
+| Mega Marble | radius 0.18975 -> 0.6666 for 10 s (this mode; 5 s in competitive Hunt); activation pops the marble up when within 1 u of floor; floor acceleration slower (14.8 vs 18.2 u/s after 2.3 s), braking stronger (~17 vs 14 u/s^2); jump apex 1.79 vs 1.33 u; JUMP-THEN-MEGA: +25 u/s vertical when activated 1-2 decisions after the jump key (apex 22-24 u), +17-18 at 3-4 decisions (apex 12-14 u) |
+| respawn | items reappear 7.0 s after a pickup; the same type is refused while held; a different type replaces the held one |
+
+Not yet measured: Helicopter (gravity x0.25, air control x2 in the engine, 5 s), Super Bounce (restitution 0.9,
+5 s), Shock Absorber (restitution 0.01, 5 s), the mega spin-launch on tarmac (Promontory), mega over narrow holes.
+
+### 38.3 Phase 2 on the other maps (ParkourPeaks: bounce and shock; Promontory: helicopter, tarmac)
+
+powdrill.py now reads the item positions from any Hunt mission file (every `new Item` block) and picks an item up by
+dropping onto it; Promontory_Hunt geometry exported (special material friction_high, friction 1.5 = the tarmac).
+* Super Bounce (ParkourPeaks, 2 items): after the use the engine state and the script schedule both show id 3 for
+  4.8 s; a 3 u drop bounces with restitution 0.89 (plain marble 0.44-0.47). Shock Absorber (id 4, 4.8 s): restitution
+  0.00 (the landing is dead). (An earlier run that showed both as "shock" was the drill picking up the neighbouring
+  item while driving; fixed by dropping onto the item.)
+* Helicopter (Promontory): 4.9 s; a 3 u drop reaches -4.16 u/s against -7.68 plain: gravity x0.29 measured (engine
+  constant x0.25, the rest is the marble's air drag-free fall sampled at 64 ms). The jump and air-control readings
+  on the item spots were spoiled by slopes and ledges; the engine constants stand (gravity x0.25, air control x2).
+* Tarmac spin launch (Promontory, friction_high floor at (0, -126)): marble spun about +y, jump, mega activated in
+  the air two decisions later, landing on tarmac: peak speed plain / mega 30 rad/s 3.8 / 4.2, 60 rad/s 4.1 / 6.1,
+  90 rad/s 5.3 / 8.4 u/s (higher spins below).
+  Higher spins (place() sets the angular velocity): plain / mega peak speed 150 rad/s 8.1 / 18.9, 250 rad/s 11.4 /
+  37.0, 400 rad/s 19.3 / 37.6 u/s. The mega's launch saturates near 37 u/s (= its 0.667 u radius against the
+  friction impulse), the plain marble's grows slowly. The operator's trick is real and large; how much spin a marble
+  can carry into the air in play is measured next (a 15 u/s roll is 79 rad/s).
+
+### 38.4 Spin, and the phase 2 summary (10-02 19:00)
+
+Spin (KOTM): rolling at full throttle the marble reaches 17.8 u/s and 98 rad/s after 2.5 s (speed/spin 0.183 = R:
+pure rolling); in the air, holding the roll direction spins it up by ~44 rad/s per second (19 -> 58 in 0.9 s),
+holding the opposite direction reverses the spin at the same rate. So a fast roll plus a jump with the direction
+held carries ~140 rad/s into a landing: with the mega on tarmac that is a 15-19 u/s launch (plain marble ~8); the
+37 u/s saturation needs 250 rad/s, which play does not reach. KOTM has no high-friction surface (special_materials
+[]), so the launch is for other maps.
+
+Phase 2 is complete for all seven powerups (constants file nav/learned_nav/powerup_physics.py):
+| powerup | engine / measured | duration |
+|---|---|---|
+| Super Jump (1) | +20 u/s along -gravity at the fire tick | instant |
+| Super Speed (2) | +25 u/s along the camera yaw, projected on the contact plane, added to the velocity (24.1 from rest on floor; works in the air) | instant |
+| Super Bounce (3) | landing restitution 0.9 (measured 0.89; plain 0.44-0.47) | 5 s |
+| Shock Absorber (4) | landing restitution 0.01 (measured 0.00) | 5 s |
+| Helicopter (5) | gravity x0.25, air control x2 (drop fall speed x0.54 measured) | 5 s |
+| Mega Marble (6) | radius 0.19 -> 0.667; floor top speed ~80 % of normal, braking ~17 vs 14 u/s^2, jump apex 1.79 vs 1.33 u; activation within 1 u of floor pops the marble up; activated in the air right after a jump: +25 u/s vertical (apex 22-24 u), 3-4 decisions after: +17-18; spin launch on tarmac saturating at 37 u/s | 10 s (5 s in competitive Hunt) |
+| Blast, regular meter | fills 0 -> 1 in 25 s, usable from 0.20; impulse 10 sqrt(meter) upward; apex 2.5 x meter u; meter -> ~0.03 after | |
+| Blast pickup | arms the meter at 1 and fires at 10 x 1.03 | until used |
+| rules | respawn 7.0 s; the same type is refused while held; a different type replaces it; the use key fires two decisions after it is sent (the yaw must still hold then: bridge latch) | |
+
+## 39. Powerups, phase 3: into the planner (2026-10-02 evening)
+
+* planner.Programs: `use` (0 none, 1 the held powerup, 2 the blast meter) and `use_yaw` per decision; shifted() carries
+  them. simulate(..., pow=...) takes the marble's powerup state (held, meter, special, the uses sent in the last two
+  decisions with their yaws, effect seconds left). A use fires two decisions after it is sent (as the key does):
+  Super Jump +20 u/s up, Super Speed +25 u/s along (sin yaw, cos yaw), blast 10 sqrt(meter) (or 10 x 1.03 armed),
+  then the meter 0.03 and refilling; Helicopter / Super Bounce / Shock Absorber set per-row gravity and air-control
+  multipliers and the landing restitution that air_exact now takes; an impulse step is flown analytically. Mega is
+  not planned (the policy's).
+* FAST_GROUND: the step model brakes a 25 u/s marble 11 u/s in one step (never saw it); the game loses 0.9 u/s a
+  decision with no input. Above 18 u/s on the floor the rollout applies the measured 14 u/s^2 along the velocity
+  instead: model 24.2 -> 16.4 over 12 decisions vs game 24.3 -> 16.6.
+* Planner.use_oracle(pow): fixed programs that fire now (Super Speed at 5 yaws round the gem's direction, with and
+  without a brake after; Super Jump / Helicopter / blast with 4 air inputs) against the same programs without the
+  use; returns the ranked gain and the best use. hybrid.py: POW_ORACLE every 4 decisions while holding one of them
+  or with the meter usable, sets the use bit (+ yaw) on the navigator's action when the gain is >= POW_GAIN 0.1 and
+  p_succ >= 0.75 (pow_uses, pow_log in the round record); Session.step carries use_pow / pow_yaw / use_blast.
+* Gate g8a (hybrid + powerup oracle, 28897 V7, 8 rounds): 163 154 162 155 167 165 164 162 = 161.5, best 167
+  (g7e without the oracle: 158.9; run-to-run noise ~sd 5). The oracle was asked ~560 times a round (every 4
+  decisions, the blast meter is almost always usable), 206-231 ms each, and fired ONCE in 8 rounds (a Super Speed
+  at 11.9 u from the gem, p 0.86). So the score is the navigator's; the questions now only go out at a lip while
+  aligned (a crossing) or with a Super Speed held on an aligned 8 u+ run over floor (POW_LIP_U, POW_RUN_*).
+* Gate g8b (the oracle only at a lip or on a Super Speed run, 8 rounds): 161 159 165 165 155 164 157 154 = 160.0,
+  best 165; asked 80-123 times a round (145-221 ms each), fired once. Three gates of 8 rounds now sit at 158.9,
+  161.5 and 160.0 around the navigator's own 160.1: the oracle neither helps nor costs, and the planner finds no
+  situation on KOTM where a Super Jump, Super Speed or blast fired by rule beats the navigator's own line. The
+  other half of phase 3 (powerup items as route waypoints, planner proposals that use them) is not worth building
+  on top of a rule that never fires; phase 4 instead lets the policy learn the use.
+
+## 40. Powerups, phase 4: the navigator learns to use them (2026-10-02 21:50)
+
+* Sixth action element `use` (nav/model.py: ACTION_DIM 6, use_head, Bernoulli, initial logit USE_BIAS -3 =
+  4.7 %, clamped -7..3, counted in the discrete entropy). Registered last, so an ACTION_DIM-5 checkpoint loads
+  with the head at its init and its Adam state intact (train_nav pads the optimizer's parameter list).
+* The worker (nav/vec_worker.py) turns the bit into the bridge words: a held powerup is used (a Super Speed along
+  the commanded direction, yaw atan2(dx, dy); a Mega via UsePowerup), with nothing held a usable blast meter
+  fires. The GAME line gets `pow=` with use decisions (u<type>, blast) and fires (f<type>: held -> none without a
+  fall). hybrid.py POLICY_USE and real_run.py pass the navigator's bit through the same way (policy_uses in the
+  round record). Reward unchanged: the game's points only; picking an item up earns nothing by itself.
+* Training restarted 21:52 from 28897 (the V7 best, 160.1 navigator alone), all 8 instances on KOTM
+  (start_training.ps1 defaults now KOTM x8); night_best.json and stdout.txt of the tour run archived with the
+  suffix tour_run_20261002. First round with the fresh head: points 107 (the exploration noise of a 4.7 % use
+  rate: 17 blasts, 5 Super Speeds, 3 Super Jumps, 1 Mega in 3 minutes).
+* Gate for this run: snapshots at new 50-round highs (game_summary.sh), then 8 rounds navigator alone
+  (NAV_CKPT, NAV_PLANNER_OFF=1) against 160.1 / 170 best, and the hybrid.
+
+### 40.1 Phase 4a result (21:52-23:30, random uses, no prior)
+
+* 50-round means by 20 minutes: 136.1, 138.3, 139.5 (snapshots nav_night_28966_136, nav_night_29142_140), falls 2.7
+  a round (1.5 before powerups). Uses fell from 7 fires + 10 blasts a round in the first 100 rounds to about 1 Super
+  Jump, 1.3 Super Speed, 0.2 Mega and 0.6 blasts, then stayed there for 40 minutes: that is the exploration floor
+  (use logit clamped at -7 = 0.09 % x 2,800 decisions = 2.5 random attempts a round, counted only while something
+  is held), so the head had learned "do not" within 20 minutes and nothing else. Random uses cannot land in a
+  situation where a use pays often enough to teach "do".
+
+### 40.2 Use prior (23:30; operator: "yeah go ahead")
+
+* nav/model.py: use logit floor -9, plus USE_PRIOR 10 where `use_prior(vec)` approves (map-independent, from the
+  rays, the gap block and the powerup block): Super Jump held, or the blast meter usable with nothing held, at a lip
+  within 2.5 u along the heading with a gap the plain jump cannot cross (vec[VEC_GAP+2] off) but the boosted
+  flight covers (lip + gap < speed x hang x 0.8; hang 2.0 s for the Super Jump, sqrt(meter) s for a blast);
+  Super Speed held on the floor, heading within 30 deg of the waypoint, waypoint >= 8 u away, the edge ray to it
+  clear. Approved: logit -9 + 10 = +1 (73 % sampled, fires in deterministic play) until the head learns to cancel
+  it (up to -6). Synthetic test: approves the lip / run cases, refuses a run with an edge ahead.
+* Training relaunched 23:36 from nav_latest (update 29295); phase 4a stdout archived as stdout_phase4a_20261002.txt.
+  First rounds: 105-120 points, 6-8 Super Speeds, 1-5 Super Jumps, 7-11 blasts a round. Dashboard: two powerup
+  charts (fires per game stacked by type; points of rounds with vs without a fire, use decisions).
+* Overnight handoff for the watching model: `OVERNIGHT_2026-10-02_POWERUPS.md`; gate scripts copied to
+  logs/nav/gate_scripts/.
+
+### 40.3 Overnight, first hour (10-02 23:36 - 10-03 00:30; the loop model)
+
+* Health: trainer and 8 games up all hour, 14 s an update, no traceback, watchdog quiet; updates 29295 -> 29516.
+* 100-round blocks of sampled training rounds: 106.0, 110.3, 111.9, 113.0, 113.7, 112.1, 113.3 (up 7 points in the first
+  half hour, flat since; best round 141); phase 4a ended at 138-140. Falls 3.7 a round all hour (phase 4a 1.6-2.9). Per
+  round, Super Speed fires 7.0 -> 4.7, Super Jump fires 3.0 -> 2.8, blast decisions 9.2 -> 6.8, Mega 0.15.
+* The head cannot cancel the prior: model.py adds USE_PRIOR after the -9..3 clamp, so an approved use sits at logit
+  +1..+13, at least 73 % a decision in training and always in deterministic play (gates). The handoff and 40.2 assume the
+  head cancels it where it hurts. The use head does train (its output layer moved 12 % in the first 40 updates, more than
+  the jump head), but in approved situations only between 73 % and 100 %. The drop in fires comes from fewer approved
+  situations: at 73 % or more a decision an approved window still ends in a fire.
+* What the forced Super Speeds cost (trace; a fire = horizontal speed up 12 u/s or more in one decision): 25 % end in a
+  fall within 3 s against 2.5-3.3 % for floor decisions at > 5 u/s, unchanged over the hour (25.0, 23.8, 25.7 % by
+  20-minute thirds); 45-47 % reach the gem within 3 s. Phase 4a's random Super Speeds: 17 %. So far the policy fires
+  fewer of them and handles the ones it fires no better.
+* Proposed for the operator, not applied: where use_prior approves, floor the head at USE_PRIOR_FLOOR - USE_PRIOR
+  (-4 - 10 = -14) instead of -9. Unchanged where the head is above -9; deterministic play fires only where the head keeps
+  the logit above 0; sampled play keeps at least 1.8 % a decision in approved situations, so they stay explored. The loop
+  model made the edit at 00:00 and reverted it at once: the auto-mode safety check refused to test it as a change to the
+  shared training setup. model.py is as it was at 23:36.
+
+### 40.4 Gates beside the trainer, and what the forced uses cost in deterministic play (10-03 00:32-01:09)
+
+* Trap: the handoff's hybrid gate (gate_navonly.ps1, 4 games) does not fit beside the trainer. The RTX 3070 has 8 GB and
+  the trainer with its 8 games uses 5.3; each hybrid process also loads the planner's CUDA ensemble. Update time went
+  14 -> 22-80 s (the PPO step alone up to 63 s), no gate round finished in 14 minutes, and at 00:46:50 the watchdog took
+  the slowdown for the throughput trap and killed every game (the trainer's loop relaunched its 8; back to 14 s at once).
+  Also: hybrid.py POW_ORACLE is on even with NAV_PLANNER_OFF=1, so its navigator-alone gates still ask the planner.
+* What works: nav/real_run.py on the CPU (CUDA_VISIBLE_DEVICES=-1; an empty value is dropped on Windows), NAV_TOUR=walk,
+  one game per arm: 4 rounds in about 2 minutes, the trainer at 18 s an update meanwhile, the games closed after. Launcher
+  in the loop model's scratchpad (rr_gate.sh). The harness differs from the hybrid's navigator-alone mode the 160.1
+  baseline came from (same policy, chooser and stuck-breaker; not cross-checked tonight, since no gate can switch the
+  prior off without a code change).
+* 8 deterministic rounds each, the prior on (the current code):
+
+  | checkpoint | rounds | mean | best | falls/round | use decisions/round (blast, SJ, SS) |
+  |---|---|---|---|---|---|
+  | 28897 V7, fresh use head (= the prior's rule on the best navigator) | 140 131 123 119 139 113 131 129 | 128.1 | 140 | 8.0 | 15.5, 5.7, 19.7 |
+  | 29600 (this run, 1.5 h) | 140 140 139 137 131 125 134 134 | 135.0 | 140 | 4.6 | 8.7, 5.2, 9.6 |
+  | reference: 28897 without uses (hybrid, 10-02, 37.6) | | 160.1 | 170 | 1.0 | |
+
+  The prior's rule costs the best navigator about 32 points and 7 falls a round in deterministic play; 1.5 hours of
+  training won back 7 of them. A gate always fires where the prior approves, so a checkpoint of this run reaches 160
+  only if the policy learns to make those forced uses pay or to stay out of the approved situations.
+
+### 40.5 Two hours in: where the falls come from, gate on 29875 (10-03 01:34-02:10)
+
+* 200-round blocks of training rounds: 119.0 (01:16), 120.1, 121.1, 119.9 (02:04): the climb of the first two hours
+  (107 -> 120) has slowed to about a point an hour; best training round 148. Falls flat at 3.6-3.7 a round. Super Speed
+  fires 2.7 a round (7.0 at the start), Super Jump fires 2.4-2.8, blast decisions 7-8. By the handoff's measure (below
+  130 after 2 hours) this is the bad case; training continues.
+* Falls by the last event in the 60 decisions before them (training trace, last 40 minutes; the trace marks fewer falls
+  than the GAME lines, so read shares): a blast-like vertical kick 44 %, no event (roll-off) 19 %, a Super Speed 15 %, a
+  Super Jump 14 %, a plain jump 8 %. Kicks at more than 12 u/s within 30 decisions after a Super Speed: 2.5 a round, 26 %
+  of them followed by a fall; all other kicks 2-7 %. Phase 4a, as a control with almost no blasts: 0.34 such kicks per
+  Super Speed fire with 22 % falls; tonight 0.60 per fire. So the Super Speed itself is the danger: the marble passes the
+  gem at about 30 u/s and runs on over lips and ramps (at that speed a ramp kicks it up like a blast), and the blast
+  prior, which approves when lip + gap < speed x sqrt(meter) x 0.8, approves more blasts at that speed. The Super Speed
+  approval checks the run TO the waypoint (aligned, 8 u+, edge ray clear) and not the 30 u or more the marble covers
+  after the pickup.
+* Gate on nav_029875 (CPU real_run, walk tour, 8 rounds): 130 150 128 154 127 146 142 129 = 138.3, best 154, falls 4.75
+  a round, use decisions a round blast 9.6, Super Jump 5.4, Super Speed 5.8 (29600: 135.0, best 140). Stuck-breaks rose
+  to 3.0 a round (28897 with the prior 1.9, 29600 2.25); they cluster within 8 u of the map centre (-25, 15), where the
+  Mega item sits; the gates show no Mega uses, so the centre block itself is the likely place.
+
+### 40.6 The 3.5-hour gate (10-03 03:05)
+
+* Training rounds flat for an hour: 200-round blocks 122.6, 121.1, 121.8 (best 149), falls 3.4-3.5 a round.
+* Gate on nav_030125 (CPU real_run, walk tour, 8 rounds, two games of 4): 145 150 142 143 / 127 130 131 136 = 138.0,
+  best 150, falls 4.6 a round. The game with fewer Super Speed decisions (1.8 a round against 5.5) scored 145 against 131.
+  Gates by checkpoint: 29600 135.0, 29875 138.3, 30125 138.0, so the deterministic score has also stopped rising, about
+  22 points under the 160.1 of 28897 without uses. No round has beaten 154 tonight.
+* 04:08: training blocks 124.0, 124.3, 125.0 (best 151), falls down to 2.8 a round, Super Speed fires 2.1 a round. Gate on
+  nav_030375: 136 138 133 129 / 130 138 125 128 = 132.1, best 138, falls 4.75; use decisions a round in the gate still
+  blast 8.7, Super Jump 7.0, Super Speed 6.3. The training rounds improve (fewer Super Speed fires, fewer falls); the
+  deterministic gates (four checkpoints: 135.0, 138.3, 138.0, 132.1) do not move.
+* 05:11: training blocks 122.0, 124.1, 121.5. Gate on nav_030650: 137 140 121 134 / 123 134 140 145 = 134.3, best 145,
+  falls 4.1; use decisions a round blast 7.1, Super Jump 5.9, Super Speed 4.5.
+
+### 40.7 Morning report (10-03 06:20; the loop model)
+
+The run (phase 4 with USE_PRIOR, from update 29295 at 23:36) is still training: update 30916 at 06:18, 5,218 KOTM
+training rounds, no crash and no restart. The watchdog fired once, at 00:46, on the slowdown caused by the first gate
+(40.4). The operator did not answer the 01:09 question about the use floor fix, so nothing in the run was changed.
+
+Training rounds by clock hour (sampled play; phase 4a ended at 138-140 with 1.6-2.9 falls, the tour run near 150):
+
+| hour | rounds | mean | best | falls | Super Jump fires | Super Speed fires | Mega fires | blast decisions |
+|---|---|---|---|---|---|---|---|---|
+| 23 (from 23:36) | 302 | 109.4 | 138 | 3.71 | 2.9 | 6.2 | 0.15 | 8.3 |
+| 00 | 685 | 114.0 | 142 | 3.74 | 2.7 | 4.8 | 0.13 | 7.1 |
+| 01 | 836 | 119.3 | 148 | 3.68 | 2.7 | 3.3 | 0.15 | 7.2 |
+| 02 | 820 | 121.7 | 149 | 3.57 | 2.5 | 2.7 | 0.15 | 7.3 |
+| 03 | 807 | 123.3 | 151 | 3.17 | 2.7 | 2.6 | 0.15 | 6.0 |
+| 04 | 782 | 123.7 | 149 | 3.03 | 2.7 | 2.0 | 0.16 | 5.4 |
+| 05 | 762 | 124.5 | 149 | 2.90 | 2.4 | 1.7 | 0.14 | 5.3 |
+| 06 (to 06:18) | 224 | 125.6 | 145 | 2.61 | 2.3 | 1.7 | 0.21 | 5.0 |
+
+Gates, 8 deterministic rounds each (nav/real_run.py on the CPU, walk tour, the prior on; harness in 40.4):
+
+| checkpoint | time | rounds | mean | best | falls/round |
+|---|---|---|---|---|---|
+| 28897 V7, fresh use head (the prior's rule alone) | 01:05 | 140 131 123 119 139 113 131 129 | 128.1 | 140 | 8.0 |
+| 29600 | 01:05 | 140 140 139 137 131 125 134 134 | 135.0 | 140 | 4.6 |
+| 29875 | 02:06 | 130 150 128 154 127 146 142 129 | 138.3 | 154 | 4.75 |
+| 30125 | 03:07 | 145 150 142 143 127 130 131 136 | 138.0 | 150 | 4.6 |
+| 30375 | 04:10 | 136 138 133 129 130 138 125 128 | 132.1 | 138 | 4.75 |
+| 30650 | 05:13 | 137 140 121 134 123 134 140 145 | 134.3 | 145 | 4.1 |
+| 30900 | 06:16 | 145 123 144 127 146 132 137 133 | 135.9 | 146 | 3.6 |
+| 31275 (training rounds then 127-130) | 07:52 | 140 142 136 143 123 137 137 147 | 138.1 | 147 | 4.6 |
+| 31725 (training rounds then 129-132) | 09:56 | 128 127 150 148 121 144 150 128 | 137.0 | 150 | 4.6 |
+| 32150 (training rounds then 131-134) | 12:00 | 135 134 138 144 137 126 138 153 | 138.1 | 153 | 5.0 |
+| reference: 28897 without uses (hybrid, navigator alone, 10-02) | | | 160.1 | 170 | 1.0 |
+
+* Best snapshot: none. No 50-round mean passed phase 4a's 140.6 (night_best.json unchanged), so game_summary.sh took no
+  snapshot; the best gated checkpoints are 29875 and 30125 (138). No round beat 170 (best: 154 in a gate, 151 in
+  training) and no 8-round mean beat 160.1; nothing was copied to nav_v7pow_best.
+* Verdict: neither. The policy did not learn to make the uses pay, and it could not learn to cancel the prior, because
+  model.py adds USE_PRIOR after the clamp and an approved use always fires in deterministic play (40.3). Super Jump fires
+  (2.3-2.9 a round) and blast decisions (5-8) stayed above the old floor; Super Speed fires fell from 6.2 to 1.7 a round
+  as the sampled policy met fewer approved situations. Training points rose from 109 to 126 but stayed well under phase
+  4a's 138-140, and the gates stayed at 132-138 all night, 22-28 points under the same navigator without uses. The cost
+  is mostly the Super Speed (the marble passes the gem at about 30 u/s and runs on over lips and ramps) and the blasts the
+  prior approves at that speed (40.5).
+* Suggestions for the operator's decision:
+  1. Let the head cancel the prior (40.3: where use_prior approves, floor the head at USE_PRIOR_FLOOR - USE_PRIOR, for
+     example -4 - 10 = -14, instead of -9) and train on, judging by gates whether the uses that survive pay. Start from
+     this run's endpoint (it already avoids some Super Speed situations) or from phase 4a's 29257.
+  2. Tighten the approvals with the physics of 38.2: a Super Speed only when the run past the waypoint is clear for the
+     boosted overshoot (about 30 u from 30 u/s at the ~14 u/s^2 the game brakes with) or the next waypoint lies on the
+     same line; a blast with the measured lift (10 sqrt(meter) - 1.28 u/s), the two-decision lag, and not above about
+     12 u/s.
+  3. Gate beside the trainer with the CPU real_run (logs/nav/gate_scripts/rr_gate.sh, results with rr_read.py); the
+     hybrid gate overflows the GPU and sets off the watchdog.
+  4. On the 180 goal: tonight gives no sign that powerups add points on KOTM with this policy. The human's 172-177 rounds
+     used none, and the measured gap to them is still route length (handoff section 3).
+* Morning addendum (10:00): training rounds reached 129-132 a round (falls 2.2-2.4, best 153) while the gates stayed put
+  (31275 138.1, 31725 137.0). The Mega, which the prior does not cover, is the one use the head explores on its own:
+  use decisions 0.03 a round all night, 0.11 at 08:00, 0.49 at 09:50; rounds with a Mega use scored about 3 points under
+  those without (08:00 hour), and the gates make no Mega use.
+
+### 40.8 The use floor fix (10-03 13:10; operator: "Apply use floor fix")
+
+* nav/model.py: USE_PRIOR_FLOOR -4.0. Where use_prior approves, the head's floor is USE_PRIOR_FLOOR - USE_PRIOR (-14)
+  instead of -9, so an approved use can go down to logit -4 (1.8 % a decision, no fire in deterministic play); unchanged
+  where the head is at or above -9 and wherever the prior is off. CPU test on nav_latest (32430): not approved identical
+  to the old formula; approved identical for head outputs >= -9, below it -9.5 -> +0.5, -12 -> -2, -14 and less -> -4;
+  gradient 1 through the new range; act() and evaluate_seq() run with finite outputs and a use-head gradient.
+* The new rule on the policy as it was, before any training with it (nav_032425, 8 rounds, CPU real_run gate):
+  156 127 143 145 / 152 152 140 141 = 144.5, best 156, falls 2.5 a round; use decisions a round blast 2.1, Super Jump
+  2.1, Super Speed 0.1, Mega 0.5 (the last old-rule gate, 32150: 138.1, falls 5.0, Super Speed 11.6). The head had
+  already pushed most Super Speed situations below the old floor, where they fired anyway; with the floor lowered they do
+  not fire, falls halve and the mean rises about 6 points with no retraining.
+* Restart (operator: "You can restart"), 13:19: game loop, trainer (pid 2888) and games stopped; the old run's endpoint
+  kept as models/nav/nav_p4b_end_32445.pth; stdout / stderr archived as *_phase4b_20261003.txt and night_best.json as
+  night_best_phase4b_20261003.json (reset, so game_summary.sh snapshots this run's highs); start_training.ps1 relaunched
+  13:19:35 from nav_latest (update 32445) with the new rule.
+
+### 40.9 Training with the use floor (10-03 from 13:19)
+
+* First 96 rounds: 139.1, 140.3, 138.4 per 30 rounds (old rule at its end: 130.5), falls 1.3-2.4 a round. The head cancels
+  most uses at once: per round Super Speed fires 0.6-0.8 (1.6 at the old rule's end), Super Jump fires 1.2-1.7 (2.2), blast
+  decisions 1.0-1.7 (6.2), Mega 0.1-0.3.
+* First new 50-round high 139.0 at 32473 (snapshot nav_night_32473_139.pth). Gate (8 rounds, CPU real_run): 149 143 149
+  152 / 145 144 152 149 = 147.9, best 152, falls 3.4; use decisions in the gate: almost none (Super Jump 0.25 a round).
+  The deterministic policy now leaves the powerups alone and gains 10 points on the old rule's 132-138; it is still 12
+  under 28897's 160.1 without uses, so the hours of forced uses changed more than the use decisions.
+* Stopped 13:36 at the operator's request ("can you completely stop training for a bit"): game loop, trainer and games
+  stopped; endpoint models/nav/nav_p4c_stop_32510.pth (= nav_latest, update 32510). This run: 208 rounds at 138.9 (best
+  155), falls 1.8 a round. To resume: start_training.ps1 (it resumes from nav_latest with the use floor). The helper
+  scripts (game_watchdog.sh, game_summary.sh, the dashboard) were left running; idle without a trainer.
+
+### 40.10 Review of the use floor fix, training resumed (10-03 14:13)
+
+* The fix (40.8) is correct: where the prior approves the use logit is max(head, -14) + 10, so the head can take an
+  approved use down to -4 (1.8 % sampled, never in deterministic play) and the unapproved path is unchanged (-9 floor).
+  It is useful as a damage stop: the same checkpoint went 138.1 -> 144.5 with falls 5.0 -> 2.5 and no retraining, and
+  the first gate after training with it read 147.9. It does not make the powerups pay: the head now cancels nearly
+  every approved use (gate use decisions ~0), and the 12-point gap to 28897's 160.1 is the navigator itself, worn by
+  14 hours of forced uses under the old rule. Making a use pay needs the tighter approvals of 40.7 (Super Speed only
+  when the overshoot past the waypoint is clear or the next waypoint is on the line; blasts not above ~12 u/s), which
+  the operator has not decided on.
+* Resumed 14:13 from nav_latest (32510, the operator's stop point) with the rule as it stands; one of the two
+  watchdogs stopped (two were running); stdout archived as stdout_phase4c_20261003.txt. First updates: speed 7.7,
+  sgem 1.59, falls100 0.45.
+
+### 40.11 Fresh start from 28897 with a survivable Super Speed approval (10-03 14:28; operator)
+
+* Operator: pick up from 28897 and tighten the approval ("a Super Speed only when the run past the waypoint is clear
+  for the overshoot or the next waypoint lies on the same line"); the model must learn to use Super Speeds on this
+  map to get well above 160.
+* Observation V8 (nav/obs.py, POW_DIM 27, VEC_DIM 88): vec[VEC_POW + 26] = Super Speed run clear, computed only while
+  a Super Speed is held on the floor. The boosted speed is the marble's speed along the line + 25 u/s, at most 32;
+  the floor's own braking (14 u/s^2, planner FAST_DECEL) stops it after v^2 / 28 u (8 u/s -> 32 -> 36.6 u), so the
+  floor along the line to the waypoint (terrain gap_along, followed 48 u) must continue past max(stop, waypoint
+  distance) + 2 u; or the next waypoint lies within 30 deg of the line, beyond this one, with floor all the way to it
+  + 2 u. On KOTM: a 12 u ring run at 8 u/s has 37 u of floor and is refused alone (36.6 + 2), approved with the next
+  gem on the line; centre runs (4.5 u) and west -> centre (14.5 u) refused.
+* nav/model.py: the Super Speed branch of use_prior also needs that flag; USE_BIAS -11 for the fresh head, so an
+  approved use starts at logit -1 (27 % sampled, never in deterministic play until the head learns it pays; was +7 =
+  always). Super Jump / blast approvals unchanged (also at -1 now).
+* Checkpoint: nav_v7_best_28897 migrated to V8 (migrate_obs_width, zero columns) = models/nav/nav_v8_28897.pth =
+  nav_latest. The previous run's endpoint kept as nav_p4c_end_32560.pth (V7; V7 checkpoints now need migration or
+  the old code), stdout as stdout_phase4c2_20261003.txt, night_best as night_best_phase4c_20261003.json. Trainer
+  relaunched 14:28 (the first launch died on the V7 nav_latest: a locked file blocked the copy; redone).
+* First rounds (sampled policy): 130-137 points, falls 1-4, per round Super Jump fires 1-3, Super Speed fires 1-2,
+  blast 0-2: the exploration rate of the -1 logit. Speed 7.7, sgem 1.55.
+
+### 40.12 The Super Speed redirect at the pickup (10-03 14:55; operator)
+
+* Operator: a human's main Super Speed use on KOTM is to roll full speed into a corner gem and fire at an angle at the
+  pickup so the velocity turns onto the line to the next gem, saving the brake-and-turn; and the model must KNOW
+  during the approach that the redirect will work, or it keeps braking into corners. As coded (40.11) that move was
+  impossible: the prior refused it (heading-to-waypoint test), the kick went along the policy's commanded direction
+  (at the gem), and no check followed the new line.
+* Observation V9 (nav/obs.py, POW_DIM 30, VEC_DIM 91): while a Super Speed is held and the next waypoint is known,
+  at ANY distance: [27] redirect possible, [28-29] the kick aim. Predicted pickup velocity = the current speed along
+  the line to the waypoint (at least 3 u/s); ss_redirect_aim solves the unit kick a with v + 25 a parallel to the
+  line from the gem to the next gem (lam = n.v + sqrt((n.v)^2 + 625 - |v|^2)); survivable when the floor from the
+  gem along that line (gap_along, 48 u) reaches the next gem + 2 u. The flag is right at the pickup and visible 10 u
+  out, where the brake-or-not decision is made. Example: south along the ring at 8 u/s toward (-36, 2), next gem
+  east: aim (0.95, 0.32), result along +x at 23 u/s, flag on; the same with the next gem off the map: off.
+* Aim: obs.ss_aim(vec) = the redirect aim when the flag is on and the waypoint is within SS_REDIRECT_U 3 u (the
+  2-decision key lag), else the line to the waypoint; the worker, hybrid.py and real_run.py all fire a Super Speed
+  along it (was the policy's commanded direction, wrong for both branches). The policy decides whether and when; the
+  physics aims, as with the jump prior.
+* use_prior: a redirect branch (Super Speed held, on the floor, within 3 u of the waypoint, flag on) beside the run
+  branch of 40.11. USE_BIAS -11 as before (approved -1).
+* The V8 run (14:28-14:50, 28895 -> 28975, training rounds 130-140) migrated to V9 (zero columns) =
+  nav_v9_from_run.pth = nav_latest; its endpoint kept as nav_p4d_end_v8.pth, stdout as stdout_phase4d_20261003.txt.
+  Relaunched 14:55; first rounds 123-141, Super Speed fires 0-4 a round.
+* What to watch (operator's test): Super Speed fires (f2) per round and whether rounds with them score more; the
+  approach speed into corner gems with the flag on vs off (needs a trace analysis: the training trace has speed and
+  goal, the flag can be recomputed from the terrain); then an 8-round gate against 160.1 / 170.
+
+### 40.13 Redirect verified in the game; first 75 minutes (10-03 15:30-16:50)
+
+* Worker diagnostics added 15:30 (restart, nothing lost): GAME line `pow=` now has `r2` (Super Speed uses aimed as a
+  redirect, within 3 u of the gem with the flag on) beside `u2` (runs), `fss` (falls within 3 s of a Super Speed
+  fire), and `pkon/pkoff/pknone` = mean pickup speed (u/s) / count for pickups with a Super Speed held and the
+  redirect flag on, held with it off, and without one.
+* powdrill --test redirect (one extra game, port 9951): on the west ring rolling south at 7.4 u/s with a Super Speed,
+  fired with the aim ss_redirect_aim solves for a next gem due east (0.95, 0.32): the next decision reads 22.8 u/s
+  at 3 deg (east), predicted 23.7 at 0; the mirror case 22.8 u/s at 177 deg; the straight run 30.6 u/s. The yaw
+  word, the bridge latch and the physics agree; the mechanism is right.
+* Training 15:30-16:45 (780 rounds, 29080 -> 29328) by quarters: points 138.9 / 139.9 / 139.2 / 138.7, falls
+  2.0-2.3; per round redirect uses 1.6 / 1.2 / 1.2 / 1.5, run uses 0.3 / 0.2 / 0.2 / 0.2, Super Speed fires 1.9 /
+  1.5 / 1.3 / 1.7, falls within 3 s of a fire 0.19 / 0.15 / 0.11 / 0.19 (about 10 % of fires); pickup speed with the
+  flag on 9.3 u/s, off 8.1, no Super Speed 8.55, flat across the quarters. Rounds with a Super Speed fire score
+  138.6 against 141-145 for the few without. So after 75 minutes the policy fires the redirect on most approaches
+  the prior approves, one in ten ends in a fall, and it has not yet learned to arrive faster when the flag is on
+  (the operator's test). 50-round high 140.9 at 29317 (snapshot nav_night_29317_141.pth).
+
+### 40.14 Two hours of redirects: flat; the window was too early (10-03 17:45)
+
+* 15:30-17:40 (1,360 rounds, 29080 -> 29513), by 200-round blocks: points 138.4 / 139.2 / 140.0 / 138.7, falls
+  2.2-2.5, redirect uses 1.2-1.6 a round, fires 1.5-1.8, falls within 3 s of a fire 0.15-0.18 (a tenth of the
+  fires), pickup speed with the flag on 9.3 -> 9.1 u/s (off 8.1 -> 7.9), rounds with a fire 138-139 against
+  141-145 without. The policy fires the redirect on most approved approaches and nothing improves.
+* Likely cause: the approval window began 3 u out, the use fires two decisions (0.128 s) later, so at 9 u/s a use
+  sent at 2.5-3 u kicked the marble 1.3-1.8 u BEFORE the gem, swinging it off the line and past the pickup; the
+  sampled policy (27 % per approved decision) fired on the first approved decisions most of the time. Second
+  cost: the redirect arrives at the next gem at ~23 u/s with only 2 u of floor required beyond it.
+* Changes (restart 17:50, nothing lost): the window is now dist <= 0.128 x speed + 0.8 u (obs.ss_redirect_window,
+  the same in use_prior and the worker), so the kick lands within 0.8 u of the gem or past it; the flag needs
+  SS_NEXT_MARGIN 6 u of floor past the next gem; the worker counts `rhit` / `rmiss` (a gem picked within 12
+  decisions of a redirect fire or not), beside r2 / fss / pkon.
+
+### 40.15 The redirect moves to after the pickup; one Super Speed rule (10-03 18:45)
+
+* 17:45-18:35 with the tight pre-pickup window (556 rounds): points 141.7 / 141.7 / 142.9 / 141.8 (up from 139),
+  falls after a fire 0.10-0.16 a round, pickup speed with the flag on 9.15 -> 9.41 u/s; but redirect fires still
+  missed the gem 40 % of the time (rhit 0.26-0.32, rmiss 0.19 a round): a kick that starts before the pickup
+  swings the marble off the gem however tight the window.
+* So the kick now comes right AFTER the pickup, when the waypoint is already the next gem, and the aim is solved
+  for the CURRENT waypoint: a = (lam n - v) / 25 with v + 25 a on the line to the waypoint (obs.ss_redirect_aim),
+  stored in vec[VEC_POW + 28-29] whenever a Super Speed is held; vec[VEC_POW + 26] = that kick is survivable (floor
+  along the waypoint line for max(stop, d) + 2 u with stop = lam^2 / 28, or the next gem on the line with floor to
+  it + 6 u). use_prior's Super Speed branch: held, on the floor, waypoint >= 8 u, [26] on; no heading test (the aim
+  handles the angle), no edge-ray test (the floor check is longer). The pre-pickup branch is gone; its flag [27]
+  stays as approach information ("a redirect at the gem ahead toward the next gem would be survivable").
+* Worker: 'r2' = a Super Speed use with the velocity more than 30 deg off the waypoint line (a turn), 'u2' a run;
+  rhit / rmiss = the waypoint taken within 1.5 s of a turn's fire. ss_aim(vec) returns [28-29] whenever a Super
+  Speed is held (the worker, hybrid.py and real_run.py fire along it).
+
+### 40.16 One hour of the post-pickup rule (10-03 18:40-19:40, 29700 -> 29896)
+
+* 616 rounds by quarters: points 141.5 / 141.1 / 141.9 / 142.4, falls 2.8 -> 2.45; Super Speed fires 0.9-1.15 a
+  round, of them turns 0.41-0.56 (runs 0.14-0.19); turns that took the waypoint within 1.5 s 0.26-0.38 against
+  0.12-0.14 that did not (about 72 % hits, was 60 % before the pickup); falls within 3 s of a fire 0.10-0.16; pickup
+  speed with the approach flag on 9.3-9.7 u/s (off 8.0-8.2). Rounds with a fire now score the same as rounds
+  without (142.1 / 141.7 and 142.3 / 142.6 in the last two quarters; they were 3-5 under all afternoon).
+* So the uses no longer cost points, and they do not yet earn any: the sampled mean is flat at 142 and the fire
+  rate is the prior's 27 % sampling, not a learned preference. Next: an 8-round deterministic gate of
+  nav_p4e_29896.pth (CPU real_run; in deterministic play a use fires only where the head has learned it) against
+  160.1 / 170.
+
+### 40.17 Gate of 29896, and the arithmetic (10-03 19:45)
+
+* nav_p4e_29896.pth, 8 deterministic rounds (CPU real_run, walk tour, two games): 152 159 151 148 / 162 158 156 161
+  = 155.9, best 162, falls 1.6 a round, speed 8.4; use decisions: one Super Jump in 8 rounds, no Super Speed. So
+  nothing has been learned to the point of firing in deterministic play (the head sits near -11 where approved,
+  the prior lifts it to -1), and the navigator itself reads about 4 under 28897's 160.1 (8 rounds, sd 5: inside
+  two standard errors).
+* The arithmetic of a Super Speed on KOTM: a turn out of a pickup at 23 u/s toward a gem 16 u away saves ~0.8 s
+  against rolling and turning at 8-9 u/s; at 1.46 s a gem that is half a point per use. The item respawns 7 s after
+  a pickup and the marble holds one during ~40 % of its pickups, so the ceiling at a few free pickups a round is
+  a few points, unless the fast approach the flag allows spreads to many gems. The gain the operator is after
+  (20 points) cannot come from one fire a round; it needs the head to learn to fire at most approved moments and
+  the approach speed to follow.
+* Change (restart 20:00): USE_PRIOR 10 -> 11, so approved uses are sampled 50 % instead of 27 % (more data at no
+  cost now that the uses are revenue-neutral). Nothing else.
+
+### 40.18 Braking measured; the approval rate is the bottleneck (10-03 20:50)
+
+* 19:44-20:44 at 50 % sampling (628 rounds, 29905 -> 30104): points 139.1 / 142.3 / 141.9 / 144.1 (50-round high
+  144.8 at 30097, snapshot nav_night_30097_145.pth), falls 3.1 -> 2.2; Super Speed fires 1.1-1.2 a round, the SAME as
+  at 27 %: the sampling rate is not what limits the fires, the number of approved moments is (2-3 a round).
+* powdrill --test brake (one extra game): from 25 u/s on the ring floor, no input loses 7.7 u/s^2 (after a quick
+  25 -> 20 in the first two decisions), the full brake 14.2 u/s^2 (stops in 1.7 s, 22 u), holding forward settles at
+  ~19 u/s. So a Super Speed's resultant (17-33 u/s, never under 25 - |v|) needs ~20 u of floor or the next gem on
+  its line, which after a pickup on KOTM is rare. The rule is the physics; the ceiling for the Super Speed on this
+  map is a few points unless the kick is aimed at gems that lie far down a clear line (the route chooser could
+  prefer such orders while a Super Speed is held: not built).
+* Worker: `ap2` = approved Super Speed decisions a round (restart 20:52).
+
+### 40.19 The operator's Super Speed demo (10-03 21:17-21:21; demos/demo_20261003_211632.npz)
+
+* One round, 153 points, 123 pickups, 2 falls, recorded at 1x with the recorder now keeping the full 61-number
+  observation (held powerup, meter, items) beside the inputs and the camera yaw (record_demos.py obs_full). The
+  operator: not warmed up, not best play, but the idea of the Super Speed.
+* 20 Super Speed fires in the round (the item at (-31, 3) taken at nearly every respawn; a Super Speed held 29 s of
+  180, a Super Jump 35 s, a Mega 6 s). Timing: 12 of 19 fires come 5-11 ticks (0.1-0.2 s) after a pickup, the rest
+  mid-leg (16-74 ticks). Every fire is a TURN: 77-151 deg between the velocity before and the line to the next
+  gem (median ~110). Speed before 5.5-14.5 u/s (median 11), after the kick 11-23 u/s (median 16.7): a kick
+  against most of the old velocity leaves a moderate speed, nothing like the 25-33 u/s of a straight run. The next
+  gem lay 11-24 u away (median 12.2) and was reached 50-140 ticks later at 5-14 u/s; the backward key was held in
+  the half second after the fire on 11 of 20 fires (braking into the gem). No fall followed any fire.
+* The aim: the operator's camera yaw at the fire against obs.ss_redirect_aim (v + 25 a parallel to the line to the
+  next gem): mean difference 2.6 deg, sd 8.5 deg over 19 fires; the resultant speed in the game vs the solver's lam:
+  mean -1.7 u/s, sd 1.1 (the game loses a little to the floor). So the physics aim the worker fires along IS the
+  human technique, and the post-pickup window (40.15) is the human timing.
+* What the policy did differently: it had the same approvals (27-51 decisions a round) and declined them (use
+  logit at the -4 floor) before it had learned the follow-up (brake and steer into the gem at 16-19 u/s); its turns
+  still missed the gem 28 % of the time, and a miss at that speed costs more progress than a hit saves, so the
+  per-use advantage read negative and the head gave up. The human never misses and brakes after the kick.
+* Change (restart 21:45, from nav_latest 30200): USE_PRIOR_FLOOR -4 -> -1, so approved uses stay sampled at >= 27 %
+  (the head cannot switch them off while it learns the control after the kick); deterministic play still fires
+  nothing until the head learns a use is worth it. Approvals, aim and window unchanged (they match the demo).
+
+### 40.20 The raised floor: more fires, more falls (10-03 21:24-22:23, 30195 -> 30394)
+
+* 632 rounds by quarters: points 131.8 / 133.4 / 133.2 / 132.4 (was 142 at the -4 floor), falls 3.2-3.6 a round
+  (2.5); Super Speed fires 3.5-4.3 a round (1.1), of them turns 3.9-5.1 with hits 2.1-2.8 and misses 1.0-1.3 (68 %
+  hits); falls within 3 s of a fire 0.7-1.0 a round = about one fire in five; reward per decision in the 30 after a
+  fire 1.18-1.34 against 1.55 overall. Approvals 16-20 decisions a round.
+* So the head's refusal was right at this level of control: a fifth of the kicks end in a fall and a third of the
+  turns miss, where the operator's 20 fires a round had no fall and no miss. The demo's kicks were all big turns
+  (77-151 deg) with a resultant of 11-23 u/s (median 17); the prior approves any angle, so the policy also fires
+  gentle turns and runs where the resultant is 25-33 u/s along a long clear line, and the floor check follows only
+  the exact line (no lateral room). Worker diagnostics added (restart 22:27): the resultant speed 3 decisions after
+  each fire bucketed A < 18, B 18-24, C > 24 u/s (`ksA/B/C`) and the falls within 3 s per bucket (`kfA/B/C`), to see
+  whether the falls come from the fast kicks.
+
+### 40.21 Watching at 1x; the reversal brake the solver could not produce (10-03 22:40)
+
+* Operator watching the navigator at 1x (real_run with NAV_SAMPLE=1, new: the policy sampled as in training so the
+  prior's uses fire; deterministic play has learned none): a Super Speed run through a line of two gems picks up a
+  second Super Speed on the way, the momentum carries the marble far past the last gem, and the model never fires
+  the second one backward to turn round, which is the right play.
+* Cause: ss_redirect_aim solves v + 25 a parallel to the line to the waypoint; with the marble moving AWAY faster
+  than 25 u/s there is no solution (disc < 0), it returned None, the flag stayed off, the use logit sat at -9, and
+  the reversal was never sampled, so it could never be learned. Fix: in that case the aim is the pure brake
+  (straight against the velocity, taking 25 u/s off on the spot; the marble keeps rolling away at |v| - 25) and
+  the approval checks the floor along the OLD heading for the remaining stop. Tests: 28 u/s away -> aim backward,
+  resultant 3 u/s away; 20 u/s away -> 5 u/s toward the gem; 30 u/s at 90 deg -> 5 u/s along the old heading.
+  Physics only, no map data. Viewer restarted with it.
+
+### 40.22 Only the kicks that can be braked (10-03 23:00; operator)
+
+* Operator: the model uses the Super Speed as a short burst that cheeses the progress reward and then overshoots;
+  the strategy is to go in fast KNOWING the kick can turn the velocity onto the next gem, and one model must make
+  that choice. The channels exist (held type, the approach flag [27], the physics aim); what is missing is that
+  the kicks the policy was allowed to take failed (a fifth fell, a third missed), so the fast approach could not
+  earn credit.
+* obs.py SS_LAM_MAX 24: the run/turn approval also requires the solver's resolved speed <= 24 u/s (the demo's
+  kicks: 12-25 by the solver, ~1.7 less in the game, median 17; all big turns). Refused now: straight runs and gentle
+  turns (8 u/s aligned resolves to 32, from rest 28). Kept: 90 deg turns at 8-12 u/s (24, 22), the demo's
+  100-150 deg turns (13-19), the reversal brake (40.21). Floor checks unchanged.
+* Training restarted ~23:00 from nav_latest (30420) with the floor at -1 (approved kicks sampled >= 27 %). Watch:
+  turn hit rate (demo 100 %), falls within 3 s of a fire (demo 0), kick buckets ksA/B (no ksC expected), pickup
+  speed with the approach flag on vs off.
+
+### 40.23 Overnight loop picked up; the first ten minutes of the cap (10-03 23:10; the loop model)
+
+* Trainer from 22:56 (update 30420, log train_nav_20261003_225620.log), 8 games, 15-16 s an update, no traceback.
+* First 113 rounds (22:57-23:06) in two halves: points 139.2 / 136.6 (40.20 before the cap: 132-133), falls 2.2 / 2.5
+  (3.2-3.6); approved Super Speed decisions 8.8 / 9.4 a round (16-20), fires 2.2 / 2.1 (3.5-4.3), turns 1.9 / 2.0, runs
+  0.56 / 0.61; turns that took the waypoint 63 / 60 % (68 %); falls within 3 s of a fire 0.26 / 0.20 (0.7-1.0); kicks
+  by the speed 3 decisions after the fire ksA 0.67 / 0.39, ksB 0.79 / 0.80, ksC 0.75 / 0.93 with falls kfA 0.02 / 0,
+  kfB 0.18 / 0.11, kfC 0.07 / 0.09; pickup speed with the approach flag on 8.8, held with it off 7.3-7.4, none 8.1 u/s;
+  reward per decision in the 30 after a fire 1.21 / 1.30 against 1.64 / 1.60 overall.
+* ksC is not rare (about 40 % of the fires), and the code says why: in nav/obs.py the cap sits only in the first
+  approval test (`ok = lip > need and v_after <= SS_LAM_MAX`); the override that follows (`if not ok` and the next
+  waypoint lies within 30 deg of the line beyond this one with floor to it + 6 u: `ok = True`) has no cap. So straight
+  runs and gentle turns toward two gems on one line are still approved at 25-32 u/s, the "burst" 40.22 meant to refuse.
+  Those kicks fall rarely (kfC about one C kick in ten). Not changed (the approvals are the operator's); for the
+  morning: put `v_after <= SS_LAM_MAX` on the override too, or keep it if the two-gem runs are wanted.
+
+### 40.24 Tonight's goal: one round over 175; the best navigator measured, a stuck-breaker bug (10-03 23:10-23:40)
+
+* Operator 23:10: "your goal overnight is to get a single round over 175 points. you are approved to make any edits you
+  need to in order to accomplish the goal." The standing rules stay (no map hacks, the game's points as the only reward,
+  nothing tuned on Horizon / Archipelago, demos are targets and never templates).
+* nav/real_run.py NAV_NO_USE=1 (eval only): the use bit is ignored, so checkpoints from before the use head play as the
+  navigator alone (their fresh head sits at the prior's threshold). 28897 migrated to V9 (models/nav/nav_v9_28897.pth;
+  tour-run endpoints 28954 / 29700 / 29794 likewise, nav_v9_tour_<u>.pth).
+* 28897, navigator alone, 8 rounds in the CPU gate: 155 154 160 159 / 168 156 164 163 = 159.9 (hybrid harness 10-02:
+  160.1), falls 1.25, stuck-breaks 1.6 a round; tour end 29794: 157 164 158 156 = 158.8 (4 rounds); 28897 with
+  NAV_STUCK_S 1.5: 161 165 149 162 = 159.2 (4 rounds, 4-5 stuck-breaks a round). Per round 127 pickups, 96 of them after
+  1-2 s legs (131 s); falls cost ~5 s in long gaps; the game with 0-1 falls a round scored 168 / 156 / 164 / 163, the one
+  with 1-4 falls 155 / 154 / 160 / 159: about 3 points a fall. All 20 falls in 16 rounds were roll-offs off a hole's lip
+  near the target gem (0.5-10 u), the jump key pressed only after the marble had left the floor.
+* Stuck-breaker bug (real_run): all 35 triggers in those 16 rounds had a gem picked up inside the 3 s window: the marble
+  had looped through a gem cluster (the four centre gems sit on a 4 u square) and come back within 1 u of where it was
+  3 s before, so "moved less than 1 u in 3 s" fired; the breaker then reset the memory and sampled 24 decisions along a
+  path waypoint, next to the centre holes (4 of the 20 falls came within 40 decisions after one). Fix: NAV_STUCK_PICKUP
+  (default on): a pickup inside the window is progress, the breaker does not fire. Map-independent; real_run only
+  (hybrid.py has the same test, unchanged so far).
+* Plan for the goal: the strongest navigator (28897, mean ~160, sd ~5) cannot be lifted 15 points in a night, so it
+  plays many deterministic rounds beside the trainer (logs/nav/gate_scripts/many_rounds.sh: batches of two CPU games x
+  4 rounds, ~3 rounds a minute, stops at the first round of 176+, prints every round of 170+; output
+  logs/nav/many_rounds_28897.out; batch 1 from 23:19 with the old breaker, batches 2+ with the fix), while anything that
+  raises its mean is measured on the same stream. Training continues as set up (40.22) and its snapshots are gated
+  with uses allowed.
+
+### 40.25 The goal is for the powerup model; demo vs the approval; training stopped (10-03 23:31-23:41; operator)
+
+* Operator 23:31: the 175 must come from the model being trained, powerups live, not the navigator alone. The 28897
+  runner was stopped after three batches (8 rounds each): 159.6 with the old stuck-breaker, then 162.1 and 162.0 with
+  the fix (best 170, no stuck-breaker trigger at all); not a goal round. 23:32: nine game windows bogged the PC down;
+  back to the trainer's 8, no extra windows while the operator uses the PC.
+* The approval replayed over the operator's demo (scratch demo_approval.py: ObsBuilder + use_prior every 64 ms, the
+  waypoint = the gem taken next): of his 20 Super Speed fires, 13 had an approved decision in the 0.26 s before them;
+  the refused ones were the floor check (the floor along the exact line ends 4-4.5 u ahead, yet the kick worked) and
+  twice the 24 u/s cap. Over the round, 36 of the 445 decisions with a Super Speed held were approved (the model sees
+  ~9 a round). So the rule admits most of the human's kicks; what differs is the supply (he took a Super Speed about
+  20 times a round, mostly the same item at every respawn; the model holds one unused for long stretches and never
+  detours for a fresh one) and the kicks' outcome (the model's turns reach the gem 56-63 % of the time).
+* Started, then reverted when training stopped: re-aiming at the fire. The aim is solved when the use is sent and the
+  kick fires two decisions later; the bridge latch could take a re-solved yaw on the decision before the fire
+  (mlAgent.cs: update $MLAgent::PowYaw while the hold runs; the worker sends ss_aim(vec) each decision while a fire is
+  pending). Proposal, not in the code.
+* Operator 23:41: stop training. Stopped (loop, trainer, games); endpoint models/nav/nav_p4f_stop_30575.pth
+  (= nav_latest). The cap run (22:56-23:40, 488 rounds): 138.8 a round (best 156), falls 2.17, Super Speed fires 2.12,
+  turns 1.76 with 56 % reaching the gem, falls within 3 s of a fire 0.26, kicks by resolved speed A 0.61 / B 0.74 /
+  C 0.76 a round (falls 0.02 / 0.17 / 0.07), pickup speed with the approach flag on 8.73, off 7.35, none 8.09 u/s,
+  reward per decision after a fire 1.11 against 1.62 overall.
+* Code left from tonight: nav/real_run.py NAV_NO_USE (eval only) and NAV_STUCK_PICKUP (default on; the stuck-breaker
+  ignores windows with a pickup); logs/nav/gate_scripts/many_rounds.sh; models/nav/nav_v9_28897.pth and
+  nav_v9_tour_{28954,29700,29794}.pth (V9 migrations). Nothing else changed (the cap override of 40.23 is as it was).

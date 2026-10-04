@@ -1,0 +1,8 @@
+[env:9691] waiting for the game
+[env:9691] game connected (1)
+connected: KingOfTheMarble_Hunt, round 180 s
+mission items: super_jump x3, super_speed x3, blast x2, mega x1
+floor, full throttle 2.5 s: speed 17.8 u/s, spin 98 rad/s (speed/spin = 0.183, R 0.19); spin by 0.5 s: 29 62 82 94 98
+air, same direction: spin at takeoff 19 [-18.7, 0.0, 0.0] -> after 0.9 s in the air 58 [-58.3, 0.0, 0.0]; z [21.61, 22.15, 21.96, 21.03, 21.14]
+air, opposite direction: spin at takeoff 19 [-18.7, 0.0, 0.0] -> after 0.9 s in the air 30 [29.9, -1.4, 0.0]; z [21.61, 22.15, 21.96, 21.03, 21.14]
+done

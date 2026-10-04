@@ -1,0 +1,2 @@
+powheli3: python 39044 game 8828 -> C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\logs\learned_nav\powheli3_Promontory_Hunt.txt
+powheli3: plain drop 3 u: fastest fall -7.68 u/s, restitution 0.47

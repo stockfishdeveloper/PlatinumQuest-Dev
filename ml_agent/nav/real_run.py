@@ -29,10 +29,10 @@ from datetime import datetime
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from terrain_obs import TerrainMap                                   # noqa: E402
-from nav.protocol import RAW_GEMS, RAW_VEL                           # noqa: E402
+from nav.protocol import RAW_GEMS, RAW_VEL, RAW_POW_HELD, RAW_POW_BLAST, RAW_POW_SPECIAL, BLAST_REQUIRED   # noqa: E402
 from nav.env import HuntEnv, OBS_MS                                  # noqa: E402
 from nav.terrain import TerrainGrid                                  # noqa: E402
-from nav.obs import ObsBuilder, NAV_OBS_VERSION, VEC_DIM             # noqa: E402
+from nav.obs import ObsBuilder, NAV_OBS_VERSION, VEC_DIM, ss_aim     # noqa: E402
 from nav.terrain import CROP_SHAPE                                   # noqa: E402
 from nav.model import NavActorCritic, action_to_joystick             # noqa: E402
 
@@ -68,6 +68,16 @@ SMOOTH = float(os.environ.get('NAV_SMOOTH', '1.0'))   # EMA on the commanded DIR
 VIEW_SUBSTEPS = int(os.environ.get('NAV_VIEW_SUBSTEPS', '1'))   # WATCH only: split each 64 ms
                                # decision into this many sim slices so motion renders smoothly.
                                # 1 = exactly as trained (jagged, 15.6 Hz). 4 = ~62 Hz, viewing only.
+SAMPLE = os.environ.get('NAV_SAMPLE', '0') == '1'  # 2026-10-03: sample the policy as in training (uses fire at the prior's
+                                                   # rate) instead of the deterministic mean; for watching powerup use
+STUCK_PICKUP = os.environ.get('NAV_STUCK_PICKUP', '1') == '1'   # 2026-10-03 23:40 (log 40.24): a pickup inside the stuck
+                                                   # window is progress, so the stuck-breaker does not fire. Without it, all 35
+                                                   # triggers in 16 deterministic KOTM rounds were false: the marble looped through
+                                                   # a gem cluster and came back within STUCK_U of where it was STUCK_S earlier; the
+                                                   # breaker then reset the memory and sampled 24 decisions (4 of 20 falls followed).
+NO_USE = os.environ.get('NAV_NO_USE', '0') == '1'  # 2026-10-03 23:30 (log 40.24): ignore the use bit (no powerup, no blast), to
+                                                   # evaluate checkpoints from before the use head (its fresh init sits at the
+                                                   # prior's threshold and would fire at random) as the navigator alone
 WATCH = os.environ.get('NAV_WATCH', '0') == '1'    # real-time viewing. Lockstep + FIXEDSTEP mean the
                                # sim advances as fast as we reply, and set_speed also sends
                                # RENDEREVERY 100 -- so NAV_SPEED alone does NOT give real time.
@@ -367,6 +377,7 @@ def main():
         mfield_cache = None; mfield_key = None       # GEO_ORDER: Dijkstra field sourced at the marble
         gap_goal = None                  # where to head while no gem is on the map (held per gap)
         pos_hist = []; stuck_until = -1; n_stuck = 0     # stuck-breaker state (see STUCK_S)
+        last_pick_dec = -10**9                           # decision of the last pickup (STUCK_PICKUP)
         # PRE-SPIN (2026-09-26): mlAgent.cs now plays the Ready/Set countdown. The round clock shows the full
         # round length until GO and the marble cannot move (Start mode), so countdown decisions are kept out of
         # the stuck-breaker, the per-round minutes/speed and the trace; the policy's input spins the marble up.
@@ -374,15 +385,16 @@ def main():
         n_countdown = 0
         points = 0.0
         travelled = 0.0
+        round_uses = {}                      # use-bit decisions by held type (0 = blast meter), log 40
         last = np.array(env.msg.obs[:3], dtype=np.float64)
         t_start = env.time_left_s()          # recorded only; see the note on mins below
         next_tick = [time.perf_counter()]
 
-        def paced_step(js):
+        def paced_step(js, **kw):
             """One sim slice, paced to wall clock. Pacing must be PER SLICE: sleeping once per
             decision and then firing all VIEW_SUBSTEPS slices back to back renders them as a
             burst followed by a stall, which looks exactly as jagged as no smoothing at all."""
-            out = env.step(js)
+            out = env.step(js, **kw)
             if WATCH:
                 next_tick[0] += 0.064 / max(VIEW_SUBSTEPS, 1)
                 slack = next_tick[0] - time.perf_counter()
@@ -478,7 +490,8 @@ def main():
                 pos_hist = [(mx, my)]          # the stuck window starts at GO
             n_stuck_win = int(round(STUCK_S / 0.064))
             if (STUCK_S > 0 and not in_countdown and decisions >= stuck_until and len(pos_hist) > n_stuck_win
-                    and math.hypot(mx - pos_hist[-1 - n_stuck_win][0], my - pos_hist[-1 - n_stuck_win][1]) < STUCK_U):
+                    and math.hypot(mx - pos_hist[-1 - n_stuck_win][0], my - pos_hist[-1 - n_stuck_win][1]) < STUCK_U
+                    and not (STUCK_PICKUP and decisions - last_pick_dec <= n_stuck_win)):
                 obs_b.reset(); h = model.initial_state(1, dev)
                 stuck_until = decisions + STUCK_DETOUR; n_stuck += 1; held_goal = None
                 print(f'stuck-breaker #{n_stuck} at ({mx:.1f},{my:.1f}) decision {decisions}: state reset, path waypoint + sampling for {STUCK_DETOUR} decisions')
@@ -512,7 +525,7 @@ def main():
                     marked = None
             crop, vec, on_floor = obs_b.build(env.msg.obs, goal, None if NO_NEXT else ngoal)
             out = model.act(torch.as_tensor(crop, device=dev).unsqueeze(0),
-                            torch.as_tensor(vec, device=dev).unsqueeze(0), h, deterministic=not detour)
+                            torch.as_tensor(vec, device=dev).unsqueeze(0), h, deterministic=not (detour or SAMPLE))
             a = out['action_game'][0].tolist(); vel = env.msg.obs[RAW_VEL]
             if SMOOTH < 1.0:
                 n = math.hypot(a[0], a[1])
@@ -529,7 +542,15 @@ def main():
             if FORCE_THROTTLE:
                 a[2] = 1.0                        # direction is the policy's, strength is pegged
             js_cmd = action_to_joystick(a[0], a[1], a[2], a[3], a[4], float(vel[0]), float(vel[1]))
-            msg, info = paced_step(js_cmd)
+            kw = {}
+            if len(a) > 5 and a[5] > 0.5 and not NO_USE:      # the use bit (log 40), as vec_worker turns it into words
+                ob_ = env.msg.obs; held_ = int(ob_[RAW_POW_HELD]) if len(ob_) > RAW_POW_HELD else 0
+                if held_ > 0:
+                    kw = {'use_pow': 1, 'pow_yaw': (math.atan2(*ss_aim(vec)) if held_ == 2 else None)}   # V9 physics aim
+                elif float(ob_[RAW_POW_BLAST]) >= BLAST_REQUIRED or float(ob_[RAW_POW_SPECIAL]) > 0.5:
+                    kw = {'use_blast': 1}
+                round_uses[held_] = round_uses.get(held_, 0) + 1
+            msg, info = paced_step(js_cmd, **kw)
             for _ in range(VIEW_SUBSTEPS - 1):     # same action across the remaining slices
                 msg, inf2 = paced_step(js_cmd)
                 info['gem_delta'] += inf2['gem_delta']
@@ -558,6 +579,7 @@ def main():
                         f'{info["gem_delta"]:.0f},{int(info["fell"])},'
                         f'{js[0]:.2f},{js[1]:.2f},{js[2]:.2f},{js[3]:.2f},{js[4]}\n')
             if info['gem_delta'] > 0:
+                last_pick_dec = decisions         # progress: the stuck window restarts here (STUCK_PICKUP)
                 gems += 1                         # one pickup...
                 points += float(info['gem_delta'])   # ...worth this many points (red 1, yellow more)
                 target = None                     # collected: pick the next one
@@ -597,7 +619,7 @@ def main():
                'blind_pct': round(100.0 * blind / max(decisions, 1), 1), 'stuck_breaks': n_stuck,
                'snapped_pct': round(100.0 * n_snapped / max(decisions, 1), 1),
                'pathed_pct': round(100.0 * n_pathed / max(decisions, 1), 1),
-               'smooth': SMOOTH}
+               'smooth': SMOOTH, 'pow_uses': {str(k): v for k, v in sorted(round_uses.items())}}
         rounds.append(row)
         print(f'  round {r+1}: {row}')
         if r + 1 < ROUNDS:

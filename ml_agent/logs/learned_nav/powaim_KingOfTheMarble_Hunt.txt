@@ -1,0 +1,10 @@
+[env:9676] waiting for the game
+[env:9676] game connected (1)
+connected: KingOfTheMarble_Hunt, round 180 s
+aim 1 dec at yaw 1.5708: client 1.5708 server 1.5708 -> boost 24.1 u/s at world angle -0 deg
+aim 2 dec at yaw 1.5708: client 1.5708 server 1.5708 -> boost 24.1 u/s at world angle -0 deg
+aim 3 dec at yaw 1.5708: client 1.5708 server 1.5708 -> boost 24.1 u/s at world angle -0 deg
+aim 4 dec at yaw 1.5708: client 1.5708 server 1.5708 -> boost 24.1 u/s at world angle -0 deg
+aim 6 dec at yaw 1.5708: client 1.5708 server 1.5708 -> boost 24.1 u/s at world angle -0 deg
+mega use held 2 dec: [('mega', 0, 0.0), ('mega', 0, 0.0), ('mega', 0, 0.0), ('mega', 0, 0.0), ('mega', 0, 0.0), ('mega', 0, 0.0), ('mega', 0, 0.0), ('mega', 0, 0.0), ('mega', 0, 0.0), ('mega', 0, 0.0), ('mega', 0, 0.0), ('mega', 0, 0.0)]; radius 0.18975
+done

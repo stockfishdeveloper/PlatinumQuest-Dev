@@ -1,0 +1,8 @@
+[env:9952] waiting for the game
+[env:9952] game connected (1)
+connected: KingOfTheMarble_Hunt, round 180 s
+mission items: super_jump x3, super_speed x3, blast x2, mega x1
+no input: speed by decision 25.0 22.6 19.9 17.5 16.4 15.3 14.2 13.1 11.6 10.8; decel 7.7 u/s^2 (22->10 u/s); travelled 28.5 u in 1.8 s; z end 21.52
+full brake: speed by decision 25.0 22.6 19.9 17.2 14.5 11.7 9.0 6.3 3.5 0.8; decel 14.2 u/s^2 (22->10 u/s); travelled 22.5 u in 1.8 s; z end 20.84
+hold forward: speed by decision 25.0 22.6 19.9 18.9 19.3 19.6 19.9 19.2 18.6 18.2; decel 2.9 u/s^2 (22->10 u/s); travelled 34.4 u in 1.8 s; z end 23.01
+done

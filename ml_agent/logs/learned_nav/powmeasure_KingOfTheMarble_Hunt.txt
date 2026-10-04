@@ -1,0 +1,21 @@
+[env:9673] waiting for the game
+[env:9673] game connected (1)
+connected: KingOfTheMarble_Hunt, round 180 s
+super speed: aim 0 dec, yaw    0 deg -> boost 25.0 u/s at world angle 90 deg (atan2(vy, vx)) on decision 2
+  pickup of super_speed failed: held none
+super speed: aim 0 dec, yaw  180 deg -> boost 25.0 u/s at world angle 90 deg (atan2(vy, vx)) on decision 2
+  pickup of super_speed failed: held none
+super speed: aim 2 dec, yaw    0 deg -> boost 25.0 u/s at world angle 90 deg (atan2(vy, vx)) on decision 2
+  pickup of super_speed failed: held none
+super speed: aim 2 dec, yaw  180 deg -> boost 25.0 u/s at world angle 90 deg (atan2(vy, vx)) on decision 2
+  pickup of super_speed failed: held none
+normal: {'radius': '0.18975', 'mega': '0', 'camyaw': '0', 'blast': '1', 'special': '0'}
+normal: speed after 1 s 10.97, 2 s 17.31 u/s; jump apex +0.00 u
+mega used: block {'held': 'none', 'blast': 1.0, 'special': 0, 'mega': 0, 'mega_left': 0.0, 'items': [('super_jump', np.float64(-4.2), np.float64(1.0), np.float64(11.9), np.float64(0.0)), ('super_speed', np.float64(1.8), np.float64(-5.0), np.float64(11.9), np.float64(0.0)), ('mega', np.float64(7.8), np.float64(7.0), np.float64(12.2), np.float64(3.9))]}; radius {'radius': '0.18975', 'mega': '0', 'camyaw': '0', 'blast': '1', 'special': '0'}; vz on use [-11.52, -12.8, -14.08, -15.36, -16.64]
+mega: speed after 1 s 10.97, 2 s 17.31 u/s; jump apex +0.00 u; mega_left now 0.0
+mega ended after ~0.0 s more; radius back to 0.18975
+jump then mega after 1 dec: apex +0.00 u (plain jump 0.00, mega jump 0.00); vz [-12.8, -14.08, -15.36, -16.64, -17.92, -19.2]
+jump then mega after 2 dec: apex +0.00 u (plain jump 0.00, mega jump 0.00); vz [-14.08, -15.36, -16.64, -17.92, -19.2, -20.48]
+jump then mega after 3 dec: apex +0.00 u (plain jump 0.00, mega jump 0.00); vz [-15.36, -16.64, -17.92, -19.2, -20.48, -21.76]
+jump then mega after 4 dec: apex +0.00 u (plain jump 0.00, mega jump 0.00); vz [-16.64, -17.92, -19.2, -20.48, -21.76, -23.04]
+done

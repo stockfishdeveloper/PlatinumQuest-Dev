@@ -1,0 +1,7 @@
+[env:9687] waiting for the game
+[env:9687] game connected (1)
+connected: Promontory_Hunt, round 300 s
+mission items: super_jump x12, super_speed x9, blast x6, helicopter x12, mega x10
+plain jump: apex +0.88 u, hang 3.46 s, vz [6.1, 4.8, -3.0, -4.3, -5.5, 6.9]; heli left 0.0
+plain air control: vx after 0.5 / 1.0 / 1.5 s of throttle 3.7 / 10.4 / 11.5; in the air 0.26 s
+plain drop 3 u: fastest fall -7.68 u/s, restitution 0.47

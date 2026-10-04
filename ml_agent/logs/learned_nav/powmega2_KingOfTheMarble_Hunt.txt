@@ -1,0 +1,15 @@
+[env:9679] waiting for the game
+[env:9679] game connected (1)
+connected: KingOfTheMarble_Hunt, round 180 s
+super speed from rest: v0 [0. 0. 0.] z0 20.84 -> dv 24.1 u/s at world angle -0 deg; v after 24.1,-0.0,0.0
+super speed at 10 u/s along +x: v0 [ 6.3  0.  -4.3] z0 20.36 -> dv 25.0 u/s at world angle -0 deg; v after 31.3,-0.0,-8.2
+super speed at 10 u/s along -x: v0 [-5.1  0.   0. ] z0 20.84 -> dv 0.2 u/s at world angle 0 deg; v after -4.9,0.0,-0.6
+super speed in the air (after a jump): v0 [0.  0.  6.1] z0 21.27 -> dv 25.0 u/s at world angle -0 deg; v after 25.0,-0.0,2.3
+normal accel: speed by decision 0.0 1.8 4.6 7.3 9.7 11.7 13.4 14.8 15.9 16.8 17.6 18.2
+normal groove at 6.0 u/s: z min -15.67 (floor+rad 18.66), z max 18.66, x end -27.4, speed end 7.0, vz peak -8.52
+normal groove at 10.0 u/s: z min -13.54 (floor+rad 19.34), z max 19.34, x end -31.0, speed end 5.2, vz peak -7.54
+mega accel: speed by decision 0.0 2.0 4.7 6.8 8.6 10.1 11.3 12.3 13.1 13.8 14.3 14.8
+mega groove at 6.0 u/s: z min -8.11 (floor+rad 20.54), z max 20.54, x end -24.4, speed end 9.0, vz peak -4.66
+mega groove at 10.0 u/s: z min 10.60 (floor+rad 20.84), z max 20.84, x end -7.5, speed end 17.6, vz peak 0.00
+mega left 0.0
+done

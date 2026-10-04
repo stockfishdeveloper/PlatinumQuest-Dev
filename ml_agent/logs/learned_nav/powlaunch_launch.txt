@@ -1,0 +1,2 @@
+powlaunch: python 35148 game 516 -> C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\logs\learned_nav\powlaunch_Promontory_Hunt.txt
+powlaunch: done

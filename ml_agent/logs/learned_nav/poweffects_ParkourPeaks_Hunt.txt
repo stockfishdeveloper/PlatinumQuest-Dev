@@ -1,0 +1,8 @@
+[env:9681] waiting for the game
+[env:9681] game connected (1)
+connected: ParkourPeaks_Hunt, round 240 s
+mission items: super_speed x8, super_bounce x7, shock_absorber x4
+plain: drop restitution 0.44 (vz -10.24 -> 4.537); jump apex +1.46 u, hang 2.43 s; air vx after 1.5 s of throttle 14.4; effects left bounce 0.0 shock 0.0 heli 0.0
+  pickup of super_bounce failed: held shock_absorber
+  pickup of shock_absorber failed: held super_bounce
+done

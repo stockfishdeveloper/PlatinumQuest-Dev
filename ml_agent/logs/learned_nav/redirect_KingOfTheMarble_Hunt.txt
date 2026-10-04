@@ -1,0 +1,8 @@
+[env:9951] waiting for the game
+[env:9951] game connected (1)
+connected: KingOfTheMarble_Hunt, round 180 s
+mission items: super_jump x3, super_speed x3, blast x2, mega x1
+south, next east: aim (0.95, 0.32) yaw 1.245, predicted 23.7 u/s at 0 deg; speed/angle by decision: 7.4@-90 22.8@3 22.3@3 21.3@-4 10.7@-175 10.7@-175; pos end (-32.3, 12.9, 20.7)
+south, next west: aim (-0.95, 0.32) yaw -1.245, predicted 23.7 u/s at 180 deg; speed/angle by decision: 7.4@-90 22.8@177 16.8@178 16.8@178 14.8@179 13.9@180; pos end (-47.3, 13.4, 22.6)
+south, straight run: aim (0.00, -1.00) yaw 3.142, predicted 33.0 u/s at -90 deg; speed/angle by decision: 7.4@-90 30.6@-90 28.8@-90 27.0@-90 25.2@-90 19.9@-90; pos end (-36.0, -3.5, 21.9)
+done

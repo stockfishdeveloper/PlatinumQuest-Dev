@@ -1,0 +1,2 @@
+poweffects3: python 5364 game 32240 -> C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\logs\learned_nav\poweffects3_ParkourPeaks_Hunt.txt
+poweffects3: done

@@ -1,0 +1,30 @@
+[21:17:30] [env:9871] waiting for the game
+[21:17:34] [env:9871] game connected (1)
+[21:17:37] connected: KingOfTheMarble_Hunt, round 180 s
+[21:17:37] hybrid: navigator update 28895, memory at handback "current", map KingOfTheMarble_Hunt, shortcuts 1, rescue 1, route 0, guard 0
+[21:17:45]   t 19 s: points 19, floor 15, floating 0, falls nav 0 planner 0, groups 3, owner nav
+[21:17:57]   t 38 s: points 36, floor 29, floating 0, falls nav 0 planner 0, groups 7, owner nav
+[21:18:14]   t 58 s: points 54, floor 44, floating 0, falls nav 0 planner 0, groups 11, owner nav
+[21:20:00]   t 77 s: points 69, floor 57, floating 0, falls nav 0 planner 0, groups 14, owner nav
+[21:20:57]   t 96 s: points 87, floor 71, floating 0, falls nav 0 planner 0, groups 17, owner nav
+[21:21:23]   t 115 s: points 105, floor 87, floating 0, falls nav 0 planner 0, groups 21, owner nav
+[21:22:12]   t 134 s: points 123, floor 101, floating 0, falls nav 0 planner 0, groups 25, owner nav
+[21:22:32]   t 154 s: points 139, floor 114, floating 0, falls nav 0 planner 0, groups 28, owner nav
+[21:22:53]   t 173 s: points 155, floor 127, floating 0, falls nav 0 planner 0, groups 31, owner nav
+[21:23:02] round ended / reconnected: waiting for the next round
+[21:23:02] [env:9871] round over (time left 180s of 180s); waiting for the next round
+[21:23:02] [env:9871] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[21:23:02] round 1: points 163, gems floor 133 floating 0, falls nav 0 planner 0 (after handback 0), handovers 0, groups 33 [4.67, 5.38, 5.12, 4.93, 5.7, 5.18, 4.67, 6.4, 5.7, 6.46, 3.14, 5.44, 3.26, 4.93, 9.79, 4.86, 5.63, 5.44, 5.12, 3.39, 5.76, 4.8, 7.1, 4.86, 5.38, 4.99, 5.76, 6.27, 6.46, 6.72, 5.12, 4.48, 4.99]
+[21:23:23]   t 19 s: points 15, floor 11, floating 0, falls nav 0 planner 0, groups 2, owner nav
+[21:23:43]   t 38 s: points 31, floor 24, floating 0, falls nav 0 planner 0, groups 6, owner nav
+[21:24:29]   t 58 s: points 47, floor 37, floating 0, falls nav 0 planner 1, groups 9, owner nav
+[21:24:48]   t 77 s: points 66, floor 51, floating 0, falls nav 0 planner 1, groups 12, owner nav
+[21:25:09]   t 96 s: points 83, floor 64, floating 0, falls nav 0 planner 1, groups 16, owner nav
+[21:25:29]   t 115 s: points 100, floor 78, floating 0, falls nav 0 planner 1, groups 19, owner nav
+[21:26:36]   t 134 s: points 119, floor 92, floating 0, falls nav 0 planner 1, groups 23, owner nav
+[21:26:52]   t 154 s: points 133, floor 103, floating 0, falls nav 0 planner 1, groups 25, owner nav
+[21:27:04]   t 173 s: points 149, floor 116, floating 0, falls nav 0 planner 1, groups 29, owner nav
+[21:27:06] round ended / reconnected: waiting for the next round
+[21:27:06] [env:9871] round over (time left 180s of 180s); waiting for the next round
+[21:27:06] [env:9871] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[21:27:06] round 2: points 154, gems floor 120 floating 0, falls nav 0 planner 1 (after handback 0), handovers 0, groups 30 [4.61, 8.83, 6.53, 5.5, 5.63, 5.25, 6.4, 7.42, 4.29, 6.59, 4.99, 7.49, 4.48, 6.14, 4.86, 5.82, 6.53, 4.99, 6.53, 4.67, 4.93, 4.99, 6.91, 6.91, 5.82, 6.91, 5.7, 6.66, 5.38, 5.44]

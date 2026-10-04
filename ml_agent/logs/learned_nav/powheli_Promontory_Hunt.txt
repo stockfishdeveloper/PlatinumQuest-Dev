@@ -1,0 +1,3 @@
+no geometry for Promontory_Hunt ([Errno 2] No such file or directory: 'C:\\Users\\doug\\OneDrive\\Documents\\GitHub\\PlatinumQuest-Dev\\ml_agent\\datasets\\learned_nav\\geometry\\Promontory_Hunt.npz'); using mission item heights
+[env:9684] waiting for the game
+[env:9684] game connected (1)

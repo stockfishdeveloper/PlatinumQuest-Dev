@@ -8,8 +8,8 @@
 #   .\start_training.ps1
 #   .\start_training.ps1 -Missions "FlatIslands_Hunt,KingOfTheMarble_Hunt" -Split "4,4"
 param(
-    [string]$Missions = "KingOfTheMarble_Hunt,FlatIslands_Hunt",   # 2026-09-22: FlatGem dropped (saturated at 93-95 % of human, unchanged by every change today)
-    [string]$Split = "7,1",        # 2026-09-22 20:40: 7 KOTM / 1 Islands (HANDOFF 28.13). Islands stays: only map with dense jump edges.
+    [string]$Missions = "KingOfTheMarble_Hunt",   # 2026-10-01 operator: all 8 on KOTM, no Islands ("everything should be for kotm now"). 2026-09-22: FlatGem dropped (saturated at 93-95 % of human, unchanged by every change today)
+    [string]$Split = "8",          # was 7,1 until 2026-10-01. 2026-09-22 20:40: 7 KOTM / 1 Islands (HANDOFF 28.13). Islands stays: only map with dense jump edges.
                                    # (superseded) 4,3,1 -> 2,5,1 at the operator request: KOTM is the
                                    # scored map and the behaviours HANDOFF section 28 targets (edge-cell
                                    # gems, 4 u ring pairs, the centre block entry) only occur there.

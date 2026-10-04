@@ -1,0 +1,2 @@
+powbridge2: python 15332 game 27868 -> C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\logs\learned_nav\powbridge2_KingOfTheMarble_Hunt.txt
+powbridge2: done

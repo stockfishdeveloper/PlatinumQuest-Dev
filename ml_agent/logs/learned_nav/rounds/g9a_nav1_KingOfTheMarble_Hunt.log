@@ -1,0 +1,9 @@
+[00:32:54] [env:9902] waiting for the game
+[00:33:00] [env:9902] game connected (1)
+[00:33:03] connected: KingOfTheMarble_Hunt, round 180 s
+[00:33:03] hybrid: navigator update 28895, memory at handback "current", map KingOfTheMarble_Hunt, shortcuts 0, rescue 0, route 0, guard 0
+[00:33:22]   t 19 s: points 19, floor 15, floating 0, falls nav 0 planner 0, groups 3, owner nav
+[00:39:09]   t 38 s: points 29, floor 23, floating 0, falls nav 1 planner 0, groups 5, owner nav
+[00:42:15]   t 58 s: points 33, floor 27, floating 0, falls nav 4 planner 0, groups 6, owner nav
+[00:47:01] [env:9902] send failed ([WinError 10054] An existing connection was forcibly closed by the remote host); waiting for the game to come back
+[00:47:01] [env:9902] waiting for the game

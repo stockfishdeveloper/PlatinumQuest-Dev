@@ -1,0 +1,14 @@
+Traceback (most recent call last):
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\runpy.py", line 197, in _run_module_as_main
+    return _run_code(code, main_globals, None,
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\runpy.py", line 87, in _run_code
+    exec(code, run_globals)
+  File "C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\nav\learned_nav\powdrill.py", line 535, in <module>
+    main()
+  File "C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\nav\learned_nav\powdrill.py", line 506, in main
+    d = Drill(a.port, a.map, log)
+  File "C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\nav\learned_nav\powdrill.py", line 84, in __init__
+    self.s = Session(port, map_name, self.g, log=log)
+  File "C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\nav\learned_nav\session.py", line 35, in __init__
+    self.zmin = float(np.nanmin(geometry.heights))
+AttributeError: 'NoneType' object has no attribute 'heights'

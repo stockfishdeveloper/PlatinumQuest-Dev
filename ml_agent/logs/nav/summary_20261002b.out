@@ -1,0 +1,215 @@
+upd 28907 trainer=1 games=8 KOTM all: n=40 mean=98.5 max=120 min=65 falls/rd=7.5 | last 14: n=14 mean=103.6 max=113 min=76 falls/rd=6.9 | last 50: n=40 mean=98.5 max=120 min=65 falls/rd=7.5 | last time 21:55:36
+upd 28966 trainer=1 games=8 KOTM all: n=224 mean=128.5 max=154 min=65 falls/rd=3.6 | last 14: n=14 mean=135.9 max=149 min=126 falls/rd=3.2 | last 50: n=50 mean=136.1 max=150 min=120 falls/rd=2.8 | last time 22:10:28
+NEW 50-ROUND HIGH 136.1 at upd 28966: snapshot models/nav/nav_night_28966_136.pth
+upd 29025 trainer=1 games=8 KOTM all: n=415 mean=132.1 max=162 min=65 falls/rd=3.3 | last 14: n=14 mean=136.8 max=149 min=124 falls/rd=3.3 | last 50: n=50 mean=138.9 max=162 min=118 falls/rd=2.6 | last time 22:25:47
+NEW 50-ROUND HIGH 138.9 at upd 29025: snapshot models/nav/nav_night_29025_139.pth
+upd 29084 trainer=1 games=8 KOTM all: n=600 mean=134.2 max=162 min=65 falls/rd=3.1 | last 14: n=14 mean=139.6 max=151 min=129 falls/rd=2.6 | last 50: n=50 mean=138.3 max=155 min=119 falls/rd=2.7 | last time 22:40:39
+upd 29142 trainer=1 games=8 KOTM all: n=784 mean=135.3 max=162 min=65 falls/rd=3.0 | last 14: n=14 mean=140.1 max=151 min=120 falls/rd=2.5 | last 50: n=50 mean=139.5 max=152 min=120 falls/rd=2.6 | last time 22:55:38
+NEW 50-ROUND HIGH 139.5 at upd 29142: snapshot models/nav/nav_night_29142_140.pth
+upd 29199 trainer=1 games=8 KOTM all: n=967 mean=136.0 max=162 min=65 falls/rd=2.9 | last 14: n=14 mean=135.4 max=147 min=113 falls/rd=2.1 | last 50: n=50 mean=137.6 max=152 min=113 falls/rd=2.3 | last time 23:10:47
+upd 29257 trainer=1 games=8 KOTM all: n=1146 mean=136.5 max=162 min=65 falls/rd=2.8 | last 14: n=14 mean=140.3 max=156 min=124 falls/rd=1.9 | last 50: n=50 mean=140.6 max=156 min=124 falls/rd=1.7 | last time 23:25:47
+NEW 50-ROUND HIGH 140.6 at upd 29257: snapshot models/nav/nav_night_29257_141.pth
+upd 29307 trainer=1 games=8 KOTM all: n=40 mean=107.2 max=126 min=85 falls/rd=3.2 | last 14: n=14 mean=109.7 max=121 min=93 falls/rd=3.5 | last 50: n=40 mean=107.2 max=126 min=85 falls/rd=3.2 | last time 23:40:40
+upd 29368 trainer=1 games=8 KOTM all: n=241 mean=109.0 max=138 min=73 falls/rd=3.7 | last 14: n=14 mean=109.7 max=128 min=86 falls/rd=3.4 | last 50: n=50 mean=112.2 max=135 min=80 falls/rd=3.8 | last time 23:55:52
+upd 29433 trainer=1 games=8 KOTM all: n=456 mean=110.7 max=138 min=73 falls/rd=3.6 | last 14: n=14 mean=113.2 max=129 min=92 falls/rd=2.9 | last 50: n=50 mean=113.6 max=134 min=92 falls/rd=3.3 | last time 00:10:48
+upd 29498 trainer=1 games=8 KOTM all: n=668 mean=111.5 max=141 min=73 falls/rd=3.6 | last 14: n=14 mean=113.5 max=128 min=100 falls/rd=3.4 | last 50: n=50 mean=114.4 max=134 min=96 falls/rd=3.6 | last time 00:25:54
+upd 29539 trainer=1 games=12 KOTM all: n=800 mean=111.8 max=141 min=73 falls/rd=3.7 | last 14: n=14 mean=110.9 max=128 min=93 falls/rd=4.8 | last 50: n=50 mean=113.0 max=128 min=88 falls/rd=4.5 | last time 00:40:33
+[00:48:07] [5] [env:8893] send failed ([WinError 10054] An existing connection was forcibly closed by the remote host); waiting for the game to come back
+[00:48:17] [7] [env:8895] send failed ([WinError 10054] An existing connection was forcibly closed by the remote host); waiting for the game to come back
+upd 29579 trainer=1 games=8 KOTM all: n=930 mean=112.3 max=141 min=73 falls/rd=3.7 | last 14: n=14 mean=115.4 max=136 min=98 falls/rd=3.9 | last 50: n=50 mean=117.0 max=136 min=98 falls/rd=3.8 | last time 00:55:56
+[00:48:07] [5] [env:8893] send failed ([WinError 10054] An existing connection was forcibly closed by the remote host); waiting for the game to come back
+[00:48:17] [7] [env:8895] send failed ([WinError 10054] An existing connection was forcibly closed by the remote host); waiting for the game to come back
+upd 29640 trainer=1 games=8 KOTM all: n=1124 mean=113.1 max=142 min=73 falls/rd=3.7 | last 14: n=14 mean=114.1 max=134 min=91 falls/rd=5.0 | last 50: n=50 mean=116.9 max=136 min=91 falls/rd=4.2 | last time 01:10:57
+[00:48:07] [5] [env:8893] send failed ([WinError 10054] An existing connection was forcibly closed by the remote host); waiting for the game to come back
+[00:48:17] [7] [env:8895] send failed ([WinError 10054] An existing connection was forcibly closed by the remote host); waiting for the game to come back
+upd 29706 trainer=1 games=8 KOTM all: n=1342 mean=113.9 max=143 min=73 falls/rd=3.7 | last 14: n=14 mean=123.4 max=141 min=100 falls/rd=2.5 | last 50: n=50 mean=118.2 max=141 min=80 falls/rd=3.7 | last time 01:25:58
+[00:48:07] [5] [env:8893] send failed ([WinError 10054] An existing connection was forcibly closed by the remote host); waiting for the game to come back
+[00:48:17] [7] [env:8895] send failed ([WinError 10054] An existing connection was forcibly closed by the remote host); waiting for the game to come back
+upd 29772 trainer=1 games=8 KOTM all: n=1555 mean=114.6 max=147 min=73 falls/rd=3.7 | last 14: n=14 mean=116.3 max=134 min=98 falls/rd=4.6 | last 50: n=50 mean=120.4 max=138 min=98 falls/rd=3.8 | last time 01:40:58
+[00:48:07] [5] [env:8893] send failed ([WinError 10054] An existing connection was forcibly closed by the remote host); waiting for the game to come back
+[00:48:17] [7] [env:8895] send failed ([WinError 10054] An existing connection was forcibly closed by the remote host); waiting for the game to come back
+upd 29838 trainer=1 games=8 KOTM all: n=1766 mean=115.5 max=148 min=73 falls/rd=3.7 | last 14: n=14 mean=121.7 max=143 min=104 falls/rd=3.5 | last 50: n=50 mean=121.8 max=147 min=99 falls/rd=3.7 | last time 01:55:59
+[00:48:07] [5] [env:8893] send failed ([WinError 10054] An existing connection was forcibly closed by the remote host); waiting for the game to come back
+[00:48:17] [7] [env:8895] send failed ([WinError 10054] An existing connection was forcibly closed by the remote host); waiting for the game to come back
+upd 29900 trainer=1 games=8 KOTM all: n=1969 mean=116.1 max=148 min=71 falls/rd=3.7 | last 14: n=14 mean=124.6 max=147 min=99 falls/rd=3.6 | last 50: n=50 mean=124.9 max=147 min=99 falls/rd=3.5 | last time 02:10:56
+[00:48:07] [5] [env:8893] send failed ([WinError 10054] An existing connection was forcibly closed by the remote host); waiting for the game to come back
+[00:48:17] [7] [env:8895] send failed ([WinError 10054] An existing connection was forcibly closed by the remote host); waiting for the game to come back
+upd 29966 trainer=1 games=8 KOTM all: n=2178 mean=116.6 max=148 min=71 falls/rd=3.7 | last 14: n=14 mean=122.2 max=138 min=110 falls/rd=2.9 | last 50: n=50 mean=120.3 max=140 min=96 falls/rd=3.9 | last time 02:25:55
+[00:48:07] [5] [env:8893] send failed ([WinError 10054] An existing connection was forcibly closed by the remote host); waiting for the game to come back
+[00:48:17] [7] [env:8895] send failed ([WinError 10054] An existing connection was forcibly closed by the remote host); waiting for the game to come back
+upd 30030 trainer=1 games=8 KOTM all: n=2385 mean=117.1 max=148 min=71 falls/rd=3.7 | last 14: n=14 mean=124.8 max=138 min=103 falls/rd=3.1 | last 50: n=50 mean=123.8 max=143 min=102 falls/rd=3.2 | last time 02:40:59
+[00:48:07] [5] [env:8893] send failed ([WinError 10054] An existing connection was forcibly closed by the remote host); waiting for the game to come back
+[00:48:17] [7] [env:8895] send failed ([WinError 10054] An existing connection was forcibly closed by the remote host); waiting for the game to come back
+upd 30094 trainer=1 games=8 KOTM all: n=2592 mean=117.4 max=149 min=71 falls/rd=3.7 | last 14: n=14 mean=120.2 max=141 min=92 falls/rd=4.0 | last 50: n=50 mean=120.9 max=141 min=92 falls/rd=3.3 | last time 02:56:01
+[00:48:07] [5] [env:8893] send failed ([WinError 10054] An existing connection was forcibly closed by the remote host); waiting for the game to come back
+[00:48:17] [7] [env:8895] send failed ([WinError 10054] An existing connection was forcibly closed by the remote host); waiting for the game to come back
+upd 30155 trainer=1 games=8 KOTM all: n=2786 mean=117.8 max=149 min=71 falls/rd=3.6 | last 14: n=14 mean=122.2 max=137 min=112 falls/rd=2.9 | last 50: n=50 mean=123.1 max=149 min=103 falls/rd=3.4 | last time 03:11:00
+[00:48:07] [5] [env:8893] send failed ([WinError 10054] An existing connection was forcibly closed by the remote host); waiting for the game to come back
+[00:48:17] [7] [env:8895] send failed ([WinError 10054] An existing connection was forcibly closed by the remote host); waiting for the game to come back
+upd 30219 trainer=1 games=8 KOTM all: n=2992 mean=118.1 max=149 min=71 falls/rd=3.6 | last 14: n=14 mean=123.5 max=133 min=110 falls/rd=3.0 | last 50: n=50 mean=121.6 max=142 min=94 falls/rd=3.4 | last time 03:25:59
+[00:48:07] [5] [env:8893] send failed ([WinError 10054] An existing connection was forcibly closed by the remote host); waiting for the game to come back
+[00:48:17] [7] [env:8895] send failed ([WinError 10054] An existing connection was forcibly closed by the remote host); waiting for the game to come back
+upd 30282 trainer=1 games=8 KOTM all: n=3195 mean=118.4 max=149 min=71 falls/rd=3.6 | last 14: n=14 mean=128.6 max=142 min=114 falls/rd=2.6 | last 50: n=50 mean=126.3 max=142 min=108 falls/rd=2.9 | last time 03:41:01
+[00:48:07] [5] [env:8893] send failed ([WinError 10054] An existing connection was forcibly closed by the remote host); waiting for the game to come back
+[00:48:17] [7] [env:8895] send failed ([WinError 10054] An existing connection was forcibly closed by the remote host); waiting for the game to come back
+upd 30346 trainer=1 games=8 KOTM all: n=3397 mean=118.8 max=151 min=71 falls/rd=3.6 | last 14: n=14 mean=123.0 max=141 min=102 falls/rd=2.9 | last 50: n=50 mean=125.9 max=143 min=102 falls/rd=2.6 | last time 03:56:00
+[00:48:07] [5] [env:8893] send failed ([WinError 10054] An existing connection was forcibly closed by the remote host); waiting for the game to come back
+[00:48:17] [7] [env:8895] send failed ([WinError 10054] An existing connection was forcibly closed by the remote host); waiting for the game to come back
+upd 30406 trainer=1 games=8 KOTM all: n=3592 mean=119.2 max=151 min=71 falls/rd=3.5 | last 14: n=14 mean=126.8 max=138 min=112 falls/rd=2.6 | last 50: n=50 mean=125.7 max=149 min=104 falls/rd=2.5 | last time 04:11:04
+[00:48:07] [5] [env:8893] send failed ([WinError 10054] An existing connection was forcibly closed by the remote host); waiting for the game to come back
+[00:48:17] [7] [env:8895] send failed ([WinError 10054] An existing connection was forcibly closed by the remote host); waiting for the game to come back
+upd 30468 trainer=1 games=8 KOTM all: n=3791 mean=119.4 max=151 min=71 falls/rd=3.5 | last 14: n=14 mean=127.8 max=143 min=109 falls/rd=1.6 | last 50: n=50 mean=123.8 max=144 min=95 falls/rd=2.4 | last time 04:26:05
+[00:48:07] [5] [env:8893] send failed ([WinError 10054] An existing connection was forcibly closed by the remote host); waiting for the game to come back
+[00:48:17] [7] [env:8895] send failed ([WinError 10054] An existing connection was forcibly closed by the remote host); waiting for the game to come back
+upd 30531 trainer=1 games=8 KOTM all: n=3988 mean=119.5 max=151 min=71 falls/rd=3.5 | last 14: n=14 mean=120.9 max=132 min=105 falls/rd=3.7 | last 50: n=50 mean=119.6 max=140 min=87 falls/rd=3.4 | last time 04:41:03
+[00:48:07] [5] [env:8893] send failed ([WinError 10054] An existing connection was forcibly closed by the remote host); waiting for the game to come back
+[00:48:17] [7] [env:8895] send failed ([WinError 10054] An existing connection was forcibly closed by the remote host); waiting for the game to come back
+upd 30592 trainer=1 games=8 KOTM all: n=4184 mean=119.7 max=151 min=71 falls/rd=3.5 | last 14: n=14 mean=118.7 max=132 min=102 falls/rd=3.6 | last 50: n=50 mean=124.0 max=145 min=102 falls/rd=3.0 | last time 04:56:08
+[00:48:07] [5] [env:8893] send failed ([WinError 10054] An existing connection was forcibly closed by the remote host); waiting for the game to come back
+[00:48:17] [7] [env:8895] send failed ([WinError 10054] An existing connection was forcibly closed by the remote host); waiting for the game to come back
+upd 30653 trainer=1 games=8 KOTM all: n=4376 mean=119.8 max=151 min=71 falls/rd=3.4 | last 14: n=14 mean=124.7 max=134 min=111 falls/rd=3.1 | last 50: n=50 mean=122.2 max=146 min=85 falls/rd=3.2 | last time 05:10:57
+[00:48:07] [5] [env:8893] send failed ([WinError 10054] An existing connection was forcibly closed by the remote host); waiting for the game to come back
+[00:48:17] [7] [env:8895] send failed ([WinError 10054] An existing connection was forcibly closed by the remote host); waiting for the game to come back
+upd 30711 trainer=1 games=8 KOTM all: n=4563 mean=120.0 max=151 min=71 falls/rd=3.4 | last 14: n=14 mean=125.1 max=145 min=90 falls/rd=2.7 | last 50: n=50 mean=124.1 max=147 min=90 falls/rd=3.0 | last time 05:26:09
+[00:48:07] [5] [env:8893] send failed ([WinError 10054] An existing connection was forcibly closed by the remote host); waiting for the game to come back
+[00:48:17] [7] [env:8895] send failed ([WinError 10054] An existing connection was forcibly closed by the remote host); waiting for the game to come back
+upd 30771 trainer=1 games=8 KOTM all: n=4756 mean=120.2 max=151 min=71 falls/rd=3.4 | last 14: n=14 mean=128.1 max=144 min=116 falls/rd=2.4 | last 50: n=50 mean=125.9 max=149 min=102 falls/rd=2.5 | last time 05:41:10
+[00:48:07] [5] [env:8893] send failed ([WinError 10054] An existing connection was forcibly closed by the remote host); waiting for the game to come back
+[00:48:17] [7] [env:8895] send failed ([WinError 10054] An existing connection was forcibly closed by the remote host); waiting for the game to come back
+upd 30831 trainer=1 games=8 KOTM all: n=4945 mean=120.4 max=151 min=71 falls/rd=3.4 | last 14: n=14 mean=122.9 max=141 min=87 falls/rd=2.4 | last 50: n=50 mean=126.7 max=146 min=87 falls/rd=2.4 | last time 05:56:11
+[00:48:07] [5] [env:8893] send failed ([WinError 10054] An existing connection was forcibly closed by the remote host); waiting for the game to come back
+[00:48:17] [7] [env:8895] send failed ([WinError 10054] An existing connection was forcibly closed by the remote host); waiting for the game to come back
+upd 30891 trainer=1 games=8 KOTM all: n=5137 mean=120.6 max=151 min=71 falls/rd=3.3 | last 14: n=14 mean=122.6 max=136 min=102 falls/rd=2.7 | last 50: n=50 mean=123.7 max=141 min=102 falls/rd=2.5 | last time 06:11:11
+[00:48:07] [5] [env:8893] send failed ([WinError 10054] An existing connection was forcibly closed by the remote host); waiting for the game to come back
+[00:48:17] [7] [env:8895] send failed ([WinError 10054] An existing connection was forcibly closed by the remote host); waiting for the game to come back
+upd 30949 trainer=1 games=8 KOTM all: n=5319 mean=120.8 max=151 min=71 falls/rd=3.3 | last 14: n=14 mean=125.4 max=140 min=114 falls/rd=2.9 | last 50: n=50 mean=128.1 max=145 min=111 falls/rd=2.3 | last time 06:26:10
+[00:48:07] [5] [env:8893] send failed ([WinError 10054] An existing connection was forcibly closed by the remote host); waiting for the game to come back
+[00:48:17] [7] [env:8895] send failed ([WinError 10054] An existing connection was forcibly closed by the remote host); waiting for the game to come back
+upd 31008 trainer=1 games=8 KOTM all: n=5509 mean=121.0 max=151 min=71 falls/rd=3.3 | last 14: n=14 mean=127.8 max=148 min=113 falls/rd=2.7 | last 50: n=50 mean=128.8 max=148 min=113 falls/rd=2.6 | last time 06:41:13
+[00:48:07] [5] [env:8893] send failed ([WinError 10054] An existing connection was forcibly closed by the remote host); waiting for the game to come back
+[00:48:17] [7] [env:8895] send failed ([WinError 10054] An existing connection was forcibly closed by the remote host); waiting for the game to come back
+upd 31067 trainer=1 games=8 KOTM all: n=5696 mean=121.3 max=151 min=71 falls/rd=3.3 | last 14: n=14 mean=125.8 max=144 min=104 falls/rd=2.8 | last 50: n=50 mean=127.5 max=144 min=104 falls/rd=2.6 | last time 06:56:12
+[00:48:07] [5] [env:8893] send failed ([WinError 10054] An existing connection was forcibly closed by the remote host); waiting for the game to come back
+[00:48:17] [7] [env:8895] send failed ([WinError 10054] An existing connection was forcibly closed by the remote host); waiting for the game to come back
+upd 31126 trainer=1 games=8 KOTM all: n=5883 mean=121.5 max=151 min=71 falls/rd=3.3 | last 14: n=14 mean=128.4 max=143 min=107 falls/rd=2.8 | last 50: n=50 mean=130.1 max=146 min=107 falls/rd=2.4 | last time 07:11:12
+[00:48:07] [5] [env:8893] send failed ([WinError 10054] An existing connection was forcibly closed by the remote host); waiting for the game to come back
+[00:48:17] [7] [env:8895] send failed ([WinError 10054] An existing connection was forcibly closed by the remote host); waiting for the game to come back
+upd 31184 trainer=1 games=8 KOTM all: n=6068 mean=121.7 max=151 min=60 falls/rd=3.2 | last 14: n=14 mean=123.8 max=142 min=111 falls/rd=2.6 | last 50: n=50 mean=123.8 max=146 min=60 falls/rd=2.8 | last time 07:26:13
+[00:48:07] [5] [env:8893] send failed ([WinError 10054] An existing connection was forcibly closed by the remote host); waiting for the game to come back
+[00:48:17] [7] [env:8895] send failed ([WinError 10054] An existing connection was forcibly closed by the remote host); waiting for the game to come back
+upd 31242 trainer=1 games=8 KOTM all: n=6252 mean=121.9 max=151 min=60 falls/rd=3.2 | last 14: n=14 mean=129.4 max=145 min=119 falls/rd=1.9 | last 50: n=50 mean=129.6 max=145 min=102 falls/rd=2.3 | last time 07:41:14
+[00:48:07] [5] [env:8893] send failed ([WinError 10054] An existing connection was forcibly closed by the remote host); waiting for the game to come back
+[00:48:17] [7] [env:8895] send failed ([WinError 10054] An existing connection was forcibly closed by the remote host); waiting for the game to come back
+upd 31297 trainer=1 games=8 KOTM all: n=6427 mean=122.0 max=151 min=60 falls/rd=3.2 | last 14: n=14 mean=126.6 max=148 min=104 falls/rd=3.2 | last 50: n=50 mean=126.1 max=148 min=104 falls/rd=3.3 | last time 07:56:13
+[00:48:07] [5] [env:8893] send failed ([WinError 10054] An existing connection was forcibly closed by the remote host); waiting for the game to come back
+[00:48:17] [7] [env:8895] send failed ([WinError 10054] An existing connection was forcibly closed by the remote host); waiting for the game to come back
+upd 31354 trainer=1 games=8 KOTM all: n=6609 mean=122.2 max=151 min=60 falls/rd=3.2 | last 14: n=14 mean=125.9 max=138 min=114 falls/rd=2.7 | last 50: n=50 mean=127.7 max=147 min=98 falls/rd=2.9 | last time 08:11:19
+[00:48:07] [5] [env:8893] send failed ([WinError 10054] An existing connection was forcibly closed by the remote host); waiting for the game to come back
+[00:48:17] [7] [env:8895] send failed ([WinError 10054] An existing connection was forcibly closed by the remote host); waiting for the game to come back
+upd 31410 trainer=1 games=8 KOTM all: n=6789 mean=122.4 max=151 min=60 falls/rd=3.2 | last 14: n=14 mean=129.6 max=150 min=111 falls/rd=2.7 | last 50: n=50 mean=130.6 max=150 min=111 falls/rd=2.7 | last time 08:26:12
+[00:48:07] [5] [env:8893] send failed ([WinError 10054] An existing connection was forcibly closed by the remote host); waiting for the game to come back
+[00:48:17] [7] [env:8895] send failed ([WinError 10054] An existing connection was forcibly closed by the remote host); waiting for the game to come back
+upd 31467 trainer=1 games=8 KOTM all: n=6966 mean=122.6 max=153 min=60 falls/rd=3.2 | last 14: n=14 mean=128.4 max=148 min=86 falls/rd=3.3 | last 50: n=50 mean=128.1 max=148 min=86 falls/rd=3.3 | last time 08:41:21
+[00:48:07] [5] [env:8893] send failed ([WinError 10054] An existing connection was forcibly closed by the remote host); waiting for the game to come back
+[00:48:17] [7] [env:8895] send failed ([WinError 10054] An existing connection was forcibly closed by the remote host); waiting for the game to come back
+upd 31522 trainer=1 games=8 KOTM all: n=7145 mean=122.8 max=153 min=60 falls/rd=3.2 | last 14: n=14 mean=132.7 max=149 min=117 falls/rd=2.4 | last 50: n=50 mean=130.9 max=149 min=113 falls/rd=2.8 | last time 08:56:22
+[00:48:07] [5] [env:8893] send failed ([WinError 10054] An existing connection was forcibly closed by the remote host); waiting for the game to come back
+[00:48:17] [7] [env:8895] send failed ([WinError 10054] An existing connection was forcibly closed by the remote host); waiting for the game to come back
+upd 31578 trainer=1 games=8 KOTM all: n=7322 mean=123.0 max=153 min=60 falls/rd=3.1 | last 14: n=14 mean=132.0 max=146 min=112 falls/rd=2.4 | last 50: n=50 mean=130.5 max=149 min=112 falls/rd=2.2 | last time 09:11:23
+[00:48:07] [5] [env:8893] send failed ([WinError 10054] An existing connection was forcibly closed by the remote host); waiting for the game to come back
+[00:48:17] [7] [env:8895] send failed ([WinError 10054] An existing connection was forcibly closed by the remote host); waiting for the game to come back
+upd 31633 trainer=1 games=8 KOTM all: n=7497 mean=123.2 max=153 min=60 falls/rd=3.1 | last 14: n=14 mean=129.0 max=143 min=116 falls/rd=2.1 | last 50: n=50 mean=130.5 max=148 min=103 falls/rd=2.0 | last time 09:26:23
+[00:48:07] [5] [env:8893] send failed ([WinError 10054] An existing connection was forcibly closed by the remote host); waiting for the game to come back
+[00:48:17] [7] [env:8895] send failed ([WinError 10054] An existing connection was forcibly closed by the remote host); waiting for the game to come back
+upd 31688 trainer=1 games=8 KOTM all: n=7671 mean=123.4 max=153 min=60 falls/rd=3.1 | last 14: n=14 mean=132.4 max=145 min=115 falls/rd=2.1 | last 50: n=50 mean=129.7 max=150 min=98 falls/rd=2.3 | last time 09:41:22
+[00:48:07] [5] [env:8893] send failed ([WinError 10054] An existing connection was forcibly closed by the remote host); waiting for the game to come back
+[00:48:17] [7] [env:8895] send failed ([WinError 10054] An existing connection was forcibly closed by the remote host); waiting for the game to come back
+upd 31741 trainer=1 games=10 KOTM all: n=7840 mean=123.5 max=153 min=60 falls/rd=3.1 | last 14: n=14 mean=129.7 max=148 min=115 falls/rd=2.1 | last 50: n=50 mean=130.8 max=148 min=110 falls/rd=2.2 | last time 09:56:17
+[00:48:07] [5] [env:8893] send failed ([WinError 10054] An existing connection was forcibly closed by the remote host); waiting for the game to come back
+[00:48:17] [7] [env:8895] send failed ([WinError 10054] An existing connection was forcibly closed by the remote host); waiting for the game to come back
+upd 31795 trainer=1 games=8 KOTM all: n=8013 mean=123.7 max=153 min=45 falls/rd=3.1 | last 14: n=14 mean=132.2 max=145 min=112 falls/rd=1.7 | last 50: n=50 mean=132.0 max=148 min=104 falls/rd=2.2 | last time 10:11:25
+[00:48:07] [5] [env:8893] send failed ([WinError 10054] An existing connection was forcibly closed by the remote host); waiting for the game to come back
+[00:48:17] [7] [env:8895] send failed ([WinError 10054] An existing connection was forcibly closed by the remote host); waiting for the game to come back
+upd 31849 trainer=1 games=8 KOTM all: n=8184 mean=123.9 max=153 min=45 falls/rd=3.0 | last 14: n=14 mean=129.5 max=147 min=119 falls/rd=2.8 | last 50: n=50 mean=130.8 max=147 min=110 falls/rd=2.4 | last time 10:26:24
+[00:48:07] [5] [env:8893] send failed ([WinError 10054] An existing connection was forcibly closed by the remote host); waiting for the game to come back
+[00:48:17] [7] [env:8895] send failed ([WinError 10054] An existing connection was forcibly closed by the remote host); waiting for the game to come back
+upd 31903 trainer=1 games=8 KOTM all: n=8355 mean=124.1 max=156 min=45 falls/rd=3.0 | last 14: n=14 mean=132.3 max=150 min=113 falls/rd=1.6 | last 50: n=50 mean=135.1 max=154 min=113 falls/rd=1.4 | last time 10:41:29
+[00:48:07] [5] [env:8893] send failed ([WinError 10054] An existing connection was forcibly closed by the remote host); waiting for the game to come back
+[00:48:17] [7] [env:8895] send failed ([WinError 10054] An existing connection was forcibly closed by the remote host); waiting for the game to come back
+upd 31957 trainer=1 games=8 KOTM all: n=8525 mean=124.3 max=156 min=45 falls/rd=3.0 | last 14: n=14 mean=136.8 max=146 min=127 falls/rd=1.2 | last 50: n=50 mean=133.2 max=146 min=115 falls/rd=2.0 | last time 10:56:27
+[00:48:07] [5] [env:8893] send failed ([WinError 10054] An existing connection was forcibly closed by the remote host); waiting for the game to come back
+[00:48:17] [7] [env:8895] send failed ([WinError 10054] An existing connection was forcibly closed by the remote host); waiting for the game to come back
+upd 32010 trainer=1 games=8 KOTM all: n=8694 mean=124.4 max=156 min=45 falls/rd=3.0 | last 14: n=14 mean=130.8 max=147 min=100 falls/rd=2.1 | last 50: n=50 mean=131.1 max=147 min=100 falls/rd=2.5 | last time 11:11:31
+[00:48:07] [5] [env:8893] send failed ([WinError 10054] An existing connection was forcibly closed by the remote host); waiting for the game to come back
+[00:48:17] [7] [env:8895] send failed ([WinError 10054] An existing connection was forcibly closed by the remote host); waiting for the game to come back
+upd 32062 trainer=1 games=8 KOTM all: n=8862 mean=124.5 max=156 min=45 falls/rd=3.0 | last 14: n=14 mean=130.9 max=140 min=118 falls/rd=2.9 | last 50: n=50 mean=134.2 max=150 min=110 falls/rd=2.3 | last time 11:26:30
+[00:48:07] [5] [env:8893] send failed ([WinError 10054] An existing connection was forcibly closed by the remote host); waiting for the game to come back
+[00:48:17] [7] [env:8895] send failed ([WinError 10054] An existing connection was forcibly closed by the remote host); waiting for the game to come back
+upd 32115 trainer=1 games=8 KOTM all: n=9027 mean=124.7 max=156 min=45 falls/rd=3.0 | last 14: n=14 mean=132.4 max=148 min=117 falls/rd=1.9 | last 50: n=50 mean=132.0 max=149 min=115 falls/rd=2.3 | last time 11:41:21
+[00:48:07] [5] [env:8893] send failed ([WinError 10054] An existing connection was forcibly closed by the remote host); waiting for the game to come back
+[00:48:17] [7] [env:8895] send failed ([WinError 10054] An existing connection was forcibly closed by the remote host); waiting for the game to come back
+upd 32167 trainer=1 games=8 KOTM all: n=9194 mean=124.8 max=156 min=45 falls/rd=2.9 | last 14: n=14 mean=128.0 max=140 min=110 falls/rd=2.6 | last 50: n=50 mean=130.3 max=143 min=110 falls/rd=2.5 | last time 11:56:30
+[00:48:07] [5] [env:8893] send failed ([WinError 10054] An existing connection was forcibly closed by the remote host); waiting for the game to come back
+[00:48:17] [7] [env:8895] send failed ([WinError 10054] An existing connection was forcibly closed by the remote host); waiting for the game to come back
+upd 32217 trainer=1 games=8 KOTM all: n=9353 mean=125.0 max=156 min=45 falls/rd=2.9 | last 14: n=14 mean=128.3 max=143 min=104 falls/rd=2.7 | last 50: n=50 mean=131.7 max=156 min=104 falls/rd=2.2 | last time 12:11:33
+[00:48:07] [5] [env:8893] send failed ([WinError 10054] An existing connection was forcibly closed by the remote host); waiting for the game to come back
+[00:48:17] [7] [env:8895] send failed ([WinError 10054] An existing connection was forcibly closed by the remote host); waiting for the game to come back
+upd 32269 trainer=1 games=8 KOTM all: n=9517 mean=125.1 max=156 min=45 falls/rd=2.9 | last 14: n=14 mean=131.6 max=151 min=116 falls/rd=2.2 | last 50: n=50 mean=132.0 max=152 min=113 falls/rd=1.7 | last time 12:26:32
+[00:48:07] [5] [env:8893] send failed ([WinError 10054] An existing connection was forcibly closed by the remote host); waiting for the game to come back
+[00:48:17] [7] [env:8895] send failed ([WinError 10054] An existing connection was forcibly closed by the remote host); waiting for the game to come back
+upd 32320 trainer=1 games=8 KOTM all: n=9679 mean=125.2 max=156 min=45 falls/rd=2.9 | last 14: n=14 mean=126.4 max=139 min=115 falls/rd=2.4 | last 50: n=50 mean=130.3 max=151 min=106 falls/rd=2.7 | last time 12:41:27
+[00:48:07] [5] [env:8893] send failed ([WinError 10054] An existing connection was forcibly closed by the remote host); waiting for the game to come back
+[00:48:17] [7] [env:8895] send failed ([WinError 10054] An existing connection was forcibly closed by the remote host); waiting for the game to come back
+upd 32370 trainer=1 games=8 KOTM all: n=9840 mean=125.3 max=157 min=45 falls/rd=2.9 | last 14: n=14 mean=132.4 max=146 min=116 falls/rd=2.2 | last 50: n=50 mean=132.3 max=151 min=113 falls/rd=2.5 | last time 12:56:33
+[00:48:07] [5] [env:8893] send failed ([WinError 10054] An existing connection was forcibly closed by the remote host); waiting for the game to come back
+[00:48:17] [7] [env:8895] send failed ([WinError 10054] An existing connection was forcibly closed by the remote host); waiting for the game to come back
+upd 32421 trainer=1 games=8 KOTM all: n=10001 mean=125.4 max=157 min=45 falls/rd=2.9 | last 14: n=14 mean=132.9 max=145 min=109 falls/rd=2.5 | last 50: n=50 mean=133.0 max=150 min=108 falls/rd=2.3 | last time 13:11:31
+upd 32473 trainer=1 games=8 KOTM all: n=88 mean=139.3 max=155 min=115 falls/rd=1.9 | last 14: n=14 mean=138.6 max=152 min=122 falls/rd=2.5 | last 50: n=50 mean=139.0 max=154 min=115 falls/rd=2.0 | last time 13:26:30
+NEW 50-ROUND HIGH 139.0 at upd 32473: snapshot models/nav/nav_night_32473_139.pth
+upd 32511 trainer=0 games=0 KOTM all: n=208 mean=139.0 max=155 min=114 falls/rd=1.8 | last 14: n=14 mean=142.1 max=151 min=122 falls/rd=1.7 | last 50: n=50 mean=140.1 max=155 min=117 falls/rd=1.6 | last time 13:35:58
+NEW 50-ROUND HIGH 140.1 at upd 32511: snapshot models/nav/nav_night_32511_140.pth
+upd 32511 trainer=0 games=0 KOTM all: n=208 mean=139.0 max=155 min=114 falls/rd=1.8 | last 14: n=14 mean=142.1 max=151 min=122 falls/rd=1.7 | last 50: n=50 mean=140.1 max=155 min=117 falls/rd=1.6 | last time 13:35:58
+upd 32511 trainer=0 games=0 KOTM all: n=208 mean=139.0 max=155 min=114 falls/rd=1.8 | last 14: n=14 mean=142.1 max=151 min=122 falls/rd=1.7 | last 50: n=50 mean=140.1 max=155 min=117 falls/rd=1.6 | last time 13:35:58
+upd 32557 trainer=1 games=8 KOTM all: n=144 mean=139.7 max=159 min=123 falls/rd=1.6 | last 14: n=14 mean=139.6 max=154 min=123 falls/rd=1.4 | last 50: n=50 mean=139.2 max=154 min=123 falls/rd=1.6 | last time 14:26:15
+upd 28935 trainer=1 games=8 KOTM all: n=128 mean=138.2 max=157 min=110 falls/rd=2.8 | last 14: n=14 mean=139.9 max=154 min=125 falls/rd=2.9 | last 50: n=50 mean=141.3 max=157 min=125 falls/rd=2.4 | last time 14:41:42
+NEW 50-ROUND HIGH 141.3 at upd 28935: snapshot models/nav/nav_night_28935_141.pth
+upd 28977 trainer=1 games=8 KOTM all: n=0 | last 14: n=0 | last 50: n=0 | last time -
+upd 29023 trainer=1 games=8 KOTM all: n=152 mean=139.3 max=158 min=107 falls/rd=2.1 | last 14: n=14 mean=143.4 max=155 min=130 falls/rd=1.5 | last 50: n=50 mean=140.0 max=155 min=126 falls/rd=1.9 | last time 15:11:28
+NEW 50-ROUND HIGH 140.0 at upd 29023: snapshot models/nav/nav_night_29023_140.pth
+upd 29070 trainer=1 games=8 KOTM all: n=298 mean=138.5 max=158 min=107 falls/rd=2.1 | last 14: n=14 mean=134.9 max=146 min=122 falls/rd=2.4 | last 50: n=50 mean=137.7 max=148 min=122 falls/rd=2.0 | last time 15:26:44
+upd 29116 trainer=1 games=8 KOTM all: n=112 mean=138.2 max=151 min=114 falls/rd=2.1 | last 14: n=14 mean=138.7 max=146 min=126 falls/rd=1.7 | last 50: n=50 mean=138.1 max=151 min=126 falls/rd=2.0 | last time 15:41:39
+upd 29166 trainer=1 games=8 KOTM all: n=272 mean=139.4 max=159 min=114 falls/rd=2.0 | last 14: n=14 mean=140.6 max=149 min=126 falls/rd=2.2 | last 50: n=50 mean=140.3 max=153 min=124 falls/rd=2.0 | last time 15:56:39
+upd 29217 trainer=1 games=8 KOTM all: n=432 mean=139.3 max=159 min=112 falls/rd=2.1 | last 14: n=14 mean=139.1 max=149 min=130 falls/rd=2.5 | last 50: n=50 mean=138.5 max=153 min=125 falls/rd=2.4 | last time 16:11:40
+upd 29267 trainer=1 games=8 KOTM all: n=592 mean=139.3 max=159 min=112 falls/rd=2.1 | last 14: n=14 mean=137.1 max=152 min=121 falls/rd=2.4 | last 50: n=50 mean=137.6 max=153 min=116 falls/rd=2.2 | last time 16:26:41
+upd 29317 trainer=1 games=8 KOTM all: n=750 mean=139.2 max=159 min=112 falls/rd=2.2 | last 14: n=14 mean=140.1 max=155 min=123 falls/rd=2.4 | last 50: n=50 mean=140.9 max=155 min=121 falls/rd=2.3 | last time 16:41:45
+NEW 50-ROUND HIGH 140.9 at upd 29317: snapshot models/nav/nav_night_29317_141.pth
+upd 29366 trainer=1 games=8 KOTM all: n=904 mean=139.2 max=159 min=112 falls/rd=2.2 | last 14: n=14 mean=142.0 max=152 min=132 falls/rd=2.4 | last 50: n=50 mean=139.1 max=154 min=124 falls/rd=2.8 | last time 16:56:36
+upd 29415 trainer=1 games=8 KOTM all: n=1061 mean=139.2 max=159 min=112 falls/rd=2.2 | last 14: n=14 mean=138.9 max=148 min=119 falls/rd=2.0 | last 50: n=50 mean=138.5 max=152 min=118 falls/rd=2.4 | last time 17:11:51
+upd 29463 trainer=1 games=8 KOTM all: n=1213 mean=139.4 max=159 min=112 falls/rd=2.2 | last 14: n=14 mean=139.1 max=150 min=128 falls/rd=1.9 | last 50: n=50 mean=141.0 max=158 min=126 falls/rd=2.1 | last time 17:26:51
+upd 29513 trainer=1 games=8 KOTM all: n=1368 mean=139.2 max=159 min=107 falls/rd=2.2 | last 14: n=14 mean=138.4 max=150 min=124 falls/rd=1.9 | last 50: n=50 mean=138.1 max=152 min=113 falls/rd=2.2 | last time 17:41:40
+upd 29557 trainer=1 games=8 KOTM all: n=128 mean=141.9 max=158 min=125 falls/rd=2.3 | last 14: n=14 mean=141.7 max=153 min=128 falls/rd=1.6 | last 50: n=50 mean=143.4 max=153 min=128 falls/rd=1.9 | last time 17:56:26
+NEW 50-ROUND HIGH 143.4 at upd 29557: snapshot models/nav/nav_night_29557_143.pth
+upd 29607 trainer=1 games=8 KOTM all: n=288 mean=141.8 max=158 min=119 falls/rd=2.1 | last 14: n=14 mean=142.8 max=153 min=126 falls/rd=2.0 | last 50: n=50 mean=142.4 max=153 min=126 falls/rd=2.1 | last time 18:11:35
+upd 29657 trainer=1 games=8 KOTM all: n=448 mean=142.1 max=158 min=117 falls/rd=2.2 | last 14: n=14 mean=140.7 max=153 min=132 falls/rd=2.5 | last 50: n=50 mean=141.2 max=153 min=125 falls/rd=2.3 | last time 18:26:47
+upd 29704 trainer=1 games=8 KOTM all: n=8 mean=143.9 max=158 min=125 falls/rd=2.6 | last 14: n=8 mean=143.9 max=158 min=125 falls/rd=2.6 | last 50: n=8 mean=143.9 max=158 min=125 falls/rd=2.6 | last time 18:41:24
+upd 29754 trainer=1 games=8 KOTM all: n=168 mean=141.5 max=158 min=117 falls/rd=2.8 | last 14: n=14 mean=141.7 max=155 min=126 falls/rd=3.0 | last 50: n=50 mean=140.6 max=155 min=120 falls/rd=3.2 | last time 18:56:40
+upd 29804 trainer=1 games=8 KOTM all: n=328 mean=141.3 max=159 min=117 falls/rd=2.8 | last 14: n=14 mean=141.9 max=158 min=129 falls/rd=2.4 | last 50: n=50 mean=142.0 max=158 min=129 falls/rd=2.4 | last time 19:11:39
+upd 29855 trainer=1 games=8 KOTM all: n=488 mean=141.6 max=159 min=117 falls/rd=2.7 | last 14: n=14 mean=143.4 max=154 min=136 falls/rd=2.6 | last 50: n=50 mean=143.1 max=154 min=132 falls/rd=2.4 | last time 19:26:46
+upd 29904 trainer=1 games=10 KOTM all: n=644 mean=141.8 max=160 min=117 falls/rd=2.6 | last 14: n=14 mean=143.9 max=156 min=129 falls/rd=2.1 | last 50: n=50 mean=141.1 max=156 min=120 falls/rd=2.5 | last time 19:41:58
+upd 29946 trainer=1 games=8 KOTM all: n=128 mean=139.2 max=158 min=121 falls/rd=3.1 | last 14: n=14 mean=140.2 max=154 min=130 falls/rd=2.9 | last 50: n=50 mean=139.2 max=157 min=126 falls/rd=3.3 | last time 19:56:32
+upd 29997 trainer=1 games=8 KOTM all: n=288 mean=140.5 max=163 min=113 falls/rd=2.9 | last 14: n=14 mean=145.0 max=156 min=136 falls/rd=2.0 | last 50: n=50 mean=143.7 max=156 min=129 falls/rd=2.3 | last time 20:11:32
+upd 30047 trainer=1 games=8 KOTM all: n=448 mean=140.9 max=163 min=113 falls/rd=2.8 | last 14: n=14 mean=138.9 max=149 min=117 falls/rd=3.4 | last 50: n=50 mean=141.9 max=154 min=117 falls/rd=2.5 | last time 20:26:39
+upd 30097 trainer=1 games=8 KOTM all: n=608 mean=141.7 max=166 min=113 falls/rd=2.6 | last 14: n=14 mean=143.3 max=149 min=140 falls/rd=2.2 | last 50: n=50 mean=144.8 max=159 min=128 falls/rd=1.9 | last time 20:41:52
+NEW 50-ROUND HIGH 144.8 at upd 30097: snapshot models/nav/nav_night_30097_145.pth
+upd 30133 trainer=1 games=8 KOTM all: n=56 mean=143.1 max=157 min=121 falls/rd=2.3 | last 14: n=14 mean=139.6 max=155 min=121 falls/rd=2.4 | last 50: n=50 mean=143.3 max=157 min=121 falls/rd=2.3 | last time 20:56:47
+upd 30183 trainer=1 games=8 KOTM all: n=216 mean=143.6 max=159 min=120 falls/rd=2.4 | last 14: n=14 mean=142.1 max=156 min=125 falls/rd=2.7 | last 50: n=50 mean=143.3 max=158 min=125 falls/rd=2.5 | last time 21:11:56
+upd 30203 trainer=1 games=8 KOTM all: n=24 mean=131.7 max=149 min=113 falls/rd=3.8 | last 14: n=14 mean=132.2 max=149 min=113 falls/rd=3.7 | last 50: n=24 mean=131.7 max=149 min=113 falls/rd=3.8 | last time 21:26:47
+upd 30254 trainer=1 games=8 KOTM all: n=184 mean=132.0 max=149 min=109 falls/rd=3.5 | last 14: n=14 mean=130.0 max=149 min=113 falls/rd=3.6 | last 50: n=50 mean=132.5 max=149 min=112 falls/rd=3.4 | last time 21:41:34
+upd 30305 trainer=1 games=8 KOTM all: n=352 mean=132.6 max=150 min=109 falls/rd=3.4 | last 14: n=14 mean=128.6 max=149 min=118 falls/rd=4.6 | last 50: n=50 mean=132.9 max=149 min=118 falls/rd=3.7 | last time 21:57:08
+upd 30356 trainer=1 games=8 KOTM all: n=512 mean=132.8 max=151 min=109 falls/rd=3.4 | last 14: n=14 mean=133.2 max=147 min=124 falls/rd=2.8 | last 50: n=50 mean=132.5 max=148 min=115 falls/rd=3.5 | last time 22:11:56
+upd 30402 trainer=1 games=8 KOTM all: n=24 mean=132.6 max=146 min=118 falls/rd=3.0 | last 14: n=14 mean=133.7 max=146 min=120 falls/rd=2.6 | last 50: n=24 mean=132.6 max=146 min=118 falls/rd=3.0 | last time 22:27:04
+upd 30423 trainer=0 games=1 KOTM all: n=88 mean=132.1 max=149 min=105 falls/rd=3.5 | last 14: n=14 mean=135.3 max=148 min=121 falls/rd=3.5 | last 50: n=50 mean=132.9 max=149 min=105 falls/rd=3.5 | last time 22:33:05
+upd 30422 trainer=1 games=8 KOTM all: n=0 | last 14: n=0 | last 50: n=0 | last time -
+upd 30479 trainer=1 games=10 KOTM all: n=184 mean=138.7 max=155 min=111 falls/rd=2.2 | last 14: n=14 mean=138.9 max=155 min=111 falls/rd=2.1 | last 50: n=50 mean=140.6 max=155 min=111 falls/rd=1.7 | last time 23:11:41
+upd 30523 trainer=1 games=10 KOTM all: n=327 mean=139.2 max=156 min=111 falls/rd=2.1 | last 14: n=14 mean=140.1 max=148 min=130 falls/rd=1.7 | last 50: n=50 mean=140.8 max=154 min=130 falls/rd=1.9 | last time 23:27:16
+upd 30575 trainer=0 games=0 KOTM all: n=488 mean=138.8 max=156 min=105 falls/rd=2.2 | last 14: n=14 mean=137.0 max=150 min=121 falls/rd=3.2 | last 50: n=50 mean=137.3 max=152 min=121 falls/rd=2.6 | last time 23:40:53

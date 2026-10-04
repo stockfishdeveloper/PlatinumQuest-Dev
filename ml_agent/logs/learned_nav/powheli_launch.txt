@@ -1,0 +1,2 @@
+powheli: python 43704 game 40832 -> C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\logs\learned_nav\powheli_Promontory_Hunt.txt
+powheli: [env:9684] game connected (1)

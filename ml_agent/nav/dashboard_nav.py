@@ -58,7 +58,22 @@ def sane(key, v):
         return None
     lo, hi = SANE.get(key, (-float('inf'), float('inf')))
     return v if (v == v and lo <= v <= hi) else None
-GAME_RE = re.compile(r'\[(\d\d:\d\d:\d\d)\] \[(\d+)\] GAME map=(\S+) points=([\d.]+) gems=(\d+) falls=(\d+)')
+GAME_RE = re.compile(r'\[(\d\d:\d\d:\d\d)\] \[(\d+)\] GAME map=(\S+) points=([\d.]+) gems=(\d+) falls=(\d+)(?: rtf=[\d.]+)?(?: pow=(\S+))?')
+POW_LABELS = {'f1': 'Super Jump', 'f2': 'Super Speed', 'f3': 'Super Bounce', 'f4': 'Shock Absorber', 'f5': 'Helicopter', 'f6': 'Mega Marble', 'blast': 'Blast'}
+
+
+def parse_pow(txt):
+    """The GAME line's pow= field (log 40): u<type> use decisions, f<type> fires, blast -> {key: count}."""
+    d = {}
+    for part in (txt or '').split(','):
+        if ':' in part:
+            k, v = part.split(':', 1)
+            try:
+                d[k] = int(v)
+            except ValueError:
+                pass
+    return d
+
 
 
 RECENT_LOGS = 4                # trainer logs parsed (the newest runs; 12 still took 4 s a push)
@@ -129,7 +144,7 @@ def parse_logs():
             if m:
                 pts = sane('points', float(m.group(4)))
                 if pts is not None and int(m.group(5)) <= 190:     # 130 until 10-02: it hid a clean 167-point, 136-gem round
-                    games.append((last_update, int(m.group(2)), m.group(3), pts, int(m.group(5)), int(m.group(6)), m.group(1)))
+                    games.append((last_update, int(m.group(2)), m.group(3), pts, int(m.group(5)), int(m.group(6)), m.group(1), parse_pow(m.group(7))))
                 continue
             m = MAP_RE.search(line)
             if m:
@@ -273,7 +288,8 @@ def build_state():
                                                              'ent', 'kl', 'clip', 'gn', 'dstd', 'wall_s', 'steps', 'ep', 'sgem', 'pickup')},
         'pm': pm, 'human_sgem': HUMAN_S_PER_GEM, 'evals': eval_series(), 'human_points': HUMAN_POINTS,
         'jumps': _jumps_by_update(updates),
-        'games': [{'update': g[0], 'inst': g[1], 'map': g[2], 'points': g[3], 'gems': g[4], 'falls': g[5], 'time': g[6]} for g in games[-RECENT_GAMES:]],
+        'games': [{'update': g[0], 'inst': g[1], 'map': g[2], 'points': g[3], 'gems': g[4], 'falls': g[5], 'time': g[6], 'pow': g[7]} for g in games[-RECENT_GAMES:]],
+        'pow_labels': POW_LABELS,
     }
 
 
@@ -418,6 +434,8 @@ td.num { text-align:right; font-variant-numeric:tabular-nums; }
 <div id="charts">
   <div class="chart-card"><div class="chart-title">SECONDS BETWEEN PICKUPS, selected map (pickup-to-pickup inside a group; lower is better; dashed = human 1.57 s on KOTM)</div><div id="c-sgem" style="height:230px"></div></div>
   <div class="chart-card"><div class="chart-title" id="pts-title">POINTS PER TRAINING GAME, selected map (one bar per finished round in order, real score from the game; dashed = human; sampled policy, no stuck-breaker)</div><div id="c-points" style="height:230px"></div></div>
+  <div class="chart-card"><div class="chart-title">POWERUP FIRES PER TRAINING GAME, selected map (stacked by type: a held powerup that went off, and blasts of the meter; line = 10-game mean of all fires)</div><div id="c-pow1" style="height:230px"></div></div>
+  <div class="chart-card"><div class="chart-title">POWERUP USE LEARNING, selected map (10-game means: points of games with at least one fire vs games without; use decisions sent per game, dotted)</div><div id="c-pow2" style="height:230px"></div></div>
   <div class="chart-card"><div class="chart-title">APPROVED TAKEOFFS (KOTM instances, from the training trace): per instance-minute (bars) and how many of them landed the crossing (line, %); bucket = 25 updates</div><div id="c-jump1" style="height:230px"></div></div>
   <div class="chart-card"><div class="chart-title">VOID CROSSINGS per instance-minute (KOTM): landed with a jump vs without (rolled / dropped), and falls within 1.5 s of an approved takeoff</div><div id="c-jump2" style="height:230px"></div></div>
   <div class="chart-card"><div class="chart-title" id="heat-title">Marble speed heat map, selected map (latest real rounds; green = fastest, red = slowest)</div><div id="c-heat" style="height:420px"></div></div>
@@ -572,6 +590,31 @@ function update(st) {
     const hp = (st.human_points || {})[emap];
     if (hp && x.length) tr.push({x:[Math.min(...x), Math.max(...x)], y:[hp, hp], type:'scatter', mode:'lines', line:{dash:'dash', color:'#e6edf3', width:1}, name:'human'});
     Plotly.react('c-points', tr, darkLayout(Object.assign({yaxis:{title:'points', gridcolor:'#21262d', color:'#7d8590'}, xaxis:{title:'training game (in order)', gridcolor:'#21262d', color:'#7d8590'}, bargap:0.15}, legend)), cfg);
+  }
+  {
+    const emap = SEL === 'ALL' ? 'KingOfTheMarble_Hunt' : SEL;
+    const gs = (st.games || []).filter(g => g.map === emap && g.update >= LO && g.gems <= 130 && g.pow);
+    const x = gs.map((g, i) => i + 1);
+    const labels = st.pow_labels || {};
+    const colors = {f1:'#3fb950', f2:'#58a6ff', f3:'#f0c040', f4:'#bc8cff', f5:'#39d2c0', f6:'#f0883e', blast:'#f85149'};
+    const keys = Object.keys(labels).filter(k => gs.some(g => (g.pow[k] || 0) > 0));
+    const tr = keys.map(k => ({x, y: gs.map(g => g.pow[k] || 0), type:'bar', marker:{color:colors[k] || '#7d8590'}, name: labels[k] || k}));
+    const tot = gs.map(g => keys.reduce((a, k) => a + (g.pow[k] || 0), 0));
+    const uses = gs.map(g => Object.keys(g.pow).filter(k => k[0] === 'u' || k === 'blast').reduce((a, k) => a + g.pow[k], 0));
+    const roll = (arr, k) => { const mx = [], my = []; for (let i = k - 1; i < arr.length; i++) { let sum = 0; for (let j = i - k + 1; j <= i; j++) sum += arr[j]; mx.push(i + 1); my.push(sum / k); } return [mx, my]; };
+    if (gs.length >= 10) { const [mx, my] = roll(tot, 10); tr.push({x:mx, y:my, type:'scatter', mode:'lines', line:{color:'#e6edf3', width:2}, name:'10-game mean fires'}); }
+    Plotly.react('c-pow1', tr, darkLayout(Object.assign({barmode:'stack', yaxis:{title:'fires / game', gridcolor:'#21262d', color:'#7d8590', rangemode:'tozero'}, xaxis:{title:'training game (in order)', gridcolor:'#21262d', color:'#7d8590'}, bargap:0.15}, legend)), cfg);
+    // points with vs without a fire, 10-game means over the sequence (NaN where the window has no game of that kind)
+    const k = 10, px = [], pw = [], pn = [];
+    for (let i = k - 1; i < gs.length; i++) {
+      let sw = 0, nw = 0, sn = 0, nn = 0;
+      for (let j = i - k + 1; j <= i; j++) { if (tot[j] > 0) { sw += gs[j].points; nw++; } else { sn += gs[j].points; nn++; } }
+      px.push(i + 1); pw.push(nw ? sw / nw : null); pn.push(nn ? sn / nn : null);
+    }
+    const t2 = [{x:px, y:pw, type:'scatter', mode:'lines', line:{color:'#3fb950', width:2}, name:'points, games with a fire', connectgaps:true},
+                {x:px, y:pn, type:'scatter', mode:'lines', line:{color:'#7d8590', width:2}, name:'points, games without', connectgaps:true}];
+    if (gs.length >= 10) { const [ux, uy] = roll(uses, 10); t2.push({x:ux, y:uy, type:'scatter', mode:'lines', line:{color:'#f0c040', width:1.5, dash:'dot'}, name:'use decisions / game', yaxis:'y2'}); }
+    Plotly.react('c-pow2', t2, darkLayout(Object.assign({yaxis:{title:'points', gridcolor:'#21262d', color:'#7d8590'}, yaxis2:{title:'use decisions', overlaying:'y', side:'right', color:'#f0c040', showgrid:false, rangemode:'tozero'}, xaxis:{title:'training game (in order)', gridcolor:'#21262d', color:'#7d8590'}}, legend)), cfg);
   }
   document.getElementById('trainer-badge').textContent = 'Trainer: ' + (st.trainer_alive ? 'running' : 'stopped');
   document.getElementById('trainer-badge').className = 'badge badge-game' + (st.trainer_alive ? ' connected' : '');

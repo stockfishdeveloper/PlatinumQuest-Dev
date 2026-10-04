@@ -1,0 +1,25 @@
+C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\nav\real_run.py:303: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  ck = torch.load(ckpt, map_location=dev)
+warm-up: model ready in 0.03 s
+[env:9921] waiting for the game
+[env:9921] game connected (1)
+real run: nav_v7_best_28897.pth (update 28895) on KingOfTheMarble_Hunt, 4 round(s), port 9921
+stuck-breaker #1 at (-25.3,23.9) decision 1032: state reset, path waypoint + sampling for 24 decisions
+  round 1: {'round': 1, 'gems': 112, 'points': 140.0, 'minutes': 3.03, 'decisions': 2838, 'countdown_decisions': 48, 'gems_per_min': 37.0, 'points_per_min': 46.2, 'falls': 3, 'falls_per_100u': 0.201, 'travelled_u': 1488.8, 'speed': 8.2, 'blind_pct': 0.0, 'stuck_breaks': 1, 'snapped_pct': 0.0, 'pathed_pct': 0.0, 'smooth': 1.0, 'pow_uses': {'0': 14, '1': 2, '2': 8}}
+[env:9921] round over (time left 180s of 180s); waiting for the next round
+[env:9921] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+stuck-breaker #1 at (-25.8,23.2) decision 972: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #2 at (-25.3,28.1) decision 997: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #3 at (-20.8,14.4) decision 1354: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #4 at (-23.2,12.4) decision 2542: state reset, path waypoint + sampling for 24 decisions
+  round 2: {'round': 2, 'gems': 105, 'points': 131.0, 'minutes': 3.02, 'decisions': 2834, 'countdown_decisions': 41, 'gems_per_min': 34.7, 'points_per_min': 43.3, 'falls': 7, 'falls_per_100u': 0.487, 'travelled_u': 1438.8, 'speed': 7.93, 'blind_pct': 0.0, 'stuck_breaks': 4, 'snapped_pct': 0.0, 'pathed_pct': 0.1, 'smooth': 1.0, 'pow_uses': {'0': 19, '1': 5, '2': 14}}
+[env:9921] round over (time left 180s of 180s); waiting for the next round
+[env:9921] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+stuck-breaker #1 at (-12.7,3.5) decision 791: state reset, path waypoint + sampling for 24 decisions
+  round 3: {'round': 3, 'gems': 95, 'points': 123.0, 'minutes': 3.02, 'decisions': 2829, 'countdown_decisions': 41, 'gems_per_min': 31.5, 'points_per_min': 40.8, 'falls': 12, 'falls_per_100u': 0.828, 'travelled_u': 1449.0, 'speed': 8.0, 'blind_pct': 0.0, 'stuck_breaks': 1, 'snapped_pct': 0.0, 'pathed_pct': 0.7, 'smooth': 1.0, 'pow_uses': {'0': 11, '1': 7, '2': 21}}
+[env:9921] round over (time left 180s of 180s); waiting for the next round
+[env:9921] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+stuck-breaker #1 at (-20.2,15.4) decision 691: state reset, path waypoint + sampling for 24 decisions
+  round 4: {'round': 4, 'gems': 94, 'points': 119.0, 'minutes': 3.02, 'decisions': 2832, 'countdown_decisions': 41, 'gems_per_min': 31.1, 'points_per_min': 39.4, 'falls': 9, 'falls_per_100u': 0.638, 'travelled_u': 1411.2, 'speed': 7.79, 'blind_pct': 0.0, 'stuck_breaks': 1, 'snapped_pct': 0.0, 'pathed_pct': 0.6, 'smooth': 1.0, 'pow_uses': {'0': 19, '1': 5, '2': 26}}
+REAL RUN {"gems_per_min": 33.575, "points_per_min": 42.425, "falls_per_100u": 0.538, "speed": 7.98, "blind_pct": 0.0} vs human {"gems_per_min": 0.9, "points_per_min": 0.9, "speed": 0.99, "falls_ratio": 11.7}
+wrote C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\logs\nav\real_run_KingOfTheMarble_Hunt_nav_v7_best_28897_g9b_28897.json

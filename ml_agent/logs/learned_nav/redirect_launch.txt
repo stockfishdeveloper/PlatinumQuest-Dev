@@ -1,0 +1,2 @@
+redirect: python 18220 game 29312 -> C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\logs\learned_nav\redirect_KingOfTheMarble_Hunt.txt
+redirect: done

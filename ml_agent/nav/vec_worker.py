@@ -28,10 +28,10 @@ import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from terrain_obs import TerrainMap                                                  # noqa: E402
-from nav.protocol import RAW_VEL                                                    # noqa: E402
+from nav.protocol import RAW_VEL, RAW_POW_HELD, RAW_POW_BLAST, RAW_POW_SPECIAL, BLAST_REQUIRED   # noqa: E402
 from nav.env import HuntEnv, OBS_MS                                                         # noqa: E402
 from nav.terrain import TerrainGrid                                                 # noqa: E402
-from nav.obs import ObsBuilder, VEC_GAP                                             # noqa: E402
+from nav.obs import ObsBuilder, VEC_GAP, VEC_POW, ss_aim, ss_redirect_window, WAYPOINT_DIST_SCALE   # noqa: E402
 from nav.joystick import action_to_joystick                                         # noqa: E402
 from nav.waypoints import SegmentManager, RoundOver                                 # noqa: E402
 from nav.gems import visible_gems, choose, plan_tour, STICKY_TOL                    # noqa: E402
@@ -83,6 +83,13 @@ class InstanceWorker:
         self.smooth_dir = None            # EMA state for the commanded direction
         self.real = False; self.target = None            # real-gem mode state
         self.round_points = 0.0; self.round_gems = 0; self.round_falls = 0
+        self.round_uses = {}; self.prev_held = 0           # powerup use decisions / fires this round (log 40)
+        self.ss_fire_step = -10**9                           # step of the last Super Speed fire (falls within 3 s -> 'fss')
+        self.redirect_sent = -10**9; self.redirect_open = []  # redirect uses: did the gem get picked within 12 decisions of the fire?
+        self.fire_pending = None; self.fire_bucket = None    # 40.20: the kick's resultant speed (3 decisions after the fire) in
+                                                              # buckets A < 18, B 18-24, C > 24 u/s: 'ksA..C' fires, 'kfA..C' falls within 3 s
+        self.pk = {'on': [0.0, 0], 'off': [0.0, 0], 'none': [0.0, 0]}   # pickup speed sums by redirect flag (log 40.13)
+        self.rw = {'fire': [0.0, 0], 'all': [0.0, 0]}      # reward per decision within 30 decisions of a Super Speed fire vs all (40.18)
         self.t0 = time.perf_counter()
         self.prof = {'game': 0.0, 'obs': 0.0, 'begin': 0.0}   # wall seconds since the last reply
 
@@ -141,8 +148,13 @@ class InstanceWorker:
         score once, reset the counters. (Before 2026-09-23 17:00 the RoundOver paths inside
         start_segment/recover skipped both, so a round ending mid-respawn merged into the next.)"""
         if self.real and self.env.round_ended:
-            self.log(f'GAME map={self.mission} points={self.round_points:.0f} gems={self.round_gems} falls={self.round_falls} rtf={self.env.rtf():.1f}')
-        self.round_points = 0.0; self.round_gems = 0; self.round_falls = 0
+            uses = ','.join(f'{k}:{v}' for k, v in sorted(self.round_uses.items())) or '-'
+            pk = ' '.join(f'pk{k}={v[0] / v[1]:.1f}/{v[1]}' for k, v in self.pk.items() if v[1] > 0)
+            pk += ' ' + ' '.join(f'rw{k}={v[0] / v[1]:.3f}/{v[1]}' for k, v in self.rw.items() if v[1] > 0)
+            self.log(f'GAME map={self.mission} points={self.round_points:.0f} gems={self.round_gems} falls={self.round_falls} rtf={self.env.rtf():.1f} pow={uses} {pk}')
+        self.round_points = 0.0; self.round_gems = 0; self.round_falls = 0; self.round_uses = {}
+        self.pk = {'on': [0.0, 0], 'off': [0.0, 0], 'none': [0.0, 0]}
+        self.rw = {'fire': [0.0, 0], 'all': [0.0, 0]}
 
     def start_segment(self):
         tb = time.perf_counter()
@@ -198,6 +210,29 @@ class InstanceWorker:
                 a[0], a[1] = (self.smooth_dir[0] / sn, self.smooth_dir[1] / sn) if sn > 1e-6 else (ux, uy)
         js = action_to_joystick(a[0], a[1], a[2], a[3], a[4], float(vel[0]), float(vel[1]))
         v_before = (float(vel[0]), float(vel[1])); prev_obs = self.env.msg.obs
+        # the use bit (action element 5, POWERUP_PLAN phase 4): fire the held powerup, else the blast meter when it
+        # is usable; a Super Speed goes along the commanded direction (the bridge latches that yaw over the key lag)
+        use_pow = use_blast = 0; pow_yaw = None
+        # 40.18: how often is a Super Speed use APPROVED (held, on the floor, waypoint >= 8 u, kick survivable)? 'ap2'
+        if (self.vec is not None and self.vec[VEC_POW + 1] > 0.5 and self.vec[VEC_POW + 26] > 0.5 and self.vec[8] > 0.5
+                and self.vec[2] * WAYPOINT_DIST_SCALE >= 8.0):
+            self.round_uses['ap2'] = self.round_uses.get('ap2', 0) + 1
+        held = int(prev_obs[RAW_POW_HELD]) if len(prev_obs) > RAW_POW_HELD else 0
+        if len(a) >= 8 and a[5] > 0.5:
+            if held > 0:
+                use_pow = 1
+                key = f'u{held}'
+                if held == 2:
+                    ax, ay = ss_aim(self.vec)         # V9: the physics aim (redirect, or the line to the waypoint)
+                    pow_yaw = math.atan2(ax, ay)
+                    # 40.15: 'r2' = a turn (velocity more than 30 deg off the waypoint line), 'u2' = a run
+                    spd = math.hypot(self.vec[4], self.vec[5])
+                    if spd > 1e-6 and (self.vec[4] * self.vec[0] + self.vec[5] * self.vec[1]) / spd < 0.866:
+                        key = 'r2'; self.redirect_sent = self.steps
+                self.round_uses[key] = self.round_uses.get(key, 0) + 1
+            elif float(prev_obs[RAW_POW_BLAST]) >= BLAST_REQUIRED or float(prev_obs[RAW_POW_SPECIAL]) > 0.5:
+                use_blast = 1
+                self.round_uses['blast'] = self.round_uses.get('blast', 0) + 1
         tg = time.perf_counter()
         if TRAIN_WATCH:
             # hold each decision to OBS_MS of wall clock, the same pacing real_run uses in WATCH
@@ -210,8 +245,32 @@ class InstanceWorker:
                 time.sleep(slack)
             else:
                 self._next_tick = time.perf_counter()
-        msg, info = self.env.step(js)
+        msg, info = self.env.step(js, use_pow=use_pow, pow_yaw=pow_yaw, use_blast=use_blast)
         self.prof['game'] += time.perf_counter() - tg
+        held_now = int(msg.obs[RAW_POW_HELD]) if len(msg.obs) > RAW_POW_HELD else 0
+        if held > 0 and held_now == 0 and not info['fell']:      # the held powerup went: fired (or lost to a respawn)
+            self.round_uses[f'f{held}'] = self.round_uses.get(f'f{held}', 0) + 1
+            if held == 2:
+                self.ss_fire_step = self.steps; self.fire_pending = self.steps
+                if self.steps - self.redirect_sent <= 3:
+                    self.redirect_open.append([self.steps, self.round_gems])
+        if self.redirect_open and self.steps - self.redirect_open[0][0] >= 24:   # 1.5 s: the waypoint after a turn is >= 8 u away
+            _, g0 = self.redirect_open.pop(0)
+            k = 'rhit' if self.round_gems > g0 else 'rmiss'
+            self.round_uses[k] = self.round_uses.get(k, 0) + 1
+        if self.fire_pending is not None and self.steps - self.fire_pending >= 3:
+            sp3 = math.hypot(float(msg.obs[3]), float(msg.obs[4]))
+            self.fire_bucket = 'A' if sp3 < 18.0 else ('B' if sp3 <= 24.0 else 'C')
+            self.round_uses['ks' + self.fire_bucket] = self.round_uses.get('ks' + self.fire_bucket, 0) + 1
+            self.fire_pending = None
+        if info['fell'] and self.steps - self.ss_fire_step <= 47:   # a fall within 3 s of a Super Speed fire
+            self.round_uses['fss'] = self.round_uses.get('fss', 0) + 1
+            if self.fire_bucket is not None:
+                self.round_uses['kf' + self.fire_bucket] = self.round_uses.get('kf' + self.fire_bucket, 0) + 1
+        if self.real and info['gem_delta'] > 0:
+            # pickup speed by the redirect flag: on (Super Speed held, redirect possible), off (held, not possible), none
+            grp = ('on' if self.vec[VEC_POW + 27] > 0.5 else 'off') if held == 2 else 'none'
+            self.pk[grp][0] += math.hypot(v_before[0], v_before[1]); self.pk[grp][1] += 1
         if self.real:
             self.round_points += float(info['gem_delta'])
             if info['gem_delta'] > 0:
@@ -261,7 +320,7 @@ class InstanceWorker:
                                           # by shrinking log_std -- the one thing the entropy
                                           # controller exists to prevent. Falls back to the sample
                                           # for eval paths that send a bare 5-vector.
-                                          cmd_dir=(a[5], a[6]) if len(a) > 6 else (a[0], a[1]),
+                                          cmd_dir=(a[6], a[7]) if len(a) > 7 else (a[0], a[1]),   # after the use bit (6 action elements)
                                           picked=float(info['gem_delta']) if self.real else 0.0)
         if self.segs.take_respawn():
             # fell mid-group: get back on the map, keep the same gems, carry on
@@ -287,6 +346,10 @@ class InstanceWorker:
             # collected, sitting at its own feet: it orbits a dead waypoint until the timeout.
             self.goal = self.segs.seg.goal
         self.ep_reward += r
+        if self.real:
+            self.rw['all'][0] += r; self.rw['all'][1] += 1
+            if 0 <= self.steps - self.ss_fire_step < 30:
+                self.rw['fire'][0] += r; self.rw['fire'][1] += 1
         o = msg.obs
         trace = (f'{self.seg_count},{self.env.time_left_s():.2f},{o[0]:.2f},{o[1]:.2f},{o[2]:.2f},{o[3]:.2f},{o[4]:.2f},{o[5]:.2f},'
                  f'{int(self.on_floor)},{js[0]:.2f},{js[1]:.2f},{js[2]:.2f},{js[3]:.2f},{js[4]},{int(a[4] > 0.5)},{int(info["fell"])},'

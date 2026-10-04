@@ -1,0 +1,2 @@
+powblast: python 38316 game 41916 -> C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\logs\learned_nav\powblast_KingOfTheMarble_Hunt.txt
+powblast: done
