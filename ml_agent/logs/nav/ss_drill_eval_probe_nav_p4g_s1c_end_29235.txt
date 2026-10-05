@@ -1,3 +1,0 @@
-drill eval stage 2 no-use: nav_p4g_s1c_end_29235.pth (update 29235), deterministic, 80 drills, port 9972
-DRILL EVAL probe_nav_p4g_s1c_end_29235: stage 2 no-use n 80 | kick gem within 1.0 s 0%, 1.5 s 0%, at all 88% (median 2.85 s) | gem after 59% | both, median time 4.73 s | fell 19% | timeout 22% | fired 0% | return 71.4 | 63 s
-USE PROBE: approved decisions 311 | p_learn mean 0.069 median 0.046 p90 0.146 max 0.219 | share > 0.5: 0.0%, > 0.375: 0.0%

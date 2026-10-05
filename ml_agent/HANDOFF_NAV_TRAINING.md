@@ -14,6 +14,14 @@ Protected navigator: models/nav/nav_v10_28897.pth; its deterministic score 161.1
 
 ## 1. Where things stand
 
+* **Live play against people (production, 2026-10-04, log 40.46):** `ml_agent/play_live.ps1` starts
+  `python -m nav.live_play` and `marbleblast_mbx.exe -ailive -aifreecam`; log in, join or host a KOTM server, start
+  the round. The production bridge is `platinum/client/scripts/ai/live/agentLive.cs`, loaded only with `-ailive` (one
+  hook in `client/init.cs`); the training files are unchanged. Operator 2026-10-04: training is offline; the login
+  question is closed, do not raise it. Only if `-autotrain` games ever stop at "Ready..." with the pause menu open:
+  `-offline` launched them normally on 10-04 (log 40.46).
+* **Watching at 1x with a free camera (log 40.47):** `ml_agent/watch_model.ps1 [map]` (default KOTM); the mouse and
+  arrows turn the view only (`-aifreecam`, `platinum/client/scripts/ai/watch/freeCam.cs`), also in live play.
 * **2026-10-04 evening (the manoeuvre run, HANDOFF_SUPERSPEED_MANEUVER_2026-10-04.md, log 40.41-40.45):** TRAINING
   STOPPED 21:13 by the operator at update 29665 (`nav_latest.pth` = `models/nav/nav_r2_stop_29665.pth`; run 1 collection
   17:17-18:20 ended at `nav_run1_end_29115.pth`). Fixed on the way: model.evaluate_seq restarts a warm-started live drill

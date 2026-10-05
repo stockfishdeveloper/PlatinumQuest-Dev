@@ -211,6 +211,20 @@ function initClient() {
 
 	// ML Agent (must be after mp/main.cs so hooks override MP callbacks)
 	exec("./scripts/ai/mlAgent.cs"); // ML agent controller for RL training
+	// Live play against people (2026-10-04): launched with -ailive, the production bridge in scripts/ai/live/
+	// redefines the agent's functions for real-time play on a server (ml_agent/nav/live_play.py is its Python side).
+	// Watching at 1x (2026-10-04): launched with -aifreecam, scripts/ai/watch/freeCam.cs lets the mouse turn the
+	// view without touching the agent's steering (ml_agent/watch_model.ps1 and ml_agent/play_live.ps1 pass it).
+	// Training never passes either argument, so nothing here changes it.
+	for (%i = 1; %i < $Game::argc; %i++) {
+		if ($Game::argv[%i] $= "-ailive") {
+			$argUsed[%i]++;
+			exec("./scripts/ai/live/agentLive.cs");
+		} else if ($Game::argv[%i] $= "-aifreecam") {
+			$argUsed[%i]++;
+			exec("./scripts/ai/watch/freeCam.cs");
+		}
+	}
 
 	//Stop the game from allowing connections by default
 	allowConnections(false);

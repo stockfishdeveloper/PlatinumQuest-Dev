@@ -1,0 +1,5 @@
+warm-up: model ready in 0.00 s, terrain "Skatium_Hunt" pre-built
+[env:9961] waiting for the game
+[env:9961] game connected (1)
+WATCH mode: every frame drawn, 4 sim slice(s) per 64 ms decision, real time
+real run: nav_latest.pth (update 29665) on Skatium_Hunt, 50 round(s), port 9961

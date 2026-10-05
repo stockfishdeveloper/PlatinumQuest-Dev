@@ -1,0 +1,43 @@
+C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\nav\real_run.py:316: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  ck = torch.load(ckpt, map_location=dev)
+warm-up: model ready in 0.00 s, terrain "Skatium_Hunt" pre-built
+[env:9961] waiting for the game
+[env:9961] game connected (1)
+WATCH mode: every frame drawn, 4 sim slice(s) per 64 ms decision, real time
+real run: nav_latest.pth (update 29665) on Skatium_Hunt, 5 round(s), port 9961
+stuck-breaker #1 at (-97.8,56.4) decision 1361: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #2 at (-97.1,57.9) decision 1399: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #3 at (-97.3,57.6) decision 1426: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #4 at (-97.2,56.9) decision 1458: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #5 at (-98.9,48.3) decision 1545: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #6 at (-99.9,49.9) decision 1569: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #7 at (-97.3,51.1) decision 1600: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #8 at (-100.6,47.6) decision 1624: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #9 at (-98.6,51.9) decision 1649: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #10 at (-101.3,50.5) decision 1790: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #11 at (-99.3,53.1) decision 1889: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #12 at (-98.6,48.0) decision 1960: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #13 at (-99.3,51.9) decision 1984: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #14 at (-97.8,48.1) decision 2008: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #15 at (-99.5,51.9) decision 2032: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #16 at (-99.2,47.6) decision 2110: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #17 at (-99.1,48.3) decision 2157: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #18 at (-99.8,53.4) decision 2191: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #19 at (-99.4,53.3) decision 2245: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #20 at (-7.3,-144.7) decision 2629: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #21 at (-4.0,-143.3) decision 2682: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #22 at (-3.5,-141.4) decision 2825: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #23 at (-7.9,-144.6) decision 2975: state reset, path waypoint + sampling for 24 decisions
+  round 1: {'round': 1, 'gems': 14, 'points': 31.0, 'minutes': 3.21, 'decisions': 3008, 'countdown_decisions': 97, 'gems_per_min': 4.4, 'points_per_min': 9.7, 'falls': 0, 'falls_per_100u': 0.0, 'travelled_u': 1295.1, 'speed': 6.73, 'blind_pct': 0.0, 'stuck_breaks': 23, 'snapped_pct': 0.0, 'pathed_pct': 1.1, 'smooth': 1.0, 'pow_uses': {}}
+[env:9961] round over (time left 300s of 300s); waiting for the next round
+[env:9961] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)
+stuck-breaker #1 at (-105.9,131.0) decision 506: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #2 at (-106.0,131.1) decision 530: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #3 at (-105.7,130.7) decision 554: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #4 at (105.8,2.3) decision 1077: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #5 at (105.8,2.7) decision 1101: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #6 at (105.8,3.0) decision 1125: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #7 at (105.8,3.0) decision 1149: state reset, path waypoint + sampling for 24 decisions
+  round 2: {'round': 2, 'gems': 6, 'points': 15.0, 'minutes': 1.2, 'decisions': 1126, 'countdown_decisions': 46, 'gems_per_min': 5.0, 'points_per_min': 12.5, 'falls': 0, 'falls_per_100u': 0.0, 'travelled_u': 552.3, 'speed': 7.66, 'blind_pct': 0.0, 'stuck_breaks': 7, 'snapped_pct': 0.0, 'pathed_pct': 8.2, 'smooth': 1.0, 'pow_uses': {}}
+[env:9961] round over (time left 300s of 300s); waiting for the next round
+[env:9961] next round after 1 ticks / 0 s wall (time left 300s, reconnected False)

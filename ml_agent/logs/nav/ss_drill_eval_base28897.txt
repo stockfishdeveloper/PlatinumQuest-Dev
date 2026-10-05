@@ -1,2 +1,0 @@
-drill eval: nav_v10_28897.pth (update 28895), deterministic, port 9971
-DRILL EVAL base28897: n 211 | intended gem within 1.0 s 23%, 1.5 s 29%, at all 92% (median 1.79 s) | gem after 72% | fell 19% | timeout 9% | return 56.4 | 121 s

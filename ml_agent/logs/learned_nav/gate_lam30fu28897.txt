@@ -1,3 +1,0 @@
-05:12:57 lam30fu28897a: python 1155073 port 9961 ckpt models/nav/nav_v10_28897.pth
-05:13:06 lam30fu28897b: python 1155328 port 9962 ckpt models/nav/nav_v10_28897.pth
-05:17:30 done

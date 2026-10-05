@@ -1,3 +1,0 @@
-05:27:45 det_p4i_29069e: python 1166674 port 9961 ckpt models/nav/nav_p4i_29069.pth
-05:27:54 det_p4i_29069f: python 1166841 port 9962 ckpt models/nav/nav_p4i_29069.pth
-05:32:29 done

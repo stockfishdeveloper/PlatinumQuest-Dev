@@ -1,2 +1,0 @@
-smoke_live: python 44412 game 22904 -> C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\logs\learned_nav\smoke_live_KingOfTheMarble_Hunt.txt
-smoke_live:   python -m nav.ss_drill_eval --ckpt C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\models\nav\nav_v10_28897.pth --stage 4 --n 6 --port 9976 --tag smoke_learned

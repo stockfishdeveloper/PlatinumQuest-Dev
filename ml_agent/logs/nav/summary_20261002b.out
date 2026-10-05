@@ -307,3 +307,10 @@ upd 29567 trainer=1 games=8 KOTM all: n=36 mean=145.4 max=156 min=133 falls/rd=1
 upd 29619 trainer=1 games=8 KOTM all: n=116 mean=147.3 max=162 min=133 falls/rd=1.4 | last 14: n=14 mean=147.6 max=155 min=137 falls/rd=1.3 | last 50: n=50 mean=148.7 max=162 min=136 falls/rd=1.3 | last time 20:58:39
 NEW 50-ROUND HIGH 148.7 at upd 29619: snapshot models/nav/nav_night_29619_149.pth
 upd 29667 trainer=0 games=3 KOTM all: n=190 mean=147.2 max=162 min=131 falls/rd=1.5 | last 14: n=14 mean=148.5 max=154 min=139 falls/rd=1.0 | last 50: n=50 mean=146.9 max=159 min=131 falls/rd=1.6 | last time 21:12:58
+upd 29667 trainer=0 games=1 KOTM all: n=190 mean=147.2 max=162 min=131 falls/rd=1.5 | last 14: n=14 mean=148.5 max=154 min=139 falls/rd=1.0 | last 50: n=50 mean=146.9 max=159 min=131 falls/rd=1.6 | last time 21:12:58
+upd 29667 trainer=0 games=1 KOTM all: n=190 mean=147.2 max=162 min=131 falls/rd=1.5 | last 14: n=14 mean=148.5 max=154 min=139 falls/rd=1.0 | last 50: n=50 mean=146.9 max=159 min=131 falls/rd=1.6 | last time 21:12:58
+upd 29667 trainer=0 games=1 KOTM all: n=190 mean=147.2 max=162 min=131 falls/rd=1.5 | last 14: n=14 mean=148.5 max=154 min=139 falls/rd=1.0 | last 50: n=50 mean=146.9 max=159 min=131 falls/rd=1.6 | last time 21:12:58
+upd 29667 trainer=0 games=0 KOTM all: n=190 mean=147.2 max=162 min=131 falls/rd=1.5 | last 14: n=14 mean=148.5 max=154 min=139 falls/rd=1.0 | last 50: n=50 mean=146.9 max=159 min=131 falls/rd=1.6 | last time 21:12:58
+upd 29667 trainer=0 games=0 KOTM all: n=190 mean=147.2 max=162 min=131 falls/rd=1.5 | last 14: n=14 mean=148.5 max=154 min=139 falls/rd=1.0 | last 50: n=50 mean=146.9 max=159 min=131 falls/rd=1.6 | last time 21:12:58
+upd 29667 trainer=0 games=1 KOTM all: n=190 mean=147.2 max=162 min=131 falls/rd=1.5 | last 14: n=14 mean=148.5 max=154 min=139 falls/rd=1.0 | last 50: n=50 mean=146.9 max=159 min=131 falls/rd=1.6 | last time 21:12:58
+upd 29667 trainer=0 games=0 KOTM all: n=190 mean=147.2 max=162 min=131 falls/rd=1.5 | last 14: n=14 mean=148.5 max=154 min=139 falls/rd=1.0 | last 50: n=50 mean=146.9 max=159 min=131 falls/rd=1.6 | last time 21:12:58

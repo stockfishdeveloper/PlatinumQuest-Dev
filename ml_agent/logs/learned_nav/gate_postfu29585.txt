@@ -1,3 +1,0 @@
-04:08:22 postfu29585a: python 1106733 port 9963 ckpt models/nav/nav_p4g_29585.pth
-04:08:31 postfu29585b: python 1106759 port 9964 ckpt models/nav/nav_p4g_29585.pth
-04:13:16 done

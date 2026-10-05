@@ -1,2 +1,0 @@
-w4_29330_nouse: python 19644 game 40136 -> C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\logs\learned_nav\w4_29330_nouse_KingOfTheMarble_Hunt.txt
-w4_29330_nouse: DRILL EVAL w4_29330_nouse: stage 4 no-use n 87 | kick gem within 1.0 s 0%, 1.5 s 0%, at all 86% (median 9.34 s) | gem after 67% | both, median time 10.50 s | fell 0% | timeout 0% | fired 0% | return 5.1 | 157 s

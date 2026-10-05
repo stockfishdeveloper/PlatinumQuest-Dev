@@ -6208,3 +6208,71 @@ play). Checked against the code and the checkpoints: all of it holds. Built toda
   using: it has learned to be selective but not yet the right selection (the critic's mixed reward scales, 40.43, are a
   likely reason its advantages are noisy). The handoff's bar for a full-round gate (learned > no use by one se) is not
   met, so no gate. At ~1 kick a round, +0.17 gems a kick would be worth well under one point a round.
+
+### 40.46 Live play against people; the production bridge split from the training files (10-04 21:25-22:40)
+
+* Operator: play against the model (account Alfonsus) on a real multiplayer server. The official PQ client has no
+  agent bridge, so the repo build (marbleblast_mbx.exe) plays. It joined an online server in Oregon as a CLIENT (the
+  server is remote); every bridge assumption that held on the local host of -autotrain failed there, one at a time:
+  1. real time: nav.env TRAINING_MODE sends FIXEDSTEP / LOCKSTEP / RENDEREVERY, which would stall or change a shared
+     server; live play needs the old asynchronous bridge (no control words, each decision held 4 x 16 ms, SPEED 1);
+  2. the bridge acted only once the clock fell below MissionInfo.time (3:00) and only while $Game::Running, which only
+     the hosting server's scripts set: on a joined client it never acted. Live: act from GO (clientCmdStartTimer or the
+     game state "go"), play the Ready/Set countdown; the round ends when the server ends it; no automatic restart;
+  3. gems: on a joined client datablocks arrive without their script fields (classname reads "ItemData"), so no gem
+     matched and the model parked on the map's centre fallback. Live: recognise gems by datablock name (the server
+     sends the names, commands.cs RecDataBlockNames) or a gem shape, excluding editor-only items (BackupGem);
+  4. the camera swung ~15 times a second (the steering turns the marble camera each decision): fixed render view;
+  5. the engine buffers console.log, so the bridge reports why it waits and what the gem scan sees as DEBUG|live| lines
+     to the Python side.
+  Result: the model saw gems on 2,834 of 2,839 decisions and scored 62 points in a full round against the operator
+  (its offline rounds score ~160; a human taking gems and real-time control both cost points; one round only). One
+  engine crash at 21:49 (crash_dumps/crash_2026-10-04_21-49-54, no symbols). As a joined player the powerup state is
+  not readable (the observer reads it from the server's client list), so no Super Speed in live play yet.
+* SPLIT (operator: "maintain both a production version ... and the training version ... keep the new changes in
+  separate files"). The training files are back to exactly the 21:21 commit (8d6d83b1e; git diff empty):
+  Marble Blast Platinum/platinum/client/scripts/ai/mlAgent.cs, .../ai/observer.cs, ml_agent/nav/env.py,
+  ml_agent/nav/real_run.py. Production, all new files:
+  - Marble Blast Platinum/platinum/client/scripts/ai/live/agentLive.cs: the live settings and the live versions of
+    MLAgent::startLoop / update / checkDone / onTimerStart / onGameEnd, MLAgent::liveWaitNote (new) and
+    AIObserver::collectGems, verbatim from the version that played the 62-point round; it redefines them after the
+    training bridge loads;
+  - one hook in Marble Blast Platinum/platinum/client/init.cs (right after mlAgent.cs): with the launch argument -ailive
+    it loads ai/live/agentLive.cs; training never passes -ailive;
+  - ml_agent/nav/live_play.py: sets the production defaults (checkpoint nav_r2_stop_29665.pth, KOTM, port 8888, speed
+    1, CPU), switches nav.env to real time at runtime, prints the DEBUG|live| lines, takes the map from NAV_MAP, and
+    runs nav.real_run unchanged;
+  - ml_agent/play_live.ps1: starts nav.live_play and marbleblast_mbx.exe -ailive (log logs/learned_nav/live_play.txt).
+* Checks: training path, one deterministic -autotrain round through nav.real_run after the split: 155 points, 123 gems,
+  1 fall (with -offline, see the next point). Live path not re-run after the split (operator: stop opening PQ); its
+  functions are the ones that played.
+* TRAP found: logging in as Alfonsus in the repo build saved the login (platinum/client/lbprefs.cs:
+  $LBPref::Username / RememberPassword, gitignored). Since then every launch of the build logs in online, and an
+  -autotrain launch stops at "Ready..." with the pause menu open (two training checks stalled: one froze after 1,198
+  decisions, one never connected). With -offline the same launch trained normally. Before training restarts, either
+  remove the saved login from lbprefs.cs (live play then needs a login each time) or add -offline to the training
+  launchers (run_game_loop.ps1, logs/nav/gate_scripts/*.sh, run_one.ps1); the operator's call.
+
+### 40.47 Watching at 1x with a free camera (10-04 22:45-23:30)
+* Operator watched the model on Skatium_Hunt at 1x (nav_latest = update 29665; terrain map generated for it,
+  terrain_maps/terrain_Skatium_Hunt.npz). Rounds 31 points (14 gems, 23 stuck-breaks) and 15 points (6 gems, ended
+  after 1.2 min); both ended early right after the marble got stuck.
+* Operator: "rotate the camera without affecting the model", "only unlock camera in the 1x speed version". Cause: the
+  agent steers through the marble's camera yaw (executeAction sets it every decision; F/B/L/R and Super Speed follow
+  it) while the picture is drawn at the render-only view yaw (Marble.setViewYaw, pinned at 0). The game's mouse handler
+  adds to $mvYaw, which turned the STEERING yaw between decisions.
+* Fix, new files only (training files unchanged, git diff empty):
+  - Marble Blast Platinum/platinum/client/scripts/ai/watch/freeCam.cs: while the agent runs at 1x with every frame
+    drawn (SPEED 1, RENDEREVERY 1), the mouse x axis and the left/right arrows turn the view yaw only (re-applied after
+    Python's VIEWYAW at each new round and after respawns); pitch keeps the game's handler (render only: getMarbleAxis
+    and Super Speed use the yaw, the model never reads pitch); both mouse buttons do nothing. Otherwise every handler
+    behaves as in default.bind.cs;
+  - client/init.cs hook: the launch argument -aifreecam loads it (next to -ailive);
+  - ml_agent/watch_model.ps1 [map] (default KOTM): runner in watch mode (NAV_WATCH, speed 1, 4 view sub-steps, 50
+    rounds, port 9961, CPU, nav_latest, NAV_TOUR walk) plus the game with -autotrain <map> -offline -aifreecam; closing
+    the game window stops the runner. Log logs/learned_nav/rr_watch_<map>.txt.
+* Operator tested it on KOTM: "it works".
+* Then (operator: "add the free camera fix to the live server version so we can move the camera in lobby games"):
+  play_live.ps1 now launches marbleblast_mbx.exe -ailive -aifreecam, and MLWatchCam::active() is true in live play
+  ($MLAgent::Live) whenever the marble exists (live play is always real time, Python sends only SPEED 1, and
+  agentLive.cs pins the view for the whole session). Not yet run in a lobby game.

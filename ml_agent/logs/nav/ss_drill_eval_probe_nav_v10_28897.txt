@@ -1,3 +1,0 @@
-drill eval stage 2 no-use: nav_v10_28897.pth (update 28895), deterministic, 80 drills, port 9972
-DRILL EVAL probe_nav_v10_28897: stage 2 no-use n 80 | kick gem within 1.0 s 0%, 1.5 s 0%, at all 86% (median 2.69 s) | gem after 71% | both, median time 4.93 s | fell 19% | timeout 10% | fired 0% | return 73.6 | 61 s
-USE PROBE: approved decisions 299 | p_learn mean 0.259 median 0.259 p90 0.280 max 0.297 | share > 0.5: 0.0%, > 0.375: 0.0%

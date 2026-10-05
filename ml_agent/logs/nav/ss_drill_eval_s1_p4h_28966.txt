@@ -1,2 +1,0 @@
-drill eval stage 1: nav_p4h_28966.pth (update 28965), deterministic, 211 drills, port 9971
-DRILL EVAL s1_p4h_28966: stage 1 n 211 | kick gem within 1.0 s 24%, 1.5 s 30%, at all 92% (median 1.73 s) | gem after 73% | both, median time 4.42 s | fell 20% | timeout 8% | fired 0% | return 56.9 | 127 s
