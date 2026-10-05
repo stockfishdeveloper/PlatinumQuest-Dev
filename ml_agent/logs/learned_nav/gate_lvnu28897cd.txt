@@ -1,0 +1,3 @@
+05:27:33 lvnu28897c: python 1166485 port 9963 ckpt models/nav/nav_v10_28897.pth
+05:27:41 lvnu28897d: python 1166638 port 9964 ckpt models/nav/nav_v10_28897.pth
+05:32:21 done

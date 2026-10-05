@@ -1,0 +1,3 @@
+04:08:07 offnu29585a: python 1106534 port 9961 ckpt models/nav/nav_p4g_29585.pth
+04:08:16 offnu29585b: python 1106604 port 9962 ckpt models/nav/nav_p4g_29585.pth
+04:12:51 done

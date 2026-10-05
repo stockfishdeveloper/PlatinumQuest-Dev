@@ -1,0 +1,2 @@
+w4_29665_force: python 44416 game 20560 -> C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\logs\learned_nav\w4_29665_force_KingOfTheMarble_Hunt.txt
+w4_29665_force: DRILL EVAL w4_29665_force: stage 4 n 200 | kick gem within 1.0 s 0%, 1.5 s 0%, at all 89% (median 8.45 s) | gem after 70% | both, median time 9.70 s | fell 0% | timeout 0% | fired 98% | return 5.2 | 290 s

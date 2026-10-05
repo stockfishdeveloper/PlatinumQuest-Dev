@@ -1,0 +1,2 @@
+drill eval stage 2 no-use: nav_p4h_28966.pth (update 28965), deterministic, 221 drills, port 9971
+DRILL EVAL s2nu_p4h_28966: stage 2 no-use n 221 | kick gem within 1.0 s 0%, 1.5 s 1%, at all 88% (median 2.56 s) | gem after 77% | both, median time 4.86 s | fell 19% | timeout 5% | fired 0% | return 80.3 | 159 s

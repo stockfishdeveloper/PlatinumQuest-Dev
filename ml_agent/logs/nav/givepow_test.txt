@@ -1,0 +1,8 @@
+[env:9975] waiting for the game
+[env:9975] game connected (1)
+held at start 0
+trial 0: held after GIVEPOW 2, after the use 0; dv (-0.7, 23.3) = 23.3 along yaw 0.00
+trial 1: held after GIVEPOW 2, after the use 0; dv (1.8, -0.0) = 1.8 along yaw 1.57
+trial 2: held after GIVEPOW 2, after the use 0; dv (-1.0, -25.0) = 25.0 along yaw 3.14
+granted 2, after GIVEPOW none 0
+GIVEPOW FAILED

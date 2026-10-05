@@ -1,0 +1,5 @@
+05:22:12 det_p4i_29069a: python 1162366 port 9961 ckpt models/nav/nav_p4i_29069.pth
+05:22:21 det_p4i_29069b: python 1162432 port 9962 ckpt models/nav/nav_p4i_29069.pth
+05:22:31 det_p4i_29069c: python 1162546 port 9963 ckpt models/nav/nav_p4i_29069.pth
+05:22:40 det_p4i_29069d: python 1162788 port 9964 ckpt models/nav/nav_p4i_29069.pth
+05:27:14 done

@@ -1,0 +1,811 @@
+[18:21:25] resumed C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\models\nav\nav_latest.pth: update 29115, steps 229,671,417, trained on KingOfTheMarble_Hunt
+[18:21:25] 40.33 FREEZE_BASE: 61,957 trainable parameters (value_head at LR 0.0003; use_head, ss_res at 0.003); the navigator is frozen; Adam state resumed
+[18:21:27] 8 instance worker(s) on ports 8888..8895; training mode True (64 ms per decision); arrive radius 0.65 u; device cuda
+[18:21:35] [0] [env:8888] waiting for the game
+[18:21:35] [0] [env:8888] game connected (1)
+[18:21:35] [0] SUPER SPEED DRILL instance, stage 1: 948 starts from starts_dev.json
+[18:21:35] [0] real-gem training mode: False
+[18:21:35] [0] mission KingOfTheMarble_Hunt: terrain 99x99 @ 0.5 u, walkable 1488 cells
+[18:21:35] [0] gem chooser: greedy
+[18:21:35] [0] ready on 8888, mission KingOfTheMarble_Hunt
+[18:21:37] [1] [env:8889] waiting for the game
+[18:21:37] [1] [env:8889] game connected (1)
+[18:21:37] [1] SUPER SPEED DRILL instance, stage 2: 987 starts from starts2_dev.json
+[18:21:37] [1] real-gem training mode: False
+[18:21:37] [1] mission KingOfTheMarble_Hunt: terrain 99x99 @ 0.5 u, walkable 1488 cells
+[18:21:37] [1] gem chooser: greedy
+[18:21:37] [1] ready on 8889, mission KingOfTheMarble_Hunt
+[18:21:39] [2] [env:8890] waiting for the game
+[18:21:39] [2] [env:8890] game connected (1)
+[18:21:39] [2] SUPER SPEED DRILL instance, stage 4: 260 starts from starts_live_dev.json
+[18:21:39] [2] real-gem training mode: False
+[18:21:39] [2] mission KingOfTheMarble_Hunt: terrain 99x99 @ 0.5 u, walkable 1488 cells
+[18:21:39] [2] gem chooser: greedy
+[18:21:39] [2] ready on 8890, mission KingOfTheMarble_Hunt
+[18:21:41] [3] [env:8891] waiting for the game
+[18:21:41] [3] [env:8891] game connected (1)
+[18:21:41] [3] SUPER SPEED DRILL instance, stage 4: 260 starts from starts_live_dev.json
+[18:21:41] [3] real-gem training mode: False
+[18:21:41] [3] mission KingOfTheMarble_Hunt: terrain 99x99 @ 0.5 u, walkable 1488 cells
+[18:21:41] [3] gem chooser: greedy
+[18:21:41] [3] ready on 8891, mission KingOfTheMarble_Hunt
+[18:21:44] [4] [env:8892] waiting for the game
+[18:21:44] [4] [env:8892] game connected (1)
+[18:21:44] [4] real-gem training mode: True
+[18:21:44] [4] mission KingOfTheMarble_Hunt: terrain 99x99 @ 0.5 u, walkable 1488 cells
+[18:21:44] [4] gem chooser: greedy
+[18:21:44] [4] ready on 8892, mission KingOfTheMarble_Hunt
+[18:21:46] [5] [env:8893] waiting for the game
+[18:21:46] [5] [env:8893] game connected (1)
+[18:21:46] [5] real-gem training mode: True
+[18:21:46] [5] mission KingOfTheMarble_Hunt: terrain 99x99 @ 0.5 u, walkable 1488 cells
+[18:21:46] [5] gem chooser: greedy
+[18:21:46] [5] ready on 8893, mission KingOfTheMarble_Hunt
+[18:21:48] [6] [env:8894] waiting for the game
+[18:21:48] [6] [env:8894] game connected (1)
+[18:21:48] [6] real-gem training mode: True
+[18:21:48] [6] mission KingOfTheMarble_Hunt: terrain 99x99 @ 0.5 u, walkable 1488 cells
+[18:21:48] [6] gem chooser: greedy
+[18:21:48] [6] ready on 8894, mission KingOfTheMarble_Hunt
+[18:21:49] [7] [env:8895] waiting for the game
+[18:21:49] [7] [env:8895] game connected (1)
+[18:21:49] [7] real-gem training mode: True
+[18:21:49] [7] mission KingOfTheMarble_Hunt: terrain 99x99 @ 0.5 u, walkable 1488 cells
+[18:21:49] [7] gem chooser: greedy
+[18:21:49] [7] ready on 8895, mission KingOfTheMarble_Hunt
+[18:21:50] [0] DRILL v0=21.9 hit1=1 t1=5.18 hit2=0 t2=0.00 out=timeout ret=1.0
+[18:21:51] [1] DRILL2 v0=5.0 fired=0 tf=0.00 pk=1 hit1=1 t1=5.18 hit2=1 t2=3.01 out=arrived ret=3.0
+[18:21:51] [0] DRILL v0=23.0 hit1=1 t1=1.54 hit2=1 t2=1.86 out=arrived ret=2.0
+[18:21:52] [2] DRILL4 v0=6.3 fired=1 tf=0.26 pk=2 hit1=1 t1=10.50 hit2=0 t2=0.00 out=window ret=3.0 id=5-206598 picks=3 tpicks=4.22,8.32,10.50 falls=0
+[18:21:52] [3] DRILL4 v0=5.5 fired=0 tf=0.00 pk=4 hit1=1 t1=11.71 hit2=0 t2=0.00 out=window ret=5.0 id=3-79557 picks=5 tpicks=5.06,6.53,7.74,9.60,11.71 falls=0
+[18:21:52] [1] DRILL2 v0=5.2 fired=0 tf=0.00 pk=1 hit1=1 t1=1.98 hit2=1 t2=3.84 out=arrived ret=3.0
+[18:21:52] [0] DRILL v0=22.1 hit1=1 t1=1.73 hit2=1 t2=3.07 out=arrived ret=2.0
+[18:21:53] [0] DRILL v0=23.1 hit1=1 t1=1.54 hit2=0 t2=0.00 out=fell ret=1.0
+[18:21:53] [1] DRILL2 v0=9.6 fired=1 tf=0.45 pk=1 hit1=1 t1=1.34 hit2=1 t2=2.82 out=arrived ret=3.0
+[18:21:54] [1] DRILL2 v0=18.7 fired=1 tf=0.38 pk=0 hit1=1 t1=3.65 hit2=1 t2=1.73 out=arrived ret=2.0
+[18:21:54] [0] DRILL v0=24.0 hit1=1 t1=4.35 hit2=0 t2=0.00 out=timeout ret=1.0
+[18:21:54] [3] DRILL4 v0=10.7 fired=1 tf=0.19 pk=4 hit1=1 t1=10.37 hit2=1 t2=1.41 out=arrived ret=6.0 id=6-178780 picks=6 tpicks=3.46,5.70,6.14,9.02,10.37,11.78 falls=0
+[18:21:55] [2] DRILL4 v0=13.9 fired=1 tf=0.26 pk=4 hit1=0 t1=0.00 hit2=0 t2=0.00 out=window ret=0.0 id=3-149883 picks=0 tpicks= falls=1
+[18:21:55] [0] DRILL v0=24.9 hit1=1 t1=0.51 hit2=1 t2=3.65 out=arrived ret=2.0
+[18:21:56] [1] DRILL2 v0=7.2 fired=0 tf=0.00 pk=1 hit1=1 t1=2.18 hit2=1 t2=4.86 out=arrived ret=3.0
+[18:21:57] [3] DRILL4 v0=17.2 fired=1 tf=0.45 pk=4 hit1=1 t1=8.00 hit2=1 t2=1.47 out=arrived ret=6.0 id=3-14265 picks=6 tpicks=2.24,4.22,5.50,6.72,8.00,9.47 falls=0
+[18:21:57] [0] DRILL v0=24.7 hit1=1 t1=4.22 hit2=0 t2=0.00 out=timeout ret=1.0
+[18:21:57] [2] DRILL4 v0=6.0 fired=1 tf=0.19 pk=4 hit1=1 t1=8.70 hit2=1 t2=1.22 out=arrived ret=6.0 id=4-162507 picks=6 tpicks=0.83,4.74,5.70,7.04,8.70,9.92 falls=0
+[18:21:58] [0] DRILL v0=23.8 hit1=1 t1=1.60 hit2=1 t2=1.41 out=arrived ret=2.0
+[18:21:58] [0] DRILL v0=21.1 hit1=0 t1=0.00 hit2=0 t2=0.00 out=fell ret=0.0
+[18:21:58] [1] DRILL2 v0=8.5 fired=0 tf=0.00 pk=1 hit1=1 t1=4.86 hit2=1 t2=2.62 out=arrived ret=3.0
+[18:21:58] [0] DRILL v0=23.9 hit1=1 t1=0.45 hit2=0 t2=0.00 out=fell ret=1.0
+[18:21:59] [3] DRILL4 v0=8.4 fired=1 tf=0.19 pk=4 hit1=1 t1=7.10 hit2=1 t2=1.54 out=arrived ret=6.0 id=7-111012 picks=6 tpicks=1.98,3.46,4.61,6.02,7.10,8.64 falls=0
+[18:21:59] [1] DRILL2 v0=8.9 fired=1 tf=0.45 pk=1 hit1=1 t1=2.24 hit2=1 t2=1.73 out=arrived ret=3.0
+[18:21:59] [0] fall without OOB flag: 4 decisions off the map at [-33.5  40.4  19. ] (time left 132s)
+[18:21:59] [0] DRILL v0=24.4 hit1=1 t1=0.38 hit2=0 t2=0.00 out=fell ret=1.0
+[18:21:59] [2] DRILL4 v0=8.8 fired=1 tf=0.45 pk=4 hit1=1 t1=8.77 hit2=1 t2=1.22 out=arrived ret=6.0 id=3-191420 picks=6 tpicks=2.18,3.71,5.57,7.42,8.77,9.98 falls=0
+[18:22:00] [0] DRILL v0=21.8 hit1=1 t1=2.62 hit2=1 t2=1.98 out=arrived ret=2.0
+[18:22:01] [3] DRILL4 v0=11.4 fired=0 tf=0.00 pk=1 hit1=1 t1=4.61 hit2=1 t2=2.24 out=arrived ret=3.0 id=5-46052 picks=3 tpicks=3.39,4.61,6.85 falls=1
+[18:22:01] [1] DRILL2 v0=9.9 fired=0 tf=0.00 pk=1 hit1=1 t1=4.22 hit2=1 t2=4.10 out=arrived ret=3.0
+[18:22:01] [0] DRILL v0=19.2 hit1=1 t1=2.56 hit2=1 t2=1.98 out=arrived ret=2.0
+[18:22:02] [2] DRILL4 v0=8.3 fired=1 tf=0.19 pk=4 hit1=1 t1=11.71 hit2=0 t2=0.00 out=window ret=5.0 id=7-183957 picks=5 tpicks=3.52,6.14,7.30,9.86,11.71 falls=1
+[18:22:03] [0] DRILL v0=22.9 hit1=1 t1=3.14 hit2=1 t2=2.05 out=arrived ret=2.0
+[18:22:03] [1] DRILL2 v0=9.3 fired=0 tf=0.00 pk=1 hit1=1 t1=4.35 hit2=0 t2=0.00 out=timeout ret=2.0
+[18:22:03] [0] DRILL v0=20.7 hit1=1 t1=1.73 hit2=1 t2=1.47 out=arrived ret=2.0
+[18:22:03] [3] DRILL4 v0=10.5 fired=1 tf=0.19 pk=4 hit1=1 t1=8.38 hit2=0 t2=0.00 out=window ret=5.0 id=4-39485 picks=5 tpicks=2.05,3.52,4.67,5.89,8.38 falls=0
+[18:22:04] [1] DRILL2 v0=7.7 fired=0 tf=0.00 pk=1 hit1=1 t1=2.43 hit2=0 t2=0.00 out=fell ret=2.0
+[18:22:04] [0] DRILL v0=17.2 hit1=1 t1=2.11 hit2=1 t2=2.82 out=arrived ret=2.0
+[18:22:05]   KL early stop at epoch 1
+[18:22:05] NAV upd=29116 map=KingOfTheMarble_Hunt r=0.65 steps=229,679,617 segs=37 arrive=62% falls100=0.53 speed=7.0 gems=2.8 pickup=8.0 sgem=2.13 carry=0.0 turn=19.7 rew=2.8 pl=-0.072 vl=0.139 ent=0.31 entd=0.03 ec=0.0050 kl=0.394 clip=0.02 gn=0.76 ep=1 dstd=0.22 flips=0 vcont=146.9 upd_s=0.8 wall_s=17 inst=8 dps=496 prof=fwd:10,send:0,recv:4,handle:1,w_game:25,w_obs:21,w_begin:1
+[18:22:06] [2] DRILL4 v0=5.5 fired=1 tf=0.45 pk=4 hit1=1 t1=11.52 hit2=0 t2=0.00 out=window ret=5.0 id=6-127496 picks=5 tpicks=4.80,6.02,8.38,10.11,11.52 falls=0
+[18:22:06] [1] DRILL2 v0=2.1 fired=1 tf=0.77 pk=1 hit1=1 t1=1.41 hit2=1 t2=3.26 out=arrived ret=3.0
+[18:22:06] [0] DRILL v0=22.7 hit1=1 t1=1.73 hit2=1 t2=2.88 out=arrived ret=2.0
+[18:22:07] [0] fall without OOB flag: 4 decisions off the map at [-23.8  41.9  22.1] (time left 99s)
+[18:22:07] [0] DRILL v0=26.4 hit1=0 t1=0.00 hit2=0 t2=0.00 out=fell ret=0.0
+[18:22:07] [1] DRILL2 v0=2.3 fired=0 tf=0.00 pk=1 hit1=1 t1=1.86 hit2=1 t2=1.15 out=arrived ret=3.0
+[18:22:07] [3] DRILL4 v0=9.4 fired=1 tf=0.19 pk=4 hit1=1 t1=10.69 hit2=0 t2=0.00 out=window ret=5.0 id=6-25445 picks=5 tpicks=2.11,4.99,6.59,7.49,10.69 falls=1
+[18:22:07] [0] fall without OOB flag: 4 decisions off the map at [-23.7  40.6  19.6] (time left 94s)
+[18:22:07] [0] DRILL v0=25.7 hit1=0 t1=0.00 hit2=0 t2=0.00 out=fell ret=0.0
+[18:22:09] [0] DRILL v0=23.1 hit1=1 t1=3.78 hit2=1 t2=1.98 out=arrived ret=2.0
+[18:22:09] [2] DRILL4 v0=5.5 fired=1 tf=0.19 pk=4 hit1=1 t1=11.97 hit2=0 t2=0.00 out=window ret=5.0 id=4-72514 picks=5 tpicks=1.47,2.88,7.23,8.96,11.97 falls=0
+[18:22:09] [1] DRILL2 v0=9.8 fired=1 tf=3.14 pk=1 hit1=1 t1=4.93 hit2=1 t2=2.75 out=arrived ret=3.0
+[18:22:10] [3] DRILL4 v0=5.3 fired=1 tf=0.19 pk=4 hit1=1 t1=8.90 hit2=1 t2=1.15 out=arrived ret=6.0 id=6-124860 picks=6 tpicks=1.79,3.33,5.63,7.36,8.90,10.05 falls=0
+[18:22:10] [0] DRILL v0=19.1 hit1=1 t1=3.07 hit2=0 t2=0.00 out=timeout ret=1.0
+[18:22:10] [1] DRILL2 v0=20.0 fired=1 tf=0.45 pk=1 hit1=1 t1=3.84 hit2=1 t2=1.92 out=arrived ret=3.0
+[18:22:11] [1] DRILL2 v0=9.0 fired=1 tf=0.32 pk=1 hit1=1 t1=2.18 hit2=1 t2=1.73 out=arrived ret=3.0
+[18:22:11] [0] DRILL v0=19.6 hit1=1 t1=3.71 hit2=0 t2=0.00 out=timeout ret=1.0
+[18:22:12] [2] DRILL4 v0=6.6 fired=1 tf=0.26 pk=3 hit1=1 t1=8.19 hit2=1 t2=3.71 out=arrived ret=5.0 id=3-1145 picks=5 tpicks=3.01,5.38,6.40,8.19,11.90 falls=0
+[18:22:12] [3] DRILL4 v0=13.2 fired=0 tf=0.00 pk=4 hit1=1 t1=8.06 hit2=1 t2=1.28 out=arrived ret=6.0 id=6-51477 picks=6 tpicks=2.88,4.29,5.18,6.72,8.06,9.34 falls=1
+[18:22:12] [0] DRILL v0=22.7 hit1=1 t1=2.62 hit2=0 t2=0.00 out=fell ret=1.0
+[18:22:13] [1] DRILL2 v0=13.8 fired=1 tf=0.38 pk=1 hit1=1 t1=4.03 hit2=1 t2=1.92 out=arrived ret=3.0
+[18:22:13] [0] DRILL v0=16.4 hit1=0 t1=0.00 hit2=0 t2=0.00 out=fell ret=0.0
+[18:22:13] [0] DRILL v0=18.7 hit1=1 t1=2.18 hit2=1 t2=1.15 out=arrived ret=2.0
+[18:22:14] [1] DRILL2 v0=6.0 fired=0 tf=0.00 pk=1 hit1=1 t1=2.18 hit2=1 t2=2.50 out=arrived ret=3.0
+[18:22:14] [0] DRILL v0=25.0 hit1=1 t1=0.51 hit2=0 t2=0.00 out=fell ret=1.0
+[18:22:15] [2] DRILL4 v0=9.3 fired=1 tf=0.19 pk=4 hit1=1 t1=10.05 hit2=1 t2=1.47 out=arrived ret=6.0 id=5-168558 picks=6 tpicks=2.05,4.74,6.59,7.87,10.05,11.52 falls=0
+[18:22:15] [3] DRILL4 v0=8.3 fired=1 tf=0.64 pk=4 hit1=0 t1=0.00 hit2=0 t2=0.00 out=window ret=3.0 id=5-194114 picks=3 tpicks=2.82,5.38,7.42 falls=1
+[18:22:15] [6] fall without OOB flag: 4 decisions off the map at [-43.4  17.7  13.8] (time left 67s)
+[18:22:16] [0] DRILL v0=21.9 hit1=1 t1=2.88 hit2=1 t2=1.98 out=arrived ret=2.0
+[18:22:16] [1] DRILL2 v0=7.7 fired=0 tf=0.00 pk=1 hit1=1 t1=2.37 hit2=1 t2=6.34 out=arrived ret=3.0
+[18:22:16] [0] DRILL v0=18.7 hit1=1 t1=1.79 hit2=1 t2=1.54 out=arrived ret=2.0
+[18:22:17] [0] DRILL v0=24.2 hit1=1 t1=0.38 hit2=0 t2=0.00 out=fell ret=1.0
+[18:22:17] [2] DRILL4 v0=7.0 fired=1 tf=0.26 pk=4 hit1=1 t1=9.22 hit2=1 t2=1.41 out=arrived ret=6.0 id=3-83343 picks=6 tpicks=1.98,3.46,4.67,7.55,9.22,10.62 falls=0
+[18:22:17] [1] DRILL2 v0=10.8 fired=0 tf=0.00 pk=1 hit1=1 t1=2.69 hit2=1 t2=3.46 out=arrived ret=3.0
+[18:22:18] [3] DRILL4 v0=10.5 fired=1 tf=0.19 pk=4 hit1=0 t1=0.00 hit2=0 t2=0.00 out=window ret=4.0 id=4-220915 picks=4 tpicks=3.52,5.70,8.58,10.62 falls=0
+[18:22:18] [0] DRILL v0=20.3 hit1=1 t1=0.58 hit2=1 t2=3.46 out=arrived ret=2.0
+[18:22:19] [1] DRILL2 v0=20.1 fired=1 tf=0.38 pk=0 hit1=1 t1=4.29 hit2=1 t2=1.54 out=arrived ret=2.0
+[18:22:19] [0] DRILL v0=22.0 hit1=1 t1=1.66 hit2=1 t2=1.98 out=arrived ret=2.0
+[18:22:19] [0] DRILL v0=22.2 hit1=1 t1=0.45 hit2=1 t2=2.50 out=arrived ret=2.0
+[18:22:20] [2] DRILL4 v0=6.4 fired=1 tf=0.51 pk=4 hit1=1 t1=9.22 hit2=1 t2=1.41 out=arrived ret=6.0 id=7-31166 picks=6 tpicks=1.98,4.22,5.50,7.94,9.22,10.62 falls=1
+[18:22:20] [1] DRILL2 v0=10.6 fired=0 tf=0.00 pk=1 hit1=1 t1=2.56 hit2=1 t2=2.50 out=arrived ret=3.0
+[18:22:20] [3] DRILL4 v0=8.4 fired=1 tf=0.19 pk=4 hit1=1 t1=9.09 hit2=1 t2=1.15 out=arrived ret=6.0 id=4-213346 picks=6 tpicks=2.18,4.42,5.70,7.49,9.09,10.24 falls=0
+[18:22:20] [0] DRILL v0=19.7 hit1=1 t1=1.86 hit2=1 t2=1.41 out=arrived ret=2.0
+[18:22:21] [1] DRILL2 v0=10.1 fired=0 tf=0.00 pk=1 hit1=1 t1=1.86 hit2=1 t2=1.15 out=arrived ret=3.0
+[18:22:22]   KL early stop at epoch 1
+[18:22:22] NAV upd=29117 map=KingOfTheMarble_Hunt r=0.65 steps=229,687,817 segs=80 arrive=64% falls100=0.58 speed=7.3 gems=4.8 pickup=8.3 sgem=2.02 carry=0.6 turn=19.9 rew=78.7 pl=0.004 vl=0.224 ent=0.31 entd=0.03 ec=0.0049 kl=0.292 clip=0.02 gn=1.49 ep=1 dstd=0.22 flips=0 vcont=143.2 upd_s=0.6 wall_s=17 inst=8 dps=496 prof=fwd:10,send:0,recv:4,handle:1,w_game:26,w_obs:20,w_begin:1
+[18:22:22] [0] DRILL v0=23.2 hit1=1 t1=4.22 hit2=0 t2=0.00 out=timeout ret=1.0
+[18:22:22] [1] DRILL2 v0=3.5 fired=1 tf=0.19 pk=0 hit1=1 t1=1.92 hit2=1 t2=2.75 out=arrived ret=2.0
+[18:22:23] [1] DRILL2 v0=7.7 fired=1 tf=0.32 pk=1 hit1=1 t1=1.15 hit2=1 t2=1.09 out=arrived ret=3.0
+[18:22:23] [3] DRILL4 v0=5.2 fired=1 tf=0.26 pk=4 hit1=1 t1=6.85 hit2=1 t2=2.88 out=arrived ret=6.0 id=3-79557 picks=6 tpicks=1.73,3.33,4.42,5.82,6.85,9.73 falls=0
+[18:22:23] [0] DRILL v0=22.2 hit1=1 t1=1.60 hit2=1 t2=1.60 out=arrived ret=2.0
+[18:22:23] [2] DRILL4 v0=6.1 fired=0 tf=0.00 pk=4 hit1=0 t1=0.00 hit2=0 t2=0.00 out=window ret=4.0 id=3-196405 picks=4 tpicks=4.42,7.04,8.45,11.26 falls=0
+[18:22:24] [0] DRILL v0=22.2 hit1=1 t1=0.70 hit2=0 t2=0.00 out=fell ret=1.0
+[18:22:24] [0] DRILL v0=20.9 hit1=1 t1=0.77 hit2=1 t2=1.09 out=arrived ret=2.0
+[18:22:24] [1] DRILL2 v0=9.2 fired=0 tf=0.00 pk=1 hit1=1 t1=2.18 hit2=1 t2=2.88 out=arrived ret=3.0
+[18:22:25] [2] DRILL4 v0=5.1 fired=0 tf=0.00 pk=4 hit1=1 t1=4.54 hit2=1 t2=3.01 out=arrived ret=6.0 id=4-177959 picks=6 tpicks=2.43,2.50,3.33,3.84,4.54,7.55 falls=0
+[18:22:25] [0] DRILL v0=23.3 hit1=1 t1=2.62 hit2=1 t2=2.05 out=arrived ret=2.0
+[18:22:26] [1] DRILL2 v0=3.4 fired=0 tf=0.00 pk=1 hit1=1 t1=2.82 hit2=1 t2=2.30 out=arrived ret=3.0
+[18:22:26] [3] DRILL4 v0=9.1 fired=1 tf=0.38 pk=3 hit1=1 t1=8.96 hit2=1 t2=1.41 out=arrived ret=5.0 id=4-199268 picks=5 tpicks=3.26,6.21,7.10,8.96,10.37 falls=0
+[18:22:26] [1] DRILL2 v0=5.1 fired=1 tf=0.19 pk=0 hit1=1 t1=1.86 hit2=1 t2=1.79 out=arrived ret=2.0
+[18:22:26] [0] DRILL v0=22.6 hit1=1 t1=2.94 hit2=1 t2=1.54 out=arrived ret=2.0
+[18:22:27] [0] [env:8888] round over (time left 180s of 180s); waiting for the next round
+[18:22:27] [0] [env:8888] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[18:22:27] [0] new round (game connection 1); rtf 3.0
+[18:22:28] [1] DRILL2 v0=18.3 fired=1 tf=0.45 pk=1 hit1=1 t1=3.26 hit2=1 t2=1.92 out=arrived ret=3.0
+[18:22:28] [3] DRILL4 v0=9.1 fired=1 tf=0.19 pk=4 hit1=1 t1=7.81 hit2=1 t2=1.41 out=arrived ret=6.0 id=4-160773 picks=6 tpicks=1.98,3.52,4.61,5.95,7.81,9.22 falls=0
+[18:22:28] [2] DRILL4 v0=3.4 fired=1 tf=4.61 pk=4 hit1=0 t1=0.00 hit2=0 t2=0.00 out=window ret=3.0 id=7-11054 picks=3 tpicks=4.42,5.31,9.22 falls=1
+[18:22:28] [0] DRILL v0=18.9 hit1=1 t1=3.58 hit2=1 t2=1.02 out=arrived ret=2.0
+[18:22:29] [1] DRILL2 v0=14.4 fired=1 tf=0.32 pk=0 hit1=1 t1=1.28 hit2=1 t2=3.39 out=arrived ret=2.0
+[18:22:29] SEG n=100 last=arrived arrive=67% falls100=0.51 speed=7.4 timeout=7% rew=63.6 dps=508
+[18:22:29] [0] DRILL v0=19.3 hit1=1 t1=1.92 hit2=1 t2=2.62 out=arrived ret=2.0
+[18:22:30] [0] DRILL v0=21.4 hit1=1 t1=0.51 hit2=0 t2=0.00 out=fell ret=1.0
+[18:22:30] [1] DRILL2 v0=5.4 fired=1 tf=0.32 pk=1 hit1=1 t1=0.90 hit2=1 t2=3.78 out=arrived ret=3.0
+[18:22:30] [4] GAME map=KingOfTheMarble_Hunt points=145 gems=114 falls=3 rtf=2.9 pow=f2:1 pkon=9.9/4 pkoff=8.2/70 pknone=8.5/40 rwall=1.709/2573
+[18:22:30] [4] [env:8892] round over (time left 180s of 180s); waiting for the next round
+[18:22:30] [4] [env:8892] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[18:22:30] [4] new round (game connection 1); rtf 100.9
+[18:22:30] [5] GAME map=KingOfTheMarble_Hunt points=144 gems=114 falls=3 rtf=2.9 pow=f1:1 pkon=10.1/2 pkoff=8.4/35 pknone=8.3/77 rwall=1.724/2579
+[18:22:30] [5] [env:8893] round over (time left 180s of 180s); waiting for the next round
+[18:22:30] [5] [env:8893] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[18:22:30] [5] new round (game connection 1); rtf 101.1
+[18:22:31] [6] GAME map=KingOfTheMarble_Hunt points=144 gems=115 falls=1 rtf=2.9 pow=ap2:5,f1:1,f2:1,ksA:1,r2:2,rmiss:1 pkon=8.9/7 pkoff=7.8/81 pknone=8.2/27 rwfire=1.458/30 rwall=1.676/2600
+[18:22:31] [6] [env:8894] round over (time left 180s of 180s); waiting for the next round
+[18:22:31] [6] [env:8894] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[18:22:31] [6] new round (game connection 1); rtf 74.1
+[18:22:31] [7] GAME map=KingOfTheMarble_Hunt points=149 gems=116 falls=2 rtf=2.9 pow=ap2:6,f1:1,f2:1,ksA:1,r2:1,rmiss:1 pkon=9.0/4 pkoff=8.2/30 pknone=8.3/82 rwfire=1.464/30 rwall=1.735/2602
+[18:22:31] [7] [env:8895] round over (time left 180s of 180s); waiting for the next round
+[18:22:31] [7] [env:8895] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[18:22:31] [7] new round (game connection 1); rtf 84.2
+[18:22:31] [3] DRILL4 v0=5.3 fired=1 tf=0.26 pk=4 hit1=1 t1=7.49 hit2=1 t2=3.46 out=arrived ret=6.0 id=5-159039 picks=6 tpicks=2.24,3.52,4.93,6.08,7.49,10.94 falls=0
+[18:22:31] [2] DRILL4 v0=9.2 fired=1 tf=0.19 pk=4 hit1=1 t1=9.54 hit2=1 t2=1.22 out=arrived ret=6.0 id=7-224677 picks=6 tpicks=2.05,3.46,4.99,8.06,9.54,10.75 falls=0
+[18:22:31] [3] [env:8891] round over (time left 180s of 180s); waiting for the next round
+[18:22:31] [3] [env:8891] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[18:22:31] [3] new round (game connection 1); rtf 2.8
+[18:22:32] [0] DRILL v0=24.3 hit1=1 t1=1.66 hit2=1 t2=4.10 out=arrived ret=2.0
+[18:22:32] [1] [env:8889] round over (time left 180s of 180s); waiting for the next round
+[18:22:32] [1] [env:8889] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[18:22:32] [1] new round (game connection 1); rtf 2.8
+[18:22:32] [2] [env:8890] round over (time left 180s of 180s); waiting for the next round
+[18:22:32] [2] [env:8890] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[18:22:32] [2] new round (game connection 1); rtf 2.8
+[18:22:32] [0] DRILL v0=24.6 hit1=1 t1=1.60 hit2=0 t2=0.00 out=fell ret=1.0
+[18:22:33] [0] DRILL v0=21.2 hit1=1 t1=0.77 hit2=0 t2=0.00 out=fell ret=1.0
+[18:22:34] [1] DRILL2 v0=9.4 fired=0 tf=0.00 pk=1 hit1=1 t1=5.31 hit2=0 t2=0.00 out=fell ret=2.0
+[18:22:34] [0] DRILL v0=19.7 hit1=1 t1=1.98 hit2=1 t2=2.88 out=arrived ret=2.0
+[18:22:34] [3] DRILL4 v0=6.4 fired=0 tf=0.00 pk=4 hit1=0 t1=0.00 hit2=0 t2=0.00 out=window ret=1.0 id=6-35535 picks=1 tpicks=6.08 falls=2
+[18:22:35] [2] DRILL4 v0=10.2 fired=1 tf=0.19 pk=4 hit1=0 t1=0.00 hit2=0 t2=0.00 out=window ret=3.0 id=7-25465 picks=3 tpicks=5.82,8.32,9.47 falls=1
+[18:22:36] [0] DRILL v0=23.8 hit1=1 t1=3.97 hit2=0 t2=0.00 out=timeout ret=1.0
+[18:22:36] [1] DRILL2 v0=11.8 fired=1 tf=0.51 pk=1 hit1=1 t1=4.48 hit2=1 t2=3.90 out=arrived ret=3.0
+[18:22:36] [0] DRILL v0=19.3 hit1=1 t1=1.73 hit2=1 t2=1.41 out=arrived ret=2.0
+[18:22:37] [2] DRILL4 v0=5.5 fired=1 tf=0.19 pk=4 hit1=1 t1=8.96 hit2=1 t2=1.28 out=arrived ret=6.0 id=5-52761 picks=6 tpicks=3.78,3.84,5.76,7.55,8.96,10.24 falls=0
+[18:22:37] [1] DRILL2 v0=7.3 fired=1 tf=0.19 pk=0 hit1=1 t1=4.61 hit2=1 t2=1.41 out=arrived ret=2.0
+[18:22:37] [3] DRILL4 v0=3.3 fired=1 tf=2.11 pk=4 hit1=1 t1=8.38 hit2=0 t2=0.00 out=window ret=5.0 id=4-171248 picks=5 tpicks=1.92,4.35,4.99,6.91,8.38 falls=0
+[18:22:38] [0] DRILL v0=20.1 hit1=1 t1=0.58 hit2=1 t2=4.54 out=arrived ret=2.0
+[18:22:38] [1] DRILL2 v0=5.3 fired=1 tf=0.19 pk=0 hit1=1 t1=1.86 hit2=1 t2=1.54 out=arrived ret=2.0
+[18:22:39]   KL early stop at epoch 1
+[18:22:39] NAV upd=29118 map=KingOfTheMarble_Hunt r=0.65 steps=229,696,017 segs=120 arrive=66% falls100=0.55 speed=7.4 gems=4.1 pickup=8.1 sgem=2.02 carry=0.9 turn=20.2 rew=53.4 pl=-0.042 vl=0.240 ent=0.31 entd=0.03 ec=0.0049 kl=0.600 clip=0.04 gn=0.70 ep=1 dstd=0.22 flips=0 vcont=146.9 upd_s=0.4 wall_s=17 inst=8 dps=493 prof=fwd:10,send:0,recv:5,handle:1,w_game:26,w_obs:20,w_begin:1
+[18:22:39] [0] DRILL v0=25.0 hit1=1 t1=0.45 hit2=1 t2=3.71 out=arrived ret=2.0
+[18:22:39] [0] fall without OOB flag: 4 decisions off the map at [-33.4 -10.6  23.4] (time left 126s)
+[18:22:39] [0] DRILL v0=24.0 hit1=1 t1=0.51 hit2=0 t2=0.00 out=fell ret=1.0
+[18:22:39] [1] DRILL2 v0=9.6 fired=0 tf=0.00 pk=1 hit1=1 t1=2.82 hit2=1 t2=2.18 out=arrived ret=3.0
+[18:22:40] [3] DRILL4 v0=6.5 fired=1 tf=0.19 pk=4 hit1=1 t1=7.42 hit2=1 t2=1.15 out=arrived ret=6.0 id=6-47929 picks=6 tpicks=1.92,3.33,4.93,5.95,7.42,8.58 falls=0
+[18:22:40] [2] DRILL4 v0=7.5 fired=1 tf=0.51 pk=4 hit1=1 t1=10.11 hit2=0 t2=0.00 out=window ret=5.0 id=4-21045 picks=5 tpicks=3.65,4.67,5.12,8.38,10.11 falls=1
+[18:22:41] [0] DRILL v0=17.4 hit1=1 t1=1.92 hit2=1 t2=3.01 out=arrived ret=2.0
+[18:22:41] [1] DRILL2 v0=9.1 fired=1 tf=0.70 pk=1 hit1=1 t1=2.43 hit2=1 t2=2.75 out=arrived ret=3.0
+[18:22:42] [0] DRILL v0=22.8 hit1=1 t1=4.10 hit2=1 t2=1.92 out=arrived ret=2.0
+[18:22:42] [1] DRILL2 v0=8.0 fired=0 tf=0.00 pk=1 hit1=1 t1=2.30 hit2=1 t2=3.39 out=arrived ret=3.0
+[18:22:43] [3] DRILL4 v0=12.0 fired=1 tf=0.19 pk=3 hit1=1 t1=10.43 hit2=1 t2=1.15 out=arrived ret=5.0 id=4-193587 picks=5 tpicks=2.82,4.10,9.34,10.43,11.58 falls=1
+[18:22:43] [2] DRILL4 v0=9.2 fired=1 tf=0.19 pk=4 hit1=1 t1=8.32 hit2=1 t2=1.47 out=arrived ret=6.0 id=7-60258 picks=6 tpicks=1.98,3.58,4.80,6.53,8.32,9.79 falls=0
+[18:22:43] [1] DRILL2 v0=7.2 fired=1 tf=0.26 pk=1 hit1=1 t1=1.02 hit2=1 t2=1.86 out=arrived ret=3.0
+[18:22:43] [0] fall without OOB flag: 4 decisions off the map at [-31.   17.9  13.7] (time left 108s)
+[18:22:43] [0] DRILL v0=22.6 hit1=1 t1=0.38 hit2=0 t2=0.00 out=fell ret=1.0
+[18:22:44] [1] DRILL2 v0=5.0 fired=0 tf=0.00 pk=1 hit1=1 t1=2.82 hit2=1 t2=2.69 out=arrived ret=3.0
+[18:22:44] [0] DRILL v0=22.3 hit1=1 t1=2.75 hit2=1 t2=1.79 out=arrived ret=2.0
+[18:22:45] [2] DRILL4 v0=7.9 fired=0 tf=0.00 pk=3 hit1=1 t1=6.72 hit2=1 t2=2.69 out=arrived ret=5.0 id=5-147720 picks=5 tpicks=2.11,3.52,4.74,6.72,9.41 falls=0
+[18:22:45] [1] DRILL2 v0=8.9 fired=1 tf=0.19 pk=0 hit1=1 t1=1.98 hit2=1 t2=1.73 out=arrived ret=2.0
+[18:22:45] [3] DRILL4 v0=8.2 fired=1 tf=0.19 pk=4 hit1=1 t1=7.36 hit2=1 t2=3.52 out=arrived ret=6.0 id=7-84864 picks=6 tpicks=1.92,4.29,5.18,6.46,7.36,10.88 falls=2
+[18:22:46] [0] DRILL v0=20.2 hit1=1 t1=2.69 hit2=0 t2=0.00 out=timeout ret=1.0
+[18:22:46] [1] DRILL2 v0=6.4 fired=0 tf=0.00 pk=1 hit1=1 t1=2.18 hit2=1 t2=2.75 out=arrived ret=3.0
+[18:22:47] [0] DRILL v0=22.1 hit1=1 t1=0.58 hit2=1 t2=5.31 out=arrived ret=2.0
+[18:22:47] [1] DRILL2 v0=7.7 fired=0 tf=0.00 pk=1 hit1=1 t1=2.43 hit2=1 t2=1.41 out=arrived ret=3.0
+[18:22:48] [2] DRILL4 v0=9.4 fired=1 tf=0.19 pk=4 hit1=1 t1=9.86 hit2=0 t2=0.00 out=window ret=5.0 id=7-185845 picks=5 tpicks=2.05,4.74,6.78,7.81,9.86 falls=0
+[18:22:48] [3] DRILL4 v0=14.9 fired=1 tf=0.19 pk=4 hit1=0 t1=0.00 hit2=0 t2=0.00 out=window ret=2.0 id=7-199111 picks=2 tpicks=3.39,7.04 falls=0
+[18:22:48] [1] DRILL2 v0=7.4 fired=0 tf=0.00 pk=1 hit1=1 t1=2.43 hit2=0 t2=0.00 out=fell ret=2.0
+[18:22:49] [0] DRILL v0=20.5 hit1=1 t1=2.88 hit2=0 t2=0.00 out=timeout ret=1.0
+[18:22:50] [1] DRILL2 v0=20.9 fired=1 tf=0.38 pk=0 hit1=1 t1=4.22 hit2=1 t2=1.66 out=arrived ret=2.0
+[18:22:50] [0] DRILL v0=21.1 hit1=1 t1=3.07 hit2=1 t2=1.54 out=arrived ret=2.0
+[18:22:51] [0] DRILL v0=20.1 hit1=1 t1=1.73 hit2=1 t2=2.37 out=arrived ret=2.0
+[18:22:51] [3] DRILL4 v0=6.6 fired=1 tf=0.26 pk=4 hit1=1 t1=9.86 hit2=1 t2=1.28 out=arrived ret=6.0 id=4-63442 picks=6 tpicks=1.22,3.33,4.48,8.19,9.86,11.14 falls=1
+[18:22:51] [2] DRILL4 v0=7.6 fired=0 tf=0.00 pk=4 hit1=0 t1=0.00 hit2=0 t2=0.00 out=window ret=2.0 id=7-157353 picks=2 tpicks=4.54,6.40 falls=0
+[18:22:51] [0] DRILL v0=19.2 hit1=0 t1=0.00 hit2=0 t2=0.00 out=fell ret=0.0
+[18:22:51] [1] DRILL2 v0=9.7 fired=0 tf=0.00 pk=1 hit1=1 t1=6.21 hit2=1 t2=1.47 out=arrived ret=3.0
+[18:22:52] [0] fall without OOB flag: 4 decisions off the map at [-32.2  40.9  20.7] (time left 68s)
+[18:22:52] [0] DRILL v0=25.1 hit1=1 t1=0.38 hit2=0 t2=0.00 out=fell ret=1.0
+[18:22:52] [0] DRILL v0=24.2 hit1=1 t1=0.51 hit2=0 t2=0.00 out=fell ret=1.0
+[18:22:53] [1] DRILL2 v0=5.1 fired=0 tf=0.00 pk=1 hit1=1 t1=2.88 hit2=1 t2=2.43 out=arrived ret=3.0
+[18:22:53] [3] DRILL4 v0=10.2 fired=1 tf=0.19 pk=4 hit1=1 t1=7.81 hit2=1 t2=1.47 out=arrived ret=6.0 id=7-213862 picks=6 tpicks=2.05,4.29,5.25,5.89,7.81,9.28 falls=1
+[18:22:54] [0] DRILL v0=23.1 hit1=1 t1=1.79 hit2=1 t2=3.71 out=arrived ret=2.0
+[18:22:54] [1] DRILL2 v0=10.6 fired=1 tf=0.32 pk=1 hit1=1 t1=2.24 hit2=1 t2=1.34 out=arrived ret=3.0
+[18:22:54] [2] DRILL4 v0=6.1 fired=0 tf=0.00 pk=4 hit1=1 t1=11.33 hit2=0 t2=0.00 out=window ret=5.0 id=6-51615 picks=5 tpicks=1.86,3.26,4.29,9.09,11.33 falls=0
+[18:22:56] NAV upd=29119 map=KingOfTheMarble_Hunt r=0.65 steps=229,704,217 segs=161 arrive=66% falls100=0.58 speed=7.4 gems=4.1 pickup=8.3 sgem=2.00 carry=0.8 turn=20.4 rew=52.4 pl=0.002 vl=0.206 ent=0.31 entd=0.03 ec=0.0049 kl=0.173 clip=0.03 gn=0.85 ep=3 dstd=0.22 flips=0 vcont=147.6 upd_s=1.6 wall_s=18 inst=8 dps=466 prof=fwd:10,send:0,recv:4,handle:1,w_game:26,w_obs:21,w_begin:1
+[18:22:56] [0] DRILL v0=25.6 hit1=1 t1=1.41 hit2=1 t2=3.65 out=arrived ret=2.0
+[18:22:57] [1] DRILL2 v0=3.1 fired=0 tf=0.00 pk=1 hit1=1 t1=2.37 hit2=1 t2=2.88 out=arrived ret=3.0
+[18:22:57] [3] DRILL4 v0=10.2 fired=1 tf=0.19 pk=4 hit1=1 t1=8.06 hit2=1 t2=1.34 out=arrived ret=6.0 id=3-118396 picks=6 tpicks=2.30,4.54,5.12,6.59,8.06,9.41 falls=0
+[18:22:57] [1] DRILL2 v0=8.8 fired=0 tf=0.00 pk=1 hit1=1 t1=2.37 hit2=0 t2=0.00 out=fell ret=2.0
+[18:22:58] [0] DRILL v0=22.6 hit1=1 t1=3.46 hit2=1 t2=2.18 out=arrived ret=2.0
+[18:22:58] [2] DRILL4 v0=9.3 fired=1 tf=0.19 pk=4 hit1=1 t1=8.13 hit2=1 t2=1.34 out=arrived ret=6.0 id=4-160773 picks=6 tpicks=2.05,3.65,4.74,6.08,8.13,9.47 falls=0
+[18:22:59] [0] DRILL v0=21.6 hit1=1 t1=3.78 hit2=1 t2=1.98 out=arrived ret=2.0
+[18:22:59] [1] DRILL2 v0=7.0 fired=1 tf=0.51 pk=1 hit1=1 t1=4.03 hit2=0 t2=0.00 out=fell ret=2.0
+[18:23:00] [3] DRILL4 v0=9.2 fired=1 tf=0.19 pk=4 hit1=0 t1=0.00 hit2=0 t2=0.00 out=window ret=4.0 id=4-214088 picks=4 tpicks=3.20,5.70,9.22,10.11 falls=1
+[18:23:00] [0] DRILL v0=17.5 hit1=1 t1=3.20 hit2=1 t2=2.11 out=arrived ret=2.0
+[18:23:01] [1] fall without OOB flag: 4 decisions off the map at [-25.3   4.5  14. ] (time left 61s)
+[18:23:01] [1] DRILL2 v0=9.7 fired=0 tf=0.00 pk=1 hit1=1 t1=2.50 hit2=0 t2=0.00 out=fell ret=2.0
+[18:23:01] [2] DRILL4 v0=6.0 fired=1 tf=0.32 pk=4 hit1=1 t1=10.37 hit2=1 t2=1.22 out=arrived ret=6.0 id=5-112496 picks=6 tpicks=1.86,5.12,7.04,8.90,10.37,11.58 falls=1
+[18:23:01] [1] fall without OOB flag: 4 decisions off the map at [-51.1  10.2  19.1] (time left 58s)
+[18:23:01] [1] DRILL2 v0=22.1 fired=0 tf=0.00 pk=0 hit1=0 t1=0.00 hit2=0 t2=0.00 out=fell ret=0.0
+[18:23:02] [0] DRILL v0=20.7 hit1=1 t1=1.98 hit2=1 t2=2.88 out=arrived ret=2.0
+[18:23:02] [1] DRILL2 v0=10.4 fired=1 tf=0.45 pk=1 hit1=1 t1=2.24 hit2=0 t2=0.00 out=fell ret=2.0
+[18:23:03] [1] DRILL2 v0=3.3 fired=0 tf=0.00 pk=1 hit1=1 t1=1.98 hit2=1 t2=1.02 out=arrived ret=3.0
+[18:23:03] [3] DRILL4 v0=6.6 fired=1 tf=0.45 pk=4 hit1=1 t1=11.20 hit2=0 t2=0.00 out=window ret=5.0 id=3-110008 picks=5 tpicks=1.15,3.07,6.02,7.62,11.20 falls=0
+[18:23:03] [0] DRILL v0=21.4 hit1=1 t1=2.75 hit2=1 t2=2.69 out=arrived ret=2.0
+[18:23:03] [2] DRILL4 v0=7.4 fired=1 tf=0.19 pk=4 hit1=1 t1=8.38 hit2=1 t2=1.54 out=arrived ret=6.0 id=5-164330 picks=6 tpicks=1.98,3.46,4.61,6.72,8.38,9.92 falls=0
+[18:23:04] [1] DRILL2 v0=10.8 fired=1 tf=0.32 pk=1 hit1=1 t1=2.82 hit2=1 t2=1.47 out=arrived ret=3.0
+[18:23:04] [0] DRILL v0=19.9 hit1=1 t1=2.30 hit2=1 t2=2.11 out=arrived ret=2.0
+[18:23:05] [1] DRILL2 v0=2.5 fired=0 tf=0.00 pk=1 hit1=1 t1=1.73 hit2=1 t2=3.71 out=arrived ret=3.0
+[18:23:05] [0] DRILL v0=23.5 hit1=1 t1=1.66 hit2=1 t2=3.20 out=arrived ret=2.0
+[18:23:06] [3] DRILL4 v0=5.4 fired=1 tf=0.51 pk=4 hit1=1 t1=8.00 hit2=1 t2=2.75 out=arrived ret=6.0 id=3-79557 picks=6 tpicks=1.92,3.65,4.67,6.27,8.00,10.75 falls=0
+[18:23:06] [2] DRILL4 v0=6.3 fired=1 tf=0.38 pk=4 hit1=1 t1=8.19 hit2=1 t2=2.56 out=arrived ret=6.0 id=6-189356 picks=6 tpicks=2.11,4.29,4.80,6.78,8.19,10.75 falls=0
+[18:23:06] [1] DRILL2 v0=5.6 fired=0 tf=0.00 pk=1 hit1=1 t1=2.18 hit2=1 t2=1.47 out=arrived ret=3.0
+[18:23:07] [0] DRILL v0=21.3 hit1=1 t1=3.39 hit2=1 t2=2.24 out=arrived ret=2.0
+[18:23:07] [1] DRILL2 v0=6.4 fired=1 tf=0.38 pk=1 hit1=1 t1=2.75 hit2=1 t2=3.20 out=arrived ret=3.0
+[18:23:08] [0] DRILL v0=23.0 hit1=1 t1=2.50 hit2=0 t2=0.00 out=timeout ret=1.0
+[18:23:08] [0] [env:8888] round over (time left 180s of 180s); waiting for the next round
+[18:23:08] [0] [env:8888] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[18:23:08] [0] new round (game connection 1); rtf 4.5
+[18:23:09] [3] DRILL4 v0=8.8 fired=1 tf=0.19 pk=4 hit1=1 t1=11.78 hit2=0 t2=0.00 out=window ret=5.0 id=3-144478 picks=5 tpicks=2.05,4.86,7.23,8.58,11.78 falls=0
+[18:23:09] [2] DRILL4 v0=10.9 fired=1 tf=0.19 pk=4 hit1=1 t1=11.33 hit2=0 t2=0.00 out=window ret=5.0 id=7-25465 picks=5 tpicks=4.67,6.91,8.32,9.60,11.33 falls=0
+[18:23:09] [1] DRILL2 v0=7.8 fired=1 tf=0.19 pk=0 hit1=1 t1=2.24 hit2=1 t2=3.07 out=arrived ret=2.0
+[18:23:09] [3] fall without OOB flag: 4 decisions off the map at [-9.6 14.3 13.8] (time left 16s)
+[18:23:10] [0] DRILL v0=22.3 hit1=1 t1=5.82 hit2=0 t2=0.00 out=timeout ret=1.0
+[18:23:11] [2] DRILL4 v0=6.1 fired=1 tf=0.19 pk=4 hit1=1 t1=7.36 hit2=1 t2=1.34 out=arrived ret=6.0 id=3-79557 picks=6 tpicks=1.86,3.26,4.29,5.82,7.36,8.70 falls=0
+[18:23:11] [1] DRILL2 v0=6.6 fired=0 tf=0.00 pk=1 hit1=1 t1=4.35 hit2=0 t2=0.00 out=timeout ret=2.0
+[18:23:11] [0] DRILL v0=21.6 hit1=1 t1=3.07 hit2=1 t2=1.41 out=arrived ret=2.0
+[18:23:11] [3] DRILL4 v0=6.6 fired=1 tf=0.19 pk=4 hit1=1 t1=9.73 hit2=1 t2=1.41 out=arrived ret=6.0 id=3-152781 picks=6 tpicks=1.79,5.18,6.46,7.62,9.73,11.14 falls=0
+[18:23:12] [0] DRILL v0=21.1 hit1=1 t1=0.51 hit2=1 t2=2.88 out=arrived ret=2.0
+[18:23:12] [1] DRILL2 v0=8.9 fired=0 tf=0.00 pk=1 hit1=1 t1=2.43 hit2=0 t2=0.00 out=fell ret=2.0
+[18:23:12] SEG n=200 last=fell arrive=66% falls100=0.54 speed=7.5 timeout=6% rew=42.8 dps=507
+[18:23:13]   KL early stop at epoch 1
+[18:23:13] DIRGAIN effective goal-bearing norm 21.07 (gain 30)
+[18:23:13] NAV upd=29120 map=KingOfTheMarble_Hunt r=0.65 steps=229,712,416 segs=200 arrive=66% falls100=0.54 speed=7.5 gems=3.9 pickup=8.1 sgem=2.01 carry=0.9 turn=20.3 rew=42.8 pl=0.000 vl=0.179 ent=0.31 entd=0.03 ec=0.0049 kl=0.308 clip=0.02 gn=1.01 ep=1 dstd=0.22 flips=0 vcont=139.7 upd_s=0.6 wall_s=17 inst=8 dps=489 prof=fwd:11,send:1,recv:4,handle:1,w_game:26,w_obs:21,w_begin:1
+[18:23:13] [0] DRILL v0=23.0 hit1=1 t1=1.54 hit2=1 t2=1.60 out=arrived ret=2.0
+[18:23:14] [6] GAME map=KingOfTheMarble_Hunt points=134 gems=108 falls=4 rtf=4.3 pow=f2:1 pkon=6.9/5 pkoff=8.0/44 pknone=8.1/59 rwall=1.577/2568
+[18:23:14] [6] [env:8894] round over (time left 180s of 180s); waiting for the next round
+[18:23:14] [6] [env:8894] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[18:23:14] [6] new round (game connection 1); rtf 91.5
+[18:23:14] [3] [env:8891] round over (time left 180s of 180s); waiting for the next round
+[18:23:14] [3] [env:8891] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[18:23:14] [3] new round (game connection 1); rtf 4.3
+[18:23:14] [7] GAME map=KingOfTheMarble_Hunt points=145 gems=117 falls=2 rtf=4.2 pow=f2:1 pkon=9.8/2 pkoff=8.3/32 pknone=8.1/83 rwall=1.750/2593
+[18:23:14] [7] [env:8895] round over (time left 180s of 180s); waiting for the next round
+[18:23:14] [7] [env:8895] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[18:23:14] [7] new round (game connection 1); rtf 96.3
+[18:23:14] [4] GAME map=KingOfTheMarble_Hunt points=154 gems=121 falls=0 rtf=4.2 pow=ap2:8,f2:4,ksA:3,ksB:1,r2:5,rhit:1,rmiss:2 pkon=9.4/7 pkoff=8.3/73 pknone=8.1/41 rwfire=0.783/120 rwall=1.785/2630
+[18:23:14] [4] [env:8892] round over (time left 180s of 180s); waiting for the next round
+[18:23:14] [4] [env:8892] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[18:23:14] [4] new round (game connection 1); rtf 76.4
+[18:23:15] [5] GAME map=KingOfTheMarble_Hunt points=155 gems=123 falls=0 rtf=4.2 pow=f1:1 pkon=9.8/1 pkoff=8.2/33 pknone=8.1/89 rwall=1.800/2633
+[18:23:15] [5] [env:8893] round over (time left 180s of 180s); waiting for the next round
+[18:23:15] [5] [env:8893] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[18:23:15] [5] new round (game connection 1); rtf 94.7
+[18:23:15] [1] DRILL2 v0=5.4 fired=0 tf=0.00 pk=0 hit1=1 t1=3.26 hit2=0 t2=0.00 out=timeout ret=1.0
+[18:23:15] [2] DRILL4 v0=8.4 fired=1 tf=0.19 pk=4 hit1=1 t1=11.01 hit2=1 t2=1.02 out=arrived ret=6.0 id=3-136373 picks=6 tpicks=1.98,3.46,6.02,7.55,11.01,12.03 falls=1
+[18:23:15] [1] [env:8889] round over (time left 180s of 180s); waiting for the next round
+[18:23:15] [1] [env:8889] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[18:23:15] [1] new round (game connection 1); rtf 4.3
+[18:23:15] [0] DRILL v0=20.6 hit1=1 t1=2.88 hit2=1 t2=2.82 out=arrived ret=2.0
+[18:23:16] [0] DRILL v0=14.5 hit1=1 t1=0.90 hit2=1 t2=2.56 out=arrived ret=2.0
+[18:23:16] [2] [env:8890] round over (time left 180s of 180s); waiting for the next round
+[18:23:16] [2] [env:8890] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[18:23:16] [2] new round (game connection 1); rtf 4.2
+[18:23:16] [1] DRILL2 v0=15.6 fired=1 tf=0.19 pk=0 hit1=1 t1=6.02 hit2=0 t2=0.00 out=timeout ret=1.0
+[18:23:17] [0] DRILL v0=22.9 hit1=1 t1=1.47 hit2=1 t2=2.56 out=arrived ret=2.0
+[18:23:17] [3] DRILL4 v0=6.0 fired=0 tf=0.00 pk=4 hit1=1 t1=11.90 hit2=0 t2=0.00 out=window ret=5.0 id=3-196405 picks=5 tpicks=4.74,6.78,8.00,10.43,11.90 falls=0
+[18:23:17] [0] DRILL v0=22.8 hit1=0 t1=0.00 hit2=0 t2=0.00 out=fell ret=0.0
+[18:23:18] [1] DRILL2 v0=11.5 fired=0 tf=0.00 pk=1 hit1=1 t1=3.07 hit2=1 t2=1.92 out=arrived ret=3.0
+[18:23:19] [2] DRILL4 v0=9.9 fired=1 tf=0.19 pk=2 hit1=1 t1=8.77 hit2=1 t2=1.22 out=arrived ret=4.0 id=7-114856 picks=4 tpicks=4.67,5.76,8.77,9.98 falls=0
+[18:23:19] [0] DRILL v0=23.4 hit1=1 t1=4.67 hit2=0 t2=0.00 out=timeout ret=1.0
+[18:23:19] [1] DRILL2 v0=6.1 fired=1 tf=0.45 pk=1 hit1=1 t1=2.05 hit2=1 t2=3.01 out=arrived ret=3.0
+[18:23:20] [1] DRILL2 v0=8.7 fired=0 tf=0.00 pk=1 hit1=0 t1=0.00 hit2=0 t2=0.00 out=fell ret=1.0
+[18:23:20] [0] DRILL v0=21.1 hit1=1 t1=3.90 hit2=1 t2=1.92 out=arrived ret=2.0
+[18:23:20] [3] DRILL4 v0=13.6 fired=1 tf=0.38 pk=4 hit1=1 t1=11.20 hit2=0 t2=0.00 out=window ret=5.0 id=3-149883 picks=5 tpicks=4.93,5.95,7.81,10.24,11.20 falls=1
+[18:23:21] [0] DRILL v0=20.6 hit1=1 t1=1.79 hit2=1 t2=1.47 out=arrived ret=2.0
+[18:23:21] [1] DRILL2 v0=18.3 fired=1 tf=0.58 pk=0 hit1=1 t1=3.33 hit2=1 t2=1.66 out=arrived ret=2.0
+[18:23:21] [2] DRILL4 v0=9.5 fired=1 tf=0.19 pk=4 hit1=1 t1=8.06 hit2=1 t2=2.69 out=arrived ret=6.0 id=3-29448 picks=6 tpicks=1.98,3.46,4.61,6.27,8.06,10.75 falls=0
+[18:23:22] [1] DRILL2 v0=4.7 fired=0 tf=0.00 pk=1 hit1=1 t1=2.05 hit2=1 t2=1.41 out=arrived ret=3.0
+[18:23:22] [0] DRILL v0=22.6 hit1=1 t1=0.51 hit2=1 t2=3.46 out=arrived ret=2.0
+[18:23:22] [0] fall without OOB flag: 4 decisions off the map at [ 2.2  4.1 22.8] (time left 125s)
+[18:23:22] [0] DRILL v0=23.4 hit1=0 t1=0.00 hit2=0 t2=0.00 out=fell ret=0.0
+[18:23:22] [3] DRILL4 v0=8.6 fired=1 tf=0.19 pk=4 hit1=1 t1=7.30 hit2=1 t2=1.47 out=arrived ret=6.0 id=7-59004 picks=6 tpicks=1.98,3.46,4.74,6.14,7.30,8.77 falls=0
+[18:23:23] [1] DRILL2 v0=18.8 fired=1 tf=0.45 pk=1 hit1=1 t1=3.26 hit2=1 t2=1.79 out=arrived ret=3.0
+[18:23:23] [2] DRILL4 v0=5.6 fired=1 tf=0.32 pk=4 hit1=1 t1=7.10 hit2=1 t2=1.54 out=arrived ret=6.0 id=5-159039 picks=6 tpicks=0.83,3.07,4.35,5.76,7.10,8.64 falls=0
+[18:23:24] [0] DRILL v0=19.2 hit1=1 t1=1.73 hit2=1 t2=3.20 out=arrived ret=2.0
+[18:23:24] [1] DRILL2 v0=5.3 fired=0 tf=0.00 pk=1 hit1=1 t1=1.92 hit2=1 t2=2.56 out=arrived ret=3.0
+[18:23:25] [0] DRILL v0=16.1 hit1=1 t1=3.01 hit2=0 t2=0.00 out=timeout ret=1.0
+[18:23:25] [3] DRILL4 v0=7.7 fired=0 tf=0.00 pk=4 hit1=0 t1=0.00 hit2=0 t2=0.00 out=window ret=4.0 id=4-140120 picks=4 tpicks=2.75,4.29,5.50,7.68 falls=0
+[18:23:26] [1] DRILL2 v0=7.8 fired=0 tf=0.00 pk=1 hit1=1 t1=3.20 hit2=1 t2=1.34 out=arrived ret=3.0
+[18:23:26] [0] DRILL v0=23.1 hit1=1 t1=1.54 hit2=1 t2=1.54 out=arrived ret=2.0
+[18:23:26] [2] DRILL4 v0=10.6 fired=1 tf=0.19 pk=4 hit1=1 t1=11.65 hit2=0 t2=0.00 out=window ret=5.0 id=4-160773 picks=5 tpicks=1.98,3.71,6.14,8.51,11.65 falls=0
+[18:23:26] [1] DRILL2 v0=8.4 fired=1 tf=0.38 pk=0 hit1=1 t1=0.90 hit2=1 t2=2.82 out=arrived ret=2.0
+[18:23:27] [1] DRILL2 v0=11.1 fired=0 tf=0.00 pk=1 hit1=1 t1=1.98 hit2=1 t2=1.15 out=arrived ret=3.0
+[18:23:27] [0] DRILL v0=22.5 hit1=1 t1=3.90 hit2=1 t2=1.66 out=arrived ret=2.0
+[18:23:28] [0] DRILL v0=20.9 hit1=1 t1=1.34 hit2=0 t2=0.00 out=fell ret=1.0
+[18:23:28] [3] DRILL4 v0=3.4 fired=1 tf=2.18 pk=4 hit1=0 t1=0.00 hit2=0 t2=0.00 out=window ret=1.0 id=4-171248 picks=1 tpicks=1.98 falls=0
+[18:23:29] [1] DRILL2 v0=16.5 fired=1 tf=0.19 pk=0 hit1=1 t1=3.52 hit2=1 t2=1.79 out=arrived ret=2.0
+[18:23:29] [2] DRILL4 v0=9.1 fired=1 tf=0.19 pk=4 hit1=1 t1=10.11 hit2=1 t2=1.15 out=arrived ret=6.0 id=3-71613 picks=6 tpicks=3.07,5.44,6.91,8.70,10.11,11.26 falls=0
+[18:23:29] [0] DRILL v0=22.1 hit1=1 t1=2.75 hit2=1 t2=2.50 out=arrived ret=2.0
+[18:23:30]   KL early stop at epoch 1
+[18:23:30] NAV upd=29121 map=KingOfTheMarble_Hunt r=0.65 steps=229,720,609 segs=240 arrive=66% falls100=0.51 speed=7.5 gems=3.7 pickup=8.0 sgem=2.02 carry=0.9 turn=20.1 rew=36.1 pl=0.005 vl=0.187 ent=0.31 entd=0.03 ec=0.0048 kl=0.451 clip=0.01 gn=1.34 ep=1 dstd=0.22 flips=0 vcont=144.5 upd_s=0.4 wall_s=17 inst=8 dps=482 prof=fwd:11,send:1,recv:5,handle:1,w_game:27,w_obs:21,w_begin:1
+[18:23:30] [1] DRILL2 v0=10.2 fired=1 tf=0.38 pk=1 hit1=1 t1=4.86 hit2=1 t2=1.34 out=arrived ret=3.0
+[18:23:31] [0] DRILL v0=21.5 hit1=1 t1=1.60 hit2=1 t2=2.75 out=arrived ret=2.0
+[18:23:32] [1] DRILL2 v0=3.8 fired=0 tf=0.00 pk=1 hit1=1 t1=2.11 hit2=1 t2=2.94 out=arrived ret=3.0
+[18:23:32] [3] DRILL4 v0=8.1 fired=1 tf=0.32 pk=4 hit1=1 t1=11.07 hit2=0 t2=0.00 out=window ret=5.0 id=5-194114 picks=5 tpicks=2.37,4.86,7.81,9.73,11.07 falls=0
+[18:23:32] [2] DRILL4 v0=11.0 fired=1 tf=0.19 pk=2 hit1=1 t1=6.85 hit2=1 t2=2.56 out=arrived ret=4.0 id=6-67696 picks=4 tpicks=3.20,5.89,6.85,9.41 falls=0
+[18:23:32] [0] DRILL v0=20.2 hit1=1 t1=2.30 hit2=1 t2=2.94 out=arrived ret=2.0
+[18:23:32] [0] fall without OOB flag: 4 decisions off the map at [ 2.1  2.1 22.9] (time left 77s)
+[18:23:32] [0] DRILL v0=24.0 hit1=0 t1=0.00 hit2=0 t2=0.00 out=fell ret=0.0
+[18:23:33] [1] DRILL2 v0=7.7 fired=0 tf=0.00 pk=1 hit1=1 t1=2.56 hit2=1 t2=3.58 out=arrived ret=3.0
+[18:23:34] [0] DRILL v0=16.7 hit1=1 t1=1.92 hit2=1 t2=3.46 out=arrived ret=2.0
+[18:23:34] [1] DRILL2 v0=4.2 fired=0 tf=0.00 pk=1 hit1=1 t1=1.73 hit2=1 t2=1.41 out=arrived ret=3.0
+[18:23:35] [2] DRILL4 v0=7.0 fired=1 tf=0.19 pk=4 hit1=1 t1=10.11 hit2=1 t2=1.28 out=arrived ret=6.0 id=7-34875 picks=6 tpicks=1.86,3.46,5.12,8.38,10.11,11.39 falls=1
+[18:23:35] [3] DRILL4 v0=8.6 fired=1 tf=0.19 pk=4 hit1=1 t1=10.43 hit2=0 t2=0.00 out=window ret=5.0 id=4-55151 picks=5 tpicks=2.62,4.29,7.36,9.09,10.43 falls=0
+[18:23:35] [0] DRILL v0=22.0 hit1=1 t1=1.86 hit2=1 t2=3.39 out=arrived ret=2.0
+[18:23:35] [1] DRILL2 v0=13.3 fired=1 tf=4.03 pk=1 hit1=1 t1=3.84 hit2=1 t2=0.77 out=arrived ret=3.0
+[18:23:36] [1] DRILL2 v0=9.1 fired=1 tf=0.26 pk=1 hit1=1 t1=2.11 hit2=1 t2=1.47 out=arrived ret=3.0
+[18:23:37] [0] DRILL v0=18.5 hit1=1 t1=1.86 hit2=1 t2=3.14 out=arrived ret=2.0
+[18:23:37] [0] fall without OOB flag: 4 decisions off the map at [-27.9  41.2  20.8] (time left 55s)
+[18:23:37] [0] DRILL v0=25.4 hit1=1 t1=0.38 hit2=0 t2=0.00 out=fell ret=1.0
+[18:23:37] [0] DRILLSUM n=100 hit1=92% hit2=63% fell=24% t1=2.10s t2=2.44s ret=1.6
+[18:23:37] [1] DRILL2 v0=3.3 fired=0 tf=0.00 pk=1 hit1=1 t1=1.73 hit2=1 t2=1.41 out=arrived ret=3.0
+[18:23:38] [2] DRILL4 v0=7.8 fired=1 tf=0.19 pk=4 hit1=1 t1=9.02 hit2=1 t2=1.41 out=arrived ret=6.0 id=5-214185 picks=6 tpicks=1.86,4.10,5.12,6.46,9.02,10.43 falls=1
+[18:23:38] [1] DRILL2 v0=6.1 fired=0 tf=0.00 pk=1 hit1=1 t1=2.37 hit2=1 t2=1.41 out=arrived ret=3.0
+[18:23:38] [3] DRILL4 v0=7.4 fired=1 tf=0.19 pk=4 hit1=1 t1=9.09 hit2=0 t2=0.00 out=window ret=5.0 id=4-44838 picks=5 tpicks=1.92,4.80,6.46,7.74,9.09 falls=0
+[18:23:38] [1] fall without OOB flag: 4 decisions off the map at [-36.1  43.6  23.2] (time left 82s)
+[18:23:38] [1] DRILL2 v0=26.2 fired=0 tf=0.00 pk=1 hit1=0 t1=0.00 hit2=0 t2=0.00 out=fell ret=1.0
+[18:23:39] [6] fall without OOB flag: 4 decisions off the map at [-25.2  14.1  14.2] (time left 76s)
+[18:23:39] [0] DRILL v0=19.5 hit1=1 t1=2.82 hit2=0 t2=0.00 out=timeout ret=1.0
+[18:23:39] [0] DRILL v0=22.7 hit1=1 t1=1.60 hit2=1 t2=1.66 out=arrived ret=2.0
+[18:23:40] [2] DRILL4 v0=10.9 fired=0 tf=0.00 pk=3 hit1=1 t1=6.46 hit2=1 t2=1.79 out=arrived ret=5.0 id=4-73615 picks=5 tpicks=1.86,3.14,5.31,6.46,8.26 falls=0
+[18:23:40] [3] DRILL4 v0=8.5 fired=0 tf=0.00 pk=4 hit1=1 t1=8.51 hit2=1 t2=1.22 out=arrived ret=6.0 id=4-6782 picks=6 tpicks=3.39,6.02,6.08,7.04,8.51,9.73 falls=0
+[18:23:41] [1] DRILL2 v0=8.7 fired=0 tf=0.00 pk=1 hit1=1 t1=6.91 hit2=0 t2=0.00 out=timeout ret=2.0
+[18:23:41] [0] DRILL v0=21.6 hit1=1 t1=2.75 hit2=1 t2=3.07 out=arrived ret=2.0
+[18:23:42] [1] DRILL2 v0=8.9 fired=0 tf=0.00 pk=1 hit1=1 t1=2.43 hit2=1 t2=2.75 out=arrived ret=3.0
+[18:23:42] [0] DRILL v0=25.5 hit1=1 t1=3.07 hit2=1 t2=2.11 out=arrived ret=2.0
+[18:23:43] [2] DRILL4 v0=7.2 fired=1 tf=0.26 pk=4 hit1=1 t1=9.98 hit2=0 t2=0.00 out=window ret=5.0 id=7-31166 picks=5 tpicks=1.86,4.10,5.38,8.13,9.98 falls=2
+[18:23:43] [3] DRILL4 v0=8.3 fired=1 tf=0.19 pk=4 hit1=1 t1=7.04 hit2=1 t2=3.33 out=arrived ret=6.0 id=7-111012 picks=6 tpicks=2.11,3.52,4.67,5.95,7.04,10.37 falls=0
+[18:23:43] [1] DRILL2 v0=5.4 fired=0 tf=0.00 pk=1 hit1=1 t1=2.05 hit2=1 t2=2.75 out=arrived ret=3.0
+[18:23:43] [0] DRILL v0=18.5 hit1=1 t1=2.37 hit2=1 t2=2.18 out=arrived ret=2.0
+[18:23:44] [0] DRILL v0=23.7 hit1=1 t1=3.33 hit2=1 t2=1.86 out=arrived ret=2.0
+[18:23:44] [1] DRILL2 v0=6.7 fired=1 tf=0.51 pk=1 hit1=1 t1=3.78 hit2=1 t2=2.43 out=arrived ret=3.0
+[18:23:45] [3] DRILL4 v0=8.6 fired=1 tf=0.38 pk=3 hit1=1 t1=5.76 hit2=1 t2=1.34 out=arrived ret=5.0 id=5-194517 picks=5 tpicks=1.09,3.14,4.67,5.76,7.10 falls=0
+[18:23:45] [0] DRILL v0=26.5 hit1=0 t1=0.00 hit2=0 t2=0.00 out=fell ret=0.0
+[18:23:46] [2] DRILL4 v0=10.4 fired=1 tf=0.19 pk=4 hit1=0 t1=0.00 hit2=0 t2=0.00 out=window ret=4.0 id=7-209826 picks=4 tpicks=2.05,4.61,6.53,11.52 falls=1
+[18:23:46] [0] DRILL v0=9.7 hit1=1 t1=1.41 hit2=1 t2=2.37 out=arrived ret=2.0
+[18:23:46] [1] DRILL2 v0=6.6 fired=1 tf=0.19 pk=0 hit1=1 t1=2.11 hit2=1 t2=3.07 out=arrived ret=2.0
+[18:23:48]   KL early stop at epoch 3
+[18:23:48] NAV upd=29122 map=KingOfTheMarble_Hunt r=0.65 steps=229,728,809 segs=282 arrive=67% falls100=0.50 speed=7.5 gems=3.9 pickup=8.0 sgem=2.01 carry=0.9 turn=20.1 rew=41.1 pl=0.007 vl=0.177 ent=0.31 entd=0.03 ec=0.0048 kl=0.264 clip=0.03 gn=0.67 ep=3 dstd=0.22 flips=0 vcont=151.3 upd_s=1.4 wall_s=18 inst=8 dps=459 prof=fwd:11,send:1,recv:5,handle:1,w_game:26,w_obs:21,w_begin:1
+[18:23:48] [1] DRILL2 v0=6.1 fired=0 tf=0.00 pk=1 hit1=1 t1=1.92 hit2=1 t2=1.60 out=arrived ret=3.0
+[18:23:48] [0] DRILL v0=22.6 hit1=1 t1=1.66 hit2=1 t2=3.33 out=arrived ret=2.0
+[18:23:49] [3] DRILL4 v0=9.0 fired=1 tf=0.19 pk=4 hit1=1 t1=10.37 hit2=1 t2=1.15 out=arrived ret=6.0 id=3-88157 picks=6 tpicks=1.92,5.31,7.17,8.96,10.37,11.52 falls=1
+[18:23:49] [1] DRILL2 v0=6.9 fired=1 tf=0.51 pk=0 hit1=1 t1=2.24 hit2=1 t2=1.47 out=arrived ret=2.0
+[18:23:49] [0] DRILL v0=22.0 hit1=1 t1=1.22 hit2=1 t2=2.94 out=arrived ret=2.0
+[18:23:50] [2] DRILL4 v0=14.3 fired=1 tf=0.26 pk=4 hit1=1 t1=10.18 hit2=1 t2=1.28 out=arrived ret=6.0 id=6-51477 picks=6 tpicks=3.14,4.99,5.95,8.70,10.18,11.46 falls=0
+[18:23:50] [0] fall without OOB flag: 4 decisions off the map at [-31.5 -13.9  21.9] (time left 3s)
+[18:23:50] [0] DRILL v0=24.0 hit1=0 t1=0.00 hit2=0 t2=0.00 out=fell ret=0.0
+[18:23:50] [0] [env:8888] round over (time left 180s of 180s); waiting for the next round
+[18:23:50] [0] [env:8888] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[18:23:50] [0] new round (game connection 1)
+[18:23:50] [1] DRILL2 v0=3.7 fired=0 tf=0.00 pk=1 hit1=1 t1=1.92 hit2=1 t2=1.41 out=arrived ret=3.0
+[18:23:51] [1] DRILL2 v0=10.9 fired=1 tf=0.45 pk=1 hit1=1 t1=3.46 hit2=1 t2=1.47 out=arrived ret=3.0
+[18:23:51] [0] DRILL v0=18.0 hit1=1 t1=4.61 hit2=0 t2=0.00 out=timeout ret=1.0
+[18:23:51] [3] DRILL4 v0=7.5 fired=1 tf=0.64 pk=4 hit1=1 t1=8.77 hit2=1 t2=1.54 out=arrived ret=6.0 id=5-214185 picks=6 tpicks=2.11,4.35,5.31,6.78,8.77,10.30 falls=1
+[18:23:52] [1] DRILL2 v0=8.0 fired=0 tf=0.00 pk=1 hit1=1 t1=2.37 hit2=0 t2=0.00 out=fell ret=2.0
+[18:23:52] [0] DRILL v0=22.5 hit1=1 t1=3.14 hit2=0 t2=0.00 out=fell ret=1.0
+[18:23:53] [2] DRILL4 v0=7.1 fired=1 tf=0.64 pk=4 hit1=0 t1=0.00 hit2=0 t2=0.00 out=window ret=4.0 id=4-44838 picks=4 tpicks=2.11,6.02,9.22,11.33 falls=1
+[18:23:53] [1] DRILL2 v0=19.5 fired=1 tf=0.45 pk=0 hit1=1 t1=3.65 hit2=1 t2=1.86 out=arrived ret=2.0
+[18:23:54] [0] DRILL v0=20.3 hit1=1 t1=1.98 hit2=1 t2=3.01 out=arrived ret=2.0
+[18:23:54] [0] fall without OOB flag: 4 decisions off the map at [ 2.  27.5 22.4] (time left 163s)
+[18:23:54] [0] DRILL v0=23.4 hit1=0 t1=0.00 hit2=0 t2=0.00 out=fell ret=0.0
+[18:23:54] [3] DRILL4 v0=9.6 fired=1 tf=0.38 pk=4 hit1=1 t1=9.98 hit2=1 t2=1.41 out=arrived ret=6.0 id=7-179732 picks=6 tpicks=2.56,4.99,7.36,8.19,9.98,11.39 falls=0
+[18:23:54] SEG n=300 last=arrived arrive=67% falls100=0.53 speed=7.5 timeout=7% rew=38.8 dps=502
+[18:23:55] [1] DRILL2 v0=5.1 fired=0 tf=0.00 pk=1 hit1=1 t1=1.86 hit2=1 t2=2.82 out=arrived ret=3.0
+[18:23:55] [0] fall without OOB flag: 4 decisions off the map at [-33.8  40.6  18.6] (time left 157s)
+[18:23:55] [0] DRILL v0=25.3 hit1=1 t1=0.45 hit2=0 t2=0.00 out=fell ret=1.0
+[18:23:55] [2] DRILL4 v0=3.2 fired=1 tf=0.32 pk=4 hit1=1 t1=6.08 hit2=1 t2=1.60 out=arrived ret=6.0 id=3-30289 picks=6 tpicks=0.83,1.66,3.39,4.67,6.08,7.68 falls=0
+[18:23:56] [0] DRILL v0=20.3 hit1=1 t1=1.66 hit2=1 t2=1.73 out=arrived ret=2.0
+[18:23:56] [1] DRILL2 v0=7.0 fired=0 tf=0.00 pk=1 hit1=1 t1=2.50 hit2=1 t2=3.65 out=arrived ret=3.0
+[18:23:57] [3] DRILL4 v0=9.7 fired=1 tf=0.19 pk=3 hit1=1 t1=8.06 hit2=1 t2=1.15 out=arrived ret=5.0 id=7-99106 picks=5 tpicks=2.18,3.65,4.74,8.06,9.22 falls=0
+[18:23:57] [0] DRILL v0=25.3 hit1=1 t1=3.46 hit2=0 t2=0.00 out=fell ret=1.0
+[18:23:57] [6] GAME map=KingOfTheMarble_Hunt points=139 gems=108 falls=3 rtf=4.3 pow=ap2:2,f2:1,ksA:1,ksB:1,r2:1,rmiss:1 pkon=9.5/9 pkoff=8.5/37 pknone=8.2/62 rwfire=0.716/60 rwall=1.586/2566
+[18:23:57] [6] [env:8894] round over (time left 180s of 180s); waiting for the next round
+[18:23:57] [6] [env:8894] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[18:23:57] [6] new round (game connection 1); rtf 101.2
+[18:23:57] [1] DRILL2 v0=3.6 fired=0 tf=0.00 pk=0 hit1=1 t1=2.18 hit2=0 t2=0.00 out=fell ret=1.0
+[18:23:58] [2] DRILL4 v0=8.7 fired=1 tf=7.81 pk=4 hit1=1 t1=8.58 hit2=0 t2=0.00 out=window ret=5.0 id=6-54971 picks=5 tpicks=3.33,4.67,6.40,7.55,8.58 falls=1
+[18:23:58] [7] GAME map=KingOfTheMarble_Hunt points=146 gems=116 falls=2 rtf=4.2 pow=f2:1,ksA:1 pkon=8.8/2 pkoff=8.2/11 pknone=8.2/103 rwfire=-0.050/30 rwall=1.720/2601
+[18:23:58] [7] [env:8895] round over (time left 180s of 180s); waiting for the next round
+[18:23:58] [7] [env:8895] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[18:23:58] [7] new round (game connection 1); rtf 103.5
+[18:23:58] [4] GAME map=KingOfTheMarble_Hunt points=154 gems=124 falls=1 rtf=4.2 pow=ap2:2,f1:1,ksA:1 pkon=7.9/3 pkoff=7.9/51 pknone=8.3/70 rwfire=-0.050/30 rwall=1.832/2605
+[18:23:58] [4] [env:8892] round over (time left 180s of 180s); waiting for the next round
+[18:23:58] [4] [env:8892] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[18:23:58] [4] new round (game connection 1); rtf 93.8
+[18:23:58] [1] [env:8889] round over (time left 180s of 180s); waiting for the next round
+[18:23:58] [1] [env:8889] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[18:23:58] [1] new round (game connection 1); rtf 4.3
+[18:23:58] [0] DRILL v0=24.2 hit1=1 t1=3.01 hit2=0 t2=0.00 out=timeout ret=1.0
+[18:23:59] [3] [env:8891] round over (time left 180s of 180s); waiting for the next round
+[18:23:59] [3] [env:8891] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[18:23:59] [3] new round (game connection 1); rtf 4.2
+[18:23:59] [5] GAME map=KingOfTheMarble_Hunt points=153 gems=120 falls=0 rtf=4.2 pow=ap2:2,f2:2,ksA:1,r2:2,rmiss:1 pkon=9.3/5 pkoff=8.4/53 pknone=8.2/62 rwfire=0.744/30 rwall=1.791/2637
+[18:23:59] [5] [env:8893] round over (time left 180s of 180s); waiting for the next round
+[18:23:59] [5] [env:8893] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[18:23:59] [5] new round (game connection 1); rtf 70.1
+[18:24:00] [2] [env:8890] round over (time left 180s of 180s); waiting for the next round
+[18:24:00] [2] [env:8890] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[18:24:00] [2] new round (game connection 1); rtf 4.3
+[18:24:00] [0] DRILL v0=22.6 hit1=1 t1=0.58 hit2=1 t2=3.71 out=arrived ret=2.0
+[18:24:00] [1] DRILL2 v0=7.7 fired=1 tf=2.75 pk=1 hit1=1 t1=4.48 hit2=0 t2=0.00 out=fell ret=2.0
+[18:24:01] [0] DRILL v0=17.0 hit1=1 t1=1.98 hit2=1 t2=1.34 out=arrived ret=2.0
+[18:24:01] [1] DRILL2 v0=6.3 fired=0 tf=0.00 pk=1 hit1=1 t1=2.11 hit2=1 t2=1.47 out=arrived ret=3.0
+[18:24:02] [0] DRILL v0=22.2 hit1=1 t1=3.01 hit2=1 t2=1.60 out=arrived ret=2.0
+[18:24:02] [3] DRILL4 v0=9.1 fired=1 tf=0.19 pk=4 hit1=0 t1=0.00 hit2=0 t2=0.00 out=window ret=3.0 id=6-177006 picks=3 tpicks=4.67,7.30,9.86 falls=1
+[18:24:02] [1] DRILL2 v0=4.8 fired=0 tf=0.00 pk=1 hit1=1 t1=2.50 hit2=1 t2=1.41 out=arrived ret=3.0
+[18:24:02] [1] DRILLSUM n=100 hit1=97% hit2=81% fell=14% t1=2.81s t2=2.30s ret=2.6
+[18:24:02] [0] DRILL v0=22.5 hit1=1 t1=0.58 hit2=0 t2=0.00 out=fell ret=1.0
+[18:24:03] [2] DRILL4 v0=8.2 fired=1 tf=0.19 pk=4 hit1=1 t1=11.58 hit2=0 t2=0.00 out=window ret=5.0 id=6-25445 picks=5 tpicks=4.74,7.62,8.96,10.30,11.58 falls=0
+[18:24:03] [1] DRILL2 v0=5.6 fired=1 tf=0.19 pk=0 hit1=1 t1=2.05 hit2=1 t2=1.47 out=arrived ret=2.0
+[18:24:04] [0] DRILL v0=24.4 hit1=1 t1=4.03 hit2=1 t2=1.34 out=arrived ret=2.0
+[18:24:04] [2] DRILL4 v0=9.8 fired=1 tf=0.19 pk=1 hit1=1 t1=4.80 hit2=1 t2=2.05 out=arrived ret=3.0 id=3-109449 picks=3 tpicks=2.05,4.80,6.85 falls=0
+[18:24:04] [1] DRILL2 v0=5.5 fired=1 tf=0.45 pk=0 hit1=1 t1=2.18 hit2=1 t2=3.84 out=arrived ret=2.0
+[18:24:05]   KL early stop at epoch 1
+[18:24:05] NAV upd=29123 map=KingOfTheMarble_Hunt r=0.65 steps=229,737,002 segs=323 arrive=67% falls100=0.54 speed=7.5 gems=3.7 pickup=8.0 sgem=2.01 carry=0.9 turn=19.9 rew=38.8 pl=0.031 vl=0.161 ent=0.31 entd=0.04 ec=0.0048 kl=0.360 clip=0.02 gn=0.81 ep=1 dstd=0.22 flips=0 vcont=130.4 upd_s=0.3 wall_s=17 inst=8 dps=478 prof=fwd:11,send:1,recv:5,handle:1,w_game:26,w_obs:21,w_begin:1
+[18:24:05] [3] DRILL4 v0=9.1 fired=0 tf=0.00 pk=4 hit1=1 t1=10.50 hit2=0 t2=0.00 out=window ret=5.0 id=7-182285 picks=5 tpicks=3.97,5.44,6.91,8.06,10.50 falls=0
+[18:24:05] [0] DRILL v0=22.5 hit1=1 t1=2.75 hit2=1 t2=2.18 out=arrived ret=2.0
+[18:24:06] [0] DRILL v0=20.9 hit1=0 t1=0.00 hit2=0 t2=0.00 out=fell ret=0.0
+[18:24:06] [1] DRILL2 v0=1.7 fired=1 tf=0.38 pk=1 hit1=1 t1=3.90 hit2=1 t2=1.79 out=arrived ret=3.0
+[18:24:07] [1] DRILL2 v0=21.3 fired=1 tf=0.32 pk=0 hit1=0 t1=0.00 hit2=0 t2=0.00 out=fell ret=0.0
+[18:24:07] [0] DRILL v0=26.6 hit1=1 t1=0.32 hit2=1 t2=4.99 out=arrived ret=2.0
+[18:24:07] [2] DRILL4 v0=6.2 fired=1 tf=0.38 pk=4 hit1=1 t1=7.87 hit2=1 t2=1.47 out=arrived ret=6.0 id=3-79557 picks=6 tpicks=1.86,3.39,4.48,6.27,7.87,9.34 falls=0
+[18:24:07] [3] DRILL4 v0=9.9 fired=1 tf=0.19 pk=4 hit1=1 t1=7.55 hit2=1 t2=1.28 out=arrived ret=6.0 id=7-213862 picks=6 tpicks=1.98,3.90,5.25,6.27,7.55,8.83 falls=0
+[18:24:08] [0] DRILL v0=21.5 hit1=1 t1=1.47 hit2=1 t2=1.47 out=arrived ret=2.0
+[18:24:08] [1] DRILL2 v0=9.1 fired=0 tf=0.00 pk=1 hit1=1 t1=2.18 hit2=1 t2=2.50 out=arrived ret=3.0
+[18:24:08] [1] DRILL2 v0=8.2 fired=0 tf=0.00 pk=1 hit1=1 t1=1.92 hit2=1 t2=1.22 out=arrived ret=3.0
+[18:24:09] [0] DRILL v0=19.0 hit1=1 t1=1.92 hit2=1 t2=3.46 out=arrived ret=2.0
+[18:24:09] [0] fall without OOB flag: 4 decisions off the map at [-29.2  41.   19.1] (time left 89s)
+[18:24:09] [0] DRILL v0=24.2 hit1=1 t1=0.38 hit2=0 t2=0.00 out=fell ret=1.0
+[18:24:10] [0] fall without OOB flag: 4 decisions off the map at [ 2.4  2.4 22.9] (time left 85s)
+[18:24:10] [0] DRILL v0=23.5 hit1=0 t1=0.00 hit2=0 t2=0.00 out=fell ret=0.0
+[18:24:10] [2] DRILL4 v0=5.7 fired=0 tf=0.00 pk=4 hit1=1 t1=10.88 hit2=1 t2=1.09 out=arrived ret=6.0 id=7-125059 picks=6 tpicks=1.92,3.26,6.72,8.64,10.88,11.97 falls=1
+[18:24:10] [1] DRILL2 v0=2.9 fired=0 tf=0.00 pk=1 hit1=1 t1=1.79 hit2=1 t2=3.52 out=arrived ret=3.0
+[18:24:10] [3] DRILL4 v0=9.2 fired=1 tf=0.19 pk=4 hit1=1 t1=11.90 hit2=0 t2=0.00 out=window ret=5.0 id=3-133275 picks=5 tpicks=3.52,6.85,8.83,10.37,11.90 falls=0
+[18:24:11] [0] DRILL v0=18.1 hit1=1 t1=1.92 hit2=1 t2=3.14 out=arrived ret=2.0
+[18:24:11] [1] DRILL2 v0=17.7 fired=1 tf=0.19 pk=0 hit1=1 t1=4.03 hit2=1 t2=1.54 out=arrived ret=2.0
+[18:24:12] [1] DRILL2 v0=9.5 fired=1 tf=0.64 pk=1 hit1=1 t1=2.18 hit2=0 t2=0.00 out=fell ret=2.0
+[18:24:13] [0] DRILL v0=22.3 hit1=1 t1=4.16 hit2=0 t2=0.00 out=timeout ret=1.0
+[18:24:13] [2] DRILL4 v0=11.0 fired=1 tf=0.77 pk=4 hit1=0 t1=0.00 hit2=0 t2=0.00 out=window ret=4.0 id=6-196135 picks=4 tpicks=3.78,5.50,9.34,10.69 falls=1
+[18:24:13] [0] DRILL v0=23.9 hit1=1 t1=0.58 hit2=0 t2=0.00 out=fell ret=1.0
+[18:24:13] [3] DRILL4 v0=8.9 fired=1 tf=0.19 pk=4 hit1=1 t1=11.33 hit2=0 t2=0.00 out=window ret=5.0 id=3-48768 picks=5 tpicks=3.26,5.89,7.10,9.86,11.33 falls=1
+[18:24:14] [0] fall without OOB flag: 4 decisions off the map at [-28.2  41.4  21. ] (time left 64s)
+[18:24:14] [0] DRILL v0=24.7 hit1=1 t1=0.38 hit2=0 t2=0.00 out=fell ret=1.0
+[18:24:14] [1] DRILL2 v0=10.6 fired=0 tf=0.00 pk=1 hit1=1 t1=4.29 hit2=0 t2=0.00 out=fell ret=2.0
+[18:24:15] [0] DRILL v0=18.7 hit1=1 t1=1.86 hit2=1 t2=1.47 out=arrived ret=2.0
+[18:24:15] [1] DRILL2 v0=5.0 fired=0 tf=0.00 pk=1 hit1=1 t1=2.18 hit2=1 t2=2.69 out=arrived ret=3.0
+[18:24:15] [0] DRILL v0=23.0 hit1=1 t1=1.54 hit2=1 t2=1.73 out=arrived ret=2.0
+[18:24:16] [2] DRILL4 v0=8.3 fired=1 tf=0.38 pk=4 hit1=1 t1=8.38 hit2=1 t2=1.28 out=arrived ret=6.0 id=5-189167 picks=6 tpicks=1.02,4.86,6.08,7.04,8.38,9.66 falls=1
+[18:24:16] [0] DRILL v0=22.9 hit1=1 t1=0.38 hit2=0 t2=0.00 out=fell ret=1.0
+[18:24:16] [3] DRILL4 v0=8.3 fired=1 tf=0.19 pk=4 hit1=1 t1=11.01 hit2=0 t2=0.00 out=window ret=5.0 id=6-177006 picks=5 tpicks=2.24,4.86,7.74,9.54,11.01 falls=0
+[18:24:17] [1] DRILL2 v0=9.6 fired=0 tf=0.00 pk=1 hit1=1 t1=2.24 hit2=1 t2=2.94 out=arrived ret=3.0
+[18:24:17] [2] DRILL4 v0=10.1 fired=1 tf=0.19 pk=2 hit1=1 t1=6.08 hit2=1 t2=1.15 out=arrived ret=4.0 id=7-114856 picks=4 tpicks=2.11,3.01,6.08,7.23 falls=0
+[18:24:17] [1] DRILL2 v0=3.7 fired=0 tf=0.00 pk=1 hit1=1 t1=1.73 hit2=1 t2=1.60 out=arrived ret=3.0
+[18:24:18] [0] DRILL v0=20.9 hit1=1 t1=2.75 hit2=0 t2=0.00 out=timeout ret=1.0
+[18:24:18] [0] fall without OOB flag: 4 decisions off the map at [-31.3  40.3  15.8] (time left 40s)
+[18:24:18] [0] DRILL v0=25.3 hit1=1 t1=0.38 hit2=0 t2=0.00 out=fell ret=1.0
+[18:24:18] [1] DRILL2 v0=9.5 fired=0 tf=0.00 pk=1 hit1=1 t1=2.56 hit2=0 t2=0.00 out=fell ret=2.0
+[18:24:19] [0] DRILL v0=21.1 hit1=1 t1=0.45 hit2=0 t2=0.00 out=fell ret=1.0
+[18:24:19] [3] DRILL4 v0=6.7 fired=1 tf=0.45 pk=4 hit1=0 t1=0.00 hit2=0 t2=0.00 out=window ret=4.0 id=3-196226 picks=4 tpicks=3.90,7.10,8.26,10.75 falls=1
+[18:24:20] [2] DRILL4 v0=3.0 fired=0 tf=0.00 pk=4 hit1=1 t1=8.32 hit2=1 t2=1.34 out=arrived ret=6.0 id=3-30289 picks=6 tpicks=1.73,2.82,4.03,6.59,8.32,9.66 falls=0
+[18:24:20] [1] DRILL2 v0=4.7 fired=0 tf=0.00 pk=1 hit1=1 t1=1.73 hit2=1 t2=3.46 out=arrived ret=3.0
+[18:24:20] [0] DRILL v0=22.7 hit1=1 t1=1.60 hit2=1 t2=2.88 out=arrived ret=2.0
+[18:24:20] [0] DRILL v0=23.1 hit1=0 t1=0.00 hit2=0 t2=0.00 out=fell ret=0.0
+[18:24:20] [1] DRILL2 v0=10.1 fired=0 tf=0.00 pk=1 hit1=0 t1=0.00 hit2=0 t2=0.00 out=fell ret=1.0
+[18:24:21] [0] DRILL v0=22.3 hit1=1 t1=3.26 hit2=1 t2=1.92 out=arrived ret=2.0
+[18:24:22]   KL early stop at epoch 1
+[18:24:22] NAV upd=29124 map=KingOfTheMarble_Hunt r=0.65 steps=229,745,202 segs=369 arrive=65% falls100=0.62 speed=7.5 gems=3.6 pickup=8.2 sgem=1.99 carry=1.0 turn=20.0 rew=29.9 pl=0.110 vl=0.162 ent=0.31 entd=0.04 ec=0.0047 kl=0.342 clip=0.02 gn=1.39 ep=1 dstd=0.22 flips=0 vcont=137.8 upd_s=0.3 wall_s=17 inst=8 dps=489 prof=fwd:10,send:0,recv:5,handle:1,w_game:26,w_obs:20,w_begin:1
+[18:24:22] [1] DRILL2 v0=8.9 fired=0 tf=0.00 pk=1 hit1=1 t1=2.43 hit2=1 t2=2.82 out=arrived ret=3.0
+[18:24:22] [2] DRILL4 v0=9.7 fired=1 tf=0.19 pk=2 hit1=1 t1=6.46 hit2=1 t2=1.28 out=arrived ret=4.0 id=7-114856 picks=4 tpicks=2.11,3.26,6.46,7.74 falls=0
+[18:24:23] [3] DRILL4 v0=6.0 fired=1 tf=0.38 pk=4 hit1=1 t1=11.97 hit2=0 t2=0.00 out=window ret=5.0 id=3-110046 picks=5 tpicks=0.83,6.08,7.10,10.56,11.97 falls=1
+[18:24:23] [1] DRILL2 v0=8.2 fired=1 tf=0.38 pk=1 hit1=1 t1=2.18 hit2=1 t2=2.94 out=arrived ret=3.0
+[18:24:23] [0] DRILL v0=18.6 hit1=1 t1=5.25 hit2=0 t2=0.00 out=timeout ret=1.0
+[18:24:24] [2] DRILL4 v0=2.6 fired=0 tf=0.00 pk=4 hit1=1 t1=8.06 hit2=1 t2=1.22 out=arrived ret=6.0 id=3-222698 picks=6 tpicks=1.92,3.39,4.48,6.59,8.06,9.28 falls=0
+[18:24:24] [0] DRILL v0=25.2 hit1=1 t1=2.62 hit2=1 t2=1.92 out=arrived ret=2.0
+[18:24:24] [1] DRILL2 v0=5.3 fired=0 tf=0.00 pk=1 hit1=1 t1=2.94 hit2=1 t2=2.43 out=arrived ret=3.0
+[18:24:25] [3] DRILL4 v0=8.1 fired=1 tf=0.19 pk=3 hit1=1 t1=7.87 hit2=1 t2=1.09 out=arrived ret=5.0 id=7-99106 picks=5 tpicks=1.98,3.33,4.42,7.87,8.96 falls=0
+[18:24:25] [3] fall without OOB flag: 4 decisions off the map at [-37.  -16.7  24.3] (time left 68s)
+[18:24:25] [1] DRILL2 v0=3.8 fired=0 tf=0.00 pk=1 hit1=1 t1=1.79 hit2=1 t2=2.11 out=arrived ret=3.0
+[18:24:26] [0] DRILL v0=21.7 hit1=1 t1=1.79 hit2=1 t2=3.71 out=arrived ret=2.0
+[18:24:26] [2] DRILL4 v0=2.7 fired=1 tf=0.26 pk=4 hit1=1 t1=5.63 hit2=1 t2=1.54 out=arrived ret=6.0 id=3-30289 picks=6 tpicks=0.77,1.66,3.39,4.35,5.63,7.17 falls=0
+[18:24:27] [3] DRILL4 v0=6.1 fired=1 tf=0.26 pk=4 hit1=0 t1=0.00 hit2=0 t2=0.00 out=fell ret=1.0 id=3-110046 picks=1 tpicks=0.51 falls=2
+[18:24:27] [1] DRILL2 v0=9.4 fired=1 tf=0.19 pk=0 hit1=1 t1=3.20 hit2=0 t2=0.00 out=timeout ret=1.0
+[18:24:27] [0] [env:8888] round over (time left 180s of 180s); waiting for the next round
+[18:24:27] [0] [env:8888] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[18:24:27] [0] new round (game connection 1); rtf 4.7
+[18:24:28] [1] DRILL2 v0=4.3 fired=1 tf=0.26 pk=0 hit1=1 t1=0.96 hit2=1 t2=3.71 out=arrived ret=2.0
+[18:24:28] [0] DRILL v0=25.6 hit1=1 t1=3.58 hit2=1 t2=1.02 out=arrived ret=2.0
+[18:24:28] [2] DRILL4 v0=9.5 fired=1 tf=0.19 pk=3 hit1=1 t1=8.51 hit2=1 t2=1.41 out=arrived ret=5.0 id=5-194517 picks=5 tpicks=2.50,4.48,7.36,8.51,9.92 falls=0
+[18:24:29] [1] DRILL2 v0=3.8 fired=0 tf=0.00 pk=1 hit1=1 t1=2.50 hit2=1 t2=1.47 out=arrived ret=3.0
+[18:24:29] [0] DRILL v0=17.8 hit1=1 t1=1.73 hit2=0 t2=0.00 out=fell ret=1.0
+[18:24:30] [3] DRILL4 v0=10.7 fired=0 tf=0.00 pk=4 hit1=1 t1=10.88 hit2=0 t2=0.00 out=window ret=5.0 id=7-94360 picks=5 tpicks=2.11,6.40,7.68,9.60,10.88 falls=1
+[18:24:30] [1] DRILL2 v0=6.2 fired=1 tf=0.32 pk=0 hit1=1 t1=2.30 hit2=1 t2=2.94 out=arrived ret=2.0
+[18:24:30] [0] DRILL v0=23.2 hit1=1 t1=5.50 hit2=0 t2=0.00 out=timeout ret=1.0
+[18:24:31] [0] DRILL v0=21.8 hit1=1 t1=0.51 hit2=0 t2=0.00 out=fell ret=1.0
+[18:24:31] [2] DRILL4 v0=9.8 fired=1 tf=0.51 pk=4 hit1=1 t1=11.46 hit2=0 t2=0.00 out=window ret=5.0 id=6-141981 picks=5 tpicks=4.29,5.76,8.38,9.98,11.46 falls=0
+[18:24:32] [0] DRILL v0=17.7 hit1=1 t1=0.96 hit2=1 t2=1.02 out=arrived ret=2.0
+[18:24:32] [1] DRILL2 v0=6.9 fired=1 tf=0.26 pk=1 hit1=1 t1=3.52 hit2=1 t2=2.82 out=arrived ret=3.0
+[18:24:32] [3] DRILL4 v0=8.7 fired=1 tf=0.90 pk=4 hit1=1 t1=9.47 hit2=1 t2=1.28 out=arrived ret=6.0 id=3-124223 picks=6 tpicks=2.37,4.74,6.27,8.13,9.47,10.75 falls=1
+[18:24:33] [0] DRILL v0=20.2 hit1=1 t1=2.11 hit2=1 t2=2.18 out=arrived ret=2.0
+[18:24:33] [1] DRILL2 v0=9.8 fired=0 tf=0.00 pk=1 hit1=1 t1=2.43 hit2=1 t2=2.69 out=arrived ret=3.0
+[18:24:34] [0] DRILL v0=22.1 hit1=1 t1=1.86 hit2=1 t2=3.78 out=arrived ret=2.0
+[18:24:34] SEG n=400 last=arrived arrive=65% falls100=0.60 speed=7.5 timeout=6% rew=29.3 dps=508
+[18:24:34] [2] DRILL4 v0=10.0 fired=1 tf=0.19 pk=4 hit1=1 t1=11.26 hit2=0 t2=0.00 out=window ret=5.0 id=4-214088 picks=5 tpicks=3.14,5.70,8.32,9.79,11.26 falls=1
+[18:24:34] [1] DRILL2 v0=8.7 fired=0 tf=0.00 pk=1 hit1=1 t1=2.43 hit2=1 t2=2.94 out=arrived ret=3.0
+[18:24:35] [0] DRILL v0=24.3 hit1=0 t1=0.00 hit2=0 t2=0.00 out=fell ret=0.0
+[18:24:35] [4] fall without OOB flag: 4 decisions off the map at [-36.6  31.   14.1] (time left 22s)
+[18:24:35] [3] DRILL4 v0=11.0 fired=1 tf=0.19 pk=4 hit1=1 t1=10.37 hit2=0 t2=0.00 out=window ret=5.0 id=7-199688 picks=5 tpicks=3.01,3.07,6.66,8.83,10.37 falls=1
+[18:24:36] [0] DRILL v0=21.0 hit1=1 t1=2.30 hit2=1 t2=1.98 out=arrived ret=2.0
+[18:24:36] [1] DRILL2 v0=8.0 fired=0 tf=0.00 pk=1 hit1=1 t1=4.61 hit2=1 t2=3.90 out=arrived ret=3.0
+[18:24:37] [0] DRILL v0=21.6 hit1=1 t1=1.66 hit2=1 t2=2.69 out=arrived ret=2.0
+[18:24:37] [0] DRILL v0=20.6 hit1=0 t1=0.00 hit2=0 t2=0.00 out=fell ret=0.0
+[18:24:37] [2] DRILL4 v0=7.8 fired=1 tf=0.32 pk=4 hit1=0 t1=0.00 hit2=0 t2=0.00 out=window ret=4.0 id=5-194114 picks=4 tpicks=2.24,4.74,6.98,11.71 falls=0
+[18:24:37] [0] DRILL v0=24.8 hit1=0 t1=0.00 hit2=0 t2=0.00 out=fell ret=0.0
+[18:24:40] NAV upd=29125 map=KingOfTheMarble_Hunt r=0.65 steps=229,753,401 segs=410 arrive=64% falls100=0.62 speed=7.5 gems=3.7 pickup=8.2 sgem=2.00 carry=1.0 turn=20.1 rew=29.3 pl=0.000 vl=0.179 ent=0.31 entd=0.04 ec=0.0047 kl=0.258 clip=0.03 gn=0.57 ep=3 dstd=0.22 flips=0 vcont=134.5 upd_s=1.7 wall_s=18 inst=8 dps=458 prof=fwd:10,send:0,recv:5,handle:1,w_game:26,w_obs:20,w_begin:1
+[18:24:40] saved C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\models\nav\nav_029125.pth
+[18:24:40] [3] DRILL4 v0=10.2 fired=1 tf=0.19 pk=4 hit1=1 t1=9.41 hit2=1 t2=1.22 out=arrived ret=6.0 id=4-220915 picks=6 tpicks=2.30,3.46,6.40,7.94,9.41,10.62 falls=0
+[18:24:40] [1] DRILL2 v0=11.6 fired=0 tf=0.00 pk=1 hit1=1 t1=2.05 hit2=1 t2=4.67 out=arrived ret=3.0
+[18:24:41] [0] DRILL v0=22.1 hit1=1 t1=2.69 hit2=1 t2=2.75 out=arrived ret=2.0
+[18:24:41] [3] [env:8891] round over (time left 180s of 180s); waiting for the next round
+[18:24:41] [3] [env:8891] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[18:24:41] [3] new round (game connection 1); rtf 4.4
+[18:24:41] [1] DRILL2 v0=5.6 fired=1 tf=0.26 pk=1 hit1=1 t1=2.37 hit2=1 t2=2.69 out=arrived ret=3.0
+[18:24:42] [0] DRILL v0=17.9 hit1=1 t1=2.75 hit2=1 t2=1.15 out=arrived ret=2.0
+[18:24:42] [6] GAME map=KingOfTheMarble_Hunt points=159 gems=125 falls=0 rtf=4.1 pow=ap2:10,f1:1,f2:2,ksA:1,ksB:1,r2:4,rhit:1,rmiss:1 pkon=9.1/12 pkoff=8.0/52 pknone=8.4/61 rwfire=1.141/60 rwall=1.844/2629
+[18:24:42] [6] [env:8894] round over (time left 180s of 180s); waiting for the next round
+[18:24:42] [6] [env:8894] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[18:24:42] [6] new round (game connection 1); rtf 102.9
+[18:24:42] [2] DRILL4 v0=7.3 fired=1 tf=0.19 pk=4 hit1=1 t1=9.28 hit2=1 t2=1.28 out=arrived ret=6.0 id=7-31166 picks=6 tpicks=1.86,4.16,5.63,7.94,9.28,10.56 falls=1
+[18:24:42] [7] GAME map=KingOfTheMarble_Hunt points=151 gems=122 falls=1 rtf=4.1 pow=f2:1,ksA:1 pkon=9.6/4 pkoff=7.9/61 pknone=8.0/57 rwfire=-0.050/30 rwall=1.789/2608
+[18:24:42] [7] [env:8895] round over (time left 180s of 180s); waiting for the next round
+[18:24:42] [7] [env:8895] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[18:24:42] [7] new round (game connection 1); rtf 99.0
+[18:24:42] [4] GAME map=KingOfTheMarble_Hunt points=146 gems=115 falls=1 rtf=4.2 pow=ap2:1,f2:1 pkon=8.4/5 pkoff=8.0/61 pknone=8.0/49 rwall=1.662/2598
+[18:24:42] [4] [env:8892] round over (time left 180s of 180s); waiting for the next round
+[18:24:42] [4] [env:8892] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[18:24:42] [4] new round (game connection 1); rtf 81.1
+[18:24:43] [0] DRILL v0=21.6 hit1=1 t1=1.60 hit2=1 t2=2.88 out=arrived ret=2.0
+[18:24:43] [1] [env:8889] round over (time left 180s of 180s); waiting for the next round
+[18:24:43] [1] [env:8889] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[18:24:43] [1] new round (game connection 1); rtf 4.2
+[18:24:43] [5] GAME map=KingOfTheMarble_Hunt points=144 gems=115 falls=3 rtf=4.2 pow=f2:1,ksA:1 pkon=9.8/3 pkoff=7.8/55 pknone=8.3/57 rwfire=-0.050/30 rwall=1.704/2588
+[18:24:43] [5] [env:8893] round over (time left 180s of 180s); waiting for the next round
+[18:24:43] [5] [env:8893] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[18:24:43] [5] new round (game connection 1); rtf 98.2
+[18:24:44] [2] [env:8890] round over (time left 180s of 180s); waiting for the next round
+[18:24:44] [2] [env:8890] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[18:24:44] [2] new round (game connection 1); rtf 4.2
+[18:24:44] [3] DRILL4 v0=9.8 fired=0 tf=0.00 pk=4 hit1=1 t1=10.37 hit2=1 t2=1.22 out=arrived ret=6.0 id=6-141981 picks=6 tpicks=3.71,5.31,7.42,9.02,10.37,11.58 falls=0
+[18:24:44] [0] DRILL v0=24.4 hit1=1 t1=4.54 hit2=0 t2=0.00 out=timeout ret=1.0
+[18:24:44] [1] DRILL2 v0=6.9 fired=0 tf=0.00 pk=1 hit1=1 t1=4.42 hit2=1 t2=1.47 out=arrived ret=3.0
+[18:24:45] [1] DRILL2 v0=4.1 fired=0 tf=0.00 pk=1 hit1=1 t1=1.92 hit2=1 t2=2.30 out=arrived ret=3.0
+[18:24:45] [0] DRILL v0=21.5 hit1=1 t1=2.94 hit2=0 t2=0.00 out=fell ret=1.0
+[18:24:47] [1] DRILL2 v0=10.0 fired=0 tf=0.00 pk=1 hit1=1 t1=2.24 hit2=1 t2=3.07 out=arrived ret=3.0
+[18:24:47] [3] DRILL4 v0=8.4 fired=1 tf=0.19 pk=4 hit1=1 t1=9.60 hit2=1 t2=1.34 out=arrived ret=6.0 id=4-6782 picks=6 tpicks=1.98,4.67,4.74,7.74,9.60,10.94 falls=1
+[18:24:47] [2] DRILL4 v0=9.5 fired=1 tf=0.19 pk=4 hit1=1 t1=11.58 hit2=0 t2=0.00 out=window ret=5.0 id=5-168558 picks=5 tpicks=4.48,5.95,7.17,8.32,11.58 falls=1
+[18:24:47] [0] DRILL v0=18.0 hit1=1 t1=4.61 hit2=0 t2=0.00 out=timeout ret=1.0
+[18:24:48] [0] DRILL v0=25.0 hit1=1 t1=3.46 hit2=0 t2=0.00 out=fell ret=1.0
+[18:24:48] [1] DRILL2 v0=8.8 fired=0 tf=0.00 pk=1 hit1=1 t1=5.06 hit2=1 t2=1.09 out=arrived ret=3.0
+[18:24:49] [2] DRILL4 v0=2.1 fired=1 tf=0.32 pk=4 hit1=1 t1=7.87 hit2=1 t2=1.28 out=arrived ret=6.0 id=4-60730 picks=6 tpicks=1.86,3.97,4.61,6.53,7.87,9.15 falls=0
+[18:24:49] [0] DRILL v0=21.8 hit1=1 t1=2.56 hit2=0 t2=0.00 out=fell ret=1.0
+[18:24:50] [1] DRILL2 v0=10.0 fired=0 tf=0.00 pk=1 hit1=1 t1=2.56 hit2=1 t2=2.82 out=arrived ret=3.0
+[18:24:50] [3] DRILL4 v0=9.6 fired=1 tf=0.51 pk=4 hit1=1 t1=10.24 hit2=1 t2=1.34 out=arrived ret=6.0 id=7-179732 picks=6 tpicks=1.15,4.67,7.49,8.45,10.24,11.58 falls=1
+[18:24:50] [0] DRILL v0=15.3 hit1=1 t1=2.05 hit2=1 t2=2.82 out=arrived ret=2.0
+[18:24:51] [1] DRILL2 v0=3.3 fired=0 tf=0.00 pk=1 hit1=1 t1=2.24 hit2=1 t2=1.41 out=arrived ret=3.0
+[18:24:51] [2] DRILL4 v0=7.1 fired=0 tf=0.00 pk=4 hit1=1 t1=6.85 hit2=1 t2=1.34 out=arrived ret=6.0 id=5-24673 picks=6 tpicks=1.73,4.42,4.48,5.50,6.85,8.19 falls=0
+[18:24:51] [1] DRILL2 v0=4.5 fired=0 tf=0.00 pk=1 hit1=1 t1=1.86 hit2=1 t2=1.47 out=arrived ret=3.0
+[18:24:52] [0] DRILL v0=24.1 hit1=1 t1=0.45 hit2=1 t2=4.93 out=arrived ret=2.0
+[18:24:53] [3] DRILL4 v0=7.5 fired=0 tf=0.00 pk=4 hit1=0 t1=0.00 hit2=0 t2=0.00 out=window ret=4.0 id=4-140120 picks=4 tpicks=2.82,4.35,5.50,7.68 falls=0
+[18:24:53] [0] DRILL v0=22.1 hit1=1 t1=2.94 hit2=1 t2=1.73 out=arrived ret=2.0
+[18:24:53] [1] DRILL2 v0=7.6 fired=1 tf=2.50 pk=1 hit1=1 t1=4.22 hit2=1 t2=3.01 out=arrived ret=3.0
+[18:24:54] [0] DRILL v0=21.4 hit1=1 t1=1.66 hit2=1 t2=2.75 out=arrived ret=2.0
+[18:24:54] [1] DRILL2 v0=9.7 fired=0 tf=0.00 pk=1 hit1=0 t1=0.00 hit2=0 t2=0.00 out=fell ret=1.0
+[18:24:54] [2] DRILL4 v0=10.2 fired=1 tf=0.26 pk=4 hit1=1 t1=8.70 hit2=0 t2=0.00 out=window ret=5.0 id=6-209277 picks=5 tpicks=3.58,5.44,6.02,7.36,8.70 falls=0
+[18:24:55] [0] DRILL v0=20.9 hit1=1 t1=2.37 hit2=1 t2=1.60 out=arrived ret=2.0
+[18:24:55] [0] fall without OOB flag: 4 decisions off the map at [-27.3  16.9  14.2] (time left 58s)
+[18:24:55] [0] DRILL v0=21.5 hit1=0 t1=0.00 hit2=0 t2=0.00 out=fell ret=0.0
+[18:24:55] [1] DRILL2 v0=5.4 fired=1 tf=0.51 pk=1 hit1=1 t1=2.11 hit2=1 t2=2.82 out=arrived ret=3.0
+[18:24:55] [3] DRILL4 v0=9.3 fired=1 tf=0.19 pk=4 hit1=1 t1=9.66 hit2=1 t2=1.34 out=arrived ret=6.0 id=4-212463 picks=6 tpicks=2.18,4.61,6.85,8.32,9.66,11.01 falls=0
+[18:24:56] [0] DRILL v0=22.3 hit1=1 t1=1.41 hit2=1 t2=2.18 out=arrived ret=2.0
+[18:24:57]   KL early stop at epoch 1
+[18:24:57] NAV upd=29126 map=KingOfTheMarble_Hunt r=0.65 steps=229,761,594 segs=448 arrive=65% falls100=0.61 speed=7.5 gems=3.7 pickup=8.1 sgem=2.01 carry=1.1 turn=20.0 rew=29.4 pl=0.160 vl=0.217 ent=0.31 entd=0.03 ec=0.0047 kl=0.684 clip=0.04 gn=1.69 ep=1 dstd=0.22 flips=0 vcont=133.8 upd_s=0.3 wall_s=17 inst=8 dps=483 prof=fwd:11,send:0,recv:5,handle:1,w_game:26,w_obs:21,w_begin:1
+[18:24:57] [1] DRILL2 v0=14.8 fired=1 tf=0.45 pk=1 hit1=1 t1=3.46 hit2=1 t2=2.56 out=arrived ret=3.0
+[18:24:57] [2] DRILL4 v0=8.0 fired=1 tf=0.38 pk=4 hit1=0 t1=0.00 hit2=0 t2=0.00 out=window ret=3.0 id=3-188454 picks=3 tpicks=2.11,3.65,4.67 falls=0
+[18:24:58] [0] DRILL v0=19.2 hit1=1 t1=2.37 hit2=1 t2=1.92 out=arrived ret=2.0
+[18:24:59] [3] DRILL4 v0=5.3 fired=0 tf=0.00 pk=4 hit1=0 t1=0.00 hit2=0 t2=0.00 out=window ret=4.0 id=6-738 picks=4 tpicks=3.07,4.99,6.02,11.14 falls=1
+[18:24:59] [0] DRILL v0=9.9 hit1=1 t1=1.34 hit2=1 t2=3.52 out=arrived ret=2.0
+[18:24:59] [1] DRILL2 v0=8.7 fired=0 tf=0.00 pk=1 hit1=1 t1=3.90 hit2=1 t2=2.56 out=arrived ret=3.0
+[18:24:59] [0] DRILL v0=21.1 hit1=0 t1=0.00 hit2=0 t2=0.00 out=fell ret=0.0
+[18:25:00] [0] DRILL v0=20.1 hit1=1 t1=2.50 hit2=1 t2=1.73 out=arrived ret=2.0
+[18:25:00] [1] DRILL2 v0=4.8 fired=0 tf=0.00 pk=1 hit1=1 t1=1.98 hit2=1 t2=2.94 out=arrived ret=3.0
+[18:25:00] [0] DRILL v0=23.1 hit1=0 t1=0.00 hit2=0 t2=0.00 out=fell ret=0.0
+[18:25:00] [2] DRILL4 v0=7.1 fired=0 tf=0.00 pk=4 hit1=1 t1=10.75 hit2=0 t2=0.00 out=window ret=5.0 id=6-7748 picks=5 tpicks=3.33,8.32,8.38,8.83,10.75 falls=1
+[18:25:01] [1] DRILL2 v0=8.7 fired=0 tf=0.00 pk=1 hit1=1 t1=2.50 hit2=1 t2=2.18 out=arrived ret=3.0
+[18:25:01] [0] DRILL v0=21.1 hit1=1 t1=1.98 hit2=1 t2=3.01 out=arrived ret=2.0
+[18:25:02] [3] DRILL4 v0=7.9 fired=1 tf=0.26 pk=4 hit1=1 t1=10.37 hit2=1 t2=1.54 out=arrived ret=6.0 id=6-207677 picks=6 tpicks=2.24,4.35,5.50,8.51,10.37,11.90 falls=0
+[18:25:02] [1] DRILL2 v0=4.5 fired=0 tf=0.00 pk=1 hit1=1 t1=2.30 hit2=1 t2=1.34 out=arrived ret=3.0
+[18:25:02] [0] DRILL v0=25.8 hit1=1 t1=0.45 hit2=0 t2=0.00 out=fell ret=1.0
+[18:25:03] [0] DRILL v0=23.3 hit1=0 t1=0.00 hit2=0 t2=0.00 out=fell ret=0.0
+[18:25:03] [2] DRILL4 v0=11.2 fired=1 tf=0.19 pk=4 hit1=0 t1=0.00 hit2=0 t2=0.00 out=window ret=2.0 id=6-74641 picks=2 tpicks=3.71,5.31 falls=1
+[18:25:04] [1] DRILL2 v0=11.7 fired=1 tf=0.45 pk=1 hit1=1 t1=3.90 hit2=1 t2=3.58 out=arrived ret=3.0
+[18:25:04] [3] DRILL4 v0=9.2 fired=1 tf=0.19 pk=4 hit1=1 t1=8.00 hit2=1 t2=1.28 out=arrived ret=6.0 id=3-118396 picks=6 tpicks=2.24,4.48,5.18,6.59,8.00,9.28 falls=0
+[18:25:04] [0] DRILL v0=24.1 hit1=1 t1=2.94 hit2=1 t2=2.05 out=arrived ret=2.0
+[18:25:04] [0] DRILL v0=23.0 hit1=1 t1=0.38 hit2=0 t2=0.00 out=fell ret=1.0
+[18:25:05] [1] DRILL2 v0=9.4 fired=0 tf=0.00 pk=1 hit1=1 t1=2.37 hit2=1 t2=2.94 out=arrived ret=3.0
+[18:25:05] [0] DRILL v0=20.3 hit1=1 t1=0.38 hit2=1 t2=3.39 out=arrived ret=2.0
+[18:25:06] [2] DRILL4 v0=8.7 fired=1 tf=0.32 pk=4 hit1=1 t1=8.38 hit2=1 t2=1.54 out=arrived ret=6.0 id=4-199690 picks=6 tpicks=2.05,3.52,4.61,6.02,8.38,9.92 falls=0
+[18:25:06] [1] DRILL2 v0=6.1 fired=1 tf=0.19 pk=0 hit1=1 t1=1.92 hit2=1 t2=1.41 out=arrived ret=2.0
+[18:25:07] [3] DRILL4 v0=5.0 fired=1 tf=0.19 pk=4 hit1=0 t1=0.00 hit2=0 t2=0.00 out=window ret=4.0 id=4-188194 picks=4 tpicks=0.90,5.89,8.83,10.43 falls=1
+[18:25:07] [0] DRILL v0=17.6 hit1=1 t1=2.69 hit2=0 t2=0.00 out=timeout ret=1.0
+[18:25:07] [1] DRILL2 v0=8.9 fired=1 tf=0.26 pk=1 hit1=1 t1=2.05 hit2=1 t2=1.73 out=arrived ret=3.0
+[18:25:07] [0] [env:8888] round over (time left 180s of 180s); waiting for the next round
+[18:25:07] [0] [env:8888] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[18:25:07] [0] new round (game connection 1); rtf 4.6
+[18:25:08] [1] DRILL2 v0=10.2 fired=1 tf=0.45 pk=0 hit1=1 t1=1.02 hit2=1 t2=2.50 out=arrived ret=2.0
+[18:25:08] [2] DRILL4 v0=10.0 fired=1 tf=0.19 pk=4 hit1=1 t1=8.00 hit2=1 t2=1.28 out=arrived ret=6.0 id=3-124223 picks=6 tpicks=2.11,3.39,5.50,6.72,8.00,9.28 falls=0
+[18:25:09] [0] DRILL v0=19.5 hit1=1 t1=5.95 hit2=0 t2=0.00 out=timeout ret=1.0
+[18:25:09] [3] DRILL4 v0=9.6 fired=0 tf=0.00 pk=4 hit1=1 t1=6.66 hit2=1 t2=1.34 out=arrived ret=6.0 id=3-96120 picks=6 tpicks=2.11,3.20,4.35,4.93,6.66,8.00 falls=0
+[18:25:09] [1] DRILL2 v0=5.8 fired=1 tf=0.51 pk=0 hit1=1 t1=0.90 hit2=0 t2=0.00 out=timeout ret=1.0
+[18:25:10] [0] DRILL v0=21.3 hit1=1 t1=5.06 hit2=0 t2=0.00 out=timeout ret=1.0
+[18:25:11] [1] DRILL2 v0=9.2 fired=0 tf=0.00 pk=1 hit1=1 t1=2.24 hit2=1 t2=2.56 out=arrived ret=3.0
+[18:25:11] [2] DRILL4 v0=10.1 fired=1 tf=0.45 pk=4 hit1=0 t1=0.00 hit2=0 t2=0.00 out=window ret=2.0 id=4-19953 picks=2 tpicks=2.82,5.18 falls=2
+[18:25:11] [3] fall without OOB flag: 4 decisions off the map at [-33.7   0.   13.7] (time left 50s)
+[18:25:12] [3] DRILL4 v0=10.0 fired=1 tf=0.19 pk=4 hit1=1 t1=8.00 hit2=1 t2=2.75 out=arrived ret=6.0 id=4-39485 picks=6 tpicks=1.98,3.58,4.74,7.04,8.00,10.75 falls=0
+[18:25:12] [0] DRILL v0=22.0 hit1=0 t1=0.00 hit2=0 t2=0.00 out=timeout ret=0.0
+[18:25:12] [1] DRILL2 v0=5.8 fired=1 tf=0.51 pk=1 hit1=1 t1=2.11 hit2=1 t2=3.01 out=arrived ret=3.0
+[18:25:13] [0] fall without OOB flag: 4 decisions off the map at [-26.4 -11.5  21.3] (time left 162s)
+[18:25:13] [0] DRILL v0=24.7 hit1=0 t1=0.00 hit2=0 t2=0.00 out=fell ret=0.0
+[18:25:14]   KL early stop at epoch 1
+[18:25:14] NAV upd=29127 map=KingOfTheMarble_Hunt r=0.65 steps=229,769,793 segs=489 arrive=65% falls100=0.63 speed=7.5 gems=3.6 pickup=8.2 sgem=2.01 carry=1.1 turn=19.9 rew=23.0 pl=0.064 vl=0.182 ent=0.31 entd=0.03 ec=0.0046 kl=0.287 clip=0.02 gn=0.95 ep=1 dstd=0.22 flips=0 vcont=128.0 upd_s=0.9 wall_s=18 inst=8 dps=467 prof=fwd:11,send:1,recv:4,handle:1,w_game:27,w_obs:21,w_begin:1
+[18:25:14] [0] DRILL v0=22.6 hit1=1 t1=0.51 hit2=0 t2=0.00 out=fell ret=1.0
+[18:25:15] [1] DRILL2 v0=7.8 fired=0 tf=0.00 pk=1 hit1=1 t1=2.82 hit2=0 t2=0.00 out=fell ret=2.0
+[18:25:15] [2] DRILL4 v0=7.2 fired=1 tf=0.26 pk=4 hit1=1 t1=8.45 hit2=1 t2=1.28 out=arrived ret=6.0 id=6-46217 picks=6 tpicks=2.05,4.61,5.76,6.91,8.45,9.73 falls=0
+[18:25:16] [0] DRILL v0=24.3 hit1=1 t1=3.26 hit2=1 t2=1.98 out=arrived ret=2.0
+[18:25:16] [3] DRILL4 v0=7.7 fired=1 tf=0.70 pk=4 hit1=1 t1=9.41 hit2=1 t2=1.28 out=arrived ret=6.0 id=6-34161 picks=6 tpicks=2.50,4.80,6.08,7.94,9.41,10.69 falls=0
+[18:25:16] [1] DRILL2 v0=6.9 fired=1 tf=2.05 pk=1 hit1=1 t1=1.86 hit2=1 t2=1.98 out=arrived ret=3.0
+[18:25:16] [0] DRILL v0=21.0 hit1=1 t1=0.51 hit2=0 t2=0.00 out=fell ret=1.0
+[18:25:17] [2] DRILL4 v0=10.4 fired=1 tf=0.19 pk=2 hit1=1 t1=5.57 hit2=1 t2=1.02 out=arrived ret=4.0 id=6-56589 picks=4 tpicks=2.11,4.29,5.57,6.59 falls=0
+[18:25:17] [1] DRILL2 v0=10.3 fired=0 tf=0.00 pk=1 hit1=1 t1=2.43 hit2=1 t2=2.62 out=arrived ret=3.0
+[18:25:18] [0] DRILL v0=24.5 hit1=1 t1=0.51 hit2=0 t2=0.00 out=fell ret=1.0
+[18:25:19] [3] DRILL4 v0=9.1 fired=1 tf=0.19 pk=4 hit1=1 t1=8.26 hit2=1 t2=1.09 out=arrived ret=6.0 id=4-24548 picks=6 tpicks=1.98,4.22,4.86,6.85,8.26,9.34 falls=0
+[18:25:19] SEG n=500 last=arrived arrive=65% falls100=0.64 speed=7.5 timeout=7% rew=23.0 dps=424
+[18:25:19] [0] DRILL v0=17.9 hit1=1 t1=1.79 hit2=1 t2=1.66 out=arrived ret=2.0
+[18:25:19] [1] DRILL2 v0=22.2 fired=1 tf=0.38 pk=0 hit1=1 t1=5.06 hit2=0 t2=0.00 out=timeout ret=1.0
+[18:25:20] [0] DRILL v0=24.9 hit1=1 t1=0.51 hit2=1 t2=3.14 out=arrived ret=2.0
+[18:25:20] [2] fall without OOB flag: 4 decisions off the map at [-25.5  14.2  14.3] (time left 32s)
+[18:25:20] [2] DRILL4 v0=10.1 fired=1 tf=0.19 pk=4 hit1=0 t1=0.00 hit2=0 t2=0.00 out=window ret=4.0 id=4-181914 picks=4 tpicks=2.37,4.80,6.40,8.64 falls=0
+[18:25:21] [1] DRILL2 v0=7.1 fired=0 tf=0.00 pk=1 hit1=1 t1=3.07 hit2=1 t2=2.75 out=arrived ret=3.0
+[18:25:21] [0] DRILL v0=23.7 hit1=1 t1=2.94 hit2=1 t2=2.18 out=arrived ret=2.0
+[18:25:22] [3] DRILL4 v0=7.3 fired=1 tf=0.70 pk=4 hit1=1 t1=10.69 hit2=1 t2=1.28 out=arrived ret=6.0 id=3-51484 picks=6 tpicks=3.46,5.76,6.78,9.22,10.69,11.97 falls=0
+[18:25:22] [1] DRILL2 v0=8.6 fired=0 tf=0.00 pk=1 hit1=1 t1=2.62 hit2=1 t2=3.01 out=arrived ret=3.0
+[18:25:23] [0] DRILL v0=23.4 hit1=1 t1=4.99 hit2=0 t2=0.00 out=timeout ret=1.0
+[18:25:23] [0] DRILL v0=21.6 hit1=1 t1=0.58 hit2=0 t2=0.00 out=fell ret=1.0
+[18:25:23] [1] DRILL2 v0=11.6 fired=1 tf=0.51 pk=0 hit1=1 t1=2.75 hit2=1 t2=2.37 out=arrived ret=2.0
+[18:25:23] [2] DRILL4 v0=5.4 fired=1 tf=0.19 pk=4 hit1=0 t1=0.00 hit2=0 t2=0.00 out=window ret=4.0 id=4-162507 picks=4 tpicks=0.77,6.08,6.53,8.45 falls=1
+[18:25:24] [1] DRILL2 v0=7.7 fired=1 tf=0.38 pk=1 hit1=1 t1=1.22 hit2=1 t2=2.75 out=arrived ret=3.0
+[18:25:25] [3] DRILL4 v0=7.3 fired=0 tf=0.00 pk=4 hit1=1 t1=9.34 hit2=1 t2=2.69 out=arrived ret=6.0 id=4-17052 picks=6 tpicks=3.33,5.70,6.21,7.04,9.34,12.03 falls=0
+[18:25:25] [0] DRILL v0=19.7 hit1=1 t1=2.69 hit2=0 t2=0.00 out=timeout ret=1.0
+[18:25:25] [0] DRILLSUM n=100 hit1=85% hit2=50% fell=35% t1=2.18s t2=2.42s ret=1.4
+[18:25:25] [1] DRILL2 v0=9.2 fired=1 tf=0.26 pk=1 hit1=1 t1=2.18 hit2=1 t2=1.34 out=arrived ret=3.0
+[18:25:26] [3] [env:8891] round over (time left 180s of 180s); waiting for the next round
+[18:25:26] [3] [env:8891] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[18:25:26] [3] new round (game connection 1); rtf 4.2
+[18:25:26] [2] DRILL4 v0=9.5 fired=1 tf=0.19 pk=4 hit1=1 t1=8.45 hit2=1 t2=1.09 out=arrived ret=6.0 id=4-24548 picks=6 tpicks=2.05,4.29,4.86,6.85,8.45,9.54 falls=0
+[18:25:26] [0] DRILL v0=23.4 hit1=1 t1=1.60 hit2=1 t2=3.14 out=arrived ret=2.0
+[18:25:27] [6] GAME map=KingOfTheMarble_Hunt points=155 gems=122 falls=0 rtf=4.1 pow=ap2:4,f1:1,f2:1,ksA:1,r2:2,rmiss:1 pkon=8.4/8 pkoff=8.1/56 pknone=8.3/58 rwfire=1.584/30 rwall=1.791/2635
+[18:25:27] [6] [env:8894] round over (time left 180s of 180s); waiting for the next round
+[18:25:27] [6] [env:8894] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[18:25:27] [6] new round (game connection 1); rtf 94.8
+[18:25:27] [5] GAME map=KingOfTheMarble_Hunt points=143 gems=112 falls=3 rtf=4.2 pow=ap2:4,f1:1,f2:1,ksA:1,ksB:1,r2:1,rmiss:1 pkon=8.0/3 pkoff=8.1/50 pknone=8.2/59 rwfire=0.054/60 rwall=1.659/2582
+[18:25:27] [5] [env:8893] round over (time left 180s of 180s); waiting for the next round
+[18:25:27] [5] [env:8893] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[18:25:27] [5] new round (game connection 1); rtf 91.4
+[18:25:27] [7] GAME map=KingOfTheMarble_Hunt points=153 gems=120 falls=1 rtf=4.2 pow=ap2:2,f2:2,ksA:2,r2:1,rmiss:1 pkon=10.1/2 pkoff=8.4/38 pknone=7.9/80 rwfire=0.326/60 rwall=1.758/2615
+[18:25:27] [7] [env:8895] round over (time left 180s of 180s); waiting for the next round
+[18:25:27] [7] [env:8895] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[18:25:27] [7] new round (game connection 1); rtf 94.8
+[18:25:27] [4] GAME map=KingOfTheMarble_Hunt points=154 gems=124 falls=0 rtf=4.1 pow=ap2:8,f1:1,f2:2,ksA:3,r2:3,rhit:1,rmiss:1 pkon=9.5/2 pkoff=8.1/70 pknone=8.1/52 rwfire=0.878/90 rwall=1.841/2628
+[18:25:27] [4] [env:8892] round over (time left 180s of 180s); waiting for the next round
+[18:25:27] [4] [env:8892] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[18:25:27] [4] new round (game connection 1); rtf 96.7
+[18:25:27] [0] DRILL v0=8.1 hit1=1 t1=1.54 hit2=1 t2=2.24 out=arrived ret=2.0
+[18:25:27] [1] DRILL2 v0=9.2 fired=1 tf=0.45 pk=1 hit1=1 t1=3.65 hit2=1 t2=3.46 out=arrived ret=3.0
+[18:25:28] [2] [env:8890] round over (time left 180s of 180s); waiting for the next round
+[18:25:28] [2] [env:8890] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[18:25:28] [2] new round (game connection 1); rtf 4.2
+[18:25:28] [1] [env:8889] round over (time left 180s of 180s); waiting for the next round
+[18:25:28] [1] [env:8889] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[18:25:28] [1] new round (game connection 1); rtf 4.1
+[18:25:29] [0] DRILL v0=22.7 hit1=1 t1=2.94 hit2=1 t2=2.62 out=arrived ret=2.0
+[18:25:29] [3] DRILL4 v0=5.0 fired=1 tf=0.19 pk=4 hit1=0 t1=0.00 hit2=0 t2=0.00 out=window ret=4.0 id=4-188194 picks=4 tpicks=3.78,5.12,7.30,8.58 falls=0
+[18:25:29] [0] DRILL v0=19.6 hit1=0 t1=0.00 hit2=0 t2=0.00 out=fell ret=0.0
+[18:25:30] [1] DRILL2 v0=10.6 fired=1 tf=3.52 pk=1 hit1=1 t1=5.12 hit2=0 t2=0.00 out=fell ret=2.0
+[18:25:30] [0] DRILL v0=17.7 hit1=1 t1=2.24 hit2=1 t2=1.79 out=arrived ret=2.0
+[18:25:31] [2] DRILL4 v0=3.5 fired=0 tf=0.00 pk=4 hit1=1 t1=9.22 hit2=1 t2=1.15 out=arrived ret=6.0 id=6-84726 picks=6 tpicks=3.71,5.25,6.53,7.68,9.22,10.37 falls=0
+[18:25:31] [0] fall without OOB flag: 4 decisions off the map at [-23.9  40.7  20.7] (time left 85s)
+[18:25:31] [0] DRILL v0=23.3 hit1=0 t1=0.00 hit2=0 t2=0.00 out=fell ret=0.0
+[18:25:31] [1] DRILL2 v0=3.8 fired=0 tf=0.00 pk=1 hit1=1 t1=2.11 hit2=1 t2=4.22 out=arrived ret=3.0
+[18:25:32] [3] DRILL4 v0=9.4 fired=1 tf=0.19 pk=4 hit1=1 t1=9.02 hit2=1 t2=1.34 out=arrived ret=6.0 id=4-171171 picks=6 tpicks=3.20,5.95,6.72,6.78,9.02,10.37 falls=0
+[18:25:32] [0] DRILL v0=18.1 hit1=1 t1=2.11 hit2=1 t2=1.60 out=arrived ret=2.0
+[18:25:33]   KL early stop at epoch 1
+[18:25:33] NAV upd=29128 map=KingOfTheMarble_Hunt r=0.65 steps=229,777,986 segs=531 arrive=65% falls100=0.63 speed=7.5 gems=3.7 pickup=8.2 sgem=2.00 carry=1.1 turn=20.0 rew=35.5 pl=0.004 vl=0.189 ent=0.31 entd=0.03 ec=0.0046 kl=0.307 clip=0.04 gn=0.48 ep=1 dstd=0.22 flips=0 vcont=124.0 upd_s=0.9 wall_s=19 inst=8 dps=432 prof=fwd:11,send:1,recv:5,handle:1,w_game:28,w_obs:22,w_begin:2
+[18:25:33] [1] DRILL2 v0=6.0 fired=0 tf=0.00 pk=1 hit1=1 t1=1.86 hit2=1 t2=1.54 out=arrived ret=3.0
+[18:25:34] [0] DRILL v0=21.2 hit1=1 t1=1.79 hit2=1 t2=3.14 out=arrived ret=2.0
+[18:25:34] [1] DRILL2 v0=15.5 fired=1 tf=0.38 pk=0 hit1=1 t1=1.79 hit2=0 t2=0.00 out=fell ret=1.0
+[18:25:35] [2] DRILL4 v0=9.1 fired=1 tf=0.32 pk=4 hit1=0 t1=0.00 hit2=0 t2=0.00 out=window ret=4.0 id=4-141119 picks=4 tpicks=1.02,6.27,9.98,11.07 falls=2
+[18:25:35] [0] DRILL v0=22.1 hit1=1 t1=1.54 hit2=1 t2=2.82 out=arrived ret=2.0
+[18:25:36] [3] DRILL4 v0=8.5 fired=1 tf=0.19 pk=4 hit1=1 t1=8.58 hit2=1 t2=1.47 out=arrived ret=6.0 id=7-181990 picks=6 tpicks=1.92,3.52,4.67,6.91,8.58,10.05 falls=0
+[18:25:36] [1] DRILL2 v0=10.3 fired=0 tf=0.00 pk=1 hit1=1 t1=3.52 hit2=1 t2=1.41 out=arrived ret=3.0
+[18:25:36] [0] DRILL v0=8.8 hit1=1 t1=1.41 hit2=1 t2=1.98 out=arrived ret=2.0
+[18:25:37] [1] DRILL2 v0=4.8 fired=0 tf=0.00 pk=0 hit1=1 t1=1.60 hit2=1 t2=2.37 out=arrived ret=2.0
+[18:25:37] [0] DRILL v0=18.8 hit1=1 t1=0.70 hit2=1 t2=1.73 out=arrived ret=2.0
+[18:25:37] [3] DRILL4 v0=5.4 fired=0 tf=0.00 pk=4 hit1=1 t1=4.80 hit2=1 t2=1.98 out=arrived ret=6.0 id=4-177959 picks=6 tpicks=2.30,2.37,3.46,4.03,4.80,6.78 falls=0
+[18:25:38] [1] DRILL2 v0=6.7 fired=0 tf=0.00 pk=1 hit1=1 t1=2.37 hit2=1 t2=2.75 out=arrived ret=3.0
+[18:25:38] [2] DRILL4 v0=8.7 fired=1 tf=0.38 pk=3 hit1=1 t1=6.66 hit2=0 t2=0.00 out=window ret=4.0 id=5-97198 picks=4 tpicks=2.18,4.67,5.76,6.66 falls=0
+[18:25:39] [0] DRILL v0=22.0 hit1=1 t1=2.69 hit2=1 t2=2.18 out=arrived ret=2.0
+[18:25:39] [0] DRILL v0=22.3 hit1=0 t1=0.00 hit2=0 t2=0.00 out=fell ret=0.0
+[18:25:40] [1] DRILL2 v0=5.7 fired=0 tf=0.00 pk=1 hit1=1 t1=1.86 hit2=1 t2=3.07 out=arrived ret=3.0
+[18:25:40] [0] DRILL v0=20.2 hit1=1 t1=1.86 hit2=1 t2=1.41 out=arrived ret=2.0
+[18:25:40] [3] DRILL4 v0=9.0 fired=0 tf=0.00 pk=4 hit1=1 t1=8.06 hit2=1 t2=1.60 out=arrived ret=6.0 id=4-89227 picks=6 tpicks=2.75,3.46,3.52,6.72,8.06,9.66 falls=1
+[18:25:41] [0] DRILL v0=23.1 hit1=1 t1=0.51 hit2=1 t2=3.33 out=arrived ret=2.0
+[18:25:41] [1] DRILL2 v0=6.5 fired=0 tf=0.00 pk=1 hit1=1 t1=2.43 hit2=1 t2=3.78 out=arrived ret=3.0
+[18:25:42] [2] DRILL4 v0=7.2 fired=1 tf=0.45 pk=4 hit1=0 t1=0.00 hit2=0 t2=0.00 out=window ret=4.0 id=3-196226 picks=4 tpicks=5.38,7.49,8.70,10.94 falls=0
+[18:25:42] [0] DRILL v0=15.8 hit1=1 t1=2.30 hit2=1 t2=3.14 out=arrived ret=2.0
+[18:25:43] [1] DRILL2 v0=6.9 fired=1 tf=0.26 pk=0 hit1=1 t1=2.05 hit2=1 t2=2.82 out=arrived ret=2.0
+[18:25:43] [3] DRILL4 v0=10.8 fired=1 tf=0.19 pk=4 hit1=0 t1=0.00 hit2=0 t2=0.00 out=window ret=4.0 id=5-223425 picks=4 tpicks=2.50,6.14,9.92,11.39 falls=1
+[18:25:44] [0] DRILL v0=21.5 hit1=1 t1=2.56 hit2=1 t2=2.69 out=arrived ret=2.0
+[18:25:44] [1] DRILL2 v0=7.4 fired=1 tf=0.51 pk=1 hit1=1 t1=2.05 hit2=1 t2=2.88 out=arrived ret=3.0
+[18:25:44] [0] DRILL v0=24.5 hit1=0 t1=0.00 hit2=0 t2=0.00 out=fell ret=0.0
+[18:25:45] [2] DRILL4 v0=6.9 fired=1 tf=0.45 pk=4 hit1=1 t1=7.49 hit2=1 t2=2.82 out=arrived ret=6.0 id=6-162862 picks=6 tpicks=2.11,3.97,4.99,5.70,7.49,10.30 falls=0

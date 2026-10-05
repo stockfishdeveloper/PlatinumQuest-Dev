@@ -204,7 +204,8 @@ def ppo_update(model, opt, rolls, last_values, log=print):
     old_logp = to(cat(lambda r: r.logp)).view(nseq, SEQ_LEN)
     old_vn = ((to(cat(lambda r: r.value)) - model.value_mean) / model.value_std).view(nseq, SEQ_LEN)
     resets = to(cat(lambda r: r.reset)).view(nseq, SEQ_LEN)
-    h0 = to(cat(lambda r: r.h)).view(nseq, SEQ_LEN, HIDDEN)[:, 0, :]
+    h_all = to(cat(lambda r: r.h)).view(nseq, SEQ_LEN, HIDDEN)   # the hidden state each action was taken from
+    h0 = h_all[:, 0, :]
     adv_s = adv_t.view(nseq, SEQ_LEN); ret_s = ret_norm.view(nseq, SEQ_LEN)
     # two minibatches per epoch however large the pooled rollout is: each optimizer step is a
     # 32-step GRU unroll and costs the same whatever the batch, and the GPU is shared with the
@@ -217,8 +218,11 @@ def ppo_update(model, opt, rolls, last_values, log=print):
         for start in range(0, nseq, mb):
             idx = perm[start:start + mb]
             # (B, T, ...) -> (T, B, ...)
+            # 40.42: at a reset the GRU restarts from the STORED state of that step (zeros for an ordinary segment
+            # start, the warmed-up state for a live-start drill), so the update scores the action the actor took
             logp, ent, ent_d, vn = model.evaluate_seq(crop[idx].transpose(0, 1), vec[idx].transpose(0, 1), h0[idx],
-                                                      act[idx].transpose(0, 1), resets[idx].transpose(0, 1))
+                                                      act[idx].transpose(0, 1), resets[idx].transpose(0, 1),
+                                                      h_reset=h_all[idx].transpose(0, 1))
             logp, ent, ent_d, vn = logp.transpose(0, 1), ent.transpose(0, 1), ent_d.transpose(0, 1), vn.transpose(0, 1)
             ratio = torch.exp(logp - old_logp[idx])
             a = adv_s[idx]

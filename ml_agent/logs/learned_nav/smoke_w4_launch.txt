@@ -1,0 +1,2 @@
+smoke_w4: python 31644 game 17056 -> C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\logs\learned_nav\smoke_w4_KingOfTheMarble_Hunt.txt
+smoke_w4: DRILL EVAL smoke_w4: stage 4 n 3 | kick gem within 1.0 s 0%, 1.5 s 0%, at all 100% (median 6.46 s) | gem after 67% | both, median time 11.00 s | fell 0% | timeout 0% | fired 0% | return 5.7 | 3 s

@@ -1,0 +1,203 @@
+{
+ "map": "KingOfTheMarble_Hunt",
+ "ckpt": "nav_p4g_29585.pth",
+ "update": 29585,
+ "rounds": [
+  {
+   "round": 1,
+   "gems": 122,
+   "points": 152.0,
+   "minutes": 3.03,
+   "decisions": 2841,
+   "countdown_decisions": 48,
+   "gems_per_min": 40.3,
+   "points_per_min": 50.2,
+   "falls": 0,
+   "falls_per_100u": 0.0,
+   "travelled_u": 1411.8,
+   "speed": 7.76,
+   "blind_pct": 0.0,
+   "stuck_breaks": 0,
+   "snapped_pct": 0.0,
+   "pathed_pct": 0.0,
+   "smooth": 1.0,
+   "pow_uses": {}
+  },
+  {
+   "round": 2,
+   "gems": 95,
+   "points": 122.0,
+   "minutes": 3.03,
+   "decisions": 2837,
+   "countdown_decisions": 41,
+   "gems_per_min": 31.4,
+   "points_per_min": 40.3,
+   "falls": 4,
+   "falls_per_100u": 0.29,
+   "travelled_u": 1379.8,
+   "speed": 7.6,
+   "blind_pct": 0.0,
+   "stuck_breaks": 2,
+   "snapped_pct": 0.0,
+   "pathed_pct": 1.4,
+   "smooth": 1.0,
+   "pow_uses": {
+    "2": 8
+   }
+  },
+  {
+   "round": 3,
+   "gems": 118,
+   "points": 149.0,
+   "minutes": 3.03,
+   "decisions": 2841,
+   "countdown_decisions": 41,
+   "gems_per_min": 38.9,
+   "points_per_min": 49.2,
+   "falls": 0,
+   "falls_per_100u": 0.0,
+   "travelled_u": 1467.7,
+   "speed": 8.07,
+   "blind_pct": 0.0,
+   "stuck_breaks": 0,
+   "snapped_pct": 0.0,
+   "pathed_pct": 0.0,
+   "smooth": 1.0,
+   "pow_uses": {
+    "2": 10
+   }
+  },
+  {
+   "round": 4,
+   "gems": 97,
+   "points": 124.0,
+   "minutes": 3.02,
+   "decisions": 2834,
+   "countdown_decisions": 41,
+   "gems_per_min": 32.1,
+   "points_per_min": 41.0,
+   "falls": 7,
+   "falls_per_100u": 0.501,
+   "travelled_u": 1397.3,
+   "speed": 7.7,
+   "blind_pct": 0.0,
+   "stuck_breaks": 0,
+   "snapped_pct": 0.0,
+   "pathed_pct": 0.0,
+   "smooth": 1.0,
+   "pow_uses": {
+    "2": 14
+   }
+  },
+  {
+   "round": 5,
+   "gems": 109,
+   "points": 136.0,
+   "minutes": 3.03,
+   "decisions": 2838,
+   "countdown_decisions": 41,
+   "gems_per_min": 36.0,
+   "points_per_min": 44.9,
+   "falls": 3,
+   "falls_per_100u": 0.206,
+   "travelled_u": 1458.3,
+   "speed": 8.03,
+   "blind_pct": 0.0,
+   "stuck_breaks": 1,
+   "snapped_pct": 0.0,
+   "pathed_pct": 0.8,
+   "smooth": 1.0,
+   "pow_uses": {
+    "2": 3
+   }
+  },
+  {
+   "round": 6,
+   "gems": 117,
+   "points": 146.0,
+   "minutes": 3.03,
+   "decisions": 2839,
+   "countdown_decisions": 41,
+   "gems_per_min": 38.6,
+   "points_per_min": 48.2,
+   "falls": 2,
+   "falls_per_100u": 0.137,
+   "travelled_u": 1455.1,
+   "speed": 8.01,
+   "blind_pct": 0.0,
+   "stuck_breaks": 0,
+   "snapped_pct": 0.0,
+   "pathed_pct": 0.0,
+   "smooth": 1.0,
+   "pow_uses": {
+    "2": 3
+   }
+  },
+  {
+   "round": 7,
+   "gems": 116,
+   "points": 147.0,
+   "minutes": 3.03,
+   "decisions": 2840,
+   "countdown_decisions": 41,
+   "gems_per_min": 38.3,
+   "points_per_min": 48.5,
+   "falls": 1,
+   "falls_per_100u": 0.067,
+   "travelled_u": 1497.6,
+   "speed": 8.24,
+   "blind_pct": 0.0,
+   "stuck_breaks": 0,
+   "snapped_pct": 0.0,
+   "pathed_pct": 0.0,
+   "smooth": 1.0,
+   "pow_uses": {
+    "2": 7
+   }
+  },
+  {
+   "round": 8,
+   "gems": 110,
+   "points": 139.0,
+   "minutes": 3.03,
+   "decisions": 2838,
+   "countdown_decisions": 41,
+   "gems_per_min": 36.3,
+   "points_per_min": 45.9,
+   "falls": 3,
+   "falls_per_100u": 0.208,
+   "travelled_u": 1442.0,
+   "speed": 7.94,
+   "blind_pct": 0.0,
+   "stuck_breaks": 0,
+   "snapped_pct": 0.0,
+   "pathed_pct": 0.0,
+   "smooth": 1.0,
+   "pow_uses": {
+    "2": 7
+   }
+  }
+ ],
+ "mean": {
+  "gems_per_min": 36.487,
+  "points_per_min": 46.025,
+  "falls_per_100u": 0.176,
+  "speed": 7.919,
+  "blind_pct": 0.0
+ },
+ "human": {
+  "gems_per_min": 37.5,
+  "points_per_min": 47.3,
+  "speed": 8.05,
+  "falls_per_100u": 0.046
+ },
+ "vs_human": {
+  "gems_per_min": 0.97,
+  "points_per_min": 0.97,
+  "speed": 0.98,
+  "falls_ratio": 3.8
+ },
+ "value_weight": 0.0,
+ "h_reset": "never",
+ "when": "2026-10-04T04:13:03.841000"
+}

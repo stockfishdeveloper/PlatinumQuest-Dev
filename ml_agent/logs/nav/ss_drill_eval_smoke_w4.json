@@ -1,0 +1,89 @@
+{
+ "ckpt": "models/nav/nav_v10_28897.pth",
+ "update": 28895,
+ "stage": 4,
+ "no_use": false,
+ "n": 3,
+ "sample": false,
+ "hit1_1s": 0.0,
+ "hit1_15s": 0.0,
+ "hit1": 1.0,
+ "t1_median": 6.46,
+ "hit2": 0.6666666666666666,
+ "t_both_median": 11.004999999999999,
+ "fell": 0.0,
+ "timeout": 0.0,
+ "fired": 0.0,
+ "ret": 5.666666666666667,
+ "picks_mean": 5.666666666666667,
+ "falls_mean": 0.6666666666666666,
+ "t_first_median": 2.24,
+ "wall_s": 3.2,
+ "per_drill": [
+  {
+   "v0": 8.1,
+   "fired": false,
+   "tf": 0.0,
+   "hit1": true,
+   "t1": 8.26,
+   "hit2": false,
+   "t2": 0.0,
+   "out": "window",
+   "ret": 5.0,
+   "id": "0-1550",
+   "picks": 5,
+   "tpicks": [
+    4.16,
+    5.12,
+    6.53,
+    7.55,
+    8.26
+   ],
+   "falls": 1
+  },
+  {
+   "v0": 8.1,
+   "fired": false,
+   "tf": 0.0,
+   "hit1": true,
+   "t1": 6.46,
+   "hit2": true,
+   "t2": 4.99,
+   "out": "arrived",
+   "ret": 6.0,
+   "id": "0-1550",
+   "picks": 6,
+   "tpicks": [
+    2.24,
+    3.14,
+    4.61,
+    5.76,
+    6.46,
+    11.46
+   ],
+   "falls": 0
+  },
+  {
+   "v0": 8.1,
+   "fired": false,
+   "tf": 0.0,
+   "hit1": true,
+   "t1": 6.46,
+   "hit2": true,
+   "t2": 4.1,
+   "out": "arrived",
+   "ret": 6.0,
+   "id": "0-1550",
+   "picks": 6,
+   "tpicks": [
+    2.24,
+    3.14,
+    4.61,
+    5.76,
+    6.46,
+    10.56
+   ],
+   "falls": 1
+  }
+ ]
+}

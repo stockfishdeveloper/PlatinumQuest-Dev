@@ -32,7 +32,7 @@ from terrain_obs import TerrainMap                                   # noqa: E40
 from nav.protocol import RAW_GEMS, RAW_VEL, RAW_POW_HELD, RAW_POW_BLAST, RAW_POW_SPECIAL, BLAST_REQUIRED   # noqa: E402
 from nav.env import HuntEnv, OBS_MS                                  # noqa: E402
 from nav.terrain import TerrainGrid                                  # noqa: E402
-from nav.obs import ObsBuilder, NAV_OBS_VERSION, VEC_DIM, ss_aim     # noqa: E402
+from nav.obs import ObsBuilder, NAV_OBS_VERSION, VEC_DIM, ss_aim, fill_use_state     # noqa: E402
 from nav.terrain import CROP_SHAPE                                   # noqa: E402
 from nav.model import NavActorCritic, action_to_joystick             # noqa: E402
 
@@ -78,7 +78,10 @@ STUCK_PICKUP = os.environ.get('NAV_STUCK_PICKUP', '1') == '1'   # 2026-10-03 23:
 NO_USE = os.environ.get('NAV_NO_USE', '0') == '1'  # 2026-10-03 23:30 (log 40.24): ignore the use bit (no powerup, no blast), to
                                                    # evaluate checkpoints from before the use head (its fresh init sits at the
                                                    # prior's threshold and would fire at random) as the navigator alone
-WATCH = os.environ.get('NAV_WATCH', '0') == '1'    # real-time viewing. Lockstep + FIXEDSTEP mean the
+FORCE_USE = os.environ.get('NAV_FORCE_USE', '0') == '1'   # 2026-10-04 04:10 (log 40.33): diagnostic, fire Super Speed at the first
+                                                   # decision the approval mask allows (the matched counterpart of NAV_NO_USE, like
+                                                   # ss_drill_eval --force-use): what the kick is worth with the current control
+WATCH =os.environ.get('NAV_WATCH', '0') == '1'    # real-time viewing. Lockstep + FIXEDSTEP mean the
                                # sim advances as fast as we reply, and set_speed also sends
                                # RENDEREVERY 100 -- so NAV_SPEED alone does NOT give real time.
                                # WATCH renders every frame and paces the loop to 64 ms/decision,
@@ -378,6 +381,7 @@ def main():
         gap_goal = None                  # where to head while no gem is on the map (held per gap)
         pos_hist = []; stuck_until = -1; n_stuck = 0     # stuck-breaker state (see STUCK_S)
         last_pick_dec = -10**9                           # decision of the last pickup (STUCK_PICKUP)
+        use_sent = [False, False]; pending_since = None; latched_aim = None; ss_fire_dec = -10**9   # V10 use state (40.26)
         # PRE-SPIN (2026-09-26): mlAgent.cs now plays the Ready/Set countdown. The round clock shows the full
         # round length until GO and the marble cannot move (Start mode), so countdown decisions are kept out of
         # the stuck-breaker, the per-round minutes/speed and the trace; the policy's input spins the marble up.
@@ -524,9 +528,14 @@ def main():
                     env.mark_off()                        # no gem on the map: draw nothing anywhere
                     marked = None
             crop, vec, on_floor = obs_b.build(env.msg.obs, goal, None if NO_NEXT else ngoal)
+            fill_use_state(vec, use_sent[0], use_sent[1], pending_since is not None, latched_aim,
+                           (decisions - ss_fire_dec) * 0.064)
             out = model.act(torch.as_tensor(crop, device=dev).unsqueeze(0),
                             torch.as_tensor(vec, device=dev).unsqueeze(0), h, deterministic=not (detour or SAMPLE))
             a = out['action_game'][0].tolist(); vel = env.msg.obs[RAW_VEL]
+            if FORCE_USE and len(a) > 5:
+                with torch.no_grad():
+                    a[5] = 1.0 if float(model.use_prior(torch.as_tensor(vec, device=dev).unsqueeze(0))[0]) > 0.5 else 0.0
             if SMOOTH < 1.0:
                 n = math.hypot(a[0], a[1])
                 if n > 1e-6:
@@ -543,14 +552,23 @@ def main():
                 a[2] = 1.0                        # direction is the policy's, strength is pegged
             js_cmd = action_to_joystick(a[0], a[1], a[2], a[3], a[4], float(vel[0]), float(vel[1]))
             kw = {}
-            if len(a) > 5 and a[5] > 0.5 and not NO_USE:      # the use bit (log 40), as vec_worker turns it into words
-                ob_ = env.msg.obs; held_ = int(ob_[RAW_POW_HELD]) if len(ob_) > RAW_POW_HELD else 0
-                if held_ > 0:
-                    kw = {'use_pow': 1, 'pow_yaw': (math.atan2(*ss_aim(vec)) if held_ == 2 else None)}   # V9 physics aim
-                elif float(ob_[RAW_POW_BLAST]) >= BLAST_REQUIRED or float(ob_[RAW_POW_SPECIAL]) > 0.5:
-                    kw = {'use_blast': 1}
+            ob_ = env.msg.obs; held_ = int(ob_[RAW_POW_HELD]) if len(ob_) > RAW_POW_HELD else 0
+            sent_ = False
+            # the use bit (log 40), as vec_worker turns it into words; 40.26: Super Speed only, like training
+            if len(a) > 5 and a[5] > 0.5 and not NO_USE and held_ == 2:
+                aim_ = ss_aim(vec)
+                kw = {'use_pow': 1, 'pow_yaw': math.atan2(*aim_)}   # the physics aim
                 round_uses[held_] = round_uses.get(held_, 0) + 1
+                sent_ = True; latched_aim = aim_
+                if pending_since is None:
+                    pending_since = decisions
             msg, info = paced_step(js_cmd, **kw)
+            held_after = int(msg.obs[RAW_POW_HELD]) if len(msg.obs) > RAW_POW_HELD else 0
+            use_sent = [sent_, use_sent[0]]
+            if held_ == 2 and held_after == 0 and not info['fell']:
+                ss_fire_dec = decisions; pending_since = None; latched_aim = None         # the kick went off (worker timing)
+            if pending_since is not None and (decisions - pending_since > 3 or held_after != 2):
+                pending_since = None; latched_aim = None
             for _ in range(VIEW_SUBSTEPS - 1):     # same action across the remaining slices
                 msg, inf2 = paced_step(js_cmd)
                 info['gem_delta'] += inf2['gem_delta']

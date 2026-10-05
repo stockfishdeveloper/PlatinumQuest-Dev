@@ -1,0 +1,5 @@
+07:39:21 resoff_n29231a: python 1272504 port 9961 ckpt models/nav/nav_night_29231_148.pth
+07:39:31 resoff_n29231b: python 1272666 port 9962 ckpt models/nav/nav_night_29231_148.pth
+07:39:43 resoff_n29231c: python 1272957 port 9963 ckpt models/nav/nav_night_29231_148.pth
+07:39:53 resoff_n29231d: python 1273314 port 9964 ckpt models/nav/nav_night_29231_148.pth
+07:44:32 done

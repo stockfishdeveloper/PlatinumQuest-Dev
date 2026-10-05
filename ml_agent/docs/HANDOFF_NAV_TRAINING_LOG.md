@@ -5767,3 +5767,444 @@ Gates, 8 deterministic rounds each (nav/real_run.py on the CPU, walk tour, the p
 * Code left from tonight: nav/real_run.py NAV_NO_USE (eval only) and NAV_STUCK_PICKUP (default on; the stuck-breaker
   ignores windows with a pickup); logs/nav/gate_scripts/many_rounds.sh; models/nav/nav_v9_28897.pth and
   nav_v9_tour_{28954,29700,29794}.pth (V9 migrations). Nothing else changed (the cap override of 40.23 is as it was).
+
+### 40.26 The Super Speed curriculum, Stage 1, built and started (10-03 23:45 - 23:58; operator: implement the other agent's plan overnight)
+
+The plan (the other agent's review, operator 23:45): fix what keeps the use decision from learning, then a reverse
+curriculum inside ONE policy: (1) control after real kicks, (2) use or not shortly before, (3) the approach, (4) whole
+rounds; isolate Super Speed; start from 28897; judge by matched comparisons and deterministic play. Built tonight:
+* Use decision (nav/model.py): the physics approval is an action MASK (no use is possible where it is off); inside it
+  p = USE_EPS 0.2 + 0.8 sigmoid(logit), a differentiable exploration floor (the old hard floor had zero gradient below
+  it: a use that paid could never raise its own probability); the logit soft-bounded (12 tanh(raw / 12)), PPO scores
+  this exact mixture, deterministic play fires only where the LEARNED part sigmoid(logit) > 0.5. USE_SS_ONLY: the mask
+  keeps only the Super Speed branch; the worker and real_run fire only a held Super Speed. A fresh use head starts
+  unsaturated (USE_BIAS_V10 -1: learned 0.27, sampled 0.42 where approved). Checks: the gradient reaches the head at
+  raw -20, -1 and +2; p = 0.200 / 0.416 / 0.903 as specified; 1e-6 outside the mask.
+* Residual (nav/model.py ss_res): a small head on [h, vec] adding to the steering (pre-tanh) and the brake logit, gated
+  on (Super Speed held, a kick pending, or one within 2 s); zero-initialised, so 28897's driving is untouched at the
+  start and ordinary driving keeps the base heads. One network, one action path, no external controller.
+* Observation V10 (nav/obs.py, VEC_DIM 91 -> 98): [30] the kick's resulting speed; [31-36] the USE STATE (use sent in
+  the last two decisions, a kick pending, the latched aim, time since the last Super Speed fire) via fill_use_state,
+  filled the same way by the worker, real_run and (neutral) hybrid.
+* One kick rule (nav/obs.py ss_kick_result / ss_kick_ok) for the fire approval [26] AND the approach flag [27]: the
+  RESULTING velocity vector (the brake case keeps its old heading at |v| - 25; before, a scalar projection), the 24 u/s
+  cap on every path (the next-gem-on-the-line override had skipped it: 8 u/s along the line + 25 = 33 u/s was approved;
+  reproduced and now refused), the stop at SS_DECEL along the resulting heading. Unit checks pass (incl. a sideways
+  30 u/s case the first version got wrong).
+* Stage 1 starts (nav/ss_drill_starts.py): 3,349 real kicks in the agent's own traces of 10-03 18:40-23:40 (a
+  horizontal velocity change >= 15 u/s in one decision on the floor): the state one decision after the kick, the gem
+  it was aimed at, the gem after; plus the state 3 decisions before (for Stage 2). Split by hash: datasets/ss_drill/
+  starts_dev.json 2,706 / starts_eval.json 643; with the speed after the kick <= 25 u/s (the kicks the approval now
+  allows): 948 dev / 211 eval, median turn 116-125 deg, the gem 11.5 u away (the operator's demo: 77-151, 12 u).
+* Drills (nav/vec_worker.py, nav/waypoints.py begin_drill / drill_mode): instances 0-3 (NAV_DRILL_INSTANCES) teleport
+  into a recorded post-kick state (velocity and the rolling spin of the pre-kick velocity; engine variations: speed
+  +-10 %, heading +-4 deg, position +-0.15 u) with the use state "kick fired one decision ago" and the held slot empty;
+  targets: the intended gem, then the gem after it (synthetic arrival, the same shaped reward as always); a fall ends
+  the drill, no chaining, 3 s per target. Instances 4-7 play ordinary rounds (Super Speed uses live through the mask).
+  DRILL lines per drill, DRILLSUM per 100; logs/nav/gate_scripts/drill_stats.py.
+* Not done (yet): the game-points-only objective as its own experiment (the shaped reward stays, so the drills are
+  judged on the old objective); Stage 2-4; inventory-aware routing; re-aiming at the fire tick.
+* Launched 23:57 from 28897 (models/nav/nav_v10_28897.pth = nav_latest; Adam padded for the 8 new tensors); the cap
+  run archived as stdout_p4f_cap_20261003.txt / night_best_p4f_20261003.json (night_best reset). First 190 drills (the
+  untrained policy): intended gem taken 92-97 % but median 1.8-2.4 s after the start (overshoot and come back); within
+  1.0 s 22 %; the gem after 67 %; falls 17-21 %; timeouts 12-16 %.
+* Deterministic drill evaluation (nav/ss_drill_eval.py, logs/nav/gate_scripts/ss_eval.sh <ckpt> <tag> <port> [--stage
+  N] [--no-use]): the held-out starts in order, no variations, the worker's own drill code, one game window (~2 min).
+  28897 (update 28895), stage 1, 211 starts: the kick's gem within 1.0 s 23 %, 1.5 s 29 %, at all 92 % (median 1.79 s),
+  the gem after 72 %, falls 19 %, timeouts 9 %, return 56.4.
+
+### 40.27 Stages 2 and 3 built (10-04 00:05-00:20)
+
+* Bridge word GIVEPOW <ItemDatablock>|none (mlAgent.cs): the server's own pickup path (Marble::setPowerUp: powerUpData,
+  the engine id the use key fires, the HUD) plus the client prediction; the .dso deleted and recompiled. Tested on one
+  game (nav/givepow_test.py): held reads 2 after GIVEPOW SuperSpeedItem_MBU, the use fires it (+23.3 u/s along yaw 0,
+  +25.0 along yaw pi; one trial met the start pad within 3 decisions), GIVEPOW none clears it. The training games of
+  this run loaded the script before it, so stages 2-3 need the next restart.
+* Stage 2 starts (datasets/ss_drill/starts2_*.json): 5 decisions (0.32 s) before each recorded kick, with every waypoint
+  from there to the kick ('pre_goals': the pickup still ahead in 964 of 1,208 starts at <= 25 u/s, median 1.5 u away);
+  Stage 3 (starts3_*.json): 20 decisions (1.3 s) before, 1-3 pickups on the way in. A stage 2/3 drill grants a Super
+  Speed (GIVEPOW), teleports into the recorded state, and the POLICY decides whether and when to fire (the mask and the
+  mixture as in rounds); DRILL2 / DRILL3 lines add fired / when. NAV_DRILL_PLAN 'idx:stage,...' mixes stages per
+  instance; NAV_DRILL_NO_USE ignores the use bit (the matched comparison from the same starts).
+* Untrained 28897, deterministic (no learned use): stage 2 (30 starts): kick's gem 93 % (median 2.53 s from the start),
+  both gems 4.86 s, falls 3 %; sampled (fires 53 %): 93 %, 5.28 s, falls 10 %: firing does not pay before the
+  control after the kick is learned. Stage 3 (20 starts): kick's gem 90 % (4.12 s), both 6.46 s, falls 5 %.
+
+### 40.28 Stage 1 after 40 minutes; the arrival check; restart with a stage 2 instance (10-04 00:33-00:45)
+
+* Training drills 23:57-00:33 (7,200): falls 21 % -> 14 % in the last six minutes, the gem after 60-65 -> 68 %, return
+  53-54 -> 58.8; the kick's gem within 1.0 s flat at 21 %. Deterministic eval of 29010: within 1.0 s 22 %, falls 14 %
+  (base 23 % / 19 %), timeouts 13 % (9 %).
+* The recorded kicks point at their gems (median error 2.0 deg; a straight line from the start passes within the 0.65 u
+  arrival radius for 57-60 % of the starts, within 1.5 u for 90 %). Two reasons the first pass is not taken:
+  1. The synthetic arrival was tested on the sampled position once a decision; at 20 u/s a decision covers 1.28 u, so
+     a pass 0.5 u off was counted 65 % of the time (0.6 u: 38 %; ~100 % at 8 u/s), while the game's pickup is a
+     continuous collision. Fixed: waypoints._arrived tests the path since the last decision (closest approach, height
+     interpolated). It changed the baseline little (28897 again 23 % / 92 % / falls 19 %), so this was not the main cause.
+  2. The main cause is the navigator's habit (traced, 30 eval drills): right after the kick it steers a median 148 deg
+     against its velocity (87 % of the first 8 decisions beyond 90 deg), braking 23 -> 17 u/s in 0.6 s, and the
+     sideways part of that thrust bends it off the line; it then comes back for the gem (median 1.8 s). The brake
+     before the gem is what Stage 1 has to unlearn (and then brake after it).
+* Restart 00:37 (from 29025; stage 1a endpoint kept as nav_p4g_s1a_end_29025.pth, logs as *_s1a_20261004.txt) with the
+  continuous arrival and NAV_DRILL_PLAN '0:1,1:1,2:1,3:2' (code default now): three post-kick drills, one stage 2 drill
+  (fires in about half of them through the 0.2 floor), four ordinary rounds. The training games now have GIVEPOW.
+  Re-measured with the continuous arrival: 28897 within 1.0 s 23 %, at all 92 %, falls 19 %, return 56.7; 29025: 25 %,
+  92 %, falls 15 %, timeouts 16 %, return 57.3.
+
+### 40.29 The residual moves after the tanh (10-04 00:47)
+
+* In the first 6 decisions after a kick the base steering's pre-tanh output is saturated (|pre| median 1.54, p90 3.8,
+  39 % above 2 where the tanh slope is under 0.07; 20 traced eval drills on 29025), so a residual added BEFORE the tanh
+  got 7-20 % of its gradient exactly where it has to turn the 144-148 deg brake into a straight pass. nav/model.py now
+  adds it after: mean = tanh(base) + residual (the Gaussian mean may leave [-1, 1]; action_to_joystick normalises the
+  sampled direction); identical at zero (checks pass); the residual trained so far was tiny (last layer norm 0.11).
+* Restart 00:47 from 29055 (endpoint nav_p4g_s1b_end_29055.pth, logs *_s1b_20261004.txt), same plan '0:1,1:1,2:1,3:2'.
+
+### 40.30 Evals at 29205; exploration after the kick widened (10-04 01:33-01:44)
+
+* Held-out, deterministic, 29205 (28897 in brackets): stage 1 (211): the kick's gem within 1.0 s 27 % (23), at all 91 %
+  (92), both gems median 4.19 s (4.41), falls 16 % (19), timeouts 16 % (9), return 58.4 (56.7). Stage 2 (221): the
+  policy fired in NONE (its learned use probability is under 0.5 everywhere), so with and without the kick read the
+  same: both gems 4.67 s, falls 17-18 %, return 79.8 / 80.1. In training (sampled) stage 2, fired 302 vs not 341:
+  both gems 67 / 63 %, median 4.67 / 4.99 s, falls 21 / 23 %, return 79.9 / 79.3: the kick is now about neutral.
+  Ordinary rounds 00:49-01:41: 126 -> 128 -> 137 a round (the restarts' partial rounds included), falls 1.9 at the end.
+* Why Stage 1 learns slowly: the navigator brakes ~145 deg against its velocity right after a kick and the steering
+  noise (std 0.22) samples only +-12 deg around that, so a straight pass through the gem is hardly ever tried. Changes
+  (all aimed at the 2 s after a kick; deterministic play unaffected): STD_POST_MULT 2.5 (steering noise x2.5 for 2 s
+  after a fire; the entropy given to the controller excludes the boost, so it does not cut exploration elsewhere);
+  SS_RES_SCALE 3 (the residual's output x3, so each Adam step moves it 3x as far; the trained residual was tiny);
+  NAV_DRILL_PLAN '0:1,1:1,2:1,3:1,4:2' (4 post-kick, 1 pre-kick, 3 ordinary rounds).
+* Restart 01:43 from 29235 (endpoint nav_p4g_s1c_end_29235.pth, logs *_s1c_20261004.txt).
+
+### 40.31 Brake along the line: a post-kick brake floor (10-04 02:03-02:07)
+
+* 20 minutes of 40.30 (4,100 drills): stage 1 flat (within 1.0 s 25 %, falls 17-20 %); stage 2 sampled: fired both
+  gems 75 % in 4.67 s vs 72 % in 5.06 s not fired, falls 17 / 19 %, return 83.1 / 85.1. Traced 29300 (15 eval drills):
+  still a median 151 deg against the velocity in the first 8 decisions (100 % beyond 90 deg); the residual IS training
+  (output layer +75 % in 60 updates) but has not turned the brake; the post-kick line passes within 0.65 u of the gem
+  in 73 % of these drills.
+* The fix the physics suggests: braking EXACTLY against the velocity keeps the kick's line (the gem on the first pass,
+  at a lower speed, then less overshoot); the operator held the backward key after 11 of his 20 kicks. The policy's
+  brake action is exactly that (joystick: full thrust against the velocity) but its logit sits at -7 (0.09 %) and was
+  never sampled. Now (BRAKE_EPS_POST 0.15): for 2 s after a fire p_brake = 0.15 + 0.85 sigmoid(logit), the same
+  differentiable floor as the use decision, scored exactly by PPO; deterministic play brakes only where the learned
+  part > 0.5; unchanged elsewhere. Checks: post-kick p 0.152, elsewhere 0.002-0.003 as before.
+* Restart 02:06 from 29305 (endpoint nav_p4g_s1d_end_29305.pth, logs *_s1d_20261004.txt).
+
+### 40.32 Braking along the line does not pay; the real gap is falls; both add-ons off (10-04 02:33-02:55)
+
+* 27 minutes of the brake floor: training drills falls 22-23 % (17-20 % before), return ~50 (55-57); deterministic eval
+  of 29395: within 1.0 s 27 %, falls 19 % (29205: 27 % / 16 %), return 56.2; the residual's brake output went slightly
+  NEGATIVE (-0.024): PPO found the random brakes unhelpful.
+* Direct test (nav/ss_drill_eval.py --force-brake K, eval only): 28897 braking for the first 4 / 8 decisions of every
+  drill: within 1.0 s 23 / 22 %, falls 22 / 24 % (no brake: 23 %, 19 %). So braking along the kick line is not the
+  missing skill; the straight-line estimate (60 % first-pass hits) ignored that the marble carries its pre-kick spin
+  (a big-angle kick leaves spin across the new velocity, which bends the path).
+* Measured against the operator's demo the first-pass rate is the wrong target: he reached the next gem 0.8-2.2 s after
+  the kick (median ~1.5 s), the policy reaches it in a median 1.8-1.9 s (91 %); the gap is FALLS: 0 of 20 for him,
+  14-19 % of the drills for the policy.
+* Both exploration add-ons switched off (BRAKE_EPS_POST 0, STD_POST_MULT 1; the mechanisms stay in the code); the
+  residual stays post-tanh x3, the plan stays '0:1,1:1,2:1,3:1,4:2'. Restart 02:42 from 29420 (endpoint
+  nav_p4g_s1e_end_29420.pth, logs *_s1e_20261004.txt).
+* The manoeuvre's value with the current control, matched (ss_drill_eval --force-use: fire at the first decision the
+  approval allows, vs --no-use; 221 held-out stage 2 starts, 29420): with the kick (fired in 67 %): kick's gem 91 %
+  (median 2.50 s), the gem after 80 %, both in a median 4.86 s, falls 17 %, timeouts 3 %, return 85.0; without: 91 %
+  (2.69 s), 78 %, 4.80 s, falls 14 %, timeouts 8 %, return 83.2. About break-even: the kick reaches its gem ~0.2 s
+  sooner and times out less, but adds 3 points of falls. The use decision cannot become worth learning before the
+  falls after the kick come down.
+
+### 40.33 The drills wore the navigator down; restart from 28897 with the navigator frozen (10-04 03:34-04:30)
+
+* Evals of 29585 (deterministic, held-out starts). Stage 1 (211): within 1.0 s 24 %, gem at all 93 % (1.79 s), the
+  gem after 79 % (base 72 %), falls 14 % (base 19 %), return 60.6 (base 56.4). Stage 2 matched (221): fire at the
+  first approved decision (--force-use, fired 66 %): kick's gem 90 % (2.43 s), gem after 80 %, falls 19 %, timeouts
+  1 %, return 84.1; no use: 86 % (2.69 s), 75 %, falls 19 %, timeouts 6 %, return 79.9. The policy's own deterministic
+  choice: fired 0 %.
+* Training stage 2 drills split by the pre-gem (pk) and fire time: pk0 fired (any time up to 0.7 s) return 61-63, hit2
+  75-82 %, falls 10-13 % vs never fired 43.1, 57 %, 22 %; pk1 fired 93-100 vs 92.4. Firing pays in the drills.
+* The learned preference where the mask approves (scratch use_probe.py: p_learn over 80 stage 2 starts): 28897 0.26,
+  29025 0.19, 29235 0.07, 29420 0.06, 29585 0.10 (p90 0.27, max 0.37). It fell while only ordinary rounds trained it
+  (sampled rounds: a fall within 3 s after 30-45 % of the fires, reward per decision after a fire 0.7-1.0 vs 1.5
+  overall) and crept back once stage 2 drills ran.
+* FULL ROUNDS (rr_gate, CPU, 16 rounds per arm, walk tour). 28897 without Super Speed: 159.0 (153-164), speed 8.38,
+  falls 1.25. 29585: 141.5 without Super Speed (falls 2.94, speed 7.85); 142.4 firing at the first approved decision
+  (new real_run flag NAV_FORCE_USE, diagnostic); residual zeroed (scratch rr_patch.py PATCH_RES=off) 145.1 (falls
+  1.69); residual only after a kick + firing 141.3. 29235: 149.0. 29025: erratic (22, 33, 43 among 107-159).
+  => Training the whole network on the drills wore the navigator down within ~130 updates (slower, more falls), and
+  the residual's "Super Speed held" gate rewrote ordinary steering for the ~60 % of a round the item is just carried.
+  The kick itself added nothing in full rounds with that control.
+* Cause found in the trainer: every drill end (the second gem, a timeout, a fall) was TERMINAL. The critic saw the
+  same-looking state with two futures (0 in a drill, the rest of the round in a round), and finishing a drill sooner
+  was worth nothing beyond the per-gem speed bonus, while saving time is the whole point of Super Speed.
+* Changes (restart 04:24 from 28897 V10; endpoint of the 40.26-40.32 run models/nav/nav_p4g_s1f_end_29735.pth, logs
+  stdout_s1f_20261004.txt):
+  - model.py FREEZE_BASE True: only use_head, ss_res and value_head train (55,941 of 857,404 parameters); the
+    navigator stays exactly 28897. SS_RES_HELD False: the residual acts only while a kick is pending or within 2 s of
+    one.
+  - train_nav.py DRILL BOOTSTRAP: a drill's last transition gets + GAMMA * v_cont, the critic's running mean value over
+    round decisions (logged as vcont=, ~163); the worker flags drill transitions ('drill' in the reply).
+  - vec_worker.py NAV_DRILL_PLAN default '0:1,1:1,2:2,3:2,4:2': 2 post-kick, 3 pre-kick (the use decision), 3 rounds.
+  - real_run.py NAV_FORCE_USE (default off).
+* Reference on the frozen base: 28897 firing at the first approved decision (NAV_FORCE_USE, 16 rounds) 157.2, falls
+  2.62 (without Super Speed 159.0, falls 1.25): the approval rule plus the 28897 control loses ~2 points a round to
+  falls after the kick. That is what the residual has to fix. First 25 frozen updates: stage 1 sampled drills gem
+  after 61 %, falls 27 % (the 28897 control); stage 2 pk0 fired return 62.4 vs 43.2 unfired.
+* 04:34 restart (same run, from its own 28925): the policy moved by KL 0.000-0.001 per update, so the use head and
+  residual got their own Adam group at LR x 10 (model.py SS_LR_MULT; the critic's head stays at LR; a 2-group
+  optimizer state resumes only into a FREEZE_BASE run, other runs start a fresh Adam state). KL 0.002-0.005 after.
+  Log train_nav_20261004_043426.log, watchdog_20261004c.out.
+* Plan: use-probe and matched stage 2 evals at ~05:00 and ~05:30; full-round gates at ~05:45 (the learned use vs
+  Super Speed off vs firing at the first approval) against 159.0.
+
+### 40.34 Why the kicks fell: the rim counted as braking room; level-floor rule (10-04 04:46-05:15)
+
+* Frozen run at 28966 (30 updates at LR x 10, drill ends bootstrapped): the learned use preference where approved went
+  0.27 -> 1.00 (use_probe: mean 0.999, every approved decision > 0.5), so deterministic play fires at every approval.
+  Post-kick control unchanged so far (stage 1 eval: falls 20 %, return 56.9; 28897 19 %, 56.7). Stage 2 matched at
+  28966: the policy firing (61 %) return 79.9, falls 28 %; not firing 80.3, falls 19 %.
+* What happens after a kick (28897 firing at every approval, 46 kicks in 16 rounds, scratch kick_falls.py /
+  kick_falls2.py on the real_run traces): 18 fell within 3 s (39 %; 60 % when the kick left the marble at 22-26 u/s,
+  23 % below 22). Every traced fall is the same sequence: the kick takes its gem in ~7 decisions at 16-19 u/s, the next
+  gem is ~86 deg off, the marble overshoots ~10 u, climbs the platform's outer rim (z +1.5-2 u, off the floor) and
+  rolls off it 2-3 s after the kick while the navigator turns toward the next gem.
+* Cause: ss_kick_ok measured braking room with terrain gap_along, which follows a gradual bank step by step, so the
+  rim counted as floor. At the two traced kicks: lip 21.0 u (needed 20.6 / 20.8 -> approved), LEVEL floor 15.5 u.
+* Fix (general, no map data): obs.py SS_LEVEL_DZ 0.75 / level_run(): braking room is floor within 0.75 u of the
+  kick's floor height (lip = min(lip, level run)); a terrain without height levels skips the check.
+* Full rounds, 16 each unless noted (rr_gate, CPU, walk tour, deterministic navigator 28897):
+  | arm | points | falls/round | kicks/round, falls within 3 s |
+  |---|---|---|---|
+  | old rule, no Super Speed | 159.0 | 1.25 | - |
+  | old rule, fire at every approval | 157.2 | 2.62 | 2.9, 39 % |
+  | level rule, fire at every approval (32 rounds) | 160.35 (160.9 inference patch, 159.8 obs.py) | 0.75 | 0.8, 1 of 26 |
+  | level rule, no Super Speed | 160.2 | 0.44 | - |
+  | frozen run 29003 (learned use, old rule) | 158.9 | 2.44 | 2.6, 39 % |
+  | level rule + cap 30 instead of 24 (inference patch), fire at every approval | 151.5 | 2.31 | 5.3, 13 % |
+  The level rule makes the kick safe (1 fall in 26 kicks) but rare, so it is worth about nothing yet; the navigator
+  without kicks also falls less under the stricter flags (0.44 vs 1.25 a round, 7 vs 20 falls: it reads the approval
+  flags, which phase 4 trained with a firing prior). Relaxing the cap brings back the fast straight runs: more kicks,
+  more falls, 9 points lost. SS_LAM_MAX stays 24.
+* 05:05 restart of the frozen run with the level rule (from its own 29020; old-rule endpoint
+  nav_p4h_oldrule_end_29022.pth; log train_nav_20261004_050526.log, watchdog_20261004d.out).
+
+### 40.35 Morning gate: the learned use on the frozen navigator (10-04 05:15-05:35)
+
+* Training under the level rule (05:05-05:32, updates 29020-29098): stage 2 drills with a pre-gem fired return 101.8,
+  falls 11 % vs not fired 94.9, 15 %; without a pre-gem 61.5 vs 47.1. Sampled rounds 146.7-147.1 (the 28897 navigator
+  sampled; the 40.26-40.32 run sat at 127-135), 1.2 fires a round, falls within 3 s of a fire 0.04-0.09 a round
+  (0.30-0.57 under the old rule).
+* Matched stage 2 eval at 29058 (221 held-out starts, deterministic): the policy's own use (fired 48 %) return 86.8,
+  kick's gem 95 % (median 2.24 s), the gem after 85 %, falls 14 %, timeouts 1 %; no use 80.6, 89 % (2.56 s), 76 %,
+  17 %, 6 %. The first clearly positive matched result for the learned decision.
+* FULL ROUNDS (deterministic, rr_gate, CPU, walk tour), pooled:
+  | arm | rounds | points (se) | best | falls/round |
+  |---|---|---|---|---|
+  | frozen run 29069: learned use + post-kick residual, level rule | 48 | 161.25 (0.63) | 171 | 1.04 |
+  | 28897, level rule, never fires | 32 | 160.19 (0.81) | 171 | 0.69 |
+  | 28897, level rule, fires at every approval | 32 | 160.34 (0.79) | 171 | 0.75 |
+  | 28897, old rule, never fires | 16 | 159.0 | 164 | 1.25 |
+  | 28897, old rule, fires at every approval | 16 | 157.2 | 168 | 2.62 |
+  29069 kicks 1.1 times a round, 2 of 35 kicks fell within 3 s. The learned policy is about +1 point over the same
+  navigator without Super Speed (about one standard error: a direction, not yet a result) and +2 over the start of
+  the night. Super Speed is now safe and slightly positive, but too rare to matter: the level rule approves ~1 kick
+  a round where the operator's demo fires on most big turns.
+* Training keeps running (frozen navigator, level rule, '0:1,1:1,2:2,3:2,4:2'). Snapshots tonight:
+  nav_p4i_29058.pth / nav_p4i_29069.pth (frozen, level rule), nav_p4h_28966 / nav_p4h_29003 (frozen, old rule),
+  nav_p4g_* (40.26-40.32 full-network run, worn down; endpoint nav_p4g_s1f_end_29735.pth).
+* Suggestions (the operator's call): (1) keep the navigator frozen (or KL-anchored to 28897) for powerup work; the
+  drills otherwise wear it down. (2) More safe kicks need the kick to end in less room: a kick aimed to resolve at a
+  lower speed, or post-kick braking the policy can rely on (the operator brakes after 11 of 20 kicks); the rule then
+  could price the stop at the full-brake rate only when the policy brakes. (3) Judge with 32+ rounds per arm: the
+  differences are now 1-2 points. (4) The navigator reads the approval flags (no-use falls 1.25 -> 0.44 with the
+  stricter flags): a navigator retrained with V10 flags may gain on its own.
+
+### 40.36 Gate of the 50-round snapshot 29231 (10-04 06:48-06:53)
+
+* Training healthy (update 29349 at 06:48; sampled rounds 147.2 over 366 since 05:05, 50-round high 148.1 at 29231,
+  one sampled round of 167). Operator idle ~7 h, so one 4-window gate.
+* nav_night_29231_148.pth, 32 deterministic rounds: **161.47** (se 1.00), best **172**, falls 1.12, 0.8 kicks a
+  round (2 of 25 fell within 3 s). Pooled frozen-run gates (29069 + 29231, 80 rounds): ~161.3 vs 160.19 for the same
+  navigator without Super Speed: still about +1 point, about one standard error.
+
+### 40.37 Correction: no measurable Super Speed gain yet (10-04 07:24-07:36)
+
+* nav_night_29377_149.pth (50-round high 148.8), 32 rounds: 158.72 (se 0.76), best 169, falls 1.47, 0.84 kicks a
+  round (2 of 27 fell within 3 s).
+* The no-Super-Speed base re-measured at the same time (28897, level-rule flags, NAV_NO_USE=1, 32 rounds): 162.00,
+  best 173. Pooled base: **161.09 (se 0.55, 64 rounds)**, falls 0.73.
+* Pooled learned use (29069, 29231, 29377; 112 rounds): **160.6**, falls ~1.2. So Super Speed adds nothing
+  measurable yet (about -0.5, inside noise); the "+1" of 40.35 was the base's first 32 rounds reading low. The rounds
+  with kicks fall more (1.0-1.5 vs 0.73 a round) although only ~2 of 27 kicks fall within 3 s: the extra falls come
+  later or elsewhere (not yet traced; candidates: the frozen navigator after a kick beyond 3 s, or it reading the new
+  V10 use-state inputs, which 28897 never trained with).
+* What the night did gain: the navigator itself plays better under the level-rule approval flags, 161.09 (64) vs
+  159.0 (16) under the old flags (falls 0.73 vs 1.25), and the 10-02 reference 160.1 (8).
+* Next steps for the operator's decision: (1) trace the falls in kick rounds beyond 3 s; (2) zero the V10 use-state
+  inputs for the navigator part (only the use head and residual need them) and re-gate; (3) the bigger lever is still
+  more safe kicks (lower-speed kicks, reliable post-kick braking), as in 40.35.
+
+### 40.38 The extra falls come from the trained residual (10-04 07:36-07:45)
+
+* (2) is moot: 28897's weights on the V10 inputs (kick speed [30], use state [31-36]) are exactly zero in the vec
+  encoder and the direction head, and the frozen run keeps them so. The frozen snapshots differ from 28897 only in
+  value_head, use_head, ss_res and the value-normalisation buffers (checked tensor by tensor).
+* Falls by time since the last kick (scratch fall_vs_kick.py), per round: learned arms (112 rounds) <3 s 0.05, 3-10 s
+  0.04, >10 s 0.42, before any kick 0.68; fire-at-every-approval on 28897 (32) 0.03 / 0 / 0.12 / 0.59; no use 0.73.
+  Use words per round are the same in both firing arms (2.2-2.8), so the two differ only by the residual.
+* 29231 with the residual zeroed at inference (scratch rr_patch.py PATCH_RES=off, 32 rounds): **161.38** (se 0.78),
+  falls **0.69**, 26 kicks, no fall within 10 s of a kick. With the residual: 161.47, falls 1.12. The residual (3 h
+  of training, |w| 0.03 x SS_RES_SCALE 3) adds falls and no points; the kicks themselves are neutral (161.38 vs the
+  no-use 161.09).
+* Summary for the operator: Super Speed with the level rule is safe and neutral at ~0.8 kicks a round; the post-kick
+  residual as trained does harm and could be switched off (SS_RES_SCALE 0) for play; the gain has to come from more
+  safe kicks. The run keeps training (never stopped on my own).
+
+### 40.39 Training stopped (operator); corrections; the night report (10-04 08:13-10:10)
+
+* Operator 08:13: "keep training but at 10:00 AM go ahead and stop training and write up a nightly report". No gates or
+  evals after that (the operator was at the PC). Stopped 10:06 (trainer, games, start_training, watchdog); endpoint
+  update 29970 = nav_latest.pth = models/nav/nav_p4i_stop_29970.pth; stdout copied to stdout_p4i_20261004.txt. The
+  frozen run's training rounds 05:05-10:06: 147.4 a round over 1,092 (best 167, falls 1.5), flat all morning.
+* CORRECTION to 40.34, 40.35 and 40.37 ("the navigator plays better under the level-rule flags, 161.09 vs 159.0"):
+  last evening's navigator-alone runner (rr_m28_*, V9 observation, NAV_NO_USE, stuck-breaker fix) scored **161.62**
+  (se 0.62, 32 rounds, falls 0.69, best 170); 40.25 says three batches but five ran (batch 1 old breaker 159.62, then
+  162.12, 162.00, 161.25, 161.12). So the navigator alone is ~161-162 under every flag set and the 159.0 of 04:00
+  (16 rounds) was a low read. No evidence the stricter flags help the navigator.
+* Highest rounds of the night: 173 (28897, Super Speed off, level rule, 07:35), 172 (frozen-run 29231, which did not
+  fire in that round), 171 while firing (28897 at every approval), 170 with the learned model firing (29231). The goal
+  (a round over 175 with the powerup model) was not reached. Training rounds: best 167.
+* Housekeeping: 48 copies of the scratch monitor script (bash, every Monitor since 10-02 kept running after its expiry,
+  each polling every 60 s) were found and stopped; the operator's game_summary.sh was left running. The night's
+  diagnostics are now in logs/nav/gate_scripts/: rr_gate_patch.sh + rr_patch.py (PATCH_RES / PATCH_LAM / PATCH_LEVEL),
+  probe_eval.sh + use_probe.py (learned use preference where approved), kick_falls.py, kick_falls2.py, fall_vs_kick.py.
+* Night report (written for the operator): https://claude.ai/artifact/LPz1RsoFBgARwWbtTYME6a (private).
+
+### 40.40 The second review implemented: heads that can see, the approach window, honest drill cuts (10-04 afternoon; operator: implement, do not train)
+
+The operator passed on a second agent's review of the night (summary: Super Speed is safe and chosen but worth
+nothing; the use head and the critic read only the frozen hidden state, whose powerup columns are zero; the residual
+acts only after the kick so the fast approach cannot be learned; every drill end got the same mean-value bonus,
+falls included; the spin in the starts was inferred, not recorded; the points-only objective was never built; the hit
+counter does not say whether the intended gem was taken; judge by matched 12-15 s continuations from the agent's own
+play). Checked against the code and the checkpoints: all of it holds. Built today, nothing trained:
+* nav/model.py: `aux(vec)` = the goal block (vec[0:10]) + the whole powerup block (vec[VEC_POW:], 37) feeds the use
+  head and the critic beside the hidden state (AUX_DIM 47); a checkpoint with the old heads loads with the critic's
+  weights kept and zero aux columns (unchanged until trained), the use head fresh. The residual's gate adds the
+  APPROACH window: Super Speed held, the approach flag [27] on, the gem within SS_APPROACH_U 10 u; still never while
+  merely holding an item. Tests: 28897 V10 loads; the use logit now differs with the powerup block (same hidden
+  state); gradients reach both heads; gate on only in the approach window / after a kick.
+* nav/waypoints.py: DRILL_REWARD 'points' (default): a drill pays +1 per pickup and nothing else; DRILL_WINDOW_DEC
+  188 (12 s) continuation drills in which a fall respawns and continues (outcome 'window'); 'shaped' stays available.
+* nav/train_nav.py: a drill's cut is bootstrapped with the critic's value of the drill's ACTUAL final observation
+  (sent by the worker; the hidden state after that step), x GAMMA, or x GAMMA^47 (the respawn) after a fall; v_cont
+  only as a fallback. GRU warm-up: a live start's recorded observations run through the core before the drill.
+* nav/vec_worker.py: LIVE STARTS: every round instance records each Super Speed fire of its own play (the raw
+  observation 3 decisions before the use with the ACTUAL spin, the one after the kick, the waypoint and the next,
+  32 observations of history, then the gems taken and the falls over the following 188 decisions) to
+  logs/nav/live_starts_<stamp>_<idx>.jsonl. Stage 4 drills (NAV_DRILL_PLAN 'i:4'): GIVEPOW, teleport into the pre
+  state, warm the GRU, run the 12 s window over the recorded chain of gems; DRILL4 lines carry id / picks / tpicks /
+  falls for paired comparisons. The ended drill's final observation goes to the trainer with the done message.
+* nav/ss_drill_starts.py --live [files]: live files -> datasets/ss_drill/starts_live_{dev,eval}.json (split by id).
+  nav/ss_drill_eval.py --stage 4: window eval with warm-up; rows keyed by id; summary = pickups in 12 s, falls,
+  first pickup time; branches --no-use / --force-use / learned on the same ids. nav/ss_live_smoke.py: the end-to-end
+  check on one game.
+* Not changed: SS_LAM_MAX 24, the level-floor rule, FREEZE_BASE True, SS_LR_MULT 10, USE_EPS 0.2; BRAKE_EPS_POST 0 and
+  STD_POST_MULT 1 stay off. The residual starts at zero again (train from nav_v10_28897.pth, not from a night snapshot).
+* Smoke test (17:12-17:20, one game): nav.ss_live_smoke recorded 1 fire with its continuation (real spin, 6 chained
+  gems, 32 history observations), the converter made the live start files, and ss_drill_eval --stage 4 ran three 12 s
+  window drills on it (warm-up, GIVEPOW, the window; 5-6 of 6 gems, one fall continued, fired 0 % deterministic, return =
+  pickups). ss_drill_eval accepts --map (run_one.ps1 passes it). Worker default plan now '0:1,1:2,2:2' (run 1,
+  collection). Handoff for the next run: HANDOFF_SUPERSPEED_MANEUVER_2026-10-04.md. Nothing trained, nothing committed.
+
+### 40.41 Run 1 (collection) started (10-04 17:17; operator: start the training loop and monitor it)
+
+* Code checked against the handoff: worker plan '0:1,1:2,2:2', LIVE_RECORD on, FREEZE_BASE True, SS_LR_MULT 10, USE_EPS
+  0.2, AUX_DIM 47, SS_APPROACH_U 10, DRILL_REWARD 'points', DRILL_WINDOW_DEC 188, SS_LAM_MAX 24, SS_LEVEL_DZ 0.75.
+* nav_latest.pth = models/nav/nav_v10_28897.pth (update 28895; the night's endpoint stays nav_p4i_stop_29970.pth);
+  night_best.json archived as night_best_p4i_20261004.json (reset), stdout as stdout_before_run1_20261004.txt.
+* Trainer from 17:17:36 (log train_nav_20261004_171736.log): FREEZE_BASE 61,957 trainable parameters (value head at LR,
+  use head and residual at LR x 10, fresh Adam), 8 games, 16-17 s an update, KL 0.001 at the start. Watchdog
+  watchdog_20261004e.out. First 3 minutes: 150 stage 1 drills, 259 stage 2 drills (return = pickups), 15 rounds, live
+  start files from all five round instances (logs/nav/live_starts_20261004_17*_<3-7>.jsonl).
+* The monitor script (scratchpad monitor2.sh) now exits by itself after 29 minutes: the old one ran on after every
+  Monitor expiry (48 copies found at 10:06).
+* Plan: ~18:20 convert the live files (python -m nav.ss_drill_starts --live) and restart as run 2 ('0:1,1:2,2:4,3:4').
+
+### 40.42 Run 1 results; the live start set; run 2; the warm-start scoring bug fixed (10-04 18:20-18:30)
+
+* Run 1 (17:17-18:20, updates 28895-29115, KL 0.0021 a update): sampled rounds 146.8 / 147.8 by half (falls 1.46 /
+  1.47, Super Speed fires 1.42 / 1.58 a round, falls within 3 s of a fire 0.03, pickup speed with the approach flag on
+  8.97 / 9.11 vs held-off 8.08 u/s). Stage 1 drills (3,444): the gem after 65 %, falls 24 %, 1.55 points. Stage 2
+  drills, fired vs not (points-only returns): no pre-gem 1.71 vs 1.57 points, gem after 76 vs 71 %, falls 12 vs 16 %;
+  with a pre-gem 2.85 vs 2.79, 86 vs 83 %, falls 12 vs 15 %. Endpoint models/nav/nav_run1_end_29115.pth.
+* Live starts: 549 fires recorded in five files (+ the smoke file); ss_drill_starts --live kept 347 (speed after the kick
+  8-32 u/s and a chain): datasets/ss_drill/starts_live_dev.json 260 / starts_live_eval.json 87; speed after median
+  19.5 u/s, 6 chain gems, a fall in the 12 s after 14 % of them (sampled play).
+* Run 2 from 18:21: vec_worker DRILL_PLAN default '0:1,1:2,2:4,3:4' (games 0 stage 1, 1 stage 2, 2-3 the 12 s live
+  windows, 4-7 rounds still recording).
+* BUG found in the first ten updates (KL 0.17-0.60 per update, PPO's early stop at 1 epoch of 3 in most of them, clip
+  fraction only 0.01-0.03): a live-start drill warms the GRU in the trainer (40.40) but the step is still a reset, and
+  model.evaluate_seq ZEROED the hidden state at every reset, so the update re-scored the window's first decisions
+  (where the fire is decided) from a zero state while the actor had used the warmed one. Measured (scratch
+  test_warm_reset.py, 28897): the old scoring is off by up to 22 in log-probability after a warm restart. Fix:
+  evaluate_seq(..., h_reset) restarts from the STORED state of that step (ppo_recurrent passes the rollout's per-step
+  states): zeros for an ordinary segment start (bit-identical to before), the warmed state for a live start (now exact
+  at every step). The bugged ten updates were discarded: their state is models/nav/nav_run2a_warmbug_29125.pth (stdout
+  stdout_run2a_warmbug_20261004.txt); run 2 restarted 18:26 from nav_run1_end_29115.pth (log
+  train_nav_20261004_182610.log, watchdog_20261004g.out): KL 0.001-0.004, 3 epochs every update.
+
+### 40.43 Run 2 after an hour; the first matched window eval (10-04 19:00-19:40)
+
+* Training (18:26-19:31, updates 29115-29333): KL 0.0015 a update, 3 epochs, 8 games, no tracebacks. Sampled rounds
+  146.4 / 147.4 by half hour (falls 1.51, Super Speed fires 1.1-1.4 a round, falls within 3 s of a fire 0.01-0.02,
+  pickup speed with the approach flag on 9.0-9.1 vs off 8.1 u/s). Stage 1 drills improving slowly: the gem after 58 ->
+  69 %, falls 28 -> 21 %, points 1.45 -> 1.60. Stage 4 windows (sampled, not matched): fired ~5.0 pickups / a fall in
+  27-28 % vs not fired 5.1 / 22-27 %.
+* Matched window eval, models/nav/nav_r2_29330.pth, 87 held-out live starts (starts_live_eval.json), deterministic, one
+  game per branch in parallel (operator idle 2 h): learned 5.05 pickups in 12 s, falls 0.18, first pickup median 2.24 s,
+  fired 60 %; no use 5.11, 0.14, 3.26 s; fire at every approval 4.98, 0.26, 2.11 s, fired 94 %. Paired over the 78 ids
+  present in all three: learned - no use pickups -0.05 (se 0.11), falls +0.04 (0.06); force - no use -0.17 (0.12), falls
+  +0.14 (0.07); learned - force +0.12 (0.14), falls -0.10 (0.07); where the learned policy fired (45): -0.08 (0.15).
+  So the use head has become selective (it beats firing at every approval) but not yet better than not using: no
+  full-round gate (the handoff's bar is learned > no use by more than one se).
+* Note for the operator (reward is his call): drills pay points (+1 a pickup, ~0.03 a decision) and rounds the shaped
+  reward (~1.7 a decision) into ONE critic, whose value on round states fell from ~145 (run 1) to ~125-138. A wrong level
+  only adds variance (the baseline does not depend on the action), but it slows learning. Points for the rounds too, or
+  shaped drills, would make the two consistent.
+
+### 40.44 Run 2 at two hours; the live start set grown to 848 (10-04 20:34-20:40)
+
+* 19:30-20:34 (updates 29333-29543): KL 0.0013, 3 epochs; sampled rounds 146.5 / 147.2 by half hour (falls 1.5-1.6,
+  Super Speed fires 1.1-1.2 a round, falls within 3 s of a fire 0.00-0.02, pickup speed with the approach flag on 9.0-9.1
+  vs off 8.1 u/s: +1.0, the handoff's mark is +1.4). Stage 1 flat at the gem after 65 %, falls 24 %, 1.55 points. Stage 2
+  as before (fired better: 1.56 vs 1.29 points without a pre-gem). Stage 4 windows (sampled, not matched) by half hour:
+  fired 4.93 / 5.03 / 5.21 pickups vs not fired 5.01 / 4.93 / 5.12. The critic's mean round value fell further (vcont
+  ~120).
+* The round instances recorded 822 more fires since 18:21. Converted all 14 live files (848 starts); the run 1 starts
+  keep their ids and their dev / eval split (backups starts_live_{dev,eval}_run1.json), the newer ones get unique ids
+  (file stamp + ':' + the old '<instance>-<step>' id, which repeats across launches because the step counter restarts)
+  and the same 1-in-4 hash split: datasets/ss_drill/starts_live_dev.json 647 (260 + 387), starts_live_eval.json 201
+  (87 + 114). No eval start is in dev.
+* Restart 20:36 from 29545 (state before it: models/nav/nav_r2_starts260_end_29545.pth; stdout
+  stdout_run2_part1_20261004.txt; log train_nav_20261004_203618.log, watchdog_20261004h.out); the window drills use the
+  new starts at once.
+
+### 40.45 Operator: run the window eval, then stop training (10-04 21:08-21:20)
+
+* 21:08 status (log only): since 20:36 the window drills fired in 85 % (5.04 pickups vs 4.84 unfired, not matched);
+  stage 1 the gem after 68 %, falls 22 %; stage 2 fired better (1.63 vs 1.35 points without a pre-gem, falls 16 vs 25 %).
+* Operator 21:10: "run it now and then stop training". Training stopped 21:13 (trainer, games, watchdog; the monitor and
+  its bash process too): endpoint models/nav/nav_r2_stop_29665.pth (= nav_latest.pth), stdout
+  stdout_run2_part2_20261004.txt. Run 2 trained 18:26-21:13 (updates 29115-29665).
+* Matched window eval on the endpoint, the 201 held-out live starts, three games in parallel (200 windows each; 167 ids
+  in all three): learned 5.01 pickups in 12 s, falls 0.26, first pickup median 2.66 s, fired 51 %; no use 5.00, 0.20,
+  3.26 s; fire at every approval 5.17, 0.24, 2.18 s, fired 98 %. Paired: learned - no use -0.02 (se 0.08), falls +0.07
+  (0.04); force - no use **+0.17 (0.09, t 1.8)**, falls +0.06 (0.04); learned - force -0.18 (0.09, t -2.0). Where the
+  learned policy held off (84 ids) firing would have gained +0.30 (0.14); where it fired (83) it did -0.11 (0.13) vs no
+  use and force +0.03 (0.12). By subset: the run 1 eval ids (70) learned -0.26 (0.13), force +0.04 (0.13); the new ids
+  (97) learned +0.16 (0.09), force +0.26 (0.13).
+* Reading: with the trained residual, firing at every approval now gains about 0.17 gems in the 12 s after a kick (it
+  lost 0.17 at 29330 on the 87 run 1 ids), while the learned use head skips kicks that pay and is no better than not
+  using: it has learned to be selective but not yet the right selection (the critic's mixed reward scales, 40.43, are a
+  likely reason its advantages are noisy). The handoff's bar for a full-round gate (learned > no use by one se) is not
+  met, so no gate. At ~1 kick a round, +0.17 gems a kick would be worth well under one point a round.

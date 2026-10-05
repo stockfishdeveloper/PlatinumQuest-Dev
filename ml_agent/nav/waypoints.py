@@ -363,6 +363,13 @@ GROUP_LINK_DMIN, GROUP_LINK_DMAX = 3.0, 22.0   # spacing between consecutive gem
                                # ring->ring legs are 11 % of real legs, but training never produced a
                                # pair closer than 6 u (HANDOFF section 28).
 TIMEOUT_PER_GEM = 312          # 20 s of budget per gem still to collect (was a flat TIMEOUT_DECISIONS)
+DRILL_TIMEOUT_DEC = 47         # 40.26: 3 s per target in a Super Speed drill segment (begin_drill)
+DRILL_REWARD = 'points'        # 40.40: the drill's reward. 'points' = the game's objective only: +1 per pickup (its point
+                               # value), nothing else; time and falls are priced by the trainer's bootstrap (the critic's
+                               # value of the drill's final state, discounted by the decisions spent and, after a fall, by
+                               # the respawn time). 'shaped' = the round reward (progress, speed bonus, FALL, TIME).
+DRILL_WINDOW_DEC = 188         # 40.40: a continuation drill (live starts with the pickups that followed) runs this many
+                               # decisions (12 s) whatever happens, falls included (respawn and carry on, as in a round)
 FALL_CONTINUE = True           # a fall respawns and CONTINUES the group instead of ending it, because
                                # that is what happens in a real round: the gems stay on the map and
                                # the fall costs time, not the group (2026-09-19)
@@ -482,6 +489,9 @@ class SegmentManager:
         self._prev_cmd = None          # last commanded direction, for TURN_COST
         self.real_mode = False         # HANDOFF 28.25: goals are the GAME's gems (worker passes them in); the
                                        # game's gem_delta is the arrival; no teleports, no chaining, no done at pickups
+        self.drill_window = False      # 40.40: continuation drill: a fixed window, falls respawn and continue
+        self.drill_mode = False        # 40.26: Super Speed curriculum drills (begin_drill): a fall ENDS the segment,
+                                       # no chaining into a sampled group, DRILL_TIMEOUT_DEC decisions per target
 
     def retarget(self, x, y, goal, next_goal):
         """Real-gem mode: the chooser switched target (a pickup or a better gem). Rebase on the new gem."""
@@ -682,6 +692,40 @@ class SegmentManager:
         self._set_next_field(x, y)
         return self.seg.goal
 
+    def begin_drill(self, env, state, goals):
+        """40.26: start a curriculum drill segment: the marble teleported INTO a recorded state (position, velocity,
+        spin; it keeps rolling), the goals the given gem positions [(x, y, z), ...] in order (synthetic arrival).
+        Returns the first goal, or None when the teleport did not take (the caller draws another start)."""
+        self._step_checked(env, 1)
+        waited = 0
+        while not self._on_map(env.pos()):
+            if waited % FORCE_RESPAWN_DECISIONS == 0:
+                env.control('OOBCLICK' if waited == 0 else 'RESPAWN')
+                if env.round_ended or env.reconnected:
+                    raise RoundOver()
+                self._step_checked(env, POST_RESPAWN_TICKS)
+            self._step_checked(env, 1)
+            waited += 1
+            if waited > RESPAWN_WAIT_DECISIONS * 2:
+                raise RoundOver()
+        x0, y0, z0, vx, vy, vz, wx, wy, wz = (float(v) for v in state)
+        env.teleport(x0, y0, z0, vx, vy, vz, settle_ticks=1, spin=(wx, wy, wz))
+        if env.round_ended or env.reconnected:
+            raise RoundOver()
+        x, y, z = (float(v) for v in env.pos())
+        if math.hypot(x - x0, y - y0) > 2.0:
+            return None
+        gl = [(float(g[0]), float(g[1]), float(g[2]), 0.0) for g in goals]
+        field = self.terrain.goal_field(gl[0][0], gl[0][1])
+        self.seg = Segment(gl[0][:3], field, 0.0, (x, y, z), remaining=gl[1:])
+        self._prev_cmd = None
+        self.seg.prev_d = self.terrain.dist_at(field, x, y, (gl[0][0], gl[0][1])); self.seg.path_len = self.seg.prev_d
+        self.seg.last_pos = np.array([x, y, z])
+        self.seg.chain_from_prev = True           # pickups are timed from the drill start
+        self._set_next_field(x, y)
+        env.mark(gl[0][0], gl[0][1], gl[0][2])
+        return self.seg.goal
+
     def _settle(self, env, max_ticks=REST_WAIT_TICKS):
         """If the marble is not rolling, wait until it rests on the floor (bounces finished)."""
         for _ in range(max_ticks):
@@ -758,6 +802,7 @@ class SegmentManager:
         p = np.array([x, y, z])
         if not fell and not airborne:
             s.travelled += min(float(np.linalg.norm(p[:2] - s.last_pos[:2])), TRAVEL_CLIP)
+        prev_pos = s.last_pos                     # 40.28: the path since the last decision, for the continuous arrival
         s.last_pos = p
         d_before = s.prev_d                       # last known distance, for the fall mark below
         d = self.terrain.dist_at(s.field, x, y, (gx, gy))
@@ -836,6 +881,7 @@ class SegmentManager:
         edge_cost = 0.0 if (airborne or fell) else edge_time_cost(self.terrain, x, y, float(vel[0]), float(vel[1]), goal=(gx, gy))
         r = PROGRESS * progress + PROGRESS_NEXT * progress_next - TIME - air_cost - takeoff_cost - (BRAKE if braked else 0.0) - turn_cost - edge_cost + align_bonus + runup
         done, outcome = False, None
+        arrived_now = False                       # 40.40: for DRILL_REWARD 'points'
         # off the map (below the lowest floor / outside the grid) without the game's OOB flag:
         # after OFFMAP_FALL_DECISIONS decisions count it as a fall ourselves
         if not self._on_map(p) or z < self.terrain.z_floor_min - 3.0:
@@ -855,12 +901,13 @@ class SegmentManager:
             s.falls += 1
             if s.fall_mark is None and np.isfinite(d_before):
                 s.fall_mark = float(d_before)     # earliest mark wins if it falls again on the way back
-            if FALL_CONTINUE and s.falls < MAX_FALLS_PER_SEGMENT:
+            if FALL_CONTINUE and s.falls < MAX_FALLS_PER_SEGMENT and (not self.drill_mode or self.drill_window):
                 self.pending_respawn = True       # the worker respawns us; the group is NOT lost
             else:
                 done, outcome = True, 'fell'
-        elif picked > 0 or (not self.real_mode and math.hypot(gx - x, gy - y) < self.arrive_r and abs(gz - z) < self.arrive_dz):
+        elif picked > 0 or (not self.real_mode and self._arrived(prev_pos, x, y, z, gx, gy, gz)):
             r += ARRIVE + GEM_SPEED_BONUS * max(0.0, 1.0 - s.gem_decisions / float(GEM_SPEED_REF))
+            arrived_now = True
             if s.collected > 0 or s.chain_from_prev:   # a pickup-to-pickup interval (chained groups count from gem 1)
                 s.chain_dec += s.gem_decisions; s.chain_n += 1
             s.gem_decisions = 0                   # the next gem is timed from here
@@ -879,14 +926,20 @@ class SegmentManager:
                     v_toward = (float(self._vel[0]) * nx + float(self._vel[1]) * ny) / nd
                     s.carry_vals.append(v_toward)          # RAW, signed: the honest metric
                     r += CARRY * max(CARRY_FLOOR, min(1.0, v_toward / CARRY_REF))
-            elif CONTINUOUS and not round_ended and self._chain_group(x, y, z):
+            elif CONTINUOUS and not round_ended and not self.drill_mode and self._chain_group(x, y, z):
                 pass                                     # rolled into the next group, no episode end
             else:
                 done, outcome = True, 'arrived'          # whole group collected
+        elif self.drill_mode and self.drill_window and s.decisions >= DRILL_WINDOW_DEC:
+            done, outcome = True, 'window'            # 40.40: the continuation window is up (not a failure)
+        elif self.drill_mode and not self.drill_window and s.decisions >= DRILL_TIMEOUT_DEC * s.group_size:
+            done, outcome = True, 'timeout'
         elif (s.gem_decisions >= TIMEOUT_PER_GEM) if self.real_mode else (s.decisions >= TIMEOUT_PER_GEM * (1 + len(s.remaining))):
             done, outcome = True, 'timeout'
         elif round_ended:
             done, outcome = True, 'round'
+        if self.drill_mode and DRILL_REWARD == 'points':
+            r = 1.0 if arrived_now else 0.0           # 40.40: the game's objective only (the pickup's point value)
         if done:
             s.outcome = outcome
             self.last_outcome = outcome
@@ -894,6 +947,20 @@ class SegmentManager:
             if len(self.history) > 2000:
                 self.history = self.history[-2000:]
         return r, done, outcome
+
+    def _arrived(self, prev_pos, x, y, z, gx, gy, gz):
+        """40.28: synthetic arrival on the PATH since the last decision (the closest approach of the segment, the height
+        interpolated there), not on the sampled point: at 20 u/s a decision covers 1.28 u, about the width of the
+        0.65 u arrival circle, so a pass 0.5 u from the gem was counted 65 % of the time (0.6 u: 38 %; at 8 u/s ~100 %)
+        while the game's own pickup is a continuous collision. Fast first passes after a Super Speed kick went unpaid."""
+        if prev_pos is None or math.hypot(x - prev_pos[0], y - prev_pos[1]) > 4.0:   # no path (start / respawn jump)
+            return math.hypot(gx - x, gy - y) < self.arrive_r and abs(gz - z) < self.arrive_dz
+        ax, ay, az = float(prev_pos[0]), float(prev_pos[1]), float(prev_pos[2])
+        dx, dy = x - ax, y - ay
+        l2 = dx * dx + dy * dy
+        t = 0.0 if l2 < 1e-12 else max(0.0, min(1.0, ((gx - ax) * dx + (gy - ay) * dy) / l2))
+        return (math.hypot(ax + t * dx - gx, ay + t * dy - gy) < self.arrive_r
+                and abs(gz - (az + t * (z - az))) < self.arrive_dz)
 
     def _record(self, s, outcome):
         self.history.append({'outcome': outcome, 'decisions': s.decisions, 'path_len': s.path_len,

@@ -1,0 +1,3 @@
+drill eval stage 4: nav_v10_28897.pth (update 28895), deterministic, 3 drills, port 9976
+WINDOW EVAL smoke_w4: n 3 (learned) | pickups in 12 s mean 5.67 | falls mean 0.67 | first pickup median 2.24 s | fired 0% | return 5.67 | 3 s
+DRILL EVAL smoke_w4: stage 4 n 3 | kick gem within 1.0 s 0%, 1.5 s 0%, at all 100% (median 6.46 s) | gem after 67% | both, median time 11.00 s | fell 0% | timeout 0% | fired 0% | return 5.7 | 3 s

@@ -1,0 +1,30 @@
+C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\nav\real_run.py:316: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  ck = torch.load(ckpt, map_location=dev)
+warm-up: model ready in 0.01 s
+[env:9963] waiting for the game
+[env:9963] game connected (1)
+real run: nav_v10_28897.pth (update 28895) on KingOfTheMarble_Hunt, 8 round(s), port 9963
+  round 1: {'round': 1, 'gems': 129, 'points': 162.0, 'minutes': 3.03, 'decisions': 2841, 'countdown_decisions': 48, 'gems_per_min': 42.6, 'points_per_min': 53.5, 'falls': 0, 'falls_per_100u': 0.0, 'travelled_u': 1535.1, 'speed': 8.44, 'blind_pct': 0.0, 'stuck_breaks': 0, 'snapped_pct': 0.0, 'pathed_pct': 0.0, 'smooth': 1.0, 'pow_uses': {}}
+[env:9963] round over (time left 180s of 180s); waiting for the next round
+[env:9963] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+  round 2: {'round': 2, 'gems': 124, 'points': 156.0, 'minutes': 3.03, 'decisions': 2840, 'countdown_decisions': 41, 'gems_per_min': 40.9, 'points_per_min': 51.5, 'falls': 1, 'falls_per_100u': 0.066, 'travelled_u': 1515.5, 'speed': 8.34, 'blind_pct': 0.0, 'stuck_breaks': 0, 'snapped_pct': 0.0, 'pathed_pct': 0.0, 'smooth': 1.0, 'pow_uses': {}}
+[env:9963] round over (time left 180s of 180s); waiting for the next round
+[env:9963] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+  round 3: {'round': 3, 'gems': 128, 'points': 160.0, 'minutes': 3.03, 'decisions': 2840, 'countdown_decisions': 41, 'gems_per_min': 42.3, 'points_per_min': 52.8, 'falls': 1, 'falls_per_100u': 0.066, 'travelled_u': 1515.4, 'speed': 8.34, 'blind_pct': 0.0, 'stuck_breaks': 0, 'snapped_pct': 0.0, 'pathed_pct': 0.0, 'smooth': 1.0, 'pow_uses': {}}
+[env:9963] round over (time left 180s of 180s); waiting for the next round
+[env:9963] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+  round 4: {'round': 4, 'gems': 130, 'points': 167.0, 'minutes': 3.03, 'decisions': 2840, 'countdown_decisions': 41, 'gems_per_min': 42.9, 'points_per_min': 55.1, 'falls': 1, 'falls_per_100u': 0.066, 'travelled_u': 1523.8, 'speed': 8.38, 'blind_pct': 0.0, 'stuck_breaks': 0, 'snapped_pct': 0.0, 'pathed_pct': 0.0, 'smooth': 1.0, 'pow_uses': {}}
+[env:9963] round over (time left 180s of 180s); waiting for the next round
+[env:9963] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+  round 5: {'round': 5, 'gems': 121, 'points': 154.0, 'minutes': 3.03, 'decisions': 2839, 'countdown_decisions': 41, 'gems_per_min': 40.0, 'points_per_min': 50.9, 'falls': 2, 'falls_per_100u': 0.13, 'travelled_u': 1534.9, 'speed': 8.45, 'blind_pct': 0.0, 'stuck_breaks': 0, 'snapped_pct': 0.0, 'pathed_pct': 0.0, 'smooth': 1.0, 'pow_uses': {}}
+[env:9963] round over (time left 180s of 180s); waiting for the next round
+[env:9963] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+  round 6: {'round': 6, 'gems': 123, 'points': 155.0, 'minutes': 3.03, 'decisions': 2838, 'countdown_decisions': 41, 'gems_per_min': 40.6, 'points_per_min': 51.2, 'falls': 3, 'falls_per_100u': 0.197, 'travelled_u': 1519.1, 'speed': 8.36, 'blind_pct': 0.0, 'stuck_breaks': 0, 'snapped_pct': 0.0, 'pathed_pct': 0.0, 'smooth': 1.0, 'pow_uses': {}}
+[env:9963] round over (time left 180s of 180s); waiting for the next round
+[env:9963] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+  round 7: {'round': 7, 'gems': 133, 'points': 168.0, 'minutes': 3.03, 'decisions': 2840, 'countdown_decisions': 41, 'gems_per_min': 43.9, 'points_per_min': 55.5, 'falls': 1, 'falls_per_100u': 0.066, 'travelled_u': 1518.0, 'speed': 8.35, 'blind_pct': 0.0, 'stuck_breaks': 0, 'snapped_pct': 0.0, 'pathed_pct': 0.0, 'smooth': 1.0, 'pow_uses': {}}
+[env:9963] round over (time left 180s of 180s); waiting for the next round
+[env:9963] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+  round 8: {'round': 8, 'gems': 128, 'points': 161.0, 'minutes': 3.03, 'decisions': 2841, 'countdown_decisions': 41, 'gems_per_min': 42.2, 'points_per_min': 53.1, 'falls': 0, 'falls_per_100u': 0.0, 'travelled_u': 1497.5, 'speed': 8.24, 'blind_pct': 0.0, 'stuck_breaks': 0, 'snapped_pct': 0.0, 'pathed_pct': 0.0, 'smooth': 1.0, 'pow_uses': {}}
+REAL RUN {"gems_per_min": 41.925, "points_per_min": 52.95, "falls_per_100u": 0.074, "speed": 8.363, "blind_pct": 0.0} vs human {"gems_per_min": 1.12, "points_per_min": 1.12, "speed": 1.04, "falls_ratio": 1.6}
+wrote C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\logs\nav\real_run_KingOfTheMarble_Hunt_nav_v10_28897_lvnu28897g.json

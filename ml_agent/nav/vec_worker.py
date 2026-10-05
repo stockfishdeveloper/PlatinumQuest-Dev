@@ -28,10 +28,66 @@ import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from terrain_obs import TerrainMap                                                  # noqa: E402
-from nav.protocol import RAW_VEL, RAW_POW_HELD, RAW_POW_BLAST, RAW_POW_SPECIAL, BLAST_REQUIRED   # noqa: E402
+from nav.protocol import RAW_VEL, RAW_POW_HELD, RAW_POW_BLAST, RAW_POW_SPECIAL, BLAST_REQUIRED, RAW_SPIN, RAW_POS   # noqa: E402
 from nav.env import HuntEnv, OBS_MS                                                         # noqa: E402
 from nav.terrain import TerrainGrid                                                 # noqa: E402
-from nav.obs import ObsBuilder, VEC_GAP, VEC_POW, ss_aim, ss_redirect_window, WAYPOINT_DIST_SCALE   # noqa: E402
+from nav.obs import ObsBuilder, VEC_GAP, VEC_POW, ss_aim, ss_redirect_window, WAYPOINT_DIST_SCALE, fill_use_state, USE_T_SCALE   # noqa: E402
+USE_T_SCALE_WARM = 9.0        # 40.40: 'no recent fire' in the warm-up observations
+import json                                                                         # noqa: E402
+# 40.26 SUPER SPEED CURRICULUM, Stage 1: these instances do not play rounds; each segment teleports the marble INTO a
+# recorded post-kick state from the agent's own play (nav/ss_drill_starts.py) and the targets are the gem the kick was
+# aimed at and the gem after it (synthetic arrival, the same shaped reward). The other instances play ordinary rounds.
+DRILL_INSTANCES = os.environ.get('NAV_DRILL_INSTANCES', '0,1,2,3')   # 'none' = no drills
+DRILL_STARTS = os.environ.get('NAV_DRILL_STARTS', os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                                                               'datasets', 'ss_drill', 'starts_dev.json'))
+DRILL_MAX_SPEED = 25.0        # u/s after the kick: only the kicks the approval allows (solver <= 24, the game ~1.7 lower)
+DRILL_SPEED_JITTER = 0.10     # engine variations of the recorded start: speed x U(1 -/+ this)
+DRILL_ANGLE_JITTER = 4.0      # deg on the heading
+DRILL_POS_JITTER = 0.15       # u
+DRILL_GEM_DZ = 0.2            # target height above the floor
+DRILL_EVAL = os.environ.get('NAV_DRILL_EVAL', '0') == '1'   # evaluation (nav/ss_drill_eval.py): starts in order, no variations
+# 40.27 Stage 2: a drill starts PRE_DEC (5) decisions before a recorded kick with a Super Speed granted (bridge GIVEPOW),
+# the gem about to be picked up, the kick's gem and the one after as targets; the POLICY decides whether and when to use it
+DRILL_PLAN = os.environ.get('NAV_DRILL_PLAN', '0:1,1:2,2:4,3:4')   # 40.42 run 2 (from 10-04 18:22): 1 post-kick, 1 pre-kick,
+                              # 2 live 12 s window drills, 4 rounds still recording; 40.40 run 1 (collection, 17:17-18:20) was
+                              # '0:1,1:2,2:2' (1 post-kick, 2 pre-kick, 5 rounds recording live starts) until
+                              # datasets/ss_drill/starts_live_*.json existed
+                              # (HANDOFF_SUPERSPEED_MANEUVER_2026-10-04.md); the night of 10-03/04 ran '0:1,1:1,2:2,3:2,4:2'.   # 'idx:stage,...' (overrides DRILL_INSTANCES, which
+                              # are stage 1); 40.28 from 00:37: 3 post-kick drills, 1 pre-kick, 4 ordinary rounds; 40.30 from
+                              # 01:50: 4 post-kick, 1 pre-kick, 3 ordinary rounds (Stage 1 learned too slowly); 40.33 (frozen
+                              # navigator): 2 post-kick, 3 pre-kick (the use decision), 3 ordinary rounds
+DRILL2_STARTS = os.environ.get('NAV_DRILL2_STARTS', os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                                                                 'datasets', 'ss_drill', 'starts2_dev.json'))
+DRILL3_STARTS = os.environ.get('NAV_DRILL3_STARTS', os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                                                                 'datasets', 'ss_drill', 'starts3_dev.json'))   # 40.27 Stage 3:
+                              # the approach: 20 decisions (1.3 s) before the kick, with the pickups on the way in as targets
+DRILL_NO_USE = os.environ.get('NAV_DRILL_NO_USE', '0') == '1'  # matched comparison: the use bit is ignored
+SS_DATABLOCK = 'SuperSpeedItem_MBU'                          # granted at a stage 2 start (falls back to SuperSpeedItem)
+# 40.40 LIVE STARTS and CONTINUATION drills (stage 4). Round instances record every Super Speed fire of their own play:
+# the raw observation 3 decisions before the use (position, velocity, the ACTUAL spin), the one right after the kick,
+# the waypoint and the next one, LIVE_HIST raw observations before it (to warm the GRU), and the gems picked up in the
+# LIVE_CHAIN_DEC decisions that followed (the continuation). nav/ss_drill_starts.py --live turns the files into
+# starts_live_{dev,eval}.json. A stage 4 drill grants a Super Speed, teleports into the pre state with the real spin,
+# warms the GRU, and runs DRILL_WINDOW_DEC decisions through the recorded chain of gems, falls included; the policy
+# decides whether and when to fire. Matched comparisons: NAV_DRILL_NO_USE / --force-use on the same start ids.
+LIVE_RECORD = os.environ.get('NAV_LIVE_RECORD', '1') == '1'
+LIVE_HIST = 32                # raw observations kept before the pre state (2 s)
+LIVE_PRE_DEC = 3              # decisions before the use the pre state is taken
+LIVE_CHAIN_DEC = 188          # decisions of continuation recorded after the kick (12 s)
+LIVE_CHAIN_MAX = 6            # gems recorded in the continuation
+DRILL4_STARTS = os.environ.get('NAV_DRILL4_STARTS', os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                                                                 'datasets', 'ss_drill', 'starts_live_dev.json'))
+
+
+def drill_stage_of(idx):
+    """40.27: the drill stage of an instance (0 = ordinary rounds)."""
+    if DRILL_PLAN:
+        for item in DRILL_PLAN.split(','):
+            i, _, st = item.partition(':')
+            if i.strip() == str(idx):
+                return int(st or 1)
+        return 0
+    return 1 if (DRILL_INSTANCES != 'none' and str(idx) in DRILL_INSTANCES.split(',')) else 0
 from nav.joystick import action_to_joystick                                         # noqa: E402
 from nav.waypoints import SegmentManager, RoundOver                                 # noqa: E402
 from nav.gems import visible_gems, choose, plan_tour, STICKY_TOL                    # noqa: E402
@@ -90,6 +146,14 @@ class InstanceWorker:
                                                               # buckets A < 18, B 18-24, C > 24 u/s: 'ksA..C' fires, 'kfA..C' falls within 3 s
         self.pk = {'on': [0.0, 0], 'off': [0.0, 0], 'none': [0.0, 0]}   # pickup speed sums by redirect flag (log 40.13)
         self.rw = {'fire': [0.0, 0], 'all': [0.0, 0]}      # reward per decision within 30 decisions of a Super Speed fire vs all (40.18)
+        # 40.26 use state (V10 observation): the use bits sent the last two decisions, a kick pending, its latched aim
+        self.use_sent = [False, False]; self.pending_since = None; self.latched_aim = None
+        self.drill_stage = drill_stage_of(idx); self.drill = self.drill_stage > 0
+        self.hist = []                 # 40.40: the last LIVE_HIST (raw obs, goal, next goal) of this instance's play
+        self.live_pending = []         # fires waiting for their continuation; self.live_file opened on the first write
+        self.live_file = None; self.warm = None; self.final_obs = None
+        self.drill_starts = []; self.drill_cur = None
+        self.drill_agg = {'n': 0, 'hit1': 0, 'hit2': 0, 'fell': 0, 't1': 0.0, 't2': 0.0, 'ret': 0.0}
         self.t0 = time.perf_counter()
         self.prof = {'game': 0.0, 'obs': 0.0, 'begin': 0.0}   # wall seconds since the last reply
 
@@ -106,6 +170,21 @@ class InstanceWorker:
         self.mission = name; self.terrain = t; self.obs_b = ObsBuilder(t)
         self.segs = SegmentManager(t, self.rng, self.log, arrive_r=self.arrive_r, arrive_dz=self.arrive_dz)
         self.real = REAL_GEMS and bool(getattr(t, 'gem_spawns', None)); self.segs.real_mode = self.real
+        if self.drill:
+            src = {2: DRILL2_STARTS, 3: DRILL3_STARTS, 4: DRILL4_STARTS}.get(self.drill_stage, DRILL_STARTS)
+            try:
+                allst = json.load(open(src))
+            except Exception as e:
+                allst = []; self.log(f'drill starts {src} not readable: {e}')
+            self.drill_starts = [s for s in allst if s.get('mission', name) == name and s['speed_after'] <= DRILL_MAX_SPEED]
+            if self.drill_starts:
+                self.real = False; self.segs.real_mode = False; self.segs.drill_mode = True
+                self.segs.drill_window = self.drill_stage == 4          # 40.40: a fixed window, falls continue
+                self.log(f'SUPER SPEED DRILL instance, stage {self.drill_stage}: {len(self.drill_starts)} starts from '
+                         f'{os.path.basename(src)}{" (no use)" if DRILL_NO_USE else ""}')
+            else:
+                self.drill = False; self.drill_stage = 0; self.segs.drill_mode = False
+                self.log(f'no drill starts for {name}: ordinary rounds')
         self.log(f'real-gem training mode: {self.real}')
         self.log(f'mission {name}: terrain {t.W}x{t.H} @ {t.res} u, walkable {int(t.walkable.sum())} cells')
         self.tour_fields = {}                 # walk-only Dijkstra field per gem position (TOUR == 'walk'), per map
@@ -160,6 +239,11 @@ class InstanceWorker:
         tb = time.perf_counter()
         while True:
             try:
+                if self.drill:
+                    g = self._begin_drill()
+                    if g is not None:
+                        self.goal = g
+                        break
                 if self.real:
                     vis = []
                     for _ in range(60):               # a gem is normally visible at once; wait through a spawn gap
@@ -187,8 +271,107 @@ class InstanceWorker:
         self.obs_b.reset()
         self.smooth_dir = None            # the marble was just teleported: old heading is meaningless
         self.seg_steps = 0; self.fc_num = self.fc_den = 0.0
-        self.crop, self.vec, self.on_floor = self.obs_b.build(self.env.msg.obs, self.goal, self.segs.next_goal())
+        self.crop, self.vec, self.on_floor = self._build()
         self.prof['begin'] += time.perf_counter() - tb
+
+    def _build(self):
+        """The observation for the next decision: obs.build plus the V10 use state (40.26). In a drill the Super Speed
+        has just been spent, so the held slot (and the blast meter) read empty whatever the game holds."""
+        raw = self.env.msg.obs
+        if self.drill_stage == 1 and len(raw) > RAW_POW_HELD:
+            raw = np.array(raw, dtype=np.float64)
+            raw[RAW_POW_HELD] = 0.0; raw[RAW_POW_BLAST] = 0.0; raw[RAW_POW_SPECIAL] = 0.0
+        crop, vec, on_floor = self.obs_b.build(raw, self.goal, self.segs.next_goal())
+        fill_use_state(vec, self.use_sent[0], self.use_sent[1], self.pending_since is not None, self.latched_aim,
+                       (self.steps - self.ss_fire_step) * OBS_MS / 1000.0)
+        if self.real and LIVE_RECORD:
+            ng = self.segs.next_goal()
+            self.hist.append(([float(q) for q in self.env.msg.obs], [float(q) for q in self.goal], ([float(q) for q in ng] if ng is not None else None)))
+            if len(self.hist) > LIVE_HIST + LIVE_PRE_DEC + 2:
+                del self.hist[0]
+        return crop, vec, on_floor
+
+    def _begin_drill(self):
+        """40.26 Stage 1: teleport into a recorded post-kick state (engine variations of speed, heading, position);
+        targets: the gem the kick was aimed at, then the gem after it. None if no start took."""
+        key = 'pre' if self.drill_stage >= 2 else 'post'
+        self.warm = None
+        for _ in range(5):
+            if DRILL_EVAL:
+                self.drill_i = getattr(self, 'drill_i', -1) + 1
+                s = self.drill_starts[self.drill_i % len(self.drill_starts)]
+                x, y, z, vx, vy, vz, wx, wy, wz = s[key]
+            else:
+                s = self.drill_starts[int(self.rng.integers(len(self.drill_starts)))]
+                x, y, z, vx, vy, vz, wx, wy, wz = s[key]
+                k = 1.0 + self.rng.uniform(-DRILL_SPEED_JITTER, DRILL_SPEED_JITTER)
+                ang = math.radians(self.rng.uniform(-DRILL_ANGLE_JITTER, DRILL_ANGLE_JITTER))
+                ca, sa = math.cos(ang), math.sin(ang)
+                vx, vy = k * (vx * ca - vy * sa), k * (vx * sa + vy * ca)
+                x += self.rng.uniform(-DRILL_POS_JITTER, DRILL_POS_JITTER); y += self.rng.uniform(-DRILL_POS_JITTER, DRILL_POS_JITTER)
+            z += 0.02
+            pts = [s['target'], s['next']]
+            if self.drill_stage >= 2:
+                if s.get('pre_goals'):
+                    pts = [list(p) for p in s['pre_goals']] + [s['next']]   # the pickups on the way in, the kick's gem, the next
+                elif math.hypot(s['pre_target'][0] - s['target'][0], s['pre_target'][1] - s['target'][1]) > 0.5:
+                    pts = [s['pre_target']] + pts                           # the pickup that comes before the kick
+            if self.drill_stage == 4:
+                pts = [list(p) for p in s['chain']][:LIVE_CHAIN_MAX]       # 40.40: the gems that followed in play
+            goals = [(gx, gy, self.terrain.floor_z(gx, gy, z) + DRILL_GEM_DZ) for gx, gy in pts]
+            if self.drill_stage >= 2:
+                # 40.27: a Super Speed held from the start (the server's own pickup path; lands during begin_drill's step)
+                self.env.control(f'GIVEPOW {SS_DATABLOCK}')
+            g = self.segs.begin_drill(self.env, (x, y, z, vx, vy, vz, wx, wy, wz), goals)
+            if g is not None:
+                self.drill_cur = {'t0': self.steps, 'n1': None, 'n2': None, 'v0': math.hypot(vx, vy), 'ret': 0.0,
+                                  'ngoals': len(goals), 'fire': None, 'id': s.get('id', ''), 'falls': 0, 'picks': []}
+                if self.drill_stage == 4 and s.get('hist'):
+                    # 40.40: warm the GRU with the recorded observations before the start (the trainer / evaluator runs them)
+                    ob_w = ObsBuilder(self.terrain); self.warm = []
+                    for raw_w, goal_w, next_w in s['hist']:
+                        c_w, v_w, _ = ob_w.build(np.asarray(raw_w, dtype=np.float64), tuple(goal_w), (tuple(next_w) if next_w else None))
+                        fill_use_state(v_w, False, False, False, None, USE_T_SCALE_WARM)
+                        self.warm.append((c_w, v_w))
+                # stage 1: the start is the first decision after the kick; stage 2: no kick yet (V10 use state)
+                self.ss_fire_step = (self.steps - 1) if self.drill_stage == 1 else -10**9
+                self.pending_since = None; self.latched_aim = None
+                self.use_sent = [False, False]
+                return g
+        return None
+
+    def _write_live(self, rec):
+        """40.40: append a recorded fire with its continuation to this instance's live-starts file (logs/nav)."""
+        if self.live_file is None:
+            d = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'logs', 'nav')
+            self.live_file = open(os.path.join(d, f'live_starts_{time.strftime("%Y%m%d_%H%M%S")}_{self.idx}.jsonl'), 'a', encoding='utf-8')
+        self.live_file.write(json.dumps(rec) + '\n'); self.live_file.flush()
+
+    def _drill_done(self, outcome):
+        c = self.drill_cur
+        if c is None:
+            return
+        a = self.drill_agg
+        a['n'] += 1; a['ret'] += c['ret']
+        if c['n1'] is not None:
+            a['hit1'] += 1; a['t1'] += c['n1'] * OBS_MS / 1000.0
+        if c['n2'] is not None:
+            a['hit2'] += 1; a['t2'] += (c['n2'] - c['n1']) * OBS_MS / 1000.0
+        if outcome == 'fell':
+            a['fell'] += 1
+        pre = 'DRILL' if self.drill_stage == 1 else f'DRILL{self.drill_stage}'
+        fire = '' if self.drill_stage == 1 else (f'fired={int(c["fire"] is not None)} tf={(c["fire"] or 0) * OBS_MS / 1000.0:.2f} '
+                                                 f'pk={c["ngoals"] - 2} ')
+        extra = f' id={c["id"]} picks={len(c["picks"])} tpicks={",".join(f"{t * OBS_MS / 1000.0:.2f}" for t in c["picks"])} falls={c["falls"]}' if self.drill_stage == 4 else ''
+        self.log(f'{pre} v0={c["v0"]:.1f} {fire}hit1={int(c["n1"] is not None)} t1={(c["n1"] or 0) * OBS_MS / 1000.0:.2f} '
+                 f'hit2={int(c["n2"] is not None)} t2={((c["n2"] - c["n1"]) if c["n2"] else 0) * OBS_MS / 1000.0:.2f} '
+                 f'out={outcome} ret={c["ret"]:.1f}{extra}')
+        if a['n'] % 100 == 0:
+            self.log(f'DRILLSUM n={a["n"]} hit1={100.0 * a["hit1"] / a["n"]:.0f}% hit2={100.0 * a["hit2"] / a["n"]:.0f}% '
+                     f'fell={100.0 * a["fell"] / a["n"]:.0f}% t1={a["t1"] / max(a["hit1"], 1):.2f}s t2={a["t2"] / max(a["hit2"], 1):.2f}s '
+                     f'ret={a["ret"] / a["n"]:.1f}')
+            self.drill_agg = {'n': 0, 'hit1': 0, 'hit2': 0, 'fell': 0, 't1': 0.0, 't2': 0.0, 'ret': 0.0}
+        self.drill_cur = None
 
     # ------------------------------------------------------------------ one decision
     def step(self, a_game):
@@ -218,21 +401,23 @@ class InstanceWorker:
                 and self.vec[2] * WAYPOINT_DIST_SCALE >= 8.0):
             self.round_uses['ap2'] = self.round_uses.get('ap2', 0) + 1
         held = int(prev_obs[RAW_POW_HELD]) if len(prev_obs) > RAW_POW_HELD else 0
-        if len(a) >= 8 and a[5] > 0.5:
-            if held > 0:
-                use_pow = 1
-                key = f'u{held}'
-                if held == 2:
-                    ax, ay = ss_aim(self.vec)         # V9: the physics aim (redirect, or the line to the waypoint)
-                    pow_yaw = math.atan2(ax, ay)
-                    # 40.15: 'r2' = a turn (velocity more than 30 deg off the waypoint line), 'u2' = a run
-                    spd = math.hypot(self.vec[4], self.vec[5])
-                    if spd > 1e-6 and (self.vec[4] * self.vec[0] + self.vec[5] * self.vec[1]) / spd < 0.866:
-                        key = 'r2'; self.redirect_sent = self.steps
-                self.round_uses[key] = self.round_uses.get(key, 0) + 1
-            elif float(prev_obs[RAW_POW_BLAST]) >= BLAST_REQUIRED or float(prev_obs[RAW_POW_SPECIAL]) > 0.5:
-                use_blast = 1
-                self.round_uses['blast'] = self.round_uses.get('blast', 0) + 1
+        sent = False
+        # 40.26: Super Speed only (the other powerups and the blast are not fired in this experiment); a drill instance
+        # fires nothing (its kick already happened)
+        if len(a) >= 8 and a[5] > 0.5 and held == 2 and self.drill_stage != 1 and not DRILL_NO_USE:
+            use_pow = 1
+            key = 'u2'
+            ax, ay = ss_aim(self.vec)             # the physics aim (the kick onto the line to the waypoint)
+            pow_yaw = math.atan2(ax, ay)
+            # 40.15: 'r2' = a turn (velocity more than 30 deg off the waypoint line), 'u2' = a run
+            spd = math.hypot(self.vec[4], self.vec[5])
+            if spd > 1e-6 and (self.vec[4] * self.vec[0] + self.vec[5] * self.vec[1]) / spd < 0.866:
+                key = 'r2'; self.redirect_sent = self.steps
+            self.round_uses[key] = self.round_uses.get(key, 0) + 1
+            sent = True
+            if self.pending_since is None:
+                self.pending_since = self.steps
+            self.latched_aim = (ax, ay)           # the bridge re-latches the yaw on every use word
         tg = time.perf_counter()
         if TRAIN_WATCH:
             # hold each decision to OBS_MS of wall clock, the same pacing real_run uses in WATCH
@@ -248,12 +433,26 @@ class InstanceWorker:
         msg, info = self.env.step(js, use_pow=use_pow, pow_yaw=pow_yaw, use_blast=use_blast)
         self.prof['game'] += time.perf_counter() - tg
         held_now = int(msg.obs[RAW_POW_HELD]) if len(msg.obs) > RAW_POW_HELD else 0
-        if held > 0 and held_now == 0 and not info['fell']:      # the held powerup went: fired (or lost to a respawn)
+        self.use_sent = [sent, self.use_sent[0]]                   # 40.26 V10 use state
+        if held > 0 and held_now == 0 and not info['fell'] and self.drill_stage != 1:   # the held powerup went: fired (or lost to a respawn)
+            if self.drill_stage >= 2 and held == 2 and self.drill_cur is not None and self.drill_cur['fire'] is None:
+                self.drill_cur['fire'] = self.steps - self.drill_cur['t0'] + 1
             self.round_uses[f'f{held}'] = self.round_uses.get(f'f{held}', 0) + 1
             if held == 2:
                 self.ss_fire_step = self.steps; self.fire_pending = self.steps
+                self.pending_since = None; self.latched_aim = None
+                if self.real and LIVE_RECORD and len(self.hist) >= LIVE_PRE_DEC + 1:
+                    pre_raw, pre_goal, pre_next = self.hist[-LIVE_PRE_DEC - 1]
+                    self.live_pending.append({'id': f'{self.idx}-{self.steps}', 'mission': self.mission, 'fire_step': self.steps,
+                                              'pre_raw': pre_raw, 'pre_goal': pre_goal, 'pre_next': pre_next,
+                                              'post_raw': [float(q) for q in msg.obs], 'target': [float(q) for q in self.goal],
+                                              'next': ([float(q) for q in self.segs.next_goal()] if self.segs.next_goal() is not None else None),
+                                              'hist': [h for h in self.hist[:-LIVE_PRE_DEC - 1]][-LIVE_HIST:], 'chain': [], 'chain_t': [],
+                                              'falls': 0})
                 if self.steps - self.redirect_sent <= 3:
                     self.redirect_open.append([self.steps, self.round_gems])
+        if self.pending_since is not None and (self.steps - self.pending_since > 3 or held_now != 2):
+            self.pending_since = None; self.latched_aim = None    # no kick came (or the item went another way)
         if self.redirect_open and self.steps - self.redirect_open[0][0] >= 24:   # 1.5 s: the waypoint after a turn is >= 8 u away
             _, g0 = self.redirect_open.pop(0)
             k = 'rhit' if self.round_gems > g0 else 'rmiss'
@@ -285,7 +484,8 @@ class InstanceWorker:
             if nc > 0.3 and na > 0.05:
                 self.fc_num += (cx * ax + cy * ay) / (nc * na); self.fc_den += 1.0
         self.seg_steps += 1
-        if self.seg_steps == FRAME_CHECK_N and self.fc_den >= 5 and self.fc_num / self.fc_den < FRAME_FLIP_COS:
+        if (not self.drill and self.seg_steps == FRAME_CHECK_N and self.fc_den >= 5
+                and self.fc_num / self.fc_den < FRAME_FLIP_COS):   # 40.26: a drill starts at 15-24 u/s, decelerating whatever the input
             self.frame_flips += 1
             self.log(f'FRAME FLIP: command/acceleration cosine {self.fc_num / self.fc_den:.2f} over the first {FRAME_CHECK_N} decisions at '
                      f'{np.round(msg.obs[:3], 1)}; forcing a respawn and restarting the segment (flips on this instance {self.frame_flips})')
@@ -322,6 +522,31 @@ class InstanceWorker:
                                           # for eval paths that send a bare 5-vector.
                                           cmd_dir=(a[6], a[7]) if len(a) > 7 else (a[0], a[1]),   # after the use bit (6 action elements)
                                           picked=float(info['gem_delta']) if self.real else 0.0)
+        if self.real and self.live_pending:
+            # 40.40: the continuation of every recorded fire: the gems picked up (the target at the pickup) and the falls
+            keep = []
+            for rec in self.live_pending:
+                if info['gem_delta'] > 0 and len(rec['chain']) < LIVE_CHAIN_MAX:
+                    rec['chain'].append([float(self.goal[0]), float(self.goal[1])]); rec['chain_t'].append(self.steps - rec['fire_step'])
+                if info['fell']:
+                    rec['falls'] += 1
+                if self.steps - rec['fire_step'] >= LIVE_CHAIN_DEC or info['round_ended'] or info['reconnected']:
+                    if len(rec['chain']) >= 1:
+                        self._write_live(rec)
+                else:
+                    keep.append(rec)
+            self.live_pending = keep
+        if self.drill and self.drill_cur is not None and self.segs.seg is not None:   # 40.26: drill outcome bookkeeping
+            if r >= 1.0 - 1e-6 and self.drill_stage == 4 and self.segs.drill_window:   # a pickup in the window (points reward)
+                self.drill_cur['picks'].append(self.steps - self.drill_cur['t0'] + 1)
+            if info['fell']:
+                self.drill_cur['falls'] += 1
+            c = self.segs.seg.collected - (self.drill_cur['ngoals'] - 2)   # the kick's gem and the one after (stage 2 may
+            if c >= 1 and self.drill_cur['n1'] is None:                    # have the pickup before them as a first target)
+                self.drill_cur['n1'] = self.steps - self.drill_cur['t0'] + 1
+            if c >= 2 and self.drill_cur['n2'] is None:
+                self.drill_cur['n2'] = self.steps - self.drill_cur['t0'] + 1
+            self.drill_cur['ret'] += r
         if self.segs.take_respawn():
             # fell mid-group: get back on the map, keep the same gems, carry on
             try:
@@ -359,6 +584,11 @@ class InstanceWorker:
         if done:
             self.seg_count += 1; ep = self.ep_reward; self.ep_reward = 0.0
             stats = self.segs.stats()
+            self.final_obs = None
+            if self.drill:
+                fc, fv, _ = self._build()              # 40.40: the drill's final observation (the trainer bootstraps its value)
+                self.final_obs = (fc, fv)
+                self._drill_done(outcome)
             self.start_segment()
         else:
             if self.real:
@@ -377,14 +607,19 @@ class InstanceWorker:
                             self.segs.set_next(float(msg.obs[0]), float(msg.obs[1]), want)
                     self.target = tgt
             tg = time.perf_counter()
-            self.crop, self.vec, self.on_floor = self.obs_b.build(self.env.msg.obs, self.goal, self.segs.next_goal())
+            self.crop, self.vec, self.on_floor = self._build()
             self.prof['obs'] += time.perf_counter() - tg
         return self._reply(skip=False, r=r, done=done, outcome=outcome, new_segment=bool(done), fell=info['fell'],
                            trace=trace, stats=stats, ep_reward=ep)
 
     def _reply(self, **kw):
         kw.update({'crop': self.crop, 'vec': self.vec, 'mission': self.mission, 'log': self.drain_log(),
-                   'flips': self.frame_flips, 'seg_count': self.seg_count, 'prof': self.prof})
+                   'flips': self.frame_flips, 'seg_count': self.seg_count, 'prof': self.prof,
+                   'drill': bool(self.drill)})            # 40.33: the trainer bootstraps a drill's end (train_nav v_cont)
+        if kw.get('done') and self.final_obs is not None:   # 40.40: the ended drill's final observation
+            kw['final_crop'], kw['final_vec'] = self.final_obs; self.final_obs = None
+        if self.warm is not None:                             # 40.40: GRU warm-up observations for a live start
+            kw['warm'] = self.warm; self.warm = None
         self.prof = {'game': 0.0, 'obs': 0.0, 'begin': 0.0}
         if kw.get('skip'):
             kw['new_segment'] = True

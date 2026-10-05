@@ -25,10 +25,10 @@ from datetime import datetime
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from nav.env import TRAINING_MODE, OBS_MS                                          # noqa: E402
 from nav.obs import NAV_OBS_VERSION                                                # noqa: E402
-from nav.model import NavActorCritic, HIDDEN, DIR_GOAL_GAIN                        # noqa: E402
+from nav.model import NavActorCritic, HIDDEN, DIR_GOAL_GAIN, FREEZE_BASE, SS_LR_MULT   # noqa: E402
 from nav.waypoints import (ARRIVE_MIN_SEGMENTS, ARRIVE_TIGHTEN_AT, ARRIVE_STEP,     # noqa: E402
                            ARRIVE_R_FINAL, ARRIVE_DZ_FINAL)
-from nav.ppo_recurrent import Rollout, ppo_update, LR                              # noqa: E402
+from nav.ppo_recurrent import Rollout, ppo_update, LR, GAMMA                       # noqa: E402
 
 N_INSTANCES = int(os.environ.get('NAV_INSTANCES', '8'))   # game instances (ports PORT0 ..
                                # PORT0+N-1); run_game_loop.ps1 -Instances must match. Set to 1
@@ -177,15 +177,33 @@ def main():
         if ck.get('obs_version') != NAV_OBS_VERSION:
             raise SystemExit(f'checkpoint obs version {ck.get("obs_version")} != {NAV_OBS_VERSION}; move models/nav aside')
         model.load_state_dict(ck['model'])
-        ost = ck['opt']; n_now = len(list(model.parameters())); ids = list(ost['param_groups'][0]['params'])
-        if len(ids) < n_now:                       # a checkpoint from before the use head: its params come last, fresh Adam state
-            ost = dict(ost); ost['param_groups'] = [dict(ost['param_groups'][0], params=ids + list(range(len(ids), n_now)))]
-            log(f'optimizer state padded for {n_now - len(ids)} new parameter tensors (use head)')
-        opt.load_state_dict(ost)
+        ost = ck['opt']
+        if len(ost['param_groups']) == 1 and not FREEZE_BASE:
+            n_now = len(list(model.parameters())); ids = list(ost['param_groups'][0]['params'])
+            if len(ids) < n_now:                       # a checkpoint from before the use head: its params come last, fresh Adam state
+                ost = dict(ost); ost['param_groups'] = [dict(ost['param_groups'][0], params=ids + list(range(len(ids), n_now)))]
+                log(f'optimizer state padded for {n_now - len(ids)} new parameter tensors (use head)')
+            opt.load_state_dict(ost)
+        elif not FREEZE_BASE:
+            log('optimizer state from a FREEZE_BASE run (two parameter groups): fresh Adam state')
         update, steps = ck['update'], ck['steps']
         log(f'resumed {latest}: update {update}, steps {steps:,}, trained on {ck.get("mission")}')
     else:
         log(f'fresh model ({sum(p.numel() for p in model.parameters()):,} params), obs {NAV_OBS_VERSION}, device {dev}')
+    if FREEZE_BASE:
+        # 40.33: the critic's head at LR, the Super Speed parts (use head, residual) at LR x SS_LR_MULT in their own group
+        n_tr = model.freeze_base()
+        opt = torch.optim.Adam([{'params': [p for n, p in model.named_parameters() if n.startswith('value_head.')], 'lr': LR},
+                                {'params': [p for n, p in model.named_parameters() if n.startswith(('use_head.', 'ss_res.'))],
+                                 'lr': LR * SS_LR_MULT}], eps=1e-5)
+        how = 'fresh Adam state'
+        if ck is not None and len(ck['opt']['param_groups']) == 2:
+            try:
+                opt.load_state_dict(ck['opt']); how = 'Adam state resumed'
+            except (ValueError, KeyError) as e:
+                how = f'fresh Adam state ({e})'
+        log(f'40.33 FREEZE_BASE: {n_tr:,} trainable parameters (value_head at LR {LR:g}; use_head, ss_res at {LR * SS_LR_MULT:g}); '
+            f'the navigator is frozen; {how}')
     act_model.load_state_dict(model.state_dict())
     arrive = {'r': 1.5, 'dz': 2.0}
     if ck is not None:
@@ -208,6 +226,19 @@ def main():
 
         seg_total = 0; t_last = time.perf_counter(); steps_last = steps
         recent_rewards = []
+        # 40.33 DRILL BOOTSTRAP: a drill's end (its second gem, a timeout, a fall) is a cut, not the end of play; in a round
+        # the same-looking state goes on. Terminal drill ends gave the critic two futures for one state (0 vs the rest of
+        # the round) and priced finishing sooner at nothing. The cut is bootstrapped with v_cont, the critic's running
+        # mean value over round decisions (the value of play going on from a typical state).
+        v_cont = None
+        # 40.40: a drill's cut is bootstrapped with the critic's value of its ACTUAL final observation (the worker sends it
+        # with the done message; the hidden state is the one after that step), discounted by GAMMA for the one decision
+        # the cut costs and, after a fall, by GAMMA ** FALL_RESPAWN_DEC for the respawn (a round goes on 3 s later from
+        # the same place). v_cont (the mean round value) stays only as a fallback when no final observation came.
+        FALL_RESPAWN_DEC = 47
+        def value_of(crop, vec, h):
+            with torch.no_grad():
+                return float(act_model.act(torch.from_numpy(np.asarray(crop)[None]), torch.from_numpy(np.asarray(vec)[None]), h)['value'][0])
         prof = {'fwd': 0.0, 'send': 0.0, 'recv': 0.0, 'handle': 0.0, 'w_game': 0.0, 'w_obs': 0.0, 'w_begin': 0.0}   # w_* = summed over workers
 
         def maybe_tighten_all():
@@ -254,7 +285,7 @@ def main():
 
         def collect_group(g, o):
             """Receive one transition per worker in the group and record it."""
-            nonlocal steps, seg_total
+            nonlocal steps, seg_total, v_cont
             for i, w in enumerate(g):
                 tp = time.perf_counter()
                 msg = w.recv(log)
@@ -266,8 +297,17 @@ def main():
                     # no transition (frame flip / round end): drop the corrupted tail, fresh state
                     w.roll.truncate(msg['truncate'])
                 else:
+                    r_ = msg['r']
+                    if not msg.get('drill', False):
+                        v_ = float(o['value'][i])
+                        v_cont = v_ if v_cont is None else 0.999 * v_cont + 0.001 * v_
+                    elif msg['done'] and msg.get('final_vec') is not None:
+                        v_fin = value_of(msg['final_crop'], msg['final_vec'], o['h_next'][i:i + 1])
+                        r_ += (GAMMA ** FALL_RESPAWN_DEC if msg.get('outcome') == 'fell' else GAMMA) * v_fin   # 40.40
+                    elif msg['done'] and v_cont is not None:
+                        r_ += GAMMA * v_cont          # 40.33 drill bootstrap (fallback)
                     w.roll.add(o['crop'][i], o['vec'][i], o['a_buf'][i], float(o['logp'][i]),
-                               float(o['value'][i]), msg['r'], float(msg['done']), o['reset'][i], o['h_prev'][i])
+                               float(o['value'][i]), r_, float(msg['done']), o['reset'][i], o['h_prev'][i])
                     steps += 1
                     if trace is not None:
                         trace.write(f'{time.perf_counter() - t_wall0:.1f},{steps},{msg["trace"]},{o["gp"][i]:.0f},{w.idx}\n')
@@ -286,6 +326,12 @@ def main():
                                 f'dps={(steps - steps_last) / max(time.perf_counter() - t_last, 1e-6):.0f}')
                 if msg['new_segment']:
                     w.h = act_model.initial_state(1, cdev); w.reset_flag = 1.0
+                    if msg.get('warm'):
+                        # 40.40: a live-start drill: run the recorded observations before the start through the GRU so the
+                        # recurrent state is the one the policy had in play, not zeros
+                        with torch.no_grad():
+                            for c_w, v_w in msg['warm']:
+                                w.h = act_model.core(torch.from_numpy(np.asarray(c_w)[None]), torch.from_numpy(np.asarray(v_w)[None]), w.h)
                 else:
                     w.h = o['h_next'][i:i + 1]; w.reset_flag = 0.0
                 w.crop, w.vec = msg['crop'], msg['vec']
@@ -343,7 +389,7 @@ def main():
                     f'falls100={s["falls_per_100u"]:.2f} speed={s["speed"]:.1f} gems={s["gems_per_group"]:.1f} pickup={s["pickup_speed"]:.1f} sgem={s["s_per_gem"]:.2f} carry={s["carry_speed"]:.1f} turn={s["turn_deg"]:.1f} rew={np.mean(recent_rewards) if recent_rewards else 0:.1f} '
                     f'pl={st.get("pl", 0):.3f} vl={st.get("vl", 0):.3f} ent={st.get("ent", 0):.2f} entd={st.get("ent_d", 0):.2f} ec={st.get("ent_coef", 0):.4f} kl={st.get("kl", 0):.3f} '
                     f'clip={st.get("clipfrac", 0):.2f} gn={st.get("gn", 0):.2f} ep={st.get("epochs", 0)} '
-                    f'dstd={model.log_std.clamp(model.LOG_STD_MIN, model.LOG_STD_MAX).exp().item():.2f} flips={flips} '
+                    f'dstd={model.log_std.clamp(model.LOG_STD_MIN, model.LOG_STD_MAX).exp().item():.2f} flips={flips} vcont={v_cont or 0.0:.1f} '
                     f'upd_s={time.perf_counter() - t0:.1f} wall_s={wall:.0f} inst={len(workers)} dps={(steps - steps_last) / max(wall, 1e-6):.0f} '
                     f'prof=' + ','.join(f'{k}:{v:.0f}' for k, v in prof.items()))
                 for k in prof:

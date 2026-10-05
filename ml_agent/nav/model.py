@@ -13,7 +13,7 @@ import os
 import torch
 import torch.nn as nn
 
-from nav.obs import VEC_DIM, VEC_GAP, VEC_POW, WAYPOINT_DIST_SCALE, VEL_SCALE, SS_REDIRECT_U, SS_KEY_LAG_S, SS_FIRE_U
+from nav.obs import VEC_DIM, VEC_GAP, VEC_POW, WAYPOINT_DIST_SCALE, VEL_SCALE, SS_REDIRECT_U, SS_KEY_LAG_S, SS_FIRE_U, VEC_USE, USE_T_SCALE
 from terrain_obs import RAY_RANGE
 from nav.terrain import CROP_SHAPE
 
@@ -46,6 +46,51 @@ USE_PRIOR_FLOOR = -1.0      # -4 -> -1 on 2026-10-03 21:40 (log 40.19): the oper
                             # sampled, always in deterministic play) and the head could not cancel it where it hurts:
                             # 8-round gates 132-138 all night against 160.1 without uses (log 40.3-40.7). The floor stays
                             # above the clamp's -9 so the approved situations keep being explored. Elsewhere unchanged.
+USE_SS_ONLY = True          # 2026-10-04 (log 40.26): the first curriculum experiment isolates Super Speed: the approval
+                            # mask (use_prior) keeps only its branch, so no Super Jump / blast / Mega use can be sampled
+USE_EPS = 0.2               # 40.26: inside the approval mask a use is sampled with p = USE_EPS + (1 - USE_EPS) sigmoid(logit):
+                            # a differentiable exploration floor (the hard floor of 40.8-40.22 had ZERO gradient below it,
+                            # so a use that paid could never raise its own probability); PPO scores this exact mixture;
+                            # deterministic play fires only where the LEARNED part sigmoid(logit) > 0.5. Outside the mask
+                            # p = 0. USE_PRIOR / USE_PRIOR_FLOOR are no longer used.
+USE_LOGIT_CAP = 12.0        # 40.26: soft bound on the use logit (cap tanh(raw / cap)) instead of a clamp: no dead zone
+USE_BIAS_V10 = -1.0         # 40.26: a fresh use head starts unsaturated (learned p 0.27, sampled 0.41 where approved)
+SS_RES_RECENT_S = 2.0       # 40.26: the Super Speed residual acts while one is held, a kick is pending, or for this long after
+SS_RES_SCALE = 3.0          # 40.30: the residual's output x3, so each Adam step moves it 3x as far (it learned too slowly)
+SS_APPROACH_U = 10.0        # 40.40 (10-04): the residual (steering + brake) also acts on the APPROACH: a Super Speed held, the
+                            # approach flag [27] on (a redirect at the gem ahead toward the next gem is survivable) and the
+                            # gem within this many u (~1.2 s at 8 u/s). Before, it acted only from the use onward, so 'go
+                            # in faster because the kick will turn me' could not be learned. Never while merely holding
+                            # an item (SS_RES_HELD False): that rewrote ordinary driving for ~60 % of a round (40.33).
+AUX_DIM = 10 + 37           # 40.40: the use head and the critic read, beside the frozen hidden state, the current observation's
+                            # goal block (vec[0:10]: bearing, distance, dz, velocity, speed, on floor, airborne) and the whole
+                            # powerup block (vec[VEC_POW:]: held type, meter, items, the kick aim / result / approvals, the
+                            # use state). With the base frozen the hidden state carries NONE of this (28897's encoder
+                            # columns for the powerup block are exactly zero), so the learned use preference and the value
+                            # could not tell a held Super Speed from an empty slot; the mask did the knowing.
+SS_RES_HELD = False         # 40.33: False = the residual acts only while a kick is pending or within SS_RES_RECENT_S of one.
+                            # True (40.26-40.32) also gated it on "Super Speed held", which is ~60 % of a round once the
+                            # policy stops firing: at 29585 it cost 3.6 points a round (141.5 vs 145.1 with it zeroed)
+FREEZE_BASE = True          # 40.33: train only use_head, ss_res and value_head on top of the frozen 28897 navigator (the
+                            # plan's "small powerup residual + learnable use head"). 40.26-40.32 trained everything and the
+                            # drills wore the navigator down: deterministic rounds 159.0 (28897) -> 149.0 (29235) -> 141.5
+                            # (29585), slower (8.38 -> 7.85 u/s) with more falls; no Super Speed gain to show for it
+SS_LR_MULT = 10.0           # 40.33: with the navigator frozen the use head and residual learn at LR x this (their own Adam
+                            # group); at x1 the first 25 updates moved the policy by KL 0.000-0.001 per update
+BRAKE_EPS_POST = 0.0      # 40.32: OFF again (0.15 for 40 min): forcing the brake for the first 4 / 8 decisions of the
+                            # eval drills gave no first-pass gain and more falls (22 / 24 % vs 19 %), and the random brakes
+                            # raised the training drills' falls 17-20 -> 22-23 %; the mechanism stays for later stages.
+                            # 40.31: for SS_RES_RECENT_S after a Super Speed fire the brake (full thrust exactly against the
+                            # velocity: it keeps the kick's line, the operator's backward key after 11 of 20 kicks) is
+                            # sampled with p = BRAKE_EPS_POST + (1 - BRAKE_EPS_POST) sigmoid(logit), a differentiable floor
+                            # PPO scores exactly; the navigator brakes ~150 deg off the line instead (bending it off the
+                            # gem) and its brake logit sits at -7 (0.09 %), so straight braking was never tried.
+                            # Deterministic play brakes only where the learned part sigmoid(logit) > 0.5.
+STD_POST_MULT = 1.0         # 40.32: OFF again (2.5 for 1 h 20 min: no deterministic gain, more falls in the sampled drills)
+                            # 40.30: steering noise x2.5 for SS_RES_RECENT_S after a fire: right after a kick the navigator
+                            # brakes ~145 deg against its velocity and std 0.22 only tried +-12 deg around that, so a
+                            # straight pass through the gem was hardly ever sampled. The entropy the controller sees
+                            # excludes this boost; deterministic play is unaffected.
 USE_BIAS = -11.0            # 2026-10-03 (log 40.11, fresh head from 28897): approved -11 + 10 = -1 (27 % sampled, never in
                             # deterministic play until the head learns a use is worth it), elsewhere the -9 floor. Was -3
                             # (4.7 %; with the prior +7 = every approved use fired until the head cancelled it).
@@ -171,12 +216,17 @@ class NavActorCritic(nn.Module):
         nn.init.constant_(self.jump_head[-1].bias, -3.0)
         self.brake_head = nn.Sequential(nn.Linear(HIDDEN, 64), nn.ReLU(), nn.Linear(64, 1))
         nn.init.constant_(self.brake_head[-1].bias, -3.0)
-        self.value_head = nn.Sequential(nn.Linear(HIDDEN, 64), nn.ReLU(), nn.Linear(64, 1))
+        self.value_head = nn.Sequential(nn.Linear(HIDDEN + AUX_DIM, 64), nn.ReLU(), nn.Linear(64, 1))   # 40.40: [h, aux]
         self.log_std = nn.Parameter(torch.full((1,), -1.5))
         self.throttle_log_std = nn.Parameter(torch.full((1,), -1.0))
         # registered LAST so the parameter order of older checkpoints is unchanged and their Adam state loads
-        self.use_head = nn.Sequential(nn.Linear(HIDDEN, 64), nn.ReLU(), nn.Linear(64, 1))
-        nn.init.constant_(self.use_head[-1].bias, USE_BIAS)
+        self.use_head = nn.Sequential(nn.Linear(HIDDEN + AUX_DIM, 64), nn.ReLU(), nn.Linear(64, 1))   # 40.40: [h, aux]
+        nn.init.constant_(self.use_head[-1].bias, USE_BIAS_V10)
+        # 40.26: a Super-Speed-conditioned RESIDUAL on the steering (pre-tanh) and the brake logit, gated on (held, pending,
+        # or a kick within SS_RES_RECENT_S): the control after a kick is learned here while ordinary driving, the base
+        # heads, starts unchanged (zero init). Registered after use_head so older checkpoints keep their parameter order.
+        self.ss_res = nn.Sequential(nn.Linear(HIDDEN + VEC_DIM, 64), nn.ReLU(), nn.Linear(64, 3))
+        nn.init.zeros_(self.ss_res[-1].weight); nn.init.zeros_(self.ss_res[-1].bias)
         self.register_buffer('value_mean', torch.zeros(1))
         self.register_buffer('value_std', torch.ones(1))
         self.register_buffer('value_sq_mean', torch.ones(1))
@@ -186,8 +236,20 @@ class NavActorCritic(nn.Module):
         """A checkpoint from before the use head (ACTION_DIM 5) loads with the head at its fresh init."""
         own = self.state_dict()
         missing = [k for k in own if k not in sd]
-        if missing and all(k.startswith('use_head.') for k in missing):
+        if missing and all(k.startswith('use_head.') or k.startswith('ss_res.') for k in missing):
             sd = dict(sd); sd.update({k: own[k] for k in missing})
+        # 40.40: a checkpoint whose value_head / use_head read only the hidden state (HIDDEN columns): keep those weights
+        # and add ZERO columns for the aux inputs, so the critic is unchanged until training moves them; a use head of
+        # the old width is dropped (fresh init: the experiment restarts the use decision anyway)
+        sd = dict(sd)
+        for head in ('value_head', 'use_head'):
+            k = f'{head}.0.weight'
+            if k in sd and sd[k].shape[1] != own[k].shape[1]:
+                if head == 'value_head' and sd[k].shape[1] < own[k].shape[1]:
+                    w = torch.zeros_like(own[k]); w[:, :sd[k].shape[1]] = sd[k]; sd[k] = w
+                else:
+                    for kk in [q for q in sd if q.startswith(head + '.')]:
+                        sd[kk] = own[kk]
         return super().load_state_dict(sd, strict)
 
     # ------------------------------------------------------------------ core
@@ -254,7 +316,37 @@ class NavActorCritic(nn.Module):
         # V9 (log 40.12): the REDIRECT at the pickup: within SS_REDIRECT_U of the waypoint, the kick aimed by the
         # observation turns the velocity onto the line to the next waypoint with floor all the way (obs.py)
         # the pre-pickup redirect branch (40.12-40.14) is gone: a kick before the pickup missed the gem 40 % of the time
+        if USE_SS_ONLY:
+            return ss.float()                     # 40.26: Super Speed isolated for the curriculum experiment
         return (sj | bl | ss).float()
+
+    @staticmethod
+    def ss_gate(vec):
+        """(B,) 1.0 while a kick is pending or one fired within SS_RES_RECENT_S (V10 use state); also while a Super Speed
+        is held if SS_RES_HELD."""
+        pending = vec[:, VEC_USE + 2] > 0.5
+        recent = vec[:, VEC_USE + 5] < (SS_RES_RECENT_S / USE_T_SCALE)
+        # 40.40: the approach window: held, the approach flag on, the gem within SS_APPROACH_U
+        approach = (vec[:, VEC_POW + 1] > 0.5) & (vec[:, VEC_POW + 27] > 0.5) & (vec[:, VEC_GOAL_DIST] * WAYPOINT_DIST_SCALE <= SS_APPROACH_U)
+        g = pending | recent | approach
+        if SS_RES_HELD:
+            g = g | (vec[:, VEC_POW + 1] > 0.5)
+        return g.float()
+
+    TRAINABLE_WHEN_FROZEN = ('use_head.', 'ss_res.', 'value_head.')
+
+    def freeze_base(self):
+        """40.33 FREEZE_BASE: only the Super Speed parts and the critic's head learn. Returns the trainable count."""
+        n = 0
+        for name, p in self.named_parameters():
+            p.requires_grad = name.startswith(self.TRAINABLE_WHEN_FROZEN)
+            n += p.numel() if p.requires_grad else 0
+        return n
+
+    @staticmethod
+    def aux(vec):
+        """40.40: the observation slice the use head and the critic read directly (AUX_DIM)."""
+        return torch.cat([vec[:, 0:10], vec[:, VEC_POW:VEC_POW + 37]], dim=-1)
 
     def heads(self, h, vec, crop=None):
         # DIR_GOAL_GAIN: amplify the GOAL BEARING on the way into the direction head.
@@ -272,29 +364,48 @@ class NavActorCritic(nn.Module):
         if DIR_GOAL_GAIN != 1.0:
             vec_in = vec.clone()
             vec_in[..., 0:2] = vec_in[..., 0:2] * DIR_GOAL_GAIN
-        mean_xy = self.dir_head(torch.cat([h, vec_in], dim=-1))
+        x_dir = torch.cat([h, vec_in], dim=-1)
+        g = self.ss_gate(vec)                                    # 40.26: the Super Speed residual's gate
+        res = self.ss_res(x_dir) * (SS_RES_SCALE * g).unsqueeze(-1)   # zero at init and wherever the gate is off
+        g_post = (vec[:, VEC_USE + 5] < (SS_RES_RECENT_S / USE_T_SCALE)).float()   # 40.30: just after a kick
+        # 40.29: the residual is added AFTER the tanh: in the states after a kick the base steering is saturated (|pre-tanh|
+        # median 1.5, 39 % above 2, tanh slope < 0.07 there), which starved a pre-tanh residual of gradient; the Gaussian
+        # mean may leave [-1, 1] (action_to_joystick normalises the sampled direction)
+        mean_xy = torch.tanh(self.dir_head[:3](x_dir)) + res[..., 0:2]
         thr = self.throttle_head(h).squeeze(-1)
         gp = self.gap_prior(crop, vec) if crop is not None else torch.zeros_like(thr)
         # 28.35: the prior is added AFTER the clamp, so the head cannot cancel it by going more negative (it
         # had reached ~-12 against a +8.5 prior). An approved gap now sits at >= -7 + 8.5 = +1.5: ~82 % sampled
         # in training and a jump in deterministic play. The policy's job is the approach, not the decision.
         jump = torch.clamp(self.jump_head(h).squeeze(-1) - JUMP_DAMP, -7.0, 3.0) + gp * JUMP_PRIOR
-        brake = torch.clamp(self.brake_head(h).squeeze(-1) - gp * BRAKE_SUPPRESS, -7.0, 3.0)
+        brake_l = torch.clamp(self.brake_head(h).squeeze(-1) - gp * BRAKE_SUPPRESS, -7.0, 3.0) + res[..., 2]
         if not BRAKE_ENABLED:
-            brake = torch.full_like(brake, -20.0)
-        # 40.8: where the prior approves, the head's floor is USE_PRIOR_FLOOR - USE_PRIOR instead of -9, so it can cancel the use
+            brake_l = torch.full_like(brake_l, -20.0)
+        # 40.31: the post-kick brake floor: p = p_learn + eps (1 - p_learn) just after a kick, p_learn elsewhere (unchanged)
+        pb_learn = torch.sigmoid(brake_l)
+        pb = (pb_learn + g_post * BRAKE_EPS_POST * (1.0 - pb_learn)).clamp(1e-6, 1.0 - 1e-6)
+        brake = torch.log(pb) - torch.log1p(-pb)
+        brake_det = (pb_learn > 0.5).float()
+        # 40.26: the physics approval is the action MASK; inside it the use probability is the differentiable mixture
+        # USE_EPS + (1 - USE_EPS) sigmoid(logit) (exploration that never stops the gradient), returned as the exact logit
+        # of that probability so PPO's ratio uses the distribution actually sampled; outside the mask p = 0 (clamped).
         up = self.use_prior(vec)
-        raw = self.use_head(h).squeeze(-1)
-        lo = torch.where(up > 0.5, torch.full_like(raw, USE_PRIOR_FLOOR - USE_PRIOR), torch.full_like(raw, -9.0))
-        use = torch.maximum(torch.clamp(raw, max=3.0), lo) + up * USE_PRIOR
-        vn = self.value_head(h).squeeze(-1)
-        return mean_xy, thr, jump, brake, use, vn
+        h_aux = torch.cat([h, self.aux(vec)], dim=-1)          # 40.40
+        raw = self.use_head(h_aux).squeeze(-1)
+        p_learn = torch.sigmoid(USE_LOGIT_CAP * torch.tanh(raw / USE_LOGIT_CAP))
+        p = (up * (USE_EPS + (1.0 - USE_EPS) * p_learn)).clamp(1e-6, 1.0 - 1e-6)
+        use = torch.log(p) - torch.log1p(-p)
+        use_det = up * (p_learn > 0.5).float()                # deterministic play: only where the head has learned it
+        vn = self.value_head(h_aux).squeeze(-1)
+        return mean_xy, thr, jump, brake, use, vn, use_det, 1.0 + (STD_POST_MULT - 1.0) * g_post, brake_det
 
-    def dists(self, mean_xy, thr, jump, brake, use):
+    def dists(self, mean_xy, thr, jump, brake, use, std_mult=None):
         # The tanh output is the Gaussian mean directly (NOT normalized to the unit circle:
         # normalizing a near-zero fresh output made the direction, and the PPO ratio,
         # chaotic). action_to_joystick normalizes the sampled direction.
         std = torch.clamp(self.log_std, self.LOG_STD_MIN, self.LOG_STD_MAX).exp().expand_as(mean_xy)
+        if std_mult is not None:
+            std = std * std_mult.unsqueeze(-1)          # 40.30: wider steering noise just after a kick
         d_dir = torch.distributions.Normal(mean_xy, std)
         d_thr = torch.distributions.Normal(thr, torch.clamp(self.throttle_log_std, self.THROTTLE_LOG_STD_MIN, self.THROTTLE_LOG_STD_MAX).exp())
         d_jump = torch.distributions.Bernoulli(logits=jump)
@@ -316,11 +427,11 @@ class NavActorCritic(nn.Module):
         """crop (B,6,32,32), vec (B,48), h (B,H). Returns dict with action_buf (B,6), action_game (B,6),
         logp (B,), value (B,), h_next (B,H)."""
         h1 = self.core(crop, vec, h)
-        mean_xy, thr, jump, brake, use, vn = self.heads(h1, vec, crop)
-        d_dir, d_thr, d_jump, d_brake, d_use = self.dists(mean_xy, thr, jump, brake, use)
+        mean_xy, thr, jump, brake, use, vn, use_det, std_mult, brake_det = self.heads(h1, vec, crop)
+        d_dir, d_thr, d_jump, d_brake, d_use = self.dists(mean_xy, thr, jump, brake, use, std_mult)
         if deterministic:
-            direction = d_dir.mean; thr_s = thr; j = (torch.sigmoid(jump) > 0.5).float(); b = (torch.sigmoid(brake) > 0.5).float()
-            u = (torch.sigmoid(use) > 0.5).float()
+            direction = d_dir.mean; thr_s = thr; j = (torch.sigmoid(jump) > 0.5).float(); b = brake_det   # 40.31: learned part
+            u = use_det                           # 40.26: the learned preference, not the exploration mixture
             if self.JUMP_ON_PRIOR and crop is not None:
                 j = torch.maximum(j, self.gap_prior(crop, vec))
         else:
@@ -335,19 +446,22 @@ class NavActorCritic(nn.Module):
                 'value': self.value_from_norm(vn), 'h_next': h1}
 
     # ------------------------------------------------------------------ training
-    def evaluate_seq(self, crops, vecs, h0, actions, resets):
+    def evaluate_seq(self, crops, vecs, h0, actions, resets, h_reset=None):
         """crops (T,B,6,32,32), vecs (T,B,48), h0 (B,H), actions (T,B,6),
-        resets (T,B) float: 1 where the hidden state must be zeroed BEFORE step t
-        (first step of a new segment). Returns logp (T,B), continuous entropy (T,B),
+        resets (T,B) float: 1 where the hidden state restarts BEFORE step t
+        (first step of a new segment). h_reset (T,B,H): the state the actor restarted from at
+        those steps (zeros for an ordinary segment, a live start's warmed-up state, log 40.42);
+        None = zeros. Returns logp (T,B), continuous entropy (T,B),
         discrete entropy (T,B), value_norm (T,B)."""
         T, B = actions.shape[:2]
         h = h0
         logps, ents, ents_d, vns = [], [], [], []
         for t in range(T):
-            h = h * (1.0 - resets[t]).unsqueeze(-1)
+            r = resets[t].unsqueeze(-1)
+            h = h * (1.0 - r) if h_reset is None else h * (1.0 - r) + h_reset[t] * r
             h = self.core(crops[t], vecs[t], h)
-            mean_xy, thr, jump, brake, use, vn = self.heads(h, vecs[t], crops[t])
-            d_dir, d_thr, d_jump, d_brake, d_use = self.dists(mean_xy, thr, jump, brake, use)
+            mean_xy, thr, jump, brake, use, vn, _, std_mult, _ = self.heads(h, vecs[t], crops[t])
+            d_dir, d_thr, d_jump, d_brake, d_use = self.dists(mean_xy, thr, jump, brake, use, std_mult)
             a = actions[t]
             logp = (d_dir.log_prob(a[:, 0:2]).sum(-1) + d_thr.log_prob(a[:, 2]) + d_jump.log_prob(a[:, 3]) + d_brake.log_prob(a[:, 4])
                     + d_use.log_prob(a[:, 5]))
@@ -359,7 +473,9 @@ class NavActorCritic(nn.Module):
             # 0.18 -> 0.25. Speed fell 4.9 -> 4.7 and arrivals 86 % -> 83 %. The caller now prices
             # the continuous heads (where exploration is wanted) and the discrete ones (which have
             # their own deliberate priors, JUMP_DAMP and BRAKE_SUPPRESS) separately.
-            ent_cont = d_dir.entropy().sum(-1) + d_thr.entropy()
+            # 40.30: minus the post-kick noise boost (Normal entropy rises by log k at k x std), so the entropy
+            # controller keeps seeing the base exploration and does not cut it everywhere to pay for the boost
+            ent_cont = (d_dir.entropy() - torch.log(std_mult).unsqueeze(-1)).sum(-1) + d_thr.entropy()
             ent_disc = d_jump.entropy() + d_brake.entropy() + d_use.entropy()
             logps.append(logp); ents.append(ent_cont); ents_d.append(ent_disc); vns.append(vn)
         return torch.stack(logps), torch.stack(ents), torch.stack(ents_d), torch.stack(vns)

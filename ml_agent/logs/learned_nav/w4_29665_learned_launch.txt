@@ -1,0 +1,2 @@
+w4_29665_learned: python 10612 game 47596 -> C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\logs\learned_nav\w4_29665_learned_KingOfTheMarble_Hunt.txt
+w4_29665_learned: DRILL EVAL w4_29665_learned: stage 4 n 200 | kick gem within 1.0 s 0%, 1.5 s 0%, at all 80% (median 8.77 s) | gem after 62% | both, median time 10.04 s | fell 0% | timeout 0% | fired 51% | return 5.0 | 293 s

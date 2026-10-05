@@ -1,0 +1,5 @@
+06:48:44 det_n29231a: python 1231647 port 9961 ckpt models/nav/nav_night_29231_148.pth
+06:48:53 det_n29231b: python 1231705 port 9962 ckpt models/nav/nav_night_29231_148.pth
+06:49:02 det_n29231c: python 1231810 port 9963 ckpt models/nav/nav_night_29231_148.pth
+06:49:11 det_n29231d: python 1231911 port 9964 ckpt models/nav/nav_night_29231_148.pth
+06:53:50 done

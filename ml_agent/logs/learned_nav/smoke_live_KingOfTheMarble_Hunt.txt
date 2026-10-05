@@ -1,0 +1,13 @@
+smoke: nav_v10_28897.pth on port 9975; 3000 sampled round decisions
+  500 decisions, pending fires 0, written False
+  1000 decisions, pending fires 0, written False
+  1500 decisions, pending fires 0, written False
+  2000 decisions, pending fires 0, written True
+  2500 decisions, pending fires 0, written True
+  [0] GAME map=KingOfTheMarble_Hunt points=145 gems=114 falls=1 rtf=4.3 pow=ap2:7,f1:1,f2:1,ksB:1,r2:1,rhit:1 pkon=9.4/6 pkoff=8.1/53 pknone=8.1/55 rwfire=2.742/30 rwall=1.691/2604
+  3000 decisions, pending fires 0, written True
+live file live_starts_20261004_171221_0.jsonl: 1 fires with a continuation in 16 s
+live starts: 1 fires from 1 file(s) -> dev 1 / eval 0; speed after median 21.6 u/s; chain gems median 6; with a fall in the 12 s 0 % 
+eval starts 1 (dev 1); first id 0-1550 spin [-9.8, 41.6, -0.5] chain 6 hist 32
+now run the window drill eval (a new game is needed on another port):
+  python -m nav.ss_drill_eval --ckpt C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\models\nav\nav_v10_28897.pth --stage 4 --n 6 --port 9976 --tag smoke_learned

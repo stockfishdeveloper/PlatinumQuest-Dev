@@ -1,0 +1,18 @@
+closest 0.56 u | speed 23 0 0 0 0 0 0 0 0 0 | cmd vs vel deg 161 -1 -1 -1 -1 -1 -1 -1 -1 -1 | brake 0000000000 | v0=23.0 hit1=1 t1=5.44 hit2=0 t2=0.00 out=timeout ret=39.0
+closest 0.19 u | speed 22 22 21 20 19 18 17 16 15 15 | cmd vs vel deg 173 131 137 92 109 145 154 164 167 163 | brake 0000000000 | v0=22.2 hit1=1 t1=2.62 hit2=1 t2=1.79 out=arrived ret=80.1
+closest 0.40 u | speed 24 24 23 22 21 20 19 19 18 17 | cmd vs vel deg 161 142 134 133 132 133 134 137 144 137 | brake 0000000000 | v0=24.5 hit1=1 t1=1.73 hit2=1 t2=4.16 out=arrived ret=75.5
+closest 0.29 u | speed 23 23 21 20 20 19 19 18 18 17 | cmd vs vel deg 173 177 146 142 141 141 144 152 151 151 | brake 0000000000 | v0=23.3 hit1=1 t1=2.69 hit2=1 t2=1.92 out=arrived ret=60.7
+closest 0.02 u | speed 24 23 22 21 21 20 19 18 17 16 | cmd vs vel deg 151 151 150 151 161 165 173 176 160 157 | brake 0000000000 | v0=23.7 hit1=1 t1=2.62 hit2=1 t2=1.86 out=arrived ret=63.4
+closest 0.11 u | speed 21 21 20 19 18 17 16 15 14 13 | cmd vs vel deg 138 143 143 148 145 141 178 175 161 179 | brake 0000000000 | v0=21.0 hit1=1 t1=1.86 hit2=1 t2=1.66 out=arrived ret=84.7
+closest 0.13 u | speed 24 24 23 22 21 21 20 19 18 17 | cmd vs vel deg 143 142 152 145 146 146 147 150 160 164 | brake 0000000000 | v0=24.4 hit1=1 t1=3.39 hit2=1 t2=1.28 out=arrived ret=60.6
+closest 2.70 u | speed 24 23 23 22 21 21 20 19 19 18 | cmd vs vel deg 147 170 171 170 170 169 172 175 177 177 | brake 0000000000 | v0=23.7 hit1=0 t1=0.00 hit2=0 t2=0.00 out=fell ret=-24.5
+closest 0.17 u | speed 24 24 23 22 21 20 19 18 18 17 | cmd vs vel deg 175 146 141 165 145 165 150 149 146 144 | brake 0000000000 | v0=24.4 hit1=1 t1=3.33 hit2=0 t2=0.00 out=timeout ret=51.4
+closest 0.09 u | speed 25 24 23 22 21 21 20 19 18 17 | cmd vs vel deg 148 148 149 163 154 176 174 178 144 143 | brake 0000000000 | v0=24.5 hit1=1 t1=2.75 hit2=1 t2=3.01 out=arrived ret=49.8
+closest 0.70 u | speed 22 21 20 19 19 18 17 16 15 14 | cmd vs vel deg 166 164 162 155 153 155 180 176 161 171 | brake 0000000000 | v0=21.7 hit1=1 t1=2.24 hit2=1 t2=2.50 out=arrived ret=67.1
+closest 0.80 u | speed 25 24 23 23 22 21 20 19 17 16 | cmd vs vel deg 142 140 161 146 144 143 142 147 159 149 | brake 0000000000 | v0=24.7 hit1=1 t1=0.51 hit2=1 t2=4.22 out=arrived ret=67.5
+closest 0.37 u | speed 21 20 20 19 19 18 17 16 15 14 | cmd vs vel deg 159 148 143 164 161 156 177 176 167 136 | brake 0000000000 | v0=21.0 hit1=1 t1=2.37 hit2=1 t2=1.73 out=arrived ret=67.2
+closest 0.21 u | speed 25 24 23 22 21 21 20 19 18 17 | cmd vs vel deg 170 158 168 172 171 177 154 176 176 179 | brake 0000000000 | v0=24.7 hit1=1 t1=1.60 hit2=1 t2=3.46 out=arrived ret=79.0
+closest 0.77 u | speed 23 23 22 21 20 20 19 18 17 16 | cmd vs vel deg 148 169 172 151 150 148 151 154 153 166 | brake 0000000000 | v0=23.5 hit1=1 t1=2.62 hit2=1 t2=1.60 out=arrived ret=63.1
+commanded direction vs velocity over the first 8 decisions: median 151 deg, share > 90 deg (braking against) 100 %
+closest approach median 0.29 u, <= 0.65 u 73 %
+pre-tanh steering over the first 6 decisions: |pre| median 2.03, p90 4.27, share > 2 (tanh slope < 0.07) 51 %

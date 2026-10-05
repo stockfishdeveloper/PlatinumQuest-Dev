@@ -560,6 +560,29 @@ function MLAgent::update(%gen) {
             @ "|sched=" @ (isObject(%pl) ? (isEventPending(%pl.powerupSchedule[1]) ? 1 : 0) @ (isEventPending(%pl.powerupSchedule[2]) ? 1 : 0) @ (isEventPending(%pl.powerupSchedule[3]) ? 1 : 0) @ (isEventPending(%pl.powerupSchedule[4]) ? 1 : 0) @ (isEventPending(%pl.powerupSchedule[5]) ? 1 : 0) @ (isEventPending(%pl.powerupSchedule[6]) ? 1 : 0) : ""));
         $AIBridge::LastAction = "";
         %actionStr = "";
+    } else if (getWord(%actionStr, 0) $= "GIVEPOW") {
+        // "GIVEPOW <ItemDatablock>|none" (2026-10-04, log 40.27): the Super Speed curriculum's Stage 2 drills start
+        // with the powerup held as if just picked up: the server's own pickup path (Marble::setPowerUp sets
+        // powerUpData, the engine id the use key fires and the client's HUD) plus the client prediction that the mp
+        // item pickup also sets; "none" clears both
+        %pl = (isObject(ClientGroup) && ClientGroup.getCount() > 0) ? ClientGroup.getObject(0).player : -1;
+        %db = getWord(%actionStr, 1);
+        if (isObject(%pl)) {
+            if (%db !$= "none" && isObject(%db)) {
+                %pl.setPowerUp(%db.getId(), true, 0);
+                if (isObject($MP::MyMarble))
+                    $MP::MyMarble._setPowerUp(%db.getId(), true, 0);
+            } else {
+                %pl.powerUpData = "";
+                %pl.heldPowerup = "";
+                %pl.setPowerUpId(0, true);
+                if (isObject($MP::MyMarble))
+                    $MP::MyMarble._setPowerUp("", true, 0);
+            }
+        }
+        AIBridge::sendState("DEBUG|givepow=" @ %db @ "|held=" @ ((isObject(%pl) && isObject(%pl.powerUpData)) ? %pl.powerUpData.getName() : "none"));
+        $AIBridge::LastAction = "";
+        %actionStr = "";
     } else if (getWord(%actionStr, 0) $= "YAWSET") {
         // "YAWSET yaw mode" (2026-10-02, diagnostic): mode 0 = client marble setCameraYaw, 1 = server marble
         // setCameraYaw, 2 = $mvYaw delta (the move's yaw), 3 = all three; RADIUS reads the yaws back

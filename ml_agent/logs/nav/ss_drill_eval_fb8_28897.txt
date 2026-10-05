@@ -1,0 +1,2 @@
+drill eval stage 1: nav_v10_28897.pth (update 28895), deterministic, 211 drills, port 9971
+DRILL EVAL fb8_28897: stage 1 n 211 | kick gem within 1.0 s 22%, 1.5 s 26%, at all 91% (median 1.86 s) | gem after 68% | both, median time 4.35 s | fell 24% | timeout 9% | fired 0% | return 53.9 | 120 s

@@ -1,0 +1,3 @@
+drill eval stage 4: nav_r2_stop_29665.pth (update 29665), deterministic, 200 drills, port 9973
+WINDOW EVAL w4_29665_force: n 200 (force-use) | pickups in 12 s mean 5.17 | falls mean 0.24 | first pickup median 2.18 s | fired 98% | return 5.17 | 290 s
+DRILL EVAL w4_29665_force: stage 4 n 200 | kick gem within 1.0 s 0%, 1.5 s 0%, at all 89% (median 8.45 s) | gem after 70% | both, median time 9.70 s | fell 0% | timeout 0% | fired 98% | return 5.2 | 290 s

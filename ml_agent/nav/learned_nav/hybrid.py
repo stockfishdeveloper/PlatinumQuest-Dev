@@ -166,7 +166,7 @@ def play(port, map_name, n_rounds, memory, tag, log, shortcuts=1, rescue=True, r
     import torch
     from terrain_obs import TerrainMap
     from nav.terrain import TerrainGrid, CROP_SHAPE
-    from nav.obs import ObsBuilder, NAV_OBS_VERSION, VEC_DIM, ss_aim
+    from nav.obs import ObsBuilder, NAV_OBS_VERSION, VEC_DIM, ss_aim, fill_use_state
     from nav.model import NavActorCritic, action_to_joystick
     from nav.real_run import choose
     g = Geometry(map_name)
@@ -505,6 +505,7 @@ def play(port, map_name, n_rounds, memory, tag, log, shortcuts=1, rescue=True, r
                             st['stuck_breaks'] += 1
                             _bump(stuck_on, target)
                         crop, vec, _ = obs_b.build(ob, goal, ngoal)
+                        fill_use_state(vec, False, False, False, None, 3.0)   # 40.26 V10: neutral use state (no tracking here)
                         with torch.no_grad():
                             o = model.act(torch.as_tensor(crop, device=dev).unsqueeze(0), torch.as_tensor(vec, device=dev).unsqueeze(0),
                                           h, deterministic=not (i < stuck_until))

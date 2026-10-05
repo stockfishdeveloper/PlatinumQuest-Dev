@@ -1,0 +1,2 @@
+drill eval stage 3: nav_v10_28897.pth (update 28895), deterministic, 20 drills, port 9972
+DRILL EVAL t3det: stage 3 n 20 | kick gem within 1.0 s 0%, 1.5 s 0%, at all 90% (median 4.12 s) | gem after 80% | both, median time 6.46 s | fell 5% | timeout 15% | fired 0% | return 99.1 | 21 s

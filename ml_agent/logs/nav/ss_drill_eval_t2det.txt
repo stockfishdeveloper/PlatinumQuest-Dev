@@ -1,0 +1,2 @@
+drill eval stage 2: nav_v10_28897.pth (update 28895), deterministic, 30 drills, port 9972
+DRILL EVAL t2det: stage 2 n 30 | kick gem within 1.0 s 0%, 1.5 s 0%, at all 93% (median 2.53 s) | gem after 83% | both, median time 4.86 s | fell 3% | timeout 13% | fired 0% | return 86.7 | 23 s

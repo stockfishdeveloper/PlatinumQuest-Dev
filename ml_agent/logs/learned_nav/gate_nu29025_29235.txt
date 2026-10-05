@@ -1,0 +1,5 @@
+04:13:53 nu29025a: python 1110786 port 9961 ckpt models/nav/nav_p4g_s1a_end_29025.pth
+04:14:02 nu29025b: python 1110836 port 9962 ckpt models/nav/nav_p4g_s1a_end_29025.pth
+04:14:11 nu29235a: python 1111044 port 9963 ckpt models/nav/nav_p4g_s1c_end_29235.pth
+04:14:21 nu29235b: python 1111233 port 9964 ckpt models/nav/nav_p4g_s1c_end_29235.pth
+04:18:56 done

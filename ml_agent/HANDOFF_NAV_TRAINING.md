@@ -6,14 +6,35 @@ it here. The dated history of every experiment (sections 1 to 28.x, 2026-09-17 t
 `docs/HANDOFF_NAV_TRAINING_LOG.md`. Code comments that cite "HANDOFF 28.52" and the like point into that
 log, and new dated entries go there too.
 
-Last updated: 2026-10-03 23:05 (log 40.11-40.22: the Super Speed as a physics-aimed post-pickup turn; the
-operator's demo measured (20 fires a round, 90-150 deg turns to ~17 u/s); approvals capped at a brakeable 24 u/s;
-training running from the 28897 lineage (obs V9, update ~30420) with the use prior sampled at >= 27 %; overnight
-handoff OVERNIGHT_2026-10-03_SUPERSPEED.md. Gates of phase 4 checkpoints 132-156 against 160.1 without uses;
-no use learned to deterministic play yet).
+Last updated: 2026-10-04 17:30 (log 40.23-40.40: the Super Speed curriculum night (safe, chosen, no points: 160.6 vs
+161.1 without uses), the second review and its implementation: the use head and critic read the powerup state, the
+residual acts on the approach, points-only drills with final-state bootstrap, live starts with real spin and GRU
+warm-up, 12 s window evals; nothing trained since 10:06. Next run: HANDOFF_SUPERSPEED_MANEUVER_2026-10-04.md.
+Protected navigator: models/nav/nav_v10_28897.pth; its deterministic score 161.1-161.6 (32-64 rounds), best 173).
 
 ## 1. Where things stand
 
+* **2026-10-04 evening (the manoeuvre run, HANDOFF_SUPERSPEED_MANEUVER_2026-10-04.md, log 40.41-40.45):** TRAINING
+  STOPPED 21:13 by the operator at update 29665 (`nav_latest.pth` = `models/nav/nav_r2_stop_29665.pth`; run 1 collection
+  17:17-18:20 ended at `nav_run1_end_29115.pth`). Fixed on the way: model.evaluate_seq restarts a warm-started live drill
+  from its stored GRU state (it zeroed it; log 40.42). Live starts: 848 (dev 647 / eval 201, datasets/ss_drill/
+  starts_live_*.json; run 1's sets kept as *_run1.json). Final matched window eval (12 s, 167 paired starts): fire at
+  every approval +0.17 gems (se 0.09) over no use; the learned use head -0.02 (0.08), i.e. it skips kicks that pay; no
+  full-round gate. Sampled rounds flat at ~147 (navigator frozen). Drills pay points while rounds pay the shaped reward:
+  one critic for both (its round value fell ~145 -> ~120); the operator's call (log 40.43).
+* **2026-10-04 (Super Speed curriculum night, log 40.26-40.39; report https://claude.ai/artifact/LPz1RsoFBgARwWbtTYME6a):**
+  TRAINING STOPPED 10:06 by the operator at update 29970 (`nav_latest.pth` = `models/nav/nav_p4i_stop_29970.pth`). That
+  run trained only the use head, the post-kick residual and the critic's head on top of 28897; these are now the code
+  DEFAULTS for any next run (model.py FREEZE_BASE True, SS_LR_MULT 10, SS_RES_HELD False; drill ends bootstrapped in
+  train_nav v_cont; vec_worker NAV_DRILL_PLAN '0:1,1:1,2:2,3:2,4:2' = 5 of 8 games run drills). Super Speed kicks need
+  LEVEL braking room (obs.py SS_LEVEL_DZ 0.75: the old floor scan counted the platform's outer rim, and 39 % of kicks
+  fell). Full rounds (deterministic, pooled): learned use over three snapshots (29069, 29231, 29377) **160.6** (112
+  rounds, best 172) vs the same navigator without Super Speed **161.09** (64 rounds, best 173; last evening 161.62 over
+  32): no measurable Super Speed gain. Kicks ~1 a round, 4 of 87 fell within 3 s. The trained post-kick residual adds
+  falls (1.12 vs 0.69 a round with it zeroed, same points; log 40.38). The first part of the night trained the whole
+  network on drills and wore the navigator down to 141.5 (nav_p4g_*): do not train the navigator on drills without an
+  anchor. Diagnostics: real_run NAV_FORCE_USE, ss_drill_eval --force-use / --no-use, logs/nav/gate_scripts/ (ss_eval.sh,
+  rr_gate_patch.sh + rr_patch.py, probe_eval.sh + use_probe.py, kick_falls*.py, fall_vs_kick.py).
 * **Goal:** a 170-level KOTM round, the level of the human's best rounds. The earlier goal of 150 was
   reached on 2026-09-26.
 * **Model (2026-10-02):** the best checkpoint is `models/nav/nav_best_20261002_tour_28897.pth` (a copy of

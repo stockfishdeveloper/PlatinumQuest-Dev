@@ -1,0 +1,3 @@
+04:58:59 det_p4h_29003a: python 1144608 port 9963 ckpt models/nav/nav_p4h_29003.pth
+04:59:10 det_p4h_29003b: python 1144646 port 9964 ckpt models/nav/nav_p4h_29003.pth
+05:03:42 done

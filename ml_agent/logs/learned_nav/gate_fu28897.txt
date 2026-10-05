@@ -1,0 +1,3 @@
+04:28:20 fu28897a: python 1121654 port 9961 ckpt models/nav/nav_v10_28897.pth
+04:28:29 fu28897b: python 1121735 port 9962 ckpt models/nav/nav_v10_28897.pth
+04:32:50 done
