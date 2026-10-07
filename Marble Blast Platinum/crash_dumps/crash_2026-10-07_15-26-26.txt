@@ -1,0 +1,38 @@
+Crash Report
+============
+Timestamp: 2026-10-07_15-26-26
+
+Environment Info:
+App Version: 2.0.0
+Build Config: Release
+Platform: Windows
+Executable: C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\Marble Blast Platinum\marbleblast_mbx.exe
+Notes: PlatinumQuest
+
+
+Stack Trace:
+  [0]: 0x7ff763562875
+  [1]: 0x7ff76337cdce
+  [2]: 0x7ff763573eb0
+  [3]: 0x7ff7635702e8
+  [4]: 0x7ff76356fe00
+  [5]: 0x7ff76347122d
+  [6]: 0x7ff7633340d2
+  [7]: 0x7ff763333d37
+  [8]: 0x7ff763333d37
+  [9]: 0x7ff763333d37
+  [10]: 0x7ff763333d37
+  [11]: 0x7ff763333d37
+  [12]: 0x7ff763333d37
+  [13]: 0x7ff76333c864
+  [14]: 0x7ff763334038
+  [15]: 0x7ff763333d37
+  [16]: 0x7ff763333d37
+  [17]: 0x7ff763330f97
+  [18]: 0x7ff763337ffb
+  [19]: 0x7ff7633e74de
+  [20]: 0x7ff7633e5714
+  [21]: 0x7ff7635b5669
+  [22]: 0x7ff7637be354
+  [23]: BaseThreadInitThunk
+  [24]: RtlUserThreadStart

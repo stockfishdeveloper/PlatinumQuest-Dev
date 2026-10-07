@@ -6570,6 +6570,97 @@ scores. Full details and continuing experiment results are in
   166.55; full state with optimizer; hash checked). Deleted the 13 checkpoints after it (nav_points_20261005_032575 ..
   032850 and _parity_32855). Logs and the check 9 results stay as history (the 15:47-17:48 train log repeats update
   numbers 32565-32855 if training resumes from 32565).
+
+### 40.61 Training physics differ from the real game (10-06 18:15-20:10)
+* Falls in the test rounds after 05:00 (6 checks, 384 rounds): 1.06 a round (rolled off 0.63, after a jump 0.42,
+  after a kick 0.01); centre 2 x 2 hole 10 %, then the inner corners beside it; outer edges nearly clean.
+  logs/nav/goal175/kotm_fall_locations_20261006_after5am.png.
+* Operator watched 32565 at 1x and saw ~5 missed gems a game. Cause: the smooth viewer (real_run WATCH,
+  NAV_VIEW_SUBSTEPS 4) runs the physics as four 16 ms steps per decision; training and every eval run ONE 64 ms step
+  (env FIXEDSTEP 64). Same model: 64 ms tests 0.75 close passes without a pickup, 166.6 points, 0.8 falls a round;
+  16 ms view 5.5, 150, 5 (first round). Live play (nav/live_play.py) runs the real 16 ms ticks too, so the test scores
+  do not carry over to live games. Operator: "I can't believe we're not training on the same game that we're viewing
+  on." Now watching with NAV_VIEW_SUBSTEPS 1 (training physics, choppier). Proposed fix awaiting his decision: train
+  and test on 16 ms physics (four slices per decision from Python, or an engine change doing four 16 ms ticks inside a
+  decision).
+* Operator: make the training physics the standard for 1x viewing and lobby games. watch_model.ps1 now sets
+  NAV_VIEW_SUBSTEPS "1" (64 ms steps; its other settings already match the tests). Lobby games cannot: a fixed step or
+  lockstep in a game with other players changes or stalls their game (live_play.py); the lobby fix is training on the
+  real 16 ms physics.
+
+### 40.62 The lobby misses come from decision timing, not the physics step (10-06 22:00-22:35)
+* Lobby physics step measured (agentLive.cs gem-scan line now prints fps, drawfps, maxfps pref): ~1000 physics steps
+  a second (fps 926-1000, drawfps 60, Max FPS pref -1 = 1000 TPS). The engine caps real frames at 50 ms
+  (FrameRateUnlock.cpp: item and trigger collision is not continuous); the training fixed step bypasses that cap.
+* mlAgent.cs FIXEDSTEP takes an optional second word, the observation interval ("FIXEDSTEP 16 64": 16 ms frames, one
+  observation and decision per 64 ms; the update loop is a sim-time schedule). Without it, behaviour as before.
+* 32565 on 16 ms physics with training timing (logs/nav/gate_scripts/rr_step.py, batch_step16_20261006_2219, 64
+  rounds): 166.28 (95% 165.3-167.3), falls 0.66, 0.89 close passes without a pickup a round = the 64 ms result.
+* Timing experiment (rr_timing.py, batch_timing_20261006_2225, 32 rounds per arm, fast lockstep): LOBBY timing (16 ms
+  frames, an observation every 16 ms, a decision every 4, the decision acting from the next tick) 157.06 (95%
+  154.9-159.2), falls 1.22, 5.44 misses a round; the same with DELAY 4 (each decision acts 64 ms after its
+  observation, as in training) 166.50 (165.1-167.9), falls 0.69, 0.94 misses. The cause is the 48 ms earlier action;
+  no retraining needed. Proposed: DELAY 4 in live_play and in the smooth viewer (awaiting the operator). Open: 0 Super
+  Speed kicks in both timing arms (training timing ~0.8 a round): the use path with 16 ms check-ins needs a look.
+* Applied on the operator's OK: nav/live_play.py sends DELAY ACTION_REPEAT on every connect / new round (HuntEnv.set_speed
+  patch); real_run apply_watch sends DELAY VIEW_SUBSTEPS with the 16 ms slices; watch_model.ps1 back to
+  NAV_VIEW_SUBSTEPS 4. Compiles, test_replay 13 passed. To confirm in a real lobby round.
+* live_play default checkpoint = nav_points_20261005_parity_32565.pth (operator). Operator watched 1 minute of each and
+  said "looks good": smooth 1x view with the delay (64 s: 40 gems, 2 falls, 2 close passes without a pickup) and a real
+  lobby round with the delay (64 s: 43 gems, 0 falls, 2 close passes; the lobby before the fix, one full round: 120
+  gems, 3 falls, 6 close passes). One minute is too short to prove the miss fix in a real lobby (2 a minute both ways);
+  the lockstep test is the proof (5.4 -> 0.9 a round). Lobby gem pickups register at 0.39 u median (1000 TPS checks)
+  vs 0.57 u in the 64 ms tests.
+
+### 40.63 Powerups in lobbies (10-06 23:00-23:30, operator: "essential")
+* Both lobby sessions: held_before 0 on all 3,845 decisions, 0 uses. The observer read the held powerup and the powerup
+  items only from server-side objects (ClientGroup player, MissionGroup), which a client that JOINED a lobby does not
+  have. The client does know: clientCmdSetPowerUp stores powerUpId on $MP::MyMarble (the HUD icon; sent when the
+  server's Fast Powerups is off, or to the host) and with Fast Powerups the client's own pickup record is _powerUpId
+  (client/scripts/mp/marble.cs; cleared by _mouseFire). A human click (input_mouseFire) also calls _mouseFire, which
+  with Fast Powerups uses the client's record and tells the server; the bridge only set the engine trigger.
+* Fixed (operator OK, no timer estimates): observer.cs collectPowerups falls back to the client record when there is no
+  server player (FastPowerups ? _powerUpId : powerUpId) and, without a MissionGroup, lists powerup items from the
+  ServerConnection ghosts each observation; mlAgent.cs executeAction in live mode calls $MP::MyMarble._mouseFire() on
+  the use press and sends UsePowerup for a client-held Mega (no Fast Powerups); real_run's watch slices hold the use
+  key for the whole decision; agentLive.cs's lobby status line prints the two client records, the Fast Powerups flag
+  and whether hosting.
+* The "0 kicks with 16 ms check-ins" of 40.62 was the ss_fires counter (it checks after the first slice only): every
+  use consumed the powerup. Kick check from the traces (largest one-decision |dv| within 4 decisions of a use; a kick is
+  sent on ~2 decisions): training timing 50/99 uses kick (+13.8 u/s); lobby timing WITHOUT the delay 0/62 (powerup
+  used up, no kick); with DELAY 4 14/28 and, after the fixes, 18/36 (+15.0 u/s) at 165.09 (95% 163.4-166.8, 32 rounds,
+  batch_timing_20261006_2321). The joined-lobby path needs a real lobby test (operator).
+* Lobby round 10-06 23:45 (operator HOSTING, status line "hosting 1", Fast Powerups 0): the model now sees its
+  powerup (held Super Jump 78 % of decisions, Super Speed 14 % = ~25 s, nothing 8 %; the SetPowerUp record matched),
+  but sent no use (Super Speed held only ~25 s; tests fire ~1 per 3 min, so one round cannot tell). 4 falls: back on
+  the floor after 0.8, 3.7, 3.6, 1.6 s (two waited the game's 2.5 s automatic respawn).
+
+### 40.64 Fall cost and the lobby quick respawn (10-07)
+* Fall cost (448 test rounds of the best-model era, training or fixed timing): 2.23 points per fall (regression),
+  0.90 falls a round, rounds without a fall 167.3 vs all 165.3: removing every fall is worth ~+2.0 points a round.
+  In lobbies a fall costs more while the quick respawn is missing.
+* Operator: lobby falls do not get the click quick respawn. The OOBCLICK word respawned ClientGroup.getObject(0):
+  nobody on a joined client, the first player (maybe someone else) on a hosting server. Fixed in agentLive.cs only:
+  package MLAgentLiveOOB (activated in the live startLoop) overrides clientCmdCbOnOutOfBounds to make a human click
+  (commandToServer MouseFire 1, release after 100 ms). Safe and legal: the server's onOutOfBounds sets isOOB and takes
+  the held powerup away (restored at the respawn) BEFORE it sends that callback, and MPOutofBounds respawns the CALLER
+  (a click that is not OOB would use the held powerup instead). The live OOBCLICK word is now ignored. Training
+  (mlAgent.cs) unchanged. To confirm in the next lobby round (a fall should end ~1 s after it, not 3.3 s).
+* Confirmed 10-07 (operator hosting, 141 s played): both falls back on the floor after 1.1 and 1.0 s (were 3.6-3.7 s);
+  Super Speed used at ~102 s (held 2 -> 0, |dv| 24.1 u/s, speed 4.7 -> 21.1); the operator saw both. Held: nothing
+  42 %, Super Jump 41 %, Super Speed 17 %.
+* Correction (operator): the model's account Alfonsus HOSTED NONE of these rounds; it was a JOINED client both times,
+  so the joined case is what was confirmed. The status line's "hosting 1" was wrong: it tested isObject(MissionGroup),
+  which a joined client also has. That same test chose the powerup-item source in observer.cs, so in those rounds the
+  items came from the client's MissionGroup (unverified), not the server ghosts. Fixed: the item branch is now
+  $MLAgent::Live && !$Server::Hosting (createServer sets it; clientCmdHostStatus tells a joined client), training
+  unchanged; the status line prints $Server::Hosting and the powerup item count. To check in the next lobby round.
+* Next joined round (10-07): status "hosting 1 powitems 0-2" although the game had only a client UDP port and talked to
+  the remote PQ server 15.204.116.17: clientCmdHostStatus sets $Server::Hosting for the LOBBY LEADER, not the machine
+  running the server. The item branch now tests the same thing as the held powerup (no server-side player:
+  $MLAgent::Live && !isObject(%player)); status line prints "leader L serverclients N powitems M". Takes effect next
+  launch. In that round the operator saw Alfonsus use a Super Speed, and approved the local marble look (Hperks online,
+  CustomMarble_04 picture on this PC: data/shapes/balls/pack3/hp.marble.png; original hp.marble.png.original_hperks).
 * The summary loop (logs/nav/game_summary.sh, killed 22:06) now has CRLF line endings: running an LF copy,
   logs/nav/points_20261005/game_summary_lf.sh, with Python on PATH and NAV_SUMMARY_PREFIX nav_points_20261005_best.
 * Fall map (operator): 2,520 falls in 1,638 evaluation rounds, 10-03 to 10-05, normal play on the old map (helper,

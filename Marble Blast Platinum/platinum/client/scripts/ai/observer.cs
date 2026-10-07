@@ -154,9 +154,12 @@ function AIObserver::collectPowerups(%obs) {
 
     // the items: cached per mission
     %mission = isObject(MissionInfo) ? MissionInfo.name : "";
-    if (!isObject(MissionGroup) && isObject(ServerConnection)) {
+    if ($MLAgent::Live && !isObject(%player) && isObject(ServerConnection)) {
         // 2026-10-06 (log 40.63): joined lobby client: the mission's server objects are not here; use the item ghosts the
-        // client sees (a picked-up item is not ghosted until it respawns), rebuilt every observation
+        // client sees (a picked-up item is not ghosted until it respawns), rebuilt every observation. 2026-10-07: the
+        // test is the same as for the held powerup (no server-side player here). NOT MissionGroup (a joined client has
+        // one too) and NOT $Server::Hosting (clientCmdHostStatus sets it for the LOBBY LEADER on a remote server);
+        // $MLAgent::Live keeps training on the server-side scan.
         $AIObserver::PowItemCount = 0;
         $AIObserver::PowItemMission = "";
         %n = ServerConnection.getCount();

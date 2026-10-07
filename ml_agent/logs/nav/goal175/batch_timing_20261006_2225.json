@@ -1,0 +1,90 @@
+﻿[
+    {
+        "port":  9970,
+        "python":  41720,
+        "game":  31380,
+        "arm":  "lobby_a",
+        "tag":  "timing_20261006_2225_lobby_a",
+        "kind":  "rounds",
+        "checkpoint":  "models/nav/nav_points_20261005_parity_32565.pth",
+        "checkpoint_sha256":  "aacc9545e1c4b4e14f655e249cb6614385ab159bd74d244baccf0c1792634c47",
+        "output":  "logs\\nav\\goal175\\timing_20261006_2225_lobby_a"
+    },
+    {
+        "port":  9971,
+        "python":  34124,
+        "game":  33052,
+        "arm":  "fix_a",
+        "tag":  "timing_20261006_2225_fix_a",
+        "kind":  "rounds",
+        "checkpoint":  "models/nav/nav_points_20261005_parity_32565.pth",
+        "checkpoint_sha256":  "aacc9545e1c4b4e14f655e249cb6614385ab159bd74d244baccf0c1792634c47",
+        "output":  "logs\\nav\\goal175\\timing_20261006_2225_fix_a"
+    },
+    {
+        "port":  9972,
+        "python":  19324,
+        "game":  26196,
+        "arm":  "lobby_b",
+        "tag":  "timing_20261006_2225_lobby_b",
+        "kind":  "rounds",
+        "checkpoint":  "models/nav/nav_points_20261005_parity_32565.pth",
+        "checkpoint_sha256":  "aacc9545e1c4b4e14f655e249cb6614385ab159bd74d244baccf0c1792634c47",
+        "output":  "logs\\nav\\goal175\\timing_20261006_2225_lobby_b"
+    },
+    {
+        "port":  9973,
+        "python":  41760,
+        "game":  5972,
+        "arm":  "fix_b",
+        "tag":  "timing_20261006_2225_fix_b",
+        "kind":  "rounds",
+        "checkpoint":  "models/nav/nav_points_20261005_parity_32565.pth",
+        "checkpoint_sha256":  "aacc9545e1c4b4e14f655e249cb6614385ab159bd74d244baccf0c1792634c47",
+        "output":  "logs\\nav\\goal175\\timing_20261006_2225_fix_b"
+    },
+    {
+        "port":  9974,
+        "python":  20928,
+        "game":  2888,
+        "arm":  "lobby_c",
+        "tag":  "timing_20261006_2225_lobby_c",
+        "kind":  "rounds",
+        "checkpoint":  "models/nav/nav_points_20261005_parity_32565.pth",
+        "checkpoint_sha256":  "aacc9545e1c4b4e14f655e249cb6614385ab159bd74d244baccf0c1792634c47",
+        "output":  "logs\\nav\\goal175\\timing_20261006_2225_lobby_c"
+    },
+    {
+        "port":  9975,
+        "python":  46028,
+        "game":  40608,
+        "arm":  "fix_c",
+        "tag":  "timing_20261006_2225_fix_c",
+        "kind":  "rounds",
+        "checkpoint":  "models/nav/nav_points_20261005_parity_32565.pth",
+        "checkpoint_sha256":  "aacc9545e1c4b4e14f655e249cb6614385ab159bd74d244baccf0c1792634c47",
+        "output":  "logs\\nav\\goal175\\timing_20261006_2225_fix_c"
+    },
+    {
+        "port":  9976,
+        "python":  37300,
+        "game":  42384,
+        "arm":  "lobby_d",
+        "tag":  "timing_20261006_2225_lobby_d",
+        "kind":  "rounds",
+        "checkpoint":  "models/nav/nav_points_20261005_parity_32565.pth",
+        "checkpoint_sha256":  "aacc9545e1c4b4e14f655e249cb6614385ab159bd74d244baccf0c1792634c47",
+        "output":  "logs\\nav\\goal175\\timing_20261006_2225_lobby_d"
+    },
+    {
+        "port":  9977,
+        "python":  21076,
+        "game":  39512,
+        "arm":  "fix_d",
+        "tag":  "timing_20261006_2225_fix_d",
+        "kind":  "rounds",
+        "checkpoint":  "models/nav/nav_points_20261005_parity_32565.pth",
+        "checkpoint_sha256":  "aacc9545e1c4b4e14f655e249cb6614385ab159bd74d244baccf0c1792634c47",
+        "output":  "logs\\nav\\goal175\\timing_20261006_2225_fix_d"
+    }
+]

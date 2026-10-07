@@ -1,0 +1,98 @@
+live play: nav_points_20261005_parity_32565.pth on KingOfTheMarble_Hunt, port 8888; start the game with marbleblast_mbx.exe -ailive
+warm-up: model ready in 0.00 s, terrain "KingOfTheMarble_Hunt" pre-built
+[env:8888] waiting for the game
+[env:8888] game connected (1)
+[live] game: waiting (no marble or the game is not running): marble 0, running 1, lobby 0, state , timer started 0, GO seen 0, clock 180000 of 180000, connected 1
+[live] game: waiting (no marble or the game is not running): marble 0, running 1, lobby 0, state , timer started 0, GO seen 0, clock 180000 of 180000, connected 1
+[live] game: waiting (no marble or the game is not running): marble 0, running 1, lobby 0, state , timer started 0, GO seen 0, clock 180000 of 180000, connected 1
+[live] game: waiting (no marble or the game is not running): marble 0, running 0, lobby 0, state , timer started 0, GO seen 0, clock 180000 of , connected 1
+[live] game: waiting (no marble or the game is not running): marble 0, running 0, lobby 0, state , timer started 0, GO seen 0, clock 180000 of , connected 1
+[live] game: waiting (no marble or the game is not running): marble 0, running 0, lobby 0, state , timer started 0, GO seen 0, clock 180000 of , connected 1
+[live] game: waiting (no marble or the game is not running): marble 0, running 0, lobby 0, state , timer started 0, GO seen 0, clock 180000 of , connected 1
+[live] game: waiting (no marble or the game is not running): marble 0, running 0, lobby 0, state , timer started 0, GO seen 0, clock 0 of , connected 1
+[live] game: waiting (no marble or the game is not running): marble 0, running 0, lobby 0, state , timer started 0, GO seen 0, clock 0 of , connected 1
+[live] game: waiting (no marble or the game is not running): marble 0, running 0, lobby 0, state , timer started 0, GO seen 0, clock 0 of , connected 1
+[live] game: waiting (no marble or the game is not running): marble 0, running 0, lobby 0, state , timer started 0, GO seen 0, clock 0 of , connected 1
+[live] game: waiting (no marble or the game is not running): marble 0, running 0, lobby 0, state waiting, timer started 0, GO seen 0, clock 180000 of 180000, connected 1
+[live] game: gems: sc 960, items 9, hidden 0, source SC, count 960 [Item db=BlastItem cls=ItemData shape=blast hid=0] [Item db=MegaMarbleItem cls=ItemData shape=MegaMarble hid=0] [Item db=MegaMarbleItem cls=ItemData shape=MegaMarble hid=0] [Item db=BlastItem cls=ItemData shape=blast hid=0]
+real run: nav_points_20261005_parity_32565.pth (update 32565) on KingOfTheMarble_Hunt, 50 round(s), port 8888
+[live] game: gems: sc 1004, items 11, hidden 0, source SC, count 1004 [Item db=BlastItem cls=ItemData shape=blast hid=0] [Item db=MegaMarbleItem cls=ItemData shape=MegaMarble hid=0] [Item db=MegaMarbleItem cls=ItemData shape=MegaMarble hid=0] [Item db=BlastItem cls=ItemData shape=blast hid=0]
+stuck-breaker #1 at (22.4,34.2) decision 104: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #2 at (22.5,34.2) decision 128: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #3 at (22.3,34.2) decision 152: state reset, path waypoint + sampling for 24 decisions
+[live] game: gems: sc 1004, items 11, hidden 0, source SC, count 1004 [Item db=BlastItem cls=ItemData shape=blast hid=0] [Item db=MegaMarbleItem cls=ItemData shape=MegaMarble hid=0] [Item db=MegaMarbleItem cls=ItemData shape=MegaMarble hid=0] [Item db=BlastItem cls=ItemData shape=blast hid=0]
+stuck-breaker #4 at (22.4,34.2) decision 176: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #5 at (22.4,34.2) decision 200: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #6 at (22.4,34.2) decision 224: state reset, path waypoint + sampling for 24 decisions
+[live] game: gems: sc 1003, items 10, hidden 0, source SC, count 1003 [Item db=BlastItem cls=ItemData shape=blast hid=0] [Item db=MegaMarbleItem cls=ItemData shape=MegaMarble hid=0] [Item db=MegaMarbleItem cls=ItemData shape=MegaMarble hid=0] [Item db=BlastItem cls=ItemData shape=blast hid=0]
+stuck-breaker #7 at (22.3,34.2) decision 248: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #8 at (22.1,34.2) decision 272: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #9 at (22.1,34.2) decision 296: state reset, path waypoint + sampling for 24 decisions
+[live] game: gems: sc 1003, items 10, hidden 0, source SC, count 1003 [Item db=BlastItem cls=ItemData shape=blast hid=0] [Item db=MegaMarbleItem cls=ItemData shape=MegaMarble hid=0] [Item db=MegaMarbleItem cls=ItemData shape=MegaMarble hid=0] [Item db=BlastItem cls=ItemData shape=blast hid=0]
+stuck-breaker #10 at (22.1,34.2) decision 320: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #11 at (22.2,34.2) decision 344: state reset, path waypoint + sampling for 24 decisions
+[live] game: gems: sc 998, items 8, hidden 0, source SC, count 998 [Item db=BlastItem cls=ItemData shape=blast hid=0] [Item db=MegaMarbleItem cls=ItemData shape=MegaMarble hid=0] [Item db=MegaMarbleItem cls=ItemData shape=MegaMarble hid=0] [Item db=BlastItem cls=ItemData shape=blast hid=0]
+stuck-breaker #12 at (21.5,29.8) decision 430: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #13 at (21.5,29.8) decision 454: state reset, path waypoint + sampling for 24 decisions
+[live] game: gems: sc 998, items 8, hidden 0, source SC, count 998 [Item db=BlastItem cls=ItemData shape=blast hid=0] [Item db=MegaMarbleItem cls=ItemData shape=MegaMarble hid=0] [Item db=MegaMarbleItem cls=ItemData shape=MegaMarble hid=0] [Item db=BlastItem cls=ItemData shape=blast hid=0]
+stuck-breaker #14 at (21.5,29.8) decision 478: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #15 at (21.3,29.8) decision 502: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #16 at (21.5,29.8) decision 526: state reset, path waypoint + sampling for 24 decisions
+[live] game: gems: sc 998, items 8, hidden 0, source SC, count 998 [Item db=BlastItem cls=ItemData shape=blast hid=0] [Item db=MegaMarbleItem cls=ItemData shape=MegaMarble hid=0] [Item db=MegaMarbleItem cls=ItemData shape=MegaMarble hid=0] [Item db=BlastItem cls=ItemData shape=blast hid=0]
+stuck-breaker #17 at (21.3,29.8) decision 550: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #18 at (21.5,29.8) decision 574: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #19 at (21.4,29.8) decision 598: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #20 at (21.4,29.8) decision 622: state reset, path waypoint + sampling for 24 decisions
+[live] game: gems: sc 1010, items 14, hidden 0, source SC, count 1010 [Item db=BlastItem cls=ItemData shape=blast hid=0] [Item db=MegaMarbleItem cls=ItemData shape=MegaMarble hid=0] [Item db=MegaMarbleItem cls=ItemData shape=MegaMarble hid=0] [Item db=BlastItem cls=ItemData shape=blast hid=0]
+stuck-breaker #21 at (21.5,29.8) decision 646: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #22 at (21.2,29.8) decision 670: state reset, path waypoint + sampling for 24 decisions
+[live] game: gems: sc 1004, items 11, hidden 0, source SC, count 1004 [Item db=BlastItem cls=ItemData shape=blast hid=0] [Item db=MegaMarbleItem cls=ItemData shape=MegaMarble hid=0] [Item db=MegaMarbleItem cls=ItemData shape=MegaMarble hid=0] [Item db=BlastItem cls=ItemData shape=blast hid=0]
+stuck-breaker #23 at (14.2,25.1) decision 769: state reset, path waypoint + sampling for 24 decisions
+[live] game: gems: sc 1000, items 9, hidden 0, source SC, count 1000 [Item db=BlastItem cls=ItemData shape=blast hid=0] [Item db=MegaMarbleItem cls=ItemData shape=MegaMarble hid=0] [Item db=MegaMarbleItem cls=ItemData shape=MegaMarble hid=0] [Item db=BlastItem cls=ItemData shape=blast hid=0]
+stuck-breaker #24 at (14.2,25.0) decision 793: state reset, path waypoint + sampling for 24 decisions
+[live] game: gems: sc 993, items 5, hidden 0, source SC, count 993 [Item db=BlastItem cls=ItemData shape=blast hid=0] [Item db=MegaMarbleItem cls=ItemData shape=MegaMarble hid=0] [Item db=BlastItem cls=ItemData shape=blast hid=0] [Item db=BlastItem cls=ItemData shape=blast hid=0]
+[live] game: gems: sc 995, items 6, hidden 0, source SC, count 995 [Item db=BlastItem cls=ItemData shape=blast hid=0] [Item db=MegaMarbleItem cls=ItemData shape=MegaMarble hid=0] [Item db=BlastItem cls=ItemData shape=blast hid=0] [Item db=BlastItem cls=ItemData shape=blast hid=0]
+[live] game: gems: sc 994, items 6, hidden 0, source SC, count 994 [Item db=BlastItem cls=ItemData shape=blast hid=0] [Item db=MegaMarbleItem cls=ItemData shape=MegaMarble hid=0] [Item db=BlastItem cls=ItemData shape=blast hid=0] [Item db=BlastItem cls=ItemData shape=blast hid=0]
+[live] game: gems: sc 1004, items 11, hidden 0, source SC, count 1004 [Item db=BlastItem cls=ItemData shape=blast hid=0] [Item db=MegaMarbleItem cls=ItemData shape=MegaMarble hid=0] [Item db=BlastItem cls=ItemData shape=blast hid=0] [Item db=BlastItem cls=ItemData shape=blast hid=0]
+[live] game: gems: sc 1003, items 11, hidden 0, source SC, count 1003 [Item db=BlastItem cls=ItemData shape=blast hid=0] [Item db=MegaMarbleItem cls=ItemData shape=MegaMarble hid=0] [Item db=BlastItem cls=ItemData shape=blast hid=0] [Item db=BlastItem cls=ItemData shape=blast hid=0]
+[live] game: gems: sc 1004, items 11, hidden 0, source SC, count 1004 [Item db=BlastItem cls=ItemData shape=blast hid=0] [Item db=MegaMarbleItem cls=ItemData shape=MegaMarble hid=0] [Item db=BlastItem cls=ItemData shape=blast hid=0] [Item db=BlastItem cls=ItemData shape=blast hid=0]
+stuck-breaker #25 at (19.8,3.2) decision 1304: state reset, path waypoint + sampling for 24 decisions
+[live] game: gems: sc 1003, items 10, hidden 0, source SC, count 1003 [Item db=BlastItem cls=ItemData shape=blast hid=0] [Item db=BlastItem cls=ItemData shape=blast hid=0] [Item db=BlastItem cls=ItemData shape=blast hid=0] [Item db=MegaMarbleItem cls=ItemData shape=MegaMarble hid=0]
+stuck-breaker #26 at (19.1,4.2) decision 1356: state reset, path waypoint + sampling for 24 decisions
+[live] game: gems: sc 1004, items 11, hidden 0, source SC, count 1004 [Item db=BlastItem cls=ItemData shape=blast hid=0] [Item db=BlastItem cls=ItemData shape=blast hid=0] [Item db=BlastItem cls=ItemData shape=blast hid=0] [Item db=MegaMarbleItem cls=ItemData shape=MegaMarble hid=0]
+[live] game: gems: sc 1002, items 9, hidden 0, source SC, count 1002 [Item db=BlastItem cls=ItemData shape=blast hid=0] [Item db=BlastItem cls=ItemData shape=blast hid=0] [Item db=MegaMarbleItem cls=ItemData shape=MegaMarble hid=0] [Item db=GemItemRed cls=ItemData shape=gem hid=0]
+[live] game: gems: sc 1001, items 10, hidden 0, source SC, count 1001 [Item db=BlastItem cls=ItemData shape=blast hid=0] [Item db=BlastItem cls=ItemData shape=blast hid=0] [Item db=MegaMarbleItem cls=ItemData shape=MegaMarble hid=0] [Item db=GemItemRed cls=ItemData shape=gem hid=0]
+[live] game: gems: sc 994, items 6, hidden 0, source SC, count 994 [Item db=BlastItem cls=ItemData shape=blast hid=0] [Item db=BlastItem cls=ItemData shape=blast hid=0] [Item db=MegaMarbleItem cls=ItemData shape=MegaMarble hid=0] [Item db=GemItemRed cls=ItemData shape=gem hid=0]
+stuck-breaker #27 at (4.0,22.7) decision 1674: state reset, path waypoint + sampling for 24 decisions
+[live] game: gems: sc 1002, items 10, hidden 0, source SC, count 1002 [Item db=BlastItem cls=ItemData shape=blast hid=0] [Item db=BlastItem cls=ItemData shape=blast hid=0] [Item db=MegaMarbleItem cls=ItemData shape=MegaMarble hid=0] [Item db=MegaMarbleItem cls=ItemData shape=MegaMarble hid=0]
+[live] game: gems: sc 994, items 6, hidden 0, source SC, count 994 [Item db=BlastItem cls=ItemData shape=blast hid=0] [Item db=BlastItem cls=ItemData shape=blast hid=0] [Item db=MegaMarbleItem cls=ItemData shape=MegaMarble hid=0] [Item db=MegaMarbleItem cls=ItemData shape=MegaMarble hid=0]
+[live] game: gems: sc 1005, items 11, hidden 0, source SC, count 1005 [Item db=BlastItem cls=ItemData shape=blast hid=0] [Item db=BlastItem cls=ItemData shape=blast hid=0] [Item db=MegaMarbleItem cls=ItemData shape=MegaMarble hid=0] [Item db=MegaMarbleItem cls=ItemData shape=MegaMarble hid=0]
+[live] game: gems: sc 1003, items 10, hidden 0, source SC, count 1003 [Item db=BlastItem cls=ItemData shape=blast hid=0] [Item db=BlastItem cls=ItemData shape=blast hid=0] [Item db=MegaMarbleItem cls=ItemData shape=MegaMarble hid=0] [Item db=GemItemRed cls=ItemData shape=gem hid=0]
+[live] game: gems: sc 1002, items 9, hidden 0, source SC, count 1002 [Item db=BlastItem cls=ItemData shape=blast hid=0] [Item db=MegaMarbleItem cls=ItemData shape=MegaMarble hid=0] [Item db=GemItemRed cls=ItemData shape=gem hid=0] [Item db=GemItemRed cls=ItemData shape=gem hid=0]
+[live] game: gems: sc 997, items 7, hidden 0, source SC, count 997 [Item db=BlastItem cls=ItemData shape=blast hid=0] [Item db=MegaMarbleItem cls=ItemData shape=MegaMarble hid=0] [Item db=GemItemRed cls=ItemData shape=gem hid=0] [Item db=GemItemRed cls=ItemData shape=gem hid=0]
+[live] game: gems: sc 1002, items 10, hidden 0, source SC, count 1002 [Item db=BlastItem cls=ItemData shape=blast hid=0] [Item db=MegaMarbleItem cls=ItemData shape=MegaMarble hid=0] [Item db=BlastItem cls=ItemData shape=blast hid=0] [Item db=MegaMarbleItem cls=ItemData shape=MegaMarble hid=0]
+stuck-breaker #28 at (-0.2,-8.7) decision 2215: state reset, path waypoint + sampling for 24 decisions
+[live] game: gems: sc 1004, items 11, hidden 0, source SC, count 1004 [Item db=BlastItem cls=ItemData shape=blast hid=0] [Item db=MegaMarbleItem cls=ItemData shape=MegaMarble hid=0] [Item db=BlastItem cls=ItemData shape=blast hid=0] [Item db=MegaMarbleItem cls=ItemData shape=MegaMarble hid=0]
+stuck-breaker #29 at (1.8,-6.3) decision 2274: state reset, path waypoint + sampling for 24 decisions
+[live] game: gems: sc 996, items 7, hidden 0, source SC, count 996 [Item db=BlastItem cls=ItemData shape=blast hid=0] [Item db=MegaMarbleItem cls=ItemData shape=MegaMarble hid=0] [Item db=MegaMarbleItem cls=ItemData shape=MegaMarble hid=0] [Item db=BlastItem cls=ItemData shape=blast hid=0]
+[live] game: gems: sc 996, items 7, hidden 0, source SC, count 996 [Item db=BlastItem cls=ItemData shape=blast hid=0] [Item db=MegaMarbleItem cls=ItemData shape=MegaMarble hid=0] [Item db=MegaMarbleItem cls=ItemData shape=MegaMarble hid=0] [Item db=BlastItem cls=ItemData shape=blast hid=0]
+stuck-breaker #30 at (14.2,21.5) decision 2422: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #31 at (14.2,21.5) decision 2446: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #32 at (14.2,21.4) decision 2470: state reset, path waypoint + sampling for 24 decisions
+[live] game: gems: sc 1001, items 8, hidden 0, source SC, count 1001 [Item db=BlastItem cls=ItemData shape=blast hid=0] [Item db=MegaMarbleItem cls=ItemData shape=MegaMarble hid=0] [Item db=MegaMarbleItem cls=ItemData shape=MegaMarble hid=0] [Item db=BlastItem cls=ItemData shape=blast hid=0]
+stuck-breaker #33 at (14.2,21.4) decision 2494: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #34 at (14.2,21.1) decision 2518: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #35 at (14.2,21.1) decision 2542: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #36 at (14.2,21.0) decision 2566: state reset, path waypoint + sampling for 24 decisions
+[live] game: gems: sc 1004, items 11, hidden 0, source SC, count 1004 [Item db=BlastItem cls=ItemData shape=blast hid=0] [Item db=MegaMarbleItem cls=ItemData shape=MegaMarble hid=0] [Item db=MegaMarbleItem cls=ItemData shape=MegaMarble hid=0] [Item db=BlastItem cls=ItemData shape=blast hid=0]
+stuck-breaker #37 at (14.2,21.0) decision 2590: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #38 at (14.2,21.0) decision 2614: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #39 at (14.2,21.0) decision 2638: state reset, path waypoint + sampling for 24 decisions
+[live] game: gems: sc 1004, items 11, hidden 0, source SC, count 1004 [Item db=BlastItem cls=ItemData shape=blast hid=0] [Item db=MegaMarbleItem cls=ItemData shape=MegaMarble hid=0] [Item db=MegaMarbleItem cls=ItemData shape=MegaMarble hid=0] [Item db=BlastItem cls=ItemData shape=blast hid=0]
+stuck-breaker #40 at (14.2,21.0) decision 2662: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #41 at (14.2,21.0) decision 2686: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #42 at (14.2,21.0) decision 2710: state reset, path waypoint + sampling for 24 decisions
+[live] game: gems: sc 1004, items 11, hidden 0, source SC, count 1004 [Item db=BlastItem cls=ItemData shape=blast hid=0] [Item db=MegaMarbleItem cls=ItemData shape=MegaMarble hid=0] [Item db=MegaMarbleItem cls=ItemData shape=MegaMarble hid=0] [Item db=BlastItem cls=ItemData shape=blast hid=0]
+stuck-breaker #43 at (14.2,21.0) decision 2734: state reset, path waypoint + sampling for 24 decisions
+[live] game: gems: sc 998, items 8, hidden 0, source SC, count 998 [Item db=BlastItem cls=ItemData shape=blast hid=0] [Item db=MegaMarbleItem cls=ItemData shape=MegaMarble hid=0] [Item db=MegaMarbleItem cls=ItemData shape=MegaMarble hid=0] [Item db=BlastItem cls=ItemData shape=blast hid=0]
+[live] game: gems: sc 994, items 6, hidden 0, source SC, count 994 [Item db=BlastItem cls=ItemData shape=blast hid=0] [Item db=MegaMarbleItem cls=ItemData shape=MegaMarble hid=0] [Item db=MegaMarbleItem cls=ItemData shape=MegaMarble hid=0] [Item db=BlastItem cls=ItemData shape=blast hid=0]

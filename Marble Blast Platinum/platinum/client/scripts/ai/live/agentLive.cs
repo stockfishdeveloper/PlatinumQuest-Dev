@@ -835,7 +835,9 @@ function AIObserver::collectGems(%obs) {
                 @ ", fps " @ $fps::modded @ ", drawfps " @ $fps::draw @ ", maxfps pref " @ $pref::Video::MaxFPS
                 // 2026-10-06 (log 40.63, powerups in a joined lobby): the client's two held-powerup records and the mode
                 @ ", pow msg " @ (isObject($MP::MyMarble) ? $MP::MyMarble.powerUpId : "?") @ " pred " @ (isObject($MP::MyMarble) ? $MP::MyMarble._powerUpId : "?")
-                @ " fast " @ ($MP::FastPowerups + 0) @ " hosting " @ (isObject(MissionGroup) ? 1 : 0) @ %sample);
+                @ " fast " @ ($MP::FastPowerups + 0) @ " leader " @ ($Server::Hosting + 0)
+                @ " serverclients " @ (isObject(ClientGroup) ? ClientGroup.getCount() : 0)
+                @ " powitems " @ ($AIObserver::PowItemCount + 0) @ %sample);
     }
 
     for (%i = 0; %i < %count; %i++) {
