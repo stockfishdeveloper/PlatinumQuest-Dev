@@ -26,8 +26,40 @@ $MLAgent::ViewYaw = 0;
 $MLAgent::ViewYawApplied = "";
 echo("MLAgent: -ailive: production bridge loaded (real time; drives from GO; the lobby starts each round)");
 
+// ---- The quick respawn in a lobby (2026-10-07, log 40.64) ----
+// The legal quick respawn is a human's left click once the "Out of Bounds" text is up: input_mouseFire ->
+// commandToServer('MouseFire') -> MPOutofBounds (server/scripts/mp/server.cs) respawns THE CALLER when it is OOB.
+// The server's GameConnection::onOutOfBounds (server/scripts/game.cs) sets isOOB and takes the held powerup away
+// (restored at the respawn) BEFORE it sends this client the cbOnOutOfBounds callback, so a click on that callback
+// always respawns and can never use up a powerup instead (MPOutofBounds uses a held powerup on a click that is not
+// OOB). The OOBCLICK word respawned ClientGroup.getObject(0): the first player of a hosting server (maybe someone
+// else) and nobody at all on a joined client.
+package MLAgentLiveOOB {
+    function clientCmdCbOnOutOfBounds() {
+        Parent::clientCmdCbOnOutOfBounds();
+        if ($MLAgent::Live && $MLAgent::Enabled && $AIBridge::Connected)
+            MLAgent::liveOOBClick();
+    }
+};
+
+function MLAgent::liveOOBClick() {
+    commandToServer('MouseFire', 1);
+    $MLAgent::OOBClicks++;
+    cancel($MLAgent::OOBReleaseSchedule);
+    $MLAgent::OOBReleaseSchedule = schedule(100, 0, "MLAgent::liveOOBRelease");   // a click, not a held button
+}
+
+function MLAgent::liveOOBRelease() {
+    commandToServer('MouseFire', 0);
+}
+
 // ---- MLAgent::startLoop (live version; the training version is in ../mlAgent.cs) ----
 function MLAgent::startLoop() {
+    if (!$MLAgent::OOBPackageOn) {
+        // activated here, after every client script is loaded, so Parent:: is the game's own callback
+        activatePackage(MLAgentLiveOOB);
+        $MLAgent::OOBPackageOn = true;
+    }
     if (!$AIBridge::Connected) {
         // Python server not up yet (or restarting): keep trying every 2 s for
         // as long as the round runs. Rounds restart by themselves (onGameEnd),
@@ -412,13 +444,9 @@ function MLAgent::update(%gen) {
         // MEASURED WORTH, KOTM 2 rounds 2026-09-21: 4.5 falls a round, dead time per fall is
         // bimodal at 0.83 s and 3.26 s, and the 2.43 s gap between the clusters IS the 2500 ms
         // schedule. Recovering it is ~7.3 s a round, 4.0 % of a 3.02 min round, ~3 gems.
-        if (isObject(ClientGroup) && ClientGroup.getCount() > 0) {
-            %cl = ClientGroup.getObject(0);
-            if (isObject(%cl) && %cl.isOOB) {
-                %cl.respawnFromOOB();
-                $MLAgent::OOBClicks ++;
-            }
-        }
+        // 2026-10-07 (log 40.64): in live play the click is made on the server's out-of-bounds callback instead
+        // (MLAgent::liveOOBClick, top of this file): ClientGroup.getObject(0) here was the first player of a hosting
+        // server, possibly someone else, and nobody on a joined client. The word is accepted and ignored.
         $AIBridge::LastAction = "";
         %actionStr = "";
     } else if (getWord(%actionStr, 0) $= "MARK") {
@@ -804,7 +832,10 @@ function AIObserver::collectGems(%obs) {
             AIBridge::sendState("DEBUG|live|gems: sc " @ %scn @ ", items " @ %nItems @ ", hidden " @ %nHidden
                 @ ", source " @ (%useServerConnection ? "SC" : "ItemArray") @ ", count " @ %count
                 // 2026-10-06 (physics step check): the real game's physics step is its frame time
-                @ ", fps " @ $fps::modded @ ", drawfps " @ $fps::draw @ ", maxfps pref " @ $pref::Video::MaxFPS @ %sample);
+                @ ", fps " @ $fps::modded @ ", drawfps " @ $fps::draw @ ", maxfps pref " @ $pref::Video::MaxFPS
+                // 2026-10-06 (log 40.63, powerups in a joined lobby): the client's two held-powerup records and the mode
+                @ ", pow msg " @ (isObject($MP::MyMarble) ? $MP::MyMarble.powerUpId : "?") @ " pred " @ (isObject($MP::MyMarble) ? $MP::MyMarble._powerUpId : "?")
+                @ " fast " @ ($MP::FastPowerups + 0) @ " hosting " @ (isObject(MissionGroup) ? 1 : 0) @ %sample);
     }
 
     for (%i = 0; %i < %count; %i++) {

@@ -694,7 +694,9 @@ def main():
             if pending_since is not None and (decisions - pending_since > 3 or held_after != 2):
                 pending_since = None; latched_aim = None
             for _ in range(VIEW_SUBSTEPS - 1):     # same action across the remaining slices
-                msg, inf2 = paced_step(js_cmd)
+                # 2026-10-06 (log 40.63): the use key too, held for the whole decision like jump (and like env.step's
+                # repeat in live play); sent on the first slice only it was a 16 ms press and Super Speed never fired
+                msg, inf2 = paced_step(js_cmd, **kw)
                 info['gem_delta'] += inf2['gem_delta']
                 info['fell'] = info['fell'] or inf2['fell']
                 info['round_ended'] = info['round_ended'] or inf2['round_ended']

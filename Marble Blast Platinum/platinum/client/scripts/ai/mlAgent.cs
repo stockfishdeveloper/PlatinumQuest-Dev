@@ -823,6 +823,15 @@ function MLAgent::executeAction(%actionStr) {
         %pl = (isObject(ClientGroup) && ClientGroup.getCount() > 0) ? ClientGroup.getObject(0).player : -1;
         if (isObject(%pl) && isObject(%pl.powerUpData) && (%pl.powerUpData.powerUpId + 0) == 6)
             commandToServer('UsePowerup');
+        // 2026-10-06 (log 40.63): a client that JOINED a lobby has no server player here. Mega from the server's
+        // SetPowerUp record goes through the same server command (serverCmdUsePowerup uses the caller's own player).
+        else if (!isObject(%pl) && $MLAgent::Live && !$MP::FastPowerups && isObject($MP::MyMarble)
+                 && ($MP::MyMarble.powerUpId + 0) == 6)
+            commandToServer('UsePowerup');
+        // In a lobby, also do what a human click does (input_mouseFire, client/scripts/default.bind.cs): with fast
+        // (client-sided) powerups the client uses its own pickup record and tells the server; otherwise a no-op.
+        if ($MLAgent::Live && isObject($MP::MyMarble))
+            $MP::MyMarble._mouseFire();
         $MLAgent::PowUseSent = true;
     } else if ((%usePow + 0) != 1) {
         $MLAgent::PowUseSent = false;

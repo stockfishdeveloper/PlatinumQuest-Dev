@@ -140,12 +140,38 @@ function AIObserver::collectPowerups(%obs) {
         if (isEventPending(%player.powerupSchedule[5]))
             %obs.powHeliLeft = getEventTimeLeft(%player.powerupSchedule[5]) / 1000.0;
     }
+    // 2026-10-06 (log 40.63): a client that JOINED a lobby has no server-side objects (ClientGroup is empty), so the held
+    // powerup comes from its own marble, where the HUD icon comes from: the server's SetPowerUp message (powerUpId,
+    // client/scripts/mp/commands.cs) or, when the server uses fast (client-sided) powerups, the client's own pickup
+    // record (_powerUpId, client/scripts/mp/marble.cs).
+    if (!isObject(%player) && isObject($MP::MyMarble)) {
+        %cid = ($MP::FastPowerups ? $MP::MyMarble._powerUpId : $MP::MyMarble.powerUpId) + 0;
+        if (%cid >= 1 && %cid <= 6)
+            %obs.powHeld = %cid;
+    }
     %obs.powBlast = ($MP::BlastValue $= "") ? 0 : $MP::BlastValue + 0;
     %obs.powSpecial = $MP::SpecialBlast ? 1 : 0;
 
     // the items: cached per mission
     %mission = isObject(MissionInfo) ? MissionInfo.name : "";
-    if ($AIObserver::PowItemMission !$= %mission || $AIObserver::PowItemCount $= "") {
+    if (!isObject(MissionGroup) && isObject(ServerConnection)) {
+        // 2026-10-06 (log 40.63): joined lobby client: the mission's server objects are not here; use the item ghosts the
+        // client sees (a picked-up item is not ghosted until it respawns), rebuilt every observation
+        $AIObserver::PowItemCount = 0;
+        $AIObserver::PowItemMission = "";
+        %n = ServerConnection.getCount();
+        for (%i = 0; %i < %n; %i++) {
+            %o = ServerConnection.getObject(%i);
+            if (%o.getType() & $TypeMasks::ItemObjectType) {
+                %t = AIObserver::powerupType(%o.getDatablock());
+                if (%t > 0) {
+                    $AIObserver::PowItem[$AIObserver::PowItemCount] = %o;
+                    $AIObserver::PowItemType[$AIObserver::PowItemCount] = %t;
+                    $AIObserver::PowItemCount++;
+                }
+            }
+        }
+    } else if ($AIObserver::PowItemMission !$= %mission || $AIObserver::PowItemCount $= "") {
         $AIObserver::PowItemCount = 0;
         AIObserver::scanPowerupItems(MissionGroup);
         $AIObserver::PowItemMission = %mission;
