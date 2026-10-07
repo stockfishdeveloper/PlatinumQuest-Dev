@@ -378,6 +378,10 @@ def main():
         env.control(f'VIEWYAW {vy}')       # stable view while the marble camera rotates for force (engine: Marble.setViewYaw)
         if VIEW_SUBSTEPS > 1:
             env.control(f'FIXEDSTEP {max(1, OBS_MS // VIEW_SUBSTEPS)}')
+            # 2026-10-06 (log 40.62): each decision acts OBS_MS after its observation, as in training. Without the
+            # delay a decision acted from the next slice, 48 ms early at 4 slices: 157 points and 5.4 missed gems a
+            # round in the timing test vs 166.5 and 0.9 with it (replies carry their slice's tick).
+            env.control(f'DELAY {VIEW_SUBSTEPS}')
 
     if WATCH:
         apply_watch()
@@ -386,8 +390,9 @@ def main():
             # motion updates a second -- the renderer just redraws that frozen state, which is why
             # a 1250 fps counter still looks jagged. Split the same 64 ms into VIEW_SUBSTEPS
             # slices and repeat the action across them: identical decisions every 64 ms, but the
-            # motion renders at 64/VIEW_SUBSTEPS ms. VIEWING ONLY -- the integration step differs
-            # from training, so do not measure with this on.
+            # motion renders at 64/VIEW_SUBSTEPS ms. With the DELAY in apply_watch each decision acts
+            # 64 ms after its observation as in training; 16 ms physics measured the same as 64 ms
+            # (166.3 vs 166.6, log 40.62).
             pass
         print(f'WATCH mode: every frame drawn, {VIEW_SUBSTEPS} sim slice(s) per 64 ms decision, real time')
     mission = env.info['mission']

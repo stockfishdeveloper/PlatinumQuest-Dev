@@ -1,5 +1,7 @@
 # Watch the model play at 1x with a free camera (2026-10-04). Starts the model's runner in watch mode
-# (nav.real_run: real time, every frame drawn) and the repo build with -aifreecam, so the mouse and the left/right
+# (nav.real_run: real time, every frame drawn) in smooth 4 x 16 ms slices per 64 ms decision, with the action delay
+# that makes each decision act 64 ms after its observation, exactly as in training (2026-10-06, log 40.62: plays like
+# the tests, 166.5; without the delay it missed ~5 gems a round). Starts the repo build with -aifreecam, so the mouse and the left/right
 # arrows turn the view without touching the model's steering (client/scripts/ai/watch/freeCam.cs). Mouse clicks
 # do nothing while it plays; the keyboard still acts on the marble, and Esc pauses the round.
 # Usage: .\watch_model.ps1 [map]    default KingOfTheMarble_Hunt, e.g. .\watch_model.ps1 Skatium_Hunt

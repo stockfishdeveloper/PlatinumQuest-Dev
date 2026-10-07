@@ -802,7 +802,9 @@ function AIObserver::collectGems(%obs) {
         }
         if ($AIBridge::Connected)
             AIBridge::sendState("DEBUG|live|gems: sc " @ %scn @ ", items " @ %nItems @ ", hidden " @ %nHidden
-                @ ", source " @ (%useServerConnection ? "SC" : "ItemArray") @ ", count " @ %count @ %sample);
+                @ ", source " @ (%useServerConnection ? "SC" : "ItemArray") @ ", count " @ %count
+                // 2026-10-06 (physics step check): the real game's physics step is its frame time
+                @ ", fps " @ $fps::modded @ ", drawfps " @ $fps::draw @ ", maxfps pref " @ $pref::Video::MaxFPS @ %sample);
     }
 
     for (%i = 0; %i < %count; %i++) {

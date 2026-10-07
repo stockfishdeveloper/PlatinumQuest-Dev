@@ -332,7 +332,11 @@ function MLAgent::update(%gen) {
     } else if (getWord(%actionStr, 0) $= "FIXEDSTEP") {
         %n = getWord(%actionStr, 1) + 0;
         $AI::FixedStepMs = %n;
-        $MLAgent::UpdateInterval = %n > 0 ? %n : 16;
+        // 2026-10-06 (physics step): an optional second word sets the observation interval in ms, so the physics can
+        // run in small steps like the real game (e.g. "FIXEDSTEP 16 64": four 16 ms frames per 64 ms decision). Without
+        // it, one observation per step as before.
+        %obsMs = getWord(%actionStr, 2) + 0;
+        $MLAgent::UpdateInterval = %obsMs > 0 ? %obsMs : (%n > 0 ? %n : 16);
         echo("MLAgent: AI::FixedStepMs = " @ $AI::FixedStepMs @ ", update interval " @ $MLAgent::UpdateInterval @ " ms (Python server)");
         $AIBridge::LastAction = "";
         %actionStr = "";
