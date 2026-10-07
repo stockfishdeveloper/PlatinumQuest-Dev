@@ -1,0 +1,23 @@
+{
+  "experiment": "ss_fast_20261005",
+  "source_update": 29240,
+  "stop_update": 29360,
+  "updates": 120,
+  "seed_sha256": "86019653081af32571cfe57776a9dbe79aafbf8955fe51bff80746da3ac05315",
+  "train_starts": "datasets/ss_drill/fast_20261005/train_dev.json",
+  "train_sha256": "12ac1fa4020aad7e15ef5e52ec2f2afb79dab259a0503c39f46e736cf13960c9",
+  "benchmark": "datasets/ss_drill/fast_20261005/benchmark_eval.json",
+  "benchmark_sha256": "c3d032372657a159ddd30920419024a2520e366cbf28f3801cfb41a4adb32a77",
+  "instances": 2,
+  "ports": [
+    9970,
+    9971
+  ],
+  "device": "cpu",
+  "threads": 2,
+  "drill_plan": "0:4,1:4",
+  "frozen_navigator_verified": true,
+  "objective": "actual game points",
+  "hand_controller_overrides": false,
+  "main_training": "untouched; separate processes and checkpoints"
+}

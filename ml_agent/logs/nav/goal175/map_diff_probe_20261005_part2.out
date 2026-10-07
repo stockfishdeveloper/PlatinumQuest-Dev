@@ -1,0 +1,637 @@
+[env:9972] waiting for the game
+[env:9972] game connected (1)
+connected: KingOfTheMarble_Hunt, round 180 s
+1/619 phantom_floor  (  -9.45,  -6.00) edge -0.25 -> FELL
+2/619 phantom_floor  (  -4.70,  30.75) edge -0.25 -> FELL
+3/619 hidden_floor   (  -4.20,  11.50) edge -0.00 -> fell late
+4/619 phantom_floor  ( -20.70,  30.75) edge -0.25 -> FELL
+5/619 hidden_floor   ( -48.45,  -0.50) edge -0.00 -> fell late
+6/619 phantom_floor  ( -33.45,  35.75) edge -0.25 -> FELL
+7/619 phantom_floor  ( -31.20,  16.75) edge -0.25 -> FELL
+8/619 phantom_floor  ( -11.95,  38.75) edge -0.25 -> FELL
+9/619 hidden_floor   ( -40.45,  -3.50) edge +0.25 -> fell late
+10/619 hidden_floor   ( -16.70,  18.75) edge -0.00 -> stayed
+11/619 control_floor  ( -43.95,  29.50) edge +1.00 -> fell late
+12/619 phantom_floor  ( -22.20,  18.75) edge -0.25 -> FELL
+13/619 hidden_floor   ( -26.45,   8.25) edge +0.25 -> stayed
+14/619 hidden_floor   ( -33.20,  -0.25) edge +0.25 -> stayed
+15/619 hidden_floor   ( -17.70,  13.75) edge +0.25 -> stayed
+16/619 hidden_floor   ( -47.20,  -0.50) edge -0.00 -> fell late
+17/619 hidden_floor   ( -37.20,  -8.50) edge -0.00 -> stayed
+18/619 phantom_floor  (  -8.45,   6.75) edge -0.25 -> FELL
+19/619 phantom_floor  ( -23.45,  19.75) edge -0.25 -> FELL
+20/619 hidden_floor   (  -8.45,  23.75) edge +0.25 -> fell late
+21/619 hidden_floor   ( -12.70,  -8.25) edge +0.25 -> fell late
+22/619 phantom_floor  ( -22.45,   6.75) edge -0.25 -> FELL
+23/619 phantom_floor  ( -48.95,  28.25) edge -0.25 -> FELL
+24/619 phantom_floor  ( -23.45,   7.00) edge -0.25 -> FELL
+25/619 hidden_floor   ( -43.70,  -0.50) edge -0.00 -> fell late
+26/619 phantom_floor  ( -29.95,   6.75) edge -0.25 -> FELL
+27/619 phantom_floor  ( -40.95,  32.75) edge -0.25 -> FELL
+28/619 phantom_floor  (  -9.45,  19.75) edge -0.25 -> FELL
+29/619 phantom_floor  (  -9.20,   6.75) edge -0.25 -> FELL
+30/619 phantom_floor  ( -22.45,  18.75) edge -0.25 -> FELL
+31/619 phantom_floor  ( -16.95,   6.75) edge -0.25 -> FELL
+32/619 control_hole   (  -7.95,  -6.50) edge -1.75 -> FELL
+33/619 phantom_floor  ( -21.45,  -7.00) edge -0.25 -> FELL
+34/619 hidden_floor   ( -28.45,  37.00) edge +0.25 -> fell late
+35/619 hidden_floor   ( -28.70,  -1.00) edge -0.00 -> fell late
+36/619 phantom_floor  ( -33.45,  12.00) edge -0.25 -> FELL
+37/619 phantom_floor  ( -24.95,  38.75) edge -0.25 -> FELL
+38/619 hidden_floor   ( -26.70,   7.00) edge -0.00 -> stayed
+39/619 phantom_floor  (  -6.70,  30.75) edge -0.25 -> FELL
+40/619 hidden_floor   ( -44.95,  23.50) edge -0.00 -> fell late
+41/619 hidden_floor   (  -9.95,  -8.50) edge -0.00 -> stayed
+42/619 hidden_floor   ( -18.70,  13.50) edge -0.00 -> stayed
+43/619 hidden_floor   (  -7.70,  23.75) edge +0.25 -> fell late
+44/619 hidden_floor   ( -30.45,  13.50) edge -0.00 -> stayed
+45/619 phantom_floor  ( -23.45,   7.25) edge -0.25 -> FELL
+46/619 phantom_floor  ( -42.70,   6.75) edge -0.25 -> FELL
+47/619 hidden_floor   ( -16.70,  13.50) edge -0.00 -> stayed
+48/619 phantom_floor  ( -21.20,   6.75) edge -0.25 -> FELL
+49/619 phantom_floor  (  -2.70,  18.75) edge -0.25 -> FELL
+50/619 hidden_floor   ( -16.45,  23.00) edge +0.25 -> stayed
+51/619 hidden_floor   ( -16.70,  -4.50) edge -0.00 -> fell late
+52/619 hidden_floor   ( -28.45,  32.50) edge +0.25 -> fell late
+53/619 hidden_floor   ( -11.95,  -8.50) edge -0.00 -> stayed
+54/619 phantom_floor  (  -1.45,  15.50) edge -0.25 -> FELL
+55/619 hidden_floor   ( -40.70,  -1.50) edge -0.00 -> fell late
+56/619 hidden_floor   ( -40.45,  -5.00) edge +0.25 -> fell late
+57/619 hidden_floor   ( -25.70,  -8.25) edge +0.25 -> fell late
+58/619 phantom_floor  ( -31.45,  30.75) edge -0.25 -> FELL
+59/619 phantom_floor  ( -18.45,  30.75) edge -0.25 -> FELL
+60/619 hidden_floor   ( -36.20,  -8.25) edge +0.25 -> fell late
+61/619 hidden_floor   ( -44.20,  11.75) edge +0.25 -> fell late
+62/619 phantom_floor  ( -32.20,   6.75) edge -0.25 -> FELL
+63/619 hidden_floor   ( -16.70,  17.50) edge -0.00 -> stayed
+64/619 phantom_floor  ( -37.95,  38.75) edge -0.25 -> FELL
+65/619 hidden_floor   (  -6.45,  23.75) edge +0.25 -> fell late
+66/619 phantom_floor  ( -48.95,  30.75) edge -0.35 -> FELL
+67/619 hidden_floor   ( -45.95,  23.50) edge -0.00 -> fell late
+68/619 hidden_floor   ( -16.45,  21.00) edge +0.25 -> stayed
+69/619 hidden_floor   ( -16.70,  19.75) edge -0.00 -> stayed
+70/619 control_floor  ( -22.45,  29.75) edge +1.06 -> stayed
+71/619 control_hole   ( -41.95,   8.25) edge -1.25 -> FELL
+72/619 phantom_floor  ( -33.45,  22.00) edge -0.25 -> FELL
+73/619 phantom_floor  ( -18.20,  16.75) edge -0.25 -> FELL
+74/619 control_hole   ( -18.70,  -8.00) edge -2.00 -> FELL
+75/619 phantom_floor  ( -47.45,   6.75) edge -0.25 -> FELL
+76/619 hidden_floor   ( -39.45,  -8.50) edge -0.00 -> stayed
+77/619 hidden_floor   ( -16.70,  -7.75) edge -0.00 -> fell late
+78/619 hidden_floor   ( -28.70,  -4.50) edge -0.00 -> fell late
+79/619 phantom_floor  ( -48.95,   3.00) edge -0.25 -> FELL
+80/619 hidden_floor   ( -32.45,  -0.25) edge +0.25 -> stayed
+81/619 hidden_floor   ( -16.45,   9.25) edge +0.25 -> stayed
+82/619 phantom_floor  ( -35.20,  38.75) edge -0.25 -> FELL
+83/619 hidden_floor   ( -28.70,  23.50) edge -0.00 -> stayed
+84/619 hidden_floor   ( -24.70,  -8.50) edge -0.00 -> stayed
+85/619 phantom_floor  ( -18.20,   6.75) edge -0.25 -> FELL
+86/619 hidden_floor   ( -36.70,  -8.25) edge +0.25 -> fell late
+87/619 hidden_floor   ( -28.70,  -7.25) edge -0.00 -> fell late
+88/619 hidden_floor   ( -16.70,  -6.75) edge -0.00 -> fell late
+89/619 hidden_floor   ( -16.70,  -2.00) edge -0.00 -> fell late
+90/619 phantom_floor  ( -40.95,  10.50) edge -0.25 -> FELL
+91/619 hidden_floor   ( -48.20,  23.75) edge +0.25 -> fell late
+92/619 hidden_floor   ( -26.45,  20.75) edge +0.25 -> stayed
+93/619 phantom_floor  ( -33.45,  -5.25) edge -0.25 -> FELL
+94/619 phantom_floor  (  -9.45,  21.25) edge -0.25 -> FELL
+95/619 control_hole   ( -43.45,  33.75) edge -2.75 -> FELL
+96/619 hidden_floor   (  -2.45,  11.50) edge -0.00 -> fell late
+97/619 phantom_floor  ( -28.95,   6.75) edge -0.25 -> FELL
+98/619 hidden_floor   ( -48.70,  11.75) edge -0.00 -> stayed
+99/619 phantom_floor  ( -18.95,  16.75) edge -0.25 -> FELL
+100/619 hidden_floor   ( -21.95,  -8.25) edge +0.25 -> fell late
+101/619 phantom_floor  ( -48.95,  26.25) edge -0.25 -> FELL
+102/619 phantom_floor  (  -7.70,  30.75) edge -0.25 -> FELL
+103/619 hidden_floor   ( -16.45,  -6.00) edge +0.25 -> fell late
+104/619 hidden_floor   ( -24.95,  -8.25) edge +0.25 -> fell late
+105/619 hidden_floor   ( -28.70,  23.75) edge +0.25 -> stayed
+106/619 hidden_floor   ( -43.70,  -0.25) edge +0.25 -> fell late
+107/619 hidden_floor   (  -6.95,  11.75) edge +0.25 -> fell late
+108/619 hidden_floor   ( -31.70,  23.75) edge +0.25 -> stayed
+109/619 hidden_floor   ( -16.45,  -1.00) edge +0.25 -> fell late
+110/619 hidden_floor   ( -16.70,  -3.50) edge -0.00 -> fell late
+111/619 hidden_floor   ( -46.45,  -0.50) edge -0.00 -> fell late
+112/619 hidden_floor   ( -42.70,  11.75) edge +0.25 -> fell late
+113/619 hidden_floor   ( -14.70,  -8.25) edge +0.25 -> fell late
+114/619 hidden_floor   ( -10.20,  -8.25) edge +0.25 -> fell late
+115/619 hidden_floor   ( -27.70,  11.75) edge +0.25 -> stayed
+116/619 hidden_floor   (  -8.95,  11.75) edge +0.25 -> fell late
+117/619 hidden_floor   ( -16.70,  10.25) edge -0.00 -> stayed
+118/619 hidden_floor   ( -26.95,  11.50) edge -0.00 -> stayed
+119/619 hidden_floor   ( -26.45,  23.00) edge +0.25 -> stayed
+round ended / reconnected: waiting for the next round
+[env:9972] round over (time left 180s of 180s); waiting for the next round
+[env:9972] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+120/619 hidden_floor   (  -7.45,  -0.25) edge +0.25 -> fell late
+121/619 phantom_floor  ( -31.20,  30.75) edge -0.25 -> FELL
+122/619 control_hole   ( -42.95,  21.75) edge -1.75 -> FELL
+123/619 phantom_floor  ( -29.45,  30.75) edge -0.25 -> FELL
+124/619 hidden_floor   ( -22.70,  23.50) edge -0.00 -> stayed
+125/619 phantom_floor  ( -20.45,  16.75) edge -0.25 -> FELL
+126/619 hidden_floor   ( -30.20,  13.75) edge +0.25 -> stayed
+127/619 hidden_floor   ( -16.45,  10.50) edge +0.25 -> stayed
+128/619 phantom_floor  (  -3.45,   6.75) edge -0.25 -> FELL
+129/619 hidden_floor   ( -28.45,  17.75) edge +0.25 -> stayed
+130/619 hidden_floor   ( -44.95,  11.50) edge -0.00 -> fell late
+131/619 phantom_floor  ( -23.45,  21.75) edge -0.25 -> FELL
+132/619 hidden_floor   ( -16.45,  35.75) edge +0.25 -> fell late
+133/619 phantom_floor  ( -33.45,  31.50) edge -0.25 -> FELL
+134/619 phantom_floor  (  -9.45,  37.25) edge -0.25 -> FELL
+135/619 hidden_floor   ( -28.45,  37.50) edge +0.25 -> fell late
+136/619 phantom_floor  (  -9.45,  38.50) edge -0.25 -> FELL
+137/619 hidden_floor   ( -25.20,  -8.50) edge -0.00 -> stayed
+138/619 hidden_floor   ( -29.20,  13.50) edge -0.00 -> stayed
+139/619 hidden_floor   ( -16.70,  32.50) edge -0.00 -> fell late
+140/619 hidden_floor   ( -20.95,  13.50) edge -0.00 -> stayed
+141/619 hidden_floor   (  -4.45,  23.75) edge +0.25 -> fell late
+142/619 phantom_floor  (  -1.45,  30.75) edge -0.35 -> FELL
+143/619 hidden_floor   (  -2.20,  -0.50) edge -0.00 -> fell late
+144/619 phantom_floor  ( -33.45,   9.25) edge -0.25 -> FELL
+145/619 phantom_floor  ( -48.95,  29.25) edge -0.25 -> FELL
+146/619 phantom_floor  ( -21.70,   6.75) edge -0.25 -> FELL
+147/619 phantom_floor  ( -18.70,  16.75) edge -0.25 -> FELL
+148/619 hidden_floor   ( -43.70,  23.75) edge +0.25 -> fell late
+149/619 phantom_floor  ( -48.95,  25.75) edge -0.25 -> FELL
+150/619 hidden_floor   (  -2.20,  -0.25) edge +0.25 -> fell late
+151/619 phantom_floor  (  -9.45,  22.00) edge -0.25 -> FELL
+152/619 phantom_floor  (  -5.70,   6.75) edge -0.25 -> FELL
+153/619 hidden_floor   ( -16.45,  11.50) edge +0.25 -> stayed
+154/619 phantom_floor  (  -7.95,  18.75) edge -0.25 -> FELL
+155/619 hidden_floor   ( -28.70,  35.00) edge -0.00 -> fell late
+156/619 phantom_floor  ( -48.95,  15.25) edge -0.25 -> FELL
+157/619 hidden_floor   ( -16.70,  11.25) edge -0.00 -> stayed
+158/619 hidden_floor   ( -30.70,  13.50) edge -0.00 -> stayed
+159/619 hidden_floor   ( -29.45,  13.50) edge -0.00 -> stayed
+160/619 hidden_floor   ( -26.70,   9.50) edge -0.00 -> stayed
+161/619 hidden_floor   ( -31.70,  13.75) edge +0.25 -> stayed
+162/619 phantom_floor  (  -1.45,  28.25) edge -0.25 -> FELL
+163/619 hidden_floor   (  -4.70,  23.75) edge +0.25 -> fell late
+164/619 hidden_floor   ( -43.70,  23.50) edge -0.00 -> fell late
+165/619 hidden_floor   ( -13.70,  -8.25) edge +0.25 -> fell late
+166/619 phantom_floor  ( -45.95,   6.75) edge -0.25 -> FELL
+167/619 control_hole   (  -8.70,  -4.50) edge -1.00 -> FELL
+168/619 hidden_floor   (  -7.70,  -0.25) edge +0.25 -> fell late
+169/619 phantom_floor  (  -9.45,  37.50) edge -0.25 -> FELL
+170/619 phantom_floor  ( -22.20,  38.75) edge -0.25 -> FELL
+171/619 hidden_floor   (  -4.20,  23.50) edge -0.00 -> fell late
+172/619 hidden_floor   ( -22.45,  -8.50) edge -0.00 -> stayed
+173/619 hidden_floor   (  -9.20,  11.75) edge +0.25 -> fell late
+174/619 control_hole   ( -27.95,  21.75) edge -1.25 -> FELL
+175/619 hidden_floor   (  -3.95,  23.50) edge -0.00 -> fell late
+176/619 phantom_floor  ( -48.95,   6.25) edge -0.25 -> FELL
+177/619 phantom_floor  (  -1.45,  24.00) edge -0.25 -> FELL
+178/619 hidden_floor   ( -18.95,  23.75) edge +0.25 -> stayed
+179/619 hidden_floor   ( -28.70,  36.00) edge -0.00 -> fell late
+180/619 phantom_floor  ( -25.70,  38.75) edge -0.25 -> FELL
+181/619 hidden_floor   ( -14.95,  -8.25) edge +0.25 -> fell late
+182/619 phantom_floor  ( -23.45,   9.50) edge -0.25 -> FELL
+183/619 hidden_floor   ( -19.20,  23.75) edge +0.25 -> stayed
+184/619 phantom_floor  ( -33.45,   7.75) edge -0.25 -> FELL
+185/619 hidden_floor   ( -16.45,  -8.25) edge +0.25 -> fell late
+186/619 phantom_floor  ( -31.95,  30.75) edge -0.25 -> FELL
+187/619 hidden_floor   ( -28.70,  32.00) edge -0.00 -> fell late
+188/619 hidden_floor   ( -42.20,  11.50) edge -0.00 -> fell late
+189/619 hidden_floor   ( -28.45,  -1.50) edge +0.25 -> fell late
+190/619 phantom_floor  ( -21.45,  13.25) edge -0.25 -> FELL
+191/619 hidden_floor   ( -20.95,  23.75) edge +0.25 -> stayed
+192/619 hidden_floor   ( -28.70,  -5.25) edge -0.00 -> fell late
+193/619 phantom_floor  (  -1.45,   1.50) edge -0.25 -> FELL
+194/619 phantom_floor  ( -33.45,  31.00) edge -0.25 -> FELL
+195/619 phantom_floor  ( -33.45,  38.50) edge -0.25 -> FELL
+196/619 phantom_floor  ( -43.95,  30.75) edge -0.25 -> FELL
+197/619 hidden_floor   ( -47.45,  11.50) edge -0.00 -> fell late
+198/619 phantom_floor  ( -48.95,  18.75) edge -0.35 -> FELL
+199/619 phantom_floor  (  -2.45,  30.75) edge -0.25 -> FELL
+200/619 phantom_floor  ( -30.20,   6.75) edge -0.25 -> FELL
+201/619 phantom_floor  (  -7.70,   6.75) edge -0.25 -> FELL
+202/619 hidden_floor   ( -40.70,  -7.50) edge -0.00 -> fell late
+203/619 phantom_floor  (  -9.45,  21.00) edge -0.25 -> FELL
+204/619 hidden_floor   (  -3.95,  11.50) edge -0.00 -> fell late
+205/619 hidden_floor   ( -40.45,  -1.00) edge +0.25 -> fell late
+206/619 phantom_floor  ( -33.45,  19.00) edge -0.25 -> FELL
+207/619 hidden_floor   ( -12.95,  -8.25) edge +0.25 -> fell late
+208/619 phantom_floor  ( -40.95,  32.00) edge -0.25 -> FELL
+209/619 hidden_floor   ( -26.70,  23.75) edge +0.25 -> stayed
+210/619 phantom_floor  ( -33.45,  18.25) edge -0.25 -> FELL
+211/619 phantom_floor  ( -33.45,  18.50) edge -0.25 -> FELL
+212/619 hidden_floor   ( -40.70,  -5.75) edge -0.00 -> fell late
+213/619 control_hole   ( -42.45,  32.75) edge -1.75 -> FELL
+214/619 phantom_floor  (  -2.20,   6.75) edge -0.25 -> FELL
+215/619 control_floor  ( -14.45,  27.25) edge +3.95 -> stayed
+216/619 phantom_floor  ( -21.45,  -1.25) edge -0.25 -> FELL
+217/619 phantom_floor  ( -21.45,  -1.75) edge -0.25 -> FELL
+218/619 hidden_floor   ( -16.45,  38.25) edge +0.25 -> fell late
+219/619 phantom_floor  ( -25.20,  38.75) edge -0.25 -> FELL
+220/619 hidden_floor   ( -28.70,  -8.50) edge -0.00 -> stayed
+221/619 phantom_floor  ( -48.95,   0.25) edge -0.25 -> FELL
+222/619 hidden_floor   ( -28.45,  -7.50) edge +0.25 -> fell late
+223/619 hidden_floor   ( -38.70,  -8.25) edge +0.25 -> fell late
+224/619 hidden_floor   ( -10.95,  -8.50) edge -0.00 -> stayed
+225/619 hidden_floor   ( -48.45,  11.75) edge +0.25 -> fell late
+226/619 hidden_floor   ( -29.95,  -0.25) edge +0.25 -> stayed
+227/619 hidden_floor   ( -37.95,  -8.50) edge -0.00 -> stayed
+228/619 hidden_floor   ( -16.70,  23.75) edge +0.25 -> stayed
+229/619 control_hole   (  -6.95,  35.50) edge -2.75 -> FELL
+230/619 phantom_floor  ( -21.45,  36.00) edge -0.25 -> FELL
+231/619 hidden_floor   ( -20.70,  13.75) edge +0.25 -> stayed
+232/619 hidden_floor   ( -16.70,  17.00) edge -0.00 -> stayed
+233/619 hidden_floor   ( -20.70,  13.50) edge -0.00 -> stayed
+234/619 hidden_floor   ( -26.20,  -8.50) edge -0.00 -> stayed
+235/619 phantom_floor  (  -4.20,  30.75) edge -0.25 -> FELL
+236/619 hidden_floor   ( -28.45,  32.25) edge +0.25 -> fell late
+237/619 hidden_floor   (  -6.20,  -0.25) edge +0.25 -> fell late
+238/619 hidden_floor   ( -13.95,  -8.25) edge +0.25 -> fell late
+239/619 hidden_floor   ( -41.20,  11.50) edge -0.00 -> fell late
+240/619 hidden_floor   ( -40.70,  -0.75) edge -0.00 -> stayed
+241/619 hidden_floor   ( -24.20,  15.25) edge -0.00 -> stayed
+242/619 phantom_floor  ( -33.45,  -6.50) edge -0.25 -> FELL
+[env:9972] round over (time left 180s of 180s); waiting for the next round
+[env:9972] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+243/619 phantom_floor  ( -20.45,   6.75) edge -0.25 -> FELL
+244/619 phantom_floor  ( -33.45,  22.25) edge -0.25 -> FELL
+245/619 phantom_floor  (  -2.95,  18.75) edge -0.25 -> FELL
+246/619 hidden_floor   ( -16.70,  33.00) edge -0.00 -> fell late
+247/619 hidden_floor   (  -3.45,  23.50) edge -0.00 -> fell late
+248/619 phantom_floor  (  -4.45,  18.75) edge -0.25 -> FELL
+249/619 hidden_floor   ( -28.45,  13.00) edge +0.25 -> stayed
+250/619 hidden_floor   ( -28.70,  31.25) edge -0.00 -> fell late
+251/619 hidden_floor   ( -16.45,  10.75) edge +0.25 -> stayed
+252/619 hidden_floor   ( -16.70,   8.00) edge -0.00 -> stayed
+253/619 phantom_floor  ( -33.45,  -4.00) edge -0.25 -> FELL
+254/619 phantom_floor  ( -41.95,  30.75) edge -0.25 -> FELL
+255/619 phantom_floor  ( -23.45,  22.50) edge -0.25 -> FELL
+256/619 hidden_floor   ( -42.70,  23.75) edge +0.25 -> fell late
+257/619 hidden_floor   ( -19.95,  13.75) edge +0.25 -> stayed
+258/619 control_floor  (  -6.70,  14.00) edge +2.50 -> fell late
+259/619 hidden_floor   ( -26.95,  23.50) edge -0.00 -> stayed
+260/619 hidden_floor   ( -40.45,  -8.00) edge +0.25 -> fell late
+261/619 phantom_floor  (  -9.45,  36.75) edge -0.25 -> FELL
+262/619 hidden_floor   ( -18.70,  23.75) edge +0.25 -> stayed
+263/619 hidden_floor   ( -19.20,  -0.25) edge +0.25 -> stayed
+264/619 phantom_floor  ( -48.95,  16.00) edge -0.25 -> FELL
+265/619 hidden_floor   ( -41.95,  -0.50) edge -0.00 -> fell late
+266/619 phantom_floor  ( -46.70,   6.75) edge -0.25 -> FELL
+267/619 hidden_floor   ( -28.45,  11.50) edge -0.00 -> stayed
+268/619 phantom_floor  ( -48.95,   2.25) edge -0.25 -> FELL
+269/619 hidden_floor   ( -30.70,  13.75) edge +0.25 -> stayed
+270/619 hidden_floor   ( -28.45,  32.00) edge +0.25 -> fell late
+271/619 hidden_floor   (  -4.45,  11.75) edge +0.25 -> fell late
+272/619 phantom_floor  ( -40.95,  10.25) edge -0.25 -> FELL
+273/619 hidden_floor   ( -40.45,  -7.75) edge +0.25 -> fell late
+274/619 hidden_floor   (  -5.70,  23.50) edge -0.00 -> fell late
+275/619 hidden_floor   (  -6.70,  11.50) edge -0.00 -> fell late
+276/619 hidden_floor   ( -48.45,  23.50) edge -0.00 -> fell late
+277/619 control_floor  ( -26.20,  26.00) edge +2.55 -> stayed
+278/619 phantom_floor  ( -22.70,  18.75) edge -0.25 -> FELL
+279/619 hidden_floor   ( -16.70,  -5.75) edge -0.00 -> fell late
+280/619 hidden_floor   ( -29.95,  23.50) edge -0.00 -> stayed
+281/619 phantom_floor  ( -48.95,   0.75) edge -0.25 -> FELL
+282/619 hidden_floor   ( -20.70,  -0.25) edge +0.25 -> stayed
+283/619 phantom_floor  ( -48.95,  17.00) edge -0.25 -> FELL
+284/619 hidden_floor   ( -16.45,  -5.75) edge +0.25 -> fell late
+285/619 phantom_floor  (  -8.70,  30.75) edge -0.25 -> FELL
+286/619 phantom_floor  ( -33.45,   7.25) edge -0.25 -> FELL
+287/619 hidden_floor   ( -26.45,  10.75) edge +0.25 -> stayed
+288/619 phantom_floor  ( -42.70,  18.75) edge -0.25 -> FELL
+289/619 hidden_floor   ( -28.70,  -8.25) edge -0.00 -> fell late
+290/619 phantom_floor  ( -48.95,  13.00) edge -0.25 -> FELL
+291/619 hidden_floor   ( -30.70,  23.50) edge -0.00 -> stayed
+292/619 hidden_floor   (  -4.20,  -0.25) edge +0.25 -> fell late
+293/619 hidden_floor   ( -16.45,  -0.25) edge +0.35 -> stayed
+294/619 phantom_floor  ( -40.95,  34.75) edge -0.25 -> FELL
+295/619 hidden_floor   ( -16.45,  38.00) edge +0.25 -> fell late
+296/619 hidden_floor   ( -21.95,  23.75) edge +0.25 -> stayed
+297/619 phantom_floor  ( -45.45,   6.75) edge -0.25 -> FELL
+298/619 phantom_floor  ( -13.70,  38.75) edge -0.25 -> FELL
+299/619 hidden_floor   ( -30.95,  23.75) edge +0.25 -> stayed
+300/619 hidden_floor   (  -4.20,  23.75) edge +0.25 -> fell late
+301/619 phantom_floor  (  -9.70,  38.75) edge -0.25 -> FELL
+302/619 hidden_floor   ( -10.70,  -8.50) edge -0.00 -> stayed
+303/619 hidden_floor   ( -38.45,  -8.50) edge -0.00 -> stayed
+304/619 hidden_floor   ( -16.45,  -1.50) edge +0.25 -> fell late
+305/619 hidden_floor   ( -25.20,  -8.25) edge +0.25 -> fell late
+306/619 phantom_floor  ( -47.70,  30.75) edge -0.25 -> FELL
+307/619 hidden_floor   ( -16.45,  10.25) edge +0.25 -> stayed
+308/619 hidden_floor   ( -47.70,  11.50) edge -0.00 -> fell late
+309/619 hidden_floor   (  -7.95,  -0.25) edge +0.25 -> fell late
+310/619 hidden_floor   (  -4.45,  23.50) edge -0.00 -> fell late
+311/619 hidden_floor   ( -40.45,  -2.75) edge +0.25 -> fell late
+312/619 phantom_floor  ( -33.45,  21.25) edge -0.25 -> FELL
+313/619 phantom_floor  ( -27.45,  18.75) edge -0.25 -> FELL
+314/619 phantom_floor  ( -31.45,   6.75) edge -0.25 -> FELL
+315/619 phantom_floor  ( -15.70,  38.75) edge -0.25 -> FELL
+316/619 hidden_floor   ( -47.45,  23.50) edge -0.00 -> fell late
+317/619 hidden_floor   ( -16.70,  11.75) edge -0.00 -> stayed
+318/619 hidden_floor   ( -16.45,  31.25) edge +0.25 -> fell late
+319/619 phantom_floor  (  -3.95,  18.75) edge -0.25 -> FELL
+320/619 hidden_floor   ( -32.20,  23.75) edge +0.25 -> stayed
+321/619 hidden_floor   ( -26.70,   8.25) edge -0.00 -> stayed
+322/619 phantom_floor  (  -9.45,  -7.50) edge -0.25 -> FELL
+323/619 hidden_floor   ( -23.20,  -8.50) edge -0.00 -> stayed
+324/619 hidden_floor   ( -28.45,  33.00) edge +0.25 -> fell late
+325/619 phantom_floor  ( -40.95,  20.50) edge -0.25 -> FELL
+326/619 phantom_floor  (  -9.45,  -5.50) edge -0.25 -> FELL
+327/619 hidden_floor   ( -24.20,  14.75) edge -0.00 -> stayed
+328/619 phantom_floor  (  -6.45,  18.75) edge -0.25 -> FELL
+329/619 hidden_floor   (  -5.95,  -0.25) edge +0.25 -> fell late
+330/619 phantom_floor  ( -11.20,  38.75) edge -0.25 -> FELL
+331/619 control_hole   (  -7.95,  10.00) edge -1.50 -> FELL
+332/619 hidden_floor   (  -6.20,  23.75) edge +0.25 -> fell late
+333/619 phantom_floor  (  -9.45,  18.75) edge -0.25 -> FELL
+334/619 hidden_floor   ( -16.45,  37.00) edge +0.25 -> fell late
+335/619 phantom_floor  ( -21.45,  -3.75) edge -0.25 -> FELL
+336/619 hidden_floor   ( -44.20,  -0.25) edge +0.25 -> fell late
+337/619 hidden_floor   ( -36.95,  -8.50) edge -0.00 -> stayed
+338/619 phantom_floor  (  -5.45,  18.75) edge -0.25 -> FELL
+339/619 hidden_floor   ( -27.45,  23.75) edge +0.25 -> stayed
+340/619 phantom_floor  ( -48.45,  18.75) edge -0.25 -> FELL
+341/619 hidden_floor   ( -37.70,  -8.50) edge -0.00 -> stayed
+342/619 phantom_floor  ( -33.45,  -1.25) edge -0.25 -> FELL
+343/619 hidden_floor   ( -16.45,  22.00) edge +0.25 -> stayed
+344/619 phantom_floor  ( -20.70,  16.75) edge -0.25 -> FELL
+345/619 hidden_floor   ( -48.45,  23.75) edge +0.25 -> fell late
+346/619 hidden_floor   ( -29.45,  -0.50) edge -0.00 -> stayed
+347/619 hidden_floor   ( -40.70,  -8.00) edge -0.00 -> fell late
+348/619 phantom_floor  ( -27.95,  38.75) edge -0.25 -> FELL
+349/619 hidden_floor   (  -8.45,  -0.50) edge -0.00 -> fell late
+350/619 control_floor  ( -11.95,  28.75) edge +2.85 -> stayed
+351/619 control_floor  ( -13.45,  -4.50) edge +3.25 -> fell late
+352/619 control_floor  ( -35.45,   8.25) edge +1.75 -> stayed
+353/619 hidden_floor   ( -16.45,  18.50) edge +0.25 -> stayed
+round ended / reconnected: waiting for the next round
+[env:9972] round over (time left 180s of 180s); waiting for the next round
+[env:9972] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+354/619 control_hole   (  -6.70,  -2.25) edge -1.75 -> FELL
+355/619 hidden_floor   ( -21.70,  23.75) edge +0.25 -> stayed
+356/619 phantom_floor  ( -33.45,  10.25) edge -0.25 -> FELL
+357/619 phantom_floor  ( -20.70,   6.75) edge -0.25 -> FELL
+358/619 hidden_floor   ( -40.70,  -4.00) edge -0.00 -> fell late
+359/619 hidden_floor   ( -28.70,  36.75) edge -0.00 -> fell late
+360/619 phantom_floor  ( -23.20,  18.75) edge -0.25 -> FELL
+361/619 hidden_floor   (  -5.45,  23.75) edge +0.25 -> fell late
+362/619 phantom_floor  (  -1.45,  16.50) edge -0.25 -> FELL
+363/619 hidden_floor   ( -17.95,  23.50) edge -0.00 -> stayed
+364/619 phantom_floor  ( -42.45,   6.75) edge -0.25 -> FELL
+365/619 hidden_floor   (  -5.70,  -0.50) edge -0.00 -> fell late
+366/619 hidden_floor   ( -26.70,   8.50) edge -0.00 -> stayed
+367/619 hidden_floor   ( -16.70,  -5.50) edge -0.00 -> fell late
+368/619 hidden_floor   ( -16.45,  -2.50) edge +0.25 -> fell late
+369/619 phantom_floor  (  -9.20,  18.75) edge -0.25 -> FELL
+370/619 control_floor  ( -22.70,  27.25) edge +3.40 -> stayed
+371/619 phantom_floor  (  -1.45,  27.25) edge -0.25 -> FELL
+372/619 hidden_floor   ( -32.20,  13.50) edge -0.00 -> stayed
+373/619 hidden_floor   (  -9.20,  11.50) edge -0.00 -> fell late
+374/619 hidden_floor   (  -5.95,  23.50) edge -0.00 -> fell late
+375/619 hidden_floor   ( -26.70,  21.75) edge -0.00 -> stayed
+376/619 phantom_floor  ( -47.70,   6.75) edge -0.25 -> FELL
+377/619 hidden_floor   ( -30.70,  23.75) edge +0.25 -> stayed
+378/619 hidden_floor   (  -4.20,  -0.50) edge -0.00 -> fell late
+379/619 phantom_floor  ( -11.70,  38.75) edge -0.25 -> FELL
+380/619 control_hole   (  -2.95,   8.00) edge -1.50 -> FELL
+381/619 phantom_floor  (  -3.70,   6.75) edge -0.25 -> FELL
+382/619 hidden_floor   ( -26.70,  19.75) edge -0.00 -> stayed
+383/619 phantom_floor  ( -14.20,  38.75) edge -0.25 -> FELL
+384/619 phantom_floor  ( -33.45,  22.75) edge -0.25 -> FELL
+385/619 hidden_floor   ( -47.20,  23.50) edge -0.00 -> fell late
+386/619 hidden_floor   ( -16.70,  38.00) edge -0.00 -> fell late
+387/619 hidden_floor   ( -40.70,  -4.25) edge -0.00 -> fell late
+388/619 hidden_floor   ( -24.45,  16.00) edge -0.00 -> stayed
+389/619 phantom_floor  ( -40.95,  37.75) edge -0.25 -> FELL
+390/619 phantom_floor  (  -9.45,  -5.00) edge -0.25 -> FELL
+391/619 hidden_floor   (  -5.70,  23.75) edge +0.25 -> fell late
+392/619 hidden_floor   ( -28.70,  -2.75) edge -0.00 -> fell late
+393/619 hidden_floor   ( -41.95,  11.75) edge +0.25 -> fell late
+394/619 phantom_floor  (  -3.45,  30.75) edge -0.25 -> FELL
+395/619 hidden_floor   ( -16.70,   7.25) edge -0.00 -> stayed
+396/619 phantom_floor  ( -16.95,  16.75) edge -0.25 -> FELL
+397/619 hidden_floor   ( -28.45,  17.00) edge +0.25 -> stayed
+398/619 phantom_floor  ( -23.45,  21.00) edge -0.25 -> FELL
+399/619 hidden_floor   (  -8.70,  23.50) edge -0.00 -> fell late
+400/619 hidden_floor   ( -16.45,  -6.25) edge +0.25 -> fell late
+401/619 hidden_floor   ( -28.45,  31.50) edge +0.25 -> fell late
+402/619 hidden_floor   ( -26.45,   7.25) edge +0.25 -> stayed
+403/619 hidden_floor   ( -45.20,  23.75) edge +0.25 -> fell late
+404/619 hidden_floor   ( -40.70,  -2.25) edge -0.00 -> fell late
+405/619 hidden_floor   ( -21.95,  11.75) edge +0.25 -> stayed
+406/619 hidden_floor   ( -28.45,  -8.25) edge +0.25 -> fell late
+407/619 phantom_floor  ( -40.95,   8.25) edge -0.25 -> FELL
+408/619 phantom_floor  (  -6.70,   6.75) edge -0.25 -> FELL
+409/619 phantom_floor  ( -17.45,  16.75) edge -0.25 -> FELL
+410/619 phantom_floor  ( -21.45,  33.25) edge -0.25 -> FELL
+411/619 phantom_floor  ( -16.95,  30.75) edge -0.25 -> FELL
+412/619 hidden_floor   (  -1.70,  11.50) edge -0.00 -> stayed
+413/619 hidden_floor   (  -2.45,  -0.50) edge -0.00 -> fell late
+414/619 phantom_floor  ( -18.70,  30.75) edge -0.25 -> FELL
+415/619 hidden_floor   ( -12.45,  -8.25) edge +0.25 -> fell late
+416/619 hidden_floor   ( -28.45,  -3.75) edge +0.25 -> fell late
+417/619 phantom_floor  ( -17.20,  30.75) edge -0.25 -> FELL
+418/619 hidden_floor   ( -23.70,  -8.25) edge +0.25 -> fell late
+419/619 hidden_floor   ( -28.45,  34.50) edge +0.25 -> fell late
+420/619 phantom_floor  (  -9.45,  20.25) edge -0.25 -> FELL
+421/619 phantom_floor  ( -22.20,   6.75) edge -0.25 -> FELL
+422/619 phantom_floor  (  -9.45,  31.25) edge -0.25 -> FELL
+423/619 phantom_floor  ( -40.95,  36.00) edge -0.25 -> FELL
+424/619 hidden_floor   ( -26.45,  11.50) edge +0.25 -> stayed
+425/619 hidden_floor   ( -43.95,  23.75) edge +0.25 -> fell late
+426/619 phantom_floor  ( -40.95,  35.50) edge -0.25 -> FELL
+427/619 hidden_floor   ( -28.70,  -7.75) edge -0.00 -> fell late
+428/619 hidden_floor   (  -9.95,  -8.25) edge +0.25 -> fell late
+429/619 phantom_floor  (  -1.45,  14.75) edge -0.25 -> FELL
+430/619 phantom_floor  (  -1.45,   6.50) edge -0.25 -> FELL
+431/619 phantom_floor  ( -33.45,  -7.75) edge -0.25 -> FELL
+432/619 hidden_floor   ( -28.45,  37.25) edge +0.25 -> fell late
+433/619 hidden_floor   (  -6.95,  11.50) edge -0.00 -> fell late
+434/619 hidden_floor   ( -10.45,  -8.50) edge -0.00 -> stayed
+435/619 hidden_floor   ( -30.20,  23.50) edge -0.00 -> stayed
+436/619 control_floor  ( -11.70,  -6.50) edge +2.00 -> fell late
+437/619 phantom_floor  ( -40.95,  38.25) edge -0.25 -> FELL
+438/619 hidden_floor   ( -22.20,  -8.25) edge +0.25 -> fell late
+439/619 hidden_floor   ( -16.45,  -5.25) edge +0.25 -> fell late
+440/619 hidden_floor   ( -32.70,  -0.25) edge +0.25 -> stayed
+441/619 phantom_floor  (  -8.70,  18.75) edge -0.25 -> FELL
+442/619 phantom_floor  ( -23.20,  38.75) edge -0.25 -> FELL
+443/619 phantom_floor  ( -43.20,   6.75) edge -0.25 -> FELL
+444/619 hidden_floor   ( -40.45,  -6.25) edge +0.25 -> fell late
+445/619 phantom_floor  ( -33.45,   8.00) edge -0.25 -> FELL
+446/619 phantom_floor  ( -41.45,  30.75) edge -0.25 -> FELL
+447/619 hidden_floor   (  -9.70,  -8.50) edge -0.00 -> stayed
+448/619 hidden_floor   ( -17.70,  23.75) edge +0.25 -> stayed
+449/619 hidden_floor   ( -22.70,  23.75) edge +0.25 -> stayed
+450/619 hidden_floor   ( -16.70,  -7.25) edge -0.00 -> fell late
+451/619 phantom_floor  (  -6.95,  18.75) edge -0.25 -> FELL
+452/619 hidden_floor   ( -40.45,  -2.50) edge +0.25 -> fell late
+453/619 hidden_floor   ( -40.70,  -0.50) edge -0.00 -> stayed
+454/619 hidden_floor   ( -27.20,  11.75) edge +0.25 -> stayed
+455/619 hidden_floor   ( -28.70,  -4.75) edge -0.00 -> fell late
+456/619 control_floor  ( -26.20,   1.00) edge +2.92 -> stayed
+457/619 phantom_floor  (  -1.45,  24.50) edge -0.25 -> FELL
+458/619 hidden_floor   ( -28.70,  13.75) edge +0.25 -> stayed
+459/619 hidden_floor   ( -16.70,  19.50) edge -0.00 -> stayed
+460/619 hidden_floor   ( -31.95,  -0.25) edge +0.25 -> stayed
+461/619 hidden_floor   (  -5.95,  11.75) edge +0.25 -> fell late
+462/619 control_hole   ( -30.95,  32.50) edge -2.00 -> FELL
+463/619 hidden_floor   ( -16.45,  -7.50) edge +0.25 -> fell late
+464/619 hidden_floor   ( -26.45,  20.00) edge +0.25 -> stayed
+465/619 phantom_floor  ( -21.45,  -0.75) edge -0.25 -> FELL
+466/619 hidden_floor   ( -28.70,  -5.75) edge -0.00 -> fell late
+467/619 hidden_floor   ( -16.45,  23.25) edge +0.25 -> stayed
+468/619 hidden_floor   (  -6.70,  23.50) edge -0.00 -> fell late
+469/619 hidden_floor   ( -26.70,  11.25) edge -0.00 -> stayed
+round ended / reconnected: waiting for the next round
+[env:9972] round over (time left 180s of 180s); waiting for the next round
+[env:9972] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+470/619 hidden_floor   (  -6.95,  -0.50) edge -0.00 -> fell late
+471/619 hidden_floor   ( -28.45,  33.75) edge +0.25 -> fell late
+472/619 phantom_floor  ( -46.95,   6.75) edge -0.25 -> FELL
+473/619 hidden_floor   ( -31.45,  -0.50) edge -0.00 -> stayed
+474/619 phantom_floor  ( -45.20,  18.75) edge -0.25 -> FELL
+475/619 phantom_floor  ( -21.45,  12.75) edge -0.25 -> FELL
+476/619 phantom_floor  (  -9.45,   8.25) edge -0.25 -> FELL
+477/619 control_hole   ( -30.95,  10.00) edge -2.70 -> FELL
+478/619 hidden_floor   ( -41.45,  23.75) edge +0.25 -> fell late
+479/619 phantom_floor  (  -1.45,   1.75) edge -0.25 -> FELL
+480/619 hidden_floor   ( -25.45,  -8.25) edge +0.25 -> fell late
+481/619 phantom_floor  ( -48.95,  24.00) edge -0.25 -> FELL
+482/619 hidden_floor   ( -28.45,  -3.50) edge +0.25 -> fell late
+483/619 hidden_floor   ( -31.45,  -0.25) edge +0.25 -> stayed
+484/619 hidden_floor   ( -27.95,  -8.25) edge +0.25 -> fell late
+485/619 phantom_floor  (  -3.20,  30.75) edge -0.25 -> FELL
+486/619 hidden_floor   (  -2.20,  23.75) edge +0.25 -> fell late
+487/619 phantom_floor  (  -8.20,   6.75) edge -0.25 -> FELL
+488/619 hidden_floor   ( -16.70,  20.25) edge -0.00 -> stayed
+489/619 hidden_floor   ( -29.95,  -0.50) edge -0.00 -> stayed
+490/619 hidden_floor   ( -32.20,  -0.25) edge +0.25 -> stayed
+491/619 hidden_floor   ( -28.70,  34.25) edge -0.00 -> fell late
+492/619 hidden_floor   ( -40.70,  -2.75) edge -0.00 -> fell late
+493/619 hidden_floor   ( -40.70,  -3.50) edge -0.00 -> fell late
+494/619 phantom_floor  ( -31.45,  16.75) edge -0.25 -> FELL
+495/619 control_floor  ( -13.45,  21.75) edge +3.25 -> stayed
+496/619 phantom_floor  ( -33.45,  35.00) edge -0.25 -> FELL
+497/619 phantom_floor  ( -32.70,   6.75) edge -0.25 -> FELL
+498/619 control_hole   ( -18.20,  -7.25) edge -1.50 -> FELL
+499/619 hidden_floor   ( -13.95,  -8.50) edge -0.00 -> stayed
+500/619 phantom_floor  ( -21.45,  34.00) edge -0.25 -> FELL
+501/619 hidden_floor   ( -16.45,  -2.75) edge +0.25 -> fell late
+502/619 control_hole   ( -44.45,  34.50) edge -3.75 -> FELL
+503/619 hidden_floor   ( -16.45,  32.50) edge +0.25 -> fell late
+504/619 hidden_floor   ( -22.70,  11.50) edge -0.00 -> stayed
+505/619 hidden_floor   (  -3.20,  -0.50) edge -0.00 -> fell late
+506/619 phantom_floor  ( -33.45,  18.75) edge -0.25 -> FELL
+507/619 hidden_floor   ( -16.70,  20.50) edge -0.00 -> stayed
+508/619 hidden_floor   ( -28.70,  38.00) edge -0.00 -> fell late
+509/619 hidden_floor   ( -15.70,  -8.25) edge +0.25 -> fell late
+510/619 phantom_floor  (  -9.45,  -3.00) edge -0.25 -> FELL
+511/619 hidden_floor   ( -42.45,  11.50) edge -0.00 -> fell late
+512/619 phantom_floor  ( -23.45,  20.50) edge -0.25 -> FELL
+513/619 phantom_floor  ( -33.45,  33.25) edge -0.25 -> FELL
+514/619 hidden_floor   (  -3.70,  23.50) edge -0.00 -> fell late
+515/619 hidden_floor   ( -31.20,  13.50) edge -0.00 -> stayed
+516/619 hidden_floor   ( -44.45,  -0.25) edge +0.25 -> fell late
+517/619 phantom_floor  ( -48.95,  27.25) edge -0.25 -> FELL
+518/619 hidden_floor   ( -47.95,  23.75) edge +0.25 -> fell late
+519/619 hidden_floor   ( -16.70,  12.00) edge -0.00 -> stayed
+520/619 hidden_floor   ( -17.95,  13.50) edge -0.00 -> stayed
+521/619 hidden_floor   ( -24.70,  -8.25) edge +0.25 -> fell late
+522/619 phantom_floor  ( -48.95,   0.50) edge -0.25 -> FELL
+523/619 hidden_floor   ( -27.20,  -8.25) edge +0.25 -> fell late
+524/619 hidden_floor   ( -35.20,  -8.25) edge +0.25 -> fell late
+525/619 hidden_floor   ( -27.20,  23.50) edge -0.00 -> stayed
+526/619 hidden_floor   ( -26.45,  23.75) edge +0.35 -> stayed
+527/619 phantom_floor  ( -44.70,   6.75) edge -0.25 -> FELL
+528/619 phantom_floor  ( -40.95,  31.50) edge -0.25 -> FELL
+529/619 phantom_floor  ( -33.45,  38.75) edge -0.35 -> FELL
+530/619 phantom_floor  ( -21.45,  34.75) edge -0.25 -> FELL
+531/619 hidden_floor   (  -7.95,  11.75) edge +0.25 -> fell late
+532/619 hidden_floor   ( -46.45,  23.50) edge -0.00 -> fell late
+533/619 control_hole   (  -6.95,   9.00) edge -2.50 -> FELL
+534/619 phantom_floor  ( -36.45,  38.75) edge -0.25 -> FELL
+535/619 hidden_floor   ( -46.95,  11.75) edge +0.25 -> fell late
+536/619 hidden_floor   ( -34.70,  -8.25) edge +0.25 -> fell late
+537/619 control_hole   ( -45.95,   8.25) edge -1.75 -> FELL
+538/619 phantom_floor  (  -1.45,  13.25) edge -0.25 -> FELL
+539/619 hidden_floor   ( -46.70,  11.50) edge -0.00 -> fell late
+540/619 phantom_floor  ( -12.95,  38.75) edge -0.25 -> FELL
+541/619 hidden_floor   ( -31.70,  13.50) edge -0.00 -> stayed
+542/619 hidden_floor   ( -22.20,  23.50) edge -0.00 -> stayed
+543/619 phantom_floor  (  -1.70,   6.75) edge -0.25 -> FELL
+544/619 phantom_floor  ( -33.45,   8.25) edge -0.25 -> FELL
+545/619 control_floor  (  -5.20,   4.75) edge +1.75 -> fell late
+546/619 hidden_floor   ( -16.70,  23.00) edge -0.00 -> stayed
+547/619 phantom_floor  ( -23.45,  21.50) edge -0.25 -> FELL
+548/619 phantom_floor  (  -7.20,  30.75) edge -0.25 -> FELL
+549/619 hidden_floor   ( -31.45,  23.50) edge -0.00 -> stayed
+550/619 hidden_floor   ( -15.20,  -8.25) edge +0.25 -> fell late
+551/619 phantom_floor  (  -1.45,  17.25) edge -0.25 -> FELL
+552/619 phantom_floor  (  -7.45,  18.75) edge -0.25 -> FELL
+553/619 hidden_floor   ( -16.95,  -0.50) edge -0.00 -> stayed
+554/619 hidden_floor   ( -22.20,  11.75) edge +0.25 -> stayed
+555/619 hidden_floor   ( -44.45,  11.50) edge -0.00 -> fell late
+556/619 hidden_floor   ( -16.70,  20.75) edge -0.00 -> stayed
+557/619 control_hole   ( -18.20,  -3.50) edge -1.50 -> FELL
+558/619 hidden_floor   (  -3.70,  -0.50) edge -0.00 -> fell late
+559/619 phantom_floor  ( -39.70,  38.75) edge -0.25 -> FELL
+560/619 hidden_floor   ( -16.70,  -1.00) edge -0.00 -> fell late
+561/619 phantom_floor  ( -21.45,  -6.75) edge -0.25 -> FELL
+562/619 hidden_floor   ( -26.95,  11.75) edge +0.25 -> stayed
+563/619 hidden_floor   ( -18.95,  13.75) edge +0.25 -> stayed
+564/619 hidden_floor   ( -16.70,  10.00) edge -0.00 -> stayed
+565/619 hidden_floor   ( -16.45,  17.00) edge +0.25 -> stayed
+566/619 hidden_floor   ( -33.20,  23.75) edge +0.25 -> stayed
+567/619 hidden_floor   ( -29.45,  23.50) edge -0.00 -> stayed
+568/619 phantom_floor  ( -48.95,   3.50) edge -0.25 -> FELL
+569/619 phantom_floor  (  -3.70,  18.75) edge -0.25 -> FELL
+570/619 hidden_floor   ( -16.70,  37.00) edge -0.00 -> fell late
+571/619 phantom_floor  ( -48.95,  29.00) edge -0.25 -> FELL
+572/619 phantom_floor  ( -48.95,  24.50) edge -0.25 -> FELL
+573/619 hidden_floor   ( -26.70,  20.25) edge -0.00 -> stayed
+574/619 hidden_floor   ( -41.45,  11.75) edge +0.25 -> fell late
+575/619 hidden_floor   ( -21.20,  23.75) edge +0.25 -> stayed
+576/619 hidden_floor   (  -5.95,  11.50) edge -0.00 -> fell late
+577/619 phantom_floor  ( -46.95,  30.75) edge -0.25 -> FELL
+578/619 phantom_floor  ( -31.95,   6.75) edge -0.25 -> FELL
+579/619 hidden_floor   (  -7.45,  11.50) edge -0.00 -> fell late
+580/619 control_floor  ( -12.70,  13.25) edge +3.47 -> stayed
+581/619 hidden_floor   ( -30.45,  13.75) edge +0.25 -> stayed
+582/619 phantom_floor  ( -33.45,  23.25) edge -0.25 -> FELL
+583/619 hidden_floor   (  -9.20,  23.50) edge -0.00 -> fell late
+584/619 hidden_floor   ( -40.45,  -8.25) edge +0.25 -> fell late
+585/619 phantom_floor  (  -6.20,  18.75) edge -0.25 -> FELL
+586/619 hidden_floor   ( -38.20,  -8.50) edge -0.00 -> stayed
+round ended / reconnected: waiting for the next round
+[env:9972] round over (time left 180s of 180s); waiting for the next round
+[env:9972] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+587/619 phantom_floor  ( -21.45,  -4.75) edge -0.25 -> FELL
+588/619 phantom_floor  ( -21.45,  -5.25) edge -0.25 -> FELL
+589/619 phantom_floor  ( -40.45,  38.75) edge -0.25 -> FELL
+590/619 hidden_floor   ( -28.70,  37.00) edge -0.00 -> fell late
+591/619 hidden_floor   ( -28.70,  35.75) edge -0.00 -> fell late
+592/619 phantom_floor  ( -19.95,  30.75) edge -0.25 -> FELL
+593/619 hidden_floor   (  -2.95,  11.50) edge -0.00 -> fell late
+594/619 hidden_floor   ( -16.45,  31.50) edge +0.25 -> fell late
+595/619 hidden_floor   ( -17.95,  -0.50) edge -0.00 -> stayed
+596/619 hidden_floor   (  -5.20,  23.50) edge -0.00 -> fell late
+597/619 phantom_floor  ( -48.95,  30.00) edge -0.25 -> FELL
+598/619 hidden_floor   ( -27.95,  23.75) edge +0.25 -> stayed
+599/619 hidden_floor   ( -28.45,  -7.25) edge +0.25 -> fell late
+600/619 phantom_floor  ( -40.95,  34.25) edge -0.25 -> FELL
+601/619 hidden_floor   ( -16.45,  34.25) edge +0.25 -> fell late
+602/619 hidden_floor   ( -17.20,  23.50) edge -0.00 -> stayed
+603/619 hidden_floor   ( -35.70,  -8.50) edge -0.00 -> stayed
+604/619 hidden_floor   (  -8.70,  11.75) edge +0.25 -> fell late
+605/619 phantom_floor  (  -6.95,  30.75) edge -0.25 -> FELL
+606/619 phantom_floor  (  -5.95,  18.75) edge -0.25 -> FELL
+607/619 phantom_floor  ( -42.45,  18.75) edge -0.25 -> FELL
+608/619 hidden_floor   ( -16.45,  -8.50) edge -0.00 -> stayed
+609/619 hidden_floor   ( -43.20,  -0.25) edge +0.25 -> fell late
+610/619 hidden_floor   ( -16.45,  -1.25) edge +0.25 -> fell late
+611/619 phantom_floor  ( -36.95,  38.75) edge -0.25 -> FELL
+612/619 hidden_floor   ( -47.20,  11.75) edge +0.25 -> fell late
+613/619 hidden_floor   ( -26.45,   8.00) edge +0.25 -> stayed
+614/619 hidden_floor   ( -22.95,  -8.25) edge +0.25 -> fell late
+615/619 hidden_floor   ( -19.45,  23.50) edge -0.00 -> stayed
+616/619 hidden_floor   ( -41.95,  23.50) edge -0.00 -> fell late
+617/619 phantom_floor  ( -23.45,  19.00) edge -0.25 -> FELL
+618/619 hidden_floor   ( -16.70,  -7.50) edge -0.00 -> fell late
+619/619 hidden_floor   ( -19.20,  13.75) edge +0.25 -> stayed
+DONE

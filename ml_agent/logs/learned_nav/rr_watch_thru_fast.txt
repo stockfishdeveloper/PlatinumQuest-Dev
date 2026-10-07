@@ -1,0 +1,8 @@
+through_gem {'ACT_U': 10.0, 'MAX_TURN_DEG': 75.0, 'GAIN_S': 0.0, 'PICK_MARGIN_U': 0.6}
+warm-up: model ready in 0.00 s, terrain "KingOfTheMarble_Hunt" pre-built
+[env:9961] waiting for the game
+[env:9961] game connected (1)
+WATCH mode: every frame drawn, 4 sim slice(s) per 64 ms decision, real time
+real run: nav_v10_28897.pth (update 28895) on KingOfTheMarble_Hunt, 50 round(s), port 9961
+[env:9961] game disconnected
+[env:9961] waiting for the game

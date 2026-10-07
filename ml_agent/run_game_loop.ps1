@@ -55,7 +55,7 @@ $workdir = Split-Path $exe
 function Launch-Instance([int]$i) {
     $port = $Port0 + $i
     $mission = $assign[$i]
-    $p = Start-Process -FilePath $exe -ArgumentList @("-autotrain", $mission, "-aiport", "$port") -WorkingDirectory $workdir -PassThru
+    $p = Start-Process -FilePath $exe -ArgumentList @("-autotrain", $mission, "-aiport", "$port", "-offline") -WorkingDirectory $workdir -WindowStyle Hidden -PassThru
     Write-Host ("[{0}] instance {1} launched: {2} -autotrain {3} -aiport {4} (pid {5})" -f (Get-Date).ToString("HH:mm:ss"), $i, $Exe, $mission, $port, $p.Id)
     return $p
 }

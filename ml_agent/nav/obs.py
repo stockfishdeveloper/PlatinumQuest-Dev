@@ -19,6 +19,7 @@ from nav.protocol import (RAW_POS, RAW_VEL, RAW_SPIN, RAW_POW_HELD, RAW_POW_BLAS
 from nav.terrain import CROP_SHAPE, JUMP_DROP, JUMP_RISE
 from nav.physics import crossable, speed_for_gap, MIN_JUMP_GAP, jump_verdict
 from terrain_obs import RAY_RANGE
+from nav import ss_two_gem
 
 NAV_OBS_VERSION = 'NAV_OBS_V10'  # V10 (2026-10-04, log 40.26): kick result speed + the use state appended (POW_DIM 37)
                                  # V9 (2026-10-03, log 40.12): Super Speed redirect flag + aim appended (POW_DIM 30)
@@ -96,7 +97,16 @@ SS_LEVEL_DZ = 0.75            # 40.34: braking room must be LEVEL floor: within 
                               # next gem). With this rule (fire at every approval, 16 rounds): 0 falls after 12 kicks,
                               # 160.9 points a round vs 159.0 without Super Speed and 157.2 with the old rule
 SS_LEVEL_STEP = 0.5           # u between the level-run samples
-SS_REDIRECT_MIN_SPEED = 3.0  # u/s: below this a redirect is just a boost toward the next gem (still fine) 
+SS_REDIRECT_MIN_SPEED = 3.0  # u/s: below this a redirect is just a boost toward the next gem (still fine)
+SS_TWO_GEM = True             # 2026-10-05 (log 40.53, operator: "start training on that"): the kick aim [28-29] and the
+                              # approval [26] come from nav.ss_two_gem: the floor physics (spin, slip, the stick toward gem 1
+                              # then gem 2) picks the direction that reaches gem 1 and then gem 2 (gem 1 alone when no next
+                              # gem is known) soonest, and approves it only if that beats the same drive WITHOUT a kick by
+                              # ss_two_gem.SAVE_MIN on followed floor below V2_MAX (17:45: no one-push two-gem requirement).
+                              # The old aim pointed the instant velocity at gem 1
+                              # only: 45 % of recorded kicks were fired where no aim could take both (5 % then did) and the
+                              # stick cannot turn a sliding marble for ~0.4 s after a kick. False = the 40.26 rule below.
+SS_TWO_GEM_MIN_U = 8.0        # u to gem 1: plan only where the use prior can fire (model.USE_RUN_U)
 
 
 def ss_redirect_aim(vx, vy, nx, ny, dv=SS_DV):
@@ -316,11 +326,20 @@ class ObsBuilder:
                 # in [30], survivable in [26]; the resulting VELOCITY VECTOR decides the heading the floor is followed
                 # along (the brake case keeps the old heading), and the 24 u/s cap binds the next-gem-on-the-line case
                 # too (before, that override skipped it: 8 u/s along the line + 25 = 33 u/s was approved).
-                aim0, (rvx, rvy), sp0 = ss_kick_result(vx, vy, ux, uy)
-                vec[VEC_POW + 28] = aim0[0]; vec[VEC_POW + 29] = aim0[1]
-                vec[VEC_POW + 30] = sp0 / SS_VMAX
-                nrel = (next_goal[0] - x, next_goal[1] - y) if next_goal is not None else None
-                vec[VEC_POW + 26] = 1.0 if ss_kick_ok(self.terrain, x, y, z, rvx, rvy, sp0, d, ux, uy, nrel) else 0.0
+                if SS_TWO_GEM and next_goal is not None and d >= SS_TWO_GEM_MIN_U:   # 18:20: gem 1 alone stays on the
+                    p1, v1, w1 = ss_two_gem.advance((x, y), (vx, vy), (wx, wy, wz), (gx, gy))   # 40.26 rule (80 % of
+                    ok, aim2, isp = ss_two_gem.plan_fast(self.terrain, p1, z, v1, w1, (gx, gy), next_goal[:2])   # those fell)
+                    if aim2 is None:                    # no two-gem path: keep the old aim as information, not approved
+                        aim2, _, isp = ss_kick_result(vx, vy, ux, uy)
+                    vec[VEC_POW + 28] = aim2[0]; vec[VEC_POW + 29] = aim2[1]
+                    vec[VEC_POW + 30] = min(isp, SS_VMAX) / SS_VMAX
+                    vec[VEC_POW + 26] = 1.0 if ok else 0.0
+                else:
+                    aim0, (rvx, rvy), sp0 = ss_kick_result(vx, vy, ux, uy)
+                    vec[VEC_POW + 28] = aim0[0]; vec[VEC_POW + 29] = aim0[1]
+                    vec[VEC_POW + 30] = sp0 / SS_VMAX
+                    nrel = (next_goal[0] - x, next_goal[1] - y) if next_goal is not None else None
+                    vec[VEC_POW + 26] = 1.0 if ss_kick_ok(self.terrain, x, y, z, rvx, rvy, sp0, d, ux, uy, nrel) else 0.0
             if held == 2 and next_goal is not None and d > 1e-6:
                 # approach information [27]: the SAME rule applied at the gem ahead with the predicted pickup velocity
                 # (the current speed along the line to it, at least SS_REDIRECT_MIN_SPEED), kicking toward the next gem

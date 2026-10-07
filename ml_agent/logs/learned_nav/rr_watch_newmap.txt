@@ -1,0 +1,12 @@
+warm-up: model ready in 0.00 s, terrain "KingOfTheMarble_Hunt" pre-built
+[env:9961] waiting for the game
+[env:9961] game connected (1)
+WATCH mode: every frame drawn, 4 sim slice(s) per 64 ms decision, real time
+real run: nav_points_20261005_stop_30295.pth (update 30295) on KingOfTheMarble_Hunt, 50 round(s), port 9961
+stuck-breaker #1 at (-38.0,6.8) decision 334: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #2 at (-20.6,13.4) decision 1634: state reset, path waypoint + sampling for 24 decisions
+  round 1: {'round': 1, 'gems': 108, 'points': 138.0, 'minutes': 3.03, 'decisions': 2840, 'countdown_decisions': 45, 'gems_per_min': 35.7, 'points_per_min': 45.6, 'falls': 9, 'falls_per_100u': 0.63, 'travelled_u': 1429.3, 'speed': 7.86, 'blind_pct': 0.0, 'stuck_breaks': 2, 'snapped_pct': 0.0, 'pathed_pct': 1.2, 'smooth': 1.0, 'pow_uses': {'2': 1}, 'engine_points': 138.0, 'completed': True, 'ss_fires': 0, 'ss_events': [], 'no_use': False, 'force_use': False, 'checkpoint': 'nav_points_20261005_stop_30295.pth', 'update': 30295, 'ss_opportunities': {'decisions': 2841, 'held': 1797, 'held_floor': 1649, 'target_near': 922, 'speed_cap_fail': 1603, 'terrain_or_cap_fail': 1647, 'target_far': 727, 'speed_cap_pass': 46, 'terrain_fail_with_speed_ok': 44, 'post_pickup_held_floor': 397, 'post_pickup_speed_cap_pass': 23, 'terrain_and_cap_pass': 2, 'approved': 1, 'post_pickup_approved': 1, 'clear_but_target_near': 1}, 'ss_route': False, 'ss_prepare': False, 'ss_follow': False, 'ss_command_aim': False, 'ss_yaw_fix': False, 'ss_yaw_debug': None}
+[env:9961] round over (time left 180s of 180s); waiting for the next round
+[env:9961] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[env:9961] game disconnected
+[env:9961] waiting for the game

@@ -1,0 +1,868 @@
+{
+  "schema": 2,
+  "reward_version": "game_points_v1",
+  "window_ms": 12032,
+  "checkpoint": "models/nav/nav_v10_28897.pth",
+  "base_checkpoint": "models/nav/nav_v10_28897.pth",
+  "starts_sha256": "b7698063e16b1d7492da3a80358d82ffced0348b650d8d34f638f698700e7ab1",
+  "branches": [
+    "base",
+    "no_use"
+  ],
+  "requested_ids": [
+    "dfb03e2655694c28894daa38b3aad0b8:2:401844",
+    "dfb03e2655694c28894daa38b3aad0b8:3:716916",
+    "dfb03e2655694c28894daa38b3aad0b8:5:960948",
+    "dfb03e2655694c28894daa38b3aad0b8:6:1141748",
+    "dfb03e2655694c28894daa38b3aad0b8:10:1892404",
+    "dfb03e2655694c28894daa38b3aad0b8:11:2133812",
+    "dfb03e2655694c28894daa38b3aad0b8:13:2483508",
+    "dfb03e2655694c28894daa38b3aad0b8:14:2697652",
+    "dfb03e2655694c28894daa38b3aad0b8:15:2863220",
+    "dfb03e2655694c28894daa38b3aad0b8:17:3219636",
+    "dfb03e2655694c28894daa38b3aad0b8:18:3443508",
+    "dfb03e2655694c28894daa38b3aad0b8:19:3602996",
+    "dfb03e2655694c28894daa38b3aad0b8:21:3966516",
+    "dfb03e2655694c28894daa38b3aad0b8:23:4385396",
+    "dfb03e2655694c28894daa38b3aad0b8:24:4597044",
+    "79bcb33ce16747fa8ed288d813e7f937:3:618093",
+    "79bcb33ce16747fa8ed288d813e7f937:4:764141",
+    "79bcb33ce16747fa8ed288d813e7f937:5:970413",
+    "79bcb33ce16747fa8ed288d813e7f937:6:1151789",
+    "79bcb33ce16747fa8ed288d813e7f937:8:1546669"
+  ],
+  "rows": [
+    {
+      "id": "dfb03e2655694c28894daa38b3aad0b8:2:401844",
+      "status": "ok",
+      "points": 9.0,
+      "falls": 1,
+      "pickup_times_ms": [
+        320,
+        3392,
+        4480,
+        6080,
+        7296,
+        8128,
+        9664,
+        11840
+      ],
+      "fired": false,
+      "elapsed_ms": 12032,
+      "outcome": "window",
+      "branch": "base"
+    },
+    {
+      "id": "dfb03e2655694c28894daa38b3aad0b8:2:401844",
+      "status": "ok",
+      "points": 8.0,
+      "falls": 1,
+      "pickup_times_ms": [
+        320,
+        4928,
+        6720,
+        8448,
+        9664,
+        10496,
+        12032
+      ],
+      "fired": false,
+      "elapsed_ms": 12032,
+      "outcome": "window",
+      "branch": "no_use"
+    },
+    {
+      "id": "dfb03e2655694c28894daa38b3aad0b8:3:716916",
+      "status": "ok",
+      "points": 12.0,
+      "falls": 0,
+      "pickup_times_ms": [
+        256,
+        2560,
+        3584,
+        5056,
+        6272,
+        7616,
+        8448,
+        10048,
+        11456
+      ],
+      "fired": false,
+      "elapsed_ms": 12032,
+      "outcome": "window",
+      "branch": "base"
+    },
+    {
+      "id": "dfb03e2655694c28894daa38b3aad0b8:3:716916",
+      "status": "ok",
+      "points": 12.0,
+      "falls": 0,
+      "pickup_times_ms": [
+        256,
+        2560,
+        3584,
+        5056,
+        6272,
+        7616,
+        8448,
+        10048,
+        11456
+      ],
+      "fired": false,
+      "elapsed_ms": 12032,
+      "outcome": "window",
+      "branch": "no_use"
+    },
+    {
+      "id": "dfb03e2655694c28894daa38b3aad0b8:5:960948",
+      "status": "ok",
+      "points": 13.0,
+      "falls": 0,
+      "pickup_times_ms": [
+        256,
+        2368,
+        3648,
+        5312,
+        5888,
+        6656,
+        7296,
+        8128,
+        8768,
+        9536,
+        11776
+      ],
+      "fired": false,
+      "elapsed_ms": 12032,
+      "outcome": "window",
+      "branch": "base"
+    },
+    {
+      "id": "dfb03e2655694c28894daa38b3aad0b8:5:960948",
+      "status": "ok",
+      "points": 13.0,
+      "falls": 0,
+      "pickup_times_ms": [
+        256,
+        2368,
+        3648,
+        5312,
+        5888,
+        6656,
+        7296,
+        8128,
+        8768,
+        9536,
+        11776
+      ],
+      "fired": false,
+      "elapsed_ms": 12032,
+      "outcome": "window",
+      "branch": "no_use"
+    },
+    {
+      "id": "dfb03e2655694c28894daa38b3aad0b8:6:1141748",
+      "status": "ok",
+      "points": 9.0,
+      "falls": 1,
+      "pickup_times_ms": [
+        256,
+        4224,
+        5568,
+        6848,
+        7936,
+        9344,
+        10560
+      ],
+      "fired": false,
+      "elapsed_ms": 12032,
+      "outcome": "window",
+      "branch": "base"
+    },
+    {
+      "id": "dfb03e2655694c28894daa38b3aad0b8:6:1141748",
+      "status": "ok",
+      "points": 10.0,
+      "falls": 1,
+      "pickup_times_ms": [
+        256,
+        3520,
+        4672,
+        5952,
+        7104,
+        8576,
+        9792,
+        11904
+      ],
+      "fired": false,
+      "elapsed_ms": 12032,
+      "outcome": "window",
+      "branch": "no_use"
+    },
+    {
+      "id": "dfb03e2655694c28894daa38b3aad0b8:10:1892404",
+      "status": "ok",
+      "points": 9.0,
+      "falls": 1,
+      "pickup_times_ms": [
+        256,
+        4288,
+        5504,
+        6592,
+        7744,
+        9408,
+        10624
+      ],
+      "fired": false,
+      "elapsed_ms": 12032,
+      "outcome": "window",
+      "branch": "base"
+    },
+    {
+      "id": "dfb03e2655694c28894daa38b3aad0b8:10:1892404",
+      "status": "ok",
+      "points": 10.0,
+      "falls": 1,
+      "pickup_times_ms": [
+        256,
+        3520,
+        4608,
+        5696,
+        6912,
+        8512,
+        9728,
+        11520
+      ],
+      "fired": false,
+      "elapsed_ms": 12032,
+      "outcome": "window",
+      "branch": "no_use"
+    },
+    {
+      "id": "dfb03e2655694c28894daa38b3aad0b8:11:2133812",
+      "status": "ok",
+      "points": 11.0,
+      "falls": 0,
+      "pickup_times_ms": [
+        256,
+        2240,
+        3520,
+        4800,
+        6016,
+        7168,
+        10560,
+        11904
+      ],
+      "fired": false,
+      "elapsed_ms": 12032,
+      "outcome": "window",
+      "branch": "base"
+    },
+    {
+      "id": "dfb03e2655694c28894daa38b3aad0b8:11:2133812",
+      "status": "ok",
+      "points": 11.0,
+      "falls": 0,
+      "pickup_times_ms": [
+        256,
+        2240,
+        3520,
+        4800,
+        6016,
+        7168,
+        10560,
+        11904
+      ],
+      "fired": false,
+      "elapsed_ms": 12032,
+      "outcome": "window",
+      "branch": "no_use"
+    },
+    {
+      "id": "dfb03e2655694c28894daa38b3aad0b8:13:2483508",
+      "status": "ok",
+      "points": 12.0,
+      "falls": 0,
+      "pickup_times_ms": [
+        320,
+        2624,
+        3648,
+        4928,
+        5952,
+        7424,
+        8704,
+        9856,
+        11136
+      ],
+      "fired": false,
+      "elapsed_ms": 12032,
+      "outcome": "window",
+      "branch": "base"
+    },
+    {
+      "id": "dfb03e2655694c28894daa38b3aad0b8:13:2483508",
+      "status": "ok",
+      "points": 12.0,
+      "falls": 0,
+      "pickup_times_ms": [
+        320,
+        2624,
+        3648,
+        4928,
+        5952,
+        7424,
+        8704,
+        9856,
+        11136
+      ],
+      "fired": false,
+      "elapsed_ms": 12032,
+      "outcome": "window",
+      "branch": "no_use"
+    },
+    {
+      "id": "dfb03e2655694c28894daa38b3aad0b8:14:2697652",
+      "status": "ok",
+      "points": 10.0,
+      "falls": 0,
+      "pickup_times_ms": [
+        256,
+        2624,
+        3776,
+        6592,
+        7808,
+        9344,
+        10496
+      ],
+      "fired": false,
+      "elapsed_ms": 12032,
+      "outcome": "window",
+      "branch": "base"
+    },
+    {
+      "id": "dfb03e2655694c28894daa38b3aad0b8:14:2697652",
+      "status": "ok",
+      "points": 10.0,
+      "falls": 0,
+      "pickup_times_ms": [
+        256,
+        2624,
+        3776,
+        6592,
+        7808,
+        9344,
+        10496
+      ],
+      "fired": false,
+      "elapsed_ms": 12032,
+      "outcome": "window",
+      "branch": "no_use"
+    },
+    {
+      "id": "dfb03e2655694c28894daa38b3aad0b8:15:2863220",
+      "status": "ok",
+      "points": 11.0,
+      "falls": 1,
+      "pickup_times_ms": [
+        256,
+        4032,
+        5440,
+        6592,
+        7616,
+        9024,
+        10304,
+        11648
+      ],
+      "fired": false,
+      "elapsed_ms": 12032,
+      "outcome": "window",
+      "branch": "base"
+    },
+    {
+      "id": "dfb03e2655694c28894daa38b3aad0b8:15:2863220",
+      "status": "ok",
+      "points": 12.0,
+      "falls": 1,
+      "pickup_times_ms": [
+        256,
+        3264,
+        4416,
+        5568,
+        6592,
+        7936,
+        9216,
+        10496,
+        11904
+      ],
+      "fired": false,
+      "elapsed_ms": 12032,
+      "outcome": "window",
+      "branch": "no_use"
+    },
+    {
+      "id": "dfb03e2655694c28894daa38b3aad0b8:17:3219636",
+      "status": "ok",
+      "points": 10.0,
+      "falls": 0,
+      "pickup_times_ms": [
+        256,
+        2560,
+        3648,
+        6400,
+        7424,
+        8960,
+        10176
+      ],
+      "fired": false,
+      "elapsed_ms": 12032,
+      "outcome": "window",
+      "branch": "base"
+    },
+    {
+      "id": "dfb03e2655694c28894daa38b3aad0b8:17:3219636",
+      "status": "ok",
+      "points": 10.0,
+      "falls": 0,
+      "pickup_times_ms": [
+        256,
+        2560,
+        3648,
+        6400,
+        7424,
+        8960,
+        10176
+      ],
+      "fired": false,
+      "elapsed_ms": 12032,
+      "outcome": "window",
+      "branch": "no_use"
+    },
+    {
+      "id": "dfb03e2655694c28894daa38b3aad0b8:18:3443508",
+      "status": "ok",
+      "points": 9.0,
+      "falls": 0,
+      "pickup_times_ms": [
+        256,
+        3712,
+        5376,
+        7424,
+        8384,
+        10048,
+        11200
+      ],
+      "fired": false,
+      "elapsed_ms": 12032,
+      "outcome": "window",
+      "branch": "base"
+    },
+    {
+      "id": "dfb03e2655694c28894daa38b3aad0b8:18:3443508",
+      "status": "ok",
+      "points": 9.0,
+      "falls": 0,
+      "pickup_times_ms": [
+        256,
+        3712,
+        5376,
+        7424,
+        8384,
+        10048,
+        11200
+      ],
+      "fired": false,
+      "elapsed_ms": 12032,
+      "outcome": "window",
+      "branch": "no_use"
+    },
+    {
+      "id": "dfb03e2655694c28894daa38b3aad0b8:19:3602996",
+      "status": "ok",
+      "points": 11.0,
+      "falls": 1,
+      "pickup_times_ms": [
+        256,
+        3392,
+        4416,
+        5504,
+        6720,
+        8128,
+        9408,
+        11072,
+        11840
+      ],
+      "fired": false,
+      "elapsed_ms": 12032,
+      "outcome": "window",
+      "branch": "base"
+    },
+    {
+      "id": "dfb03e2655694c28894daa38b3aad0b8:19:3602996",
+      "status": "ok",
+      "points": 9.0,
+      "falls": 1,
+      "pickup_times_ms": [
+        256,
+        4160,
+        5440,
+        6592,
+        7680,
+        9088,
+        10304
+      ],
+      "fired": false,
+      "elapsed_ms": 12032,
+      "outcome": "window",
+      "branch": "no_use"
+    },
+    {
+      "id": "dfb03e2655694c28894daa38b3aad0b8:21:3966516",
+      "status": "ok",
+      "points": 12.0,
+      "falls": 1,
+      "pickup_times_ms": [
+        256,
+        3392,
+        4480,
+        5568,
+        6464,
+        7936,
+        9408,
+        10496,
+        11584
+      ],
+      "fired": false,
+      "elapsed_ms": 12032,
+      "outcome": "window",
+      "branch": "base"
+    },
+    {
+      "id": "dfb03e2655694c28894daa38b3aad0b8:21:3966516",
+      "status": "ok",
+      "points": 10.0,
+      "falls": 1,
+      "pickup_times_ms": [
+        256,
+        4160,
+        5440,
+        6592,
+        7488,
+        9024,
+        10432,
+        11520
+      ],
+      "fired": false,
+      "elapsed_ms": 12032,
+      "outcome": "window",
+      "branch": "no_use"
+    },
+    {
+      "id": "dfb03e2655694c28894daa38b3aad0b8:23:4385396",
+      "status": "ok",
+      "points": 8.0,
+      "falls": 3,
+      "pickup_times_ms": [
+        256,
+        3392,
+        4480,
+        5504,
+        10880,
+        11840
+      ],
+      "fired": false,
+      "elapsed_ms": 12032,
+      "outcome": "window",
+      "branch": "base"
+    },
+    {
+      "id": "dfb03e2655694c28894daa38b3aad0b8:23:4385396",
+      "status": "ok",
+      "points": 8.0,
+      "falls": 3,
+      "pickup_times_ms": [
+        256,
+        3392,
+        4480,
+        5504,
+        10880,
+        11840
+      ],
+      "fired": false,
+      "elapsed_ms": 12032,
+      "outcome": "window",
+      "branch": "no_use"
+    },
+    {
+      "id": "dfb03e2655694c28894daa38b3aad0b8:24:4597044",
+      "status": "ok",
+      "points": 8.0,
+      "falls": 1,
+      "pickup_times_ms": [
+        256,
+        4096,
+        5248,
+        7680,
+        9408,
+        10688
+      ],
+      "fired": false,
+      "elapsed_ms": 12032,
+      "outcome": "window",
+      "branch": "base"
+    },
+    {
+      "id": "dfb03e2655694c28894daa38b3aad0b8:24:4597044",
+      "status": "ok",
+      "points": 9.0,
+      "falls": 1,
+      "pickup_times_ms": [
+        192,
+        3392,
+        4544,
+        7744,
+        9728,
+        10752
+      ],
+      "fired": false,
+      "elapsed_ms": 12032,
+      "outcome": "window",
+      "branch": "no_use"
+    },
+    {
+      "id": "79bcb33ce16747fa8ed288d813e7f937:3:618093",
+      "status": "ok",
+      "points": 9.0,
+      "falls": 1,
+      "pickup_times_ms": [
+        256,
+        4032,
+        5440,
+        6592,
+        7296,
+        9024,
+        10496
+      ],
+      "fired": false,
+      "elapsed_ms": 12032,
+      "outcome": "window",
+      "branch": "base"
+    },
+    {
+      "id": "79bcb33ce16747fa8ed288d813e7f937:3:618093",
+      "status": "ok",
+      "points": 9.0,
+      "falls": 1,
+      "pickup_times_ms": [
+        256,
+        3264,
+        4352,
+        5504,
+        6272,
+        8064,
+        9408
+      ],
+      "fired": false,
+      "elapsed_ms": 12032,
+      "outcome": "window",
+      "branch": "no_use"
+    },
+    {
+      "id": "79bcb33ce16747fa8ed288d813e7f937:4:764141",
+      "status": "ok",
+      "points": 9.0,
+      "falls": 1,
+      "pickup_times_ms": [
+        256,
+        4480,
+        6016,
+        6592,
+        7360,
+        9024,
+        10432
+      ],
+      "fired": false,
+      "elapsed_ms": 12032,
+      "outcome": "window",
+      "branch": "base"
+    },
+    {
+      "id": "79bcb33ce16747fa8ed288d813e7f937:4:764141",
+      "status": "ok",
+      "points": 10.0,
+      "falls": 1,
+      "pickup_times_ms": [
+        256,
+        3648,
+        4736,
+        5312,
+        6080,
+        7616,
+        9024,
+        11456
+      ],
+      "fired": false,
+      "elapsed_ms": 12032,
+      "outcome": "window",
+      "branch": "no_use"
+    },
+    {
+      "id": "79bcb33ce16747fa8ed288d813e7f937:5:970413",
+      "status": "ok",
+      "points": 11.0,
+      "falls": 0,
+      "pickup_times_ms": [
+        256,
+        2368,
+        3968,
+        5120,
+        6016,
+        7616,
+        9024,
+        10432,
+        11712
+      ],
+      "fired": false,
+      "elapsed_ms": 12032,
+      "outcome": "window",
+      "branch": "base"
+    },
+    {
+      "id": "79bcb33ce16747fa8ed288d813e7f937:5:970413",
+      "status": "ok",
+      "points": 11.0,
+      "falls": 0,
+      "pickup_times_ms": [
+        256,
+        2368,
+        3968,
+        5120,
+        6016,
+        7616,
+        9024,
+        10432,
+        11712
+      ],
+      "fired": false,
+      "elapsed_ms": 12032,
+      "outcome": "window",
+      "branch": "no_use"
+    },
+    {
+      "id": "79bcb33ce16747fa8ed288d813e7f937:6:1151789",
+      "status": "ok",
+      "points": 12.0,
+      "falls": 0,
+      "pickup_times_ms": [
+        256,
+        2240,
+        3904,
+        5248,
+        6016,
+        7872,
+        9280,
+        10560,
+        11648
+      ],
+      "fired": false,
+      "elapsed_ms": 12032,
+      "outcome": "window",
+      "branch": "base"
+    },
+    {
+      "id": "79bcb33ce16747fa8ed288d813e7f937:6:1151789",
+      "status": "ok",
+      "points": 12.0,
+      "falls": 0,
+      "pickup_times_ms": [
+        256,
+        2240,
+        3904,
+        5248,
+        6016,
+        7872,
+        9280,
+        10560,
+        11648
+      ],
+      "fired": false,
+      "elapsed_ms": 12032,
+      "outcome": "window",
+      "branch": "no_use"
+    },
+    {
+      "id": "79bcb33ce16747fa8ed288d813e7f937:8:1546669",
+      "status": "ok",
+      "points": 8.0,
+      "falls": 1,
+      "pickup_times_ms": [
+        256,
+        3392,
+        4544,
+        8384,
+        10944,
+        12032
+      ],
+      "fired": false,
+      "elapsed_ms": 12032,
+      "outcome": "window",
+      "branch": "base"
+    },
+    {
+      "id": "79bcb33ce16747fa8ed288d813e7f937:8:1546669",
+      "status": "ok",
+      "points": 10.0,
+      "falls": 1,
+      "pickup_times_ms": [
+        192,
+        4032,
+        5184,
+        8576,
+        9280,
+        10368,
+        11840
+      ],
+      "fired": false,
+      "elapsed_ms": 12032,
+      "outcome": "window",
+      "branch": "no_use"
+    }
+  ],
+  "summary": {
+    "attempts": 40,
+    "paired_n": 20,
+    "paired_ids": [
+      "79bcb33ce16747fa8ed288d813e7f937:3:618093",
+      "79bcb33ce16747fa8ed288d813e7f937:4:764141",
+      "79bcb33ce16747fa8ed288d813e7f937:5:970413",
+      "79bcb33ce16747fa8ed288d813e7f937:6:1151789",
+      "79bcb33ce16747fa8ed288d813e7f937:8:1546669",
+      "dfb03e2655694c28894daa38b3aad0b8:10:1892404",
+      "dfb03e2655694c28894daa38b3aad0b8:11:2133812",
+      "dfb03e2655694c28894daa38b3aad0b8:13:2483508",
+      "dfb03e2655694c28894daa38b3aad0b8:14:2697652",
+      "dfb03e2655694c28894daa38b3aad0b8:15:2863220",
+      "dfb03e2655694c28894daa38b3aad0b8:17:3219636",
+      "dfb03e2655694c28894daa38b3aad0b8:18:3443508",
+      "dfb03e2655694c28894daa38b3aad0b8:19:3602996",
+      "dfb03e2655694c28894daa38b3aad0b8:21:3966516",
+      "dfb03e2655694c28894daa38b3aad0b8:23:4385396",
+      "dfb03e2655694c28894daa38b3aad0b8:24:4597044",
+      "dfb03e2655694c28894daa38b3aad0b8:2:401844",
+      "dfb03e2655694c28894daa38b3aad0b8:3:716916",
+      "dfb03e2655694c28894daa38b3aad0b8:5:960948",
+      "dfb03e2655694c28894daa38b3aad0b8:6:1141748"
+    ],
+    "failed": [],
+    "comparisons": {
+      "base-no_use": {
+        "points": {
+          "mean": -0.1,
+          "se": 0.21643037047317987
+        },
+        "falls": {
+          "mean": 0,
+          "se": 0.0
+        }
+      }
+    }
+  }
+}

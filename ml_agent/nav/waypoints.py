@@ -493,6 +493,18 @@ class SegmentManager:
         self.drill_mode = False        # 40.26: Super Speed curriculum drills (begin_drill): a fall ENDS the segment,
                                        # no chaining into a sampled group, DRILL_TIMEOUT_DEC decisions per target
 
+    def begin_replay(self, pos, goal, next_goal):
+        """Use the restored game's target without a teleport, synthetic gems, or a settling step."""
+        x, y, z = map(float, pos)
+        field = self.terrain.goal_field(goal[0], goal[1])
+        self.seg = Segment(tuple(goal), field, 0.0, (x, y, z))
+        self.seg.prev_d = self.terrain.dist_at(field, x, y, goal[:2])
+        self.seg.path_len = self.seg.prev_d
+        self.seg.last_pos = np.asarray(pos, dtype=float)
+        self.seg.chain_from_prev = True
+        self._prev_cmd = None
+        self.set_next(x, y, next_goal)
+
     def retarget(self, x, y, goal, next_goal):
         """Real-gem mode: the chooser switched target (a pickup or a better gem). Rebase on the new gem."""
         s = self.seg
@@ -901,7 +913,7 @@ class SegmentManager:
             s.falls += 1
             if s.fall_mark is None and np.isfinite(d_before):
                 s.fall_mark = float(d_before)     # earliest mark wins if it falls again on the way back
-            if FALL_CONTINUE and s.falls < MAX_FALLS_PER_SEGMENT and (not self.drill_mode or self.drill_window):
+            if self.real_mode or (FALL_CONTINUE and s.falls < MAX_FALLS_PER_SEGMENT and (not self.drill_mode or self.drill_window)):
                 self.pending_respawn = True       # the worker respawns us; the group is NOT lost
             else:
                 done, outcome = True, 'fell'
@@ -938,7 +950,12 @@ class SegmentManager:
             done, outcome = True, 'timeout'
         elif round_ended:
             done, outcome = True, 'round'
-        if self.drill_mode and DRILL_REWARD == 'points':
+        if self.real_mode:
+            # Both ordinary rounds and restored windows optimize the same game score.
+            # Falls recover in the game; artificial cuts are owned by the worker's game clock.
+            r = float(picked)
+            done, outcome = (True, 'round') if round_ended else (False, None)
+        elif self.drill_mode and DRILL_REWARD == 'points':
             r = 1.0 if arrived_now else 0.0           # 40.40: the game's objective only (the pickup's point value)
         if done:
             s.outcome = outcome
@@ -969,7 +986,7 @@ class SegmentManager:
                              'pickup_speed': (sum(s.pickup_speeds) / len(s.pickup_speeds)) if s.pickup_speeds else 0.0,
                              'carry_speed': (sum(s.carry_vals) / len(s.carry_vals)) if s.carry_vals else 0.0,
                              'turn_deg': (sum(s.turn_degs) / len(s.turn_degs)) if s.turn_degs else 0.0,
-                             'chain_dec': s.chain_dec, 'chain_n': s.chain_n})
+                             'chain_dec': s.chain_dec, 'chain_n': s.chain_n, 'real': self.real_mode})
         if len(self.history) > 2000:
             self.history = self.history[-2000:]
 
@@ -994,7 +1011,9 @@ class SegmentManager:
         return True
 
     def stats(self, last=300):
-        h = [x for x in self.history[-last:] if x['outcome'] != 'round']
+        # a real-gem round is one whole segment ending in 'round': keep it (2026-10-05 22:40, operator: the speed, falls and
+        # seconds-per-pickup cards were empty with every game on full rounds); a synthetic segment cut by the round end stays out
+        h = [x for x in self.history[-last:] if x['outcome'] != 'round' or x.get('real')]
         if not h:
             return {'segments': 0, 'arrive_pct': 0.0, 'falls_per_100u': 0.0, 'speed': 0.0, 'timeout_pct': 0.0,
                     'gems_pct': 0.0, 'gems_per_group': 0.0, 'pickup_speed': 0.0, 'carry_speed': 0.0,

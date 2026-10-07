@@ -1,0 +1,28 @@
+warm-up: model ready in 0.00 s, terrain "KingOfTheMarble_Hunt" pre-built
+[env:9961] waiting for the game
+[env:9961] game connected (1)
+WATCH mode: every frame drawn, 4 sim slice(s) per 64 ms decision, real time
+real run: nav_v10_28897.pth (update 28895) on KingOfTheMarble_Hunt, 50 round(s), port 9961
+stuck-breaker #1 at (-24.2,16.5) decision 1307: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #2 at (-24.2,16.2) decision 1331: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #3 at (-24.3,16.1) decision 1355: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #4 at (-24.2,16.4) decision 1379: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #5 at (-24.2,16.4) decision 1403: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #6 at (-24.3,16.2) decision 1427: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #7 at (-24.4,16.3) decision 1451: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #8 at (-24.2,16.4) decision 1475: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #9 at (-24.3,16.2) decision 1499: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #10 at (-24.3,16.3) decision 1523: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #11 at (-24.2,16.3) decision 1547: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #12 at (-24.2,16.2) decision 1571: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #13 at (-24.2,16.4) decision 1595: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #14 at (-24.2,16.5) decision 1619: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #15 at (-24.3,16.6) decision 1643: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #16 at (-24.4,16.2) decision 1667: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #17 at (-24.1,16.4) decision 1691: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #18 at (-24.2,16.2) decision 1715: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #19 at (-24.2,16.4) decision 1739: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #20 at (-24.2,16.2) decision 1763: state reset, path waypoint + sampling for 24 decisions
+stuck-breaker #21 at (-24.6,16.2) decision 1787: state reset, path waypoint + sampling for 24 decisions
+[env:9961] game disconnected
+[env:9961] waiting for the game

@@ -1,0 +1,593 @@
+[21:49:57] optimizer state from a FREEZE_BASE run (two parameter groups): fresh Adam state
+[21:49:57] resumed C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\models\nav\nav_latest.pth: update 30295, steps 239,347,979, trained on KingOfTheMarble_Hunt
+[21:49:57] 8 instance worker(s) on ports 8888..8895; training mode True (64 ms per decision); arrive radius 0.65 u; device cuda
+[21:50:10] [0] [env:8888] waiting for the game
+[21:50:10] [0] [env:8888] game connected (1)
+[21:50:10] [0] real-gem training mode: True
+[21:50:10] [0] mission KingOfTheMarble_Hunt: terrain 193x193 @ 0.25 u, walkable 1452 cells
+[21:50:10] [0] gem chooser: whole-spawn planner (walk)
+[21:50:10] [0] ready on 8888, mission KingOfTheMarble_Hunt
+[21:50:12] [1] [env:8889] waiting for the game
+[21:50:12] [1] [env:8889] game connected (1)
+[21:50:12] [1] real-gem training mode: True
+[21:50:12] [1] mission KingOfTheMarble_Hunt: terrain 193x193 @ 0.25 u, walkable 1452 cells
+[21:50:12] [1] gem chooser: whole-spawn planner (walk)
+[21:50:12] [1] ready on 8889, mission KingOfTheMarble_Hunt
+[21:50:14] [2] [env:8890] waiting for the game
+[21:50:14] [2] [env:8890] game connected (1)
+[21:50:14] [2] real-gem training mode: True
+[21:50:14] [2] mission KingOfTheMarble_Hunt: terrain 193x193 @ 0.25 u, walkable 1452 cells
+[21:50:14] [2] gem chooser: whole-spawn planner (walk)
+[21:50:14] [2] ready on 8890, mission KingOfTheMarble_Hunt
+[21:50:16] [3] [env:8891] waiting for the game
+[21:50:16] [3] [env:8891] game connected (1)
+[21:50:16] [3] real-gem training mode: True
+[21:50:16] [3] mission KingOfTheMarble_Hunt: terrain 193x193 @ 0.25 u, walkable 1452 cells
+[21:50:16] [3] gem chooser: whole-spawn planner (walk)
+[21:50:16] [3] ready on 8891, mission KingOfTheMarble_Hunt
+[21:50:19] [4] [env:8892] waiting for the game
+[21:50:19] [4] [env:8892] game connected (1)
+[21:50:19] [4] real-gem training mode: True
+[21:50:19] [4] mission KingOfTheMarble_Hunt: terrain 193x193 @ 0.25 u, walkable 1452 cells
+[21:50:19] [4] gem chooser: whole-spawn planner (walk)
+[21:50:19] [4] ready on 8892, mission KingOfTheMarble_Hunt
+[21:50:21] [5] [env:8893] waiting for the game
+[21:50:21] [5] [env:8893] game connected (1)
+[21:50:21] [5] real-gem training mode: True
+[21:50:21] [5] mission KingOfTheMarble_Hunt: terrain 193x193 @ 0.25 u, walkable 1452 cells
+[21:50:21] [5] gem chooser: whole-spawn planner (walk)
+[21:50:21] [5] ready on 8893, mission KingOfTheMarble_Hunt
+[21:50:23] [6] [env:8894] waiting for the game
+[21:50:23] [6] [env:8894] game connected (1)
+[21:50:23] [6] real-gem training mode: True
+[21:50:23] [6] mission KingOfTheMarble_Hunt: terrain 193x193 @ 0.25 u, walkable 1452 cells
+[21:50:23] [6] gem chooser: whole-spawn planner (walk)
+[21:50:23] [6] ready on 8894, mission KingOfTheMarble_Hunt
+[21:50:24] [7] [env:8895] waiting for the game
+[21:50:24] [7] [env:8895] game connected (1)
+[21:50:24] [7] real-gem training mode: True
+[21:50:24] [7] mission KingOfTheMarble_Hunt: terrain 193x193 @ 0.25 u, walkable 1452 cells
+[21:50:24] [7] gem chooser: whole-spawn planner (walk)
+[21:50:24] [7] ready on 8895, mission KingOfTheMarble_Hunt
+[21:50:27] [0] fall without OOB flag: 4 decisions off the map at [-23.9  20.4  13.5] (time left 178s)
+[21:50:27] [0] fall without OOB flag: 5 decisions off the map at [-23.2  20.6  12.4] (time left 178s)
+[21:50:27] [0] fall without OOB flag: 6 decisions off the map at [-22.5  20.9  11.2] (time left 178s)
+[21:50:27] [1] fall without OOB flag: 5 decisions off the map at [-25.2  11.7  12.7] (time left 175s)
+[21:50:27] [1] fall without OOB flag: 6 decisions off the map at [-25.7  11.7  11.5] (time left 175s)
+[21:50:27] [1] fall without OOB flag: 7 decisions off the map at [-26.1  11.8  10.3] (time left 175s)
+[21:50:29] [2] fall without OOB flag: 4 decisions off the map at [-26.6  25.4  13.7] (time left 170s)
+[21:50:29] [1] fall without OOB flag: 4 decisions off the map at [-24.5   8.9  13.8] (time left 170s)
+[21:50:29] [1] fall without OOB flag: 6 decisions off the map at [-25.    8.2  11.5] (time left 170s)
+[21:50:29] [1] fall without OOB flag: 7 decisions off the map at [-25.2   7.8  10.2] (time left 170s)
+[21:50:29] [3] fall without OOB flag: 4 decisions off the map at [-26.4   3.4  14. ] (time left 169s)
+[21:50:29] [3] fall without OOB flag: 6 decisions off the map at [-26.    1.9  11.8] (time left 169s)
+[21:50:29] [1] fall without OOB flag: 5 decisions off the map at [-27.9  25.1  12.6] (time left 166s)
+[21:50:30] [1] fall without OOB flag: 6 decisions off the map at [-28.   25.7  11.4] (time left 166s)
+[21:50:30] [1] fall without OOB flag: 7 decisions off the map at [-28.   26.3  10.1] (time left 166s)
+[21:50:30] [0] fall without OOB flag: 5 decisions off the map at [-29.9  12.4  12.3] (time left 165s)
+[21:50:30] [0] fall without OOB flag: 6 decisions off the map at [-30.   12.5  11.1] (time left 165s)
+[21:50:30] [0] fall without OOB flag: 7 decisions off the map at [-30.1  12.7   9.8] (time left 165s)
+[21:50:31] [3] fall without OOB flag: 4 decisions off the map at [-34.2  15.7  13.7] (time left 161s)
+[21:50:31] [3] fall without OOB flag: 5 decisions off the map at [-34.6  15.6  12.6] (time left 161s)
+[21:50:31] [2] fall without OOB flag: 4 decisions off the map at [-37.9  14.3  13.1] (time left 160s)
+[21:50:31] [2] fall without OOB flag: 5 decisions off the map at [-38.5  14.4  11.9] (time left 160s)
+[21:50:33] [0] fall without OOB flag: 4 decisions off the map at [-10.3  13.8  13.3] (time left 157s)
+[21:50:33] [0] fall without OOB flag: 5 decisions off the map at [-10.5  14.4  12.2] (time left 157s)
+[21:50:33] [1] fall without OOB flag: 4 decisions off the map at [-23.8  11.2  13.4] (time left 157s)
+[21:50:33] [1] fall without OOB flag: 5 decisions off the map at [-24.4  11.   12.3] (time left 157s)
+[21:50:34] [1] fall without OOB flag: 4 decisions off the map at [-16.9  12.   13.4] (time left 154s)
+[21:50:34] [1] fall without OOB flag: 5 decisions off the map at [-16.9  11.9  12.2] (time left 154s)
+[21:50:34] [1] fall without OOB flag: 6 decisions off the map at [-17.   11.8  10.9] (time left 153s)
+[21:50:34] [0] fall without OOB flag: 4 decisions off the map at [-29.7  30.6  14.4] (time left 152s)
+[21:50:34] [0] fall without OOB flag: 5 decisions off the map at [-29.5  30.9  13.4] (time left 152s)
+[21:50:34] [0] fall without OOB flag: 6 decisions off the map at [-29.4  31.3  12.4] (time left 152s)
+[21:50:36] [1] fall without OOB flag: 4 decisions off the map at [-27.6  16.3  14. ] (time left 147s)
+[21:50:36] [1] fall without OOB flag: 6 decisions off the map at [-26.8  15.9  11.8] (time left 147s)
+[21:50:36] [1] fall without OOB flag: 7 decisions off the map at [-26.3  15.6  10.5] (time left 147s)
+[21:50:36] [2] fall without OOB flag: 4 decisions off the map at [-26.4  27.4  13.6] (time left 146s)
+[21:50:37] [1] fall without OOB flag: 5 decisions off the map at [-33.6  12.3  12.8] (time left 144s)
+[21:50:37] [1] fall without OOB flag: 6 decisions off the map at [-33.7  12.4  11.7] (time left 144s)
+[21:50:37] [1] fall without OOB flag: 7 decisions off the map at [-33.9  12.5  10.4] (time left 144s)
+[21:50:37] [3] fall without OOB flag: 4 decisions off the map at [-16.3  12.   13.3] (time left 141s)
+[21:50:38] [2] fall without OOB flag: 4 decisions off the map at [-13.4  14.3  13.3] (time left 139s)
+[21:50:38] [2] fall without OOB flag: 5 decisions off the map at [-12.6  14.4  12.2] (time left 139s)
+[21:50:40] [1] fall without OOB flag: 5 decisions off the map at [-24.9  30.9  12.8] (time left 135s)
+[21:50:40] [1] fall without OOB flag: 6 decisions off the map at [-25.4  30.8  11.6] (time left 135s)
+[21:50:40] [1] fall without OOB flag: 7 decisions off the map at [-25.9  30.6  10.3] (time left 135s)
+[21:50:41] [1] fall without OOB flag: 4 decisions off the map at [-24.2  16.8  13.3] (time left 132s)
+[21:50:41] [1] fall without OOB flag: 5 decisions off the map at [-24.4  16.2  12.2] (time left 132s)
+[21:50:41] [1] fall without OOB flag: 6 decisions off the map at [-24.5  15.5  10.9] (time left 132s)
+[21:50:41] [3] fall without OOB flag: 5 decisions off the map at [-12.9  21.4  13. ] (time left 132s)
+[21:50:41] [3] fall without OOB flag: 6 decisions off the map at [-12.4  21.6  11.8] (time left 131s)
+[21:50:41] [2] fall without OOB flag: 4 decisions off the map at [-25.5  27.5  13.3] (time left 131s)
+[21:50:42] [1] fall without OOB flag: 5 decisions off the map at [-22.4  14.3  12.6] (time left 128s)
+[21:50:42] [1] fall without OOB flag: 6 decisions off the map at [-22.5  13.7  11.4] (time left 128s)
+[21:50:42] [1] fall without OOB flag: 7 decisions off the map at [-22.5  13.   10.1] (time left 128s)
+[21:50:42] [3] fall without OOB flag: 4 decisions off the map at [-21.1  17.6  13.8] (time left 127s)
+[21:50:42] [3] fall without OOB flag: 5 decisions off the map at [-20.8  17.2  12.6] (time left 126s)
+[21:50:43] [1] fall without OOB flag: 4 decisions off the map at [-27.2  12.4  13.7] (time left 126s)
+[21:50:43] [1] fall without OOB flag: 5 decisions off the map at [-27.8  12.2  12.6] (time left 126s)
+[21:50:43] [1] fall without OOB flag: 6 decisions off the map at [-28.5  12.1  11.4] (time left 126s)
+[21:50:43] [7] fall without OOB flag: 4 decisions off the map at [-26.    3.1  13.9] (time left 125s)
+[21:50:44] [1] fall without OOB flag: 4 decisions off the map at [-34.2  19.   13.4] (time left 122s)
+[21:50:44] [1] fall without OOB flag: 5 decisions off the map at [-34.6  19.   12.3] (time left 122s)
+[21:50:44] [0] fall without OOB flag: 4 decisions off the map at [-24.5  30.5  13.6] (time left 120s)
+[21:50:44] [0] fall without OOB flag: 5 decisions off the map at [-25.   30.4  12.4] (time left 120s)
+[21:50:44] [4] fall without OOB flag: 5 decisions off the map at [-10.1  14.3  12. ] (time left 120s)
+[21:50:45] [0] fall without OOB flag: 4 decisions off the map at [-23.   33.1  13.6] (time left 118s)
+[21:50:45] [0] fall without OOB flag: 5 decisions off the map at [-23.4  33.2  12.5] (time left 118s)
+[21:50:45] [2] fall without OOB flag: 4 decisions off the map at [-28.4  24.7  13.7] (time left 118s)
+[21:50:45] [2] fall without OOB flag: 5 decisions off the map at [-28.5  25.3  12.6] (time left 118s)
+[21:50:51] NAV upd=30296 map=KingOfTheMarble_Hunt r=0.65 steps=239,356,179 segs=0 arrive=0% falls100=0.00 speed=0.0 gems=0.0 pickup=0.0 sgem=0.00 carry=0.0 turn=0.0 rew=0.0 pl=-0.010 vl=0.209 ent=0.32 entd=0.03 ec=0.0050 kl=0.037 clip=0.25 gn=6.26 ep=3 dstd=0.22 flips=0 vcont=5.2 upd_s=5.0 wall_s=27 inst=8 dps=307 prof=fwd:11,send:1,recv:10,handle:0,w_game:17,w_obs:28,w_begin:0
+[21:50:51] [1] fall without OOB flag: 4 decisions off the map at [-10.   14.5  13.2] (time left 115s)
+[21:50:51] [1] fall without OOB flag: 5 decisions off the map at [-10.1  15.1  12. ] (time left 115s)
+[21:50:51] [1] fall without OOB flag: 6 decisions off the map at [-10.3  15.7  10.8] (time left 115s)
+[21:50:52] [3] fall without OOB flag: 5 decisions off the map at [-24.1  26.9  12.1] (time left 112s)
+[21:50:53] [3] fall without OOB flag: 6 decisions off the map at [-24.1  27.7  10.9] (time left 112s)
+[21:50:53] [3] fall without OOB flag: 7 decisions off the map at [-24.2  28.4   9.6] (time left 112s)
+[21:50:53] [0] fall without OOB flag: 5 decisions off the map at [-28.6   7.2  12.7] (time left 110s)
+[21:50:53] [0] fall without OOB flag: 6 decisions off the map at [-28.5   6.6  11.5] (time left 110s)
+[21:50:53] [0] fall without OOB flag: 7 decisions off the map at [-28.4   6.1  10.2] (time left 110s)
+[21:50:53] [0] fall without OOB flag: 8 decisions off the map at [-28.3   5.5   8.9] (time left 110s)
+[21:50:53] [5] fall without OOB flag: 4 decisions off the map at [-16.5  15.9  13.5] (time left 110s)
+[21:50:54] [4] fall without OOB flag: 4 decisions off the map at [-21.   14.8  13. ] (time left 108s)
+[21:50:54] [4] fall without OOB flag: 5 decisions off the map at [-21.4  14.9  11.9] (time left 108s)
+[21:50:54] [1] fall without OOB flag: 5 decisions off the map at [-23.8  14.1  12.9] (time left 108s)
+[21:50:54] [1] fall without OOB flag: 6 decisions off the map at [-23.7  13.9  11.7] (time left 108s)
+[21:50:54] [1] fall without OOB flag: 7 decisions off the map at [-23.6  13.7  10.5] (time left 108s)
+[21:50:54] [1] fall without OOB flag: 8 decisions off the map at [-23.6  13.4   9.2] (time left 108s)
+[21:50:54] [2] fall without OOB flag: 4 decisions off the map at [-22.1  16.3  13. ] (time left 107s)
+[21:50:54] [2] fall without OOB flag: 5 decisions off the map at [-22.6  16.1  11.9] (time left 107s)
+[21:50:54] [2] fall without OOB flag: 6 decisions off the map at [-23.   16.   10.6] (time left 107s)
+[21:50:55] [7] fall without OOB flag: 5 decisions off the map at [-28.   18.2  12.3] (time left 105s)
+[21:50:55] [5] fall without OOB flag: 4 decisions off the map at [-22.8  19.2  14.1] (time left 105s)
+[21:50:55] [7] fall without OOB flag: 6 decisions off the map at [-28.1  17.8  11.1] (time left 105s)
+[21:50:55] [5] fall without OOB flag: 6 decisions off the map at [-22.6  19.3  11.9] (time left 105s)
+[21:50:55] [4] fall without OOB flag: 5 decisions off the map at [-28.5  10.9  12.1] (time left 104s)
+[21:50:55] [4] fall without OOB flag: 6 decisions off the map at [-28.5  11.3  10.9] (time left 104s)
+[21:50:55] [0] fall without OOB flag: 4 decisions off the map at [-28.8  20.2  13.1] (time left 104s)
+[21:50:55] [0] fall without OOB flag: 5 decisions off the map at [-28.5  20.3  11.9] (time left 104s)
+[21:50:55] [0] fall without OOB flag: 6 decisions off the map at [-28.2  20.3  10.6] (time left 103s)
+[21:50:55] [1] fall without OOB flag: 4 decisions off the map at [-27.1  15.6  13.5] (time left 103s)
+[21:50:55] [1] fall without OOB flag: 5 decisions off the map at [-27.4  15.5  12.4] (time left 103s)
+[21:50:55] [1] fall without OOB flag: 6 decisions off the map at [-27.6  15.4  11.2] (time left 103s)
+[21:50:55] [1] fall without OOB flag: 7 decisions off the map at [-27.9  15.4  10. ] (time left 103s)
+[21:50:55] [6] fall without OOB flag: 5 decisions off the map at [-32.   15.1  12.7] (time left 102s)
+[21:50:55] [6] fall without OOB flag: 6 decisions off the map at [-32.1  15.7  11.5] (time left 102s)
+[21:50:56] [3] fall without OOB flag: 4 decisions off the map at [-19.   15.7  13. ] (time left 101s)
+[21:50:56] [3] fall without OOB flag: 5 decisions off the map at [-19.4  16.   11.9] (time left 101s)
+[21:50:56] [0] fall without OOB flag: 4 decisions off the map at [-24.   15.2  13.2] (time left 101s)
+[21:50:56] [0] fall without OOB flag: 5 decisions off the map at [-23.3  14.9  12. ] (time left 101s)
+[21:50:56] [0] fall without OOB flag: 6 decisions off the map at [-22.6  14.7  10.8] (time left 101s)
+[21:50:56] [0] fall without OOB flag: 7 decisions off the map at [-21.9  14.5   9.4] (time left 101s)
+[21:50:56] [1] fall without OOB flag: 4 decisions off the map at [-31.6  11.8  14.2] (time left 99s)
+[21:50:56] [1] fall without OOB flag: 6 decisions off the map at [-31.8  11.9  12.1] (time left 99s)
+[21:50:56] [1] fall without OOB flag: 7 decisions off the map at [-31.9  12.   10.9] (time left 99s)
+[21:50:56] [1] fall without OOB flag: 8 decisions off the map at [-32.   12.2   9.6] (time left 99s)
+[21:50:56] [2] fall without OOB flag: 5 decisions off the map at [-35.4  15.1  12.2] (time left 98s)
+[21:50:56] [2] fall without OOB flag: 6 decisions off the map at [-35.8  14.8  10.9] (time left 98s)
+[21:50:56] [2] fall without OOB flag: 7 decisions off the map at [-36.2  14.6   9.6] (time left 98s)
+[21:50:56] [5] fall without OOB flag: 5 decisions off the map at [-30.3  13.5  12.3] (time left 98s)
+[21:50:56] [5] fall without OOB flag: 6 decisions off the map at [-30.2  13.6  11.1] (time left 98s)
+[21:50:56] [3] fall without OOB flag: 5 decisions off the map at [-30.3  18.6  12.7] (time left 97s)
+[21:50:56] [3] fall without OOB flag: 6 decisions off the map at [-30.3  18.8  11.5] (time left 97s)
+[21:50:56] [3] fall without OOB flag: 7 decisions off the map at [-30.3  19.1  10.2] (time left 97s)
+[21:50:57] [1] fall without OOB flag: 4 decisions off the map at [-33.9  19.6  13.8] (time left 96s)
+[21:50:57] [4] fall without OOB flag: 4 decisions off the map at [-23.4  24.8  13.8] (time left 95s)
+[21:50:57] [1] fall without OOB flag: 6 decisions off the map at [-34.7  19.8  11.5] (time left 95s)
+[21:50:57] [4] fall without OOB flag: 6 decisions off the map at [-23.3  26.1  11.5] (time left 95s)
+[21:50:57] [1] fall without OOB flag: 7 decisions off the map at [-35.1  19.8  10.3] (time left 95s)
+[21:50:57] [1] fall without OOB flag: 8 decisions off the map at [-35.5  19.8   8.9] (time left 95s)
+[21:50:57] [0] fall without OOB flag: 4 decisions off the map at [-24.   18.2  13.9] (time left 95s)
+[21:50:57] [0] fall without OOB flag: 6 decisions off the map at [-24.2  18.   11.6] (time left 95s)
+[21:50:57] [0] fall without OOB flag: 7 decisions off the map at [-24.2  18.   10.3] (time left 95s)
+[21:50:57] [0] fall without OOB flag: 8 decisions off the map at [-24.3  17.9   9. ] (time left 95s)
+[21:50:58] [5] fall without OOB flag: 4 decisions off the map at [-21.5   6.2  13.9] (time left 94s)
+[21:50:58] [5] fall without OOB flag: 5 decisions off the map at [-21.4   5.6  12.7] (time left 94s)
+[21:50:58] [1] fall without OOB flag: 4 decisions off the map at [-43.7   5.9  13.7] (time left 93s)
+[21:50:58] [1] fall without OOB flag: 5 decisions off the map at [-44.    5.4  12.6] (time left 93s)
+[21:50:58] [1] fall without OOB flag: 6 decisions off the map at [-44.1   4.9  11.4] (time left 93s)
+[21:50:58] [6] fall without OOB flag: 5 decisions off the map at [-11.8  14.   12.1] (time left 92s)
+[21:50:58] [6] fall without OOB flag: 6 decisions off the map at [-11.   14.2  10.8] (time left 92s)
+[21:50:59] [1] fall without OOB flag: 4 decisions off the map at [-21.7  14.7  13.3] (time left 89s)
+[21:50:59] [6] fall without OOB flag: 4 decisions off the map at [-16.9   8.9  13.8] (time left 89s)
+[21:50:59] [1] fall without OOB flag: 5 decisions off the map at [-21.6  15.4  12.2] (time left 89s)
+[21:50:59] [1] fall without OOB flag: 6 decisions off the map at [-21.5  16.   10.9] (time left 89s)
+[21:50:59] [7] fall without OOB flag: 4 decisions off the map at [-26.8  15.3  13.2] (time left 88s)
+[21:50:59] [0] fall without OOB flag: 4 decisions off the map at [-23.8  28.6  13.8] (time left 88s)
+[21:50:59] [0] fall without OOB flag: 5 decisions off the map at [-24.3  28.2  12.7] (time left 88s)
+[21:50:59] [0] fall without OOB flag: 6 decisions off the map at [-24.7  27.8  11.5] (time left 88s)
+[21:50:59] [0] fall without OOB flag: 7 decisions off the map at [-25.2  27.4  10.2] (time left 88s)
+[21:51:00] [5] fall without OOB flag: 5 decisions off the map at [-13.1  21.3  12.1] (time left 87s)
+[21:51:00] [5] fall without OOB flag: 6 decisions off the map at [-12.5  21.5  10.9] (time left 87s)
+[21:51:00] [1] fall without OOB flag: 4 decisions off the map at [-19.3  19.2  13.6] (time left 86s)
+[21:51:00] [1] fall without OOB flag: 5 decisions off the map at [-18.9  20.   12.4] (time left 86s)
+[21:51:00] [1] fall without OOB flag: 6 decisions off the map at [-18.5  20.8  11.2] (time left 86s)
+[21:51:00] [1] fall without OOB flag: 7 decisions off the map at [-18.1  21.7  10. ] (time left 86s)
+[21:51:01] [3] fall without OOB flag: 4 decisions off the map at [-23.5  29.9  13.9] (time left 84s)
+[21:51:01] [3] fall without OOB flag: 5 decisions off the map at [-23.9  29.7  12.7] (time left 84s)
+[21:51:01] [3] fall without OOB flag: 6 decisions off the map at [-24.4  29.5  11.5] (time left 84s)
+[21:51:01] [7] fall without OOB flag: 5 decisions off the map at [-27.1  16.2  12.6] (time left 82s)
+[21:51:01] [7] fall without OOB flag: 6 decisions off the map at [-27.1  17.   11.4] (time left 82s)
+[21:51:01] [2] fall without OOB flag: 4 decisions off the map at [-29.1  12.9  13.2] (time left 81s)
+[21:51:01] [2] fall without OOB flag: 5 decisions off the map at [-29.1  13.5  12. ] (time left 81s)
+[21:51:02] [1] fall without OOB flag: 5 decisions off the map at [-15.7  17.8  12.6] (time left 81s)
+[21:51:02] [1] fall without OOB flag: 6 decisions off the map at [-15.2  17.5  11.4] (time left 81s)
+[21:51:02] [5] fall without OOB flag: 4 decisions off the map at [-26.6  14.8  13.3] (time left 81s)
+[21:51:02] [1] fall without OOB flag: 7 decisions off the map at [-14.8  17.3  10.1] (time left 81s)
+[21:51:02] [1] fall without OOB flag: 8 decisions off the map at [-14.2  17.    8.7] (time left 80s)
+[21:51:02] [3] fall without OOB flag: 4 decisions off the map at [-24.3  15.4  13.1] (time left 80s)
+[21:51:02] [3] fall without OOB flag: 5 decisions off the map at [-24.4  14.7  12. ] (time left 80s)
+[21:51:02] [0] fall without OOB flag: 4 decisions off the map at [-40.2  14.9  13.3] (time left 80s)
+[21:51:02] [0] fall without OOB flag: 5 decisions off the map at [-40.   15.5  12.1] (time left 80s)
+[21:51:02] [0] fall without OOB flag: 6 decisions off the map at [-39.8  16.1  10.9] (time left 80s)
+[21:51:02] [0] fall without OOB flag: 7 decisions off the map at [-39.5  16.8   9.5] (time left 80s)
+[21:51:02] [5] fall without OOB flag: 4 decisions off the map at [-26.9  13.2  13.3] (time left 78s)
+[21:51:02] [3] fall without OOB flag: 4 decisions off the map at [-22.5  15.8  13.8] (time left 78s)
+[21:51:02] [3] fall without OOB flag: 5 decisions off the map at [-22.7  15.1  12.7] (time left 78s)
+[21:51:02] [3] fall without OOB flag: 6 decisions off the map at [-22.9  14.4  11.5] (time left 78s)
+[21:51:02] [1] fall without OOB flag: 4 decisions off the map at [-13.7  10.7  13.7] (time left 77s)
+[21:51:02] [1] fall without OOB flag: 5 decisions off the map at [-13.1  10.7  12.5] (time left 77s)
+[21:51:02] [1] fall without OOB flag: 6 decisions off the map at [-12.5  10.6  11.3] (time left 77s)
+[21:51:03] [2] fall without OOB flag: 4 decisions off the map at [-40.3  14.9  13.6] (time left 74s)
+[21:51:03] [2] fall without OOB flag: 5 decisions off the map at [-40.1  14.2  12.5] (time left 74s)
+[21:51:03] [2] fall without OOB flag: 6 decisions off the map at [-39.9  13.6  11.2] (time left 74s)
+[21:51:03] [3] fall without OOB flag: 4 decisions off the map at [-22.2   7.4  13. ] (time left 74s)
+[21:51:03] [3] fall without OOB flag: 5 decisions off the map at [-22.    7.1  11.9] (time left 74s)
+[21:51:03] [3] fall without OOB flag: 6 decisions off the map at [-21.9   6.9  10.6] (time left 74s)
+[21:51:03] [0] fall without OOB flag: 4 decisions off the map at [-27.8  20.5  13.4] (time left 73s)
+[21:51:03] [0] fall without OOB flag: 5 decisions off the map at [-27.7  20.5  12.2] (time left 73s)
+[21:51:03] [0] fall without OOB flag: 6 decisions off the map at [-27.6  20.6  11. ] (time left 73s)
+[21:51:04] [3] fall without OOB flag: 4 decisions off the map at [-13.3   0.6  12.8] (time left 72s)
+[21:51:04] [3] fall without OOB flag: 5 decisions off the map at [-12.6   0.9  11.5] (time left 72s)
+[21:51:04] [3] fall without OOB flag: 6 decisions off the map at [-11.9   1.1  10.2] (time left 72s)
+[21:51:04] [6] fall without OOB flag: 4 decisions off the map at [-25.6  16.6  13.2] (time left 71s)
+[21:51:04] [2] fall without OOB flag: 5 decisions off the map at [-20.9   7.1  12.6] (time left 70s)
+[21:51:04] [2] fall without OOB flag: 6 decisions off the map at [-20.6   6.7  11.4] (time left 70s)
+[21:51:05] [2] fall without OOB flag: 7 decisions off the map at [-20.4   6.3  10.1] (time left 70s)
+[21:51:05] [6] fall without OOB flag: 5 decisions off the map at [-23.1  15.7  12.7] (time left 69s)
+[21:51:05] [6] fall without OOB flag: 6 decisions off the map at [-22.3  15.7  11.5] (time left 69s)
+[21:51:05] [0] fall without OOB flag: 4 decisions off the map at [-24.6  20.8  13. ] (time left 68s)
+[21:51:05] [0] fall without OOB flag: 5 decisions off the map at [-24.8  20.7  11.9] (time left 68s)
+[21:51:05] [0] fall without OOB flag: 6 decisions off the map at [-24.9  20.7  10.6] (time left 68s)
+[21:51:08] [0] fall without OOB flag: 4 decisions off the map at [-27.7  11.1  13.3] (time left 61s)
+[21:51:09] [0] fall without OOB flag: 5 decisions off the map at [-27.6  11.5  12.2] (time left 61s)
+[21:51:09] [0] fall without OOB flag: 6 decisions off the map at [-27.4  12.   10.9] (time left 60s)
+[21:51:09] [1] fall without OOB flag: 4 decisions off the map at [-28.1  18.7  13.1] (time left 58s)
+[21:51:09] [1] fall without OOB flag: 5 decisions off the map at [-27.9  18.7  11.9] (time left 58s)
+[21:51:09] [1] fall without OOB flag: 6 decisions off the map at [-27.7  18.7  10.7] (time left 58s)
+[21:51:10] [6] fall without OOB flag: 4 decisions off the map at [-26.2  13.8  13.5] (time left 57s)
+[21:51:10] [1] fall without OOB flag: 4 decisions off the map at [-25.1  15.6  13.1] (time left 55s)
+[21:51:10] [1] fall without OOB flag: 5 decisions off the map at [-24.5  15.5  12. ] (time left 55s)
+[21:51:10] [1] fall without OOB flag: 6 decisions off the map at [-23.9  15.3  10.7] (time left 55s)
+[21:51:10] [1] fall without OOB flag: 7 decisions off the map at [-23.3  15.2   9.4] (time left 55s)
+[21:51:10] [5] fall without OOB flag: 4 decisions off the map at [-14.4  11.1  13.3] (time left 54s)
+[21:51:11] [6] fall without OOB flag: 4 decisions off the map at [-24.7  14.4  13. ] (time left 54s)
+[21:51:11] [6] fall without OOB flag: 5 decisions off the map at [-24.7  15.   11.9] (time left 54s)
+[21:51:11] [3] fall without OOB flag: 5 decisions off the map at [-10.3  14.7  12.3] (time left 54s)
+[21:51:11] [3] fall without OOB flag: 6 decisions off the map at [-10.4  15.4  11. ] (time left 53s)
+[21:51:11] [3] fall without OOB flag: 7 decisions off the map at [-10.5  16.1   9.7] (time left 53s)
+[21:51:11] [0] fall without OOB flag: 4 decisions off the map at [-30.2  19.9  13.8] (time left 53s)
+[21:51:11] [0] fall without OOB flag: 5 decisions off the map at [-30.4  19.8  12.7] (time left 53s)
+[21:51:11] [0] fall without OOB flag: 6 decisions off the map at [-30.6  19.7  11.5] (time left 53s)
+[21:51:11] [0] fall without OOB flag: 7 decisions off the map at [-30.7  19.5  10.2] (time left 53s)
+[21:51:11] [4] fall without OOB flag: 5 decisions off the map at [-24.4  31.5  12. ] (time left 52s)
+[21:51:11] [4] fall without OOB flag: 6 decisions off the map at [-24.9  31.4  10.7] (time left 52s)
+[21:51:11] [1] fall without OOB flag: 4 decisions off the map at [-27.7  14.8  13.6] (time left 52s)
+[21:51:11] [1] fall without OOB flag: 5 decisions off the map at [-27.7  14.1  12.4] (time left 52s)
+[21:51:11] [1] fall without OOB flag: 6 decisions off the map at [-27.7  13.3  11.2] (time left 52s)
+[21:51:15] NAV upd=30297 map=KingOfTheMarble_Hunt r=0.65 steps=239,364,379 segs=0 arrive=0% falls100=0.00 speed=0.0 gems=0.0 pickup=0.0 sgem=0.00 carry=0.0 turn=0.0 rew=0.0 pl=-0.009 vl=0.350 ent=0.32 entd=0.04 ec=0.0049 kl=0.011 clip=0.12 gn=8.54 ep=3 dstd=0.22 flips=0 vcont=4.8 upd_s=3.6 wall_s=24 inst=8 dps=340 prof=fwd:11,send:1,recv:8,handle:0,w_game:1,w_obs:31,w_begin:0
+[21:51:15] [1] fall without OOB flag: 4 decisions off the map at [-24.9  16.   13.6] (time left 49s)
+[21:51:16] [1] fall without OOB flag: 5 decisions off the map at [-24.3  15.9  12.4] (time left 49s)
+[21:51:16] [1] fall without OOB flag: 6 decisions off the map at [-23.7  15.8  11.2] (time left 49s)
+[21:51:16] [1] fall without OOB flag: 7 decisions off the map at [-23.1  15.7   9.9] (time left 49s)
+[21:51:16] [0] fall without OOB flag: 5 decisions off the map at [-34.6  10.7  11.9] (time left 49s)
+[21:51:16] [0] fall without OOB flag: 6 decisions off the map at [-34.9  10.7  10.6] (time left 49s)
+[21:51:16] [0] fall without OOB flag: 7 decisions off the map at [-35.2  10.7   9.3] (time left 48s)
+[21:51:16] [0] fall without OOB flag: 8 decisions off the map at [-35.5  10.7   7.8] (time left 48s)
+[21:51:17] [1] fall without OOB flag: 5 decisions off the map at [-32.7  20.4  12.9] (time left 46s)
+[21:51:17] [1] fall without OOB flag: 6 decisions off the map at [-32.7  20.1  11.7] (time left 46s)
+[21:51:17] [1] fall without OOB flag: 7 decisions off the map at [-32.6  19.9  10.4] (time left 46s)
+[21:51:17] [1] fall without OOB flag: 8 decisions off the map at [-32.6  19.6   9.1] (time left 46s)
+[21:51:17] [0] fall without OOB flag: 4 decisions off the map at [-31.9  22.9  14. ] (time left 46s)
+[21:51:17] [0] fall without OOB flag: 5 decisions off the map at [-31.9  23.5  12.9] (time left 46s)
+[21:51:17] [0] fall without OOB flag: 6 decisions off the map at [-31.8  24.1  11.7] (time left 46s)
+[21:51:17] [0] fall without OOB flag: 7 decisions off the map at [-31.8  24.7  10.4] (time left 46s)
+[21:51:17] [6] fall without OOB flag: 4 decisions off the map at [-9.6 20.1 13.8] (time left 45s)
+[21:51:17] [6] fall without OOB flag: 5 decisions off the map at [-9.6 19.7 12.6] (time left 45s)
+[21:51:17] [1] fall without OOB flag: 4 decisions off the map at [-25.6  16.9  13.7] (time left 43s)
+[21:51:17] [1] fall without OOB flag: 5 decisions off the map at [-25.   16.8  12.6] (time left 43s)
+[21:51:17] [1] fall without OOB flag: 6 decisions off the map at [-24.4  16.6  11.4] (time left 43s)
+[21:51:17] [7] fall without OOB flag: 4 decisions off the map at [-24.7  31.4  13.8] (time left 43s)
+[21:51:17] [1] fall without OOB flag: 7 decisions off the map at [-23.8  16.4  10.1] (time left 43s)
+[21:51:17] [7] fall without OOB flag: 5 decisions off the map at [-25.3  31.3  12.7] (time left 43s)
+[21:51:17] [3] fall without OOB flag: 4 decisions off the map at [-31.2  12.5  13.4] (time left 43s)
+[21:51:17] [3] fall without OOB flag: 5 decisions off the map at [-30.9  12.6  12.3] (time left 43s)
+[21:51:17] [3] fall without OOB flag: 6 decisions off the map at [-30.6  12.7  11.1] (time left 43s)
+[21:51:18] [1] fall without OOB flag: 4 decisions off the map at [-29.5  20.2  13.3] (time left 41s)
+[21:51:18] [1] fall without OOB flag: 5 decisions off the map at [-29.3  20.   12.2] (time left 40s)
+[21:51:18] [1] fall without OOB flag: 6 decisions off the map at [-29.1  19.7  10.9] (time left 40s)
+[21:51:18] [1] fall without OOB flag: 7 decisions off the map at [-28.9  19.4   9.6] (time left 40s)
+[21:51:18] [0] fall without OOB flag: 4 decisions off the map at [-11.   16.5  13.5] (time left 40s)
+[21:51:18] [0] fall without OOB flag: 5 decisions off the map at [-11.1  15.8  12.3] (time left 40s)
+[21:51:18] [0] fall without OOB flag: 6 decisions off the map at [-11.3  15.1  11.1] (time left 40s)
+[21:51:18] [0] fall without OOB flag: 7 decisions off the map at [-11.4  14.4   9.8] (time left 40s)
+[21:51:18] [3] fall without OOB flag: 4 decisions off the map at [-26.3  16.   13. ] (time left 40s)
+[21:51:18] [3] fall without OOB flag: 5 decisions off the map at [-25.7  15.9  11.8] (time left 40s)
+[21:51:18] [5] fall without OOB flag: 5 decisions off the map at [-23.5  24.7  12.3] (time left 39s)
+[21:51:18] [5] fall without OOB flag: 6 decisions off the map at [-23.5  25.3  11.1] (time left 39s)
+[21:51:18] [6] fall without OOB flag: 4 decisions off the map at [-28.8  13.9  13.6] (time left 38s)
+[21:51:18] [2] fall without OOB flag: 4 decisions off the map at [-30.6  14.   13.3] (time left 38s)
+[21:51:18] [7] fall without OOB flag: 4 decisions off the map at [-27.9  12.8  13.8] (time left 38s)
+[21:51:18] [2] fall without OOB flag: 5 decisions off the map at [-30.3  13.6  12.1] (time left 38s)
+[21:51:18] [7] fall without OOB flag: 5 decisions off the map at [-27.7  12.8  12.7] (time left 38s)
+[21:51:18] [2] fall without OOB flag: 6 decisions off the map at [-30.   13.1  10.9] (time left 38s)
+[21:51:18] [1] fall without OOB flag: 4 decisions off the map at [-26.   16.5  13.7] (time left 38s)
+[21:51:18] [1] fall without OOB flag: 5 decisions off the map at [-25.5  16.3  12.6] (time left 38s)
+[21:51:18] [1] fall without OOB flag: 6 decisions off the map at [-25.   16.2  11.4] (time left 38s)
+[21:51:18] [1] fall without OOB flag: 7 decisions off the map at [-24.4  16.1  10.1] (time left 38s)
+[21:51:18] [3] fall without OOB flag: 4 decisions off the map at [-33.1  22.   13.3] (time left 37s)
+[21:51:18] [3] fall without OOB flag: 5 decisions off the map at [-33.1  21.8  12.2] (time left 37s)
+[21:51:19] [4] fall without OOB flag: 5 decisions off the map at [-26.2  14.1  12.4] (time left 36s)
+[21:51:19] [4] fall without OOB flag: 6 decisions off the map at [-26.1  13.3  11.2] (time left 36s)
+[21:51:19] [1] fall without OOB flag: 4 decisions off the map at [-31.   21.1  13.3] (time left 35s)
+[21:51:19] [1] fall without OOB flag: 5 decisions off the map at [-31.   20.9  12.2] (time left 35s)
+[21:51:19] [1] fall without OOB flag: 6 decisions off the map at [-30.9  20.6  10.9] (time left 35s)
+[21:51:19] [7] fall without OOB flag: 5 decisions off the map at [-28.6  12.   12. ] (time left 34s)
+[21:51:19] [7] fall without OOB flag: 6 decisions off the map at [-28.3  12.   10.7] (time left 34s)
+[21:51:19] [4] fall without OOB flag: 4 decisions off the map at [-26.    2.3  13.5] (time left 32s)
+[21:51:19] [4] fall without OOB flag: 5 decisions off the map at [-25.8   1.5  12.4] (time left 32s)
+[21:51:20] [3] fall without OOB flag: 4 decisions off the map at [-26.7  11.6  13.7] (time left 29s)
+[21:51:20] [3] fall without OOB flag: 5 decisions off the map at [-26.4  11.7  12.6] (time left 29s)
+[21:51:20] [3] fall without OOB flag: 6 decisions off the map at [-26.1  11.7  11.4] (time left 29s)
+[21:51:20] [7] fall without OOB flag: 4 decisions off the map at [-28.2  22.8  13.7] (time left 29s)
+[21:51:20] [7] fall without OOB flag: 5 decisions off the map at [-28.1  23.4  12.6] (time left 29s)
+[21:51:20] [1] fall without OOB flag: 4 decisions off the map at [-18.5  17.8  13.1] (time left 28s)
+[21:51:20] [1] fall without OOB flag: 5 decisions off the map at [-18.   17.6  12. ] (time left 28s)
+[21:51:20] [1] fall without OOB flag: 6 decisions off the map at [-17.6  17.4  10.7] (time left 28s)
+[21:51:20] [1] fall without OOB flag: 7 decisions off the map at [-17.1  17.2   9.4] (time left 28s)
+[21:51:22] [0] fall without OOB flag: 5 decisions off the map at [-40.8  15.4  12.5] (time left 22s)
+[21:51:22] [0] fall without OOB flag: 6 decisions off the map at [-40.7  14.7  11.3] (time left 22s)
+[21:51:22] [0] fall without OOB flag: 7 decisions off the map at [-40.6  14.    9.9] (time left 22s)
+[21:51:22] [0] fall without OOB flag: 8 decisions off the map at [-40.5  13.3   8.5] (time left 22s)
+[21:51:23] [1] fall without OOB flag: 5 decisions off the map at [-11.2  10.8  12.3] (time left 21s)
+[21:51:23] [1] fall without OOB flag: 6 decisions off the map at [-11.5  11.2  11.1] (time left 21s)
+[21:51:23] [1] fall without OOB flag: 7 decisions off the map at [-11.8  11.6   9.7] (time left 21s)
+[21:51:23] [1] fall without OOB flag: 8 decisions off the map at [-12.1  11.9   8.3] (time left 21s)
+[21:51:23] [2] fall without OOB flag: 5 decisions off the map at [-31.   18.1  12.6] (time left 20s)
+[21:51:23] [2] fall without OOB flag: 6 decisions off the map at [-31.1  18.7  11.3] (time left 20s)
+[21:51:23] [2] fall without OOB flag: 7 decisions off the map at [-31.1  19.3  10. ] (time left 20s)
+[21:51:23] [3] fall without OOB flag: 5 decisions off the map at [-7.8 15.9 12.6] (time left 20s)
+[21:51:23] [3] fall without OOB flag: 6 decisions off the map at [-7.7 16.7 11.4] (time left 20s)
+[21:51:23] [3] fall without OOB flag: 7 decisions off the map at [-7.6 17.5 10.1] (time left 20s)
+[21:51:23] [5] fall without OOB flag: 4 decisions off the map at [-13.2  13.6  13.9] (time left 19s)
+[21:51:23] [0] fall without OOB flag: 4 decisions off the map at [-27.1  15.6  14. ] (time left 19s)
+[21:51:23] [5] fall without OOB flag: 5 decisions off the map at [-12.4  13.6  12.8] (time left 19s)
+[21:51:23] [0] fall without OOB flag: 5 decisions off the map at [-26.6  15.3  12.9] (time left 19s)
+[21:51:23] [0] fall without OOB flag: 6 decisions off the map at [-26.   15.   11.7] (time left 19s)
+[21:51:23] [0] fall without OOB flag: 7 decisions off the map at [-25.5  14.7  10.4] (time left 19s)
+[21:51:23] [4] fall without OOB flag: 4 decisions off the map at [-18.7  11.2  13.7] (time left 19s)
+[21:51:23] [4] fall without OOB flag: 5 decisions off the map at [-18.3  10.9  12.6] (time left 19s)
+[21:51:24] [1] fall without OOB flag: 4 decisions off the map at [-23.1   7.7  13.4] (time left 18s)
+[21:51:24] [1] fall without OOB flag: 5 decisions off the map at [-23.5   7.9  12.2] (time left 18s)
+[21:51:24] [1] fall without OOB flag: 6 decisions off the map at [-23.9   8.1  11. ] (time left 18s)
+[21:51:24] [1] fall without OOB flag: 7 decisions off the map at [-24.2   8.3   9.7] (time left 18s)
+[21:51:24] [0] fall without OOB flag: 4 decisions off the map at [-29.5  14.6  13.6] (time left 16s)
+[21:51:24] [0] fall without OOB flag: 6 decisions off the map at [-28.6  13.9  11.2] (time left 16s)
+[21:51:24] [0] fall without OOB flag: 7 decisions off the map at [-28.1  13.6   9.9] (time left 16s)
+[21:51:24] [0] fall without OOB flag: 8 decisions off the map at [-27.6  13.2   8.5] (time left 16s)
+[21:51:25] [3] fall without OOB flag: 4 decisions off the map at [-27.2  16.4  13.7] (time left 15s)
+[21:51:25] [3] fall without OOB flag: 5 decisions off the map at [-27.2  15.7  12.6] (time left 15s)
+[21:51:25] [3] fall without OOB flag: 6 decisions off the map at [-27.1  15.   11.4] (time left 14s)
+[21:51:25] [0] fall without OOB flag: 4 decisions off the map at [-13.1  13.8  13.6] (time left 12s)
+[21:51:25] [0] fall without OOB flag: 5 decisions off the map at [-12.3  13.9  12.5] (time left 12s)
+[21:51:25] [0] fall without OOB flag: 6 decisions off the map at [-11.5  14.   11.3] (time left 12s)
+[21:51:25] [0] fall without OOB flag: 7 decisions off the map at [-10.7  14.   10. ] (time left 12s)
+[21:51:26] [2] fall without OOB flag: 4 decisions off the map at [-26.   21.3  13. ] (time left 11s)
+[21:51:26] [2] fall without OOB flag: 5 decisions off the map at [-26.3  21.1  11.9] (time left 11s)
+[21:51:26] [7] fall without OOB flag: 5 decisions off the map at [-21.8  20.5  12.9] (time left 10s)
+[21:51:26] [7] fall without OOB flag: 6 decisions off the map at [-22.   20.7  11.7] (time left 10s)
+[21:51:26] [0] fall without OOB flag: 4 decisions off the map at [-16.4   9.3  13.7] (time left 9s)
+[21:51:26] [0] fall without OOB flag: 5 decisions off the map at [-15.9   8.9  12.7] (time left 9s)
+[21:51:26] [0] fall without OOB flag: 6 decisions off the map at [-15.5   8.5  11.5] (time left 9s)
+[21:51:26] [2] fall without OOB flag: 4 decisions off the map at [-27.1  14.6  13.5] (time left 8s)
+[21:51:26] [2] fall without OOB flag: 5 decisions off the map at [-27.1  13.9  12.4] (time left 8s)
+[21:51:26] [3] fall without OOB flag: 4 decisions off the map at [-26.3   8.1  13.7] (time left 8s)
+[21:51:26] [3] fall without OOB flag: 5 decisions off the map at [-26.2   7.7  12.6] (time left 8s)
+[21:51:27] [2] fall without OOB flag: 5 decisions off the map at [-23.7  21.2  12.9] (time left 5s)
+[21:51:27] [2] fall without OOB flag: 6 decisions off the map at [-23.4  21.2  11.7] (time left 5s)
+[21:51:27] [2] fall without OOB flag: 7 decisions off the map at [-23.   21.3  10.4] (time left 5s)
+[21:51:28] [2] fall without OOB flag: 4 decisions off the map at [-27.3  15.   13.8] (time left 2s)
+[21:51:28] [2] fall without OOB flag: 5 decisions off the map at [-27.4  14.2  12.7] (time left 2s)
+[21:51:28] [2] fall without OOB flag: 6 decisions off the map at [-27.4  13.4  11.4] (time left 2s)
+[21:51:28] [3] fall without OOB flag: 5 decisions off the map at [-33.9  14.2  12.8] (time left 1s)
+[21:51:28] [3] fall without OOB flag: 6 decisions off the map at [-34.2  14.4  11.6] (time left 1s)
+[21:51:28] [3] fall without OOB flag: 7 decisions off the map at [-34.6  14.7  10.4] (time left 1s)
+[21:51:28] [1] fall without OOB flag: 4 decisions off the map at [-24.6  17.7  13.8] (time left 0s)
+[21:51:28] [1] fall without OOB flag: 5 decisions off the map at [-24.8  17.6  12.6] (time left 0s)
+[21:51:28] [1] fall without OOB flag: 6 decisions off the map at [-25.   17.6  12. ] (time left 0s)
+[21:51:28] [1] fall without OOB flag: 7 decisions off the map at [-25.1  17.6  11.8] (time left 0s)
+[21:51:28] [1] fall without OOB flag: 8 decisions off the map at [-25.1  17.6  11.7] (time left 0s)
+[21:51:28] [1] fall without OOB flag: 9 decisions off the map at [-25.1  17.6  11.7] (time left 0s)
+[21:51:28] [1] fall without OOB flag: 10 decisions off the map at [-25.1  17.6  11.7] (time left 0s)
+[21:51:28] [1] fall without OOB flag: 11 decisions off the map at [-25.1  17.6  11.7] (time left 0s)
+[21:51:28] [1] fall without OOB flag: 12 decisions off the map at [-25.1  17.6  11.7] (time left 0s)
+[21:51:28] [1] fall without OOB flag: 13 decisions off the map at [-25.1  17.6  11.7] (time left 0s)
+[21:51:28] [1] fall without OOB flag: 14 decisions off the map at [-25.1  17.6  11.7] (time left 0s)
+[21:51:28] [1] fall without OOB flag: 15 decisions off the map at [-25.1  17.6  11.7] (time left 0s)
+[21:51:28] [1] fall without OOB flag: 16 decisions off the map at [-25.1  17.6  11.7] (time left 0s)
+[21:51:28] [1] fall without OOB flag: 17 decisions off the map at [-25.1  17.6  11.7] (time left 0s)
+[21:51:28] [1] fall without OOB flag: 18 decisions off the map at [-25.1  17.6  11.7] (time left 0s)
+[21:51:28] [1] fall without OOB flag: 19 decisions off the map at [-25.1  17.6  11.7] (time left 0s)
+[21:51:28] [1] fall without OOB flag: 20 decisions off the map at [-25.1  17.6  11.7] (time left 0s)
+[21:51:28] [1] fall without OOB flag: 21 decisions off the map at [-25.1  17.6  11.7] (time left 0s)
+[21:51:28] [1] fall without OOB flag: 22 decisions off the map at [-25.1  17.6  11.7] (time left 0s)
+[21:51:28] [1] fall without OOB flag: 23 decisions off the map at [-25.1  17.6  11.7] (time left 0s)
+[21:51:28] [1] fall without OOB flag: 24 decisions off the map at [-25.1  17.6  11.7] (time left 0s)
+[21:51:28] [1] fall without OOB flag: 25 decisions off the map at [-25.1  17.6  11.7] (time left 0s)
+[21:51:28] [1] fall without OOB flag: 26 decisions off the map at [-25.1  17.6  11.7] (time left 0s)
+[21:51:28] [1] fall without OOB flag: 27 decisions off the map at [-25.1  17.6  11.7] (time left 0s)
+[21:51:28] [1] fall without OOB flag: 28 decisions off the map at [-25.1  17.6  11.7] (time left 0s)
+[21:51:28] [1] fall without OOB flag: 29 decisions off the map at [-25.1  17.6  11.7] (time left 0s)
+[21:51:28] [1] fall without OOB flag: 30 decisions off the map at [-25.1  17.6  11.7] (time left 0s)
+[21:51:29] [1] fall without OOB flag: 31 decisions off the map at [-25.1  17.6  11.7] (time left 0s)
+[21:51:29] [1] fall without OOB flag: 32 decisions off the map at [-25.1  17.6  11.7] (time left 0s)
+[21:51:29] [1] fall without OOB flag: 33 decisions off the map at [-25.1  17.6  11.7] (time left 0s)
+[21:51:29] [1] fall without OOB flag: 34 decisions off the map at [-25.1  17.6  11.7] (time left 0s)
+[21:51:29] [1] fall without OOB flag: 35 decisions off the map at [-25.1  17.6  11.7] (time left 0s)
+[21:51:29] [0] GAME map=KingOfTheMarble_Hunt points=88 gems=70 falls=24 rtf=2.0 pow=f1:1 pkon=9.4/2 pkoff=9.5/18 pknone=10.0/50 rwall=0.031/2879
+[21:51:29] [0] [env:8888] round over (time left 180s of 180s); waiting for the next round
+[21:51:29] [0] [env:8888] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[21:51:29] [0] new round (game connection 1); rtf 61.1
+[21:51:29] [2] GAME map=KingOfTheMarble_Hunt points=103 gems=79 falls=17 rtf=2.0 pow=ap2:8,f1:1,f2:2,ksB:2,r2:8,rmiss:2 pkoff=9.5/12 pknone=9.5/67 rwfire=0.000/60 rwall=0.036/2879
+[21:51:29] [2] [env:8890] round over (time left 180s of 180s); waiting for the next round
+[21:51:29] [2] [env:8890] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[21:51:29] [2] new round (game connection 1); rtf 47.1
+[21:51:29] [4] GAME map=KingOfTheMarble_Hunt points=135 gems=106 falls=8 rtf=2.0 pow=ap2:8,f2:2,ksA:1,ksB:1,r2:8,rhit:1,rmiss:1 pkon=8.0/3 pkoff=8.9/13 pknone=8.6/90 rwfire=0.017/60 rwall=0.047/2879
+[21:51:29] [4] [env:8892] round over (time left 180s of 180s); waiting for the next round
+[21:51:29] [4] [env:8892] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[21:51:29] [4] new round (game connection 1); rtf 63.4
+[21:51:29] [6] GAME map=KingOfTheMarble_Hunt points=124 gems=101 falls=9 rtf=2.0 pow=ap2:1,f2:1,f6:1,ksB:1,r2:1,rmiss:1 pkon=9.2/5 pkoff=8.3/22 pknone=8.2/74 rwfire=0.000/30 rwall=0.043/2879
+[21:51:29] [6] [env:8894] round over (time left 180s of 180s); waiting for the next round
+[21:51:29] [6] [env:8894] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[21:51:29] [6] new round (game connection 1); rtf 52.2
+[21:51:29] [1] GAME map=KingOfTheMarble_Hunt points=60 gems=47 falls=35 rtf=2.0 pow=ap2:10,f2:2,ksA:1,ksB:1,r2:10,rhit:1,rmiss:1 pkon=9.5/3 pkoff=11.3/17 pknone=10.6/27 rwfire=0.050/60 rwall=0.021/2879
+[21:51:29] [1] [env:8889] round over (time left 180s of 180s); waiting for the next round
+[21:51:29] [1] [env:8889] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[21:51:29] [1] new round (game connection 1); rtf 53.6
+[21:51:29] [3] GAME map=KingOfTheMarble_Hunt points=91 gems=70 falls=22 rtf=2.0 pow=ap2:5,f2:1,f6:1,ksA:1,r2:5,rhit:1 pkon=8.7/2 pkoff=8.9/27 pknone=9.1/41 rwfire=0.100/30 rwall=0.032/2879
+[21:51:29] [3] [env:8891] round over (time left 180s of 180s); waiting for the next round
+[21:51:29] [3] [env:8891] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[21:51:29] [3] new round (game connection 1); rtf 56.9
+[21:51:29] [5] GAME map=KingOfTheMarble_Hunt points=133 gems=107 falls=12 rtf=2.0 pow=ap2:5,f2:3,ksB:2,r2:5,rhit:2 pkon=8.4/6 pkoff=8.9/28 pknone=8.7/73 rwfire=0.067/60 rwall=0.046/2879
+[21:51:29] [5] [env:8893] round over (time left 180s of 180s); waiting for the next round
+[21:51:29] [5] [env:8893] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[21:51:29] [5] new round (game connection 1); rtf 64.6
+[21:51:29] [7] GAME map=KingOfTheMarble_Hunt points=131 gems=103 falls=10 rtf=2.0 pow=ap2:4,f1:1,f2:1,ksB:1,r2:4,rhit:1 pkon=7.3/1 pkoff=9.6/21 pknone=8.5/81 rwfire=0.100/30 rwall=0.046/2879
+[21:51:29] [7] [env:8895] round over (time left 180s of 180s); waiting for the next round
+[21:51:29] [7] [env:8895] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[21:51:29] [7] new round (game connection 1); rtf 58.6
+[21:51:34] NAV upd=30298 map=KingOfTheMarble_Hunt r=0.65 steps=239,372,579 segs=8 arrive=0% falls100=0.00 speed=0.0 gems=0.0 pickup=0.0 sgem=0.00 carry=0.0 turn=0.0 rew=108.1 pl=-0.009 vl=0.478 ent=0.32 entd=0.03 ec=0.0049 kl=0.008 clip=0.08 gn=6.38 ep=3 dstd=0.22 flips=0 vcont=4.8 upd_s=2.1 wall_s=19 inst=8 dps=436 prof=fwd:10,send:1,recv:6,handle:0,w_game:7,w_obs:25,w_begin:0
+[21:51:43] [0] fall without OOB flag: 4 decisions off the map at [-24.6  15.6  14. ] (time left 141s)
+[21:51:48] [0] fall without OOB flag: 4 decisions off the map at [-26.8   6.2  13.5] (time left 125s)
+[21:51:48] [0] fall without OOB flag: 5 decisions off the map at [-34.6   0.8  12.3] (time left 123s)
+[21:51:57] NAV upd=30299 map=KingOfTheMarble_Hunt r=0.65 steps=239,380,779 segs=8 arrive=0% falls100=0.00 speed=0.0 gems=0.0 pickup=0.0 sgem=0.00 carry=0.0 turn=0.0 rew=108.1 pl=-0.009 vl=0.121 ent=0.32 entd=0.02 ec=0.0049 kl=0.010 clip=0.09 gn=6.16 ep=3 dstd=0.22 flips=0 vcont=4.9 upd_s=2.4 wall_s=24 inst=8 dps=346 prof=fwd:8,send:0,recv:12,handle:0,w_game:32,w_obs:28,w_begin:0
+[21:52:00] [3] fall without OOB flag: 4 decisions off the map at [-15.5  13.4  13. ] (time left 95s)
+[21:52:05] [3] fall without OOB flag: 4 decisions off the map at [-35.1  13.6  13.6] (time left 83s)
+[21:52:10] [3] fall without OOB flag: 5 decisions off the map at [-22.5  17.2  12.2] (time left 65s)
+[21:52:12] [2] fall without OOB flag: 4 decisions off the map at [-28.6  21.3  13.5] (time left 60s)
+[21:52:14] [5] fall without OOB flag: 4 decisions off the map at [-29.6  12.8  13.6] (time left 55s)
+[21:52:16] [4] fall without OOB flag: 5 decisions off the map at [-25.8  12.6  12.9] (time left 49s)
+[21:52:22] DIRGAIN effective goal-bearing norm 21.07 (gain 30)
+[21:52:22] NAV upd=30300 map=KingOfTheMarble_Hunt r=0.65 steps=239,388,979 segs=8 arrive=0% falls100=0.00 speed=0.0 gems=0.0 pickup=0.0 sgem=0.00 carry=0.0 turn=0.0 rew=108.1 pl=-0.011 vl=0.116 ent=0.32 entd=0.02 ec=0.0048 kl=0.007 clip=0.08 gn=5.32 ep=3 dstd=0.22 flips=0 vcont=4.9 upd_s=3.1 wall_s=24 inst=8 dps=338 prof=fwd:10,send:1,recv:10,handle:0,w_game:31,w_obs:29,w_begin:0
+[21:52:22] saved C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\models\nav\nav_points_20261005_030300.pth
+[21:52:24] [2] fall without OOB flag: 4 decisions off the map at [-26.3   8.9  14. ] (time left 34s)
+[21:52:25] [2] fall without OOB flag: 5 decisions off the map at [-26.6  -0.1  12.6] (time left 32s)
+[21:52:38] [2] fall without OOB flag: 4 decisions off the map at [-21.7  25.   14.1] (time left 0s)
+[21:52:39] [1] GAME map=KingOfTheMarble_Hunt points=159 gems=126 falls=1 rtf=2.6 pow=ap2:3,f2:2,ksA:1,r2:3,rhit:1 pkon=8.2/7 pkoff=8.5/33 pknone=8.1/86 rwfire=0.033/30 rwall=0.055/2872
+[21:52:39] [1] [env:8889] round over (time left 180s of 180s); waiting for the next round
+[21:52:39] [1] [env:8889] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[21:52:39] [1] new round (game connection 1); rtf 74.8
+[21:52:39] [2] GAME map=KingOfTheMarble_Hunt points=150 gems=117 falls=4 rtf=2.6 pow=ap2:3,f2:1,ksA:1,r2:3,rhit:1 pkon=8.1/11 pkoff=8.4/62 pknone=7.9/44 rwfire=0.033/30 rwall=0.052/2877
+[21:52:39] [2] [env:8890] round over (time left 180s of 180s); waiting for the next round
+[21:52:39] [2] [env:8890] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[21:52:39] [2] new round (game connection 1); rtf 70.1
+[21:52:39] [7] GAME map=KingOfTheMarble_Hunt points=156 gems=124 falls=0 rtf=2.6 pow=f1:1 pkon=8.6/6 pkoff=8.3/55 pknone=8.0/63 rwall=0.054/2878
+[21:52:39] [7] [env:8895] round over (time left 180s of 180s); waiting for the next round
+[21:52:39] [7] [env:8895] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[21:52:39] [7] new round (game connection 1); rtf 82.4
+[21:52:39] [0] GAME map=KingOfTheMarble_Hunt points=147 gems=115 falls=3 rtf=2.6 pow=ap2:3,f1:1,f2:1,ksA:1,r2:3,rhit:1 pkon=7.4/4 pkoff=8.2/22 pknone=7.9/89 rwfire=0.100/30 rwall=0.051/2879
+[21:52:39] [0] [env:8888] round over (time left 180s of 180s); waiting for the next round
+[21:52:39] [0] [env:8888] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[21:52:39] [0] new round (game connection 1); rtf 68.1
+[21:52:39] [4] GAME map=KingOfTheMarble_Hunt points=156 gems=123 falls=3 rtf=2.6 pow=f2:1 pkon=8.9/3 pkoff=8.4/29 pknone=8.0/91 rwall=0.054/2879
+[21:52:39] [4] [env:8892] round over (time left 180s of 180s); waiting for the next round
+[21:52:39] [4] [env:8892] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[21:52:39] [4] new round (game connection 1); rtf 40.1
+[21:52:39] [6] GAME map=KingOfTheMarble_Hunt points=149 gems=118 falls=2 rtf=2.6 pow=f1:1 pkon=9.0/4 pkoff=8.3/54 pknone=8.0/60 rwall=0.052/2879
+[21:52:39] [6] [env:8894] round over (time left 180s of 180s); waiting for the next round
+[21:52:39] [6] [env:8894] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[21:52:39] [6] new round (game connection 1); rtf 79.5
+[21:52:39] [3] GAME map=KingOfTheMarble_Hunt points=156 gems=125 falls=3 rtf=2.6 pow=f1:1 pkon=9.3/3 pkoff=8.0/24 pknone=8.2/98 rwall=0.054/2879
+[21:52:39] [3] [env:8891] round over (time left 180s of 180s); waiting for the next round
+[21:52:39] [3] [env:8891] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[21:52:39] [3] new round (game connection 1); rtf 70.9
+[21:52:39] [5] GAME map=KingOfTheMarble_Hunt points=158 gems=126 falls=2 rtf=2.6 pow=f1:1,ksA:1 pkon=9.0/2 pkoff=8.0/40 pknone=8.1/84 rwfire=0.000/30 rwall=0.055/2879
+[21:52:39] [5] [env:8893] round over (time left 180s of 180s); waiting for the next round
+[21:52:39] [5] [env:8893] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[21:52:39] [5] new round (game connection 1); rtf 70.6
+[21:52:42] [5] fall without OOB flag: 4 decisions off the map at [-33.2  16.9  14. ] (time left 171s)
+[21:52:45] [1] fall without OOB flag: 5 decisions off the map at [-25.9   1.3  12.9] (time left 163s)
+[21:52:46] [1] fall without OOB flag: 5 decisions off the map at [-26.6   0.3  12.5] (time left 161s)
+[21:52:47] [3] fall without OOB flag: 4 decisions off the map at [-25.1  24.9  13.6] (time left 159s)
+[21:52:50] NAV upd=30301 map=KingOfTheMarble_Hunt r=0.65 steps=239,397,179 segs=16 arrive=0% falls100=0.00 speed=0.0 gems=0.0 pickup=0.0 sgem=0.00 carry=0.0 turn=0.0 rew=131.0 pl=-0.010 vl=0.338 ent=0.32 entd=0.02 ec=0.0048 kl=0.008 clip=0.09 gn=3.90 ep=3 dstd=0.22 flips=0 vcont=5.0 upd_s=3.0 wall_s=29 inst=8 dps=285 prof=fwd:12,send:1,recv:13,handle:0,w_game:31,w_obs:34,w_begin:0
+[21:52:52] [0] fall without OOB flag: 5 decisions off the map at [-25.8   1.2  12.7] (time left 153s)
+[21:52:53] [0] fall without OOB flag: 5 decisions off the map at [-27.    1.4  12.5] (time left 151s)
+[21:52:54] [2] fall without OOB flag: 4 decisions off the map at [-27.4  12.7  13.6] (time left 149s)
+[21:53:00] [0] fall without OOB flag: 4 decisions off the map at [-24.9  24.7  13.6] (time left 134s)
+[21:53:08] [2] fall without OOB flag: 5 decisions off the map at [-23.5  17.2  12.7] (time left 115s)
+[21:53:09] [4] fall without OOB flag: 4 decisions off the map at [-25.    1.3  13.2] (time left 113s)
+[21:53:10] [0] fall without OOB flag: 4 decisions off the map at [-25.    9.2  13.5] (time left 111s)
+[21:53:11] [3] fall without OOB flag: 4 decisions off the map at [-19.7  10.   12.8] (time left 105s)
+[21:53:12] [3] fall without OOB flag: 5 decisions off the map at [-29.2  13.3  12.6] (time left 102s)
+[21:53:15] [1] fall without OOB flag: 5 decisions off the map at [-26.8  27.2  12. ] (time left 95s)
+[21:53:15] [5] fall without OOB flag: 4 decisions off the map at [-21.5  13.3  14.1] (time left 94s)
+[21:53:19] NAV upd=30302 map=KingOfTheMarble_Hunt r=0.65 steps=239,405,379 segs=16 arrive=0% falls100=0.00 speed=0.0 gems=0.0 pickup=0.0 sgem=0.00 carry=0.0 turn=0.0 rew=131.0 pl=-0.011 vl=0.164 ent=0.32 entd=0.02 ec=0.0048 kl=0.007 clip=0.10 gn=4.68 ep=3 dstd=0.22 flips=0 vcont=4.8 upd_s=3.1 wall_s=29 inst=8 dps=287 prof=fwd:12,send:1,recv:13,handle:0,w_game:31,w_obs:33,w_begin:0
+[21:53:23] [7] fall without OOB flag: 4 decisions off the map at [-25.7  14.5  14. ] (time left 81s)
+[21:53:24] [5] fall without OOB flag: 4 decisions off the map at [-8.5 13.5 13.3] (time left 76s)
+[21:53:26] [5] fall without OOB flag: 4 decisions off the map at [-24.5  15.8  13.7] (time left 72s)
+[21:53:26] [0] fall without OOB flag: 4 decisions off the map at [-30.1  12.2  13.3] (time left 71s)
+[21:53:28] [5] fall without OOB flag: 4 decisions off the map at [-34.8  14.   13.2] (time left 66s)
+[21:53:29] [2] fall without OOB flag: 4 decisions off the map at [-14.2  16.1  14.1] (time left 63s)
+[21:53:32] [1] fall without OOB flag: 5 decisions off the map at [-27.5   1.2  12.4] (time left 58s)
+[21:53:32] [3] fall without OOB flag: 4 decisions off the map at [-23.   13.4  13.6] (time left 57s)
+[21:53:40] [6] fall without OOB flag: 4 decisions off the map at [-26.6   4.4  13.4] (time left 39s)
+[21:53:41] [7] fall without OOB flag: 4 decisions off the map at [-26.1  12.9  13.9] (time left 36s)
+[21:53:43] [5] fall without OOB flag: 4 decisions off the map at [-26.5   3.1  13.9] (time left 31s)
+[21:53:48] NAV upd=30303 map=KingOfTheMarble_Hunt r=0.65 steps=239,413,579 segs=16 arrive=0% falls100=0.00 speed=0.0 gems=0.0 pickup=0.0 sgem=0.00 carry=0.0 turn=0.0 rew=131.0 pl=-0.010 vl=0.169 ent=0.32 entd=0.02 ec=0.0048 kl=0.008 clip=0.08 gn=4.40 ep=3 dstd=0.22 flips=0 vcont=5.0 upd_s=3.2 wall_s=30 inst=8 dps=277 prof=fwd:11,send:1,recv:14,handle:0,w_game:31,w_obs:35,w_begin:0
+[21:53:50] [2] fall without OOB flag: 4 decisions off the map at [-14.9  12.4  13.1] (time left 22s)
+[21:53:51] [6] fall without OOB flag: 4 decisions off the map at [-31.3   9.5  13.9] (time left 21s)
+[21:53:54] [4] fall without OOB flag: 4 decisions off the map at [-37.2  31.2  13.2] (time left 14s)
+[21:53:55] [6] fall without OOB flag: 4 decisions off the map at [-19.4  11.5  14. ] (time left 10s)
+[21:53:58] [1] GAME map=KingOfTheMarble_Hunt points=145 gems=115 falls=6 rtf=2.3 pow=ap2:4,f2:2,ksA:2,ksB:1,r2:4,rhit:2 pkon=8.6/9 pkoff=8.1/74 pknone=8.7/32 rwfire=0.044/90 rwall=0.050/2879
+[21:53:58] [1] [env:8889] round over (time left 180s of 180s); waiting for the next round
+[21:53:58] [1] [env:8889] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[21:53:58] [1] new round (game connection 1); rtf 52.3
+[21:53:58] [0] GAME map=KingOfTheMarble_Hunt points=156 gems=126 falls=5 rtf=2.3 pow=f1:1 pkon=9.3/6 pkoff=8.2/34 pknone=7.9/86 rwall=0.054/2877
+[21:53:58] [0] [env:8888] round over (time left 180s of 180s); waiting for the next round
+[21:53:58] [0] [env:8888] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[21:53:58] [0] new round (game connection 1); rtf 63.2
+[21:53:58] [2] GAME map=KingOfTheMarble_Hunt points=146 gems=116 falls=4 rtf=2.3 pow=f1:1 pkon=9.4/2 pkoff=7.9/44 pknone=8.3/70 rwall=0.051/2879
+[21:53:58] [2] [env:8890] round over (time left 180s of 180s); waiting for the next round
+[21:53:58] [2] [env:8890] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[21:53:58] [2] new round (game connection 1); rtf 58.8
+[21:53:58] [4] GAME map=KingOfTheMarble_Hunt points=145 gems=115 falls=5 rtf=2.3 pow=f2:1,ksA:1 pkon=8.9/5 pkoff=8.2/29 pknone=8.2/81 rwfire=0.000/30 rwall=0.050/2877
+[21:53:58] [4] [env:8892] round over (time left 180s of 180s); waiting for the next round
+[21:53:58] [4] [env:8892] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[21:53:58] [4] new round (game connection 1); rtf 65.2
+[21:53:58] [7] GAME map=KingOfTheMarble_Hunt points=145 gems=113 falls=4 rtf=2.3 pow=ap2:3,f1:1,f2:1,ksA:1,r2:3,rhit:1 pkon=8.5/4 pkoff=8.4/16 pknone=8.2/93 rwfire=0.100/30 rwall=0.050/2878
+[21:53:58] [7] [env:8895] round over (time left 180s of 180s); waiting for the next round
+[21:53:58] [7] [env:8895] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[21:53:58] [7] new round (game connection 1); rtf 79.3
+[21:53:58] [5] GAME map=KingOfTheMarble_Hunt points=144 gems=116 falls=9 rtf=2.3 pow=f1:1 pkon=8.6/4 pkoff=8.3/36 pknone=8.3/76 rwall=0.050/2878
+[21:53:58] [5] [env:8893] round over (time left 180s of 180s); waiting for the next round
+[21:53:58] [5] [env:8893] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[21:53:58] [5] new round (game connection 1); rtf 65.5
+[21:53:58] [6] GAME map=KingOfTheMarble_Hunt points=145 gems=115 falls=5 rtf=2.3 pow=ap2:3,f2:1,ksA:1,r2:3,rhit:1 pkon=8.9/4 pkoff=9.2/17 pknone=7.9/94 rwfire=0.100/30 rwall=0.050/2879
+[21:53:58] [6] [env:8894] round over (time left 180s of 180s); waiting for the next round
+[21:53:58] [6] [env:8894] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[21:53:58] [6] new round (game connection 1); rtf 82.0
+[21:53:58] [3] GAME map=KingOfTheMarble_Hunt points=143 gems=113 falls=4 rtf=2.3 pow=f1:1 pkon=9.8/5 pkoff=8.1/32 pknone=8.0/76 rwall=0.050/2879
+[21:53:58] [3] [env:8891] round over (time left 180s of 180s); waiting for the next round
+[21:53:58] [3] [env:8891] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[21:53:58] [3] new round (game connection 1); rtf 82.2
+[21:54:00] [3] fall without OOB flag: 4 decisions off the map at [-24.4  13.8  13.9] (time left 176s)
+[21:54:07] [5] fall without OOB flag: 5 decisions off the map at [-26.   24.4  12.5] (time left 154s)
+[21:54:09] [3] fall without OOB flag: 5 decisions off the map at [-26.7   9.   13.4] (time left 150s)
+[21:54:09] [0] fall without OOB flag: 5 decisions off the map at [-26.4  26.   12.4] (time left 149s)
+[21:54:13] NAV upd=30304 map=KingOfTheMarble_Hunt r=0.65 steps=239,421,779 segs=24 arrive=0% falls100=0.00 speed=0.0 gems=0.0 pickup=0.0 sgem=0.00 carry=0.0 turn=0.0 rew=136.0 pl=-0.005 vl=0.362 ent=0.32 entd=0.02 ec=0.0047 kl=0.006 clip=0.07 gn=5.25 ep=3 dstd=0.22 flips=0 vcont=5.0 upd_s=2.4 wall_s=25 inst=8 dps=334 prof=fwd:9,send:1,recv:12,handle:0,w_game:33,w_obs:28,w_begin:0
+[21:54:14] [0] fall without OOB flag: 4 decisions off the map at [-27.1   8.9  14.1] (time left 143s)
+[21:54:20] [4] fall without OOB flag: 5 decisions off the map at [-21.   14.8  12.6] (time left 124s)
+[21:54:21] [5] fall without OOB flag: 4 decisions off the map at [-24.6  13.4  14.2] (time left 121s)
+[21:54:26] [1] fall without OOB flag: 4 decisions off the map at [-20.3   6.   13.9] (time left 104s)
+[21:54:27] [4] fall without OOB flag: 5 decisions off the map at [-23.6  15.6  12.6] (time left 101s)

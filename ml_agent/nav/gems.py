@@ -42,12 +42,17 @@ TOUR_SWITCH = 0.90             # plan_tour keeps the current target unless anoth
                                # most this fraction of the best plan that starts with the current target
 
 
-def plan_tour(gems, current, pos, vel, dist=None, momentum_k=None, turn_u=None, switch=None):
+def plan_tour(gems, current, pos, vel, dist=None, momentum_k=None, turn_u=None, switch=None,
+              first_turn_costs=None, order_credits=None):
     """WHOLE-SPAWN order (2026-09-26, HANDOFF 28.50; evaluation-only via NAV_TOUR in nav/real_run.py).
     choose() ranks gems one at a time; this scores every order of the visible gems (at most 5! = 120):
     leg distances + the momentum cost of the first turn (as in choose) + turn_u * sin(phi / 2) for the turn
     at each gem. Returns (target, next_target) of the best order, sticky to `current`.
-    dist(from_xy, gem) -> distance; None = straight line (needs no terrain map)."""
+    dist(from_xy, gem) -> distance; None = straight line (needs no terrain map).
+    first_turn_costs optionally replaces the initial momentum penalty for specific gems.
+    order_credits optionally maps (first, second, third) gem tuples to a credit in distance units subtracted from the
+    orders that start that way (nav.ss_tour: a post-pickup Super Speed kick; one kick, so only the first three).
+    It never discounts later turns: a held consumable can only be spent once."""
     if not gems:
         return None, None
     k = MOMENTUM_K if momentum_k is None else momentum_k
@@ -72,13 +77,18 @@ def plan_tour(gems, current, pos, vel, dist=None, momentum_k=None, turn_u=None, 
         if speed > 1.0 and k > 0:
             d = math.hypot(dx, dy)
             if d > 1e-6:
-                c += k * speed * (1.0 - (dx * vx + dy * vy) / (d * speed))
+                turn_cost = k * speed * (1.0 - (dx * vx + dy * vy) / (d * speed))
+                if first_turn_costs and order[0] in first_turn_costs:
+                    turn_cost = min(turn_cost, max(0.0, first_turn_costs[order[0]]))
+                c += turn_cost
         for i in range(1, len(order)):
             a, b = order[i - 1], order[i]
             c += dist((a[0], a[1]), b)
             ex, ey = b[0] - a[0], b[1] - a[1]
             c += tu * turn(dx, dy, ex, ey)
             dx, dy = ex, ey
+        if order_credits and len(order) >= 3:
+            c -= order_credits.get((order[0], order[1], order[2]), 0.0)
         return c
 
     import itertools

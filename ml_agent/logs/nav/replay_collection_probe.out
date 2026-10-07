@@ -1,0 +1,10 @@
+INFERENCE COLLECTION: models/nav/nav_v10_28897.pth, 2900 sampled decisions, no optimizer
+500 decisions, recorded=0, rejected=0
+1000 decisions, recorded=0, rejected=0
+1500 decisions, recorded=1, rejected=0
+2000 decisions, recorded=1, rejected=0
+2500 decisions, recorded=1, rejected=0
+[0] GAME map=KingOfTheMarble_Hunt points=151 gems=120 falls=1 rtf=9.1 pow=ap2:3,f2:2,ksB:1,r2:2,rhit:1 pkon=8.7/7 pkoff=8.0/46 pknone=8.0/67 rwfire=0.100/30 rwall=0.052/2880
+COLLECTED 1 starts in 20s: C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\logs\nav\live_starts_20261004_235652_0.jsonl
+Convert with: python -m nav.ss_drill_starts --live <JSONL paths>
+Keep collecting if either round-grouped split is empty. Never copy dev into eval.

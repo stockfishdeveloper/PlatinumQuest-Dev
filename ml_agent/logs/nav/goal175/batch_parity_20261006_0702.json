@@ -1,0 +1,90 @@
+﻿[
+    {
+        "port":  9970,
+        "python":  27004,
+        "game":  42568,
+        "arm":  "learned_a",
+        "tag":  "parity_20261006_0702_learned_a",
+        "kind":  "rounds",
+        "checkpoint":  "models/nav/nav_points_20261005_parity_31435.pth",
+        "checkpoint_sha256":  "1a9eaa5afb5b29f0e018e66aff012178da6269938c073647a2cd065d3cf57af7",
+        "output":  "logs\\nav\\goal175\\parity_20261006_0702_learned_a"
+    },
+    {
+        "port":  9971,
+        "python":  46500,
+        "game":  22116,
+        "arm":  "learned_b",
+        "tag":  "parity_20261006_0702_learned_b",
+        "kind":  "rounds",
+        "checkpoint":  "models/nav/nav_points_20261005_parity_31435.pth",
+        "checkpoint_sha256":  "1a9eaa5afb5b29f0e018e66aff012178da6269938c073647a2cd065d3cf57af7",
+        "output":  "logs\\nav\\goal175\\parity_20261006_0702_learned_b"
+    },
+    {
+        "port":  9972,
+        "python":  46864,
+        "game":  32312,
+        "arm":  "learned_c",
+        "tag":  "parity_20261006_0702_learned_c",
+        "kind":  "rounds",
+        "checkpoint":  "models/nav/nav_points_20261005_parity_31435.pth",
+        "checkpoint_sha256":  "1a9eaa5afb5b29f0e018e66aff012178da6269938c073647a2cd065d3cf57af7",
+        "output":  "logs\\nav\\goal175\\parity_20261006_0702_learned_c"
+    },
+    {
+        "port":  9973,
+        "python":  48692,
+        "game":  31380,
+        "arm":  "learned_d",
+        "tag":  "parity_20261006_0702_learned_d",
+        "kind":  "rounds",
+        "checkpoint":  "models/nav/nav_points_20261005_parity_31435.pth",
+        "checkpoint_sha256":  "1a9eaa5afb5b29f0e018e66aff012178da6269938c073647a2cd065d3cf57af7",
+        "output":  "logs\\nav\\goal175\\parity_20261006_0702_learned_d"
+    },
+    {
+        "port":  9974,
+        "python":  37680,
+        "game":  22080,
+        "arm":  "learned_e",
+        "tag":  "parity_20261006_0702_learned_e",
+        "kind":  "rounds",
+        "checkpoint":  "models/nav/nav_points_20261005_parity_31435.pth",
+        "checkpoint_sha256":  "1a9eaa5afb5b29f0e018e66aff012178da6269938c073647a2cd065d3cf57af7",
+        "output":  "logs\\nav\\goal175\\parity_20261006_0702_learned_e"
+    },
+    {
+        "port":  9975,
+        "python":  26428,
+        "game":  43416,
+        "arm":  "learned_f",
+        "tag":  "parity_20261006_0702_learned_f",
+        "kind":  "rounds",
+        "checkpoint":  "models/nav/nav_points_20261005_parity_31435.pth",
+        "checkpoint_sha256":  "1a9eaa5afb5b29f0e018e66aff012178da6269938c073647a2cd065d3cf57af7",
+        "output":  "logs\\nav\\goal175\\parity_20261006_0702_learned_f"
+    },
+    {
+        "port":  9976,
+        "python":  41128,
+        "game":  38644,
+        "arm":  "learned_g",
+        "tag":  "parity_20261006_0702_learned_g",
+        "kind":  "rounds",
+        "checkpoint":  "models/nav/nav_points_20261005_parity_31435.pth",
+        "checkpoint_sha256":  "1a9eaa5afb5b29f0e018e66aff012178da6269938c073647a2cd065d3cf57af7",
+        "output":  "logs\\nav\\goal175\\parity_20261006_0702_learned_g"
+    },
+    {
+        "port":  9977,
+        "python":  19932,
+        "game":  17692,
+        "arm":  "learned_h",
+        "tag":  "parity_20261006_0702_learned_h",
+        "kind":  "rounds",
+        "checkpoint":  "models/nav/nav_points_20261005_parity_31435.pth",
+        "checkpoint_sha256":  "1a9eaa5afb5b29f0e018e66aff012178da6269938c073647a2cd065d3cf57af7",
+        "output":  "logs\\nav\\goal175\\parity_20261006_0702_learned_h"
+    }
+]

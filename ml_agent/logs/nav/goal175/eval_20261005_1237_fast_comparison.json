@@ -1,0 +1,74 @@
+{
+  "arms": [
+    {
+      "path": "logs/nav/goal175/eval_20261005_1237_fast_learned.csv.rounds.jsonl",
+      "n": 16,
+      "rejected": [],
+      "mean": 158.6875,
+      "best": 167.0,
+      "se": 1.2406945299575824,
+      "fires": 13,
+      "falls": 15,
+      "opportunities": {
+        "decisions": 45457,
+        "held": 20791,
+        "held_floor": 20334,
+        "target_near": 11273,
+        "speed_cap_fail": 19683,
+        "terrain_or_cap_fail": 20276,
+        "target_far": 9061,
+        "post_pickup_held_floor": 5509,
+        "speed_cap_pass": 651,
+        "terrain_fail_with_speed_ok": 593,
+        "post_pickup_speed_cap_pass": 572,
+        "terrain_and_cap_pass": 58,
+        "approved": 58,
+        "post_pickup_approved": 58
+      },
+      "verified_peak_milestones": [],
+      "checkpoint_sha256": {
+        "nav_goal175_fast_29360.pth": "85fdf6858536af79a4cbf8997c910ac115a968d0ef4c13012a65ff332ec7b73e"
+      }
+    },
+    {
+      "path": "logs/nav/goal175/eval_20261005_1237_fast_no_use.csv.rounds.jsonl",
+      "n": 16,
+      "rejected": [],
+      "mean": 160.5625,
+      "best": 170.0,
+      "se": 1.4052542771090695,
+      "fires": 0,
+      "falls": 20,
+      "opportunities": {
+        "decisions": 45452,
+        "held": 17098,
+        "held_floor": 16787,
+        "target_far": 7534,
+        "speed_cap_fail": 16251,
+        "terrain_or_cap_fail": 16714,
+        "target_near": 9253,
+        "post_pickup_held_floor": 4592,
+        "speed_cap_pass": 536,
+        "terrain_and_cap_pass": 73,
+        "clear_but_target_near": 2,
+        "post_pickup_speed_cap_pass": 460,
+        "terrain_fail_with_speed_ok": 463,
+        "approved": 71,
+        "post_pickup_approved": 63
+      },
+      "verified_peak_milestones": [],
+      "checkpoint_sha256": {
+        "nav_goal175_fast_29360.pth": "85fdf6858536af79a4cbf8997c910ac115a968d0ef4c13012a65ff332ec7b73e"
+      }
+    }
+  ],
+  "comparison": {
+    "a_minus_b": -1.875,
+    "se": 1.874583287026746,
+    "ci95": [
+      -5.705876077022376,
+      1.955876077022376
+    ],
+    "method": "Welch, independent rounds; no correction for repeated checkpoint screening"
+  }
+}

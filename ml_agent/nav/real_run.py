@@ -23,18 +23,26 @@ import sys
 import time
 import json
 import math
+from collections import Counter
 import numpy as np
 import torch
 from datetime import datetime
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from terrain_obs import TerrainMap                                   # noqa: E402
-from nav.protocol import RAW_GEMS, RAW_VEL, RAW_POW_HELD, RAW_POW_BLAST, RAW_POW_SPECIAL, BLAST_REQUIRED   # noqa: E402
+from nav.protocol import RAW_GEMS, RAW_VEL, RAW_SPIN, RAW_SCORE, RAW_POW_HELD, RAW_POW_BLAST, RAW_POW_SPECIAL, BLAST_REQUIRED   # noqa: E402
 from nav.env import HuntEnv, OBS_MS                                  # noqa: E402
 from nav.terrain import TerrainGrid                                  # noqa: E402
-from nav.obs import ObsBuilder, NAV_OBS_VERSION, VEC_DIM, ss_aim, fill_use_state     # noqa: E402
+from nav.obs import (ObsBuilder, NAV_OBS_VERSION, VEC_DIM, ss_aim, fill_use_state,
+                     VEC_POW, SS_VMAX, SS_LAM_MAX, WAYPOINT_DIST_SCALE, VEL_SCALE)  # noqa: E402
 from nav.terrain import CROP_SHAPE                                   # noqa: E402
-from nav.model import NavActorCritic, action_to_joystick             # noqa: E402
+from nav.model import NavActorCritic, action_to_joystick, USE_RUN_U   # noqa: E402
+from nav.ss_routes import first_turn_costs                          # noqa: E402
+from nav.ss_tour import kick_credits, order_credits                 # noqa: E402
+from nav.ss_prepare import prepare_action                          # noqa: E402
+from nav.ss_follow import follow_action                            # noqa: E402
+from nav.through_gem import through_gem_dir                         # noqa: E402
+from nav.ss_command_aim import predict_aim                          # noqa: E402
 
 PORT = int(os.environ.get('NAV_PORT', '8920'))
 GAME_SPEED = int(os.environ.get('NAV_SPEED', '3'))   # NAV_SPEED=1 to watch it play in real time
@@ -81,6 +89,15 @@ NO_USE = os.environ.get('NAV_NO_USE', '0') == '1'  # 2026-10-03 23:30 (log 40.24
 FORCE_USE = os.environ.get('NAV_FORCE_USE', '0') == '1'   # 2026-10-04 04:10 (log 40.33): diagnostic, fire Super Speed at the first
                                                    # decision the approval mask allows (the matched counterpart of NAV_NO_USE, like
                                                    # ss_drill_eval --force-use): what the kick is worth with the current control
+SS_ROUTE = os.environ.get('NAV_SS_ROUTE', '0') == '1'  # opt-in route experiment; training unchanged
+SS_TOUR = os.environ.get('NAV_SS_TOUR', '0') == '1'    # 2026-10-05 20:30 opt-in: nav.ss_tour credits gem orders whose first
+                                                      # pickup sets up a safe post-pickup Super Speed kick; training unchanged
+SS_PREP = os.environ.get('NAV_SS_PREP', '0') == '1'    # opt-in approach experiment; never used by PPO
+SS_FOLLOW = os.environ.get('NAV_SS_FOLLOW', '0') == '1'  # opt-in first post-kick pickup controller
+THROUGH_GEM = os.environ.get('NAV_THROUGH_GEM', '0') == '1'  # 2026-10-05 21:00 opt-in: nav.through_gem keeps the push
+                                                      # along the motion through a gem whose next gem lies ahead; training unchanged
+SS_COMMAND_AIM = os.environ.get('NAV_SS_COMMAND_AIM', '0') == '1'  # opt-in pending-step prediction
+SS_YAW_FIX = os.environ.get('NAV_SS_YAW_FIX', '0') == '1'  # opt-in training bridge probe
 WATCH =os.environ.get('NAV_WATCH', '0') == '1'    # real-time viewing. Lockstep + FIXEDSTEP mean the
                                # sim advances as fast as we reply, and set_speed also sends
                                # RENDEREVERY 100 -- so NAV_SPEED alone does NOT give real time.
@@ -305,6 +322,13 @@ def choose(gems, current, pos=None, vel=None, terrain=None, mfield=None):
 
 
 def main():
+    torch.set_num_threads(int(os.environ.get('NAV_TORCH_THREADS', '1')))
+    if SS_ROUTE and (not FORCE_USE or TOUR != 'walk'):
+        raise ValueError('SS route experiment requires NAV_FORCE_USE=1 and NAV_TOUR=walk; NAV_NO_USE=1 provides its control')
+    if SS_PREP and not FORCE_USE:
+        raise ValueError('SS approach experiment requires NAV_FORCE_USE=1; NAV_NO_USE=1 provides its control')
+    if SS_COMMAND_AIM and not FORCE_USE:
+        raise ValueError('Command-time aim diagnostic requires NAV_FORCE_USE=1 for continuous pending aim updates')
     # THE LISTENING SOCKET OPENS FIRST, before the checkpoint, CUDA or the terrain grid.
     # Python is the SERVER and the game is the client: the game dials us 100 ms after "GO!"
     # (mlAgent.cs:677-686), so if the port is not already open the marble sits on the start pad
@@ -335,6 +359,14 @@ def main():
           + (f', terrain "{pre_map}" pre-built' if pre_map else ''))
 
     env.connect()                      # already bound and listening: this only accepts
+    if SS_YAW_FIX:
+        env.control('SSYAWFIX 1')
+        for _ in range(8):
+            if env.debug and 'ssyawfix=1' in env.debug:
+                break
+            env.step((0., 0., 0., 0., 0, 0.))
+        if not env.debug or 'ssyawfix=1' not in env.debug:
+            raise RuntimeError('training bridge did not acknowledge SSYAWFIX')
     def apply_watch():
         """(Re)apply the watch-mode engine settings. Called at start AND after every round transition:
         env.set_speed() re-sends the TRAINING setup (FIXEDSTEP 64) on every (re)connect / new round,
@@ -369,8 +401,11 @@ def main():
     rounds = []
     trace_path = TRACE_PATH or os.path.join(HERE, 'logs', 'nav', 'real_trace.csv')
     trace = open(trace_path, 'w', buffering=1)
-    trace.write('round,dec,x,y,z,vx,vy,speed,on_floor,tx,ty,tdist,nx,ny,gx,gy,nvis,gem,fell,fwd,back,left,right,jump\n')
+    round_log = open(trace_path + '.rounds.jsonl', 'w', buffering=1)
+    trace.write('round,dec,x,y,z,vx,vy,speed,on_floor,tx,ty,tdist,nx,ny,gx,gy,nvis,gem,fell,fwd,back,left,right,jump,'
+                'held_before,use_sent,command_aim_x,command_aim_y,spin_before_x,spin_before_y,spin_before_z\n')
     for r in range(ROUNDS):
+        env.last_round_score = None
         obs_b.reset(); h = model.initial_state(1, dev)
         target = None
         gems = falls = decisions = blind = n_snapped = n_pathed = 0
@@ -390,6 +425,12 @@ def main():
         points = 0.0
         travelled = 0.0
         round_uses = {}                      # use-bit decisions by held type (0 = blast meter), log 40
+        ss_events = []                       # actual inventory transitions after a use command
+        ss_follow_goal = None
+        previous_motion = None
+        prev_js = None                         # NAV_THROUGH_GEM: the command still pending (one-decision lag)
+        ss_opportunities = Counter()          # diagnostic only; never changes approval or actions
+        ss_tour_sig = None; ss_tour_cache = {}  # NAV_SS_TOUR: credits recomputed when the gems or the held powerup change
         last = np.array(env.msg.obs[:3], dtype=np.float64)
         t_start = env.time_left_s()          # recorded only; see the note on mins below
         next_tick = [time.perf_counter()]
@@ -425,7 +466,26 @@ def main():
                     mfield_cache = terrain.goal_field(float(env.msg.obs[0]), float(env.msg.obs[1])); mfield_key = mcell
                 mfield = mfield_cache
             if TOUR and vis:
-                target, nxt = plan_tour(vis, target, env.msg.obs[0:2], env.msg.obs[3:5], dist=(walk_dist if TOUR == 'walk' else None))
+                turn_costs = None
+                if SS_ROUTE and pending_since is None:
+                    turn_costs = first_turn_costs(terrain, env.msg.obs, vis, USE_RUN_U)
+                keep_pending = (SS_ROUTE and pending_since is not None and target is not None
+                                and any(math.hypot(g[0] - target[0], g[1] - target[1]) < STICKY_TOL
+                                        and abs(g[2] - target[2]) < 2.0 for g in vis))
+                credits = None
+                if SS_TOUR and pending_since is None:
+                    held_t = int(env.msg.obs[RAW_POW_HELD]) if len(env.msg.obs) > RAW_POW_HELD else 0
+                    sig = (held_t,) + tuple(sorted((round(float(g[0]), 1), round(float(g[1]), 1)) for g in vis))
+                    if sig != ss_tour_sig:            # recomputed when the gems or the held powerup change
+                        ss_tour_cache = kick_credits(terrain, env.msg.obs, vis) if held_t == 2 else {}
+                        ss_tour_sig = sig
+                        ss_opportunities['ss_tour_recomputed'] += 1
+                        ss_opportunities['ss_tour_credited_orders'] += len(ss_tour_cache)
+                    credits = order_credits(ss_tour_cache, vis)
+                if not keep_pending:
+                    target, nxt = plan_tour(vis, target, env.msg.obs[0:2], env.msg.obs[3:5],
+                                           dist=(walk_dist if TOUR == 'walk' else None), first_turn_costs=turn_costs,
+                                           order_credits=credits)
             else:
                 target, nxt = choose(vis, target, pos=env.msg.obs[0:2], vel=env.msg.obs[3:5], terrain=terrain, mfield=mfield)
             if target is not None:
@@ -530,12 +590,52 @@ def main():
             crop, vec, on_floor = obs_b.build(env.msg.obs, goal, None if NO_NEXT else ngoal)
             fill_use_state(vec, use_sent[0], use_sent[1], pending_since is not None, latched_aim,
                            (decisions - ss_fire_dec) * 0.064)
+            if not in_countdown:
+                ss_opportunities['decisions'] += 1
+                if vec[VEC_POW + 1] > .5:
+                    ss_opportunities['held'] += 1
+                    if on_floor:
+                        ss_opportunities['held_floor'] += 1
+                        far = vec[2] * WAYPOINT_DIST_SCALE >= USE_RUN_U
+                        moving = vec[7] * VEL_SCALE > 1.0
+                        capped = vec[VEC_POW + 30] * SS_VMAX <= SS_LAM_MAX
+                        clear = vec[VEC_POW + 26] > .5
+                        ss_opportunities['target_far' if far else 'target_near'] += 1
+                        ss_opportunities['speed_cap_pass' if capped else 'speed_cap_fail'] += 1
+                        ss_opportunities['terrain_and_cap_pass' if clear else 'terrain_or_cap_fail'] += 1
+                        if moving and capped and not clear:
+                            ss_opportunities['terrain_fail_with_speed_ok'] += 1
+                        if moving and clear:
+                            ss_opportunities['approved' if far else 'clear_but_target_near'] += 1
+                        if decisions - last_pick_dec <= 5:
+                            ss_opportunities['post_pickup_held_floor'] += 1
+                            if capped:
+                                ss_opportunities['post_pickup_speed_cap_pass'] += 1
+                            if moving and clear and far:
+                                ss_opportunities['post_pickup_approved'] += 1
             out = model.act(torch.as_tensor(crop, device=dev).unsqueeze(0),
                             torch.as_tensor(vec, device=dev).unsqueeze(0), h, deterministic=not (detour or SAMPLE))
             a = out['action_game'][0].tolist(); vel = env.msg.obs[RAW_VEL]
             if FORCE_USE and len(a) > 5:
                 with torch.no_grad():
                     a[5] = 1.0 if float(model.use_prior(torch.as_tensor(vec, device=dev).unsqueeze(0))[0]) > 0.5 else 0.0
+            if SS_PREP and pending_since is None:
+                a, prepared = prepare_action(a, terrain, env.msg.obs, vec, minimum_next=USE_RUN_U)
+                ss_opportunities['prepared_decisions'] += int(prepared)
+            if (SS_FOLLOW and ss_follow_goal is not None
+                    and math.hypot(goal[0] - ss_follow_goal[0], goal[1] - ss_follow_goal[1]) < .25
+                    and abs(goal[2] - ss_follow_goal[2]) < .5
+                    and (decisions - ss_fire_dec) * .064 < 2.0):
+                a, followed = follow_action(a, env.msg.obs, vec)
+                ss_opportunities['followed_decisions'] += int(followed)
+            if (THROUGH_GEM and prev_js is not None and not pathed and not detour and pending_since is None
+                    and (decisions - ss_fire_dec) * .064 >= 2.0 and ngoal is not None):
+                ss_opportunities['through_gem_checked'] += 1
+                tg = through_gem_dir(terrain, env.msg.obs, (float(prev_js[3]) - float(prev_js[2]), float(prev_js[0]) - float(prev_js[1])),
+                                     float(prev_js[5]), goal, ngoal, (a[0], a[1]), a[2])
+                if tg is not None:
+                    a[0], a[1] = tg; a[2] = 1.0; a[4] = 0.0          # full push along the chosen line, no brake
+                    ss_opportunities['through_gem_overrides'] += 1
             if SMOOTH < 1.0:
                 n = math.hypot(a[0], a[1])
                 if n > 1e-6:
@@ -551,22 +651,41 @@ def main():
             if FORCE_THROTTLE:
                 a[2] = 1.0                        # direction is the policy's, strength is pegged
             js_cmd = action_to_joystick(a[0], a[1], a[2], a[3], a[4], float(vel[0]), float(vel[1]))
+            prev_js = js_cmd
             kw = {}
             ob_ = env.msg.obs; held_ = int(ob_[RAW_POW_HELD]) if len(ob_) > RAW_POW_HELD else 0
             sent_ = False
             # the use bit (log 40), as vec_worker turns it into words; 40.26: Super Speed only, like training
             if len(a) > 5 and a[5] > 0.5 and not NO_USE and held_ == 2:
                 aim_ = ss_aim(vec)
+                if SS_COMMAND_AIM:
+                    prediction = predict_aim(terrain, ob_, previous_motion, goal, ngoal, OBS_MS / 1000.0)
+                    if prediction is not None:
+                        aim_ = prediction['aim']
+                    ss_opportunities['command_aim_predicted' if prediction is not None else 'command_aim_fallback'] += 1
                 kw = {'use_pow': 1, 'pow_yaw': math.atan2(*aim_)}   # the physics aim
                 round_uses[held_] = round_uses.get(held_, 0) + 1
                 sent_ = True; latched_aim = aim_
                 if pending_since is None:
                     pending_since = decisions
             msg, info = paced_step(js_cmd, **kw)
+            previous_motion = ob_.copy()
             held_after = int(msg.obs[RAW_POW_HELD]) if len(msg.obs) > RAW_POW_HELD else 0
             use_sent = [sent_, use_sent[0]]
             if held_ == 2 and held_after == 0 and not info['fell']:
+                if pending_since is not None and decisions - pending_since <= 3:
+                    ss_follow_goal = tuple(goal)
+                    ss_events.append({'decision': decisions, 'time_left_s': env.time_left_s(),
+                                      'position': ob_[:3].tolist(), 'velocity_before': ob_[RAW_VEL].tolist(),
+                                      'velocity_after': msg.obs[RAW_VEL].tolist(),
+                                      'spin_before': ob_[RAW_SPIN].tolist(), 'spin_after': msg.obs[RAW_SPIN].tolist(),
+                                      'target': list(goal), 'next_target': list(ngoal) if ngoal else None,
+                                      'last_command_aim': list(latched_aim) if latched_aim else None,
+                                      'first_use_decision': pending_since,
+                                      'score': float(msg.obs[RAW_SCORE]), 'following_velocity': []})
                 ss_fire_dec = decisions; pending_since = None; latched_aim = None         # the kick went off (worker timing)
+            if ss_events and 0 < decisions - ss_events[-1]['decision'] <= 3:
+                ss_events[-1]['following_velocity'].append(msg.obs[RAW_VEL].tolist())
             if pending_since is not None and (decisions - pending_since > 3 or held_after != 2):
                 pending_since = None; latched_aim = None
             for _ in range(VIEW_SUBSTEPS - 1):     # same action across the remaining slices
@@ -595,7 +714,9 @@ def main():
                         f'{(nxt[0] if nxt else 0):.1f},{(nxt[1] if nxt else 0):.1f},'
                         f'{goal[0]:.1f},{goal[1]:.1f},{len(vis)},'
                         f'{info["gem_delta"]:.0f},{int(info["fell"])},'
-                        f'{js[0]:.2f},{js[1]:.2f},{js[2]:.2f},{js[3]:.2f},{js[4]}\n')
+                        f'{js[0]:.2f},{js[1]:.2f},{js[2]:.2f},{js[3]:.2f},{js[4]},'
+                        f'{held_},{int(sent_)},{(aim_[0] if sent_ else 0):.6f},{(aim_[1] if sent_ else 0):.6f},'
+                        f'{ob_[35]:.6f},{ob_[36]:.6f},{ob_[37]:.6f}\n')
             if info['gem_delta'] > 0:
                 last_pick_dec = decisions         # progress: the stuck window restarts here (STUCK_PICKUP)
                 gems += 1                         # one pickup...
@@ -638,7 +759,14 @@ def main():
                'snapped_pct': round(100.0 * n_snapped / max(decisions, 1), 1),
                'pathed_pct': round(100.0 * n_pathed / max(decisions, 1), 1),
                'smooth': SMOOTH, 'pow_uses': {str(k): v for k, v in sorted(round_uses.items())}}
+        row.update(engine_points=env.last_round_score, completed=bool(info['round_ended'] and not info['reconnected']),
+                   ss_fires=len(ss_events), ss_events=ss_events, no_use=NO_USE, force_use=FORCE_USE,
+                   checkpoint=os.path.basename(ckpt), update=ck.get('update'),
+                   ss_opportunities=dict(ss_opportunities), ss_route=SS_ROUTE, ss_prepare=SS_PREP,
+                   ss_follow=SS_FOLLOW, ss_command_aim=SS_COMMAND_AIM, ss_yaw_fix=SS_YAW_FIX,
+                   ss_yaw_debug=env.debug if SS_YAW_FIX else None)
         rounds.append(row)
+        round_log.write(json.dumps(row) + '\n')
         print(f'  round {r+1}: {row}')
         if r + 1 < ROUNDS:
             env.wait_new_round()
@@ -646,6 +774,7 @@ def main():
                 apply_watch()              # the new round re-sent FIXEDSTEP 64; put the sub-step back
 
     trace.close()
+    round_log.close()
     # Keep the latest trace PER MAP as well (2026-09-22): the dashboard's speed heat map reads
     # logs/nav/real_trace_<map>.csv for whichever map is selected.
     try:

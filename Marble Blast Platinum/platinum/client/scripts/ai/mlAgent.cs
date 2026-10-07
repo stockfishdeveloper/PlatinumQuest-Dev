@@ -12,6 +12,7 @@ $MLAgent::TrainingSpeed = 3.0;  // Game speed multiplier (1.0 = normal, 3.0 = 3x
 $MLAgent::DiagnosticMode = false; // When true: send obs but don't execute actions or change speed
 $MLAgent::PowYawHoldTicks = 12;   // 2026-10-02: ticks the powerup yaw (action word 8) overrides the steering yaw after a
                                   // use (the key fires 2 decisions = 8 ticks later; Super Speed takes the yaw then)
+$MLAgent::SSYawFix = false;      // Opt-in local training probe: release consumed SS yaw; preserve input direction.
 $MLAgent::RecordMode = false;     // When true (with DiagnosticMode): append the human's inputs to each message
 // Lockstep experiment (2026-09-16), OFF. Idea: freeze the simulation (tiny
 // time scale) after each observation until the reply arrives, so physics
@@ -66,6 +67,9 @@ $AIBridge::HeldTicks = 0;
 // State tracking (reward computation is in Python)
 $MLAgent::LastGemScore = 0;
 $MLAgent::WasOOB = false;
+
+// Local training replay helpers stay dormant until the Python test/trainer opts in.
+exec("./trainingReplay.cs");
 
 function MLAgent::start() {
     if ($MLAgent::Enabled) {
@@ -227,6 +231,7 @@ function MLAgent::update(%gen) {
         }
     }
 
+    MLReplay::beforeObservation();
     // 1. Collect observation
     %obs = AIObserver::collectState();
 
@@ -276,6 +281,7 @@ function MLAgent::update(%gen) {
     %msg = %msg @ "|" @ $MLAgent::Tick;
 
     // 6. Send to Python server and get action
+    MLReplay::snapshot();
     AIBridge::sendState(%msg);
     // Engine lockstep (built engine only, $AI::Lockstep): the simulation now stands still
     // until the reply to this observation arrives (socketBridge.cs clears the flag).
@@ -309,7 +315,21 @@ function MLAgent::update(%gen) {
     //                    the observation interval follows it (one observation per step)
     //   "LOCKSTEP 0|1"   built engine: hold the sim until each observation is answered
     //   "RENDEREVERY n"  built engine: render one frame in n while in fixed-step mode
-    if (getWord(%actionStr, 0) $= "FIXEDSTEP") {
+    if (getWord(%actionStr, 0) $= "SSYAWFIX") {
+        $MLAgent::SSYawFix = (getWord(%actionStr, 1) + 0) == 1 && $AI::Lockstep && $Server::Hosting && !$MLAgent::Live;
+        $MLAgent::SSYawReleases = 0;
+        $MLAgent::SSYawScales = 0;
+        echo("MLAgent: training SS yaw fix = " @ $MLAgent::SSYawFix);
+        AIBridge::sendState("DEBUG|ssyawfix=" @ ($MLAgent::SSYawFix + 0) @ "|ssyawreleases=0|ssyawscales=0");
+        $AIBridge::LastAction = ""; %actionStr = "";
+    } else if (getWord(%actionStr, 0) $= "REPLAYCAPTURE") {
+        $MLReplay::Enabled = (getWord(%actionStr, 1) + 0) == 1 && $AI::Lockstep && $Server::Hosting;
+        if ($MLReplay::Enabled) MLReplay::init();
+        $AIBridge::LastAction = ""; %actionStr = "";
+    } else if (getWord(%actionStr, 0) $= "REPLAYRESTORE") {
+        MLReplay::queueRestore(getSubStr(%actionStr, 14, strlen(%actionStr) - 14));
+        $AIBridge::LastAction = ""; %actionStr = "";
+    } else if (getWord(%actionStr, 0) $= "FIXEDSTEP") {
         %n = getWord(%actionStr, 1) + 0;
         $AI::FixedStepMs = %n;
         $MLAgent::UpdateInterval = %n > 0 ? %n : 16;
@@ -777,6 +797,17 @@ function MLAgent::executeAction(%actionStr) {
         $MLAgent::PowYaw = %powYaw + 0;
         $MLAgent::PowYawHold = $MLAgent::PowYawHoldTicks;
     }
+    if ($MLAgent::SSYawFix && !$MLAgent::Live && $MLAgent::PowYawHold > 0) {
+        %ssPlayer = (isObject(ClientGroup) && ClientGroup.getCount() > 0) ? ClientGroup.getObject(0).player : -1;
+        if (isObject(%ssPlayer) && (!isObject(%ssPlayer.powerUpData) || AIObserver::powerupType(%ssPlayer.powerUpData) != 2)) {
+            // The kick has already consumed the item. Normal steering may choose its
+            // own camera diagonal again; a fixed reply count is not a physics timer.
+            $MLAgent::PowYawHold = 0;
+            $MLAgent::SSYawReleases++;
+            AIBridge::sendState("DEBUG|ssyawfix=1|ssyawreleases=" @ $MLAgent::SSYawReleases @ "|ssyawscales=" @ $MLAgent::SSYawScales);
+        }
+    }
+    %ssYawActive = $MLAgent::PowYawHold > 0;
     if ($MLAgent::PowYawHold > 0) {
         %camYaw = $MLAgent::PowYaw;
         $MLAgent::PowYawHold--;
@@ -826,6 +857,15 @@ function MLAgent::executeAction(%actionStr) {
         %yaw = $MP::MyMarble.getCameraYaw() + 0;
         %cx = %wx * mCos(%yaw) - %wy * mSin(%yaw);
         %cy = %wx * mSin(%yaw) + %wy * mCos(%yaw);
+        if ($MLAgent::SSYawFix && !$MLAgent::Live && %ssYawActive) {
+            // The powerup owns yaw temporarily, so the requested world direction
+            // need not land on a camera diagonal. Uniform scaling preserves its
+            // direction when either camera axis would exceed the engine's cap.
+            %ssScale = mMax(1, mMax(mAbs(%cx), mAbs(%cy)));
+            if (%ssScale > 1.000001) $MLAgent::SSYawScales++;
+            %cx /= %ssScale;
+            %cy /= %ssScale;
+        }
         %right = (%cx > 0) ? %cx : 0;
         %left = (%cx < 0) ? -%cx : 0;
         %forward = (%cy > 0) ? %cy : 0;

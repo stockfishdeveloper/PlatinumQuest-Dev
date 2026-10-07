@@ -121,7 +121,9 @@ def _adapt_entropy(ent):
 VALUE_COEF = 0.5
 MAX_GRAD_NORM = 0.5
 TARGET_KL = 0.3
-LR = 3e-4              # with the un-normalized direction mean the KL per update is ~0.005 at 1e-4: too slow
+LR = 1e-4              # 2026-10-05 22:15 (log 40.58): the whole navigator retrains on the corrected map, gently (3e-4 built it
+                      # from scratch; 40.26-40.32 wore it down with drills at 3e-4). Before: 3e-4 ("with the un-normalized
+                      # direction mean the KL per update is ~0.005 at 1e-4: too slow")
 
 
 class Rollout:
@@ -139,15 +141,19 @@ class Rollout:
         self.logp = np.zeros(T, dtype=np.float32)
         self.value = np.zeros(T, dtype=np.float32)
         self.reward = np.zeros(T, dtype=np.float32)
+        self.duration = np.ones(T, dtype=np.float32)  # elapsed simulation time / one ordinary decision
         self.done = np.zeros(T, dtype=np.float32)      # segment ended after this step
         self.reset = np.zeros(T, dtype=np.float32)     # hidden state was zero before this step
         self.h = np.zeros((T, HIDDEN), dtype=np.float32)
 
-    def add(self, crop, vec, action, logp, value, reward, done, reset, h):
+    def add(self, crop, vec, action, logp, value, reward, done, reset, h, duration_steps=1.0):
+        if not np.isfinite(duration_steps) or duration_steps <= 0:
+            raise ValueError('transition duration must be positive and finite')
         i = self.n
         self.crop[i] = crop; self.vec[i] = vec; self.action[i] = action; self.logp[i] = logp
         self.value[i] = value; self.reward[i] = reward; self.done[i] = done; self.reset[i] = reset; self.h[i] = h
         self.n += 1
+        self.duration[i] = duration_steps
 
     def full(self):
         return self.n >= self.T
@@ -166,13 +172,14 @@ class Rollout:
         for t in reversed(range(T)):
             nv = last_value if t == T - 1 else self.value[t + 1]
             nonterminal = 1.0 - self.done[t]
-            delta = self.reward[t] + GAMMA * nv * nonterminal - self.value[t]
-            gae = delta + GAMMA * LAMBDA * nonterminal * gae
+            discount = GAMMA ** self.duration[t]
+            delta = self.reward[t] + discount * nv * nonterminal - self.value[t]
+            gae = delta + discount * (LAMBDA ** self.duration[t]) * nonterminal * gae
             adv[t] = gae
         return adv, adv + self.value[:T]
 
 
-def ppo_update(model, opt, rolls, last_values, log=print):
+def ppo_update(model, opt, rolls, last_values, log=print, critic_only=False):
     """One PPO update over one rollout or a list of them (one per game instance). Each rollout is
     cut into SEQ_LEN sequences on its own (its own GAE bootstrap), then all sequences are pooled.
     Returns a dict of stats."""
@@ -229,7 +236,8 @@ def ppo_update(model, opt, rolls, last_values, log=print):
             pl = -torch.min(ratio * a, torch.clamp(ratio, 1 - CLIP, 1 + CLIP) * a).mean()
             v_clipped = old_vn[idx] + torch.clamp(vn - old_vn[idx], -CLIP, CLIP)
             vl = torch.max(F.mse_loss(vn, ret_s[idx], reduction='none'), F.mse_loss(v_clipped, ret_s[idx], reduction='none')).mean()
-            loss = pl + VALUE_COEF * vl - _ent_coef * ent.mean() - DISCRETE_ENT_COEF * ent_d.mean()
+            loss = (VALUE_COEF * vl if critic_only else
+                    pl + VALUE_COEF * vl - _ent_coef * ent.mean() - DISCRETE_ENT_COEF * ent_d.mean())
             opt.zero_grad(); loss.backward()
             gn = torch.nn.utils.clip_grad_norm_(model.parameters(), MAX_GRAD_NORM)
             opt.step()

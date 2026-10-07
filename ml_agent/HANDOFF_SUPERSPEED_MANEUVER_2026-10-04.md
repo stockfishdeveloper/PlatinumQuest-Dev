@@ -1,5 +1,11 @@
 # Handoff: training the complete Super Speed manoeuvre (2026-10-04, after the second review)
 
+**Superseded startup/data/reward recipe, late 2026-10-04:** read
+[`HANDOFF_POINTS_REPLAY_2026-10-04.md`](HANDOFF_POINTS_REPLAY_2026-10-04.md) first. The implementation now uses
+real game snapshots, real points in both rounds and windows, and new schema-2 datasets. Old synthetic stages 1-3
+are diagnostics only. The changes were tested without starting the main training loop or modifying checkpoints;
+the operator wants another model to run overnight training. The historical plan and standing rules follow.
+
 Written for the agent that starts and watches the next training run. Read this file, then `HANDOFF_NAV_TRAINING.md`
 sections 6-7 (how to run, traps), then log sections 40.26-40.40 in `docs/HANDOFF_NAV_TRAINING_LOG.md` (the night's
 curriculum, its results, the two reviews and what was built from them). The operator (doug) decides; the standing

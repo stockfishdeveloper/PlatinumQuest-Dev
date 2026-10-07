@@ -80,6 +80,8 @@ def parse_message(line: str) -> GameMessage:
         return GameMessage('info', fields=parts[1:], raw=line)
     if head == 'DEBUG':
         return GameMessage('debug', fields=parts[1:], raw=line)
+    if head in ('REPLAYCAT', 'REPLAYWORLD'):
+        return GameMessage(head.lower(), fields=[line.partition('|')[2]], raw=line)
     if len(parts) < 4:
         return GameMessage('other', fields=parts, raw=line)
     try:

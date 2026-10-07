@@ -1,0 +1,20 @@
+C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\nav\real_run.py:340: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  ck = torch.load(ckpt, map_location=dev)
+Traceback (most recent call last):
+  File "C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\logs\nav\gate_scripts\rr_map.py", line 11, in <module>
+    runpy.run_module('nav.real_run', run_name='__main__')
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\runpy.py", line 228, in run_module
+    return _run_code(code, {}, init_globals, run_name, mod_spec)
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\runpy.py", line 87, in _run_code
+    exec(code, run_globals)
+  File "C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\nav\real_run.py", line 805, in <module>
+    main()
+  File "C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\nav\real_run.py", line 397, in main
+    terrain = TerrainGrid(TerrainMap.resolve(mission)); obs_b = ObsBuilder(terrain)
+  File "C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\nav\terrain.py", line 106, in __init__
+    super().__init__(path)
+  File "C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\terrain_obs.py", line 104, in __init__
+    d = np.load(path, allow_pickle=False)
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\site-packages\numpy\lib\_npyio_impl.py", line 455, in load
+    fid = stack.enter_context(open(os.fspath(file), "rb"))
+OSError: [Errno 22] Invalid argument: 'C:\\Users\\doug\\OneDrive\\Documents\\GitHub\\PlatinumQuest-Dev\\ml_agent\\terrain_maps\terrain_KingOfTheMarble_Hunt_grid050_20261005.npz'

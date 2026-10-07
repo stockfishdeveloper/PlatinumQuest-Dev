@@ -1,0 +1,212 @@
+{
+  "summary": {
+    "speed_before": 5.44,
+    "speed_after": 19.99,
+    "prior_lag": 0.13,
+    "t_first": 1.11,
+    "v_first": 11.34,
+    "t_third": 4.42,
+    "fires": 18,
+    "fall3": 1
+  },
+  "events": [
+    {
+      "round": 1,
+      "fire_dec": 1045,
+      "speed_before": 5.0,
+      "speed_after": 19.2,
+      "prior_lag": 0.13,
+      "t_first": 0.77,
+      "v_first": 12.28,
+      "t_third": 4.61,
+      "fall3": false
+    },
+    {
+      "round": 4,
+      "fire_dec": 1002,
+      "speed_before": 5.0,
+      "speed_after": 19.2,
+      "prior_lag": 0.13,
+      "t_first": 0.77,
+      "v_first": 12.3,
+      "t_third": 4.22,
+      "fall3": false
+    },
+    {
+      "round": 4,
+      "fire_dec": 1470,
+      "speed_before": 3.8,
+      "speed_after": 20.3,
+      "prior_lag": 0.13,
+      "t_first": 0.77,
+      "v_first": 10.53,
+      "t_third": 4.74,
+      "fall3": false
+    },
+    {
+      "round": 5,
+      "fire_dec": 907,
+      "speed_before": 8.6,
+      "speed_after": 22.6,
+      "prior_lag": 0.13,
+      "t_first": 2.3,
+      "v_first": 3.44,
+      "t_third": 5.63,
+      "fall3": false
+    },
+    {
+      "round": 6,
+      "fire_dec": 1476,
+      "speed_before": 6.9,
+      "speed_after": 19.0,
+      "prior_lag": 0.13,
+      "t_first": 0.77,
+      "v_first": 12.29,
+      "t_third": 4.61,
+      "fall3": false
+    },
+    {
+      "round": 6,
+      "fire_dec": 1888,
+      "speed_before": 4.5,
+      "speed_after": 19.9,
+      "prior_lag": 0.13,
+      "t_first": 2.56,
+      "v_first": 9.11,
+      "t_third": 5.57,
+      "fall3": false
+    },
+    {
+      "round": 7,
+      "fire_dec": 2703,
+      "speed_before": 4.4,
+      "speed_after": 20.1,
+      "prior_lag": 0.13,
+      "t_first": 2.75,
+      "v_first": 8.69,
+      "t_third": null,
+      "fall3": false
+    },
+    {
+      "round": 11,
+      "fire_dec": 620,
+      "speed_before": 6.5,
+      "speed_after": 19.3,
+      "prior_lag": 0.13,
+      "t_first": 0.77,
+      "v_first": 12.51,
+      "t_third": 5.18,
+      "fall3": false
+    },
+    {
+      "round": 11,
+      "fire_dec": 1403,
+      "speed_before": 2.7,
+      "speed_after": 21.9,
+      "prior_lag": 0.13,
+      "t_first": 0.64,
+      "v_first": 13.82,
+      "t_third": 3.14,
+      "fall3": false
+    },
+    {
+      "round": 12,
+      "fire_dec": 1129,
+      "speed_before": 3.2,
+      "speed_after": 20.9,
+      "prior_lag": 0.13,
+      "t_first": 0.7,
+      "v_first": 12.63,
+      "t_third": 4.67,
+      "fall3": false
+    },
+    {
+      "round": 14,
+      "fire_dec": 801,
+      "speed_before": 6.4,
+      "speed_after": 19.6,
+      "prior_lag": 0.13,
+      "t_first": 0.77,
+      "v_first": 12.68,
+      "t_third": 3.14,
+      "fall3": false
+    },
+    {
+      "round": 14,
+      "fire_dec": 1128,
+      "speed_before": 6.3,
+      "speed_after": 19.4,
+      "prior_lag": 0.13,
+      "t_first": 0.77,
+      "v_first": 12.65,
+      "t_third": 3.07,
+      "fall3": false
+    },
+    {
+      "round": 15,
+      "fire_dec": 595,
+      "speed_before": 5.3,
+      "speed_after": 18.9,
+      "prior_lag": 0.13,
+      "t_first": 0.77,
+      "v_first": 12.7,
+      "t_third": 3.14,
+      "fall3": false
+    },
+    {
+      "round": 15,
+      "fire_dec": 819,
+      "speed_before": 4.6,
+      "speed_after": 20.7,
+      "prior_lag": 0.13,
+      "t_first": 0.58,
+      "v_first": 13.83,
+      "t_third": 6.02,
+      "fall3": true
+    },
+    {
+      "round": 15,
+      "fire_dec": 1336,
+      "speed_before": 5.4,
+      "speed_after": 18.9,
+      "prior_lag": 0.13,
+      "t_first": 0.83,
+      "v_first": 9.08,
+      "t_third": 3.46,
+      "fall3": false
+    },
+    {
+      "round": 15,
+      "fire_dec": 2253,
+      "speed_before": 6.8,
+      "speed_after": 19.0,
+      "prior_lag": 0.13,
+      "t_first": 0.77,
+      "v_first": 12.66,
+      "t_third": 4.42,
+      "fall3": false
+    },
+    {
+      "round": 16,
+      "fire_dec": 594,
+      "speed_before": 8.7,
+      "speed_after": 20.4,
+      "prior_lag": 0.13,
+      "t_first": 2.11,
+      "v_first": 9.56,
+      "t_third": null,
+      "fall3": false
+    },
+    {
+      "round": 16,
+      "fire_dec": 2500,
+      "speed_before": 3.8,
+      "speed_after": 20.6,
+      "prior_lag": 0.13,
+      "t_first": 0.58,
+      "v_first": 13.43,
+      "t_third": 5.18,
+      "fall3": false
+    }
+  ]
+}

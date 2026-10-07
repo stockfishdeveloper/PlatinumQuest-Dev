@@ -1,0 +1,23 @@
+{
+  "n": 33,
+  "constant": {
+    "velocity_mean": 0.912340085035301,
+    "velocity_p90": 0.9150432645748147
+  },
+  "recent_accel": {
+    "velocity_mean": 1.107860009146545,
+    "velocity_p90": 1.3543146863640014
+  },
+  "step3": {
+    "velocity_mean": 0.5007943462766749,
+    "velocity_p90": 0.6205652501112902,
+    "position_mean": 0.017953642653759178,
+    "position_p90": 0.024565677395759895
+  },
+  "step3u": {
+    "velocity_mean": 0.5005791352154328,
+    "velocity_p90": 0.6070905496770127,
+    "position_mean": 0.0182536777501837,
+    "position_p90": 0.02514019669432475
+  }
+}

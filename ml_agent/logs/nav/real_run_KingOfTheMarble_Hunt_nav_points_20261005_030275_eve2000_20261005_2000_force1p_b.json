@@ -1,0 +1,2218 @@
+{
+ "map": "KingOfTheMarble_Hunt",
+ "ckpt": "nav_points_20261005_030275.pth",
+ "update": 30275,
+ "rounds": [
+  {
+   "round": 1,
+   "gems": 134,
+   "points": 168.0,
+   "minutes": 3.03,
+   "decisions": 2840,
+   "countdown_decisions": 48,
+   "gems_per_min": 44.2,
+   "points_per_min": 55.5,
+   "falls": 1,
+   "falls_per_100u": 0.065,
+   "travelled_u": 1531.7,
+   "speed": 8.43,
+   "blind_pct": 0.0,
+   "stuck_breaks": 0,
+   "snapped_pct": 0.0,
+   "pathed_pct": 0.0,
+   "smooth": 1.0,
+   "pow_uses": {
+    "2": 3
+   },
+   "engine_points": 168.0,
+   "completed": true,
+   "ss_fires": 1,
+   "ss_events": [
+    {
+     "decision": 1797,
+     "time_left_s": 67.936,
+     "position": [
+      -37.490848541259766,
+      3.2618439197540283,
+      20.83974838256836
+     ],
+     "velocity_before": [
+      -4.426058769226074,
+      0.7813587784767151,
+      0.0
+     ],
+     "velocity_after": [
+      19.573970794677734,
+      -1.4551299810409546,
+      0.0
+     ],
+     "spin_before": [
+      -4.117833137512207,
+      -23.325740814208984,
+      -0.0026884260587394238
+     ],
+     "spin_after": [
+      -1.384896993637085,
+      -7.075005054473877,
+      -0.002560504013672471
+     ],
+     "target": [
+      -25.200048446655273,
+      2.999999910593033,
+      20.700000375509262
+     ],
+     "next_target": [
+      -13.200048446655273,
+      2.999999910593033,
+      20.700000375509262
+     ],
+     "last_command_aim": [
+      0.9955336451530457,
+      -0.0944075807929039
+     ],
+     "first_use_decision": 1795,
+     "score": 107.0,
+     "following_velocity": [
+      [
+       18.680620193481445,
+       -1.38645601272583,
+       0.0
+      ],
+      [
+       17.78643035888672,
+       -1.3296459913253784,
+       0.0
+      ],
+      [
+       16.893569946289062,
+       -1.2562659978866577,
+       0.0
+      ]
+     ]
+    }
+   ],
+   "no_use": false,
+   "force_use": true,
+   "checkpoint": "nav_points_20261005_030275.pth",
+   "update": 30275,
+   "ss_opportunities": {
+    "decisions": 2841,
+    "held": 896,
+    "held_floor": 866,
+    "target_near": 521,
+    "speed_cap_fail": 852,
+    "terrain_or_cap_fail": 863,
+    "target_far": 345,
+    "post_pickup_held_floor": 240,
+    "speed_cap_pass": 14,
+    "terrain_fail_with_speed_ok": 11,
+    "post_pickup_speed_cap_pass": 13,
+    "terrain_and_cap_pass": 3,
+    "approved": 3,
+    "post_pickup_approved": 3
+   },
+   "ss_route": false,
+   "ss_prepare": false,
+   "ss_follow": false,
+   "ss_command_aim": false,
+   "ss_yaw_fix": false,
+   "ss_yaw_debug": null
+  },
+  {
+   "round": 2,
+   "gems": 136,
+   "points": 167.0,
+   "minutes": 3.03,
+   "decisions": 2841,
+   "countdown_decisions": 41,
+   "gems_per_min": 44.9,
+   "points_per_min": 55.1,
+   "falls": 0,
+   "falls_per_100u": 0.0,
+   "travelled_u": 1530.5,
+   "speed": 8.42,
+   "blind_pct": 0.0,
+   "stuck_breaks": 0,
+   "snapped_pct": 0.0,
+   "pathed_pct": 0.0,
+   "smooth": 1.0,
+   "pow_uses": {},
+   "engine_points": 167.0,
+   "completed": true,
+   "ss_fires": 0,
+   "ss_events": [],
+   "no_use": false,
+   "force_use": true,
+   "checkpoint": "nav_points_20261005_030275.pth",
+   "update": 30275,
+   "ss_opportunities": {
+    "decisions": 2842,
+    "held": 967,
+    "held_floor": 966,
+    "target_near": 557,
+    "speed_cap_fail": 945,
+    "terrain_or_cap_fail": 966,
+    "target_far": 409,
+    "post_pickup_held_floor": 270,
+    "speed_cap_pass": 21,
+    "terrain_fail_with_speed_ok": 21,
+    "post_pickup_speed_cap_pass": 19
+   },
+   "ss_route": false,
+   "ss_prepare": false,
+   "ss_follow": false,
+   "ss_command_aim": false,
+   "ss_yaw_fix": false,
+   "ss_yaw_debug": null
+  },
+  {
+   "round": 3,
+   "gems": 131,
+   "points": 166.0,
+   "minutes": 3.03,
+   "decisions": 2841,
+   "countdown_decisions": 41,
+   "gems_per_min": 43.2,
+   "points_per_min": 54.8,
+   "falls": 0,
+   "falls_per_100u": 0.0,
+   "travelled_u": 1551.1,
+   "speed": 8.53,
+   "blind_pct": 0.0,
+   "stuck_breaks": 0,
+   "snapped_pct": 0.0,
+   "pathed_pct": 0.0,
+   "smooth": 1.0,
+   "pow_uses": {
+    "2": 3
+   },
+   "engine_points": 166.0,
+   "completed": true,
+   "ss_fires": 1,
+   "ss_events": [
+    {
+     "decision": 1786,
+     "time_left_s": 68.192,
+     "position": [
+      -37.661441802978516,
+      3.3802590370178223,
+      20.83974838256836
+     ],
+     "velocity_before": [
+      -7.293039798736572,
+      2.4666779041290283,
+      0.0
+     ],
+     "velocity_after": [
+      1.8921120166778564,
+      24.75210952758789,
+      0.0
+     ],
+     "spin_before": [
+      -12.99962043762207,
+      -38.435001373291016,
+      -0.00017399119678884745
+     ],
+     "spin_after": [
+      -25.849449157714844,
+      -29.655899047851562,
+      -0.0001661944988882169
+     ],
+     "target": [
+      -37.200000792741776,
+      14.999959468841553,
+      20.700000375509262
+     ],
+     "next_target": [
+      -37.200000792741776,
+      26.999958515167236,
+      20.700000375509262
+     ],
+     "last_command_aim": [
+      0.35146379470825195,
+      0.9362014532089233
+     ],
+     "first_use_decision": 1784,
+     "score": 103.0,
+     "following_velocity": [
+      [
+       1.586663007736206,
+       23.909820556640625,
+       0.0
+      ],
+      [
+       1.316411018371582,
+       23.05565071105957,
+       0.0
+      ],
+      [
+       1.069949984550476,
+       22.194210052490234,
+       0.0
+      ]
+     ]
+    }
+   ],
+   "no_use": false,
+   "force_use": true,
+   "checkpoint": "nav_points_20261005_030275.pth",
+   "update": 30275,
+   "ss_opportunities": {
+    "decisions": 2842,
+    "held": 1837,
+    "held_floor": 1803,
+    "target_far": 783,
+    "speed_cap_fail": 1762,
+    "terrain_or_cap_fail": 1800,
+    "target_near": 1020,
+    "post_pickup_held_floor": 510,
+    "speed_cap_pass": 41,
+    "terrain_fail_with_speed_ok": 41,
+    "post_pickup_speed_cap_pass": 40,
+    "terrain_and_cap_pass": 3,
+    "approved": 3,
+    "post_pickup_approved": 3
+   },
+   "ss_route": false,
+   "ss_prepare": false,
+   "ss_follow": false,
+   "ss_command_aim": false,
+   "ss_yaw_fix": false,
+   "ss_yaw_debug": null
+  },
+  {
+   "round": 4,
+   "gems": 132,
+   "points": 168.0,
+   "minutes": 3.03,
+   "decisions": 2841,
+   "countdown_decisions": 41,
+   "gems_per_min": 43.6,
+   "points_per_min": 55.4,
+   "falls": 0,
+   "falls_per_100u": 0.0,
+   "travelled_u": 1543.5,
+   "speed": 8.49,
+   "blind_pct": 0.0,
+   "stuck_breaks": 0,
+   "snapped_pct": 0.0,
+   "pathed_pct": 0.0,
+   "smooth": 1.0,
+   "pow_uses": {
+    "2": 11
+   },
+   "engine_points": 168.0,
+   "completed": true,
+   "ss_fires": 5,
+   "ss_events": [
+    {
+     "decision": 420,
+     "time_left_s": 155.616,
+     "position": [
+      -36.6486701965332,
+      27.48591423034668,
+      20.83977508544922
+     ],
+     "velocity_before": [
+      4.500335216522217,
+      6.760348796844482,
+      0.0
+     ],
+     "velocity_after": [
+      26.653120040893555,
+      -2.740272045135498,
+      0.0
+     ],
+     "spin_before": [
+      -35.62765884399414,
+      23.717180252075195,
+      0.0474550798535347
+     ],
+     "spin_after": [
+      -26.587890625,
+      36.21760940551758,
+      0.04511867091059685
+     ],
+     "target": [
+      -25.199970245361328,
+      27.00000023841858,
+      20.700001090765
+     ],
+     "next_target": [
+      -13.199970245361328,
+      27.00000023841858,
+      20.700001090765
+     ],
+     "last_command_aim": [
+      0.91922527551651,
+      -0.39373207092285156
+     ],
+     "first_use_decision": 418,
+     "score": 23.0,
+     "following_velocity": [
+      [
+       25.814739227294922,
+       -2.424267053604126,
+       0.0
+      ],
+      [
+       24.965219497680664,
+       -2.1396288871765137,
+       0.0
+      ],
+      [
+       24.1114501953125,
+       -1.867846965789795,
+       0.0
+      ]
+     ]
+    },
+    {
+     "decision": 440,
+     "time_left_s": 154.336,
+     "position": [
+      -11.574030876159668,
+      26.681379318237305,
+      20.83977508544922
+     ],
+     "velocity_before": [
+      11.929679870605469,
+      0.07791800051927567,
+      0.0
+     ],
+     "velocity_after": [
+      -3.57265305519104,
+      -18.379669189453125,
+      0.0
+     ],
+     "spin_before": [
+      -0.41063499450683594,
+      62.87049102783203,
+      0.022560590878129005
+     ],
+     "spin_after": [
+      10.579239845275879,
+      50.93824005126953,
+      0.02171616069972515
+     ],
+     "target": [
+      -13.200000882148743,
+      14.999979019165039,
+      20.700001090765
+     ],
+     "next_target": [
+      -13.200000882148743,
+      2.999979019165039,
+      20.700001090765
+     ],
+     "last_command_aim": [
+      -0.6882601380348206,
+      -0.7254639863967896
+     ],
+     "first_use_decision": 438,
+     "score": 26.0,
+     "following_velocity": [
+      [
+       -3.0165328979492188,
+       -17.677169799804688,
+       0.0
+      ],
+      [
+       -2.480851888656616,
+       -16.9589900970459,
+       0.0
+      ],
+      [
+       -1.9568090438842773,
+       -16.232219696044922,
+       0.0
+      ]
+     ]
+    },
+    {
+     "decision": 934,
+     "time_left_s": 122.72,
+     "position": [
+      -35.67860794067383,
+      2.7495970726013184,
+      20.8398380279541
+     ],
+     "velocity_before": [
+      3.7447500228881836,
+      -2.8887360095977783,
+      0.0
+     ],
+     "velocity_after": [
+      -0.8606438040733337,
+      20.771270751953125,
+      0.0
+     ],
+     "spin_before": [
+      15.223899841308594,
+      19.735179901123047,
+      0.10759609937667847
+     ],
+     "spin_after": [
+      0.18682779371738434,
+      14.23285961151123,
+      0.10293210297822952
+     ],
+     "target": [
+      -37.199997901916504,
+      14.999996662139893,
+      20.700001031160355
+     ],
+     "next_target": [
+      -37.199997901916504,
+      26.99999761581421,
+      20.700001031160355
+     ],
+     "last_command_aim": [
+      -0.27635353803634644,
+      0.9610560536384583
+     ],
+     "first_use_decision": 932,
+     "score": 56.0,
+     "following_velocity": [
+      [
+       -0.7191342711448669,
+       19.886539459228516,
+       0.0
+      ],
+      [
+       -0.60260009765625,
+       18.998180389404297,
+       0.0
+      ],
+      [
+       -0.5080717206001282,
+       18.107189178466797,
+       0.0
+      ]
+     ]
+    },
+    {
+     "decision": 2821,
+     "time_left_s": 1.952,
+     "position": [
+      -14.031005859375,
+      27.029226303100586,
+      20.8398380279541
+     ],
+     "velocity_before": [
+      -4.016479015350342,
+      3.9474010467529297,
+      0.0
+     ],
+     "velocity_after": [
+      -27.67906951904297,
+      -0.6448929905891418,
+      0.0
+     ],
+     "spin_before": [
+      -20.80316925048828,
+      -21.16720962524414,
+      0.05278369039297104
+     ],
+     "spin_after": [
+      -14.67628002166748,
+      -35.38975143432617,
+      0.04969733953475952
+     ],
+     "target": [
+      -25.200005531311035,
+      27.00000000372529,
+      20.700001031160355
+     ],
+     "next_target": [
+      -37.20000648498535,
+      27.00000000372529,
+      20.700001031160355
+     ],
+     "last_command_aim": [
+      -0.9817694425582886,
+      -0.19007565081119537
+     ],
+     "first_use_decision": 2819,
+     "score": 165.0,
+     "following_velocity": [
+      [
+       -26.792949676513672,
+       -0.5124661922454834,
+       0.0
+      ],
+      [
+       -25.902629852294922,
+       -0.4123353064060211,
+       0.0
+      ],
+      [
+       -25.010330200195312,
+       -0.33096399903297424,
+       0.0
+      ]
+     ]
+    },
+    {
+     "decision": 2840,
+     "time_left_s": 0.736,
+     "position": [
+      -38.48318862915039,
+      26.640567779541016,
+      20.8398380279541
+     ],
+     "velocity_before": [
+      -12.242799758911133,
+      -1.4906519651412964,
+      0.0
+     ],
+     "velocity_after": [
+      2.364051103591919,
+      -20.664749145507812,
+      0.0
+     ],
+     "spin_before": [
+      7.85587215423584,
+      -64.52069854736328,
+      0.027362670749425888
+     ],
+     "spin_after": [
+      18.6072998046875,
+      -52.84281921386719,
+      0.026380889117717743
+     ],
+     "target": [
+      -37.19999861717224,
+      14.999967575073242,
+      20.700001031160355
+     ],
+     "next_target": [
+      -37.19999861717224,
+      2.999967575073242,
+      20.700001031160355
+     ],
+     "last_command_aim": [
+      0.6438236832618713,
+      -0.7651738524436951
+     ],
+     "first_use_decision": 2838,
+     "score": 168.0,
+     "following_velocity": [
+      [
+       1.849526047706604,
+       -19.931259155273438,
+       0.0
+      ],
+      [
+       1.3644490242004395,
+       -19.178020477294922,
+       0.0
+      ],
+      [
+       0.9138777256011963,
+       -18.40361976623535,
+       0.0
+      ]
+     ]
+    }
+   ],
+   "no_use": false,
+   "force_use": true,
+   "checkpoint": "nav_points_20261005_030275.pth",
+   "update": 30275,
+   "ss_opportunities": {
+    "decisions": 2842,
+    "held": 1256,
+    "held_floor": 1245,
+    "target_near": 758,
+    "speed_cap_fail": 1199,
+    "terrain_or_cap_fail": 1234,
+    "target_far": 487,
+    "post_pickup_held_floor": 348,
+    "terrain_and_cap_pass": 11,
+    "approved": 11,
+    "post_pickup_approved": 11,
+    "speed_cap_pass": 46,
+    "post_pickup_speed_cap_pass": 35,
+    "terrain_fail_with_speed_ok": 37
+   },
+   "ss_route": false,
+   "ss_prepare": false,
+   "ss_follow": false,
+   "ss_command_aim": false,
+   "ss_yaw_fix": false,
+   "ss_yaw_debug": null
+  },
+  {
+   "round": 5,
+   "gems": 134,
+   "points": 167.0,
+   "minutes": 3.03,
+   "decisions": 2841,
+   "countdown_decisions": 41,
+   "gems_per_min": 44.2,
+   "points_per_min": 55.1,
+   "falls": 0,
+   "falls_per_100u": 0.0,
+   "travelled_u": 1532.7,
+   "speed": 8.43,
+   "blind_pct": 0.0,
+   "stuck_breaks": 0,
+   "snapped_pct": 0.0,
+   "pathed_pct": 0.0,
+   "smooth": 1.0,
+   "pow_uses": {},
+   "engine_points": 167.0,
+   "completed": true,
+   "ss_fires": 0,
+   "ss_events": [],
+   "no_use": false,
+   "force_use": true,
+   "checkpoint": "nav_points_20261005_030275.pth",
+   "update": 30275,
+   "ss_opportunities": {
+    "decisions": 2842,
+    "held": 669,
+    "held_floor": 645,
+    "target_near": 381,
+    "speed_cap_fail": 636,
+    "terrain_or_cap_fail": 645,
+    "target_far": 264,
+    "post_pickup_held_floor": 210,
+    "speed_cap_pass": 9,
+    "terrain_fail_with_speed_ok": 9,
+    "post_pickup_speed_cap_pass": 9
+   },
+   "ss_route": false,
+   "ss_prepare": false,
+   "ss_follow": false,
+   "ss_command_aim": false,
+   "ss_yaw_fix": false,
+   "ss_yaw_debug": null
+  },
+  {
+   "round": 6,
+   "gems": 124,
+   "points": 159.0,
+   "minutes": 3.03,
+   "decisions": 2841,
+   "countdown_decisions": 41,
+   "gems_per_min": 40.9,
+   "points_per_min": 52.5,
+   "falls": 0,
+   "falls_per_100u": 0.0,
+   "travelled_u": 1558.3,
+   "speed": 8.57,
+   "blind_pct": 0.0,
+   "stuck_breaks": 0,
+   "snapped_pct": 0.0,
+   "pathed_pct": 0.0,
+   "smooth": 1.0,
+   "pow_uses": {},
+   "engine_points": 159.0,
+   "completed": true,
+   "ss_fires": 0,
+   "ss_events": [],
+   "no_use": false,
+   "force_use": true,
+   "checkpoint": "nav_points_20261005_030275.pth",
+   "update": 30275,
+   "ss_opportunities": {
+    "decisions": 2842,
+    "held": 1980,
+    "held_floor": 1893,
+    "target_near": 1009,
+    "speed_cap_fail": 1861,
+    "terrain_or_cap_fail": 1893,
+    "target_far": 884,
+    "post_pickup_held_floor": 503,
+    "speed_cap_pass": 32,
+    "terrain_fail_with_speed_ok": 32,
+    "post_pickup_speed_cap_pass": 31
+   },
+   "ss_route": false,
+   "ss_prepare": false,
+   "ss_follow": false,
+   "ss_command_aim": false,
+   "ss_yaw_fix": false,
+   "ss_yaw_debug": null
+  },
+  {
+   "round": 7,
+   "gems": 122,
+   "points": 155.0,
+   "minutes": 3.03,
+   "decisions": 2839,
+   "countdown_decisions": 41,
+   "gems_per_min": 40.3,
+   "points_per_min": 51.2,
+   "falls": 2,
+   "falls_per_100u": 0.129,
+   "travelled_u": 1545.1,
+   "speed": 8.5,
+   "blind_pct": 0.0,
+   "stuck_breaks": 0,
+   "snapped_pct": 0.0,
+   "pathed_pct": 0.0,
+   "smooth": 1.0,
+   "pow_uses": {
+    "2": 2
+   },
+   "engine_points": 155.0,
+   "completed": true,
+   "ss_fires": 1,
+   "ss_events": [
+    {
+     "decision": 926,
+     "time_left_s": 123.232,
+     "position": [
+      -13.626276016235352,
+      26.874711990356445,
+      20.83974838256836
+     ],
+     "velocity_before": [
+      -2.555572986602783,
+      3.7140159606933594,
+      0.0
+     ],
+     "velocity_after": [
+      -26.464649200439453,
+      0.654014527797699,
+      0.0
+     ],
+     "spin_before": [
+      -19.573209762573242,
+      -13.468110084533691,
+      -5.768917244949878e-13
+     ],
+     "spin_after": [
+      -14.363459587097168,
+      -28.04762077331543,
+      -5.464196261260879e-13
+     ],
+     "target": [
+      -25.199975967407227,
+      26.99999998509884,
+      20.700000375509262
+     ],
+     "next_target": [
+      -37.19997596740723,
+      26.99999998509884,
+      20.700000375509262
+     ],
+     "last_command_aim": [
+      -0.9919666647911072,
+      -0.12649944424629211
+     ],
+     "first_use_decision": 924,
+     "score": 53.0,
+     "following_velocity": [
+      [
+       -25.571989059448242,
+       0.730941891670227,
+       0.0
+      ],
+      [
+       -24.67719078063965,
+       0.7756916284561157,
+       0.0
+      ],
+      [
+       -23.78152084350586,
+       0.7998608946800232,
+       0.0
+      ]
+     ]
+    }
+   ],
+   "no_use": false,
+   "force_use": true,
+   "checkpoint": "nav_points_20261005_030275.pth",
+   "update": 30275,
+   "ss_opportunities": {
+    "decisions": 2840,
+    "held": 849,
+    "held_floor": 782,
+    "target_near": 436,
+    "speed_cap_fail": 759,
+    "terrain_or_cap_fail": 780,
+    "target_far": 346,
+    "post_pickup_held_floor": 225,
+    "speed_cap_pass": 23,
+    "terrain_fail_with_speed_ok": 23,
+    "post_pickup_speed_cap_pass": 22,
+    "terrain_and_cap_pass": 2,
+    "approved": 2,
+    "post_pickup_approved": 2
+   },
+   "ss_route": false,
+   "ss_prepare": false,
+   "ss_follow": false,
+   "ss_command_aim": false,
+   "ss_yaw_fix": false,
+   "ss_yaw_debug": null
+  },
+  {
+   "round": 8,
+   "gems": 126,
+   "points": 161.0,
+   "minutes": 3.03,
+   "decisions": 2841,
+   "countdown_decisions": 41,
+   "gems_per_min": 41.6,
+   "points_per_min": 53.1,
+   "falls": 0,
+   "falls_per_100u": 0.0,
+   "travelled_u": 1561.3,
+   "speed": 8.59,
+   "blind_pct": 0.0,
+   "stuck_breaks": 0,
+   "snapped_pct": 0.0,
+   "pathed_pct": 0.0,
+   "smooth": 1.0,
+   "pow_uses": {
+    "2": 3
+   },
+   "engine_points": 161.0,
+   "completed": true,
+   "ss_fires": 1,
+   "ss_events": [
+    {
+     "decision": 1983,
+     "time_left_s": 55.584,
+     "position": [
+      -14.068281173706055,
+      3.061295986175537,
+      20.83974838256836
+     ],
+     "velocity_before": [
+      -2.240307092666626,
+      -2.44450306892395,
+      0.0
+     ],
+     "velocity_after": [
+      1.2260080575942993,
+      21.40896987915039,
+      0.0
+     ],
+     "spin_before": [
+      12.882760047912598,
+      -11.806619644165039,
+      -1.409441963770083e-19
+     ],
+     "spin_after": [
+      -3.1954569816589355,
+      -8.219063758850098,
+      -1.3355030030003527e-19
+     ],
+     "target": [
+      -13.200000166893005,
+      14.999995708465576,
+      20.700000375509262
+     ],
+     "next_target": [
+      -13.200000166893005,
+      26.999995708465576,
+      20.700000375509262
+     ],
+     "last_command_aim": [
+      0.22102966904640198,
+      0.9752671122550964
+     ],
+     "first_use_decision": 1981,
+     "score": 110.0,
+     "following_velocity": [
+      [
+       1.1196149587631226,
+       20.519350051879883,
+       0.0
+      ],
+      [
+       1.048869013786316,
+       19.626230239868164,
+       0.0
+      ],
+      [
+       1.0191609859466553,
+       18.73077964782715,
+       0.0
+      ]
+     ]
+    }
+   ],
+   "no_use": false,
+   "force_use": true,
+   "checkpoint": "nav_points_20261005_030275.pth",
+   "update": 30275,
+   "ss_opportunities": {
+    "decisions": 2842,
+    "held": 1208,
+    "held_floor": 1208,
+    "target_near": 652,
+    "speed_cap_fail": 1167,
+    "terrain_or_cap_fail": 1205,
+    "target_far": 556,
+    "speed_cap_pass": 41,
+    "terrain_fail_with_speed_ok": 38,
+    "post_pickup_held_floor": 303,
+    "post_pickup_speed_cap_pass": 41,
+    "terrain_and_cap_pass": 3,
+    "approved": 3,
+    "post_pickup_approved": 3
+   },
+   "ss_route": false,
+   "ss_prepare": false,
+   "ss_follow": false,
+   "ss_command_aim": false,
+   "ss_yaw_fix": false,
+   "ss_yaw_debug": null
+  },
+  {
+   "round": 9,
+   "gems": 135,
+   "points": 167.0,
+   "minutes": 3.03,
+   "decisions": 2840,
+   "countdown_decisions": 41,
+   "gems_per_min": 44.6,
+   "points_per_min": 55.1,
+   "falls": 1,
+   "falls_per_100u": 0.067,
+   "travelled_u": 1489.7,
+   "speed": 8.2,
+   "blind_pct": 0.0,
+   "stuck_breaks": 0,
+   "snapped_pct": 0.0,
+   "pathed_pct": 0.0,
+   "smooth": 1.0,
+   "pow_uses": {
+    "2": 1
+   },
+   "engine_points": 167.0,
+   "completed": true,
+   "ss_fires": 1,
+   "ss_events": [
+    {
+     "decision": 517,
+     "time_left_s": 149.408,
+     "position": [
+      -24.894075393676758,
+      3.437488079071045,
+      20.83974838256836
+     ],
+     "velocity_before": [
+      6.066543102264404,
+      3.267155885696411,
+      0.0
+     ],
+     "velocity_after": [
+      2.647883892059326,
+      27.127620697021484,
+      0.0
+     ],
+     "spin_before": [
+      -17.218210220336914,
+      31.97123908996582,
+      -0.0003959792957175523
+     ],
+     "spin_after": [
+      -30.963069915771484,
+      26.12257957458496,
+      -0.00037896691355854273
+     ],
+     "target": [
+      -23.200005412101746,
+      12.999997615814209,
+      20.700000375509262
+     ],
+     "next_target": [
+      -23.200005412101746,
+      16.999988079071045,
+      20.700000375509262
+     ],
+     "last_command_aim": [
+      -0.1413123905658722,
+      0.9899650812149048
+     ],
+     "first_use_decision": 515,
+     "score": 30.0,
+     "following_velocity": [
+      [
+       2.7289159297943115,
+       26.23535919189453,
+       0.0
+      ],
+      [
+       2.767241954803467,
+       25.340290069580078,
+       0.0
+      ],
+      [
+       2.7855300903320312,
+       24.444490432739258,
+       0.0
+      ]
+     ]
+    }
+   ],
+   "no_use": false,
+   "force_use": true,
+   "checkpoint": "nav_points_20261005_030275.pth",
+   "update": 30275,
+   "ss_opportunities": {
+    "decisions": 2841,
+    "held": 1663,
+    "held_floor": 1637,
+    "target_near": 1021,
+    "speed_cap_fail": 1572,
+    "terrain_or_cap_fail": 1635,
+    "target_far": 616,
+    "terrain_and_cap_pass": 2,
+    "approved": 1,
+    "post_pickup_held_floor": 487,
+    "post_pickup_approved": 1,
+    "speed_cap_pass": 65,
+    "terrain_fail_with_speed_ok": 64,
+    "post_pickup_speed_cap_pass": 50,
+    "clear_but_target_near": 1
+   },
+   "ss_route": false,
+   "ss_prepare": false,
+   "ss_follow": false,
+   "ss_command_aim": false,
+   "ss_yaw_fix": false,
+   "ss_yaw_debug": null
+  },
+  {
+   "round": 10,
+   "gems": 131,
+   "points": 168.0,
+   "minutes": 3.03,
+   "decisions": 2841,
+   "countdown_decisions": 41,
+   "gems_per_min": 43.2,
+   "points_per_min": 55.4,
+   "falls": 0,
+   "falls_per_100u": 0.0,
+   "travelled_u": 1558.2,
+   "speed": 8.57,
+   "blind_pct": 0.0,
+   "stuck_breaks": 0,
+   "snapped_pct": 0.0,
+   "pathed_pct": 0.0,
+   "smooth": 1.0,
+   "pow_uses": {},
+   "engine_points": 168.0,
+   "completed": true,
+   "ss_fires": 0,
+   "ss_events": [],
+   "no_use": false,
+   "force_use": true,
+   "checkpoint": "nav_points_20261005_030275.pth",
+   "update": 30275,
+   "ss_opportunities": {
+    "decisions": 2842,
+    "held": 1567,
+    "held_floor": 1551,
+    "target_near": 876,
+    "speed_cap_fail": 1524,
+    "terrain_or_cap_fail": 1551,
+    "target_far": 675,
+    "post_pickup_held_floor": 452,
+    "speed_cap_pass": 27,
+    "terrain_fail_with_speed_ok": 27,
+    "post_pickup_speed_cap_pass": 27
+   },
+   "ss_route": false,
+   "ss_prepare": false,
+   "ss_follow": false,
+   "ss_command_aim": false,
+   "ss_yaw_fix": false,
+   "ss_yaw_debug": null
+  },
+  {
+   "round": 11,
+   "gems": 122,
+   "points": 154.0,
+   "minutes": 3.03,
+   "decisions": 2838,
+   "countdown_decisions": 41,
+   "gems_per_min": 40.3,
+   "points_per_min": 50.9,
+   "falls": 3,
+   "falls_per_100u": 0.203,
+   "travelled_u": 1479.9,
+   "speed": 8.15,
+   "blind_pct": 0.0,
+   "stuck_breaks": 1,
+   "snapped_pct": 0.0,
+   "pathed_pct": 0.0,
+   "smooth": 1.0,
+   "pow_uses": {
+    "2": 6
+   },
+   "engine_points": 154.0,
+   "completed": true,
+   "ss_fires": 2,
+   "ss_events": [
+    {
+     "decision": 1787,
+     "time_left_s": 68.064,
+     "position": [
+      -36.19047164916992,
+      27.278573989868164,
+      20.83974838256836
+     ],
+     "velocity_before": [
+      5.168575763702393,
+      4.193519115447998,
+      0.0
+     ],
+     "velocity_after": [
+      -1.8013780117034912,
+      -18.880800247192383,
+      0.0
+     ],
+     "spin_before": [
+      -22.100229263305664,
+      27.23887062072754,
+      0.00012923429312650114
+     ],
+     "spin_after": [
+      -7.1089558601379395,
+      20.807350158691406,
+      0.00012369229807518423
+     ],
+     "target": [
+      -37.20000159740448,
+      14.999974250793457,
+      20.700000375509262
+     ],
+     "next_target": [
+      -37.20000159740448,
+      2.9999732971191406,
+      20.700000375509262
+     ],
+     "last_command_aim": [
+      -0.3102400600910187,
+      -0.9506582617759705
+     ],
+     "first_use_decision": 1785,
+     "score": 98.0,
+     "following_velocity": [
+      [
+       -1.5646950006484985,
+       -18.016639709472656,
+       0.0
+      ],
+      [
+       -1.3512250185012817,
+       -17.146480560302734,
+       0.0
+      ],
+      [
+       -1.151610016822815,
+       -16.273000717163086,
+       0.0
+      ]
+     ]
+    },
+    {
+     "decision": 1919,
+     "time_left_s": 59.616,
+     "position": [
+      -13.121919631958008,
+      14.813614845275879,
+      20.83974838256836
+     ],
+     "velocity_before": [
+      -2.065725088119507,
+      -4.360964775085449,
+      0.0
+     ],
+     "velocity_after": [
+      -24.018999099731445,
+      5.591925144195557,
+      0.0
+     ],
+     "spin_before": [
+      22.982690811157227,
+      -10.886560440063477,
+      1.621054934730637e-07
+     ],
+     "spin_after": [
+      14.010869979858398,
+      -23.991249084472656,
+      1.5361860050688847e-07
+     ],
+     "target": [
+      -23.20001983642578,
+      17.000004768371582,
+      20.700000375509262
+     ],
+     "next_target": [
+      -27.20001983642578,
+      17.000004768371582,
+      20.700000375509262
+     ],
+     "last_command_aim": [
+      -0.9279282689094543,
+      0.3727588653564453
+     ],
+     "first_use_decision": 1917,
+     "score": 106.0,
+     "following_velocity": [
+      [
+       -23.188770294189453,
+       5.255092144012451,
+       0.0
+      ],
+      [
+       -22.34469985961914,
+       4.954792022705078,
+       0.0
+      ],
+      [
+       -21.49287986755371,
+       4.6769208908081055,
+       0.0
+      ]
+     ]
+    }
+   ],
+   "no_use": false,
+   "force_use": true,
+   "checkpoint": "nav_points_20261005_030275.pth",
+   "update": 30275,
+   "ss_opportunities": {
+    "decisions": 2839,
+    "held": 461,
+    "held_floor": 413,
+    "target_far": 183,
+    "speed_cap_fail": 387,
+    "terrain_or_cap_fail": 407,
+    "target_near": 230,
+    "post_pickup_held_floor": 102,
+    "speed_cap_pass": 26,
+    "terrain_fail_with_speed_ok": 23,
+    "post_pickup_speed_cap_pass": 24,
+    "terrain_and_cap_pass": 6,
+    "approved": 6,
+    "post_pickup_approved": 6
+   },
+   "ss_route": false,
+   "ss_prepare": false,
+   "ss_follow": false,
+   "ss_command_aim": false,
+   "ss_yaw_fix": false,
+   "ss_yaw_debug": null
+  },
+  {
+   "round": 12,
+   "gems": 131,
+   "points": 162.0,
+   "minutes": 3.03,
+   "decisions": 2840,
+   "countdown_decisions": 41,
+   "gems_per_min": 43.2,
+   "points_per_min": 53.5,
+   "falls": 1,
+   "falls_per_100u": 0.068,
+   "travelled_u": 1472.4,
+   "speed": 8.1,
+   "blind_pct": 0.0,
+   "stuck_breaks": 0,
+   "snapped_pct": 0.0,
+   "pathed_pct": 0.0,
+   "smooth": 1.0,
+   "pow_uses": {
+    "2": 1
+   },
+   "engine_points": 162.0,
+   "completed": true,
+   "ss_fires": 1,
+   "ss_events": [
+    {
+     "decision": 2333,
+     "time_left_s": 33.12,
+     "position": [
+      -12.799527168273926,
+      26.796756744384766,
+      20.83974838256836
+     ],
+     "velocity_before": [
+      6.376689910888672,
+      -4.089091777801514,
+      0.0
+     ],
+     "velocity_after": [
+      -3.4049389362335205,
+      -26.119220733642578,
+      0.0
+     ],
+     "spin_before": [
+      21.549890518188477,
+      33.60573959350586,
+      4.4003809307469055e-05
+     ],
+     "spin_after": [
+      34.409481048583984,
+      24.584930419921875,
+      4.165510108578019e-05
+     ],
+     "target": [
+      -13.200000166893005,
+      14.999957084655762,
+      20.700000375509262
+     ],
+     "next_target": [
+      -13.200000166893005,
+      2.9999561309814453,
+      20.700000375509262
+     ],
+     "last_command_aim": [
+      -0.40542900562286377,
+      -0.9141265153884888
+     ],
+     "first_use_decision": 2331,
+     "score": 132.0,
+     "following_velocity": [
+      [
+       -3.0760550498962402,
+       -25.285810470581055,
+       0.0
+      ],
+      [
+       -2.7798969745635986,
+       -24.44024085998535,
+       0.0
+      ],
+      [
+       -2.5081400871276855,
+       -23.586450576782227,
+       0.0
+      ]
+     ]
+    }
+   ],
+   "no_use": false,
+   "force_use": true,
+   "checkpoint": "nav_points_20261005_030275.pth",
+   "update": 30275,
+   "ss_opportunities": {
+    "decisions": 2841,
+    "held": 1461,
+    "held_floor": 1409,
+    "target_far": 631,
+    "speed_cap_fail": 1377,
+    "terrain_or_cap_fail": 1408,
+    "target_near": 778,
+    "post_pickup_held_floor": 395,
+    "speed_cap_pass": 32,
+    "terrain_fail_with_speed_ok": 32,
+    "post_pickup_speed_cap_pass": 32,
+    "terrain_and_cap_pass": 1,
+    "approved": 1,
+    "post_pickup_approved": 1
+   },
+   "ss_route": false,
+   "ss_prepare": false,
+   "ss_follow": false,
+   "ss_command_aim": false,
+   "ss_yaw_fix": false,
+   "ss_yaw_debug": null
+  },
+  {
+   "round": 13,
+   "gems": 123,
+   "points": 155.0,
+   "minutes": 3.03,
+   "decisions": 2839,
+   "countdown_decisions": 41,
+   "gems_per_min": 40.6,
+   "points_per_min": 51.2,
+   "falls": 2,
+   "falls_per_100u": 0.131,
+   "travelled_u": 1528.8,
+   "speed": 8.41,
+   "blind_pct": 0.0,
+   "stuck_breaks": 0,
+   "snapped_pct": 0.0,
+   "pathed_pct": 0.0,
+   "smooth": 1.0,
+   "pow_uses": {
+    "2": 7
+   },
+   "engine_points": 155.0,
+   "completed": true,
+   "ss_fires": 3,
+   "ss_events": [
+    {
+     "decision": 1730,
+     "time_left_s": 71.712,
+     "position": [
+      -38.849220275878906,
+      26.911239624023438,
+      20.83974838256836
+     ],
+     "velocity_before": [
+      -7.788609981536865,
+      2.140748977661133,
+      0.0
+     ],
+     "velocity_after": [
+      16.197290420532227,
+      -0.2443827986717224,
+      0.0
+     ],
+     "spin_before": [
+      -8.080693244934082,
+      -34.088348388671875,
+      -2.479351043701172
+     ],
+     "spin_after": [
+      -6.696608066558838,
+      -17.543020248413086,
+      -2.369602918624878
+     ],
+     "target": [
+      -25.20001983642578,
+      27.000000022351742,
+      20.700000375509262
+     ],
+     "next_target": [
+      -13.200019836425781,
+      27.000000022351742,
+      20.700000375509262
+     ],
+     "last_command_aim": [
+      0.997370183467865,
+      -0.07247548550367355
+     ],
+     "first_use_decision": 1728,
+     "score": 94.0,
+     "following_velocity": [
+      [
+       15.304220199584961,
+       -0.17194589972496033,
+       0.0
+      ],
+      [
+       14.412409782409668,
+       -0.08563332259654999,
+       0.0
+      ],
+      [
+       13.524410247802734,
+       0.03312018886208534,
+       0.0
+      ]
+     ]
+    },
+    {
+     "decision": 1868,
+     "time_left_s": 62.88,
+     "position": [
+      -25.133342742919922,
+      3.3272039890289307,
+      20.83974838256836
+     ],
+     "velocity_before": [
+      5.924123764038086,
+      3.5345559120178223,
+      0.0
+     ],
+     "velocity_after": [
+      2.9704060554504395,
+      27.457040786743164,
+      0.0
+     ],
+     "spin_before": [
+      -18.627429962158203,
+      31.220680236816406,
+      -0.0019725619349628687
+     ],
+     "spin_after": [
+      -32.234989166259766,
+      25.53264045715332,
+      -0.0018925409531220794
+     ],
+     "target": [
+      -23.200002789497375,
+      13.000004053115845,
+      20.700000375509262
+     ],
+     "next_target": [
+      -23.200002789497375,
+      17.000004053115845,
+      20.700000375509262
+     ],
+     "last_command_aim": [
+      -0.12200318276882172,
+      0.9925296902656555
+     ],
+     "first_use_decision": 1866,
+     "score": 102.0,
+     "following_velocity": [
+      [
+       3.032963991165161,
+       26.563289642333984,
+       0.0
+      ],
+      [
+       3.0526680946350098,
+       25.66761016845703,
+       0.0
+      ],
+      [
+       3.0515859127044678,
+       24.771629333496094,
+       0.0
+      ]
+     ]
+    },
+    {
+     "decision": 2835,
+     "time_left_s": 0.928,
+     "position": [
+      -13.441010475158691,
+      26.847976684570312,
+      20.83974838256836
+     ],
+     "velocity_before": [
+      -2.092278003692627,
+      3.5607340335845947,
+      0.0
+     ],
+     "velocity_after": [
+      -26.007509231567383,
+      0.5491566061973572,
+      0.0
+     ],
+     "spin_before": [
+      -18.765399932861328,
+      -11.02649974822998,
+      -5.713764930756395e-15
+     ],
+     "spin_after": [
+      -13.557319641113281,
+      -25.576860427856445,
+      -5.4257199420977825e-15
+     ],
+     "target": [
+      -25.200010299682617,
+      26.999999687075615,
+      20.700000375509262
+     ],
+     "next_target": [
+      -37.200011253356934,
+      26.999999687075615,
+      20.700000375509262
+     ],
+     "last_command_aim": [
+      -0.9894058108329773,
+      -0.14517632126808167
+     ],
+     "first_use_decision": 2833,
+     "score": 154.0,
+     "following_velocity": [
+      [
+       -25.11457061767578,
+       0.6227203011512756,
+       0.0
+      ],
+      [
+       -24.21957015991211,
+       0.6636213064193726,
+       0.0
+      ],
+      [
+       -23.323829650878906,
+       0.6849735975265503,
+       0.0
+      ]
+     ]
+    }
+   ],
+   "no_use": false,
+   "force_use": true,
+   "checkpoint": "nav_points_20261005_030275.pth",
+   "update": 30275,
+   "ss_opportunities": {
+    "decisions": 2840,
+    "held": 1976,
+    "held_floor": 1884,
+    "target_far": 827,
+    "speed_cap_fail": 1825,
+    "terrain_or_cap_fail": 1877,
+    "target_near": 1057,
+    "post_pickup_held_floor": 519,
+    "speed_cap_pass": 59,
+    "terrain_fail_with_speed_ok": 56,
+    "post_pickup_speed_cap_pass": 54,
+    "terrain_and_cap_pass": 7,
+    "approved": 7,
+    "post_pickup_approved": 7
+   },
+   "ss_route": false,
+   "ss_prepare": false,
+   "ss_follow": false,
+   "ss_command_aim": false,
+   "ss_yaw_fix": false,
+   "ss_yaw_debug": null
+  },
+  {
+   "round": 14,
+   "gems": 129,
+   "points": 162.0,
+   "minutes": 3.03,
+   "decisions": 2840,
+   "countdown_decisions": 41,
+   "gems_per_min": 42.6,
+   "points_per_min": 53.5,
+   "falls": 1,
+   "falls_per_100u": 0.065,
+   "travelled_u": 1542.6,
+   "speed": 8.49,
+   "blind_pct": 0.0,
+   "stuck_breaks": 0,
+   "snapped_pct": 0.0,
+   "pathed_pct": 0.0,
+   "smooth": 1.0,
+   "pow_uses": {
+    "2": 5
+   },
+   "engine_points": 162.0,
+   "completed": true,
+   "ss_fires": 3,
+   "ss_events": [
+    {
+     "decision": 1023,
+     "time_left_s": 117.024,
+     "position": [
+      -13.593984603881836,
+      26.84610366821289,
+      20.83974838256836
+     ],
+     "velocity_before": [
+      -2.541486978530884,
+      3.721311092376709,
+      0.0
+     ],
+     "velocity_after": [
+      -26.457929611206055,
+      0.719419002532959,
+      0.0
+     ],
+     "spin_before": [
+      -19.611650466918945,
+      -13.39387035369873,
+      -7.437095916884573e-08
+     ],
+     "spin_after": [
+      -14.43789005279541,
+      -27.986759185791016,
+      -7.044349104035064e-08
+     ],
+     "target": [
+      -25.199984550476074,
+      26.999999672174454,
+      20.700000375509262
+     ],
+     "next_target": [
+      -37.19998550415039,
+      26.999999672174454,
+      20.700000375509262
+     ],
+     "last_command_aim": [
+      -0.9922710061073303,
+      -0.12408974021673203
+     ],
+     "first_use_decision": 1021,
+     "score": 58.0,
+     "following_velocity": [
+      [
+       -25.565080642700195,
+       0.7941808104515076,
+       0.0
+      ],
+      [
+       -24.67017936706543,
+       0.8367562890052795,
+       0.0
+      ],
+      [
+       -23.774450302124023,
+       0.8587464094161987,
+       0.0
+      ]
+     ]
+    },
+    {
+     "decision": 1187,
+     "time_left_s": 106.528,
+     "position": [
+      -13.59434700012207,
+      26.849998474121094,
+      20.83974838256836
+     ],
+     "velocity_before": [
+      -2.886931896209717,
+      3.9427669048309326,
+      0.0
+     ],
+     "velocity_after": [
+      -26.53437042236328,
+      -0.7269473075866699,
+      0.0
+     ],
+     "spin_before": [
+      -20.778749465942383,
+      -15.214400291442871,
+      -0.00011395700130378827
+     ],
+     "spin_after": [
+      -14.647199630737305,
+      -29.491979598999023,
+      -0.00010780360025819391
+     ],
+     "target": [
+      -25.20004653930664,
+      27.000000476837158,
+      20.700000375509262
+     ],
+     "next_target": [
+      -37.20004653930664,
+      27.000000476837158,
+      20.700000375509262
+     ],
+     "last_command_aim": [
+      -0.9811408519744873,
+      -0.19329412281513214
+     ],
+     "first_use_decision": 1185,
+     "score": 69.0,
+     "following_velocity": [
+      [
+       -25.649120330810547,
+       -0.5886908769607544,
+       0.0
+      ],
+      [
+       -24.75988006591797,
+       -0.47938328981399536,
+       0.0
+      ],
+      [
+       -23.86890983581543,
+       -0.38464561104774475,
+       0.0
+      ]
+     ]
+    },
+    {
+     "decision": 1893,
+     "time_left_s": 61.344,
+     "position": [
+      -13.204133987426758,
+      14.501814842224121,
+      20.83974838256836
+     ],
+     "velocity_before": [
+      -2.794167995452881,
+      -4.0326008796691895,
+      0.0
+     ],
+     "velocity_after": [
+      -26.758359909057617,
+      -1.4394689798355103,
+      0.0
+     ],
+     "spin_before": [
+      21.252180099487305,
+      -14.725520133972168,
+      -1.3833749952773052e-18
+     ],
+     "spin_after": [
+      16.6406307220459,
+      -29.753219604492188,
+      -1.3014499934342877e-18
+     ],
+     "target": [
+      -23.200003623962402,
+      13.000004887580872,
+      20.700000375509262
+     ],
+     "next_target": [
+      -27.200034141540527,
+      13.000004887580872,
+      20.700000375509262
+     ],
+     "last_command_aim": [
+      -0.9942392706871033,
+      0.10718350857496262
+     ],
+     "first_use_decision": 1891,
+     "score": 112.0,
+     "following_velocity": [
+      [
+       -25.86421012878418,
+       -1.4960440397262573,
+       0.0
+      ],
+      [
+       -24.968420028686523,
+       -1.5091079473495483,
+       0.0
+      ],
+      [
+       -24.0728702545166,
+       -1.481652021408081,
+       0.0
+      ]
+     ]
+    }
+   ],
+   "no_use": false,
+   "force_use": true,
+   "checkpoint": "nav_points_20261005_030275.pth",
+   "update": 30275,
+   "ss_opportunities": {
+    "decisions": 2841,
+    "held": 452,
+    "held_floor": 452,
+    "target_near": 265,
+    "speed_cap_fail": 438,
+    "terrain_or_cap_fail": 447,
+    "target_far": 187,
+    "speed_cap_pass": 14,
+    "terrain_fail_with_speed_ok": 14,
+    "post_pickup_held_floor": 118,
+    "post_pickup_speed_cap_pass": 14,
+    "terrain_and_cap_pass": 5,
+    "approved": 5,
+    "post_pickup_approved": 5
+   },
+   "ss_route": false,
+   "ss_prepare": false,
+   "ss_follow": false,
+   "ss_command_aim": false,
+   "ss_yaw_fix": false,
+   "ss_yaw_debug": null
+  },
+  {
+   "round": 15,
+   "gems": 129,
+   "points": 162.0,
+   "minutes": 3.03,
+   "decisions": 2840,
+   "countdown_decisions": 41,
+   "gems_per_min": 42.6,
+   "points_per_min": 53.5,
+   "falls": 1,
+   "falls_per_100u": 0.065,
+   "travelled_u": 1526.9,
+   "speed": 8.4,
+   "blind_pct": 0.0,
+   "stuck_breaks": 0,
+   "snapped_pct": 0.0,
+   "pathed_pct": 0.0,
+   "smooth": 1.0,
+   "pow_uses": {
+    "2": 2
+   },
+   "engine_points": 162.0,
+   "completed": true,
+   "ss_fires": 1,
+   "ss_events": [
+    {
+     "decision": 1355,
+     "time_left_s": 95.776,
+     "position": [
+      -36.230648040771484,
+      27.707412719726562,
+      20.83974838256836
+     ],
+     "velocity_before": [
+      3.4158360958099365,
+      6.044458866119385,
+      0.0
+     ],
+     "velocity_after": [
+      26.09412956237793,
+      -2.1226580142974854,
+      0.0
+     ],
+     "spin_before": [
+      -31.854860305786133,
+      18.00177001953125,
+      -3.86454985346063e-06
+     ],
+     "spin_after": [
+      -23.756250381469727,
+      31.422649383544922,
+      -3.660481070255628e-06
+     ],
+     "target": [
+      -25.200048446655273,
+      26.999999701976776,
+      20.700000375509262
+     ],
+     "next_target": [
+      -13.200048446655273,
+      26.999999701976776,
+      20.700000375509262
+     ],
+     "last_command_aim": [
+      0.9409911632537842,
+      -0.3384312093257904
+     ],
+     "first_use_decision": 1353,
+     "score": 76.0,
+     "following_velocity": [
+      [
+       25.239519119262695,
+       -1.8536100387573242,
+       0.0
+      ],
+      [
+       24.37639045715332,
+       -1.6133099794387817,
+       0.0
+      ],
+      [
+       23.510669708251953,
+       -1.3824290037155151,
+       0.0
+      ]
+     ]
+    }
+   ],
+   "no_use": false,
+   "force_use": true,
+   "checkpoint": "nav_points_20261005_030275.pth",
+   "update": 30275,
+   "ss_opportunities": {
+    "decisions": 2841,
+    "held": 882,
+    "held_floor": 847,
+    "target_near": 395,
+    "speed_cap_fail": 819,
+    "terrain_or_cap_fail": 845,
+    "target_far": 452,
+    "post_pickup_held_floor": 214,
+    "speed_cap_pass": 28,
+    "terrain_fail_with_speed_ok": 28,
+    "post_pickup_speed_cap_pass": 26,
+    "terrain_and_cap_pass": 2,
+    "approved": 2,
+    "post_pickup_approved": 2
+   },
+   "ss_route": false,
+   "ss_prepare": false,
+   "ss_follow": false,
+   "ss_command_aim": false,
+   "ss_yaw_fix": false,
+   "ss_yaw_debug": null
+  },
+  {
+   "round": 16,
+   "gems": 124,
+   "points": 159.0,
+   "minutes": 3.03,
+   "decisions": 2838,
+   "countdown_decisions": 41,
+   "gems_per_min": 41.0,
+   "points_per_min": 52.5,
+   "falls": 3,
+   "falls_per_100u": 0.193,
+   "travelled_u": 1553.2,
+   "speed": 8.55,
+   "blind_pct": 0.0,
+   "stuck_breaks": 0,
+   "snapped_pct": 0.0,
+   "pathed_pct": 0.0,
+   "smooth": 1.0,
+   "pow_uses": {
+    "2": 6
+   },
+   "engine_points": 159.0,
+   "completed": true,
+   "ss_fires": 2,
+   "ss_events": [
+    {
+     "decision": 1306,
+     "time_left_s": 98.912,
+     "position": [
+      -36.292537689208984,
+      27.121980667114258,
+      20.83974838256836
+     ],
+     "velocity_before": [
+      4.966794967651367,
+      4.058177947998047,
+      0.0
+     ],
+     "velocity_after": [
+      -3.4308180809020996,
+      -18.535709381103516,
+      0.0
+     ],
+     "spin_before": [
+      -21.38697052001953,
+      26.17547035217285,
+      2.9558549385910737e-07
+     ],
+     "spin_after": [
+      -6.626060962677002,
+      19.036500930786133,
+      2.826018032919819e-07
+     ],
+     "target": [
+      -37.20000070333481,
+      14.999980926513672,
+      20.700000375509262
+     ],
+     "next_target": [
+      -37.20000070333481,
+      2.999980926513672,
+      20.700000375509262
+     ],
+     "last_command_aim": [
+      -0.23562270402908325,
+      -0.9718446135520935
+     ],
+     "first_use_decision": 1304,
+     "score": 73.0,
+     "following_velocity": [
+      [
+       -3.1346609592437744,
+       -17.690080642700195,
+       0.0
+      ],
+      [
+       -2.8523008823394775,
+       -16.839750289916992,
+       0.0
+      ],
+      [
+       -2.5720930099487305,
+       -15.988719940185547,
+       0.0
+      ]
+     ]
+    },
+    {
+     "decision": 1713,
+     "time_left_s": 72.864,
+     "position": [
+      -37.37862777709961,
+      3.211134910583496,
+      20.839757919311523
+     ],
+     "velocity_before": [
+      -4.243539810180664,
+      0.9543269872665405,
+      0.0
+     ],
+     "velocity_after": [
+      19.76512908935547,
+      -1.1875280141830444,
+      0.0
+     ],
+     "spin_before": [
+      -5.029390811920166,
+      -22.363849639892578,
+      1.2384589354041964e-07
+     ],
+     "spin_after": [
+      -2.3057188987731934,
+      -6.124034881591797,
+      1.179202016032832e-07
+     ],
+     "target": [
+      -25.200027465820312,
+      2.999999910593033,
+      20.700000911951065
+     ],
+     "next_target": [
+      -13.200027465820312,
+      2.999999910593033,
+      20.700000911951065
+     ],
+     "last_command_aim": [
+      0.999762773513794,
+      -0.021779607981443405
+     ],
+     "first_use_decision": 1711,
+     "score": 99.0,
+     "following_velocity": [
+      [
+       18.871540069580078,
+       -1.1219069957733154,
+       0.0
+      ],
+      [
+       17.977140426635742,
+       -1.0684889554977417,
+       0.0
+      ],
+      [
+       17.0839900970459,
+       -0.9991167783737183,
+       0.0
+      ]
+     ]
+    }
+   ],
+   "no_use": false,
+   "force_use": true,
+   "checkpoint": "nav_points_20261005_030275.pth",
+   "update": 30275,
+   "ss_opportunities": {
+    "decisions": 2839,
+    "held": 439,
+    "held_floor": 439,
+    "target_near": 243,
+    "speed_cap_fail": 424,
+    "terrain_or_cap_fail": 433,
+    "target_far": 196,
+    "post_pickup_held_floor": 126,
+    "speed_cap_pass": 15,
+    "terrain_fail_with_speed_ok": 9,
+    "post_pickup_speed_cap_pass": 14,
+    "terrain_and_cap_pass": 6,
+    "approved": 6,
+    "post_pickup_approved": 6
+   },
+   "ss_route": false,
+   "ss_prepare": false,
+   "ss_follow": false,
+   "ss_command_aim": false,
+   "ss_yaw_fix": false,
+   "ss_yaw_debug": null
+  }
+ ],
+ "mean": {
+  "gems_per_min": 42.562,
+  "points_per_min": 53.644,
+  "falls_per_100u": 0.062,
+  "speed": 8.427,
+  "blind_pct": 0.0
+ },
+ "human": {
+  "gems_per_min": 37.5,
+  "points_per_min": 47.3,
+  "speed": 8.05,
+  "falls_per_100u": 0.046
+ },
+ "vs_human": {
+  "gems_per_min": 1.13,
+  "points_per_min": 1.13,
+  "speed": 1.05,
+  "falls_ratio": 1.3
+ },
+ "value_weight": 0.0,
+ "h_reset": "never",
+ "when": "2026-10-05T20:10:41.782808"
+}

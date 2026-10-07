@@ -26,6 +26,7 @@ param(
 )
 $ml = $PSScriptRoot
 $py = "C:\Users\doug\AppData\Local\Programs\Python\Python39\python.exe"
+$env:NAV_INSTANCES = "$Instances"
 . (Join-Path $ml "nav_ready.ps1")
 function Stamp { (Get-Date).ToString("HH:mm:ss") }
 

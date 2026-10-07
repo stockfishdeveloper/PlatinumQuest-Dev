@@ -1,0 +1,48 @@
+{
+  "note": "Development starts, identical frozen recurrent state; policy change diagnostic, not a score comparison",
+  "n": 343,
+  "gated": 160,
+  "approved": 2,
+  "models": {
+    "base": {
+      "file": "models/nav/nav_v10_28897.pth",
+      "update": 28895,
+      "sha256": "539e2641319052460514c1838ebf1bc23956c5ea4cb314078b9a46bb9d738883",
+      "steering_change_gated_mean_deg": 0.007423434406518936,
+      "steering_change_gated_p90_deg": 0.02797645516693592,
+      "goal_thrust_gated_mean": -0.40067172050476074,
+      "use_probability_approved_mean": 0.24622516334056854,
+      "use_deterministic_approved_fraction": 0.0
+    },
+    "seed": {
+      "file": "models/nav/ss_fast_20261005/seed.pth",
+      "update": 29240,
+      "sha256": "86019653081af32571cfe57776a9dbe79aafbf8955fe51bff80746da3ac05315",
+      "steering_change_gated_mean_deg": 2.572099447250366,
+      "steering_change_gated_p90_deg": 3.5860846042633057,
+      "goal_thrust_gated_mean": -0.39766597747802734,
+      "use_probability_approved_mean": 0.00018502585589885712,
+      "use_deterministic_approved_fraction": 0.0
+    },
+    "aux": {
+      "file": "models/nav/ss_fast_20261005/nav_latest.pth",
+      "update": 29325,
+      "sha256": "2385015f413b6066938a5b75b7a89d95d3738f68d4e0b0f25c672df72bbc72af",
+      "steering_change_gated_mean_deg": 4.210876941680908,
+      "steering_change_gated_p90_deg": 6.117363452911377,
+      "goal_thrust_gated_mean": -0.4024246633052826,
+      "use_probability_approved_mean": 0.0030588731169700623,
+      "use_deterministic_approved_fraction": 0.0
+    },
+    "main": {
+      "file": "models/nav/nav_latest.pth",
+      "update": 29305,
+      "sha256": "4d8d0a04d0cd2f83208f6f1bfdbd9233b3df61dde13322d4b978e93412102f1e",
+      "steering_change_gated_mean_deg": 5.6897149085998535,
+      "steering_change_gated_p90_deg": 3.2622838020324707,
+      "goal_thrust_gated_mean": -0.4415460228919983,
+      "use_probability_approved_mean": 0.5013678073883057,
+      "use_deterministic_approved_fraction": 0.5
+    }
+  }
+}

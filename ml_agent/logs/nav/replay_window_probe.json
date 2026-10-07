@@ -1,0 +1,75 @@
+{
+  "schema": 2,
+  "reward_version": "game_points_v1",
+  "window_ms": 12032,
+  "checkpoint": "models/nav/nav_v10_28897.pth",
+  "base_checkpoint": "models/nav/nav_v10_28897.pth",
+  "starts_sha256": "c59d844b216d12ea084ac7a96caf1c46ade947b704e61a3e54be49265abce576",
+  "branches": [
+    "base",
+    "no_use"
+  ],
+  "requested_ids": [
+    "probe:0"
+  ],
+  "rows": [
+    {
+      "id": "probe:0",
+      "status": "ok",
+      "points": 9.0,
+      "falls": 0,
+      "pickup_times_ms": [
+        1728,
+        2752,
+        4224,
+        5632,
+        7296,
+        9600,
+        11264
+      ],
+      "fired": false,
+      "elapsed_ms": 12032,
+      "outcome": "window",
+      "branch": "base"
+    },
+    {
+      "id": "probe:0",
+      "status": "ok",
+      "points": 9.0,
+      "falls": 0,
+      "pickup_times_ms": [
+        1728,
+        2752,
+        4224,
+        5632,
+        7296,
+        9600,
+        11264
+      ],
+      "fired": false,
+      "elapsed_ms": 12032,
+      "outcome": "window",
+      "branch": "no_use"
+    }
+  ],
+  "summary": {
+    "attempts": 2,
+    "paired_n": 1,
+    "paired_ids": [
+      "probe:0"
+    ],
+    "failed": [],
+    "comparisons": {
+      "base-no_use": {
+        "points": {
+          "mean": 0.0,
+          "se": null
+        },
+        "falls": {
+          "mean": 0,
+          "se": null
+        }
+      }
+    }
+  }
+}

@@ -1,5 +1,24 @@
 # Powerups: plan (2026-10-02, draft for the operator)
 
+**Read first for continuation, 2026-10-05:**
+[HANDOFF_SUPERSPEED_2026-10-05.md](HANDOFF_SUPERSPEED_2026-10-05.md) has the current
+processes, main-run regression, finite fast-state experiment, evaluation recipes,
+and unfinished physics work. Main training remains running; the separate learner
+ends at its predeclared update 29360. Neither score objective is achieved yet.
+
+**Current objective, 2026-10-05:** a score above 175 with an actual SS fire and a confirmed score contribution
+from SS. Work is ongoing; no tested candidate has met this yet. Results and active probes are in
+[GOAL_175_2026-10-05.md](GOAL_175_2026-10-05.md).
+
+**Active run, 2026-10-05:** the operator authorized collection and startup; eight-game points/replay
+training is running. See [`RUN_POINTS_2026-10-05.md`](RUN_POINTS_2026-10-05.md). The previous implementation-only
+status below is historical.
+
+**Training status, late 2026-10-04:** the current implementation and next-run instructions are in
+[`HANDOFF_POINTS_REPLAY_2026-10-04.md`](HANDOFF_POINTS_REPLAY_2026-10-04.md). Code/tests only; no main training
+started or trained checkpoints modified. Real replay and points-only rounds replace the mixed synthetic/real
+reward recipe. Fresh schema-2 data is required; the next agent owns overnight training.
+
 Goal: King of the Marble around 180 with powerups, and powerup use that transfers to every Hunt map: the model
 "knows" what each powerup does in any situation on any map and uses it to get round the terrain.
 

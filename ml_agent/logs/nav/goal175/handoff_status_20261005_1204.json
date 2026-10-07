@@ -1,0 +1,21 @@
+{
+  "main_rounds": {
+    "n": 548,
+    "mean": 152.26642335766422,
+    "best": 168,
+    "falls": 1193
+  },
+  "main_last50": {
+    "n": 50,
+    "mean": 143.38,
+    "best": 160,
+    "falls": 215
+  },
+  "aux_windows": 584,
+  "aux_last100": {
+    "points_mean": 10.29,
+    "fire_rate": 0.6,
+    "falls_mean": 0.23
+  },
+  "protected_sha256": "539e2641319052460514c1838ebf1bc23956c5ea4cb314078b9a46bb9d738883"
+}

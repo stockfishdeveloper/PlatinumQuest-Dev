@@ -29,11 +29,26 @@ from nav.model import NavActorCritic, HIDDEN, DIR_GOAL_GAIN, FREEZE_BASE, SS_LR_
 from nav.waypoints import (ARRIVE_MIN_SEGMENTS, ARRIVE_TIGHTEN_AT, ARRIVE_STEP,     # noqa: E402
                            ARRIVE_R_FINAL, ARRIVE_DZ_FINAL)
 from nav.ppo_recurrent import Rollout, ppo_update, LR, GAMMA                       # noqa: E402
+from nav.replay import REWARD_VERSION
+
+
+def prepare_points_critic(model, checkpoint):
+    """Old shaped-value estimates and Adam moments must not price point-only returns."""
+    if checkpoint and checkpoint.get('reward_version') == REWARD_VERSION:
+        model.critic_warmup_remaining = int(checkpoint.get('critic_warmup_remaining', 0))
+        return False
+    with torch.no_grad():
+        model.value_head[-1].weight.zero_(); model.value_head[-1].bias.zero_()
+        model.value_mean.zero_(); model.value_std.fill_(1)
+        model.value_sq_mean.fill_(1); model.value_stats_initialized.zero_()
+    model.critic_warmup_remaining = int(os.environ.get('NAV_CRITIC_WARMUP_UPDATES', '20'))
+    return True
 
 N_INSTANCES = int(os.environ.get('NAV_INSTANCES', '8'))   # game instances (ports PORT0 ..
                                # PORT0+N-1); run_game_loop.ps1 -Instances must match. Set to 1
                                # with NAV_TRAIN_WATCH=1 and NAV_NO_SAVE=1 to WATCH training.
-PORT0 = 8888
+PORT0 = int(os.environ.get('NAV_PORT0', '8888'))
+STOP_UPDATE = int(os.environ.get('NAV_STOP_UPDATE', '0'))  # explicit finite experiment, 0 keeps normal training indefinite
 ROLLOUT_PER_INSTANCE = 1024    # 8 x 1024 = 8192 decisions per update, within 2 % of the previous
                                # 8 x 1024 = 8192, so the PPO batch, the ~250 sequences per update and
                                # the number of gradient steps are effectively unchanged. Raising
@@ -56,8 +71,8 @@ LATEST_EVERY = 5               # nav_latest.pth (the resume point) every N updat
 LOG_EVERY_SEGMENTS = 100
 SEED = 1
 HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-LOG_DIR = os.path.join(HERE, 'logs', 'nav')
-CKPT_DIR = os.path.join(HERE, 'models', 'nav')
+LOG_DIR = os.path.abspath(os.environ.get('NAV_LOG_DIR', os.path.join(HERE, 'logs', 'nav')))
+CKPT_DIR = os.path.abspath(os.environ.get('NAV_OUTPUT_DIR', os.path.join(HERE, 'models', 'nav')))
 RESUME = True
 TRACE = True                   # per-decision CSV in logs/nav/trace_<stamp>.csv (cheap; keep on)
 
@@ -78,11 +93,15 @@ def save_ckpt(model, opt, update, steps, stats, mission, numbered=True, arrive_r
     d = {'model': model.state_dict(), 'opt': opt.state_dict(), 'update': update, 'steps': steps,
          'obs_version': NAV_OBS_VERSION, 'stats': stats, 'mission': mission, 'saved': datetime.now().isoformat(),
          'arrive_r': arrive_r, 'arrive_dz': arrive_dz}
+    d.update(reward_version=REWARD_VERSION, critic_warmup_remaining=model.critic_warmup_remaining)
     latest = os.path.join(CKPT_DIR, 'nav_latest.pth')
     _save_atomic(d, latest)
     if not numbered:
         return latest
-    p = os.path.join(CKPT_DIR, f'nav_{update:06d}.pth')
+    prefix = os.environ.get('NAV_CHECKPOINT_PREFIX', 'nav')
+    if not prefix.replace('_', '').isalnum():
+        raise ValueError('invalid NAV_CHECKPOINT_PREFIX')
+    p = os.path.join(CKPT_DIR, f'{prefix}_{update:06d}.pth')
     _save_atomic(d, p)
     return p
 
@@ -159,10 +178,17 @@ def pooled_stats(workers, mission=None):
 
 
 def main():
+    # Fail before launching workers or touching output checkpoints on a stale drill recipe.
+    from nav.vec_worker import drill_stage_of, DRILL4_STARTS, REAL_GEMS
+    from nav.replay import load_starts
+    if not REAL_GEMS or any(drill_stage_of(i) not in (0, 4) for i in range(N_INSTANCES)):
+        raise SystemExit('game_points_v1 training requires real rounds (stage 0) and real replay windows (stage 4)')
+    if any(drill_stage_of(i) == 4 for i in range(N_INSTANCES)):
+        load_starts(DRILL4_STARTS)
     log = Logger()
     torch.manual_seed(SEED)
     dev = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    torch.set_num_threads(4)       # the game instances and workers need the other cores
+    torch.set_num_threads(int(os.environ.get('NAV_TORCH_THREADS', '4')))  # reserve cores for games/workers
     model = NavActorCritic().to(dev)
     opt = torch.optim.Adam(model.parameters(), lr=LR, eps=1e-5)
     # Acting happens on a CPU copy: with eight game instances on the GPU a batch-8 forward took
@@ -170,7 +196,7 @@ def main():
     cdev = torch.device('cpu')
     act_model = NavActorCritic().to(cdev); act_model.eval()
     update, steps = 0, 0
-    latest = os.path.join(CKPT_DIR, 'nav_latest.pth')
+    latest = os.environ.get('NAV_CKPT', os.path.join(CKPT_DIR, 'nav_latest.pth'))
     ck = None
     if RESUME and os.path.exists(latest):
         ck = torch.load(latest, map_location=dev)
@@ -178,7 +204,7 @@ def main():
             raise SystemExit(f'checkpoint obs version {ck.get("obs_version")} != {NAV_OBS_VERSION}; move models/nav aside')
         model.load_state_dict(ck['model'])
         ost = ck['opt']
-        if len(ost['param_groups']) == 1 and not FREEZE_BASE:
+        if len(ost['param_groups']) == 1 and not FREEZE_BASE and ck.get('reward_version') == REWARD_VERSION:
             n_now = len(list(model.parameters())); ids = list(ost['param_groups'][0]['params'])
             if len(ids) < n_now:                       # a checkpoint from before the use head: its params come last, fresh Adam state
                 ost = dict(ost); ost['param_groups'] = [dict(ost['param_groups'][0], params=ids + list(range(len(ids), n_now)))]
@@ -190,6 +216,10 @@ def main():
         log(f'resumed {latest}: update {update}, steps {steps:,}, trained on {ck.get("mission")}')
     else:
         log(f'fresh model ({sum(p.numel() for p in model.parameters()):,} params), obs {NAV_OBS_VERSION}, device {dev}')
+    reward_changed = prepare_points_critic(model, ck)
+    if reward_changed:
+        log(f'reward changed to {REWARD_VERSION}: reset critic/Adam; {model.critic_warmup_remaining} critic-only updates')
+        opt = torch.optim.Adam(model.parameters(), lr=LR, eps=1e-5)
     if FREEZE_BASE:
         # 40.33: the critic's head at LR, the Super Speed parts (use head, residual) at LR x SS_LR_MULT in their own group
         n_tr = model.freeze_base()
@@ -197,7 +227,7 @@ def main():
                                 {'params': [p for n, p in model.named_parameters() if n.startswith(('use_head.', 'ss_res.'))],
                                  'lr': LR * SS_LR_MULT}], eps=1e-5)
         how = 'fresh Adam state'
-        if ck is not None and len(ck['opt']['param_groups']) == 2:
+        if ck is not None and not reward_changed and len(ck['opt']['param_groups']) == 2:
             try:
                 opt.load_state_dict(ck['opt']); how = 'Adam state resumed'
             except (ValueError, KeyError) as e:
@@ -209,6 +239,10 @@ def main():
     if ck is not None:
         arrive = {'r': float(ck.get('arrive_r', 1.5)), 'dz': float(ck.get('arrive_dz', 2.0))}
 
+    if STOP_UPDATE and update >= STOP_UPDATE:
+        log(f'finite experiment already reached update {STOP_UPDATE}; no workers started')
+        return
+
     workers = [WorkerProxy(i, PORT0 + i, SEED * 1000 + i, arrive, dev) for i in range(N_INSTANCES)]
     log(f'{N_INSTANCES} instance worker(s) on ports {PORT0}..{PORT0 + N_INSTANCES - 1}; training mode {TRAINING_MODE} '
         f'({OBS_MS if TRAINING_MODE else 16} ms per decision); arrive radius {arrive["r"]:.2f} u; device {dev}')
@@ -217,6 +251,9 @@ def main():
             msg = w.recv(log)
             w.crop, w.vec, w.mission = msg['crop'], msg['vec'], msg['mission']
             w.h = act_model.initial_state(1, cdev); w.reset_flag = 1.0
+            with torch.no_grad():
+                for c_w, v_w in msg.get('warm', []):
+                    w.h = act_model.core(torch.as_tensor(c_w)[None], torch.as_tensor(v_w)[None], w.h)
             log(f'[{w.idx}] ready on {w.port}, mission {w.mission}')
 
         trace = None; t_wall0 = time.perf_counter()
@@ -226,16 +263,9 @@ def main():
 
         seg_total = 0; t_last = time.perf_counter(); steps_last = steps
         recent_rewards = []
-        # 40.33 DRILL BOOTSTRAP: a drill's end (its second gem, a timeout, a fall) is a cut, not the end of play; in a round
-        # the same-looking state goes on. Terminal drill ends gave the critic two futures for one state (0 vs the rest of
-        # the round) and priced finishing sooner at nothing. The cut is bootstrapped with v_cont, the critic's running
-        # mean value over round decisions (the value of play going on from a typical state).
+        # Mean value is diagnostic only. Replay cuts bootstrap their actual final state;
+        # natural round ends are terminal. No generic value bonus or estimated respawn duration.
         v_cont = None
-        # 40.40: a drill's cut is bootstrapped with the critic's value of its ACTUAL final observation (the worker sends it
-        # with the done message; the hidden state is the one after that step), discounted by GAMMA for the one decision
-        # the cut costs and, after a fall, by GAMMA ** FALL_RESPAWN_DEC for the respawn (a round goes on 3 s later from
-        # the same place). v_cont (the mean round value) stays only as a fallback when no final observation came.
-        FALL_RESPAWN_DEC = 47
         def value_of(crop, vec, h):
             with torch.no_grad():
                 return float(act_model.act(torch.from_numpy(np.asarray(crop)[None]), torch.from_numpy(np.asarray(vec)[None]), h)['value'][0])
@@ -301,13 +331,14 @@ def main():
                     if not msg.get('drill', False):
                         v_ = float(o['value'][i])
                         v_cont = v_ if v_cont is None else 0.999 * v_cont + 0.001 * v_
-                    elif msg['done'] and msg.get('final_vec') is not None:
+                    elif msg.get('truncated'):
+                        if msg.get('final_vec') is None:
+                            raise RuntimeError('replay cut is missing its final observation')
                         v_fin = value_of(msg['final_crop'], msg['final_vec'], o['h_next'][i:i + 1])
-                        r_ += (GAMMA ** FALL_RESPAWN_DEC if msg.get('outcome') == 'fell' else GAMMA) * v_fin   # 40.40
-                    elif msg['done'] and v_cont is not None:
-                        r_ += GAMMA * v_cont          # 40.33 drill bootstrap (fallback)
+                        r_ += GAMMA ** msg.get('duration_steps', 1.0) * v_fin
                     w.roll.add(o['crop'][i], o['vec'][i], o['a_buf'][i], float(o['logp'][i]),
-                               float(o['value'][i]), r_, float(msg['done']), o['reset'][i], o['h_prev'][i])
+                               float(o['value'][i]), r_, float(msg['done']), o['reset'][i], o['h_prev'][i],
+                               duration_steps=msg.get('duration_steps', 1.0))
                     steps += 1
                     if trace is not None:
                         trace.write(f'{time.perf_counter() - t_wall0:.1f},{steps},{msg["trace"]},{o["gp"][i]:.0f},{w.idx}\n')
@@ -367,7 +398,9 @@ def main():
                         collect_group(g, pend[gi]); pend[gi] = None
                 last_v = bootstrap_values()
                 t0 = time.perf_counter()
-                st = ppo_update(model, opt, [w.roll for w in workers], last_v, log)
+                st = ppo_update(model, opt, [w.roll for w in workers], last_v, log,
+                                critic_only=model.critic_warmup_remaining > 0)
+                model.critic_warmup_remaining = max(0, model.critic_warmup_remaining - 1)
                 act_model.load_state_dict(model.state_dict())
                 for w in workers:
                     w.roll.clear()
@@ -402,6 +435,12 @@ def main():
                     log(f'saved {pth}')
                 elif update % LATEST_EVERY == 0:
                     save_ckpt(model, opt, update, steps, s, missions[0] if missions else '', numbered=False, arrive_r=arrive['r'], arrive_dz=arrive['dz'])
+                if STOP_UPDATE and update >= STOP_UPDATE:
+                    if not NO_SAVE:
+                        save_ckpt(model, opt, update, steps, s, missions[0] if missions else '',
+                                  arrive_r=arrive['r'], arrive_dz=arrive['dz'])
+                    log(f'finite experiment completed at update {update}; checkpoints retained')
+                    return
                 for gi, g in enumerate(groups):      # refill the pipeline with the new weights
                     o = forward_group(g); send_group(g, o); pend[gi] = o
     finally:

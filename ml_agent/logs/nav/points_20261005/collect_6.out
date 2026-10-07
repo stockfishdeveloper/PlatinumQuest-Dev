@@ -1,0 +1,173 @@
+INFERENCE COLLECTION: models/nav/nav_v10_28897.pth, 72000 sampled decisions, no optimizer
+500 decisions, recorded=0, rejected=0
+1000 decisions, recorded=0, rejected=0
+1500 decisions, recorded=0, rejected=0
+2000 decisions, recorded=0, rejected=0
+2500 decisions, recorded=0, rejected=0
+[6] GAME map=KingOfTheMarble_Hunt points=158 gems=124 falls=1 rtf=3.3 pow=f2:1 pkon=8.5/9 pkoff=8.2/64 pknone=8.2/51 rwall=0.055/2879
+3000 decisions, recorded=0, rejected=1
+3500 decisions, recorded=0, rejected=1
+4000 decisions, recorded=0, rejected=1
+4500 decisions, recorded=0, rejected=1
+5000 decisions, recorded=0, rejected=1
+5500 decisions, recorded=0, rejected=1
+[6] GAME map=KingOfTheMarble_Hunt points=156 gems=124 falls=4 rtf=6.4 pow=f6:1,ksA:1 pkon=8.7/2 pkoff=7.9/54 pknone=8.0/68 rwfire=0.000/30 rwall=0.054/2879
+6000 decisions, recorded=0, rejected=1
+6500 decisions, recorded=0, rejected=1
+7000 decisions, recorded=0, rejected=1
+7500 decisions, recorded=0, rejected=1
+8000 decisions, recorded=0, rejected=1
+8500 decisions, recorded=0, rejected=1
+[6] GAME map=KingOfTheMarble_Hunt points=150 gems=118 falls=0 rtf=6.0 pow=f2:1 pkon=9.0/7 pkoff=8.0/58 pknone=8.0/53 rwall=0.052/2876
+9000 decisions, recorded=0, rejected=2
+9500 decisions, recorded=0, rejected=2
+10000 decisions, recorded=0, rejected=2
+10500 decisions, recorded=0, rejected=2
+11000 decisions, recorded=0, rejected=2
+11500 decisions, recorded=0, rejected=2
+[6] GAME map=KingOfTheMarble_Hunt points=152 gems=122 falls=2 rtf=6.1 pow=f1:1,ksA:1 pkon=9.9/6 pkoff=7.7/36 pknone=8.0/80 rwfire=0.000/30 rwall=0.053/2879
+12000 decisions, recorded=0, rejected=2
+12500 decisions, recorded=0, rejected=2
+13000 decisions, recorded=0, rejected=2
+13500 decisions, recorded=0, rejected=2
+14000 decisions, recorded=1, rejected=2
+[6] GAME map=KingOfTheMarble_Hunt points=148 gems=118 falls=3 rtf=6.0 pow=ap2:3,f1:1,f2:1,ksB:1,r2:3,rhit:1 pkon=9.7/9 pkoff=8.1/49 pknone=7.8/60 rwfire=0.033/30 rwall=0.051/2879
+14500 decisions, recorded=1, rejected=2
+15000 decisions, recorded=1, rejected=2
+15500 decisions, recorded=1, rejected=2
+16000 decisions, recorded=1, rejected=2
+16500 decisions, recorded=1, rejected=2
+17000 decisions, recorded=1, rejected=2
+[6] GAME map=KingOfTheMarble_Hunt points=146 gems=113 falls=3 rtf=6.0 pow=f2:1 pkon=10.1/4 pkoff=8.5/42 pknone=7.9/67 rwall=0.051/2878
+17500 decisions, recorded=1, rejected=3
+18000 decisions, recorded=2, rejected=3
+18500 decisions, recorded=2, rejected=3
+19000 decisions, recorded=2, rejected=3
+19500 decisions, recorded=3, rejected=3
+20000 decisions, recorded=3, rejected=3
+[6] GAME map=KingOfTheMarble_Hunt points=156 gems=123 falls=0 rtf=6.0 pow=ap2:8,f1:1,f2:2,ksA:1,ksB:2,r2:3,rhit:1,rmiss:1 pkon=8.7/2 pkoff=8.6/32 pknone=8.2/89 rwfire=0.033/90 rwall=0.054/2879
+20500 decisions, recorded=3, rejected=3
+21000 decisions, recorded=4, rejected=3
+21500 decisions, recorded=5, rejected=3
+22000 decisions, recorded=5, rejected=3
+22500 decisions, recorded=5, rejected=3
+23000 decisions, recorded=5, rejected=3
+[6] GAME map=KingOfTheMarble_Hunt points=155 gems=120 falls=1 rtf=5.6 pow=ap2:6,f2:3,ksA:2,r2:4,rhit:2 pkon=8.6/7 pkoff=8.1/73 pknone=8.3/40 rwfire=0.100/60 rwall=0.054/2878
+23500 decisions, recorded=5, rejected=4
+24000 decisions, recorded=6, rejected=4
+24500 decisions, recorded=6, rejected=4
+25000 decisions, recorded=6, rejected=4
+25500 decisions, recorded=7, rejected=5
+[6] GAME map=KingOfTheMarble_Hunt points=149 gems=118 falls=4 rtf=5.8 pow=ap2:13,f1:1,f2:3,fss:1,kfB:1,ksA:2,ksB:2,r2:5,rhit:1,rmiss:2 pkon=9.4/10 pkoff=7.9/49 pknone=8.1/59 rwfire=0.009/115 rwall=0.052/2879
+26000 decisions, recorded=7, rejected=5
+26500 decisions, recorded=7, rejected=5
+27000 decisions, recorded=7, rejected=5
+27500 decisions, recorded=7, rejected=5
+28000 decisions, recorded=7, rejected=5
+28500 decisions, recorded=7, rejected=5
+[6] GAME map=KingOfTheMarble_Hunt points=152 gems=121 falls=1 rtf=5.7 pow=f2:1 pkon=8.7/7 pkoff=7.7/51 pknone=8.2/63 rwall=0.053/2875
+29000 decisions, recorded=7, rejected=6
+29500 decisions, recorded=7, rejected=6
+30000 decisions, recorded=7, rejected=6
+30500 decisions, recorded=7, rejected=6
+31000 decisions, recorded=7, rejected=6
+31500 decisions, recorded=7, rejected=6
+[6] GAME map=KingOfTheMarble_Hunt points=167 gems=134 falls=0 rtf=5.7 pow=f1:1,ksA:1 pkon=9.6/5 pkoff=8.5/83 pknone=8.1/46 rwfire=0.000/30 rwall=0.058/2879
+32000 decisions, recorded=7, rejected=6
+32500 decisions, recorded=7, rejected=6
+33000 decisions, recorded=7, rejected=6
+33500 decisions, recorded=7, rejected=6
+34000 decisions, recorded=7, rejected=6
+34500 decisions, recorded=7, rejected=6
+[6] GAME map=KingOfTheMarble_Hunt points=151 gems=118 falls=0 rtf=5.8 pow=f2:1 pkon=9.2/4 pkoff=7.9/52 pknone=8.0/62 rwall=0.052/2879
+35000 decisions, recorded=7, rejected=7
+35500 decisions, recorded=8, rejected=7
+36000 decisions, recorded=8, rejected=7
+36500 decisions, recorded=8, rejected=7
+37000 decisions, recorded=8, rejected=7
+[6] GAME map=KingOfTheMarble_Hunt points=155 gems=122 falls=3 rtf=5.9 pow=ap2:3,f2:2,ksA:1,ksB:1,r2:1,rhit:1 pkon=8.5/5 pkoff=8.4/38 pknone=8.2/79 rwfire=0.017/60 rwall=0.054/2877
+37500 decisions, recorded=8, rejected=8
+38000 decisions, recorded=8, rejected=8
+38500 decisions, recorded=8, rejected=8
+39000 decisions, recorded=8, rejected=8
+39500 decisions, recorded=8, rejected=8
+40000 decisions, recorded=8, rejected=8
+[6] GAME map=KingOfTheMarble_Hunt points=114 gems=90 falls=4 rtf=6.3 pow=f2:1,ksA:1 pkon=8.8/2 pkoff=7.8/26 pknone=8.0/62 rwfire=0.000/30 rwall=0.040/2879
+40500 decisions, recorded=8, rejected=9
+41000 decisions, recorded=8, rejected=9
+41500 decisions, recorded=8, rejected=9
+42000 decisions, recorded=9, rejected=9
+42500 decisions, recorded=9, rejected=9
+43000 decisions, recorded=9, rejected=9
+[6] GAME map=KingOfTheMarble_Hunt points=148 gems=116 falls=4 rtf=7.4 pow=ap2:1,f2:1,f6:1,ksA:1,ksB:1,r2:1,rmiss:1 pkon=9.0/5 pkoff=7.9/69 pknone=8.0/42 rwfire=0.000/60 rwall=0.051/2877
+43500 decisions, recorded=9, rejected=9
+44000 decisions, recorded=9, rejected=9
+44500 decisions, recorded=9, rejected=9
+45000 decisions, recorded=9, rejected=9
+45500 decisions, recorded=9, rejected=9
+46000 decisions, recorded=9, rejected=9
+[6] GAME map=KingOfTheMarble_Hunt points=156 gems=122 falls=0 rtf=7.3 pow=f1:1 pkon=10.2/7 pkoff=8.2/81 pknone=8.2/34 rwall=0.054/2878
+46500 decisions, recorded=9, rejected=9
+47000 decisions, recorded=9, rejected=9
+47500 decisions, recorded=9, rejected=9
+48000 decisions, recorded=9, rejected=9
+48500 decisions, recorded=10, rejected=9
+[6] GAME map=KingOfTheMarble_Hunt points=155 gems=123 falls=2 rtf=7.2 pow=ap2:3,f2:1,f6:1,ksA:1,r2:2,rhit:1 pkon=8.4/7 pkoff=8.4/63 pknone=8.2/53 rwfire=0.100/30 rwall=0.054/2879
+49000 decisions, recorded=10, rejected=9
+49500 decisions, recorded=10, rejected=9
+50000 decisions, recorded=11, rejected=9
+50500 decisions, recorded=11, rejected=9
+51000 decisions, recorded=11, rejected=9
+51500 decisions, recorded=11, rejected=9
+[6] GAME map=KingOfTheMarble_Hunt points=149 gems=119 falls=2 rtf=7.3 pow=ap2:1,f1:1,f2:1,ksB:1,r2:1,rhit:1 pkon=9.3/7 pkoff=8.2/56 pknone=8.1/56 rwfire=0.033/30 rwall=0.052/2879
+52000 decisions, recorded=11, rejected=9
+52500 decisions, recorded=11, rejected=9
+53000 decisions, recorded=11, rejected=9
+53500 decisions, recorded=11, rejected=9
+54000 decisions, recorded=11, rejected=9
+54500 decisions, recorded=11, rejected=9
+[6] GAME map=KingOfTheMarble_Hunt points=158 gems=124 falls=1 rtf=7.3 pow=ap2:1,f1:1 pkon=9.1/7 pkoff=8.0/94 pknone=8.1/23 rwall=0.055/2879
+55000 decisions, recorded=11, rejected=9
+55500 decisions, recorded=11, rejected=9
+56000 decisions, recorded=11, rejected=9
+56500 decisions, recorded=12, rejected=9
+57000 decisions, recorded=12, rejected=9
+57500 decisions, recorded=12, rejected=9
+[6] GAME map=KingOfTheMarble_Hunt points=134 gems=106 falls=6 rtf=7.5 pow=ap2:4,f2:2,ksB:1,r2:1,rmiss:1 pkon=9.6/6 pkoff=8.2/39 pknone=7.8/61 rwfire=0.000/30 rwall=0.047/2879
+58000 decisions, recorded=12, rejected=10
+58500 decisions, recorded=12, rejected=10
+59000 decisions, recorded=12, rejected=10
+59500 decisions, recorded=12, rejected=10
+60000 decisions, recorded=12, rejected=10
+[6] GAME map=KingOfTheMarble_Hunt points=141 gems=113 falls=5 rtf=7.4 pow=f6:1,ksA:1 pkon=7.9/1 pkoff=8.0/28 pknone=7.7/84 rwfire=0.000/30 rwall=0.049/2879
+60500 decisions, recorded=12, rejected=10
+61000 decisions, recorded=13, rejected=10
+61500 decisions, recorded=13, rejected=10
+62000 decisions, recorded=13, rejected=10
+62500 decisions, recorded=13, rejected=10
+63000 decisions, recorded=13, rejected=10
+[6] GAME map=KingOfTheMarble_Hunt points=155 gems=121 falls=0 rtf=7.4 pow=ap2:4,f1:1,f2:1,ksB:1,r2:1,rhit:1 pkon=8.9/3 pkoff=8.2/49 pknone=8.5/69 rwfire=0.033/30 rwall=0.054/2879
+63500 decisions, recorded=13, rejected=10
+64000 decisions, recorded=13, rejected=10
+64500 decisions, recorded=13, rejected=10
+65000 decisions, recorded=13, rejected=10
+65500 decisions, recorded=13, rejected=10
+66000 decisions, recorded=13, rejected=10
+[6] GAME map=KingOfTheMarble_Hunt points=135 gems=107 falls=4 rtf=7.3 pow=ap2:7,f2:2,ksA:1,ksB:1,r2:3,rhit:1,rmiss:1 pkon=8.7/7 pkoff=7.7/68 pknone=8.1/32 rwfire=0.050/60 rwall=0.047/2879
+66500 decisions, recorded=13, rejected=12
+67000 decisions, recorded=13, rejected=12
+67500 decisions, recorded=14, rejected=12
+68000 decisions, recorded=14, rejected=12
+68500 decisions, recorded=14, rejected=12
+69000 decisions, recorded=14, rejected=12
+[6] GAME map=KingOfTheMarble_Hunt points=151 gems=122 falls=2 rtf=7.3 pow=ap2:3,f1:1,f2:1,ksB:1,r2:3,rhit:1 pkon=7.8/3 pkoff=7.9/40 pknone=7.8/79 rwfire=0.100/30 rwall=0.052/2879
+69500 decisions, recorded=14, rejected=12
+70000 decisions, recorded=14, rejected=12
+70500 decisions, recorded=14, rejected=12
+71000 decisions, recorded=14, rejected=12
+71500 decisions, recorded=14, rejected=12
+[6] GAME map=KingOfTheMarble_Hunt points=144 gems=114 falls=2 rtf=7.2 pow=f2:1 pkon=8.8/4 pkoff=7.8/63 pknone=7.9/47 rwall=0.050/2879
+72000 decisions, recorded=14, rejected=13
+COLLECTED 14 starts in 737s: C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\logs\nav\live_starts_20261005_095112_6.jsonl
+Convert with: python -m nav.ss_drill_starts --live <JSONL paths>
+Keep collecting if either round-grouped split is empty. Never copy dev into eval.

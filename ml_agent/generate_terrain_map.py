@@ -42,6 +42,12 @@ from terrain_obs import TerrainMap
 # 0.85 is ~32 deg, matching nav/terrain.py MAX_SLOPE = 0.6 (~31 deg): we no longer STORE as
 # floor anything the navigator would refuse to WALK on.
 FLOOR_NORMAL_Z = float(os.environ.get('NAV_FLOOR_NORMAL_Z', '0.85'))
+EDGE_EPS = 0.02               # 2026-10-05: a grid point counts as floor if it or one of 8 points EDGE_EPS away (axes and diagonals)
+                              # lies inside a floor polygon. The grid lined up with the level's tile edges, so many points sat
+                              # exactly ON an edge, where the inside test flips with the edge's direction: hole edges came out
+                              # floor on some sides and void on others (KOTM: the marble resting on floor at (-24.43, 16.17)
+                              # beside the 2 x 2 hole at x -26.2..-24.2, y 14..16 read as no floor and the driver stalled).
+DEFAULT_GRID_RES = 0.25       # 2026-10-05: was 0.5; lookups use the nearest grid point, so 0.25 halves the edge error
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO_ROOT = os.path.dirname(HERE)
 PLATINUM_ROOT = os.path.join(REPO_ROOT, 'Marble Blast Platinum', 'platinum')
@@ -197,7 +203,13 @@ def build_height_stack(surfaces, grid_res, z_min, z_max, k_max):
         sub_x = xs[i0:i1 + 1]; sub_y = ys[j0:j1 + 1]
         gx, gy = np.meshgrid(sub_x, sub_y)
         cells = np.column_stack([gx.ravel(), gy.ravel()])
-        inside = MplPath(list(zip(vx, vy))).contains_points(cells)
+        path = MplPath(list(zip(vx, vy)))
+        inside = path.contains_points(cells)
+        # edge-safe (see EDGE_EPS); the diagonal offsets matter at polygon CORNERS, where a point lies on two edges and all
+        # four axis offsets stay on an edge (2026-10-05 22:05: 8 corner points broke KOTM's symmetry, e.g. (-28.7, 11.5))
+        for ox, oy in ((EDGE_EPS, 0.0), (-EDGE_EPS, 0.0), (0.0, EDGE_EPS), (0.0, -EDGE_EPS),
+                       (EDGE_EPS, EDGE_EPS), (EDGE_EPS, -EDGE_EPS), (-EDGE_EPS, EDGE_EPS), (-EDGE_EPS, -EDGE_EPS)):
+            inside |= path.contains_points(cells + np.array([ox, oy]))
         if not inside.any():
             continue
         nx, ny, nz = normal
@@ -301,7 +313,7 @@ def render_check_image(tm, items, out_path, mapname):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('mapname', help='map name (e.g. KingOfTheMarble_Hunt) or path to a .mcs/.mis')
-    ap.add_argument('--grid-res', type=float, default=0.5)
+    ap.add_argument('--grid-res', type=float, default=DEFAULT_GRID_RES)
     ap.add_argument('--k', type=int, default=4, help='max floor levels stored per cell')
     ap.add_argument('--z-min', type=float, default=None, help='override the in-bounds z floor')
     ap.add_argument('--z-max', type=float, default=None, help='override the in-bounds z ceiling')

@@ -19,6 +19,9 @@ ap.add_argument('--force-brake', type=int, default=0, help='diagnostic: brake (f
 ap.add_argument('--force-use', action='store_true', help='stages 2-3: fire at the first decision the approval mask allows (the '
                 'manoeuvre with the current control, independent of the learned decision); compare with --no-use')
 args = ap.parse_args()
+if args.stage == 4:
+    raise SystemExit('Stage 4 now uses real game fixtures: python -m nav.ss_window_eval --ckpt <checkpoint>. '
+                     'Legacy synthetic windows are not comparable to game points.')
 ev = os.path.join('datasets', 'ss_drill', {1: 'starts_eval.json', 2: 'starts2_eval.json', 3: 'starts3_eval.json', 4: 'starts_live_eval.json'}[args.stage])
 os.environ['NAV_DRILL_PLAN'] = f'0:{args.stage}'; os.environ['NAV_DRILL_EVAL'] = '1'
 os.environ[{1: 'NAV_DRILL_STARTS', 2: 'NAV_DRILL2_STARTS', 3: 'NAV_DRILL3_STARTS', 4: 'NAV_DRILL4_STARTS'}[args.stage]] = ev

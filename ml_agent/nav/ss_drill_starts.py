@@ -102,16 +102,35 @@ def live_starts(paths, min_speed=8.0, max_speed=32.0):
 
 
 def main_live(paths):
-    allst = live_starts(paths)
+    from nav.replay import SCHEMA, validate_start, split_for
+    allst = []
+    seen = {}; rejected = 0
+    for path in paths:
+        for line in open(path, encoding='utf-8'):
+            try:
+                s = json.loads(line)
+                validate_start(s)
+            except (ValueError, KeyError, TypeError):
+                rejected += 1
+                continue
+            if s['id'] in seen:
+                if seen[s['id']] != s:
+                    raise ValueError('conflicting records for start id: ' + s['id'])
+                continue
+            seen[s['id']] = s; allst.append(s)
+    if not allst:
+        raise ValueError(f'no schema-{SCHEMA} real-game fixtures ({rejected} legacy/invalid records); recollect first')
     os.makedirs(OUT, exist_ok=True)
     dev, ev = [], []
     for s in allst:
-        (ev if zlib.crc32(s['id'].encode()) % 4 == 0 else dev).append(s)
-    json.dump(dev, open(os.path.join(OUT, 'starts_live_dev.json'), 'w')); json.dump(ev, open(os.path.join(OUT, 'starts_live_eval.json'), 'w'))
-    sp = [s['speed_after'] for s in allst]; ch = [len(s['chain']) for s in allst]
-    print(f'live starts: {len(allst)} fires from {len(paths)} file(s) -> dev {len(dev)} / eval {len(ev)}; speed after median '
-          f'{np.median(sp) if sp else 0:.1f} u/s; chain gems median {np.median(ch) if ch else 0:.0f}; '
-          f'with a fall in the 12 s {sum(1 for s in allst if s["falls_live"]) / max(len(allst), 1) * 100:.0f} %')
+        (ev if split_for(s) == 'eval' else dev).append(s)
+    for name, rows in [('dev', dev), ('eval', ev)]:
+        dest = os.path.join(OUT, f'starts_replay_{name}.json')
+        with open(dest + '.new', 'w') as f:
+            json.dump(rows, f)
+        os.replace(dest + '.new', dest)
+    print(f'real-game starts: {len(allst)}, dev {len(dev)}, eval {len(ev)}, rejected legacy/invalid {rejected}; '
+          'split by source round; original targets and full game state retained')
 
 
 def main(paths):

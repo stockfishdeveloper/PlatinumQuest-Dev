@@ -1,0 +1,58 @@
+[
+    {
+        "seed":  20261005,
+        "python":  38296,
+        "port":  9970,
+        "worker":  0,
+        "game":  36612
+    },
+    {
+        "seed":  20261106,
+        "python":  24744,
+        "port":  9971,
+        "worker":  1,
+        "game":  21100
+    },
+    {
+        "seed":  20261207,
+        "python":  4496,
+        "port":  9972,
+        "worker":  2,
+        "game":  45628
+    },
+    {
+        "seed":  20261308,
+        "python":  30928,
+        "port":  9973,
+        "worker":  3,
+        "game":  42368
+    },
+    {
+        "seed":  20261409,
+        "python":  41144,
+        "port":  9974,
+        "worker":  4,
+        "game":  31392
+    },
+    {
+        "seed":  20261510,
+        "python":  39808,
+        "port":  9975,
+        "worker":  5,
+        "game":  7360
+    },
+    {
+        "seed":  20261611,
+        "python":  30744,
+        "port":  9976,
+        "worker":  6,
+        "game":  40492
+    },
+    {
+        "seed":  20261712,
+        "python":  20016,
+        "port":  9977,
+        "worker":  7,
+        "game":  39116
+    }
+]

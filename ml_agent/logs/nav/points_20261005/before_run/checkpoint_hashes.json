@@ -1,0 +1,14 @@
+[
+    {
+        "Path":  "C:\\Users\\doug\\OneDrive\\Documents\\GitHub\\PlatinumQuest-Dev\\ml_agent\\models\\nav\\nav_latest.pth",
+        "Hash":  "F78F919FA42EEA29663F61D2452B0EC44E34B9F1822D7321D249C87D5C4F32B8"
+    },
+    {
+        "Path":  "C:\\Users\\doug\\OneDrive\\Documents\\GitHub\\PlatinumQuest-Dev\\ml_agent\\models\\nav\\nav_r2_stop_29665.pth",
+        "Hash":  "F78F919FA42EEA29663F61D2452B0EC44E34B9F1822D7321D249C87D5C4F32B8"
+    },
+    {
+        "Path":  "C:\\Users\\doug\\OneDrive\\Documents\\GitHub\\PlatinumQuest-Dev\\ml_agent\\models\\nav\\nav_v10_28897.pth",
+        "Hash":  "539E2641319052460514C1838EBF1BC23956C5EA4CB314078B9A46BB9D738883"
+    }
+]

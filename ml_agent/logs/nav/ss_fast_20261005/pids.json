@@ -1,0 +1,19 @@
+{
+    "output":  "C:\\Users\\doug\\OneDrive\\Documents\\GitHub\\PlatinumQuest-Dev\\ml_agent\\models\\nav\\ss_fast_20261005",
+    "started":  "2026-10-05T11:52:04.3461453-06:00",
+    "source_update":  29240,
+    "games":  [
+                  {
+                      "port":  9970,
+                      "game":  46456,
+                      "worker":  45948
+                  },
+                  {
+                      "port":  9971,
+                      "game":  35608,
+                      "worker":  14492
+                  }
+              ],
+    "stop_update":  29360,
+    "trainer":  30732
+}

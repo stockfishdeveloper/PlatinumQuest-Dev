@@ -1,0 +1,164 @@
+[15:30:28] resumed C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\models\nav\nav_latest.pth: update 29785, steps 235,165,979, trained on KingOfTheMarble_Hunt
+[15:30:28] 40.33 FREEZE_BASE: 61,957 trainable parameters (value_head at LR 0.0003; use_head, ss_res at 0.003); the navigator is frozen; Adam state resumed
+[15:30:29] 8 instance worker(s) on ports 8888..8895; training mode True (64 ms per decision); arrive radius 0.65 u; device cuda
+[15:30:41] [0] [env:8888] waiting for the game
+[15:30:41] [0] [env:8888] game connected (1)
+[15:30:41] [0] real-game replay: 102 fixtures, game points, 12032 ms
+[15:30:41] [0] ready on 8888, mission KingOfTheMarble_Hunt
+[15:30:43] [1] [env:8889] waiting for the game
+[15:30:43] [1] [env:8889] game connected (1)
+[15:30:43] [1] real-game replay: 102 fixtures, game points, 12032 ms
+[15:30:43] [1] ready on 8889, mission KingOfTheMarble_Hunt
+[15:30:45] [2] [env:8890] waiting for the game
+[15:30:45] [2] [env:8890] game connected (1)
+[15:30:45] [2] real-game replay: 102 fixtures, game points, 12032 ms
+[15:30:46] [2] ready on 8890, mission KingOfTheMarble_Hunt
+[15:30:48] [3] [env:8891] waiting for the game
+[15:30:48] [3] [env:8891] game connected (1)
+[15:30:48] [3] real-game replay: 102 fixtures, game points, 12032 ms
+[15:30:48] [3] ready on 8891, mission KingOfTheMarble_Hunt
+[15:30:49] [4] [env:8892] waiting for the game
+[15:30:49] [4] [env:8892] game connected (1)
+[15:30:49] [4] real-gem training mode: True
+[15:30:49] [4] mission KingOfTheMarble_Hunt: terrain 99x99 @ 0.5 u, walkable 1488 cells
+[15:30:49] [4] gem chooser: whole-spawn planner (walk)
+[15:30:49] [4] ready on 8892, mission KingOfTheMarble_Hunt
+[15:30:52] [5] [env:8893] waiting for the game
+[15:30:52] [5] [env:8893] game connected (1)
+[15:30:52] [5] real-gem training mode: True
+[15:30:52] [5] mission KingOfTheMarble_Hunt: terrain 99x99 @ 0.5 u, walkable 1488 cells
+[15:30:52] [5] gem chooser: whole-spawn planner (walk)
+[15:30:52] [5] ready on 8893, mission KingOfTheMarble_Hunt
+[15:30:54] [6] [env:8894] waiting for the game
+[15:30:54] [6] [env:8894] game connected (1)
+[15:30:54] [6] real-gem training mode: True
+[15:30:54] [6] mission KingOfTheMarble_Hunt: terrain 99x99 @ 0.5 u, walkable 1488 cells
+[15:30:54] [6] gem chooser: whole-spawn planner (walk)
+[15:30:54] [6] ready on 8894, mission KingOfTheMarble_Hunt
+[15:30:54] [7] [env:8895] waiting for the game
+[15:30:54] [7] [env:8895] game connected (1)
+[15:30:54] [7] real-gem training mode: True
+[15:30:54] [7] mission KingOfTheMarble_Hunt: terrain 99x99 @ 0.5 u, walkable 1488 cells
+[15:30:54] [7] gem chooser: whole-spawn planner (walk)
+[15:30:54] [7] ready on 8895, mission KingOfTheMarble_Hunt
+[15:30:54] [2] fall without OOB flag: 4 decisions off the map at [-36.   29.7  13.9] (time left 99s)
+[15:30:54] [2] fall without OOB flag: 5 decisions off the map at [-36.5  29.4  12.7] (time left 99s)
+[15:30:56] [1] fall without OOB flag: 4 decisions off the map at [-28.1  11.7  13.2] (time left 6s)
+[15:30:56] [1] fall without OOB flag: 5 decisions off the map at [-27.8  11.7  12. ] (time left 6s)
+[15:30:56] [1] fall without OOB flag: 6 decisions off the map at [-27.4  11.6  10.8] (time left 6s)
+[15:30:57] [0] WINDOW {"id":"2ec9a6528a5d4e149e790dbcd860f5c6:23:4486004","status":"ok","points":9.0,"falls":0,"pickup_times_ms":[1536,4992,6208,8320,9344,10432],"fired":true,"elapsed_ms":12032,"outcome":"window"}
+[15:30:57] [2] WINDOW {"id":"674ea04777bb4103ad087feaa0a2b521:6:1216466","status":"ok","points":8.0,"falls":1,"pickup_times_ms":[2816,4224,6464,7680,9536,10816],"fired":false,"elapsed_ms":12032,"outcome":"window"}
+[15:30:57] [1] WINDOW {"id":"08f45a24fc364814ac08516691a3858c:16:3179509","status":"ok","points":7.0,"falls":1,"pickup_times_ms":[1280,3264,4224,7488,8064],"fired":false,"elapsed_ms":12032,"outcome":"window"}
+[15:30:57] [3] WINDOW {"id":"7c7257790495415d950ea4ef8d9a5f74:0:38498","status":"ok","points":5.0,"falls":0,"pickup_times_ms":[1664,4800,8640,9408],"fired":true,"elapsed_ms":12032,"outcome":"window"}
+[15:31:00] [0] WINDOW {"id":"7cfb5598d5ea4bdf9a5725dafcd7322f:17:3236976","status":"ok","points":11.0,"falls":0,"pickup_times_ms":[1408,2432,3456,4864,6080,8064,10560,11776],"fired":true,"elapsed_ms":12032,"outcome":"window"}
+[15:31:00] [2] WINDOW {"id":"7c7257790495415d950ea4ef8d9a5f74:5:979810","status":"ok","points":11.0,"falls":0,"pickup_times_ms":[1536,2496,3520,4928,5952,7552,8832,9984],"fired":true,"elapsed_ms":12032,"outcome":"window"}
+[15:31:00] [1] WINDOW {"id":"674ea04777bb4103ad087feaa0a2b521:7:1373138","status":"ok","points":11.0,"falls":0,"pickup_times_ms":[1344,2176,3264,6208,7168,8640,9856,11072],"fired":true,"elapsed_ms":12032,"outcome":"window"}
+[15:31:00] [3] WINDOW {"id":"2ec9a6528a5d4e149e790dbcd860f5c6:18:3532788","status":"ok","points":12.0,"falls":0,"pickup_times_ms":[1600,2624,3648,5248,6336,6976,7872,9472,11008],"fired":true,"elapsed_ms":12032,"outcome":"window"}
+[15:31:03] [0] WINDOW {"id":"08f45a24fc364814ac08516691a3858c:6:1211765","status":"ok","points":11.0,"falls":0,"pickup_times_ms":[1536,2432,3520,6784,7808,9536,10880,11328],"fired":true,"elapsed_ms":12032,"outcome":"window"}
+[15:31:03] [2] WINDOW {"id":"15418f12fd9740a883af474ef3919293:16:3139382","status":"ok","points":12.0,"falls":0,"pickup_times_ms":[1472,2432,3520,6272,7360,8832,10112,11392],"fired":true,"elapsed_ms":12032,"outcome":"window"}
+[15:31:03] [1] WINDOW {"id":"15418f12fd9740a883af474ef3919293:23:4381622","status":"ok","points":10.0,"falls":1,"pickup_times_ms":[1664,3264,4352,7424,8448,9856,11328],"fired":false,"elapsed_ms":12032,"outcome":"window"}
+[15:31:03] [3] WINDOW {"id":"674ea04777bb4103ad087feaa0a2b521:5:1016530","status":"ok","points":10.0,"falls":0,"pickup_times_ms":[1472,2432,3584,6976,8320,9920,11200],"fired":true,"elapsed_ms":12032,"outcome":"window"}
+[15:31:04] [2] fall without OOB flag: 4 decisions off the map at [-27.2  11.6  13.7] (time left 29s)
+[15:31:06] [0] WINDOW {"id":"674ea04777bb4103ad087feaa0a2b521:6:1216466","status":"ok","points":10.0,"falls":0,"pickup_times_ms":[1280,2496,4480,5696,7296,8512,10240,11392],"fired":true,"elapsed_ms":12032,"outcome":"window"}
+[15:31:06] [2] WINDOW {"id":"7c7257790495415d950ea4ef8d9a5f74:2:533154","status":"ok","points":5.0,"falls":1,"pickup_times_ms":[1472,6336,7744,9984],"fired":false,"elapsed_ms":12032,"outcome":"window"}
+[15:31:06] [1] WINDOW {"id":"89b2e0c997d34377a8fd82f46065afa2:4:913396","status":"ok","points":12.0,"falls":0,"pickup_times_ms":[1536,2496,3584,4928,6144,7808,9472,10752,11968],"fired":true,"elapsed_ms":12032,"outcome":"window"}
+[15:31:06] [3] WINDOW {"id":"e75e1fcfb38d49dbb801d922c880f327:15:2948710","status":"ok","points":10.0,"falls":0,"pickup_times_ms":[1472,4160,5504,6848,8064,9664,11264],"fired":false,"elapsed_ms":12032,"outcome":"window"}
+[15:31:09] [0] WINDOW {"id":"15418f12fd9740a883af474ef3919293:23:4381622","status":"ok","points":11.0,"falls":0,"pickup_times_ms":[2112,3712,4864,6272,7424,8896,10048,11264],"fired":false,"elapsed_ms":12032,"outcome":"window"}
+[15:31:09] [2] WINDOW {"id":"08f45a24fc364814ac08516691a3858c:16:3114037","status":"ok","points":11.0,"falls":0,"pickup_times_ms":[1216,2112,3264,6144,7168,8704,9856,11712],"fired":true,"elapsed_ms":12032,"outcome":"window"}
+[15:31:09] [1] WINDOW {"id":"7cfb5598d5ea4bdf9a5725dafcd7322f:10:1944688","status":"ok","points":8.0,"falls":0,"pickup_times_ms":[1536,3968,5312,9088,11136],"fired":false,"elapsed_ms":12032,"outcome":"window"}
+[15:31:09] [3] WINDOW {"id":"e75e1fcfb38d49dbb801d922c880f327:22:4247334","status":"ok","points":11.0,"falls":0,"pickup_times_ms":[2240,3712,4864,6464,7808,9408,10560,11264],"fired":false,"elapsed_ms":12032,"outcome":"window"}
+[15:31:13] NAV upd=29786 map=KingOfTheMarble_Hunt r=0.65 steps=235,174,179 segs=20 arrive=0% falls100=0.62 speed=7.2 gems=7.0 pickup=8.1 sgem=1.55 carry=0.0 turn=20.4 rew=9.8 pl=-0.000 vl=0.132 ent=0.31 entd=0.02 ec=0.0050 kl=0.000 clip=0.01 gn=0.49 ep=3 dstd=0.22 flips=0 vcont=5.3 upd_s=2.1 wall_s=19 inst=8 dps=434 prof=fwd:11,send:1,recv:5,handle:1,w_game:26,w_obs:21,w_begin:2
+[15:31:14] [0] WINDOW {"id":"7cfb5598d5ea4bdf9a5725dafcd7322f:4:897520","status":"ok","points":11.0,"falls":0,"pickup_times_ms":[1536,3584,4480,6464,7488,8896,10112,11200],"fired":true,"elapsed_ms":12032,"outcome":"window"}
+[15:31:14] [2] WINDOW {"id":"15418f12fd9740a883af474ef3919293:8:1647542","status":"ok","points":11.0,"falls":0,"pickup_times_ms":[256,1536,3200,4288,6080,7296,8768,10304,11840],"fired":false,"elapsed_ms":12032,"outcome":"window"}
+[15:31:14] [1] WINDOW {"id":"2ec9a6528a5d4e149e790dbcd860f5c6:18:3532788","status":"ok","points":12.0,"falls":0,"pickup_times_ms":[1600,2560,3648,5248,6400,7040,7872,9408,11008],"fired":true,"elapsed_ms":12032,"outcome":"window"}
+[15:31:14] [3] WINDOW {"id":"7cfb5598d5ea4bdf9a5725dafcd7322f:10:1931824","status":"ok","points":9.0,"falls":0,"pickup_times_ms":[1536,2752,6080,7296,10560,11776],"fired":true,"elapsed_ms":12032,"outcome":"window"}
+[15:31:17] [0] WINDOW {"id":"e75e1fcfb38d49dbb801d922c880f327:1:249702","status":"ok","points":11.0,"falls":0,"pickup_times_ms":[1472,2432,4672,6592,7616,9344,10688,11840],"fired":true,"elapsed_ms":12032,"outcome":"window"}
+[15:31:17] [2] WINDOW {"id":"674ea04777bb4103ad087feaa0a2b521:7:1373138","status":"ok","points":11.0,"falls":0,"pickup_times_ms":[1408,2240,3328,6144,7168,8704,9856,11584],"fired":true,"elapsed_ms":12032,"outcome":"window"}
+[15:31:17] [1] WINDOW {"id":"15418f12fd9740a883af474ef3919293:14:2726774","status":"ok","points":9.0,"falls":0,"pickup_times_ms":[1408,2944,5632,6656,8128,9344,11072],"fired":false,"elapsed_ms":12032,"outcome":"window"}
+[15:31:17] [3] WINDOW {"id":"08f45a24fc364814ac08516691a3858c:12:2292341","status":"ok","points":12.0,"falls":0,"pickup_times_ms":[512,1472,2176,4544,5824,6848,8320,9408,10624,11328],"fired":true,"elapsed_ms":12032,"outcome":"window"}
+[15:31:20] [0] WINDOW {"id":"2ec9a6528a5d4e149e790dbcd860f5c6:23:4486004","status":"ok","points":10.0,"falls":0,"pickup_times_ms":[2176,2880,3840,8192,9536,10624,11968],"fired":true,"elapsed_ms":12032,"outcome":"window"}
+[15:31:20] [2] WINDOW {"id":"7c7257790495415d950ea4ef8d9a5f74:5:1107554","status":"ok","points":12.0,"falls":0,"pickup_times_ms":[1472,2560,3712,4992,6016,7488,8704,9856,10624],"fired":true,"elapsed_ms":12032,"outcome":"window"}
+[15:31:20] [1] WINDOW {"id":"08f45a24fc364814ac08516691a3858c:11:2114485","status":"ok","points":10.0,"falls":0,"pickup_times_ms":[1472,4288,5696,7552,8320,10176,11776],"fired":true,"elapsed_ms":12032,"outcome":"window"}
+[15:31:20] [3] WINDOW {"id":"674ea04777bb4103ad087feaa0a2b521:17:3257106","status":"ok","points":7.0,"falls":0,"pickup_times_ms":[1536,5312,6976,9408,10112,11712],"fired":false,"elapsed_ms":12032,"outcome":"window"}
+[15:31:23] [0] WINDOW {"id":"7cfb5598d5ea4bdf9a5725dafcd7322f:10:1944688","status":"ok","points":10.0,"falls":0,"pickup_times_ms":[1472,3904,5248,7872,9216,11328],"fired":false,"elapsed_ms":12032,"outcome":"window"}
+[15:31:23] [2] WINDOW {"id":"15418f12fd9740a883af474ef3919293:14:2726774","status":"ok","points":10.0,"falls":0,"pickup_times_ms":[1344,2880,5824,6848,8448,9600,10880,11904],"fired":false,"elapsed_ms":12032,"outcome":"window"}
+[15:31:23] [1] WINDOW {"id":"2ec9a6528a5d4e149e790dbcd860f5c6:18:3403124","status":"ok","points":11.0,"falls":0,"pickup_times_ms":[1664,2560,3712,6528,7616,9152,10368,11712],"fired":true,"elapsed_ms":12032,"outcome":"window"}
+[15:31:23] [3] WINDOW {"id":"15418f12fd9740a883af474ef3919293:19:3668022","status":"ok","points":6.0,"falls":0,"pickup_times_ms":[1344,5504,6976,9088,10752],"fired":true,"elapsed_ms":12032,"outcome":"window"}
+[15:31:26] [4] fall without OOB flag: 4 decisions off the map at [-20.1  13.8  13.1] (time left 64s)
+[15:31:26] [0] WINDOW {"id":"7cfb5598d5ea4bdf9a5725dafcd7322f:17:3236976","status":"ok","points":10.0,"falls":0,"pickup_times_ms":[1408,2432,3520,5056,6208,8128,11200],"fired":true,"elapsed_ms":12032,"outcome":"window"}
+[15:31:26] [2] WINDOW {"id":"7c7257790495415d950ea4ef8d9a5f74:2:438434","status":"ok","points":10.0,"falls":0,"pickup_times_ms":[1472,2432,3520,6336,7360,8960,10176],"fired":true,"elapsed_ms":12032,"outcome":"window"}
+[15:31:26] [1] WINDOW {"id":"2ec9a6528a5d4e149e790dbcd860f5c6:2:396596","status":"ok","points":12.0,"falls":0,"pickup_times_ms":[1344,2304,3328,4864,6016,7488,8832,10176,11264],"fired":true,"elapsed_ms":12032,"outcome":"window"}
+[15:31:26] [3] WINDOW {"id":"15418f12fd9740a883af474ef3919293:8:1647542","status":"ok","points":8.0,"falls":1,"pickup_times_ms":[256,4928,6528,9280,10560,11584],"fired":false,"elapsed_ms":12032,"outcome":"window"}
+[15:31:29] [6] fall without OOB flag: 4 decisions off the map at [-24.3  17.7  13.4] (time left 52s)
+[15:31:31] NAV upd=29787 map=KingOfTheMarble_Hunt r=0.65 steps=235,182,379 segs=40 arrive=0% falls100=0.30 speed=7.4 gems=7.3 pickup=8.0 sgem=1.53 carry=0.0 turn=20.9 rew=9.9 pl=-0.001 vl=0.120 ent=0.31 entd=0.02 ec=0.0049 kl=0.000 clip=0.01 gn=0.41 ep=3 dstd=0.22 flips=0 vcont=5.4 upd_s=1.8 wall_s=18 inst=8 dps=459 prof=fwd:10,send:1,recv:4,handle:1,w_game:27,w_obs:20,w_begin:1
+[15:31:31] [0] WINDOW {"id":"7c7257790495415d950ea4ef8d9a5f74:0:38498","status":"ok","points":7.0,"falls":0,"pickup_times_ms":[1536,3840,6720,8832,11584],"fired":true,"elapsed_ms":12032,"outcome":"window"}
+[15:31:31] [2] WINDOW {"id":"2ec9a6528a5d4e149e790dbcd860f5c6:0:157082","status":"ok","points":12.0,"falls":0,"pickup_times_ms":[1536,2496,3584,4864,5888,7616,8832,9920,11072],"fired":true,"elapsed_ms":12032,"outcome":"window"}
+[15:31:31] [1] WINDOW {"id":"7c7257790495415d950ea4ef8d9a5f74:13:2486178","status":"ok","points":11.0,"falls":0,"pickup_times_ms":[2048,3584,4800,7680,8704,10048,11264,11712],"fired":false,"elapsed_ms":12032,"outcome":"window"}
+[15:31:31] [3] WINDOW {"id":"7cfb5598d5ea4bdf9a5725dafcd7322f:1:354800","status":"ok","points":11.0,"falls":0,"pickup_times_ms":[1408,2304,3456,6080,7104,8832,10048,11840],"fired":true,"elapsed_ms":12032,"outcome":"window"}
+[15:31:34] [0] WINDOW {"id":"2ec9a6528a5d4e149e790dbcd860f5c6:18:3532788","status":"ok","points":10.0,"falls":0,"pickup_times_ms":[1600,3840,5312,6528,7744,9472,10688],"fired":true,"elapsed_ms":12032,"outcome":"window"}
+[15:31:34] [2] WINDOW {"id":"7cfb5598d5ea4bdf9a5725dafcd7322f:23:4447216","status":"ok","points":10.0,"falls":1,"pickup_times_ms":[1536,2432,3520,5696,9600,11456],"fired":true,"elapsed_ms":12032,"outcome":"window"}
+[15:31:34] [1] WINDOW {"id":"2ec9a6528a5d4e149e790dbcd860f5c6:23:4486004","status":"ok","points":11.0,"falls":0,"pickup_times_ms":[1600,2368,3392,6272,7424,8896,10240,11392],"fired":true,"elapsed_ms":12032,"outcome":"window"}
+[15:31:34] [3] WINDOW {"id":"15418f12fd9740a883af474ef3919293:7:1352694","status":"ok","points":11.0,"falls":0,"pickup_times_ms":[1536,2560,3712,5056,6016,7616,8832,10944],"fired":true,"elapsed_ms":12032,"outcome":"window"}
+[15:31:37] [0] WINDOW {"id":"7cfb5598d5ea4bdf9a5725dafcd7322f:10:1931824","status":"ok","points":8.0,"falls":0,"pickup_times_ms":[1600,4160,5696,7040,10816],"fired":false,"elapsed_ms":12032,"outcome":"window"}
+[15:31:37] [2] WINDOW {"id":"7c7257790495415d950ea4ef8d9a5f74:2:533154","status":"ok","points":9.0,"falls":0,"pickup_times_ms":[1536,4096,6720,7296,8256,9984,11392],"fired":true,"elapsed_ms":12032,"outcome":"window"}
+[15:31:37] [1] WINDOW {"id":"7cfb5598d5ea4bdf9a5725dafcd7322f:8:1594096","status":"ok","points":12.0,"falls":0,"pickup_times_ms":[1024,2048,3136,4544,5888,6976,8128,9472,10816],"fired":true,"elapsed_ms":12032,"outcome":"window"}
+[15:31:37] [3] WINDOW {"id":"e75e1fcfb38d49dbb801d922c880f327:1:249702","status":"ok","points":12.0,"falls":0,"pickup_times_ms":[1536,2432,3584,4928,6080,7680,8896,10240,11392],"fired":true,"elapsed_ms":12032,"outcome":"window"}
+[15:31:39] [5] fall without OOB flag: 5 decisions off the map at [-7.8 13.  12.6] (time left 16s)
+[15:31:40] [0] WINDOW {"id":"e75e1fcfb38d49dbb801d922c880f327:22:4247334","status":"ok","points":13.0,"falls":0,"pickup_times_ms":[1408,2240,3264,4736,6016,7552,8768,9408,10240,11904],"fired":true,"elapsed_ms":12032,"outcome":"window"}
+[15:31:40] [2] WINDOW {"id":"2ec9a6528a5d4e149e790dbcd860f5c6:18:3532788","status":"ok","points":12.0,"falls":0,"pickup_times_ms":[1600,2624,3648,5312,6592,7168,7936,9472,11136],"fired":true,"elapsed_ms":12032,"outcome":"window"}
+[15:31:40] [1] WINDOW {"id":"674ea04777bb4103ad087feaa0a2b521:10:2007762","status":"ok","points":11.0,"falls":0,"pickup_times_ms":[2304,3712,4864,6400,7680,9152,10368,11840],"fired":false,"elapsed_ms":12032,"outcome":"window"}
+[15:31:40] [3] WINDOW {"id":"7c7257790495415d950ea4ef8d9a5f74:2:438434","status":"ok","points":10.0,"falls":0,"pickup_times_ms":[1472,2368,3520,7168,8768,10304,11648],"fired":true,"elapsed_ms":12032,"outcome":"window"}
+[15:31:41] [7] fall without OOB flag: 4 decisions off the map at [-14.7  13.2  13.5] (time left 9s)
+[15:31:43] [2] fall without OOB flag: 4 decisions off the map at [-8.2 17.2 13.5] (time left 97s)
+[15:31:43] [0] WINDOW {"id":"e75e1fcfb38d49dbb801d922c880f327:15:2948710","status":"ok","points":10.0,"falls":0,"pickup_times_ms":[1472,4160,5440,6720,8000,9664,11264],"fired":false,"elapsed_ms":12032,"outcome":"window"}
+[15:31:43] [2] WINDOW {"id":"08f45a24fc364814ac08516691a3858c:6:1211765","status":"ok","points":9.0,"falls":1,"pickup_times_ms":[1472,2368,3456,6400,7424,11840],"fired":true,"elapsed_ms":12032,"outcome":"window"}
+[15:31:43] [1] WINDOW {"id":"2ec9a6528a5d4e149e790dbcd860f5c6:6:1233140","status":"ok","points":10.0,"falls":0,"pickup_times_ms":[1472,2432,3520,6336,7360,8832,10112],"fired":true,"elapsed_ms":12032,"outcome":"window"}
+[15:31:43] [3] WINDOW {"id":"674ea04777bb4103ad087feaa0a2b521:10:2007762","status":"ok","points":11.0,"falls":0,"pickup_times_ms":[1472,2176,3136,4736,5952,7360,8640,9856],"fired":true,"elapsed_ms":12032,"outcome":"window"}
+[15:31:44] [7] GAME map=KingOfTheMarble_Hunt points=157 gems=125 falls=1 rtf=2.5 pow=ap2:3,f1:1,f2:1,ksA:1,r2:3,rmiss:1 pkon=10.0/2 pkoff=7.9/32 pknone=8.0/91 rwfire=0.000/30 rwall=0.055/2878
+[15:31:44] [7] [env:8895] round over (time left 180s of 180s); waiting for the next round
+[15:31:44] [7] [env:8895] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[15:31:44] [7] new round (game connection 1); rtf 77.2
+[15:31:44] [4] GAME map=KingOfTheMarble_Hunt points=157 gems=124 falls=1 rtf=2.5 pow=f2:1 pkon=9.1/4 pkoff=7.9/77 pknone=8.3/43 rwall=0.055/2879
+[15:31:44] [4] [env:8892] round over (time left 180s of 180s); waiting for the next round
+[15:31:44] [4] [env:8892] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[15:31:44] [4] new round (game connection 1); rtf 78.0
+[15:31:44] [6] GAME map=KingOfTheMarble_Hunt points=158 gems=127 falls=1 rtf=2.5 pow=f1:1 pkon=10.0/5 pkoff=7.9/73 pknone=8.0/49 rwall=0.055/2879
+[15:31:44] [6] [env:8894] round over (time left 180s of 180s); waiting for the next round
+[15:31:44] [6] [env:8894] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[15:31:44] [6] new round (game connection 1); rtf 76.2
+[15:31:44] [5] GAME map=KingOfTheMarble_Hunt points=155 gems=121 falls=1 rtf=2.5 pow=ap2:3,f1:1,f2:1,ksA:1,r2:3,rhit:1 pkon=8.1/6 pkoff=8.6/37 pknone=7.9/78 rwfire=0.100/30 rwall=0.054/2879
+[15:31:44] [5] [env:8893] round over (time left 180s of 180s); waiting for the next round
+[15:31:44] [5] [env:8893] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[15:31:44] [5] new round (game connection 1); rtf 76.7
+[15:31:46] [0] WINDOW {"id":"15418f12fd9740a883af474ef3919293:8:1647542","status":"ok","points":11.0,"falls":0,"pickup_times_ms":[256,1600,3328,4672,5952,6976,8640,9792,11456],"fired":false,"elapsed_ms":12032,"outcome":"window"}
+[15:31:46] [2] WINDOW {"id":"2ec9a6528a5d4e149e790dbcd860f5c6:8:1617588","status":"ok","points":10.0,"falls":0,"pickup_times_ms":[1408,2304,3456,6912,8256,9856,11136],"fired":true,"elapsed_ms":12032,"outcome":"window"}
+[15:31:46] [1] WINDOW {"id":"2ec9a6528a5d4e149e790dbcd860f5c6:8:1551092","status":"ok","points":9.0,"falls":0,"pickup_times_ms":[1856,3456,6208,7168,8768,9920,11584],"fired":false,"elapsed_ms":12032,"outcome":"window"}
+[15:31:46] [3] WINDOW {"id":"674ea04777bb4103ad087feaa0a2b521:5:1056850","status":"ok","points":11.0,"falls":0,"pickup_times_ms":[1344,2304,3328,4736,5760,7424,8640,9728],"fired":true,"elapsed_ms":12032,"outcome":"window"}
+[15:31:49] NAV upd=29788 map=KingOfTheMarble_Hunt r=0.65 steps=235,190,579 segs=68 arrive=0% falls100=0.23 speed=7.7 gems=7.4 pickup=8.0 sgem=1.51 carry=0.0 turn=20.7 rew=18.8 pl=-0.000 vl=0.250 ent=0.31 entd=0.02 ec=0.0049 kl=0.000 clip=0.00 gn=1.09 ep=3 dstd=0.22 flips=0 vcont=5.1 upd_s=1.8 wall_s=18 inst=8 dps=448 prof=fwd:11,send:1,recv:5,handle:1,w_game:28,w_obs:21,w_begin:2
+[15:31:50] [0] fall without OOB flag: 4 decisions off the map at [-23.8  26.   13.3] (time left 28s)
+[15:31:51] [0] WINDOW {"id":"2ec9a6528a5d4e149e790dbcd860f5c6:18:3532788","status":"ok","points":10.0,"falls":1,"pickup_times_ms":[1536,2560,3584,5184,6336,6976,7680,10752],"fired":true,"elapsed_ms":12032,"outcome":"window"}
+[15:31:51] [2] WINDOW {"id":"15418f12fd9740a883af474ef3919293:17:3264630","status":"ok","points":11.0,"falls":0,"pickup_times_ms":[1280,2752,4032,5248,6400,7808,9088,10880,11904],"fired":false,"elapsed_ms":12032,"outcome":"window"}
+[15:31:51] [1] WINDOW {"id":"674ea04777bb4103ad087feaa0a2b521:23:4437586","status":"ok","points":12.0,"falls":0,"pickup_times_ms":[1536,2432,3840,6144,6528,7744,9216,10560,11904],"fired":true,"elapsed_ms":12032,"outcome":"window"}
+[15:31:51] [3] WINDOW {"id":"7cfb5598d5ea4bdf9a5725dafcd7322f:8:1594096","status":"ok","points":10.0,"falls":0,"pickup_times_ms":[1024,2048,3136,4544,5760,7040,8064,11968],"fired":true,"elapsed_ms":12032,"outcome":"window"}
+[15:31:51] [2] fall without OOB flag: 4 decisions off the map at [-13.1  13.1  13.3] (time left 35s)
+[15:31:52] [3] fall without OOB flag: 4 decisions off the map at [-24.5  12.6  13.9] (time left 17s)
+[15:31:54] [0] WINDOW {"id":"7cfb5598d5ea4bdf9a5725dafcd7322f:23:4447216","status":"ok","points":11.0,"falls":0,"pickup_times_ms":[1600,2560,3584,6080,8960,10368,11456],"fired":true,"elapsed_ms":12032,"outcome":"window"}
+[15:31:54] [2] WINDOW {"id":"08f45a24fc364814ac08516691a3858c:3:719605","status":"ok","points":8.0,"falls":1,"pickup_times_ms":[384,2880,4736,7680,9536,10816],"fired":false,"elapsed_ms":12032,"outcome":"window"}
+[15:31:54] [1] WINDOW {"id":"2ec9a6528a5d4e149e790dbcd860f5c6:12:2272436","status":"ok","points":12.0,"falls":0,"pickup_times_ms":[1216,2112,3200,5952,7040,8448,9728,11264,11776],"fired":true,"elapsed_ms":12032,"outcome":"window"}
+[15:31:54] [3] WINDOW {"id":"08f45a24fc364814ac08516691a3858c:19:3736181","status":"ok","points":7.0,"falls":1,"pickup_times_ms":[1536,2560,6784,9280,10048,11136],"fired":true,"elapsed_ms":12032,"outcome":"window"}
+[15:31:55] [3] fall without OOB flag: 4 decisions off the map at [ 3.  28.  23.2] (time left 18s)
+[15:31:55] [3] fall without OOB flag: 5 decisions off the map at [ 4.  27.8 23. ] (time left 18s)
+[15:31:55] [3] fall without OOB flag: 6 decisions off the map at [ 4.9 27.7 22.7] (time left 18s)
+[15:31:55] [3] fall without OOB flag: 7 decisions off the map at [ 5.8 27.5 22.4] (time left 18s)
+[15:31:55] [3] fall without OOB flag: 8 decisions off the map at [ 6.7 27.3 21.9] (time left 18s)
+[15:31:55] [3] fall without OOB flag: 9 decisions off the map at [ 7.6 27.1 21.4] (time left 18s)
+[15:31:55] [3] fall without OOB flag: 10 decisions off the map at [ 8.4 26.9 20.8] (time left 18s)
+[15:31:55] [3] fall without OOB flag: 11 decisions off the map at [ 9.3 26.6 20.1] (time left 18s)
+[15:31:55] [3] fall without OOB flag: 12 decisions off the map at [10.2 26.3 19.3] (time left 18s)
+[15:31:55] [3] fall without OOB flag: 13 decisions off the map at [11.  26.  18.5] (time left 18s)
+[15:31:55] [3] fall without OOB flag: 14 decisions off the map at [11.8 25.7 17.5] (time left 18s)
+[15:31:55] [3] fall without OOB flag: 15 decisions off the map at [12.6 25.3 16.5] (time left 17s)
+[15:31:57] [0] WINDOW {"id":"89b2e0c997d34377a8fd82f46065afa2:3:706356","status":"ok","points":10.0,"falls":0,"pickup_times_ms":[1280,2176,3200,5696,7168,8640,10688],"fired":true,"elapsed_ms":12032,"outcome":"window"}
+[15:31:57] [2] WINDOW {"id":"08f45a24fc364814ac08516691a3858c:16:3179509","status":"ok","points":11.0,"falls":0,"pickup_times_ms":[1280,2112,3200,6336,6912,7616,8448,9664,10752],"fired":true,"elapsed_ms":12032,"outcome":"window"}
+[15:31:57] [1] WINDOW {"id":"2ec9a6528a5d4e149e790dbcd860f5c6:8:1551092","status":"ok","points":9.0,"falls":0,"pickup_times_ms":[1472,2304,5952,6976,8576,9856,11584],"fired":true,"elapsed_ms":12032,"outcome":"window"}
+[15:31:57] [3] WINDOW {"id":"e75e1fcfb38d49dbb801d922c880f327:12:2419686","status":"ok","points":9.0,"falls":1,"pickup_times_ms":[1728,5888,6848,8640,9664,11264],"fired":true,"elapsed_ms":12032,"outcome":"window"}

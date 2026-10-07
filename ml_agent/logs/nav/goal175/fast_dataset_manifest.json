@@ -1,0 +1,53 @@
+{
+  "sources": {
+    "logs\\nav\\live_starts_20261005_113252_10.jsonl": "eeabea4de41f9d634fca50dbf8764529a054d180db26fc1a6cf15e2e4adbcfb5",
+    "logs\\nav\\live_starts_20261005_113244_11.jsonl": "2e50acd3a76eb97a047f6331926dd9caf9c25587acea4cbcaeb64218fe760174"
+  },
+  "originals": {
+    "datasets\\ss_drill\\starts_replay_dev.json": "d90d7beda22dda9e7d51fdd557f6812510975e335026c098766a1ddf0aec532e",
+    "datasets\\ss_drill\\starts_replay_eval.json": "f006fde5584acfdbcaf765658bd5a1f7e89c5dc10043d21c036f5947d1411d61"
+  },
+  "new_dev": {
+    "n": 241,
+    "rounds": 30,
+    "lookbacks": {
+      "24": 119,
+      "4": 122
+    },
+    "speed_mean": 12.388789197232144
+  },
+  "new_eval": {
+    "n": 171,
+    "rounds": 18,
+    "lookbacks": {
+      "24": 83,
+      "4": 88
+    },
+    "speed_mean": 12.230648218758043
+  },
+  "train_dev": {
+    "n": 343,
+    "rounds": 107,
+    "lookbacks": {
+      "24": 221,
+      "4": 122
+    },
+    "speed_mean": 11.20068302516465
+  },
+  "repeatability": {
+    "n": 20,
+    "rounds": 20,
+    "lookbacks": {
+      "4": 20
+    },
+    "speed_mean": 14.100385727232299
+  },
+  "behavior": "protected base, deterministic preparation, forced existing approvals; no success filtering; controls not imitation labels",
+  "outputs": {
+    "datasets\\ss_drill\\fast_20261005\\new_all.json": "684b82715534c8531e688ad23053fbf0456041042d2780bab7b9a283c29c3823",
+    "datasets\\ss_drill\\fast_20261005\\repeatability_dev.json": "b7698063e16b1d7492da3a80358d82ffced0348b650d8d34f638f698700e7ab1",
+    "datasets\\ss_drill\\fast_20261005\\starts_replay_dev.json": "278cb80d648bf9b9715c0076cc7ef8baef1cb16a19d23e4126832b08bafa0d85",
+    "datasets\\ss_drill\\fast_20261005\\starts_replay_eval.json": "52c3ad5c2a58185d379d4d0b0dd2d4633a652a06aa1ea67583192a1a654632ce",
+    "datasets\\ss_drill\\fast_20261005\\train_dev.json": "12ac1fa4020aad7e15ef5e52ec2f2afb79dab259a0503c39f46e736cf13960c9"
+  }
+}

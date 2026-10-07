@@ -1,0 +1,44 @@
+{"id":"0c14cb86a17042b4b33813e71b18cbc5:0:98972","status":"ok","points":10.0,"falls":0,"pickup_times_ms":[1472,3520,4544,7040,8064,9536,10816],"fired":false,"elapsed_ms":12032,"outcome":"window","branch":"base"}
+{"id":"0c14cb86a17042b4b33813e71b18cbc5:0:98972","status":"ok","points":10.0,"falls":0,"pickup_times_ms":[1472,3520,4544,7040,8128,9472,10816],"fired":false,"elapsed_ms":12032,"outcome":"window","branch":"no_use"}
+{"id":"0c14cb86a17042b4b33813e71b18cbc5:0:98972","status":"ok","points":11.0,"falls":0,"pickup_times_ms":[1472,2432,3456,6016,7040,8576,9856,11712],"fired":true,"elapsed_ms":12032,"outcome":"window","branch":"force"}
+{"id":"0c14cb86a17042b4b33813e71b18cbc5:0:98972","status":"ok","points":10.0,"falls":0,"pickup_times_ms":[1472,3520,4544,7040,8128,9536,10816],"fired":false,"elapsed_ms":12032,"outcome":"window","branch":"learned"}
+{
+  "attempts": 4,
+  "paired_n": 1,
+  "paired_ids": [
+    "0c14cb86a17042b4b33813e71b18cbc5:0:98972"
+  ],
+  "failed": [],
+  "comparisons": {
+    "base-no_use": {
+      "points": {
+        "mean": 0.0,
+        "se": null
+      },
+      "falls": {
+        "mean": 0,
+        "se": null
+      }
+    },
+    "force-no_use": {
+      "points": {
+        "mean": 1.0,
+        "se": null
+      },
+      "falls": {
+        "mean": 0,
+        "se": null
+      }
+    },
+    "learned-no_use": {
+      "points": {
+        "mean": 0.0,
+        "se": null
+      },
+      "falls": {
+        "mean": 0,
+        "se": null
+      }
+    }
+  }
+}

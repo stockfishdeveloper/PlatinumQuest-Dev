@@ -65,6 +65,9 @@ class HuntEnv:
         self.reads = 0; self.stale_reads = 0   # lines served from the buffer without waiting = we were late
         self.msg = None                   # the observation awaiting our reply
         self.info = {}                    # from the INFO control word
+        self.replay_catalog = None
+        self.replay_world = None
+        self.last_round_score = None
         self.stats = None
         self.debug = None
         self.recent_lines = []            # last non-observation lines, for diagnostics
@@ -185,6 +188,13 @@ class HuntEnv:
             self.recent_lines = self.recent_lines[-20:]
             if m.kind == 'stats':
                 self.stats = m.fields
+            elif m.kind in ('replaycat', 'replayworld'):
+                import json
+                value = json.loads(m.fields[0])
+                if m.kind == 'replaycat':
+                    self.replay_catalog = value
+                else:
+                    self.replay_world = value
             elif m.kind == 'debug':
                 self.debug = m.fields
             elif m.kind == 'info':
@@ -193,6 +203,7 @@ class HuntEnv:
                              'time_scale': float(m.fields[2]) if len(m.fields) > 2 else 0.0}
             elif m.kind == 'end':
                 self.round_ended = True
+                self.last_round_score = -m.gem_delta  # bridge sends the actual final score negated
                 self._send(format_action(*reply_to_extra, tick=m.tick))
             else:
                 self._send(format_action(*reply_to_extra, tick=m.tick))

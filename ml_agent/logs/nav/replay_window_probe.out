@@ -1,0 +1,22 @@
+{"id":"probe:0","status":"ok","points":9.0,"falls":0,"pickup_times_ms":[1728,2752,4224,5632,7296,9600,11264],"fired":false,"elapsed_ms":12032,"outcome":"window","branch":"base"}
+{"id":"probe:0","status":"ok","points":9.0,"falls":0,"pickup_times_ms":[1728,2752,4224,5632,7296,9600,11264],"fired":false,"elapsed_ms":12032,"outcome":"window","branch":"no_use"}
+{
+  "attempts": 2,
+  "paired_n": 1,
+  "paired_ids": [
+    "probe:0"
+  ],
+  "failed": [],
+  "comparisons": {
+    "base-no_use": {
+      "points": {
+        "mean": 0.0,
+        "se": null
+      },
+      "falls": {
+        "mean": 0,
+        "se": null
+      }
+    }
+  }
+}

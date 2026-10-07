@@ -1,0 +1,8 @@
+{
+  "update": 28900,
+  "reward_version": "game_points_v1",
+  "critic_warmup_remaining": 15,
+  "max_actor_change": 0.0,
+  "value_mean": 0.8958513140678406,
+  "value_std": 0.5532381534576416
+}

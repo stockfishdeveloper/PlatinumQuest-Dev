@@ -1,0 +1,20 @@
+[
+  {
+    "port": 9970,
+    "python": 14160,
+    "game": 29580,
+    "arm": "learned",
+    "tag": "20261005_101956_learned",
+    "checkpoint": "models/nav/nav_goal175_20261005_101956.pth",
+    "checkpoint_sha256": "e1cc4338844a7fd1e3fd78d019eb3f2c1909aa01a0f8db3149bc79e7dbc625fc"
+  },
+  {
+    "port": 9971,
+    "python": 41012,
+    "game": 29904,
+    "arm": "no_use",
+    "tag": "20261005_101956_no_use",
+    "checkpoint": "models/nav/nav_goal175_20261005_101956.pth",
+    "checkpoint_sha256": "e1cc4338844a7fd1e3fd78d019eb3f2c1909aa01a0f8db3149bc79e7dbc625fc"
+  }
+]

@@ -1,0 +1,18 @@
+C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\nav\train_nav.py:201: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  ck = torch.load(latest, map_location=dev)
+Traceback (most recent call last):
+  File "C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\nav\train_nav.py", line 444, in <module>
+    for gi, g in enumerate(groups):      # refill the pipeline with the new weights
+  File "C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\nav\train_nav.py", line 386, in main
+    for gi, g in enumerate(groups):          # prime the pipeline
+  File "C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\nav\train_nav.py", line 316, in collect_group
+    def collect_group(g, o):
+  File "C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\nav\train_nav.py", line 143, in recv
+    def recv(self, log):
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\multiprocessing\connection.py", line 255, in recv
+    buf = self._recv_bytes()
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\multiprocessing\connection.py", line 419, in _recv_bytes
+    buf = self._recv(4)
+  File "C:\Users\doug\AppData\Local\Programs\Python\Python39\lib\multiprocessing\connection.py", line 384, in _recv
+    chunk = read(handle, remaining)
+ConnectionResetError: [WinError 10054] An existing connection was forcibly closed by the remote host

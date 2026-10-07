@@ -1,0 +1,18 @@
+[
+    {
+        "port":  9970,
+        "python":  35296,
+        "game":  0,
+        "arm":  "base_force_diag",
+        "tag":  "20261005_104446_base_force_diag",
+        "checkpoint":  "models/nav/nav_v10_28897.pth"
+    },
+    {
+        "port":  9971,
+        "python":  47556,
+        "game":  0,
+        "arm":  "base_force_prepare",
+        "tag":  "20261005_104446_base_force_prepare",
+        "checkpoint":  "models/nav/nav_v10_28897.pth"
+    }
+]

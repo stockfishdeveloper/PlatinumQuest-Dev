@@ -1,0 +1,8 @@
+{
+    "checkpoint":  "C:\\Users\\doug\\OneDrive\\Documents\\GitHub\\PlatinumQuest-Dev\\ml_agent\\models\\nav\\nav_latest.pth",
+    "attempt":  1,
+    "started":  "20261006_154725",
+    "supervisor":  7152,
+    "trainer":  4484,
+    "game_loop":  43224
+}

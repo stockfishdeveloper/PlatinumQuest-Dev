@@ -1,0 +1,67 @@
+{
+  "arms": [
+    {
+      "path": "logs/nav/goal175/20261005_103844_base_force_ssroute.csv.rounds.jsonl",
+      "n": 8,
+      "rejected": [],
+      "mean": 159.0,
+      "best": 164.0,
+      "se": 1.7928429140015905,
+      "fires": 10,
+      "falls": 12,
+      "opportunities": {
+        "decisions": 22724,
+        "held": 9066,
+        "held_floor": 8891,
+        "target_far": 3971,
+        "speed_cap_fail": 8621,
+        "terrain_or_cap_fail": 8865,
+        "target_near": 4920,
+        "speed_cap_pass": 270,
+        "terrain_fail_with_speed_ok": 244,
+        "terrain_and_cap_pass": 26,
+        "approved": 26
+      },
+      "verified_peak_milestones": [],
+      "checkpoint_sha256": {
+        "nav_v10_28897.pth": "539e2641319052460514c1838ebf1bc23956c5ea4cb314078b9a46bb9d738883"
+      }
+    },
+    {
+      "path": "logs/nav/goal175/20261005_103844_base_force_diag.csv.rounds.jsonl",
+      "n": 8,
+      "rejected": [],
+      "mean": 160.125,
+      "best": 167.0,
+      "se": 1.9127159075140099,
+      "fires": 6,
+      "falls": 11,
+      "opportunities": {
+        "decisions": 22725,
+        "held": 11023,
+        "held_floor": 10823,
+        "target_far": 4722,
+        "speed_cap_fail": 10511,
+        "terrain_or_cap_fail": 10805,
+        "target_near": 6101,
+        "speed_cap_pass": 312,
+        "terrain_fail_with_speed_ok": 294,
+        "terrain_and_cap_pass": 18,
+        "approved": 18
+      },
+      "verified_peak_milestones": [],
+      "checkpoint_sha256": {
+        "nav_v10_28897.pth": "539e2641319052460514c1838ebf1bc23956c5ea4cb314078b9a46bb9d738883"
+      }
+    }
+  ],
+  "comparison": {
+    "a_minus_b": -1.125,
+    "se": 2.62159643292839,
+    "ci95": [
+      -6.74996944050815,
+      4.49996944050815
+    ],
+    "method": "Welch, independent rounds; no correction for repeated checkpoint screening"
+  }
+}

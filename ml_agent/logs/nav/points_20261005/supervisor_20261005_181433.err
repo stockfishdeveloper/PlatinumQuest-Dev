@@ -1,0 +1,9 @@
+Add-Content : The process cannot access the file 
+'C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\logs\nav\points_20261005\supervisor.log' because 
+it is being used by another process.
+At C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\supervise_points_training.ps1:37 char:5
++     Add-Content -LiteralPath (Join-Path $runDir 'supervisor.log') -Va ...
++     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : WriteError: (C:\Users\doug\O...\supervisor.log:String) [Add-Content], IOException
+    + FullyQualifiedErrorId : GetContentWriterIOError,Microsoft.PowerShell.Commands.AddContentCommand
+ 

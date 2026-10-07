@@ -1,0 +1,26 @@
+[
+  {
+    "id": "probe:0",
+    "status": "ok",
+    "points": 0.0,
+    "falls": 5,
+    "pickup_times_ms": [],
+    "fired": false,
+    "elapsed_ms": 12032,
+    "outcome": "window",
+    "duration_ms": 12032.0,
+    "score_delta": 0.0
+  },
+  {
+    "id": "probe:0",
+    "status": "ok",
+    "points": 0.0,
+    "falls": 5,
+    "pickup_times_ms": [],
+    "fired": false,
+    "elapsed_ms": 12032,
+    "outcome": "window",
+    "duration_ms": 12032.0,
+    "score_delta": 0.0
+  }
+]

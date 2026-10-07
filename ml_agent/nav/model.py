@@ -13,7 +13,7 @@ import os
 import torch
 import torch.nn as nn
 
-from nav.obs import VEC_DIM, VEC_GAP, VEC_POW, WAYPOINT_DIST_SCALE, VEL_SCALE, SS_REDIRECT_U, SS_KEY_LAG_S, SS_FIRE_U, VEC_USE, USE_T_SCALE
+from nav.obs import VEC_DIM, VEC_GAP, VEC_POW, VEC_NEXT, WAYPOINT_DIST_SCALE, VEL_SCALE, SS_REDIRECT_U, SS_KEY_LAG_S, SS_FIRE_U, VEC_USE, USE_T_SCALE
 from terrain_obs import RAY_RANGE
 from nav.terrain import CROP_SHAPE
 
@@ -57,11 +57,13 @@ USE_LOGIT_CAP = 12.0        # 40.26: soft bound on the use logit (cap tanh(raw /
 USE_BIAS_V10 = -1.0         # 40.26: a fresh use head starts unsaturated (learned p 0.27, sampled 0.41 where approved)
 SS_RES_RECENT_S = 2.0       # 40.26: the Super Speed residual acts while one is held, a kick is pending, or for this long after
 SS_RES_SCALE = 3.0          # 40.30: the residual's output x3, so each Adam step moves it 3x as far (it learned too slowly)
-SS_APPROACH_U = 10.0        # 40.40 (10-04): the residual (steering + brake) also acts on the APPROACH: a Super Speed held, the
-                            # approach flag [27] on (a redirect at the gem ahead toward the next gem is survivable) and the
-                            # gem within this many u (~1.2 s at 8 u/s). Before, it acted only from the use onward, so 'go
-                            # in faster because the kick will turn me' could not be learned. Never while merely holding
-                            # an item (SS_RES_HELD False): that rewrote ordinary driving for ~60 % of a round (40.33).
+SS_APPROACH_U = 18.0        # preparation may start about two seconds before a turn; the fire mask is unchanged
+                            # Super Speed held, on the floor, with a turn ahead or the existing redirect flag.
+                            # Preparation need not wait for current-speed approval; firing still requires that approval.
+SS_RES_APPROACH = False     # 2026-10-05 (log 40.51, operator-approved): the preparation term above is OFF. In the points run it
+                            # turned harmful between 29250 (163.1 points, 0.50 falls/round) and 29275 (147.1, 4.62); 29375 with
+                            # uses disabled, so preparation alone, 149.3 / 3.69; 29375 without it 162.8 / 0.50 (16 rounds each,
+                            # GOAL_175_2026-10-05.md). True restores the morning gate: pending | recent | approach.
 AUX_DIM = 10 + 37           # 40.40: the use head and the critic read, beside the frozen hidden state, the current observation's
                             # goal block (vec[0:10]: bearing, distance, dz, velocity, speed, on floor, airborne) and the whole
                             # powerup block (vec[VEC_POW:]: held type, meter, items, the kick aim / result / approvals, the
@@ -71,7 +73,10 @@ AUX_DIM = 10 + 37           # 40.40: the use head and the critic read, beside th
 SS_RES_HELD = False         # 40.33: False = the residual acts only while a kick is pending or within SS_RES_RECENT_S of one.
                             # True (40.26-40.32) also gated it on "Super Speed held", which is ~60 % of a round once the
                             # policy stops firing: at 29585 it cost 3.6 points a round (141.5 vs 145.1 with it zeroed)
-FREEZE_BASE = True          # 40.33: train only use_head, ss_res and value_head on top of the frozen 28897 navigator (the
+FREEZE_BASE = False         # 2026-10-05 22:15 (log 40.58, operator: "retrain the model so it knows the current map"): the
+                            # navigator relearns on the corrected terrain map (its edges were ~0.5 u off; see
+                            # logs/nav/goal175/terrain_map_old_vs_new_20261005.png), at ppo_recurrent.LR 1e-4.
+                            # Before: True (40.33): train only use_head, ss_res and value_head on top of the frozen 28897 navigator (the
                             # plan's "small powerup residual + learnable use head"). 40.26-40.32 trained everything and the
                             # drills wore the navigator down: deterministic rounds 159.0 (28897) -> 149.0 (29235) -> 141.5
                             # (29585), slower (8.38 -> 7.85 u/s) with more falls; no Super Speed gain to show for it
@@ -322,13 +327,23 @@ class NavActorCritic(nn.Module):
 
     @staticmethod
     def ss_gate(vec):
-        """(B,) 1.0 while a kick is pending or one fired within SS_RES_RECENT_S (V10 use state); also while a Super Speed
-        is held if SS_RES_HELD."""
+        """(B,) 1.0 while a kick is pending or one fired within SS_RES_RECENT_S (V10 use state); also on the approach to a
+        turn if SS_RES_APPROACH, and while a Super Speed is held if SS_RES_HELD."""
         pending = vec[:, VEC_USE + 2] > 0.5
         recent = vec[:, VEC_USE + 5] < (SS_RES_RECENT_S / USE_T_SCALE)
-        # 40.40: the approach window: held, the approach flag on, the gem within SS_APPROACH_U
-        approach = (vec[:, VEC_POW + 1] > 0.5) & (vec[:, VEC_POW + 27] > 0.5) & (vec[:, VEC_GOAL_DIST] * WAYPOINT_DIST_SCALE <= SS_APPROACH_U)
-        g = pending | recent | approach
+        g = pending | recent
+        if SS_RES_APPROACH:
+            # Preparation must be possible before the current-speed forecast approves firing.
+            # The next target's coordinates relative to this target describe the upcoming turn.
+            goal_xy = vec[:, 0:2] * vec[:, 2:3]
+            outgoing = vec[:, VEC_NEXT:VEC_NEXT + 2] * vec[:, VEC_NEXT + 2:VEC_NEXT + 3] - goal_xy
+            length = outgoing.norm(dim=-1).clamp_min(1e-6)
+            turn_cos = (outgoing * vec[:, 0:2]).sum(-1) / length
+            turn_ahead = (vec[:, VEC_NEXT + 4] > .5) & (turn_cos < .866)
+            distance = vec[:, VEC_GOAL_DIST] * WAYPOINT_DIST_SCALE
+            approach = ((vec[:, VEC_POW + 1] > .5) & (vec[:, VEC_ON_FLOOR] > .5)
+                        & (turn_ahead | (vec[:, VEC_POW + 27] > .5)) & (distance <= SS_APPROACH_U))
+            g = g | approach
         if SS_RES_HELD:
             g = g | (vec[:, VEC_POW + 1] > 0.5)
         return g.float()

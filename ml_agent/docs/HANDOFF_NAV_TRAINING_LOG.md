@@ -6276,3 +6276,305 @@ play). Checked against the code and the checkpoints: all of it holds. Built toda
   play_live.ps1 now launches marbleblast_mbx.exe -ailive -aifreecam, and MLWatchCam::active() is true in live play
   ($MLAgent::Live) whenever the marble exists (live play is always real time, Python sends only SPEED 1, and
   agentLive.cs pins the view for the whole session). Not yet run in a lobby game.
+
+### 40.48 Real Hunt replay, unified points objective, and tests only (late 10-04)
+* Operator scope: implement the training recommendations, run needed probes, no commits and no main training loop.
+  Operator reiterated that another model will run overnight training. Current checkpoints remain unchanged:
+  nav_latest.pth / nav_r2_stop_29665.pth, protected nav_v10_28897.pth.
+* Found in the previous stage-4 path: 180/201 initial goals replaced the original approach goal with the post-fire
+  chain; early six-pickup endings; uncounted blocking recovery; synthetic +1 arrivals sharing a critic with shaped
+  round rewards; skipped/restored/repeated starts reducing nominal 200-row gates to 167 common unique IDs.
+* Implemented dormant trainingReplay.cs commands REPLAYCAPTURE / REPLAYRESTORE for local static Hunt game state:
+  real gems/items and timers, inventory, clock/score, spawn state/RNG, pose/actual spin, blast and yaw. No map-specific
+  policy rule. Version-2 approach capture is about 1.5 s before fire, retains the original goal/next and preceding
+  32 observations/use state. Stable IDs and round-level splits, no outcome-success filter.
+* Stage 4 plays real pickups for exactly 12032 simulated ms; recovery consumes normal scored decisions. No synthetic
+  six-gem chain or granted item. Both rounds and windows now pay actual weighted game points. True round terminal
+  transitions are retained; window cuts bootstrap the actual final state. Duration-aware discount and GAE, no mean
+  continuation bonus. Recurrent warm-up reaches the first worker reply as well as subsequent resets.
+* Old reward checkpoints reset critic output/PopArt/Adam, with 20 critic-only updates before head learning; actor
+  remains intact under FREEZE_BASE. Checkpoints record reward_version and warm-up progress. NAV_CKPT selects the
+  resume input without changing checkpoint output destinations. Main training rejects synthetic stage recipes.
+* Preparation residual may operate within 18 u of a turn while SS is held, before firing is approved. The existing
+  fire approval and 24 u/s cap still apply. Default plan 0:4,1:4,2:4,3:4 plus four real round workers. No training run
+  has exercised this new architecture, and no performance improvement is claimed.
+* New ss_window_eval restores each requested id/branch once (base, current no-use, force, learned), retains failures
+  and reports common-id paired points/falls. Old ss_drill_eval stage 4 refuses the obsolete format. ss_live_smoke
+  now only collects via inference; converter writes starts_replay_dev/eval with no dev-to-eval copying.
+* Validation: 11 CPU unit tests passed, including a tiny in-memory critic update that preserves actor weights and
+  a checkpoint-output test using only temporary files. Engine: three normal restores and three SS pickup/timer/kick
+  restores had identical tested paths (maximum pose error 0); same-policy 12032 ms windows both scored 9 from seven
+  pickups at identical times; repeated fall/recovery windows had equal points and exactly paid elapsed time.
+  The startup test exposed countdown callbacks affecting the first restored trial; stage-4 connect now waits for GO.
+* Inference-only collection ran 2900 decisions, crossed a round boundary (151 points, 1 fall) and recorded one live
+  approach. Four-arm replay of that approach: base/no-use/learned 10 points, force 11, all zero falls. Some identical-
+  policy pickup times differed by 64 ms later in the window. This script snapshot is not a complete engine savegame;
+  larger replay-repeatability checks are required before using tiny differences as evidence or counterfactual labels.
+* All reports are logs/nav/replay_*. The single live source is live_starts_20261004_235652_0.jsonl; test fixtures are
+  not training/evaluation data. No production schema-2 datasets generated. Next agent must collect new rounds first.
+* Read HANDOFF_POINTS_REPLAY_2026-10-04.md for the complete next-run recipe. It supersedes the earlier manoeuvre
+  handoff's stage mix and reward/start/eval instructions. Existing dashboard/summary work was left alone.
+
+### 40.49 Operator-authorized points/replay training startup (10-05 10:03)
+* Operator superseded the prior no-training instruction: asked this agent to collect the replay data and start
+  training itself. No commits/pushes. Started eight independent inference collectors at 09:48, 72000 decisions
+  each, protected nav_v10_28897.pth, seeds 20261005 + 101 * worker index, ports 9970-9977.
+* Collection finished 576000 decisions: 120 eligible schema-2 starts, dev 102 from 77 source rounds, eval 18 from
+  16 separate rounds. No group overlap; no synthetic test fixtures included. Manifest/hashes/source paths are in
+  logs/nav/points_20261005/dataset.json. Both sets are now datasets/ss_drill/starts_replay_{dev,eval}.json.
+* Revalidated 11 unit checks. Initial 20 fresh dev starts passed both identical-policy full windows (40 attempts,
+  zero failures); points difference mean 0.05, SE 0.05, falls difference zero. All 120 starts then passed restore
+  and a 64 ms game transition (all_restore_audit.json). Baseline four-arm gate uses all 18 held-out starts.
+* Training launched 10:03:36, all eight workers ready 10:04:06. Four stage-4 windows, four ordinary KOTM rounds,
+  unified actual game points, frozen navigator and 20 critic-only updates. The source file named 28897 internally
+  contains update 28895; first new update 28896. At update 28900 the saved reward version is game_points_v1,
+  warm-up remaining 15, max actor-weight change exactly 0.0. Initial updates ~19-20 s, finite losses, zero flips.
+* Previous endpoint preserved in nav_r2_stop_29665.pth and an extra nav_before_points_20261005_29665.pth copy;
+  source preserved as nav_points_20261005_seed.pth. New numbered checkpoints use nav_points_20261005_<update>.pth,
+  latest remains nav_latest.pth. Source and endpoint hashes recorded in before_run/checkpoint_hashes.json.
+* Added supervise_points_training.ps1 to restart this same run from latest on a trainer/game-loop crash or a
+  ten-minute output stall. Owns only game ports 8888-8895 and its workers; it does not stop on learning metrics.
+  run_game_loop now launches offline, hidden. Collection gets a distinct --worker-id log suffix per process.
+  The old summary process was replaced with the same summary script using a run-specific snapshot prefix and
+  correct Git/Python PATH. Dashboard unchanged. Runtime PIDs/logs are logs/nav/points_20261005/.
+* Run details and stop/restart instructions: RUN_POINTS_2026-10-05.md. Training stays running. New approaches are
+  still recorded by ordinary-round workers; the initial replay dataset does not auto-reload. No performance gain
+  has yet been demonstrated, and no commits were made.
+* Startup baseline gate completed 72/72 attempts, 18 common held-out IDs, zero restore failures. Mean window points:
+  base 10.61, same-source no-use 10.83, force 11.17, initially learned 10.78. Force minus no-use +0.33 (SE 0.31),
+  inconclusive. Identical base/no-use differed -0.22 (SE 0.22), with one base-arm fall: script replay variation can
+  amplify near edges. Larger/repeated gates are needed before interpreting small gains. Isolated gate game closed;
+  the eight main training games remain running.
+* Post-warm-up verification at 10:11: checkpoint 28920 has warm-up remaining 0. The use head and residual have
+  changed (max parameter deltas 0.0338 / 0.0448), while every frozen actor parameter remains exactly unchanged.
+  policy_start_check.json records the check. At update 28920: vl=0.093, KL=0.001, wall_s=15, flips=0. First 500
+  completed replay windows all lasted exactly 12032 ms. No restart needed; all eight main games stay running.
+
+### 40.50 (2026-10-05) Score goal, failed controller probes, expanded replay data
+
+The operator authorized pursuing a complete KOTM round above 175 with actual
+Super Speed use, then clarified that the powerup must contribute to higher
+scores. Full details and continuing experiment results are in
+[GOAL_175_2026-10-05.md](../GOAL_175_2026-10-05.md). No qualifying peak yet.
+
+* Real-run telemetry now records the authoritative engine round score, complete
+  rounds, confirmed consumption/kick events, and approval bottlenecks. The report
+  rejects marked invalid attempts and compares independent rounds with uncertainty.
+* Update 28950 lost to its no-use arm, 158.56 vs 161.44 over sixteen rounds each.
+  Update 29070 was inconclusive, 161.19 vs 160.06 (difference 1.125, 95% interval
+  -3.18 to 5.43), with 7 actual uses across sixteen enabled rounds. Best observed
+  enabled round 170. An enabled peak alone is not causal proof.
+* Diagnostic preparation increased fires from 4 to 32 across eight rounds, but
+  scores stayed flat. Optional SS-aware first-turn routing, a post-kick tracking
+  controller, recent-acceleration command prediction, and an optional yaw bridge
+  change produced no demonstrated improvement. All remain off by default and in
+  main training. Do not repeat these as established fixes. The bridge is excluded
+  from live mode and subsequent probes require explicit acknowledgment telemetry.
+* Preparation was used only to collect broader state coverage, never as PPO
+  action labels: 412 eligible long/late starts from two 72000-decision collectors.
+  Round-group split: 241 development / 171 evaluation. Combined development set
+  has 343 starts from 107 rounds. Original datasets are preserved. All 412 engine
+  restorations passed; 20 identical-policy paired windows differed -0.10 points
+  (SE 0.216), with equal falls. Nineteen CPU regression checks pass.
+* At 11:52 a separate finite CPU learner started from a copy of update 29240,
+  120 updates through 29360, two stage-4 workers on 9970-9971. Frozen base, same
+  points PPO, expanded development data, no controller overrides. Outputs/logs
+  are in models/nav/ss_fast_20261005/ and logs/nav/ss_fast_20261005/. The protected
+  navigator is unchanged; main eight-game training remains running. This finite
+  experiment does not stop main training. Evaluation is still required.
+* 12:04-12:09 handoff: main latest-50 training mean fell to 143.38 with 4.3
+  falls/round (548 total rounds, mean 152.27, best 168). Main remains running;
+  this regression needs isolated checkpoint evaluation, not promotion. Separate
+  learner reached 29315/29360 by 12:08:53; main reached 29297 at 12:08:43.
+* Added source-round grouped estimates to new paired-window reports and a
+  diagnostic-only spin-aware horizontal-floor predictor, not integrated into
+  training or evaluation control. Its observed short-horizon prediction accuracy
+  and limitations are documented in HANDOFF_SUPERSPEED_2026-10-05.md, written at
+  the operator's request. All 22 CPU checks pass. That file is the operational
+  continuation entry point; both score objectives remain unachieved.
+
+### 40.51 Evaluation pause, the approach-preparation regression, and its fix (10-05 12:21-13:10)
+* Continuation of HANDOFF_SUPERSPEED_2026-10-05.md by a new agent; details and every table in GOAL_175_2026-10-05.md.
+* Operator rule (standing): never more than 8 game instances at a time. Main uses all 8, so the operator chose to pause
+  main for evaluations (STOP file 12:35:39, nav_latest 29385; resumed 13:07:25 from the same checkpoint).
+* Separate fast-state experiment (29240 -> 29360 on the expanded replay data): no gain. Held-out benchmark windows
+  (36 starts, 18 rounds, round-grouped): learned - no_use -0.11 (SE 0.12), forced - no_use -0.08 (0.24), vs seed +0.00
+  (0.25). Full rounds 16 each: learned 158.69 vs no-use 160.56 (-1.9, 95% -5.5 to +1.8).
+* Main-run slump confirmed as a POLICY regression (deterministic rounds, 16 each): 29225 160.8 / 0.44 falls a round,
+  29250 163.1 / 0.50, 29275 147.1 / 4.62, 29300 148.6 / 4.25, 29325 152.6 / 3.19, 29375 147.3 / 3.81. Cause: the
+  approach/turn preparation term of the Super Speed residual gate (ss_gate): 29375 with uses disabled (preparation
+  alone) 149.3 / 3.69; 29375 with only the post-kick part 162.8 / 0.50; residual fully off 161.4 / 0.81.
+* FIX (operator-approved): nav/model.py SS_RES_APPROACH = False (gate = kick pending or within 2 s after one); test
+  updated, 22 CPU tests pass.
+* Fresh confirmation, 32 rounds each: fixed 29375 learned 161.62 vs protected navigator alone 160.25: +1.38 (95% -1.2 to
+  +4.0). The fix restores driving; a Super Speed score contribution is still not established. No round reached 176.
+
+### 40.52 Main after the fix, and the speed-cap test (10-05 13:07-15:32)
+* Main trained 13:07-15:10 with SS_RES_APPROACH False: last-50 training rounds 152.1-153.7, 2.0-2.4 falls a round
+  (145.9 / 4.3 before the fix). Offline (nav/ss_floor_aim_offline.py): a spin-aware aim at the current target would
+  change the aim by ~1.3 deg and save ~1 ms; today's kicks are post-pickup turnarounds (145 deg, 5.4 -> 19.4 u/s,
+  ~12 u from the gem), and the limit is their number (~1.7 approvals a round while Super Speed is held on the floor
+  41-52 % of a round; 97 % of that time fails the 24 u/s instantaneous cap).
+* Pause 15:10-15:30, 64 deterministic rounds per arm on main 29775: learned use 161.98, navigator alone 160.30
+  (+1.69, 95% +0.2 to +3.2: the first planned test to exclude zero), forced at every approval with the cap 161.78,
+  forced with no cap 150.50 (5.34 kicks and 3.12 falls a round; 79 of 342 kicks followed by a fall within 3.2 s).
+  The cap stays; more value needs a better safety test for faster kicks. No round reached 176 (best 172).
+
+### 40.53 The two-gem kick rule, in training from 15:57 (10-05 15:32-16:06)
+* Operator watched the no-cap model and saw kicks down two-gem lines miss gem 1 or gem 2. Measured: the old aim pointed the
+  instant velocity at gem 1 only; after a kick the stick cannot turn the sliding marble (lateral response ~0 for 0.4 s,
+  ~3 vs 10.4 u/s^2 normal until 0.8 s). Kicks taking both gems: no cap 20 %, forced cap 24 63 %, learned 76 %.
+* nav/ss_two_gem.py + nav/obs.py SS_TWO_GEM (default True): with a next gem known and gem 1 >= 8 u away, the floor model
+  picks the kick direction that takes both gems soonest on followed floor, arriving at gem 2 below V2_MAX 22 (predicted),
+  and that alone approves the kick ([26]) and aims it ([28-29]). Offline on 573 kicks: the "both gems" prediction matched
+  the game 89 %; approved states 85 % both / 4 falls of 196, rejected 13 % / 105 falls of 365.
+* Smoke test (32 rounds per arm, V2_MAX 20): forced two-gem 162.25, 0.50 falls a round, 18/22 kicks took both gems,
+  0 falls after kicks (old rule forced 161.78, 32/51, 6). Main trains on the rule since 15:57 (about 25 s an update).
+
+### 40.54 Kick-vs-no-kick approval: failed in the game, reverted to one push (10-05 17:40-18:16)
+* Operator asked that a kick not require two gems in one push. ss_two_gem.COMPARE_NO_KICK: approve if the kick reaches the
+  gems 0.15 s sooner than the same drive without a kick (4 s horizon; gem 1 alone with no next gem).
+* 18:00, 64 rounds each, main 30050: forced on that rule 154.30 (3.6 kicks, 3.8 falls a round) vs navigator alone 159.92.
+  A no-kick drive leaving the floor (a hole on the straight line) counted as slow, so kicks across holes were approved
+  (121/156 fell within 3.2 s); gem 1 alone 39/49 fell; next gem known with the no-kick drive on floor 2/29.
+* COMPARE_NO_KICK False (kept, now requiring the no-kick drive to arrive on floor); main back on the one-push rule at 18:15
+  from 30061. Trap: a monitor tailing supervisor.log made the supervisor's Add-Content fail and the supervisor exit at once.
+
+### 40.55 20:00 block: V2_MAX 22 was a mistake (10-05 20:00-20:15)
+* Main 30275, 32 rounds per arm: navigator alone 160.56; forced one push (V2_MAX 22) 160.56 (1.94 kicks, 1.19 falls a
+  round); learned 159.53; forced safe kick-vs-no-kick 161.12 (0.31 kicks a round). Kick falls by predicted speed at gem 2:
+  18-20 0/37, 20-22 7/37, >= 22 10/18. V2_MAX back to 20 (training 16:03-20:00 ran at 22); main resumed 20:13 from 30296.
+
+### 40.56 Training stopped; the Super-Speed-aware route did not help (10-05 20:16-20:45)
+* Operator stopped training at 20:16 (endpoint 30295, nav_points_20261005_stop_30295.pth; STOP file kept) and asked for a
+  plain-language plan before any new training.
+* nav/ss_tour.py (real_run NAV_SS_TOUR=1, evaluation only): credit gem orders that set up a post-pickup two-gem kick.
+  32 rounds per arm: navigator alone 160.62, forced one push 162.22, forced with the route 159.97, learned with the route
+  161.00. It credited an order only 2-3 times a round and added no kicks.
+
+### 40.57 Carry-speed-through-gems helper: faster pickups, many more falls (10-05 21:00-21:25)
+* Operator: do step 1 (test, no training) then present findings. nav/through_gem.py (real_run NAV_THROUGH_GEM=1).
+* 64 rounds per arm, protected navigator: helper 155.22 vs 160.34 (-5.12, 95% -6.8 to -3.5); falls 4.23 vs 0.78 a round.
+  Pickup speed straight ahead 10.9 vs 9.1 u/s, but 192/271 falls within 1.5 s after a pickup: the driver does not handle
+  the extra speed after the gem. Kept off.
+
+### 40.58 The terrain map was off; retraining the navigator on the corrected map (10-05 21:25-21:52)
+* Cause: generate_terrain_map.py tested only each grid point's exact centre against the floor polygons, and the 0.5 u grid
+  lined up with KOTM's tile edges, so points sat ON edges where the inside test flips with edge direction. Net effect: the map
+  was misaligned by ~0.5 u: 87 sq u of real floor shown as hole (bottom/left platform edges), 31 sq u of non-floor shown as
+  floor (top/right edges); 3,807 sampled on-floor marble positions today read "no floor" (0.55 %). Picture:
+  logs/nav/goal175/terrain_map_old_vs_new_20261005.png. Builder fixed (EDGE_EPS, DEFAULT_GRID_RES 0.25): 0.30 %, the rest
+  being the marble over an edge or on the outer slopes into the void.
+* The navigator, tuned on the old picture, did worse on the corrected map (64 rounds each: 154.2 vs 161.9; 6.4 vs 3.1 jumps
+  and 3.0 vs 0.5 falls a round; the edge distance ahead shifts on 53 % of positions).
+* Operator 21:45: retrain the model on the current map. Run (same supervisor, resumed nav_latest 30295, fresh Adam): default
+  KOTM map = corrected (old kept as terrain_KingOfTheMarble_Hunt_grid050_20261005.npz); nav/model.py FREEZE_BASE False;
+  ppo_recurrent.LR 1e-4; supervisor NAV_DRILL_PLAN 'none' (all 8 full rounds); two-gem kick rule unchanged. Started 21:49:55
+  (supervisor 38640, trainer 19964). Check about every 2 h: 64 deterministic rounds on the corrected map vs 162.
+
+### 40.59 Corner fix, retraining stopped, teleport proof of the corrected map (10-05 21:52-22:06)
+* Operator spotted a notch at a centrepiece corner (-28.7, 11.5): polygon corners lie on two edges, where all 4 axis
+  offsets stay on an edge. Builder: 8 offsets (axes and diagonals, EDGE_EPS 0.02). The map is now exactly symmetric and is
+  the default (terrain_KingOfTheMarble_Hunt.npz = _edgesafe025_diag.npz).
+* Retraining paused 21:54:28 for the swap, then STOPPED by the operator (nav_latest = update 30300; 30295 kept as
+  nav_points_20261005_stop_30295.pth; STOP file in place). Code still set for it (FREEZE_BASE False, LR 1e-4, NAV_DRILL_PLAN
+  none); a restart needs his OK. Also stopped: the orphaned game_summary.sh loop (since 10:05) and ~20 leftover monitor tails.
+* Teleport proof (operator: teleport onto the changed spots, see if the marble falls). logs/nav/gate_scripts/map_diff_probe.py
+  (build: every 0.25 u grid spot where old and new disagree, its exact signed distance to the real floor edge from the
+  mission's floor polygons, 60 deep-floor and 60 deep-hole checks; run: teleport at rest to floor + R + 0.05, no input, 2 s;
+  fell = 0.3 u down within 0.5 s or out of bounds). 4 hidden games, ~1 min, 0 failed placements.
+  | spots | old map | new map | in the game |
+  |---|---|---|---|
+  | 979, 0.25-0.35 u outside the real floor | floor | hole | fell 979/979 (3 wedged in narrow slots 0.3-0.9 u down) |
+  | 673, 0.25-0.35 u inside the real floor | hole | floor | held 673/673 |
+  | 706, exactly on a real edge line | hole | floor | held 706/706; 96 later slid off the side rolling down a ramp |
+  | 60 deep floor / 60 deep holes (checks) | same | same | held 60/60 / fell 60/60 |
+  Later drops of held marbles (ramp rolls) were told from falls by their vertical acceleration (under 8 vs ~20 u/s^2).
+  Results map_diff_probe_20261005_part*.jsonl, trials map_diff_trials_20261005.json, picture
+  logs/nav/goal175/terrain_map_teleport_proof_20261005.png.
+
+### 40.60 Retraining on the corrected map until parity (10-05 22:15-)
+* 22:15 watched 30295 (trained on the old map) on the corrected map at 1x: 1 round, 138 points, 9 falls.
+* Operator 22:20: "start training on this new map until it's at parity with the old version or is better". Restarted
+  22:21 from nav_latest 30300 (FREEZE_BASE False, LR 1e-4, all 8 full rounds, two-gem kick rule). Parity = 64
+  deterministic rounds with learned use on the corrected map at 162 or more (the old version: 161.98 on the old map, 64
+  rounds, 29775). Check about every 2 h with main paused (cap 8): scratchpad launch_parity_block.ps1 -Ckpt <copy>.
+  Operator 23:15: tonight's goals in order: (1) parity or better, (2) then a single round above 175 with Super Speeds
+  used. Training does NOT stop at parity; each check also reports the best round and its kicks.
+* Startup glitch, both restarts (21:49, 22:21): the first round of freshly launched games is bad on games 0-3 (60-133
+  points, 9-35 falls; games 4-7 124-153), then every game is normal (143-164). Earlier restarts had drills on games 0-3,
+  so it never showed. Not investigated yet.
+* Stats fix (operator: the speed, falls and seconds-per-pickup cards were empty): those NAV-line numbers came only
+  from drill segments. A real round is one segment, and its end went through vec_worker's round-end branch, which
+  dropped it (segs.abandon) and sent stats=None; SegmentManager.stats() also skipped 'round' outcomes. With
+  NAV_DRILL_PLAN none the NAV line read speed 0, falls100 0, pickup 0, sgem 0. Now an ordinary real round is recorded
+  at its end and its stats sent (vec_worker round-end branch), and stats() keeps real-mode round records (waypoints.py
+  `real` flag); synthetic segments cut by the round end stay out. Training unaffected (the stats also drive only the
+  arrival-radius ratchet, already at its final 0.65). Trainer restarted 22:34 (stats() part) and 22:38 (worker part).
+* Reading the falls card on full rounds: it counts most falls twice (the game's OOB flag, then the off-map check
+  OFFMAP_FALL_DECISIONS while the marble waits below the map for the respawn): 23:04 card 0.48 per 100 u vs 0.25 from
+  the game's own count (GAME falls 3.44 a round + 3.01 "fall without OOB flag" lines a round). Operator declined a fix
+  (23:10). Like for like (trace, game count, full rounds): old map 0.15-0.17 per 100 u (2.35 a round), corrected map
+  after 26 min 0.22 (3.1 a round, first round left out). Before 21:49 the card showed drill segments (10-05 mean 0.45).
+* Parity check 1 (10-06 00:39, batch_parity_20261006_0039, nav_points_20261005_parity_30610.pth, 64 rounds, learned use,
+  corrected map): 158.00 (95% 156.3-159.7), falls 1.30 a round, kicks 0.77 a round (55 % of rounds), best 168 (0 kicks;
+  168 also the best with a kick), none >= 170. Below parity by 4.0; up from 154.2 (the old driver on the corrected map).
+  Training resumed 00:45 (supervisor 48156, trainer 980). Next check ~02:45.
+* Parity check 2 (02:46, batch_parity_20261006_0246, nav_points_20261005_parity_30880.pth): 161.05 (95% 160.1-162.0),
+  falls 1.27 a round, kicks 1.08 a round (61 % of rounds), best 171 with 2 Super Speed kicks (the best kicked round
+  yet), 1 round >= 170. 0.95 below 162 (inside the noise; strict target not met). Trend 154.2 -> 158.0 -> 161.05.
+  Training resumed 02:52 (supervisor 45524, trainer 32648). Next check ~04:52.
+* Parity check 3 (04:53, batch_parity_20261006_0453, nav_points_20261005_parity_31155.pth): 161.47 (95% 160.1-162.8),
+  falls 1.48 a round, kicks 0.84 a round (64 % of rounds), 5 rounds >= 170, BEST ROUND 175 (139 gems, 0 falls, 1 Super
+  Speed kick; learned_e round 8, trace parity_20261006_0453_learned_e.csv): the best round recorded, kicks used, but not
+  ABOVE 175. 0.53 below 162 (inside the noise). Trend 154.2 -> 158.0 -> 161.05 -> 161.47 (flattening). Training resumed
+  05:01 (supervisor 30428, trainer 5112). Next check ~07:01.
+* Falls on the corrected map (checks 1-3, 192 rounds): 1.35 a round = rolled off 0.76, after a jump 0.58, after a kick
+  0.01 (old-map evals 10-03..10-05: 1.54 = 0.84 / 0.46 / 0.24); centre 2 x 2 hole 6 % (was 9 %); hot spots at the inner
+  holes beside the centre.
+* PARITY REACHED, check 4 (07:02, batch_parity_20261006_0702, nav_points_20261005_parity_31435.pth): 163.00 (95%
+  161.8-164.2), +1.0 over the old version (161.98 on the old map); falls 1.66 a round, kicks 0.80 (53 % of rounds), 7
+  rounds >= 170, best 174 (1 kick, 0 falls), none above 175. Goal (2) now: a round above 175 with Super Speeds; training
+  continues unchanged (resumed 07:08, supervisor 39044, trainer 24900); checks every ~2 h. Next ~09:08.
+  Operator 07:15: stop training after the 09:08 check (the check runs; training is not resumed after it).
+* 09:09 training-round high: last-50 mean 157.3 at 31692 (snapshot nav_points_20261005_best_31692_157.pth; old best 154.0).
+* FINAL check 5 (09:10, batch_parity_20261006_0910, nav_points_20261005_parity_31715.pth): 164.94 (95% 163.8-166.1),
+  +2.96 over the old version; falls 0.78 a round, kicks 0.89 (53 % of rounds), 11 rounds >= 170, best 173 (3 kicks, 0
+  falls), none above 175. Best rounds of the night: 175 (1 kick, check 3), 174, 173. TRAINING STOPPED 09:09 (operator);
+  nav_latest = 31715 (= the snapshot above); STOP file left; summary loop stopped. Goal (1) met; goal (2) not met.
+* Still improving at the stop: +1.94 over the last check (SE 0.85, z 2.3), +1.7 points per 2 h over the last 3 checks;
+  practice last-50 at the night's high (155-157). At 164.9 with sd 4.7 a 176+ round is ~1 % a round (~50 % per
+  64-round check). Operator 09:25: continue training. Resumed 09:26 from 31715 (supervisor 9448, trainer 43048;
+  summary loop restarted), same setup, a 64-round check every ~2 h; stop or report after two checks in a row
+  without a gain. Next check ~11:26.
+* Check 6 (11:27, batch_parity_20261006_1127, nav_points_20261005_parity_31995.pth): 165.48 (95% 164.4-166.5), +0.54
+  over check 5 (not significant), falls 0.84 a round, kicks 0.66 (45 % of rounds), 10 rounds >= 170, best 175 (2 kicks,
+  0 falls; learned_d round 1): exactly 175 again, none above. Resumed 11:33 (supervisor 36220, trainer 39024). Next ~13:33.
+* Check 7 (13:34, batch_parity_20261006_1334, nav_points_20261005_parity_32275.pth): 162.50 (95% 161.6-163.4), -2.98
+  vs check 6 (z ~4: a real drop), falls 1.19 a round, kicks 0.78 (50 %), best 169, none >= 170. First check without a
+  gain; best checked model stays nav_points_20261005_parity_31995.pth (165.48). Rule: if check 8 does not beat 165.48,
+  stop and report. Resumed 13:40 (supervisor 48272, trainer 41196). Next ~15:40.
+* Check 8 (15:41, batch_parity_20261006_1541, nav_points_20261005_parity_32565.pth): 166.55 (95% 165.7-167.4), NEW
+  BEST (+1.07 over check 6), falls 0.81 a round, kicks 0.91 (59 %), 13 rounds >= 170, min 158, best 174 (0 kicks; 174
+  also the best with a kick), none above 175. The stop rule is reset (a gain). Resumed 15:47 (supervisor 7152, trainer
+  4484). Next ~17:47. Operator ~16:00: after that check, stop training whatever the result, present the results, and
+  wait for his decision.
+* FINAL check 9 (17:48, batch_parity_20261006_1748, nav_points_20261005_parity_32855.pth = nav_latest): 165.86 (95%
+  164.8-166.9), falls 1.09 a round, kicks 0.72 (52 %), 13 rounds >= 170, best 174 (0 kicks; 172 with a kick). TRAINING
+  STOPPED 17:48 (operator), STOP file left, summary loop stopped; waiting for his decision.
+  Summary of the retraining (chart logs/nav/goal175/retrain_checks_20261006.png): 154.2 (old driver on the corrected map)
+  -> best 166.55 at 32565 (nav_points_20261005_parity_32565.pth), +4.6 over the old version (161.98 on the old map);
+  falls ~3 -> 0.8-1.1 a round. Goal 2 not met: 576 test rounds, best 175 twice (1 and 2 kicks), never above; the best
+  rounds sit at 173-175 since 04:53 while the average rose; kicks stayed 0.7-1.1 a round all day.
+* Operator 18:00: roll back to the best checkpoint. nav_latest = nav_points_20261005_parity_32565.pth (update 32565,
+  166.55; full state with optimizer; hash checked). Deleted the 13 checkpoints after it (nav_points_20261005_032575 ..
+  032850 and _parity_32855). Logs and the check 9 results stay as history (the 15:47-17:48 train log repeats update
+  numbers 32565-32855 if training resumes from 32565).
+* The summary loop (logs/nav/game_summary.sh, killed 22:06) now has CRLF line endings: running an LF copy,
+  logs/nav/points_20261005/game_summary_lf.sh, with Python on PATH and NAV_SUMMARY_PREFIX nav_points_20261005_best.
+* Fall map (operator): 2,520 falls in 1,638 evaluation rounds, 10-03 to 10-05, normal play on the old map (helper,
+  no-cap, kick-vs-no-kick, always-SS and corrected-map arms left out): 1.54 a round; 1,368 rolled or slid off an edge
+  (no jump, no kick), 754 right after a jump, 398 within 1.6 s after a Super Speed kick (kicks found by a +8 u/s speed
+  step). Hot spots: the centre 2 x 2 hole 228 (9 %), then the inner corners beside it (171, 156, 99 per 2 x 2 u); jump
+  falls in the four inner holes, kick falls off the outer edges. At 24 % of roll-off drop points the old map showed floor
+  (all falls 16 %; corrected map 6 %, edge rounding). logs/nav/goal175/kotm_fall_locations_20261005.png.

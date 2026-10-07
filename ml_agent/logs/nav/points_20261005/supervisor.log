@@ -1,0 +1,55 @@
+[2026-10-05 10:03:36] Attempt 1: resuming nav_latest, four replay workers and four round workers.
+[2026-10-05 10:03:39] Trainer 27244, game loop 35344.
+[2026-10-05 12:35:43] Supervisor ended. Owned training processes closed; latest saved checkpoint retained.
+[2026-10-05 13:07:25] Attempt 1: resuming nav_latest, four replay workers and four round workers.
+[2026-10-05 13:07:28] Trainer 27252, game loop 1028.
+[2026-10-05 15:30:26] Attempt 1: resuming nav_latest, four replay workers and four round workers.
+[2026-10-05 15:30:29] Trainer 40476, game loop 3320.
+[2026-10-05 15:32:00] Supervisor ended. Owned training processes closed; latest saved checkpoint retained.
+[2026-10-05 15:57:04] Attempt 1: resuming nav_latest, four replay workers and four round workers.
+[2026-10-05 15:57:07] Trainer 33336, game loop 42680.
+[2026-10-05 16:03:08] Supervisor ended. Owned training processes closed; latest saved checkpoint retained.
+[2026-10-05 16:03:13] Attempt 1: resuming nav_latest, four replay workers and four round workers.
+[2026-10-05 16:03:16] Trainer 17092, game loop 42228.
+[2026-10-05 18:15:01] Attempt 1: resuming nav_latest, four replay workers and four round workers.
+[2026-10-05 18:15:04] Trainer 36088, game loop 43624.
+[2026-10-05 20:00:36] Supervisor ended. Owned training processes closed; latest saved checkpoint retained.
+[2026-10-05 20:13:49] Attempt 1: resuming nav_latest, four replay workers and four round workers.
+[2026-10-05 20:13:52] Trainer 40512, game loop 27984.
+[2026-10-05 20:16:53] Supervisor ended. Owned training processes closed; latest saved checkpoint retained.
+[2026-10-05 21:49:55] Attempt 1: resuming nav_latest, workers by NAV_DRILL_PLAN=none.
+[2026-10-05 21:49:58] Trainer 19964, game loop 35804.
+[2026-10-05 21:54:29] Supervisor ended. Owned training processes closed; latest saved checkpoint retained.
+[2026-10-05 22:21:32] Attempt 1: resuming nav_latest, workers by NAV_DRILL_PLAN=none.
+[2026-10-05 22:21:36] Trainer 3452, game loop 43396.
+[2026-10-05 22:34:06] Supervisor ended. Owned training processes closed; latest saved checkpoint retained.
+[2026-10-05 22:34:16] Attempt 1: resuming nav_latest, workers by NAV_DRILL_PLAN=none.
+[2026-10-05 22:34:19] Trainer 37300, game loop 31700.
+[2026-10-05 22:37:50] Supervisor ended. Owned training processes closed; latest saved checkpoint retained.
+[2026-10-05 22:37:57] Attempt 1: resuming nav_latest, workers by NAV_DRILL_PLAN=none.
+[2026-10-05 22:38:00] Trainer 45464, game loop 29212.
+[2026-10-06 00:39:02] Supervisor ended. Owned training processes closed; latest saved checkpoint retained.
+[2026-10-06 00:45:34] Attempt 1: resuming nav_latest, workers by NAV_DRILL_PLAN=none.
+[2026-10-06 00:45:37] Trainer 980, game loop 36924.
+[2026-10-06 02:46:40] Supervisor ended. Owned training processes closed; latest saved checkpoint retained.
+[2026-10-06 02:52:47] Attempt 1: resuming nav_latest, workers by NAV_DRILL_PLAN=none.
+[2026-10-06 02:52:50] Trainer 32648, game loop 28548.
+[2026-10-06 04:53:53] Supervisor ended. Owned training processes closed; latest saved checkpoint retained.
+[2026-10-06 05:01:12] Attempt 1: resuming nav_latest, workers by NAV_DRILL_PLAN=none.
+[2026-10-06 05:01:16] Trainer 5112, game loop 47532.
+[2026-10-06 07:02:18] Supervisor ended. Owned training processes closed; latest saved checkpoint retained.
+[2026-10-06 07:08:18] Attempt 1: resuming nav_latest, workers by NAV_DRILL_PLAN=none.
+[2026-10-06 07:08:21] Trainer 24900, game loop 22420.
+[2026-10-06 09:09:54] Supervisor ended. Owned training processes closed; latest saved checkpoint retained.
+[2026-10-06 09:26:08] Attempt 1: resuming nav_latest, workers by NAV_DRILL_PLAN=none.
+[2026-10-06 09:26:12] Trainer 43048, game loop 31332.
+[2026-10-06 11:27:14] Supervisor ended. Owned training processes closed; latest saved checkpoint retained.
+[2026-10-06 11:33:18] Attempt 1: resuming nav_latest, workers by NAV_DRILL_PLAN=none.
+[2026-10-06 11:33:21] Trainer 39024, game loop 48156.
+[2026-10-06 13:34:23] Supervisor ended. Owned training processes closed; latest saved checkpoint retained.
+[2026-10-06 13:40:22] Attempt 1: resuming nav_latest, workers by NAV_DRILL_PLAN=none.
+[2026-10-06 13:40:25] Trainer 41196, game loop 39892.
+[2026-10-06 15:41:28] Supervisor ended. Owned training processes closed; latest saved checkpoint retained.
+[2026-10-06 15:47:25] Attempt 1: resuming nav_latest, workers by NAV_DRILL_PLAN=none.
+[2026-10-06 15:47:29] Trainer 4484, game loop 43224.
+[2026-10-06 17:48:31] Supervisor ended. Owned training processes closed; latest saved checkpoint retained.

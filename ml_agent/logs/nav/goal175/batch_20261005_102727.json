@@ -1,0 +1,18 @@
+[
+    {
+        "port":  9970,
+        "python":  37704,
+        "game":  0,
+        "arm":  "learned",
+        "tag":  "20261005_102727_learned",
+        "checkpoint":  "models/nav/nav_goal175_20261005_102727.pth"
+    },
+    {
+        "port":  9971,
+        "python":  32220,
+        "game":  0,
+        "arm":  "base_force",
+        "tag":  "20261005_102727_base_force",
+        "checkpoint":  "models/nav/nav_v10_28897.pth"
+    }
+]

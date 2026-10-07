@@ -1,0 +1,4 @@
+[2026-10-05 20:13:49] Attempt 1: resuming nav_latest, four replay workers and four round workers.
+[20:13:52] all 8 worker ports 8888..8895 listening; safe to launch the games
+[2026-10-05 20:13:52] Trainer 40512, game loop 27984.
+[2026-10-05 20:16:53] Supervisor ended. Owned training processes closed; latest saved checkpoint retained.

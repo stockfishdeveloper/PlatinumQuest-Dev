@@ -1,0 +1,22 @@
+{
+  "update": 29070,
+  "note": "development fixture histories biased toward previously fired opportunities; not a score gate",
+  "n": 1244,
+  "metrics": {
+    "steering_change_degrees": {
+      "mean": 7.169147948037023,
+      "median": 5.915427478494895,
+      "p90": 12.704485833128075
+    },
+    "base_thrust_toward_goal": {
+      "mean": 0.36193847956908476,
+      "median": 0.617668628692627,
+      "p90": 0.9782970309257507
+    },
+    "new_thrust_toward_goal": {
+      "mean": 0.3901267548277843,
+      "median": 0.6493771374225616,
+      "p90": 0.9824989557266236
+    }
+  }
+}

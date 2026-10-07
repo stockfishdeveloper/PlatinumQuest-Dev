@@ -1,12 +1,37 @@
 # Navigator training: handoff
 
+**Read first, 2026-10-05 12:05 MDT:**
+[HANDOFF_SUPERSPEED_2026-10-05.md](HANDOFF_SUPERSPEED_2026-10-05.md) has the current
+two trainers, process ownership, latest score regression, finite fast-state
+experiment, evaluation commands, and unfinished spin-aware physics investigation.
+Both runs remain running; no qualifying score or reliable Super Speed gain yet.
+
+**Active operator goal, 2026-10-05:** achieve a complete KOTM round above 175 with actual Super Speed use,
+and demonstrate that enabled use improves scores against a no-use control. Neither is established yet.
+See [GOAL_175_2026-10-05.md](GOAL_175_2026-10-05.md) for the current gates, rejected experiments and data collection.
+
 The CURRENT state of the King of the Marble (KOTM) navigator: what exists, what it scores, what is
 wrong with it, how to run it, and what comes next. Keep this file current: when something changes, edit
 it here. The dated history of every experiment (sections 1 to 28.x, 2026-09-17 to 2026-09-26) is in
 `docs/HANDOFF_NAV_TRAINING_LOG.md`. Code comments that cite "HANDOFF 28.52" and the like point into that
 log, and new dated entries go there too.
 
-Last updated: 2026-10-04 17:30 (log 40.23-40.40: the Super Speed curriculum night (safe, chosen, no points: 160.6 vs
+**Current run, 2026-10-05 10:03 (log 40.49):** training is running with four real replay workers and
+four ordinary KOTM rounds, starting from the protected 28897-named policy (internal update 28895).
+Fresh data: 102 development / 18 evaluation starts from disjoint source rounds; all 120 restores passed.
+At checkpoint 28920, critic warm-up is complete, the use head/residual are learning, and the frozen
+actor parameters remain exactly unchanged. Supervisor, checkpoints and operational details:
+[`RUN_POINTS_2026-10-05.md`](RUN_POINTS_2026-10-05.md). Earlier stopped-run statuses below are historical.
+
+**Latest training implementation, late 2026-10-04 (log 40.48):**
+[`HANDOFF_POINTS_REPLAY_2026-10-04.md`](HANDOFF_POINTS_REPLAY_2026-10-04.md) is the next-run handoff.
+Real replay now restores gems/items/spawn state and the original approach target, pays game points in both
+rounds and windows, counts recovery inside the 12032 ms window, and migrates the critic to point-scale values.
+Eleven unit checks and isolated game probes passed. Fresh schema-2 data must be collected before the default
+four-replay/four-round training run; old `starts_live_*.json` are incompatible. No main training was started,
+no trained checkpoints changed, and nothing committed. Training remains stopped at update 29665.
+
+Earlier summary, 2026-10-04 17:30 (log 40.23-40.40: the Super Speed curriculum night (safe, chosen, no points: 160.6 vs
 161.1 without uses), the second review and its implementation: the use head and critic read the powerup state, the
 residual acts on the approach, points-only drills with final-state bootstrap, live starts with real spin and GRU
 warm-up, 12 s window evals; nothing trained since 10:06. Next run: HANDOFF_SUPERSPEED_MANEUVER_2026-10-04.md.
@@ -365,6 +390,10 @@ Longer term (the 2026-09-16 roadmap, archived): the navigator on every map, a pl
   real gem.
 * Judge changes by 8-round `real_run.py` evaluations, never by the training curve.
 * An unspecific "turn off X" can mean an earlier feature: check what is live and ask before reverting.
+* IMPORTANT (2026-10-06): before training on a new map, or after making or changing a terrain map, verify the map in
+  the game: teleport the marble onto edges, corners and holes; it must fall or stay exactly as the map says. Train
+  only on a map that passed. KOTM's map was ~0.5 u off for a month (log 40.58-40.59); the probe tool is
+  logs/nav/gate_scripts/map_diff_probe.py (written for KOTM; a new map needs its own edge spots).
 
 ## 9. Tried and parked, or dead (details in the log)
 

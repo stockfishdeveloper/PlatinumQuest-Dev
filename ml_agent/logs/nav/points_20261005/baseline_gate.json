@@ -1,0 +1,1537 @@
+{
+  "schema": 2,
+  "reward_version": "game_points_v1",
+  "window_ms": 12032,
+  "checkpoint": "models/nav/nav_v10_28897.pth",
+  "base_checkpoint": "models/nav/nav_v10_28897.pth",
+  "starts_sha256": "f006fde5584acfdbcaf765658bd5a1f7e89c5dc10043d21c036f5947d1411d61",
+  "branches": [
+    "base",
+    "no_use",
+    "force",
+    "learned"
+  ],
+  "requested_ids": [
+    "89b2e0c997d34377a8fd82f46065afa2:21:3972596",
+    "2ec9a6528a5d4e149e790dbcd860f5c6:7:1374004",
+    "2ec9a6528a5d4e149e790dbcd860f5c6:17:3245748",
+    "e75e1fcfb38d49dbb801d922c880f327:6:1147174",
+    "e75e1fcfb38d49dbb801d922c880f327:6:1238566",
+    "e75e1fcfb38d49dbb801d922c880f327:13:2499814",
+    "e75e1fcfb38d49dbb801d922c880f327:16:3088806",
+    "e75e1fcfb38d49dbb801d922c880f327:17:3224934",
+    "e75e1fcfb38d49dbb801d922c880f327:20:3828966",
+    "7c7257790495415d950ea4ef8d9a5f74:17:3351330",
+    "7cfb5598d5ea4bdf9a5725dafcd7322f:6:1166512",
+    "7cfb5598d5ea4bdf9a5725dafcd7322f:16:3077680",
+    "674ea04777bb4103ad087feaa0a2b521:3:599890",
+    "674ea04777bb4103ad087feaa0a2b521:15:2988818",
+    "674ea04777bb4103ad087feaa0a2b521:20:3826066",
+    "674ea04777bb4103ad087feaa0a2b521:20:3882514",
+    "674ea04777bb4103ad087feaa0a2b521:21:3988050",
+    "674ea04777bb4103ad087feaa0a2b521:22:4285330"
+  ],
+  "rows": [
+    {
+      "id": "89b2e0c997d34377a8fd82f46065afa2:21:3972596",
+      "status": "ok",
+      "points": 12.0,
+      "falls": 0,
+      "pickup_times_ms": [
+        1408,
+        3456,
+        4544,
+        5760,
+        6784,
+        8320,
+        9536,
+        10176,
+        10944
+      ],
+      "fired": false,
+      "elapsed_ms": 12032,
+      "outcome": "window",
+      "branch": "base"
+    },
+    {
+      "id": "89b2e0c997d34377a8fd82f46065afa2:21:3972596",
+      "status": "ok",
+      "points": 12.0,
+      "falls": 0,
+      "pickup_times_ms": [
+        1408,
+        3456,
+        4544,
+        5760,
+        6784,
+        8320,
+        9536,
+        10176,
+        10944
+      ],
+      "fired": false,
+      "elapsed_ms": 12032,
+      "outcome": "window",
+      "branch": "no_use"
+    },
+    {
+      "id": "89b2e0c997d34377a8fd82f46065afa2:21:3972596",
+      "status": "ok",
+      "points": 13.0,
+      "falls": 0,
+      "pickup_times_ms": [
+        1408,
+        2368,
+        3392,
+        4672,
+        5696,
+        7232,
+        8448,
+        9088,
+        9856,
+        11456
+      ],
+      "fired": true,
+      "elapsed_ms": 12032,
+      "outcome": "window",
+      "branch": "force"
+    },
+    {
+      "id": "89b2e0c997d34377a8fd82f46065afa2:21:3972596",
+      "status": "ok",
+      "points": 12.0,
+      "falls": 0,
+      "pickup_times_ms": [
+        1408,
+        3456,
+        4544,
+        5760,
+        6784,
+        8320,
+        9536,
+        10176,
+        10944
+      ],
+      "fired": false,
+      "elapsed_ms": 12032,
+      "outcome": "window",
+      "branch": "learned"
+    },
+    {
+      "id": "2ec9a6528a5d4e149e790dbcd860f5c6:7:1374004",
+      "status": "ok",
+      "points": 9.0,
+      "falls": 0,
+      "pickup_times_ms": [
+        1408,
+        3776,
+        4544,
+        6400,
+        7872,
+        10560,
+        11520
+      ],
+      "fired": false,
+      "elapsed_ms": 12032,
+      "outcome": "window",
+      "branch": "base"
+    },
+    {
+      "id": "2ec9a6528a5d4e149e790dbcd860f5c6:7:1374004",
+      "status": "ok",
+      "points": 9.0,
+      "falls": 0,
+      "pickup_times_ms": [
+        1408,
+        3776,
+        4544,
+        6400,
+        7872,
+        10560,
+        11520
+      ],
+      "fired": false,
+      "elapsed_ms": 12032,
+      "outcome": "window",
+      "branch": "no_use"
+    },
+    {
+      "id": "2ec9a6528a5d4e149e790dbcd860f5c6:7:1374004",
+      "status": "ok",
+      "points": 9.0,
+      "falls": 0,
+      "pickup_times_ms": [
+        1408,
+        2624,
+        3712,
+        5504,
+        7104,
+        9920,
+        10816
+      ],
+      "fired": true,
+      "elapsed_ms": 12032,
+      "outcome": "window",
+      "branch": "force"
+    },
+    {
+      "id": "2ec9a6528a5d4e149e790dbcd860f5c6:7:1374004",
+      "status": "ok",
+      "points": 9.0,
+      "falls": 0,
+      "pickup_times_ms": [
+        1408,
+        3776,
+        4544,
+        6400,
+        7872,
+        10560,
+        11520
+      ],
+      "fired": false,
+      "elapsed_ms": 12032,
+      "outcome": "window",
+      "branch": "learned"
+    },
+    {
+      "id": "2ec9a6528a5d4e149e790dbcd860f5c6:17:3245748",
+      "status": "ok",
+      "points": 11.0,
+      "falls": 0,
+      "pickup_times_ms": [
+        704,
+        1472,
+        3520,
+        5056,
+        6336,
+        7488,
+        8960,
+        10240,
+        11456
+      ],
+      "fired": false,
+      "elapsed_ms": 12032,
+      "outcome": "window",
+      "branch": "base"
+    },
+    {
+      "id": "2ec9a6528a5d4e149e790dbcd860f5c6:17:3245748",
+      "status": "ok",
+      "points": 11.0,
+      "falls": 0,
+      "pickup_times_ms": [
+        704,
+        1472,
+        3520,
+        5056,
+        6336,
+        7488,
+        8960,
+        10240,
+        11456
+      ],
+      "fired": false,
+      "elapsed_ms": 12032,
+      "outcome": "window",
+      "branch": "no_use"
+    },
+    {
+      "id": "2ec9a6528a5d4e149e790dbcd860f5c6:17:3245748",
+      "status": "ok",
+      "points": 11.0,
+      "falls": 0,
+      "pickup_times_ms": [
+        704,
+        1472,
+        3520,
+        5056,
+        6336,
+        7488,
+        8960,
+        10240,
+        11456
+      ],
+      "fired": false,
+      "elapsed_ms": 12032,
+      "outcome": "window",
+      "branch": "force"
+    },
+    {
+      "id": "2ec9a6528a5d4e149e790dbcd860f5c6:17:3245748",
+      "status": "ok",
+      "points": 11.0,
+      "falls": 0,
+      "pickup_times_ms": [
+        704,
+        1472,
+        3520,
+        5056,
+        6336,
+        7488,
+        8960,
+        10240,
+        11456
+      ],
+      "fired": false,
+      "elapsed_ms": 12032,
+      "outcome": "window",
+      "branch": "learned"
+    },
+    {
+      "id": "e75e1fcfb38d49dbb801d922c880f327:6:1147174",
+      "status": "ok",
+      "points": 10.0,
+      "falls": 0,
+      "pickup_times_ms": [
+        1408,
+        3392,
+        4416,
+        7232,
+        8320,
+        9792,
+        11008
+      ],
+      "fired": false,
+      "elapsed_ms": 12032,
+      "outcome": "window",
+      "branch": "base"
+    },
+    {
+      "id": "e75e1fcfb38d49dbb801d922c880f327:6:1147174",
+      "status": "ok",
+      "points": 10.0,
+      "falls": 0,
+      "pickup_times_ms": [
+        1408,
+        3392,
+        4416,
+        7232,
+        8320,
+        9792,
+        11008
+      ],
+      "fired": false,
+      "elapsed_ms": 12032,
+      "outcome": "window",
+      "branch": "no_use"
+    },
+    {
+      "id": "e75e1fcfb38d49dbb801d922c880f327:6:1147174",
+      "status": "ok",
+      "points": 7.0,
+      "falls": 0,
+      "pickup_times_ms": [
+        1408,
+        3840,
+        5056,
+        9152,
+        10752
+      ],
+      "fired": false,
+      "elapsed_ms": 12032,
+      "outcome": "window",
+      "branch": "force"
+    },
+    {
+      "id": "e75e1fcfb38d49dbb801d922c880f327:6:1147174",
+      "status": "ok",
+      "points": 10.0,
+      "falls": 0,
+      "pickup_times_ms": [
+        1408,
+        3392,
+        4416,
+        7232,
+        8320,
+        9792,
+        11008
+      ],
+      "fired": false,
+      "elapsed_ms": 12032,
+      "outcome": "window",
+      "branch": "learned"
+    },
+    {
+      "id": "e75e1fcfb38d49dbb801d922c880f327:6:1238566",
+      "status": "ok",
+      "points": 12.0,
+      "falls": 0,
+      "pickup_times_ms": [
+        1344,
+        3328,
+        4352,
+        5760,
+        7040,
+        7616,
+        8448,
+        10240,
+        11584
+      ],
+      "fired": false,
+      "elapsed_ms": 12032,
+      "outcome": "window",
+      "branch": "base"
+    },
+    {
+      "id": "e75e1fcfb38d49dbb801d922c880f327:6:1238566",
+      "status": "ok",
+      "points": 12.0,
+      "falls": 0,
+      "pickup_times_ms": [
+        1344,
+        3328,
+        4352,
+        5760,
+        7040,
+        7616,
+        8448,
+        10240,
+        11584
+      ],
+      "fired": false,
+      "elapsed_ms": 12032,
+      "outcome": "window",
+      "branch": "no_use"
+    },
+    {
+      "id": "e75e1fcfb38d49dbb801d922c880f327:6:1238566",
+      "status": "ok",
+      "points": 12.0,
+      "falls": 0,
+      "pickup_times_ms": [
+        1344,
+        2240,
+        3264,
+        4928,
+        6208,
+        6848,
+        7616,
+        9216,
+        10560
+      ],
+      "fired": true,
+      "elapsed_ms": 12032,
+      "outcome": "window",
+      "branch": "force"
+    },
+    {
+      "id": "e75e1fcfb38d49dbb801d922c880f327:6:1238566",
+      "status": "ok",
+      "points": 12.0,
+      "falls": 0,
+      "pickup_times_ms": [
+        1344,
+        3328,
+        4352,
+        5760,
+        7040,
+        7616,
+        8448,
+        10240,
+        11584
+      ],
+      "fired": false,
+      "elapsed_ms": 12032,
+      "outcome": "window",
+      "branch": "learned"
+    },
+    {
+      "id": "e75e1fcfb38d49dbb801d922c880f327:13:2499814",
+      "status": "ok",
+      "points": 10.0,
+      "falls": 0,
+      "pickup_times_ms": [
+        1536,
+        3456,
+        4480,
+        7232,
+        8320,
+        9792,
+        11008
+      ],
+      "fired": false,
+      "elapsed_ms": 12032,
+      "outcome": "window",
+      "branch": "base"
+    },
+    {
+      "id": "e75e1fcfb38d49dbb801d922c880f327:13:2499814",
+      "status": "ok",
+      "points": 10.0,
+      "falls": 0,
+      "pickup_times_ms": [
+        1536,
+        3456,
+        4480,
+        7232,
+        8320,
+        9792,
+        11008
+      ],
+      "fired": false,
+      "elapsed_ms": 12032,
+      "outcome": "window",
+      "branch": "no_use"
+    },
+    {
+      "id": "e75e1fcfb38d49dbb801d922c880f327:13:2499814",
+      "status": "ok",
+      "points": 10.0,
+      "falls": 0,
+      "pickup_times_ms": [
+        1536,
+        2432,
+        3520,
+        6272,
+        7360,
+        8832,
+        10048
+      ],
+      "fired": true,
+      "elapsed_ms": 12032,
+      "outcome": "window",
+      "branch": "force"
+    },
+    {
+      "id": "e75e1fcfb38d49dbb801d922c880f327:13:2499814",
+      "status": "ok",
+      "points": 10.0,
+      "falls": 0,
+      "pickup_times_ms": [
+        1536,
+        3456,
+        4480,
+        7232,
+        8320,
+        9792,
+        11008
+      ],
+      "fired": false,
+      "elapsed_ms": 12032,
+      "outcome": "window",
+      "branch": "learned"
+    },
+    {
+      "id": "e75e1fcfb38d49dbb801d922c880f327:16:3088806",
+      "status": "ok",
+      "points": 10.0,
+      "falls": 0,
+      "pickup_times_ms": [
+        1536,
+        3520,
+        4544,
+        7104,
+        8128,
+        9600,
+        10880
+      ],
+      "fired": false,
+      "elapsed_ms": 12032,
+      "outcome": "window",
+      "branch": "base"
+    },
+    {
+      "id": "e75e1fcfb38d49dbb801d922c880f327:16:3088806",
+      "status": "ok",
+      "points": 10.0,
+      "falls": 0,
+      "pickup_times_ms": [
+        1536,
+        3520,
+        4544,
+        7104,
+        8128,
+        9600,
+        10880
+      ],
+      "fired": false,
+      "elapsed_ms": 12032,
+      "outcome": "window",
+      "branch": "no_use"
+    },
+    {
+      "id": "e75e1fcfb38d49dbb801d922c880f327:16:3088806",
+      "status": "ok",
+      "points": 12.0,
+      "falls": 0,
+      "pickup_times_ms": [
+        1536,
+        2432,
+        3520,
+        6080,
+        7104,
+        8640,
+        9920,
+        11200
+      ],
+      "fired": true,
+      "elapsed_ms": 12032,
+      "outcome": "window",
+      "branch": "force"
+    },
+    {
+      "id": "e75e1fcfb38d49dbb801d922c880f327:16:3088806",
+      "status": "ok",
+      "points": 10.0,
+      "falls": 0,
+      "pickup_times_ms": [
+        1536,
+        3520,
+        4544,
+        7104,
+        8128,
+        9600,
+        10880
+      ],
+      "fired": false,
+      "elapsed_ms": 12032,
+      "outcome": "window",
+      "branch": "learned"
+    },
+    {
+      "id": "e75e1fcfb38d49dbb801d922c880f327:17:3224934",
+      "status": "ok",
+      "points": 10.0,
+      "falls": 0,
+      "pickup_times_ms": [
+        1536,
+        3392,
+        4480,
+        7232,
+        8384,
+        9792,
+        11072
+      ],
+      "fired": false,
+      "elapsed_ms": 12032,
+      "outcome": "window",
+      "branch": "base"
+    },
+    {
+      "id": "e75e1fcfb38d49dbb801d922c880f327:17:3224934",
+      "status": "ok",
+      "points": 10.0,
+      "falls": 0,
+      "pickup_times_ms": [
+        1536,
+        3392,
+        4480,
+        7232,
+        8384,
+        9792,
+        11072
+      ],
+      "fired": false,
+      "elapsed_ms": 12032,
+      "outcome": "window",
+      "branch": "no_use"
+    },
+    {
+      "id": "e75e1fcfb38d49dbb801d922c880f327:17:3224934",
+      "status": "ok",
+      "points": 11.0,
+      "falls": 0,
+      "pickup_times_ms": [
+        1536,
+        2432,
+        3520,
+        6272,
+        7424,
+        8896,
+        10176,
+        11904
+      ],
+      "fired": true,
+      "elapsed_ms": 12032,
+      "outcome": "window",
+      "branch": "force"
+    },
+    {
+      "id": "e75e1fcfb38d49dbb801d922c880f327:17:3224934",
+      "status": "ok",
+      "points": 10.0,
+      "falls": 0,
+      "pickup_times_ms": [
+        1536,
+        3392,
+        4480,
+        7232,
+        8384,
+        9792,
+        11072
+      ],
+      "fired": false,
+      "elapsed_ms": 12032,
+      "outcome": "window",
+      "branch": "learned"
+    },
+    {
+      "id": "e75e1fcfb38d49dbb801d922c880f327:20:3828966",
+      "status": "ok",
+      "points": 11.0,
+      "falls": 0,
+      "pickup_times_ms": [
+        1472,
+        3456,
+        4544,
+        5824,
+        6848,
+        8384,
+        9600,
+        10752
+      ],
+      "fired": false,
+      "elapsed_ms": 12032,
+      "outcome": "window",
+      "branch": "base"
+    },
+    {
+      "id": "e75e1fcfb38d49dbb801d922c880f327:20:3828966",
+      "status": "ok",
+      "points": 11.0,
+      "falls": 0,
+      "pickup_times_ms": [
+        1472,
+        3456,
+        4544,
+        5824,
+        6848,
+        8384,
+        9600,
+        10752
+      ],
+      "fired": false,
+      "elapsed_ms": 12032,
+      "outcome": "window",
+      "branch": "no_use"
+    },
+    {
+      "id": "e75e1fcfb38d49dbb801d922c880f327:20:3828966",
+      "status": "ok",
+      "points": 11.0,
+      "falls": 0,
+      "pickup_times_ms": [
+        1472,
+        2432,
+        3456,
+        4800,
+        5760,
+        7360,
+        8576,
+        9600
+      ],
+      "fired": true,
+      "elapsed_ms": 12032,
+      "outcome": "window",
+      "branch": "force"
+    },
+    {
+      "id": "e75e1fcfb38d49dbb801d922c880f327:20:3828966",
+      "status": "ok",
+      "points": 11.0,
+      "falls": 0,
+      "pickup_times_ms": [
+        1472,
+        3456,
+        4544,
+        5824,
+        6848,
+        8384,
+        9600,
+        10752
+      ],
+      "fired": false,
+      "elapsed_ms": 12032,
+      "outcome": "window",
+      "branch": "learned"
+    },
+    {
+      "id": "7c7257790495415d950ea4ef8d9a5f74:17:3351330",
+      "status": "ok",
+      "points": 12.0,
+      "falls": 0,
+      "pickup_times_ms": [
+        1408,
+        3264,
+        4352,
+        5696,
+        6912,
+        8448,
+        9792,
+        10880,
+        11968
+      ],
+      "fired": false,
+      "elapsed_ms": 12032,
+      "outcome": "window",
+      "branch": "base"
+    },
+    {
+      "id": "7c7257790495415d950ea4ef8d9a5f74:17:3351330",
+      "status": "ok",
+      "points": 12.0,
+      "falls": 0,
+      "pickup_times_ms": [
+        1408,
+        3264,
+        4352,
+        5696,
+        6912,
+        8448,
+        9792,
+        10880,
+        11968
+      ],
+      "fired": false,
+      "elapsed_ms": 12032,
+      "outcome": "window",
+      "branch": "no_use"
+    },
+    {
+      "id": "7c7257790495415d950ea4ef8d9a5f74:17:3351330",
+      "status": "ok",
+      "points": 12.0,
+      "falls": 0,
+      "pickup_times_ms": [
+        1408,
+        2304,
+        3392,
+        4800,
+        6016,
+        7680,
+        8960,
+        10048,
+        11072
+      ],
+      "fired": true,
+      "elapsed_ms": 12032,
+      "outcome": "window",
+      "branch": "force"
+    },
+    {
+      "id": "7c7257790495415d950ea4ef8d9a5f74:17:3351330",
+      "status": "ok",
+      "points": 12.0,
+      "falls": 0,
+      "pickup_times_ms": [
+        1408,
+        3264,
+        4352,
+        5696,
+        6912,
+        8448,
+        9792,
+        10880,
+        11968
+      ],
+      "fired": false,
+      "elapsed_ms": 12032,
+      "outcome": "window",
+      "branch": "learned"
+    },
+    {
+      "id": "7cfb5598d5ea4bdf9a5725dafcd7322f:6:1166512",
+      "status": "ok",
+      "points": 4.0,
+      "falls": 1,
+      "pickup_times_ms": [
+        1472,
+        3712,
+        5824
+      ],
+      "fired": false,
+      "elapsed_ms": 12032,
+      "outcome": "window",
+      "branch": "base"
+    },
+    {
+      "id": "7cfb5598d5ea4bdf9a5725dafcd7322f:6:1166512",
+      "status": "ok",
+      "points": 8.0,
+      "falls": 0,
+      "pickup_times_ms": [
+        1472,
+        3712,
+        5824,
+        7552,
+        9920,
+        11904
+      ],
+      "fired": false,
+      "elapsed_ms": 12032,
+      "outcome": "window",
+      "branch": "no_use"
+    },
+    {
+      "id": "7cfb5598d5ea4bdf9a5725dafcd7322f:6:1166512",
+      "status": "ok",
+      "points": 10.0,
+      "falls": 0,
+      "pickup_times_ms": [
+        1472,
+        3712,
+        5824,
+        7552,
+        9920,
+        10816,
+        11968
+      ],
+      "fired": true,
+      "elapsed_ms": 12032,
+      "outcome": "window",
+      "branch": "force"
+    },
+    {
+      "id": "7cfb5598d5ea4bdf9a5725dafcd7322f:6:1166512",
+      "status": "ok",
+      "points": 7.0,
+      "falls": 0,
+      "pickup_times_ms": [
+        1472,
+        3584,
+        5312,
+        7424,
+        10432
+      ],
+      "fired": false,
+      "elapsed_ms": 12032,
+      "outcome": "window",
+      "branch": "learned"
+    },
+    {
+      "id": "7cfb5598d5ea4bdf9a5725dafcd7322f:16:3077680",
+      "status": "ok",
+      "points": 12.0,
+      "falls": 0,
+      "pickup_times_ms": [
+        1408,
+        3456,
+        4544,
+        5760,
+        6784,
+        8320,
+        9600,
+        10816,
+        11840
+      ],
+      "fired": false,
+      "elapsed_ms": 12032,
+      "outcome": "window",
+      "branch": "base"
+    },
+    {
+      "id": "7cfb5598d5ea4bdf9a5725dafcd7322f:16:3077680",
+      "status": "ok",
+      "points": 12.0,
+      "falls": 0,
+      "pickup_times_ms": [
+        1408,
+        3456,
+        4544,
+        5760,
+        6784,
+        8320,
+        9600,
+        10816,
+        11840
+      ],
+      "fired": false,
+      "elapsed_ms": 12032,
+      "outcome": "window",
+      "branch": "no_use"
+    },
+    {
+      "id": "7cfb5598d5ea4bdf9a5725dafcd7322f:16:3077680",
+      "status": "ok",
+      "points": 12.0,
+      "falls": 0,
+      "pickup_times_ms": [
+        1408,
+        2368,
+        3392,
+        4672,
+        5696,
+        7296,
+        8512,
+        10112,
+        11456
+      ],
+      "fired": true,
+      "elapsed_ms": 12032,
+      "outcome": "window",
+      "branch": "force"
+    },
+    {
+      "id": "7cfb5598d5ea4bdf9a5725dafcd7322f:16:3077680",
+      "status": "ok",
+      "points": 12.0,
+      "falls": 0,
+      "pickup_times_ms": [
+        1408,
+        3456,
+        4544,
+        5760,
+        6784,
+        8320,
+        9600,
+        10816,
+        11840
+      ],
+      "fired": false,
+      "elapsed_ms": 12032,
+      "outcome": "window",
+      "branch": "learned"
+    },
+    {
+      "id": "674ea04777bb4103ad087feaa0a2b521:3:599890",
+      "status": "ok",
+      "points": 11.0,
+      "falls": 0,
+      "pickup_times_ms": [
+        1280,
+        3136,
+        4224,
+        5504,
+        6528,
+        8064,
+        9280,
+        10432
+      ],
+      "fired": false,
+      "elapsed_ms": 12032,
+      "outcome": "window",
+      "branch": "base"
+    },
+    {
+      "id": "674ea04777bb4103ad087feaa0a2b521:3:599890",
+      "status": "ok",
+      "points": 11.0,
+      "falls": 0,
+      "pickup_times_ms": [
+        1280,
+        3136,
+        4224,
+        5504,
+        6528,
+        8064,
+        9280,
+        10432
+      ],
+      "fired": false,
+      "elapsed_ms": 12032,
+      "outcome": "window",
+      "branch": "no_use"
+    },
+    {
+      "id": "674ea04777bb4103ad087feaa0a2b521:3:599890",
+      "status": "ok",
+      "points": 13.0,
+      "falls": 0,
+      "pickup_times_ms": [
+        1280,
+        2176,
+        3264,
+        4544,
+        5568,
+        7168,
+        8320,
+        9408,
+        11968
+      ],
+      "fired": true,
+      "elapsed_ms": 12032,
+      "outcome": "window",
+      "branch": "force"
+    },
+    {
+      "id": "674ea04777bb4103ad087feaa0a2b521:3:599890",
+      "status": "ok",
+      "points": 11.0,
+      "falls": 0,
+      "pickup_times_ms": [
+        1280,
+        3136,
+        4224,
+        5504,
+        6528,
+        8064,
+        9280,
+        10432
+      ],
+      "fired": false,
+      "elapsed_ms": 12032,
+      "outcome": "window",
+      "branch": "learned"
+    },
+    {
+      "id": "674ea04777bb4103ad087feaa0a2b521:15:2988818",
+      "status": "ok",
+      "points": 12.0,
+      "falls": 0,
+      "pickup_times_ms": [
+        1344,
+        3392,
+        4480,
+        5696,
+        6720,
+        8256,
+        9472,
+        10112,
+        11136
+      ],
+      "fired": false,
+      "elapsed_ms": 12032,
+      "outcome": "window",
+      "branch": "base"
+    },
+    {
+      "id": "674ea04777bb4103ad087feaa0a2b521:15:2988818",
+      "status": "ok",
+      "points": 12.0,
+      "falls": 0,
+      "pickup_times_ms": [
+        1344,
+        3392,
+        4480,
+        5696,
+        6720,
+        8256,
+        9472,
+        10112,
+        11136
+      ],
+      "fired": false,
+      "elapsed_ms": 12032,
+      "outcome": "window",
+      "branch": "no_use"
+    },
+    {
+      "id": "674ea04777bb4103ad087feaa0a2b521:15:2988818",
+      "status": "ok",
+      "points": 14.0,
+      "falls": 0,
+      "pickup_times_ms": [
+        1344,
+        2304,
+        3328,
+        4608,
+        5632,
+        7168,
+        8384,
+        9024,
+        10048,
+        11584
+      ],
+      "fired": true,
+      "elapsed_ms": 12032,
+      "outcome": "window",
+      "branch": "force"
+    },
+    {
+      "id": "674ea04777bb4103ad087feaa0a2b521:15:2988818",
+      "status": "ok",
+      "points": 12.0,
+      "falls": 0,
+      "pickup_times_ms": [
+        1344,
+        3392,
+        4480,
+        5696,
+        6720,
+        8256,
+        9472,
+        10112,
+        11136
+      ],
+      "fired": false,
+      "elapsed_ms": 12032,
+      "outcome": "window",
+      "branch": "learned"
+    },
+    {
+      "id": "674ea04777bb4103ad087feaa0a2b521:20:3826066",
+      "status": "ok",
+      "points": 11.0,
+      "falls": 0,
+      "pickup_times_ms": [
+        1472,
+        3712,
+        4736,
+        6208,
+        7424,
+        8512,
+        9600,
+        11008
+      ],
+      "fired": false,
+      "elapsed_ms": 12032,
+      "outcome": "window",
+      "branch": "base"
+    },
+    {
+      "id": "674ea04777bb4103ad087feaa0a2b521:20:3826066",
+      "status": "ok",
+      "points": 11.0,
+      "falls": 0,
+      "pickup_times_ms": [
+        1472,
+        3712,
+        4736,
+        6208,
+        7424,
+        8512,
+        9600,
+        11008
+      ],
+      "fired": false,
+      "elapsed_ms": 12032,
+      "outcome": "window",
+      "branch": "no_use"
+    },
+    {
+      "id": "674ea04777bb4103ad087feaa0a2b521:20:3826066",
+      "status": "ok",
+      "points": 9.0,
+      "falls": 0,
+      "pickup_times_ms": [
+        1472,
+        4032,
+        5376,
+        6912,
+        8448,
+        9472,
+        10688
+      ],
+      "fired": false,
+      "elapsed_ms": 12032,
+      "outcome": "window",
+      "branch": "force"
+    },
+    {
+      "id": "674ea04777bb4103ad087feaa0a2b521:20:3826066",
+      "status": "ok",
+      "points": 11.0,
+      "falls": 0,
+      "pickup_times_ms": [
+        1472,
+        3712,
+        4736,
+        6208,
+        7424,
+        8512,
+        9600,
+        11008
+      ],
+      "fired": false,
+      "elapsed_ms": 12032,
+      "outcome": "window",
+      "branch": "learned"
+    },
+    {
+      "id": "674ea04777bb4103ad087feaa0a2b521:20:3882514",
+      "status": "ok",
+      "points": 10.0,
+      "falls": 0,
+      "pickup_times_ms": [
+        1472,
+        3392,
+        5312,
+        6400,
+        7872,
+        9280,
+        10496,
+        11072
+      ],
+      "fired": false,
+      "elapsed_ms": 12032,
+      "outcome": "window",
+      "branch": "base"
+    },
+    {
+      "id": "674ea04777bb4103ad087feaa0a2b521:20:3882514",
+      "status": "ok",
+      "points": 10.0,
+      "falls": 0,
+      "pickup_times_ms": [
+        1472,
+        3392,
+        5312,
+        6400,
+        7872,
+        9280,
+        10496,
+        11072
+      ],
+      "fired": false,
+      "elapsed_ms": 12032,
+      "outcome": "window",
+      "branch": "no_use"
+    },
+    {
+      "id": "674ea04777bb4103ad087feaa0a2b521:20:3882514",
+      "status": "ok",
+      "points": 10.0,
+      "falls": 0,
+      "pickup_times_ms": [
+        1472,
+        2304,
+        6016,
+        7168,
+        8576,
+        9920,
+        11136,
+        11712
+      ],
+      "fired": true,
+      "elapsed_ms": 12032,
+      "outcome": "window",
+      "branch": "force"
+    },
+    {
+      "id": "674ea04777bb4103ad087feaa0a2b521:20:3882514",
+      "status": "ok",
+      "points": 10.0,
+      "falls": 0,
+      "pickup_times_ms": [
+        1472,
+        3392,
+        5312,
+        6400,
+        7872,
+        9280,
+        10496,
+        11072
+      ],
+      "fired": false,
+      "elapsed_ms": 12032,
+      "outcome": "window",
+      "branch": "learned"
+    },
+    {
+      "id": "674ea04777bb4103ad087feaa0a2b521:21:3988050",
+      "status": "ok",
+      "points": 12.0,
+      "falls": 0,
+      "pickup_times_ms": [
+        576,
+        1728,
+        2816,
+        4288,
+        5696,
+        6336,
+        7104,
+        8576,
+        10048
+      ],
+      "fired": false,
+      "elapsed_ms": 12032,
+      "outcome": "window",
+      "branch": "base"
+    },
+    {
+      "id": "674ea04777bb4103ad087feaa0a2b521:21:3988050",
+      "status": "ok",
+      "points": 12.0,
+      "falls": 0,
+      "pickup_times_ms": [
+        576,
+        1728,
+        2816,
+        4288,
+        5696,
+        6336,
+        7104,
+        8576,
+        10048
+      ],
+      "fired": false,
+      "elapsed_ms": 12032,
+      "outcome": "window",
+      "branch": "no_use"
+    },
+    {
+      "id": "674ea04777bb4103ad087feaa0a2b521:21:3988050",
+      "status": "ok",
+      "points": 12.0,
+      "falls": 0,
+      "pickup_times_ms": [
+        576,
+        1728,
+        2816,
+        4288,
+        5696,
+        6336,
+        7104,
+        8576,
+        10048
+      ],
+      "fired": false,
+      "elapsed_ms": 12032,
+      "outcome": "window",
+      "branch": "force"
+    },
+    {
+      "id": "674ea04777bb4103ad087feaa0a2b521:21:3988050",
+      "status": "ok",
+      "points": 12.0,
+      "falls": 0,
+      "pickup_times_ms": [
+        576,
+        1728,
+        2816,
+        4288,
+        5696,
+        6336,
+        7104,
+        8576,
+        10048
+      ],
+      "fired": false,
+      "elapsed_ms": 12032,
+      "outcome": "window",
+      "branch": "learned"
+    },
+    {
+      "id": "674ea04777bb4103ad087feaa0a2b521:22:4285330",
+      "status": "ok",
+      "points": 12.0,
+      "falls": 0,
+      "pickup_times_ms": [
+        1472,
+        3520,
+        4608,
+        5824,
+        6848,
+        8448,
+        9600,
+        10880,
+        11520
+      ],
+      "fired": false,
+      "elapsed_ms": 12032,
+      "outcome": "window",
+      "branch": "base"
+    },
+    {
+      "id": "674ea04777bb4103ad087feaa0a2b521:22:4285330",
+      "status": "ok",
+      "points": 12.0,
+      "falls": 0,
+      "pickup_times_ms": [
+        1472,
+        3520,
+        4608,
+        5824,
+        6848,
+        8448,
+        9600,
+        10880,
+        11520
+      ],
+      "fired": false,
+      "elapsed_ms": 12032,
+      "outcome": "window",
+      "branch": "no_use"
+    },
+    {
+      "id": "674ea04777bb4103ad087feaa0a2b521:22:4285330",
+      "status": "ok",
+      "points": 13.0,
+      "falls": 0,
+      "pickup_times_ms": [
+        1472,
+        2432,
+        3456,
+        4736,
+        5760,
+        7360,
+        8576,
+        9728,
+        10432,
+        12032
+      ],
+      "fired": true,
+      "elapsed_ms": 12032,
+      "outcome": "window",
+      "branch": "force"
+    },
+    {
+      "id": "674ea04777bb4103ad087feaa0a2b521:22:4285330",
+      "status": "ok",
+      "points": 12.0,
+      "falls": 0,
+      "pickup_times_ms": [
+        1472,
+        3520,
+        4608,
+        5824,
+        6848,
+        8448,
+        9600,
+        10880,
+        11520
+      ],
+      "fired": false,
+      "elapsed_ms": 12032,
+      "outcome": "window",
+      "branch": "learned"
+    }
+  ],
+  "summary": {
+    "attempts": 72,
+    "paired_n": 18,
+    "paired_ids": [
+      "2ec9a6528a5d4e149e790dbcd860f5c6:17:3245748",
+      "2ec9a6528a5d4e149e790dbcd860f5c6:7:1374004",
+      "674ea04777bb4103ad087feaa0a2b521:15:2988818",
+      "674ea04777bb4103ad087feaa0a2b521:20:3826066",
+      "674ea04777bb4103ad087feaa0a2b521:20:3882514",
+      "674ea04777bb4103ad087feaa0a2b521:21:3988050",
+      "674ea04777bb4103ad087feaa0a2b521:22:4285330",
+      "674ea04777bb4103ad087feaa0a2b521:3:599890",
+      "7c7257790495415d950ea4ef8d9a5f74:17:3351330",
+      "7cfb5598d5ea4bdf9a5725dafcd7322f:16:3077680",
+      "7cfb5598d5ea4bdf9a5725dafcd7322f:6:1166512",
+      "89b2e0c997d34377a8fd82f46065afa2:21:3972596",
+      "e75e1fcfb38d49dbb801d922c880f327:13:2499814",
+      "e75e1fcfb38d49dbb801d922c880f327:16:3088806",
+      "e75e1fcfb38d49dbb801d922c880f327:17:3224934",
+      "e75e1fcfb38d49dbb801d922c880f327:20:3828966",
+      "e75e1fcfb38d49dbb801d922c880f327:6:1147174",
+      "e75e1fcfb38d49dbb801d922c880f327:6:1238566"
+    ],
+    "failed": [],
+    "comparisons": {
+      "base-no_use": {
+        "points": {
+          "mean": -0.2222222222222222,
+          "se": 0.22222222222222224
+        },
+        "falls": {
+          "mean": 0.05555555555555555,
+          "se": 0.05555555555555556
+        }
+      },
+      "force-no_use": {
+        "points": {
+          "mean": 0.3333333333333333,
+          "se": 0.3131121455425748
+        },
+        "falls": {
+          "mean": 0,
+          "se": 0.0
+        }
+      },
+      "learned-no_use": {
+        "points": {
+          "mean": -0.05555555555555555,
+          "se": 0.05555555555555556
+        },
+        "falls": {
+          "mean": 0,
+          "se": 0.0
+        }
+      }
+    }
+  }
+}

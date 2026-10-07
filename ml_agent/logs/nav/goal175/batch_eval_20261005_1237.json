@@ -1,0 +1,90 @@
+﻿[
+    {
+        "port":  9970,
+        "python":  44296,
+        "game":  14408,
+        "arm":  "windows_fast",
+        "tag":  "eval_20261005_1237_windows_fast",
+        "kind":  "windows",
+        "checkpoint":  "models/nav/nav_goal175_fast_29360.pth",
+        "checkpoint_sha256":  "85fdf6858536af79a4cbf8997c910ac115a968d0ef4c13012a65ff332ec7b73e",
+        "output":  "logs\\nav\\goal175\\eval_20261005_1237_windows_fast"
+    },
+    {
+        "port":  9971,
+        "python":  32700,
+        "game":  4008,
+        "arm":  "windows_seed",
+        "tag":  "eval_20261005_1237_windows_seed",
+        "kind":  "windows",
+        "checkpoint":  "models/nav/ss_fast_20261005/seed.pth",
+        "checkpoint_sha256":  "86019653081af32571cfe57776a9dbe79aafbf8955fe51bff80746da3ac05315",
+        "output":  "logs\\nav\\goal175\\eval_20261005_1237_windows_seed"
+    },
+    {
+        "port":  9972,
+        "python":  43972,
+        "game":  11848,
+        "arm":  "fast_learned",
+        "tag":  "eval_20261005_1237_fast_learned",
+        "kind":  "rounds",
+        "checkpoint":  "models/nav/nav_goal175_fast_29360.pth",
+        "checkpoint_sha256":  "85fdf6858536af79a4cbf8997c910ac115a968d0ef4c13012a65ff332ec7b73e",
+        "output":  "logs\\nav\\goal175\\eval_20261005_1237_fast_learned"
+    },
+    {
+        "port":  9973,
+        "python":  40532,
+        "game":  35084,
+        "arm":  "fast_no_use",
+        "tag":  "eval_20261005_1237_fast_no_use",
+        "kind":  "rounds",
+        "checkpoint":  "models/nav/nav_goal175_fast_29360.pth",
+        "checkpoint_sha256":  "85fdf6858536af79a4cbf8997c910ac115a968d0ef4c13012a65ff332ec7b73e",
+        "output":  "logs\\nav\\goal175\\eval_20261005_1237_fast_no_use"
+    },
+    {
+        "port":  9974,
+        "python":  38436,
+        "game":  14500,
+        "arm":  "main29225_learned",
+        "tag":  "eval_20261005_1237_main29225_learned",
+        "kind":  "rounds",
+        "checkpoint":  "models/nav/nav_points_20261005_029225.pth",
+        "checkpoint_sha256":  "3ed72711c44918b08a9658d37a245b741163be51b2d6c028eec239d39cf317c8",
+        "output":  "logs\\nav\\goal175\\eval_20261005_1237_main29225_learned"
+    },
+    {
+        "port":  9975,
+        "python":  28988,
+        "game":  49008,
+        "arm":  "main29325_learned",
+        "tag":  "eval_20261005_1237_main29325_learned",
+        "kind":  "rounds",
+        "checkpoint":  "models/nav/nav_points_20261005_029325.pth",
+        "checkpoint_sha256":  "179c78be91dfb48c4544f66c270d6f4f7e5ed328c515070460397bbb34264cc6",
+        "output":  "logs\\nav\\goal175\\eval_20261005_1237_main29325_learned"
+    },
+    {
+        "port":  9976,
+        "python":  39708,
+        "game":  22744,
+        "arm":  "main29375_learned",
+        "tag":  "eval_20261005_1237_main29375_learned",
+        "kind":  "rounds",
+        "checkpoint":  "models/nav/nav_points_20261005_029375.pth",
+        "checkpoint_sha256":  "22806cc38ceb0bc399e3a3e6b6c6e9423fea30d34409a3b5cdfbf465021a5363",
+        "output":  "logs\\nav\\goal175\\eval_20261005_1237_main29375_learned"
+    },
+    {
+        "port":  9977,
+        "python":  35224,
+        "game":  41232,
+        "arm":  "base_no_use",
+        "tag":  "eval_20261005_1237_base_no_use",
+        "kind":  "rounds",
+        "checkpoint":  "models/nav/nav_v10_28897.pth",
+        "checkpoint_sha256":  "539e2641319052460514c1838ebf1bc23956c5ea4cb314078b9a46bb9d738883",
+        "output":  "logs\\nav\\goal175\\eval_20261005_1237_base_no_use"
+    }
+]

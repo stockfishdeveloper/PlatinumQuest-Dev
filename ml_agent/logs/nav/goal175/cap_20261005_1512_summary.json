@@ -1,0 +1,95 @@
+{
+ "stamp": "cap_20261005_1512",
+ "arms": {
+  "learned": {
+   "n": 64,
+   "mean": 161.984375,
+   "se": 0.5715181795130307,
+   "best": 171.0,
+   "falls_per_round": 0.703125,
+   "fires_per_round": 0.59375,
+   "falls_within_3s_of_kick": 1,
+   "completed": 64,
+   "over_175": [],
+   "duplicate_games": false
+  },
+  "base_no_use": {
+   "n": 64,
+   "mean": 160.296875,
+   "se": 0.5301802663541422,
+   "best": 169.0,
+   "falls_per_round": 0.90625,
+   "fires_per_round": 0.0,
+   "falls_within_3s_of_kick": 0,
+   "completed": 64,
+   "over_175": [],
+   "duplicate_games": false
+  },
+  "force24": {
+   "n": 64,
+   "mean": 161.78125,
+   "se": 0.628943412771176,
+   "best": 172.0,
+   "falls_per_round": 0.9375,
+   "fires_per_round": 0.796875,
+   "falls_within_3s_of_kick": 6,
+   "completed": 64,
+   "over_175": [],
+   "duplicate_games": false
+  },
+  "force_nocap": {
+   "n": 64,
+   "mean": 150.5,
+   "se": 0.7220314155764728,
+   "best": 165.0,
+   "falls_per_round": 3.125,
+   "fires_per_round": 5.34375,
+   "falls_within_3s_of_kick": 79,
+   "completed": 64,
+   "over_175": [],
+   "duplicate_games": false
+  }
+ },
+ "comparisons": {
+  "learned-base_no_use": {
+   "diff": 1.6875,
+   "se": 0.7795666388098186,
+   "ci95": [
+    0.15954938793275564,
+    3.2154506120672446
+   ]
+  },
+  "force24-base_no_use": {
+   "diff": 1.484375,
+   "se": 0.8225940258107903,
+   "ci95": [
+    -0.12790929058914902,
+    3.096659290589149
+   ]
+  },
+  "force_nocap-base_no_use": {
+   "diff": -9.796875,
+   "se": 0.8957792584731543,
+   "ci95": [
+    -11.552602346607383,
+    -8.041147653392617
+   ]
+  },
+  "force24-learned": {
+   "diff": -0.203125,
+   "se": 0.8498251855423813,
+   "ci95": [
+    -1.8687823636630674,
+    1.4625323636630674
+   ]
+  },
+  "force_nocap-force24": {
+   "diff": -11.28125,
+   "se": 0.9575485269936032,
+   "ci95": [
+    -13.158045112907462,
+    -9.404454887092538
+   ]
+  }
+ }
+}
