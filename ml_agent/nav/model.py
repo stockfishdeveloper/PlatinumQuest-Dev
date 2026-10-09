@@ -115,6 +115,30 @@ JUMP_PRIOR = 8.5            # 6.0 -> 8.5 on 2026-09-24 (HANDOFF 28.34): with the
                             # (superseded) logit bonus (-7 -> -1 = 27 % per decision at a gap edge)
 JUMP_PRIOR_DIST = 2.5       # edge within this many u along the line to the waypoint
 JUMP_PRIOR_DROP = -0.15     # ray "beyond" value below this = a drop of > 1.5 u or void
+JUMP_EXPLORE_P = float(os.environ.get('NAV_JUMP_EXPLORE_P', '0.01'))   # 2026-10-07: sampling-time floor on the jump probability where it is safe (see heads); 0 = off.
+                            # NAV_JUMP_EXPLORE_P / NAV_JUMP_EXPLORE_P_RISE (10-08 13:30): evaluation-only overrides, so a check can run the pure policy.
+                            # 0.03 -> 0.01 on 10-08 00:05 (operator, "reason 1"): most random jumps mid-floor earn nothing and
+                            # pull the head down; the exploration moves to where a rise is ahead:
+JUMP_EXPLORE_BONUS = float(os.environ.get('NAV_JUMP_EXPLORE_BONUS', '0.0'))   # 1.0 -> 0.0 on 10-08 22:00 (operator): the moving case is over-learned (40 % of decisions above threshold); only the forced stall samples (0.03) stay   # 3.0 -> 1.0 on 10-08 21:40 (anneal step 1: the policy jumps on 40 % of decisions by itself and over-jumps at clusters, operator)   # 10-08 13:40: sampling-only LOGIT bonus where a rise (wall /
+                            # box side) is within JUMP_EXPLORE_RISE_U along the heading (replaces the 0.15/0.30 mixture, see heads);
+                            # anneal 3 -> 2 -> 1 -> 0 at the checks; evaluations run 0.
+JUMP_EXPLORE_P_RISE = 0.0   # (retired 10-08 13:40; the mixture at rises starved the head, see JUMP_EXPLORE_BONUS)
+JUMP_FORCE_P = float(os.environ.get('NAV_JUMP_FORCE_P', '0.03'))   # 0.10 -> 0.03 (10-08 21:40) -> 0.0 (10-09 00:30) -> back to 0.03 (10-09 03:10): at 0 the stall logits collapsed within 2.5 h (75 % -> 3 % above 0, held-out 108.9 -> 101.8, breaks 3 -> 13): the stopped case still needs the floor   # 10-08 15:55: forced jump sample probability where slow at a rise (see act); evaluations 0
+JUMP_FORCE_SPEED = 2.0      # u/s: 'slow' for the forced samples (the stopped-at-a-box case)
+JUMP_DET_THRESHOLD = float(os.environ.get('NAV_JUMP_DET_THRESHOLD', '0.5'))   # 10-08 22:40: deterministic-play jump threshold (evaluation/viewing knob, operator: 'simulate jumping less'); 0.5 = unchanged
+                            # 0.15 -> 0.30 on 10-08 07:25 (overnight mandate): the held-out score sat at 46-47 for three
+                            # checks and the head's rise slowed; more positive jump samples at rises, KOTM unaffected
+                            # (the nudge cannot fire on 0 % of its floor)
+JUMP_EXPLORE_RISE_U = 2.5   # u
+JUMP_EXPLORE_RISE_DZ = 0.03 # edge_dz (/ DZ_SCALE) above this = a rise of 0.3 u or more
+JUMP_EXPLORE_CLEAR_U = 10.0 # u: no edge with a drop beyond it within this along any of the 16 ray headings. 4.0 until
+                            # 10-07 21:40: KOTM fell 166.5 -> 160.3 -> 152.2 in 4 h with training falls 3 -> 8 a round (the
+                            # nudge's jumps near holes); at 10 u the nudge almost never fires on KOTM (holes everywhere)
+                            # and always fires on the flat cluster maps (rays run the full 20 u). Map-agnostic rule.
+JUMP_EXPLORE_DROP = -0.3    # edge_dz (/ DZ_SCALE) below this counts as a dangerous drop for the nudge (void reads -1; a 0.5-1.5 u box step reads -0.05..-0.15)
+JUMP_FORCE_CLEAR_U = 3.0    # u: the FORCED STALL samples' own clearance (2026-10-09, Phase R part 4). A hop from under
+                            # JUMP_FORCE_SPEED (2 u/s) lands within ~1.5 u, so a drop 3 u away cannot matter; the 10 u
+                            # rule above kept every stall beside a drop untrained (ExampleMission's ledges, log 40.75).
 JUMP_PRIOR_SPEED = 1.5      # u/s (was 2.0: braking dropped the marble under the gate and it rolled off)
 JUMP_LANDING_MAX = 4.5      # a landing within this many u beyond the edge (fine crop, 0.5 u cells) = crossable
 JUMP_LANDING_DZ = 0.15      # landing height within +/-1.5 u of the current floor (crop units are /10)
@@ -392,7 +416,58 @@ class NavActorCritic(nn.Module):
         # 28.35: the prior is added AFTER the clamp, so the head cannot cancel it by going more negative (it
         # had reached ~-12 against a +8.5 prior). An approved gap now sits at >= -7 + 8.5 = +1.5: ~82 % sampled
         # in training and a jump in deterministic play. The policy's job is the approach, not the decision.
-        jump = torch.clamp(self.jump_head(h).squeeze(-1) - JUMP_DAMP, -7.0, 3.0) + gp * JUMP_PRIOR
+        jump_raw = self.jump_head(h).squeeze(-1) - JUMP_DAMP
+        self.last_jump_raw = jump_raw.detach()          # 10-08 15:10: pre-clamp head output, read by real_run's trace (diagnostic)
+        # 10-08 15:55 (log 40.67): the LOWER clamp is gone. Check 8's trace showed the raw head below -7 on 88 % of decisions
+        # and 99 % of stalls (median -38 stopped at a box side); torch.clamp passes no gradient there, so no exploration
+        # of any form could teach the head the stopped-at-a-box case. Below -7 the sampled probability is < 0.001 either
+        # way and deterministic play (> 0.5) is unchanged, so only the gradient changes. The upper clamp stays.
+        jump = torch.clamp(jump_raw, max=3.0) + gp * JUMP_PRIOR
+        # 2026-10-07 (operator: "jump nudge is fine"; GENERALIZATION_PLAN skill 4, the discovery run): the head has learned
+        # 'never' (~-7, one press in a thousand), so on a map where the gems sit on boxes the jump would almost never be
+        # tried. JUMP_EXPLORE_P floors the SAMPLING probability of a jump wherever it is safe: on the floor, and no edge ray
+        # ends within JUMP_EXPLORE_CLEAR_U with a drop beyond it. The floor is part of the distribution (act and evaluate_seq
+        # see the same logits), so PPO's ratio stays exact. Deterministic play (sigmoid > 0.5) is untouched.
+        self.last_force_mask = None
+        if JUMP_EXPLORE_P > 0.0 or JUMP_EXPLORE_BONUS != 0.0 or JUMP_FORCE_P > 0.0:
+            rays = vec[:, 10:10 + 32].reshape(-1, 16, 2)                      # (B, 16, [edge_dist/RAY_RANGE, edge_dz])
+            near_drop = ((rays[..., 0] < JUMP_EXPLORE_CLEAR_U / 20.0) & (rays[..., 1] < JUMP_EXPLORE_DROP)).any(dim=1)   # deep drops only: a box step down is fine
+            safe = (vec[:, VEC_ON_FLOOR] > 0.5) & ~near_drop
+            # 21:40 FIX (check 2, log 40.64): the first version floored the LOGIT with torch.maximum, which passes no
+            # gradient to the head while the head sits below the floor, so the nudged jumps could never teach it (4 h
+            # flat). Now the mixture form the brake floor uses: p = p_learn + eps (1 - p_learn) where safe, returned as
+            # the exact logit, so the gradient always flows through p_learn.
+            # 10-08 00:05 (operator: "do reason 1"): explore the jump mostly where it can pay. A RISE ahead (edge_dz > 0:
+            # a wall or a box side) within JUMP_EXPLORE_RISE_U along the heading (velocity, or the goal direction when slow)
+            # gets JUMP_EXPLORE_P_RISE; the rest of the safe floor gets JUMP_EXPLORE_P. Rays are 16 fixed headings from +x
+            # every 22.5 deg: the heading's ray and its two neighbours are checked. Exploration only: nothing deterministic.
+            hx = torch.where(vec[:, VEC_SPEED] * 20.0 > 1.0, vec[:, 4], vec[:, 0])
+            hy = torch.where(vec[:, VEC_SPEED] * 20.0 > 1.0, vec[:, 5], vec[:, 1])
+            ridx = torch.round(torch.atan2(hy, hx) / (2.0 * math.pi / 16)).long() % 16
+            ar = torch.arange(rays.shape[0], device=rays.device)
+            rise = torch.zeros_like(safe)
+            for off in (-1, 0, 1):
+                k = (ridx + off) % 16
+                rise = rise | ((rays[ar, k, 0] < JUMP_EXPLORE_RISE_U / 20.0) & (rays[ar, k, 1] > JUMP_EXPLORE_RISE_DZ))
+            # 10-08 13:40 (log 40.66): the MIXTURE form starves the head. With p = p_learn + eps (1 - p_learn) the gradient of
+            # log p w.r.t. the head logit is (1 - eps) p_learn (1 - p_learn) / p: 0.36 at eps 0.03 but 0.04 at eps 0.30, so the
+            # more exploration, the less the head learns, and after 10 h the pure policy still jumped on 0.2 % of decisions
+            # (every held-out gain was the exploration sampled inside the stuck-breaker's detours). Now a LOGIT BONUS at rises,
+            # sampling only: p = sigmoid(logit + JUMP_EXPLORE_BONUS) there, gradient (1 - p) = 0.73 at a +3 bonus. The bonus is
+            # annealed by hand at the checks (3 -> 2 -> 1 -> 0) as the pure policy's jump rate at box sides rises; NAV_JUMP_EXPLORE_BONUS
+            # overrides it (evaluations run it at 0, so the checks measure the policy, breaker detours included). The plain-floor
+            # mixture (JUMP_EXPLORE_P) stays tiny; deterministic play reads the raw head, never the bonus.
+            jump = jump + (rise & safe).float() * JUMP_EXPLORE_BONUS
+            near_drop_stall = ((rays[..., 0] < JUMP_FORCE_CLEAR_U / 20.0) & (rays[..., 1] < JUMP_EXPLORE_DROP)).any(dim=1)
+            safe_stall = (vec[:, VEC_ON_FLOOR] > 0.5) & ~near_drop_stall
+            self.last_force_mask = (rise & safe_stall & (vec[:, VEC_SPEED] * 20.0 < JUMP_FORCE_SPEED)).detach()
+            if JUMP_EXPLORE_P > 0.0:
+                # only the plain-floor rows go through the mixture; the others keep the raw logit (the mixture's 1e-6 clamp
+                # turned a -31 logit into a constant and zeroed the gradient of the forced samples, 10-08 16:05)
+                mix = safe & ~rise
+                pj_learn = torch.sigmoid(jump)
+                pj = (pj_learn + JUMP_EXPLORE_P * (1.0 - pj_learn)).clamp(1e-6, 1.0 - 1e-6)
+                jump = torch.where(mix, torch.log(pj) - torch.log1p(-pj), jump)
         brake_l = torch.clamp(self.brake_head(h).squeeze(-1) - gp * BRAKE_SUPPRESS, -7.0, 3.0) + res[..., 2]
         if not BRAKE_ENABLED:
             brake_l = torch.full_like(brake_l, -20.0)
@@ -445,12 +520,20 @@ class NavActorCritic(nn.Module):
         mean_xy, thr, jump, brake, use, vn, use_det, std_mult, brake_det = self.heads(h1, vec, crop)
         d_dir, d_thr, d_jump, d_brake, d_use = self.dists(mean_xy, thr, jump, brake, use, std_mult)
         if deterministic:
-            direction = d_dir.mean; thr_s = thr; j = (torch.sigmoid(jump) > 0.5).float(); b = brake_det   # 40.31: learned part
+            direction = d_dir.mean; thr_s = thr; j = (torch.sigmoid(jump) > JUMP_DET_THRESHOLD).float(); b = brake_det   # 40.31: learned part
             u = use_det                           # 40.26: the learned preference, not the exploration mixture
             if self.JUMP_ON_PRIOR and crop is not None:
                 j = torch.maximum(j, self.gap_prior(crop, vec))
         else:
             direction = d_dir.sample(); thr_s = d_thr.sample(); j = d_jump.sample(); b = d_brake.sample(); u = d_use.sample()
+            # 10-08 15:55: FORCED jump samples where the marble is slow at a rise (the stopped-at-a-box case the head has
+            # never learned: raw logit ~-38 there, so neither a bonus nor a mixture ever samples it). With probability
+            # JUMP_FORCE_P the jump is set regardless of the head; the log-prob below is the POLICY's own for that action, so
+            # the PPO update pushes the head with full strength (1 - p ~ 1) when the forced jump pays. Off-policy by design,
+            # sampling only, never on deterministic play; the mask cannot fire on KOTM's floor (no rises).
+            if JUMP_FORCE_P > 0.0 and getattr(self, 'last_force_mask', None) is not None:
+                fm = self.last_force_mask & (torch.rand_like(j) < JUMP_FORCE_P)
+                j = torch.where(fm, torch.ones_like(j), j)
         logp = d_dir.log_prob(direction).sum(-1) + d_thr.log_prob(thr_s) + d_jump.log_prob(j) + d_brake.log_prob(b) + d_use.log_prob(u)
         throttle = self.THROTTLE_FLOOR + (1 - self.THROTTLE_FLOOR) * torch.sigmoid(thr_s)
         action_buf = torch.stack([direction[:, 0], direction[:, 1], thr_s, j, b, u], dim=1)

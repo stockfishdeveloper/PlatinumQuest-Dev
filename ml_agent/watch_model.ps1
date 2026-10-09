@@ -14,6 +14,7 @@ $pq = [System.IO.Path]::GetFullPath((Join-Path $ml "..\Marble Blast Platinum"))
 $py = "C:\Users\doug\AppData\Local\Programs\Python\Python39\python.exe"
 $port = 9961
 $out = Join-Path $ml "logs\learned_nav\rr_watch_$Map.txt"
+$scratch = Join-Path $env:TEMP 'pq_checks'; New-Item -ItemType Directory -Force $scratch | Out-Null   # stderr outside the repo (operator, 2026-10-09)
 # The runner's settings go to its process only; the old values come back right after it starts.
 $set = @{ NAV_WATCH = "1"; NAV_SPEED = "1"; NAV_VIEW_SUBSTEPS = "4"; NAV_ROUNDS = "50"; NAV_PORT = "$port";
           NAV_MAP = $Map; NAV_CKPT = "models/nav/nav_latest.pth"; NAV_TOUR = "walk"; NAV_TAG = "watch_$Map";
@@ -25,7 +26,7 @@ foreach ($k in $set.Keys) {
 }
 try {
     $runner = Start-Process -FilePath $py -ArgumentList @("-u", "-m", "nav.real_run") -WorkingDirectory $ml `
-        -RedirectStandardOutput $out -RedirectStandardError "$out.err" -PassThru -WindowStyle Hidden
+        -RedirectStandardOutput $out -RedirectStandardError (Join-Path $scratch "rr_watch_$Map.err") -PassThru -WindowStyle Hidden
 } finally {
     foreach ($k in $set.Keys) { [Environment]::SetEnvironmentVariable($k, $old[$k], "Process") }
 }

@@ -1,0 +1,92 @@
+[00:26:25] resumed C:\Users\doug\OneDrive\Documents\GitHub\PlatinumQuest-Dev\ml_agent\models\nav\nav_latest.pth: update 36300, steps 288,588,979, trained on BlockClusters_v0_Hunt
+[00:26:26] 8 instance worker(s) on ports 8888..8895; training mode True (64 ms per decision); arrive radius 0.65 u; device cuda
+[00:26:38] [0] [env:8888] waiting for the game
+[00:26:38] [0] [env:8888] game connected (1)
+[00:26:38] [0] real-gem training mode: True
+[00:26:38] [0] mission BlockClusters_v0_Hunt: terrain 405x405 @ 0.25 u, walkable 9957 cells
+[00:26:38] [0] gem chooser: whole-spawn planner (walk)
+[00:26:38] [0] ready on 8888, mission BlockClusters_v0_Hunt
+[00:26:40] [1] [env:8889] waiting for the game
+[00:26:40] [1] [env:8889] game connected (1)
+[00:26:40] [1] real-gem training mode: True
+[00:26:40] [1] mission BlockClusters_v1_Hunt: terrain 405x405 @ 0.25 u, walkable 9936 cells
+[00:26:40] [1] gem chooser: whole-spawn planner (walk)
+[00:26:40] [1] ready on 8889, mission BlockClusters_v1_Hunt
+[00:26:43] [2] [env:8890] waiting for the game
+[00:26:43] [2] [env:8890] game connected (1)
+[00:26:43] [2] real-gem training mode: True
+[00:26:43] [2] mission BlockClusters_v2_Hunt: terrain 405x405 @ 0.25 u, walkable 9925 cells
+[00:26:43] [2] gem chooser: whole-spawn planner (walk)
+[00:26:43] [2] ready on 8890, mission BlockClusters_v2_Hunt
+[00:26:45] [3] [env:8891] waiting for the game
+[00:26:45] [3] [env:8891] game connected (1)
+[00:26:45] [3] real-gem training mode: True
+[00:26:45] [3] mission BlockClusters_v3_Hunt: terrain 405x405 @ 0.25 u, walkable 9922 cells
+[00:26:45] [3] gem chooser: whole-spawn planner (walk)
+[00:26:45] [3] ready on 8891, mission BlockClusters_v3_Hunt
+[00:26:47] [4] [env:8892] waiting for the game
+[00:26:47] [4] [env:8892] game connected (1)
+[00:26:47] [4] real-gem training mode: True
+[00:26:47] [4] mission BlockClusters_v4_Hunt: terrain 405x405 @ 0.25 u, walkable 9944 cells
+[00:26:47] [4] gem chooser: whole-spawn planner (walk)
+[00:26:47] [4] ready on 8892, mission BlockClusters_v4_Hunt
+[00:26:49] [5] [env:8893] waiting for the game
+[00:26:49] [5] [env:8893] game connected (1)
+[00:26:49] [5] real-gem training mode: True
+[00:26:49] [5] mission BlockClusters_v5_Hunt: terrain 405x405 @ 0.25 u, walkable 9926 cells
+[00:26:49] [5] gem chooser: whole-spawn planner (walk)
+[00:26:49] [5] ready on 8893, mission BlockClusters_v5_Hunt
+[00:26:51] [6] [env:8894] waiting for the game
+[00:26:51] [6] [env:8894] game connected (1)
+[00:26:51] [6] real-gem training mode: True
+[00:26:51] [6] mission KingOfTheMarble_Hunt: terrain 193x193 @ 0.25 u, walkable 1452 cells
+[00:26:51] [6] gem chooser: whole-spawn planner (walk)
+[00:26:51] [6] ready on 8894, mission KingOfTheMarble_Hunt
+[00:26:51] [7] [env:8895] waiting for the game
+[00:26:51] [7] [env:8895] game connected (1)
+[00:26:51] [7] real-gem training mode: True
+[00:26:51] [7] mission KingOfTheMarble_Hunt: terrain 193x193 @ 0.25 u, walkable 1452 cells
+[00:26:51] [7] gem chooser: whole-spawn planner (walk)
+[00:26:51] [7] ready on 8895, mission KingOfTheMarble_Hunt
+[00:27:01] [7] fall without OOB flag: 5 decisions off the map at [-27.   14.7  12.8] (time left 155s)
+[00:27:04] [6] fall without OOB flag: 5 decisions off the map at [-22.7  18.2  12.6] (time left 147s)
+[00:27:21] MAPS BlockClusters_v0_Hunt: n=1 arrive=0% falls100=0.00 speed=0.0 gems=0.0/grp pickup=0.0 sgem=0.00 | BlockClusters_v1_Hunt: n=1 arrive=0% falls100=0.00 speed=0.0 gems=0.0/grp pickup=0.0 sgem=0.00 | BlockClusters_v2_Hunt: n=1 arrive=0% falls100=0.00 speed=0.0 gems=0.0/grp pickup=0.0 sgem=0.00 | BlockClusters_v3_Hunt: n=1 arrive=0% falls100=0.00 speed=0.0 gems=0.0/grp pickup=0.0 sgem=0.00 | BlockClusters_v4_Hunt: n=1 arrive=0% falls100=0.00 speed=0.0 gems=0.0/grp pickup=0.0 sgem=0.00 | BlockClusters_v5_Hunt: n=1 arrive=0% falls100=0.00 speed=0.0 gems=0.0/grp pickup=0.0 sgem=0.00 | KingOfTheMarble_Hunt: n=2 arrive=0% falls100=0.00 speed=0.0 gems=0.0/grp pickup=0.0 sgem=0.00
+[00:27:21] NAV upd=36301 map=BlockClusters_v0_Hunt+BlockClusters_v1_Hunt+BlockClusters_v2_Hunt+BlockClusters_v3_Hunt+BlockClusters_v4_Hunt+BlockClusters_v5_Hunt+KingOfTheMarble_Hunt r=0.65 steps=288,597,179 segs=0 arrive=0% falls100=0.00 speed=0.0 gems=0.0 pickup=0.0 sgem=0.00 carry=0.0 turn=0.0 rew=0.0 pl=-0.008 vl=0.217 ent=0.29 entd=0.13 ec=0.0050 kl=0.013 clip=0.07 gn=5.38 ep=3 dstd=0.22 flips=0 vcont=4.1 upd_s=3.7 wall_s=30 inst=8 dps=274 prof=fwd:12,send:1,recv:13,handle:0,w_game:18,w_obs:19,w_begin:0
+[00:27:47] [6] fall without OOB flag: 5 decisions off the map at [-12.8  12.4  12.9] (time left 52s)
+[00:27:51] MAPS BlockClusters_v0_Hunt: n=1 arrive=0% falls100=0.00 speed=0.0 gems=0.0/grp pickup=0.0 sgem=0.00 | BlockClusters_v1_Hunt: n=1 arrive=0% falls100=0.00 speed=0.0 gems=0.0/grp pickup=0.0 sgem=0.00 | BlockClusters_v2_Hunt: n=1 arrive=0% falls100=0.00 speed=0.0 gems=0.0/grp pickup=0.0 sgem=0.00 | BlockClusters_v3_Hunt: n=1 arrive=0% falls100=0.00 speed=0.0 gems=0.0/grp pickup=0.0 sgem=0.00 | BlockClusters_v4_Hunt: n=1 arrive=0% falls100=0.00 speed=0.0 gems=0.0/grp pickup=0.0 sgem=0.00 | BlockClusters_v5_Hunt: n=1 arrive=0% falls100=0.00 speed=0.0 gems=0.0/grp pickup=0.0 sgem=0.00 | KingOfTheMarble_Hunt: n=2 arrive=0% falls100=0.00 speed=0.0 gems=0.0/grp pickup=0.0 sgem=0.00
+[00:27:51] NAV upd=36302 map=BlockClusters_v0_Hunt+BlockClusters_v1_Hunt+BlockClusters_v2_Hunt+BlockClusters_v3_Hunt+BlockClusters_v4_Hunt+BlockClusters_v5_Hunt+KingOfTheMarble_Hunt r=0.65 steps=288,605,379 segs=0 arrive=0% falls100=0.00 speed=0.0 gems=0.0 pickup=0.0 sgem=0.00 carry=0.0 turn=0.0 rew=0.0 pl=-0.010 vl=0.164 ent=0.29 entd=0.13 ec=0.0050 kl=0.009 clip=0.10 gn=5.74 ep=3 dstd=0.22 flips=0 vcont=4.2 upd_s=3.0 wall_s=30 inst=8 dps=274 prof=fwd:13,send:1,recv:13,handle:0,w_game:17,w_obs:19,w_begin:0
+[00:28:12] [0] GAME map=BlockClusters_v0_Hunt points=80 gems=67 falls=0 rtf=1.7 pow=- pknone=6.2/67 rwall=0.028/2871
+[00:28:12] [0] [env:8888] round over (time left 180s of 180s); waiting for the next round
+[00:28:12] [0] [env:8888] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[00:28:12] [0] new round (game connection 1); rtf 67.6
+[00:28:12] [2] GAME map=BlockClusters_v2_Hunt points=117 gems=95 falls=0 rtf=1.8 pow=- pknone=5.3/95 rwall=0.041/2871
+[00:28:12] [2] [env:8890] round over (time left 180s of 180s); waiting for the next round
+[00:28:12] [2] [env:8890] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[00:28:12] [2] new round (game connection 1); rtf 52.5
+[00:28:12] [4] GAME map=BlockClusters_v4_Hunt points=128 gems=94 falls=0 rtf=1.8 pow=- pknone=4.7/94 rwall=0.045/2871
+[00:28:12] [4] [env:8892] round over (time left 180s of 180s); waiting for the next round
+[00:28:12] [4] [env:8892] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[00:28:12] [4] new round (game connection 1); rtf 53.3
+[00:28:12] [1] GAME map=BlockClusters_v1_Hunt points=82 gems=58 falls=0 rtf=1.8 pow=- pknone=5.5/58 rwall=0.029/2871
+[00:28:12] [1] [env:8889] round over (time left 180s of 180s); waiting for the next round
+[00:28:12] [1] [env:8889] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[00:28:12] [1] new round (game connection 1); rtf 62.8
+[00:28:12] [3] GAME map=BlockClusters_v3_Hunt points=103 gems=72 falls=0 rtf=1.8 pow=- pknone=5.1/72 rwall=0.036/2871
+[00:28:12] [3] [env:8891] round over (time left 180s of 180s); waiting for the next round
+[00:28:12] [3] [env:8891] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[00:28:12] [3] new round (game connection 1); rtf 56.4
+[00:28:12] [5] GAME map=BlockClusters_v5_Hunt points=123 gems=99 falls=0 rtf=1.8 pow=- pknone=4.8/99 rwall=0.043/2871
+[00:28:12] [5] [env:8893] round over (time left 180s of 180s); waiting for the next round
+[00:28:12] [5] [env:8893] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[00:28:12] [5] new round (game connection 1); rtf 54.6
+[00:28:12] [6] GAME map=KingOfTheMarble_Hunt points=145 gems=116 falls=5 rtf=1.8 pow=f1:1 pkon=6.8/2 pkoff=8.8/23 pknone=7.4/91 rwall=0.050/2879
+[00:28:12] [6] [env:8894] round over (time left 180s of 180s); waiting for the next round
+[00:28:12] [6] [env:8894] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[00:28:12] [6] new round (game connection 1); rtf 77.7
+[00:28:12] [7] GAME map=KingOfTheMarble_Hunt points=149 gems=119 falls=1 rtf=1.8 pow=ap2:6,f2:3,ksA:1,ksB:1,r2:6,rhit:1,rmiss:1 pkon=7.6/10 pkoff=8.0/33 pknone=7.7/76 rwfire=0.033/60 rwall=0.052/2884
+[00:28:12] [7] [env:8895] round over (time left 180s of 180s); waiting for the next round
+[00:28:12] [7] [env:8895] next round after 1 ticks / 0 s wall (time left 180s, reconnected False)
+[00:28:12] [7] new round (game connection 1); rtf 59.9
+[00:28:16] [6] fall without OOB flag: 4 decisions off the map at [-25.6  11.8  12.6] (time left 173s)
+[00:28:20] MAPS BlockClusters_v0_Hunt: n=1 arrive=0% falls100=0.00 speed=0.9 gems=67.0/grp pickup=6.2 sgem=2.64 | BlockClusters_v1_Hunt: n=1 arrive=0% falls100=0.00 speed=0.4 gems=58.0/grp pickup=5.6 sgem=3.13 | BlockClusters_v2_Hunt: n=1 arrive=0% falls100=0.00 speed=0.6 gems=95.0/grp pickup=5.5 sgem=1.91 | BlockClusters_v3_Hunt: n=1 arrive=0% falls100=0.00 speed=0.5 gems=72.0/grp pickup=5.3 sgem=2.52 | BlockClusters_v4_Hunt: n=1 arrive=0% falls100=0.00 speed=0.6 gems=94.0/grp pickup=4.9 sgem=1.91 | BlockClusters_v5_Hunt: n=1 arrive=0% falls100=0.00 speed=0.6 gems=99.0/grp pickup=5.1 sgem=1.80 | KingOfTheMarble_Hunt: n=2 arrive=0% falls100=0.33 speed=7.4 gems=117.5/grp pickup=7.4 sgem=1.55
+[00:28:20] NAV upd=36303 map=BlockClusters_v0_Hunt+BlockClusters_v1_Hunt+BlockClusters_v2_Hunt+BlockClusters_v3_Hunt+BlockClusters_v4_Hunt+BlockClusters_v5_Hunt+KingOfTheMarble_Hunt r=0.65 steps=288,613,579 segs=8 arrive=0% falls100=0.08 speed=2.3 gems=90.0 pickup=5.9 sgem=2.12 carry=0.0 turn=19.2 rew=115.9 pl=-0.008 vl=0.286 ent=0.29 entd=0.13 ec=0.0051 kl=0.010 clip=0.09 gn=6.99 ep=3 dstd=0.22 flips=0 vcont=4.6 upd_s=3.3 wall_s=30 inst=8 dps=274 prof=fwd:13,send:1,recv:13,handle:0,w_game:21,w_obs:18,w_begin:0

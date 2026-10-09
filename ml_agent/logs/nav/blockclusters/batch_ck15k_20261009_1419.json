@@ -1,0 +1,90 @@
+﻿[
+    {
+        "port":  9970,
+        "python":  22980,
+        "game":  23812,
+        "arm":  "learned_a",
+        "tag":  "ck15k_20261009_1419_learned_a",
+        "kind":  "rounds",
+        "checkpoint":  "models/nav/nav_latest.pth",
+        "checkpoint_sha256":  "167997b13ff6074f4d76e440bba987aad820c8b982bc7a8d5ffd73ca9fb149b0",
+        "output":  "logs\\nav\\blockclusters\\ck15k_20261009_1419_learned_a"
+    },
+    {
+        "port":  9971,
+        "python":  8816,
+        "game":  26616,
+        "arm":  "learned_b",
+        "tag":  "ck15k_20261009_1419_learned_b",
+        "kind":  "rounds",
+        "checkpoint":  "models/nav/nav_latest.pth",
+        "checkpoint_sha256":  "167997b13ff6074f4d76e440bba987aad820c8b982bc7a8d5ffd73ca9fb149b0",
+        "output":  "logs\\nav\\blockclusters\\ck15k_20261009_1419_learned_b"
+    },
+    {
+        "port":  9972,
+        "python":  30616,
+        "game":  33776,
+        "arm":  "learned_c",
+        "tag":  "ck15k_20261009_1419_learned_c",
+        "kind":  "rounds",
+        "checkpoint":  "models/nav/nav_latest.pth",
+        "checkpoint_sha256":  "167997b13ff6074f4d76e440bba987aad820c8b982bc7a8d5ffd73ca9fb149b0",
+        "output":  "logs\\nav\\blockclusters\\ck15k_20261009_1419_learned_c"
+    },
+    {
+        "port":  9973,
+        "python":  15136,
+        "game":  29860,
+        "arm":  "learned_d",
+        "tag":  "ck15k_20261009_1419_learned_d",
+        "kind":  "rounds",
+        "checkpoint":  "models/nav/nav_latest.pth",
+        "checkpoint_sha256":  "167997b13ff6074f4d76e440bba987aad820c8b982bc7a8d5ffd73ca9fb149b0",
+        "output":  "logs\\nav\\blockclusters\\ck15k_20261009_1419_learned_d"
+    },
+    {
+        "port":  9974,
+        "python":  33024,
+        "game":  26224,
+        "arm":  "learned_e",
+        "tag":  "ck15k_20261009_1419_learned_e",
+        "kind":  "rounds",
+        "checkpoint":  "models/nav/nav_latest.pth",
+        "checkpoint_sha256":  "167997b13ff6074f4d76e440bba987aad820c8b982bc7a8d5ffd73ca9fb149b0",
+        "output":  "logs\\nav\\blockclusters\\ck15k_20261009_1419_learned_e"
+    },
+    {
+        "port":  9975,
+        "python":  9028,
+        "game":  33332,
+        "arm":  "learned_f",
+        "tag":  "ck15k_20261009_1419_learned_f",
+        "kind":  "rounds",
+        "checkpoint":  "models/nav/nav_latest.pth",
+        "checkpoint_sha256":  "167997b13ff6074f4d76e440bba987aad820c8b982bc7a8d5ffd73ca9fb149b0",
+        "output":  "logs\\nav\\blockclusters\\ck15k_20261009_1419_learned_f"
+    },
+    {
+        "port":  9976,
+        "python":  26740,
+        "game":  29196,
+        "arm":  "learned_g",
+        "tag":  "ck15k_20261009_1419_learned_g",
+        "kind":  "rounds",
+        "checkpoint":  "models/nav/nav_latest.pth",
+        "checkpoint_sha256":  "167997b13ff6074f4d76e440bba987aad820c8b982bc7a8d5ffd73ca9fb149b0",
+        "output":  "logs\\nav\\blockclusters\\ck15k_20261009_1419_learned_g"
+    },
+    {
+        "port":  9977,
+        "python":  27864,
+        "game":  23700,
+        "arm":  "learned_h",
+        "tag":  "ck15k_20261009_1419_learned_h",
+        "kind":  "rounds",
+        "checkpoint":  "models/nav/nav_latest.pth",
+        "checkpoint_sha256":  "167997b13ff6074f4d76e440bba987aad820c8b982bc7a8d5ffd73ca9fb149b0",
+        "output":  "logs\\nav\\blockclusters\\ck15k_20261009_1419_learned_h"
+    }
+]

@@ -31,10 +31,10 @@ CRUISE_SPEED = 11.0         # 8 -> 11 on 2026-09-24 21:40 (HANDOFF 28.36): the s
                             # takeoff speed of 10.7 u/s crossing 9-15 u; at 8 u/s the graph admitted <= 6.5 u and held
                             # an edge for 2 of the 17. The field must value the cut at the speed a marble CAN carry;
                             # the crossable flag (speed-conditioned) still decides when it actually may jump.
-MIN_JUMP_GAP = 3.0          # u: gaps narrower than this are rolled around, never jumped (the 2 u centre hole made the
-                            # policy 'jump for the sake of jumping', operator 2026-09-24). KOTM-ONLY HACK, per the
-                            # operator: NOT a long-term lower bound. Remove (0.0) or replace with a detour-based test
-                            # before training other maps, where short gaps may be the jumps that matter.
+MIN_JUMP_GAP = 0.5          # u (2026-10-09, Phase R part 4): the narrowest gap that is a gap at all: the marble is
+                            # 0.38 u across, so anything narrower is rolled over. Was 3.0, a KOTM-only hack (the 2 u
+                            # centre hole made the policy 'jump for the sake of jumping', operator 2026-09-24) that
+                            # blocked every short hop on other maps; the real maps have gaps of every size.
 
 
 def _load():

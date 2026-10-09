@@ -11,8 +11,9 @@ $ml = $PSScriptRoot
 $pq = [System.IO.Path]::GetFullPath((Join-Path $ml "..\Marble Blast Platinum"))
 $py = "C:\Users\doug\AppData\Local\Programs\Python\Python39\python.exe"
 $out = Join-Path $ml "logs\learned_nav\live_play.txt"
+$scratch = Join-Path $env:TEMP 'pq_checks'; New-Item -ItemType Directory -Force $scratch | Out-Null   # stderr outside the repo (operator, 2026-10-09)
 $runner = Start-Process -FilePath $py -ArgumentList @("-u", "-m", "nav.live_play") -WorkingDirectory $ml `
-    -RedirectStandardOutput $out -RedirectStandardError "$out.err" -PassThru -WindowStyle Hidden
+    -RedirectStandardOutput $out -RedirectStandardError (Join-Path $scratch "live_play.err") -PassThru -WindowStyle Hidden
 for ($i = 0; $i -lt 60; $i++) {
     if (Get-NetTCPConnection -LocalPort 8888 -State Listen -ErrorAction SilentlyContinue) { break }
     Start-Sleep -Seconds 1

@@ -27,7 +27,7 @@ foreach ($s in $Scales) {
     $env:NAV_CKPT = (Join-Path $ml $Ckpt); $env:NAV_DIRSKIP = "$s"
     Remove-Item Env:NAV_WATCH, Env:NAV_VIEW_SUBSTEPS, Env:NAV_MARK, Env:NAV_SMOOTH, Env:NAV_FORCE_THROTTLE -ErrorAction SilentlyContinue
     $out = Join-Path $ml ("logs\nav\dirskip_{0}.txt" -f $s)
-    $p = Start-Process -FilePath $py -ArgumentList @("-u", "dirskip_scale.py") -WorkingDirectory $ml -RedirectStandardOutput $out -RedirectStandardError "$out.err" -PassThru -WindowStyle Hidden
+    $p = Start-Process -FilePath $py -ArgumentList @("-u", "dirskip_scale.py") -WorkingDirectory $ml -RedirectStandardOutput $out -RedirectStandardError (Join-Path (New-Item -ItemType Directory -Force (Join-Path $env:TEMP 'pq_checks')).FullName ((Split-Path $out -Leaf) + '.err')) -PassThru -WindowStyle Hidden
     if (-not (Wait-NavPort -Port 8920 -TimeoutSec 120)) { Write-Error "port never opened"; $p.Kill(); continue }
     $g = Start-Process -FilePath (Join-Path $pq "marbleblast_mbx.exe") -ArgumentList @("-autotrain", $Map, "-aiport", "8920") -WorkingDirectory $pq -PassThru
     if (-not $p.WaitForExit(600000)) { Write-Host "  timed out"; $p.Kill() }

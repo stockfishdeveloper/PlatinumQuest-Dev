@@ -44,7 +44,7 @@ RESUME_RE = re.compile(r'resumed .*: update (\d+)')
 # dropped (None) before it reaches any chart, gauge or table, so one absurd log value (e.g. a 0.02 s
 # 'seconds between pickups' right after a restart) cannot wreck the axis. Optimiser diagnostics
 # (gn, kl, pl, vl) are deliberately NOT gated: their spikes are the signal.
-SANE = {'sgem': (0.8, 30.0), 'pickup': (0.5, 25.0), 'speed': (1.0, 25.0), 'falls100': (0.0, 50.0), 'gems': (0.0, 200.0),
+SANE = {'sgem': (0.8, 30.0), 'pickup': (0.5, 25.0), 'speed': (0.0, 25.0),   # speed floor 1.0 -> 0.0 (10-08 22:45): the cluster maps pool at 0.5-0.7 and every card went blank 'falls100': (0.0, 50.0), 'gems': (0.0, 200.0),
         'arrive': (0.0, 100.0), 'ent': (0.0, 5.0), 'dstd': (0.0, 3.0), 'clip': (0.0, 1.0), 'wall_s': (0.0, 600.0),
         'upd_s': (0.0, 600.0), 'dps': (0.0, 5000.0), 'rew': (-1e5, 1e5), 'r': (-10.0, 10.0), 'points': (0.0, 200.0)}
 
@@ -109,7 +109,7 @@ def parse_logs():
                     pending_maps[name.strip()] = {'n': kv.get('n')}
                     for k in ('arrive', 'falls100', 'speed', 'gems', 'pickup', 'sgem'):
                         pending_maps[name.strip()][k] = sane(k, kv.get(k))
-                    if pending_maps[name.strip()]['speed'] is None:      # speed 0.0 = no segment finished yet on this map
+                    if not pending_maps[name.strip()]['speed']:          # speed 0.0 / missing = no segment finished yet on this map
                         for k in STAT_KEYS:
                             pending_maps[name.strip()][k] = None
                 continue
@@ -206,7 +206,8 @@ def eval_series():
     return out
 
 
-HUMAN_POINTS = {'KingOfTheMarble_Hunt': 143.5, 'FlatGemTraining_Hunt': 104.0}
+HUMAN_POINTS = {'KingOfTheMarble_Hunt': 143.5, 'FlatGemTraining_Hunt': 104.0,
+                'BlockClustersHoldout_Hunt': 173.0}   # 2026-10-07 operator's round, demos/demo_20261007_165059 (log 40.64)
 
 
 def _jumps_by_update(updates):
@@ -651,7 +652,10 @@ function update(st) {
   st.events.slice().reverse().forEach(e => { te.innerHTML += `<tr><td class="num">upd ${e[0]}</td><td class="ev ${e[1]}">${e[2]}</td></tr>`; });
 }
 const source = new EventSource('/stream');
-source.onmessage = (e) => { try { update(JSON.parse(e.data)); } catch (err) { console.error(err); } };
+source.onmessage = (e) => { try { update(JSON.parse(e.data)); } catch (err) { console.error(err); showErr(err); } };
+// 10-08 22:55: a script error used to leave the page silently blank; now it shows in the badge (and the console)
+function showErr(err) { try { const b = document.getElementById('live-badge'); b.textContent = 'SCRIPT ERROR: ' + (err && err.message ? err.message : err) + ' @ ' + ((err && err.stack) ? err.stack.split(String.fromCharCode(10))[1] : ''); b.className = 'badge badge-reconnecting'; } catch (e2) {} }
+window.onerror = (msg, src, line, col, err) => { showErr(err || new Error(msg + ' (line ' + line + ')')); };
 source.onopen = () => { const b = document.getElementById('live-badge'); b.textContent = 'LIVE'; b.className = 'badge badge-live'; };
 source.onerror = () => { const b = document.getElementById('live-badge'); b.textContent = 'RECONNECTING...'; b.className = 'badge badge-reconnecting'; };
 </script></body></html>"""

@@ -377,7 +377,7 @@ MAX_FALLS_PER_SEGMENT = 3      # past this the segment ends as 'fell', so a marb
                                # falling does not burn the whole round in one group
 
 
-def edge_time_cost(terrain, x, y, vx, vy, goal=None):
+def edge_time_cost(terrain, x, y, vx, vy, goal=None, z=None):
     """EDGE_K * (1 - time_to_edge / EDGE_T_SAFE), clipped to [0, EDGE_K]. Zero when no drop lies
     within EDGE_LOOK along the velocity, when the marble is slower than EDGE_V_MIN, when the
     drop is a jumpable gap (walkable landing within JUMP_GAP past it, height within the walk
@@ -388,14 +388,24 @@ def edge_time_cost(terrain, x, y, vx, vy, goal=None):
         return 0.0
     ux, uy = vx / v, vy / v
     step = terrain.walk_res * 0.5
+    from nav.terrain import DROP_EDGE, STEP_UP
     j0, i0 = terrain.cell_of(x, y)
-    here_z = terrain.walk_top[j0, i0] if (terrain.in_walk_grid(j0, i0) and terrain.walkable[j0, i0]) else None
+    k0 = terrain.level_at(j0, i0, z)
+    here_z = float(terrain.walk_z[k0, j0, i0]) if k0 >= 0 else None
     d_edge = None
     n = int(EDGE_LOOK / step)
+    zc = here_z
     for k in range(1, n + 1):
         d = k * step
         j, i = terrain.cell_of(x + ux * d, y + uy * d)
-        if not terrain.in_walk_grid(j, i) or not terrain.walkable[j, i]:
+        lk = terrain.level_at(j, i, zc)
+        ok = lk >= 0
+        if ok and zc is not None:                    # multi-level grid: the floor this ray is on must continue
+            dz = float(terrain.walk_z[lk, j, i]) - zc
+            ok = -DROP_EDGE <= dz <= STEP_UP
+            if ok:
+                zc = float(terrain.walk_z[lk, j, i])
+        if not ok:
             d_edge = d
             break
     if d_edge is None:
@@ -414,8 +424,9 @@ def edge_time_cost(terrain, x, y, vx, vy, goal=None):
             j, i = terrain.cell_of(x + ux * d, y + uy * d)
             if not terrain.in_walk_grid(j, i):
                 break
-            if terrain.walkable[j, i]:
-                dz = float(terrain.walk_top[j, i]) - float(here_z)
+            lk = terrain.level_at(j, i, here_z)
+            if lk >= 0:
+                dz = float(terrain.walk_z[lk, j, i]) - float(here_z)
                 if -JUMP_DROP <= dz <= JUMP_RISE:
                     return 0.0                      # a real gap the walk graph would jump: run-up is free
                 break
@@ -590,21 +601,21 @@ class SegmentManager:
         m = self.pending_mark; self.pending_mark = None
         return m
 
-    def _sample_group(self, x, y, dmin=None, dmax=None):
+    def _sample_group(self, x, y, dmin=None, dmax=None, z=None):
         """A chain of 4-8 reachable gems: the first GOAL_DMIN..GOAL_DMAX from the marble, each
         later one GROUP_LINK_DMIN..GROUP_LINK_DMAX from its predecessor, like a real gem cluster.
         Returns [(gx, gy, gz, path_len), ...] or None if even the first cannot be placed."""
-        first = self.terrain.sample_goal(x, y, self.rng, GOAL_DMIN if dmin is None else dmin, GOAL_DMAX if dmax is None else dmax)
+        first = self.terrain.sample_goal(x, y, self.rng, GOAL_DMIN if dmin is None else dmin, GOAL_DMAX if dmax is None else dmax, z=z)
         if first is None:
             return None
         group = [first]
         n = int(self.rng.integers(GEM_GROUP_MIN, GEM_GROUP_MAX + 1))
-        px, py = first[0], first[1]
+        px, py, pz = first[0], first[1], first[2]
         for _ in range(n - 1):
-            g = self.terrain.sample_goal(px, py, self.rng, GROUP_LINK_DMIN, GROUP_LINK_DMAX)
+            g = self.terrain.sample_goal(px, py, self.rng, GROUP_LINK_DMIN, GROUP_LINK_DMAX, z=pz)
             if g is None:
                 break
-            group.append(g); px, py = g[0], g[1]
+            group.append(g); px, py, pz = g[0], g[1], g[2]
         return group
 
     def _advance_goal(self, x, y):
@@ -890,7 +901,7 @@ class SegmentManager:
                 and 0.0 < gap_ratio < 0.5 and lip_u <= RUNUP_RANGE):
             runup = RUNUP_K * max(0.0, min(RUNUP_CLIP, speed_now - s.prev_speed))
         s.prev_speed = speed_now
-        edge_cost = 0.0 if (airborne or fell) else edge_time_cost(self.terrain, x, y, float(vel[0]), float(vel[1]), goal=(gx, gy))
+        edge_cost = 0.0 if (airborne or fell) else edge_time_cost(self.terrain, x, y, float(vel[0]), float(vel[1]), goal=(gx, gy), z=z)
         r = PROGRESS * progress + PROGRESS_NEXT * progress_next - TIME - air_cost - takeoff_cost - (BRAKE if braked else 0.0) - turn_cost - edge_cost + align_bonus + runup
         done, outcome = False, None
         arrived_now = False                       # 40.40: for DRILL_REWARD 'points'

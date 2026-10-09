@@ -53,7 +53,7 @@ $env:NAV_MAP = $Map                    # pre-build the terrain grid off the crit
 if ($Ckpt -ne "") { $env:NAV_CKPT = (Resolve-Path $Ckpt).Path }
 $out = Join-Path $ml "logs\nav\real_run_$Map.txt"
 Write-Host ("[{0}] starting the navigator on port {1} (it binds before anything else)" -f (Get-Date).ToString("HH:mm:ss"), $Port)
-$p = Start-Process -FilePath $py -ArgumentList @("-u", "-m", "nav.real_run") -WorkingDirectory $ml -RedirectStandardOutput $out -RedirectStandardError "$out.err" -PassThru -WindowStyle Hidden
+$p = Start-Process -FilePath $py -ArgumentList @("-u", "-m", "nav.real_run") -WorkingDirectory $ml -RedirectStandardOutput $out -RedirectStandardError (Join-Path (New-Item -ItemType Directory -Force (Join-Path $env:TEMP 'pq_checks')).FullName ((Split-Path $out -Leaf) + '.err')) -PassThru -WindowStyle Hidden
 if (-not (Wait-NavPort -Port $Port -TimeoutSec 120)) {
     Write-Error "navigator never opened port $Port; not launching the game"
     if (-not $p.HasExited) { $p.Kill() }
@@ -68,7 +68,7 @@ Write-Host ("  navigator exit code {0}" -f $p.ExitCode)
 
 Write-Host ""
 Get-Content $out -ErrorAction SilentlyContinue | ForEach-Object { "  $_" }
-$err = Get-Content "$out.err" -ErrorAction SilentlyContinue | Select-Object -Last 6
+$err = Get-Content (Join-Path $env:TEMP ("pq_checks\" + (Split-Path $out -Leaf) + ".err")) -ErrorAction SilentlyContinue | Select-Object -Last 6
 if ($err) { Write-Host "  stderr tail:"; $err | ForEach-Object { "    $_" } }
 if (-not $g.HasExited) { Stop-Process -Id $g.Id -Force }
 Write-Host ("[{0}] done. JSON: logs\nav\real_run_{1}_*.json" -f (Get-Date).ToString("HH:mm:ss"), $Map)

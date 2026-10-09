@@ -1182,23 +1182,41 @@ function MLAgent::autoTrainStage(%stage) {
         // level select lists them under the "Hunt" game (with the difficulty
         // as the type), so pick the list by game mode.
         %game = (%info.gameMode $= "Hunt") ? "Hunt" : resolveMissionGame(%info);
-        %type = resolveMissionType(%info);
-        PlayMissionGui.setGame(%game);
-        PlayMissionGui.setMissionType(%type);
-        PlayMissionGui.showMissionList();
-        %list = PlayMissionGui.getMissionList(%game, %type);
+        // The file's folder is only a guess at the difficulty (a custom hunt
+        // mission under hunt/custom/nuked/ resolves to "Nuked" but the level
+        // select files it under Hunt > Custom), so try that first and then
+        // walk every difficulty list of the game until the file turns up.
+        %guess = resolveMissionType(%info);
+        %diffs = PlayMissionGui.getDifficultyList(%game);
         %found = -1;
-        for (%i = 0; %i < %list.getSize(); %i++) {
-            if (strlwr(fileBase(%list.getEntry(%i).file)) $= strlwr(fileBase(%file))) {
-                %found = %i;
-                break;
+        for (%d = -1; %d < getRecordCount(%diffs) && %found < 0; %d++) {
+            %type = (%d < 0) ? %guess : getField(getRecord(%diffs, %d), 0);
+            if (%d >= 0 && %type $= %guess)
+                continue;
+            if (!PlayMissionGui.ml.hasMissionList(%game, %type))
+                continue;
+            %list = PlayMissionGui.getMissionList(%game, %type);
+            if (!isObject(%list)) {
+                PlayMissionGui.buildMissionList(%game, %type);
+                %list = PlayMissionGui.getMissionList(%game, %type);
+            }
+            if (!isObject(%list))
+                continue;
+            for (%i = 0; %i < %list.getSize(); %i++) {
+                if (strlwr(fileBase(%list.getEntry(%i).file)) $= strlwr(fileBase(%file))) {
+                    %found = %i;
+                    break;
+                }
             }
         }
         if (%found < 0) {
-            error("MLAgent: autotrain: " @ %file @ " is not in the " @ %game @ "/" @ %type @ " level list");
+            error("MLAgent: autotrain: " @ %file @ " is not in any " @ %game @ " level list (guessed " @ %guess @ ")");
             $MLAgent::AutoTrainMission = "";
             return;
         }
+        PlayMissionGui.setGame(%game);
+        PlayMissionGui.setMissionType(%type);
+        PlayMissionGui.showMissionList();
         PlayMissionGui.setMissionByIndex(%found);
         echo("MLAgent: autotrain: selected " @ %file @ " (list index " @ %found @ ")");
         // First Play preloads the mission behind the menu ($Menu::Loaded goes

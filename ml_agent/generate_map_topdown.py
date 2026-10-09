@@ -48,8 +48,10 @@ def fix_indices(indices):
     return new_indices
 
 
-def extract_surfaces(dif, interior_offset=(0.0, 0.0, 0.0)):
-    """Extract every surface as a list of (vertices_xyz, normal_xyz).
+def extract_surfaces(dif, interior_offset=(0.0, 0.0, 0.0), with_material=False):
+    """Extract every surface as a list of (vertices_xyz, normal_xyz) -- or, with_material=True,
+    (vertices_xyz, normal_xyz, material_name) where the name is the DIF's texture for that surface
+    (2026-10-09: the game maps textures to friction, which sets the slope the marble can climb).
 
     interior_offset is the position the .mcs places this interior at in
     world space — needed to align with gem world coords.
@@ -76,7 +78,13 @@ def extract_surfaces(dif, interior_offset=(0.0, 0.0, 0.0)):
             nx, ny, nz = n.x, n.y, n.z
             if getattr(s, 'planeFlipped', False):
                 nx, ny, nz = -nx, -ny, -nz
-            out.append((verts, (nx, ny, nz)))
+            if with_material:
+                mats = interior.materialList
+                ti = int(getattr(s, 'textureIndex', -1))
+                mat = str(mats[ti]) if 0 <= ti < len(mats) else ''
+                out.append((verts, (nx, ny, nz), mat))
+            else:
+                out.append((verts, (nx, ny, nz)))
     return out
 
 

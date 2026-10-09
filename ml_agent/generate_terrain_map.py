@@ -109,7 +109,13 @@ def parse_interiors(mis_path):
 
 
 def _axis_angle_matrix(rot):
-    """3x3 rotation matrix for a Torque "x y z angle_deg" axis-angle."""
+    """3x3 rotation matrix for a Torque "x y z angle_deg" axis-angle, in the ENGINE's convention.
+
+    2026-10-07 (nav/maps/teleport_probe.py + box_scan.py on BlockClusters_v0_Hunt): the engine turns an interior
+    the opposite way to the textbook axis-angle matrix (Torque builds the transposed matrix). Boxes rotated ~45 deg
+    off a right angle came out 2.6 u wide along the predicted axes instead of 2.0, and all three clusters whose
+    doubled angle sat 35-50 deg off a right angle disagreed with the game while every cluster near a multiple of
+    90 agreed. Never showed before: KOTM's interior has rotation "1 0 0 0". So the matrix is returned transposed."""
     ax = np.array(rot[0:3], dtype=np.float64)
     n = np.linalg.norm(ax)
     ang = math.radians(rot[3])
@@ -118,9 +124,10 @@ def _axis_angle_matrix(rot):
     x, y, z = ax / n
     c, s = math.cos(ang), math.sin(ang)
     C = 1.0 - c
-    return np.array([[c + x * x * C, x * y * C - z * s, x * z * C + y * s],
-                     [y * x * C + z * s, c + y * y * C, y * z * C - x * s],
-                     [z * x * C - y * s, z * y * C + x * s, c + z * z * C]])
+    M = np.array([[c + x * x * C, x * y * C - z * s, x * z * C + y * s],
+                  [y * x * C + z * s, c + y * y * C, y * z * C - x * s],
+                  [z * x * C - y * s, z * y * C + x * s, c + z * z * C]])
+    return M.T          # the engine's (transposed) convention, see the docstring
 
 
 def transform_surfaces(surfaces, pos, rot, scl):
@@ -132,7 +139,8 @@ def transform_surfaces(surfaces, pos, rot, scl):
     S = np.array(scl, dtype=np.float64)
     T = np.array(pos, dtype=np.float64)
     out = []
-    for verts, n in surfaces:
+    for surf in surfaces:
+        verts, n = surf[0], surf[1]
         v = (np.array(verts, dtype=np.float64) * S) @ R.T + T
         n_rot = R @ np.array(n, dtype=np.float64)
         if len(v) >= 3:
@@ -146,7 +154,7 @@ def transform_surfaces(surfaces, pos, rot, scl):
                 if np.dot(nn, n_rot) < 0:
                     nn = -nn
                 n_rot = nn
-        out.append(([tuple(p) for p in v], tuple(n_rot)))
+        out.append(([tuple(p) for p in v], tuple(n_rot)) + tuple(surf[2:]))
     return out
 
 
@@ -177,12 +185,131 @@ def parse_in_bounds_z(mis_path):
 # Rasterization
 # ---------------------------------------------------------------------------
 
+# ---------------------------------------------------------------------------------------------------------------
+# 2026-10-09 (real-map pool, Phase R): which slopes are FLOOR is physics, per surface, not a fixed 32 degrees.
+# marble.cc: traction on a contact is capped at staticFriction (1.1, marble datablock) x the surface's friction x the
+# normal force, and the push is capped by angularAcceleration (75 rad/s^2) x radius (0.2 u) = 15 u/s^2. Holding or
+# climbing a slope of angle a needs g sin a of tangential force against g cos a of normal force (g = 20), so a surface
+# is climbable when tan a <= 1.1 mu and sin a <= 15/20. The game maps textures to friction in platinum/data/init.cs
+# (addMaterialMapping; DefaultMaterial 1.0, friction_high 1.5, friction_low 0.2, ice 0.03, tarmac 0.35). Operator
+# 10-09: "the marble can climb ramps above 45 degrees on its own power" (default material: 47.7 deg by this rule),
+# Bowl's 51 deg friction_high wall is climbable, Cube Isle's 32 deg ramps are floor.
+# MEASURED 10-09 15:10 (climb_test.py): the marble pushed up Bowl's 51 deg friction_high wall from rest and reached
+# its top (-7 -> -1.9), so the push cap (sin a <= 15/20 = 48.6 deg) is NOT a limit the engine enforces; only the
+# friction rule stays: tan a <= 1.1 mu (default material 47.7 deg, friction_high 58.8 deg, friction_low 12.4 deg).
+STATIC_FRICTION = 1.1          # marble datablock staticFriction
+PUSH_ACCEL = 1e9               # (measured: not a limit) angularAcceleration x radius would be 15 u/s^2
+GRAVITY = 20.0
+CLIMB_MARGIN = 1.0
+DEFAULT_FRICTION = 1.0
+_FRICTION_TABLE = None
+
+
+def friction_table():
+    """{texture base name (lower) -> friction} from platinum/data/init.cs (MaterialProperty + addMaterialMapping)."""
+    global _FRICTION_TABLE
+    if _FRICTION_TABLE is not None:
+        return _FRICTION_TABLE
+    import re
+    path = os.path.join(os.path.dirname(HERE), 'Marble Blast Platinum', 'platinum', 'data', 'init.cs')
+    props, table = {}, {}
+    try:
+        txt = open(path, encoding='latin-1').read()
+        for m in re.finditer(r'new MaterialProperty\((\w+)\)\s*\{(.*?)\};', txt, re.S):
+            f = re.search(r'friction\s*=\s*([-\d.]+)', m.group(2))
+            if f:
+                props[m.group(1)] = float(f.group(1))
+        for m in re.finditer(r'addMaterialMapping\(\s*"([^"]*)"\s*,\s*(\w+)\s*\)', txt):
+            if m.group(2) in props:
+                table[m.group(1).lower()] = props[m.group(2)]
+    except OSError:
+        pass
+    _FRICTION_TABLE = table
+    return table
+
+
+def material_friction(name):
+    """Friction of a DIF texture name (Shaders/friction_low_shadow -> friction_low_shadow -> 0.2); default 1."""
+    base = os.path.basename(str(name)).lower()
+    f = friction_table().get(base)
+    if f is None or f < 0:           # RandomForceMaterial is -1: treat as default
+        return DEFAULT_FRICTION
+    return f
+
+
+def climbable(normal, friction):
+    """True if a surface with this upward normal can be rolled on / climbed (see the physics note above)."""
+    nz = float(normal[2])
+    if nz <= 0.0:
+        return False
+    sin_a = math.sqrt(max(0.0, 1.0 - nz * nz))
+    tan_a = sin_a / nz
+    return tan_a <= CLIMB_MARGIN * STATIC_FRICTION * friction and sin_a <= CLIMB_MARGIN * PUSH_ACCEL / GRAVITY
+
+
+def surf_parts(sf):
+    """(verts, normal, friction) for a 2-tuple (default friction) or 3-tuple (verts, normal, material) surface."""
+    if len(sf) >= 3:
+        return sf[0], sf[1], material_friction(sf[2])
+    return sf[0], sf[1], DEFAULT_FRICTION
+
+
+HEADROOM = 0.75               # 2026-10-09 09:45: a floor level with ANOTHER FLOOR LEVEL less than this above it is dropped too (the
+                              # marble is 0.38 u across; a 0.5 u crawlspace is not a floor). Found on ExampleMission (a real map):
+                              # the raised tiles have no underside faces, so COVER_CLEARANCE saw no ceiling and the stack kept
+                              # 9.5 / 9.0 / 8.5 at one cell: the rays followed the 8.5 floor UNDER the boxes, no edge, no rise,
+                              # the policy never jumped there (stall logits above 0 on 0.8 % vs 7 % on the generated maps).
+COVER_CLEARANCE = 0.45        # 2026-10-08 00:40: a floor level with a DOWNWARD-facing surface (a ceiling, the underside of a
+                              # box or a solid brush) less than this above it has no room for the marble (diameter 0.38) and
+                              # is dropped. Found on the generated block-cluster maps: the 90 x 90 platform's top polygon ran
+                              # on underneath every Cube.dif box, so the stack kept a phantom floor under each box, the edge
+                              # rays walking the floor level never saw a box side as an edge (no rise, no edge at all), and the
+                              # walk grid routed straight through boxes. Real maps have no floor polygon under a raised tile;
+                              # this rule makes the generated maps read the same way. Map-agnostic: it only uses geometry.
+
+
+SOLID_TOP_NORMAL_Z = 0.995     # a box top is level (within ~6 deg); ramps and tilted slabs are never solids
+
+
+def solid_footprints(surfaces):
+    """2026-10-09 10:00: boxes FUSED into a floor (no underside face) still leave the floor polygon running underneath them in the
+    stack. Each upward polygon (a box top) whose VERTICAL faces share two or more of its vertices is a box: those faces reach
+    down to the box bottom. Returns [(top_polygon_xy, z_top, z_bottom)]; build_height_stack drops floor levels inside that
+    footprint between z_bottom and z_top (they are inside the solid). Pure geometry, any map."""
+    def key(p):
+        return (round(p[0], 2), round(p[1], 2), round(p[2], 2))
+    surfaces = [(sf[0], sf[1]) for sf in surfaces]
+    walls = [(v, n) for v, n in surfaces if abs(n[2]) < 0.3 and len(v) >= 3]
+    wall_keys = [set(key(p) for p in v) for v, n in walls]
+    out = []
+    for v, n in surfaces:
+        # 2026-10-09 13:40: boxes only (flat tops). A tilted slab (Sprawl 18 deg, Vortex Effect 14 deg ramps) shares
+        # vertices with its own side faces too, and with the top taken as the MEAN vertex height half of the slab's own
+        # surface lay "inside the solid" and was deleted (teleport probes: floor the game has, the map lacked).
+        if n[2] <= SOLID_TOP_NORMAL_Z or len(v) < 3:
+            continue
+        tk = set(key(p) for p in v)
+        z_top = float(np.mean([p[2] for p in v]))
+        z_bot = None
+        for wv, wk in zip(walls, wall_keys):
+            if len(tk & wk) >= 2:
+                zb = min(p[2] for p in wv[0])
+                if zb < z_top - 0.2:
+                    z_bot = zb if z_bot is None else min(z_bot, zb)
+        if z_bot is not None:
+            out.append(([(p[0], p[1]) for p in v], z_top, float(z_bot)))
+    return out
+
+
 def build_height_stack(surfaces, grid_res, z_min, z_max, k_max):
-    floors = [(v, n) for v, n in surfaces if n[2] > FLOOR_NORMAL_Z and len(v) >= 3]
+    parts = [surf_parts(sf) for sf in surfaces]
+    floors = [(v, n, mu) for v, n, mu in parts if len(v) >= 3 and climbable(n, mu)]
+    ceilings = [(v, n, mu) for v, n, mu in parts if n[2] < -FLOOR_NORMAL_Z and len(v) >= 3]
+    solids = solid_footprints(surfaces)
     if not floors:
         raise RuntimeError('No floor surfaces found')
 
-    pts = np.array([p for v, _ in floors for p in v], dtype=np.float64)
+    pts = np.array([p for v, _, _ in floors for p in v], dtype=np.float64)
     pad = 2 * grid_res
     x_min, x_max = pts[:, 0].min() - pad, pts[:, 0].max() + pad
     y_min, y_max = pts[:, 1].min() - pad, pts[:, 1].max() + pad
@@ -191,8 +318,10 @@ def build_height_stack(surfaces, grid_res, z_min, z_max, k_max):
     W, H = len(xs), len(ys)
 
     cell_lists = [[[] for _ in range(W)] for _ in range(H)]
+    ceil_lists = [[[] for _ in range(W)] for _ in range(H)]
     n_kept = n_dropped_bounds = 0
-    for verts, normal in floors:
+    for verts, normal, mu, target in [(v, n, mu, cell_lists) for v, n, mu in floors] + [(v, n, mu, ceil_lists) for v, n, mu in ceilings]:
+        nz = float(normal[2]); tan_a = math.sqrt(max(0.0, 1.0 - nz * nz)) / abs(nz) if abs(nz) > 1e-6 else 99.0
         vx = np.array([p[0] for p in verts]); vy = np.array([p[1] for p in verts])
         i0 = max(0, int(np.floor((vx.min() - xs[0]) / grid_res)) - 1)
         i1 = min(W - 1, int(np.ceil((vx.max() - xs[0]) / grid_res)) + 1)
@@ -223,27 +352,72 @@ def build_height_stack(surfaces, grid_res, z_min, z_max, k_max):
                 n_dropped_bounds += 1
                 continue
             i = int(round((cx - xs[0]) / grid_res)); j = int(round((cy - ys[0]) / grid_res))
-            cell_lists[j][i].append(float(z))
+            target[j][i].append((float(z), tan_a, mu) if target is cell_lists else float(z))
             n_kept += 1
 
+    solid_lists = [[[] for _ in range(W)] for _ in range(H)]
+    for poly, z_top, z_bot in solids:
+        vx = np.array([q[0] for q in poly]); vy = np.array([q[1] for q in poly])
+        i0 = max(0, int(np.floor((vx.min() - xs[0]) / grid_res)) - 1); i1 = min(W - 1, int(np.ceil((vx.max() - xs[0]) / grid_res)) + 1)
+        j0 = max(0, int(np.floor((vy.min() - ys[0]) / grid_res)) - 1); j1 = min(H - 1, int(np.ceil((vy.max() - ys[0]) / grid_res)) + 1)
+        if i1 < i0 or j1 < j0:
+            continue
+        gx, gy = np.meshgrid(xs[i0:i1 + 1], ys[j0:j1 + 1])
+        cells = np.column_stack([gx.ravel(), gy.ravel()])
+        inside = MplPath(list(zip(vx, vy))).contains_points(cells, radius=0.01)
+        for (cx, cy), ok in zip(cells, inside):
+            if ok:
+                i = int(round((cx - xs[0]) / grid_res)); j = int(round((cy - ys[0]) / grid_res))
+                solid_lists[j][i].append((z_bot, z_top))
     heights = np.full((k_max, H, W), np.nan, dtype=np.float32)
+    slopes = np.full((k_max, H, W), np.nan, dtype=np.float32)      # rise/run of the surface at each level
+    frictions = np.full((k_max, H, W), np.nan, dtype=np.float32)   # the game's friction for its texture
     max_used = 0
     n_walk = 0
+    n_covered = 0
     for j in range(H):
         for i in range(W):
             hs = cell_lists[j][i]
             if not hs:
                 continue
-            hs = sorted(set(round(h, 2) for h in hs), reverse=True)
-            merged = []
-            for h in hs:                      # merge heights within 0.25 (same surface, mesh seams)
-                if not merged or merged[-1] - h > 0.25:
-                    merged.append(h)
+            sl = solid_lists[j][i]
+            if sl:                            # inside a fused box (between its wall bottoms and its top): not a floor
+                before = len(hs)
+                hs = [h for h in hs if not any(zb - 0.05 < h[0] < zt - 0.05 for zb, zt in sl)]
+                n_covered += before - len(hs)
+                if not hs:
+                    continue
+            cs = ceil_lists[j][i]
+            if cs:                            # COVER_CLEARANCE: a floor just under a ceiling is solid-covered, not a floor
+                before = len(hs)
+                hs = [h for h in hs if not any(-0.05 <= c - h[0] < COVER_CLEARANCE for c in cs)]
+                n_covered += before - len(hs)
+                if not hs:
+                    continue
+            hs = sorted(hs, key=lambda t: -t[0])
+            merged = []                       # [(z, max slope, min friction)]: merge heights within 0.25 (same surface, mesh seams)
+            for z, tan_a, mu in hs:
+                z = round(z, 2)
+                if merged and merged[-1][0] - z <= 0.25:
+                    merged[-1] = (merged[-1][0], max(merged[-1][1], tan_a), min(merged[-1][2], mu))
+                else:
+                    merged.append((z, tan_a, mu))
+            # HEADROOM: a level with another level less than HEADROOM above it is covered (top-first order, so the
+            # higher level is already in `kept` when the lower one is tested)
+            kept = []
+            for lv in merged:
+                if kept and kept[-1][0] - lv[0] < HEADROOM:
+                    n_covered += 1
+                    continue
+                kept.append(lv)
+            merged = kept
             max_used = max(max_used, len(merged))
-            heights[:min(k_max, len(merged)), j, i] = merged[:k_max]
+            for k, (z, tan_a, mu) in enumerate(merged[:k_max]):
+                heights[k, j, i] = z; slopes[k, j, i] = tan_a; frictions[k, j, i] = mu
             n_walk += 1
     stats = dict(cells=W * H, walkable=n_walk, max_levels_used=max_used,
-                 samples_kept=n_kept, samples_dropped_out_of_bounds=n_dropped_bounds)
+                 samples_kept=n_kept, samples_dropped_out_of_bounds=n_dropped_bounds, samples_dropped_covered=n_covered,
+                 slopes=slopes, frictions=frictions)
     return xs.astype(np.float32), ys.astype(np.float32), heights, stats
 
 
@@ -304,7 +478,9 @@ def render_check_image(tm, items, out_path, mapname):
             ax.plot([px, pts[k, 0]], [py, pts[k, 1]], '-', color=col, lw=0.6, alpha=0.5)
             ax.plot(pts[k, 0], pts[k, 1], 'o', color=col, ms=ms)
     plt.tight_layout()
-    plt.savefig(out_path, dpi=110, facecolor='#1a1a1a')
+    tmp = out_path + '.tmp.png'
+    plt.savefig(tmp, dpi=110, facecolor='#1a1a1a')
+    os.replace(tmp, out_path)       # 2026-10-09: OneDrive refuses in-place overwrites (Errno 22)
     plt.close(fig)
 
 
@@ -332,7 +508,7 @@ def main():
     surfaces = []
     for dif_path, pos, rot, scl in parse_interiors(mis_path):
         dif = hxDif.Dif.Load(dif_path)
-        s = transform_surfaces(extract_surfaces(dif), pos, rot, scl)
+        s = transform_surfaces(extract_surfaces(dif, with_material=True), pos, rot, scl)
         print(f'  interior {os.path.basename(dif_path)} at {pos}: {len(s)} surfaces')
         surfaces += s
 
@@ -346,10 +522,15 @@ def main():
     out_dir = os.path.join(HERE, 'terrain_maps')
     os.makedirs(out_dir, exist_ok=True)
     npz_path = os.path.join(out_dir, f'terrain_{mapname}.npz')
-    np.savez_compressed(npz_path, xs=xs, ys=ys, heights=heights, grid_res=np.float32(args.grid_res),
+    # 2026-10-09: write beside and replace. Overwriting a file OneDrive holds fails with Errno 22 and left a STALE map
+    # (Sprawl kept its pre-fix contents while the build printed the new counts).
+    tmp_path = npz_path + '.tmp.npz'
+    np.savez_compressed(tmp_path, xs=xs, ys=ys, heights=heights, slope=stats['slopes'], friction=stats['frictions'],
+                        grid_res=np.float32(args.grid_res),
                         map_name=np.array(mapname),
                         z_bounds=np.array([z_min if z_min is not None else -1e9,
                                            z_max if z_max is not None else 1e9], dtype=np.float32))
+    os.replace(tmp_path, npz_path)
     print(f'Saved {npz_path}')
 
     tm = TerrainMap(npz_path)

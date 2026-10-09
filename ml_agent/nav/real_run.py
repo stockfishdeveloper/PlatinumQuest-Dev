@@ -140,21 +140,14 @@ def snap_to_walkable(terrain, gx, gy, gz, radius=3):
     gem and the game's own pickup radius finishes the job. Returns the goal to steer at.
     """
     j, i = terrain.cell_of(gx, gy)
-    if terrain.in_walk_grid(j, i) and terrain.walkable[j, i]:
+    k = terrain.level_at(j, i, gz)                            # 2026-10-09: multi-level walk grid (the level nearest the gem)
+    if k >= 0 and abs(float(terrain.walk_z[k, j, i]) - gz) <= 1.5:
         return (gx, gy, gz), False
-    best = None
-    for dj in range(-radius, radius + 1):
-        for di in range(-radius, radius + 1):
-            jj, ii = j + dj, i + di
-            if not terrain.in_walk_grid(jj, ii) or not terrain.walkable[jj, ii]:
-                continue
-            wx, wy = float(terrain.wxs[ii]), float(terrain.wys[jj])
-            d = math.hypot(wx - gx, wy - gy)
-            if best is None or d < best[0]:
-                best = (d, wx, wy, float(terrain.walk_top[jj, ii]))
-    if best is None:
+    c = terrain._nearest_walkable(j, i, radius=radius, z=gz)
+    if c is None:
         return (gx, gy, gz), False
-    return (best[1], best[2], best[3]), True
+    kk, jj, ii = c
+    return (float(terrain.wxs[ii]), float(terrain.wys[jj]), float(terrain.walk_z[kk, jj, ii])), True
 
 
 NO_NEXT = os.environ.get('NAV_NO_NEXT', '0') == '1'   # ABLATION (2026-09-23): hide the next-gem block from the policy
@@ -197,20 +190,30 @@ LOOKAHEAD_U = 12.0             # how far along the path the navigator is aimed. 
                                # in-distribution instead of pointing at something 30 u away.
 
 
-def line_clear(terrain, ax, ay, bx, by, step=0.35):
-    """True if every sample on the straight line ax,ay -> bx,by is walkable ground."""
+def line_clear(terrain, ax, ay, bx, by, step=0.35, az=None):
+    """True if every sample on the straight line ax,ay -> bx,by is walkable ground. With `az` (the marble's height)
+    the line FOLLOWS the floor: each sample needs a level within [-DROP_EDGE, +STEP_UP] of the running height, so a
+    deck above or a floor below does not count as the ground this line crosses (multi-level grid, 2026-10-09)."""
+    from nav.terrain import DROP_EDGE, STEP_UP
     d = math.hypot(bx - ax, by - ay)
     n = max(int(d / step), 1)
+    z = az
     for k in range(n + 1):
         x = ax + (bx - ax) * k / n
         y = ay + (by - ay) * k / n
         j, i = terrain.cell_of(x, y)
-        if not terrain.in_walk_grid(j, i) or not terrain.walkable[j, i]:
+        lk = terrain.level_at(j, i, z)
+        if lk < 0:
             return False
+        if z is not None:
+            dz = float(terrain.walk_z[lk, j, i]) - z
+            if dz < -DROP_EDGE or dz > STEP_UP:
+                return False
+            z = float(terrain.walk_z[lk, j, i])
     return True
 
 
-def path_waypoint(terrain, mx, my, field, gem, lookahead=LOOKAHEAD_U):
+def path_waypoint(terrain, mx, my, field, gem, lookahead=LOOKAHEAD_U, mz=None):
     """Aim the navigator at the furthest point on the path it can reach IN A STRAIGHT LINE.
 
     The navigator only receives a direction and distance to its goal plus local terrain rays --
@@ -222,35 +225,42 @@ def path_waypoint(terrain, mx, my, field, gem, lookahead=LOOKAHEAD_U):
     So walk the path, then string-pull: take the FURTHEST path point with clear line of sight from
     the marble. The heading handed to the policy is then always traversable ground.
     """
+    from nav.terrain import DOWN_MAX, STEP_UP
     j, i = terrain.cell_of(mx, my)
-    if not terrain.in_walk_grid(j, i) or not np.isfinite(field[j, i]):
-        c = terrain._nearest_walkable(j, i, radius=3)
+    k = terrain.level_at(j, i, mz)
+    if k < 0 or not np.isfinite(field[k, j, i]):
+        c = terrain._nearest_walkable(j, i, radius=3, z=mz)
         if c is None or not np.isfinite(field[c]):
             return (gem[0], gem[1], gem[2]), False
-        j, i = c
-    if field[j, i] <= terrain.walk_res * 2 or line_clear(terrain, mx, my, gem[0], gem[1]):
+        k, j, i = c
+    if field[k, j, i] <= terrain.walk_res * 2 or line_clear(terrain, mx, my, gem[0], gem[1], az=mz):
         return (gem[0], gem[1], gem[2]), False        # the gem itself is directly reachable
 
     path = []
     travelled = 0.0
     for _ in range(int((lookahead * 3) / terrain.walk_res) + 8):
         best = None
+        zc = float(terrain.walk_z[k, j, i])
         for dj in (-1, 0, 1):
             for di in (-1, 0, 1):
                 if dj == 0 and di == 0:
                     continue
                 jj, ii = j + dj, i + di
-                if not terrain.in_walk_grid(jj, ii) or not terrain.walkable[jj, ii]:
+                if not terrain.in_walk_grid(jj, ii):
                     continue
-                f = field[jj, ii]
-                if np.isfinite(f) and (best is None or f < best[0]):
-                    best = (f, jj, ii, math.hypot(dj, di) * terrain.walk_res)
-        if best is None or best[0] >= field[j, i]:
+                for kk in range(terrain.KW):              # every level of the neighbour cell the marble can step to
+                    zz = float(terrain.walk_z[kk, jj, ii])
+                    if not np.isfinite(zz) or zz - zc < -DOWN_MAX or zz - zc > STEP_UP:
+                        continue
+                    f = field[kk, jj, ii]
+                    if np.isfinite(f) and (best is None or f < best[0]):
+                        best = (f, kk, jj, ii, math.hypot(dj, di) * terrain.walk_res)
+        if best is None or best[0] >= field[k, j, i]:
             break
-        travelled += best[3]
-        j, i = best[1], best[2]
-        path.append((float(terrain.wxs[i]), float(terrain.wys[j]), float(terrain.walk_top[j, i])))
-        if field[j, i] <= terrain.walk_res or travelled >= lookahead * 3:
+        travelled += best[4]
+        k, j, i = best[1], best[2], best[3]
+        path.append((float(terrain.wxs[i]), float(terrain.wys[j]), float(terrain.walk_z[k, j, i])))
+        if field[k, j, i] <= terrain.walk_res or travelled >= lookahead * 3:
             break
     if not path:
         return (gem[0], gem[1], gem[2]), False
@@ -259,7 +269,7 @@ def path_waypoint(terrain, mx, my, field, gem, lookahead=LOOKAHEAD_U):
     for wp in path:
         if math.hypot(wp[0] - mx, wp[1] - my) > lookahead:
             break
-        if line_clear(terrain, mx, my, wp[0], wp[1]):
+        if line_clear(terrain, mx, my, wp[0], wp[1], az=mz):
             pick = wp
     if pick is None:
         pick = path[0]                                # nothing visible: take the next path cell
@@ -294,7 +304,7 @@ def choose(gems, current, pos=None, vel=None, terrain=None, mfield=None):
     def cost(g):
         c = g[4]
         if GEO_ORDER and terrain is not None and mfield is not None and pos is not None:
-            c = terrain.dist_at(mfield, g[0], g[1], (float(pos[0]), float(pos[1])))
+            c = terrain.dist_at(mfield, g[0], g[1], (float(pos[0]), float(pos[1])), z=g[2])
         if VALUE_WEIGHT > 0 and g[3] > 0:
             c = c / (g[3] ** VALUE_WEIGHT)
         if speed > 1.0:
@@ -408,7 +418,7 @@ def main():
     trace = open(trace_path, 'w', buffering=1)
     round_log = open(trace_path + '.rounds.jsonl', 'w', buffering=1)
     trace.write('round,dec,x,y,z,vx,vy,speed,on_floor,tx,ty,tdist,nx,ny,gx,gy,nvis,gem,fell,fwd,back,left,right,jump,'
-                'held_before,use_sent,command_aim_x,command_aim_y,spin_before_x,spin_before_y,spin_before_z\n')
+                'held_before,use_sent,command_aim_x,command_aim_y,spin_before_x,spin_before_y,spin_before_z,jump_raw\n')   # jump_raw 10-08: pre-clamp jump head output
     for r in range(ROUNDS):
         env.last_round_score = None
         obs_b.reset(); h = model.initial_state(1, dev)
@@ -457,10 +467,10 @@ def main():
         tour_fields = {}                 # NAV_TOUR=walk: walk-only Dijkstra field per gem position, cached for the run
 
         def walk_dist(a, g):
-            key = (round(g[0], 1), round(g[1], 1))
+            key = (round(g[0], 1), round(g[1], 1), round(g[2], 1))
             if key not in tour_fields:
-                tour_fields[key] = terrain.goal_field(g[0], g[1], jumps=False)
-            return terrain.dist_at(tour_fields[key], float(a[0]), float(a[1]), (g[0], g[1]))
+                tour_fields[key] = terrain.goal_field(g[0], g[1], jumps=False, z=g[2])
+            return terrain.dist_at(tour_fields[key], float(a[0]), float(a[1]), (g[0], g[1]), z=(a[2] if len(a) > 2 else None))
 
         while True:
             vis = visible_gems(env.msg.obs)
@@ -468,7 +478,7 @@ def main():
             if GEO_ORDER and vis:
                 mcell = terrain.cell_of(float(env.msg.obs[0]), float(env.msg.obs[1]))
                 if mcell != mfield_key:
-                    mfield_cache = terrain.goal_field(float(env.msg.obs[0]), float(env.msg.obs[1])); mfield_key = mcell
+                    mfield_cache = terrain.goal_field(float(env.msg.obs[0]), float(env.msg.obs[1]), z=float(env.msg.obs[2])); mfield_key = mcell
                 mfield = mfield_cache
             if TOUR and vis:
                 turn_costs = None
@@ -488,7 +498,7 @@ def main():
                         ss_opportunities['ss_tour_credited_orders'] += len(ss_tour_cache)
                     credits = order_credits(ss_tour_cache, vis)
                 if not keep_pending:
-                    target, nxt = plan_tour(vis, target, env.msg.obs[0:2], env.msg.obs[3:5],
+                    target, nxt = plan_tour(vis, target, env.msg.obs[0:3], env.msg.obs[3:5],
                                            dist=(walk_dist if TOUR == 'walk' else None), first_turn_costs=turn_costs,
                                            order_credits=credits)
             else:
@@ -528,8 +538,9 @@ def main():
                         near = min(cand, key=lambda q: math.hypot(q[0] - cx, q[1] - cy))
                         g, _ = snap_to_walkable(terrain, cx, cy, near[2])   # nearest floor to the centroid
                         j, i = terrain.cell_of(g[0], g[1])
-                        if terrain.in_walk_grid(j, i) and terrain.walkable[j, i]:
-                            gap_goal = (g[0], g[1], float(terrain.walk_top[j, i]))
+                        kq = terrain.level_at(j, i, near[2])
+                        if kq >= 0:
+                            gap_goal = (g[0], g[1], float(terrain.walk_z[kq, j, i]))
                         else:                         # no floor within 3 cells: nearest real spawn point
                             gap_goal = (near[0], near[1], near[2])
                     target = (gap_goal[0], gap_goal[1], gap_goal[2], 1.0,
@@ -574,10 +585,10 @@ def main():
                 goal, pathed = gem_goal, False     # the goal IS the gem, never a point beside it
             elif (held_goal is not None
                     and math.hypot(held_goal[0] - mx, held_goal[1] - my) > WAYPOINT_HOLD_U
-                    and line_clear(terrain, mx, my, held_goal[0], held_goal[1])):
+                    and line_clear(terrain, mx, my, held_goal[0], held_goal[1], az=float(env.msg.obs[2]))):
                 goal, pathed = held_goal, True
             else:
-                goal, pathed = path_waypoint(terrain, mx, my, field, gem_goal)
+                goal, pathed = path_waypoint(terrain, mx, my, field, gem_goal, mz=float(env.msg.obs[2]))
                 held_goal = goal if pathed else None
             if pathed:
                 n_pathed += 1
@@ -723,7 +734,7 @@ def main():
                         f'{info["gem_delta"]:.0f},{int(info["fell"])},'
                         f'{js[0]:.2f},{js[1]:.2f},{js[2]:.2f},{js[3]:.2f},{js[4]},'
                         f'{held_},{int(sent_)},{(aim_[0] if sent_ else 0):.6f},{(aim_[1] if sent_ else 0):.6f},'
-                        f'{ob_[35]:.6f},{ob_[36]:.6f},{ob_[37]:.6f}\n')
+                        f'{ob_[35]:.6f},{ob_[36]:.6f},{ob_[37]:.6f},{float(getattr(model, "last_jump_raw", [0.0])[0]):.2f}\n')
             if info['gem_delta'] > 0:
                 last_pick_dec = decisions         # progress: the stuck window restarts here (STUCK_PICKUP)
                 gems += 1                         # one pickup...

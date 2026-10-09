@@ -1,0 +1,46 @@
+﻿[
+    {
+        "port":  9970,
+        "python":  5640,
+        "game":  20096,
+        "arm":  "learned_a",
+        "tag":  "tourpure_20261009_0912_learned_a",
+        "kind":  "rounds",
+        "checkpoint":  "models/nav/nav_clusters_20261007_check14_37309.pth",
+        "checkpoint_sha256":  "f8fab46e7e15ca23f2263cf34756a69cfef4f54829f08aaddf40f4b2be53ff60",
+        "output":  "logs\\nav\\blockclusters\\tourpure_20261009_0912_learned_a"
+    },
+    {
+        "port":  9971,
+        "python":  28272,
+        "game":  31248,
+        "arm":  "learned_b",
+        "tag":  "tourpure_20261009_0912_learned_b",
+        "kind":  "rounds",
+        "checkpoint":  "models/nav/nav_clusters_20261007_check14_37309.pth",
+        "checkpoint_sha256":  "f8fab46e7e15ca23f2263cf34756a69cfef4f54829f08aaddf40f4b2be53ff60",
+        "output":  "logs\\nav\\blockclusters\\tourpure_20261009_0912_learned_b"
+    },
+    {
+        "port":  9972,
+        "python":  14524,
+        "game":  33040,
+        "arm":  "learned_c",
+        "tag":  "tourpure_20261009_0912_learned_c",
+        "kind":  "rounds",
+        "checkpoint":  "models/nav/nav_clusters_20261007_check14_37309.pth",
+        "checkpoint_sha256":  "f8fab46e7e15ca23f2263cf34756a69cfef4f54829f08aaddf40f4b2be53ff60",
+        "output":  "logs\\nav\\blockclusters\\tourpure_20261009_0912_learned_c"
+    },
+    {
+        "port":  9973,
+        "python":  27120,
+        "game":  33668,
+        "arm":  "learned_d",
+        "tag":  "tourpure_20261009_0912_learned_d",
+        "kind":  "rounds",
+        "checkpoint":  "models/nav/nav_clusters_20261007_check14_37309.pth",
+        "checkpoint_sha256":  "f8fab46e7e15ca23f2263cf34756a69cfef4f54829f08aaddf40f4b2be53ff60",
+        "output":  "logs\\nav\\blockclusters\\tourpure_20261009_0912_learned_d"
+    }
+]

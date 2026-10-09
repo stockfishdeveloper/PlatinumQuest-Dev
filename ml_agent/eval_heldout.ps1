@@ -38,7 +38,7 @@ foreach ($map in $Maps) {
     $env:NAV_MAP = $map                    # pre-build the terrain grid off the critical path
     if ($Ckpt -ne "") { $env:NAV_CKPT = (Resolve-Path $Ckpt).Path }
     $out = Join-Path $ml "logs\nav\eval_run_$map.txt"
-    $p = Start-Process -FilePath $py -ArgumentList @("-m", "nav.eval_nav") -WorkingDirectory $ml -RedirectStandardOutput $out -RedirectStandardError "$out.err" -PassThru -WindowStyle Hidden
+    $p = Start-Process -FilePath $py -ArgumentList @("-m", "nav.eval_nav") -WorkingDirectory $ml -RedirectStandardOutput $out -RedirectStandardError (Join-Path (New-Item -ItemType Directory -Force (Join-Path $env:TEMP 'pq_checks')).FullName ((Split-Path $out -Leaf) + '.err')) -PassThru -WindowStyle Hidden
     if (-not (Wait-NavPort -Port $Port -TimeoutSec 120)) {
         Write-Host "  evaluator never opened port $Port; skipping $map"
         if (-not $p.HasExited) { $p.Kill() }
@@ -53,7 +53,7 @@ foreach ($map in $Maps) {
     if ($line) { Write-Host "  $line"; $results += [PSCustomObject]@{ Map = $map; Result = $line.Trim() } }
     else {
         Write-Host "  no result line; stderr tail:"
-        Get-Content "$out.err" -ErrorAction SilentlyContinue | Select-Object -Last 4 | ForEach-Object { "    $_" }
+        Get-Content (Join-Path $env:TEMP ("pq_checks\" + (Split-Path $out -Leaf) + ".err")) -ErrorAction SilentlyContinue | Select-Object -Last 4 | ForEach-Object { "    $_" }
         $results += [PSCustomObject]@{ Map = $map; Result = "FAILED" }
     }
     if (-not $g.HasExited) { Stop-Process -Id $g.Id -Force }

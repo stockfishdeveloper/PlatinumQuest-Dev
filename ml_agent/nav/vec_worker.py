@@ -201,16 +201,16 @@ class InstanceWorker:
         self.log(f'gem chooser: {"whole-spawn planner (" + TOUR + ")" if TOUR else "greedy"}')
 
     def walk_dist(self, a, g):
-        key = (round(g[0], 1), round(g[1], 1))
+        key = (round(g[0], 1), round(g[1], 1), round(g[2], 1))
         f = self.tour_fields.get(key)
         if f is None:
-            f = self.tour_fields[key] = self.terrain.goal_field(g[0], g[1], jumps=False)
-        return self.terrain.dist_at(f, float(a[0]), float(a[1]), (g[0], g[1]))
+            f = self.tour_fields[key] = self.terrain.goal_field(g[0], g[1], jumps=False, z=g[2])
+        return self.terrain.dist_at(f, float(a[0]), float(a[1]), (g[0], g[1]), z=(a[2] if len(a) > 2 else None))
 
     def pick(self, vis, current, pos, vel):
         """Target and next gem: the whole-spawn planner by default (TOUR), else the greedy chooser."""
         if TOUR:
-            return plan_tour(vis, current, pos, vel, dist=(self.walk_dist if TOUR == 'walk' else None))
+            return plan_tour(vis, current, pos, vel, dist=(self.walk_dist if TOUR == 'walk' else None))   # pos carries z (height-aware tour)
         return choose(vis, current, pos, vel)
 
     def sync_map(self):
@@ -284,7 +284,7 @@ class InstanceWorker:
                         self.segs._step_checked(self.env, 1)
                     if vis:
                         o = self.env.msg.obs
-                        tgt, nxt = self.pick(vis, None, o[0:2], o[3:5])
+                        tgt, nxt = self.pick(vis, None, o[0:3], o[3:5])
                         self.goal = self.segs.begin(self.env, real_goal=tgt[:3], real_next=(nxt[:3] if nxt else None))
                         self.target = tgt
                         break
@@ -689,7 +689,7 @@ class InstanceWorker:
         if self.real:
             vis = visible_gems(msg.obs)
             if vis:
-                tgt, nxt = self.pick(vis, self.target, msg.obs[0:2], msg.obs[3:5])
+                tgt, nxt = self.pick(vis, self.target, msg.obs[0:3], msg.obs[3:5])
                 g = self.segs.seg.goal
                 want = (nxt[:3] if nxt else None)
                 if tgt is not None and math.hypot(tgt[0] - g[0], tgt[1] - g[1]) > STICKY_TOL:

@@ -6661,6 +6661,10 @@ scores. Full details and continuing experiment results are in
   $MLAgent::Live && !isObject(%player)); status line prints "leader L serverclients N powitems M". Takes effect next
   launch. In that round the operator saw Alfonsus use a Super Speed, and approved the local marble look (Hperks online,
   CustomMarble_04 picture on this PC: data/shapes/balls/pack3/hp.marble.png; original hp.marble.png.original_hperks).
+* Next launch, joined (status "serverclients 0"): the item fix works (powitems 4 most of the time). That round was NOT
+  King of the Marble (marble at x -35..40, y -40..27, z -12..17; 5 min clock; 0 gems, on floor 7 %, 40 falls in 98 s):
+  live_play forces NAV_MAP KOTM, so on another level the model drives with the wrong terrain map. Proposed (needs the
+  operator): stay idle with a warning when the level is not one we have a map for.
 * The summary loop (logs/nav/game_summary.sh, killed 22:06) now has CRLF line endings: running an LF copy,
   logs/nav/points_20261005/game_summary_lf.sh, with Python on PATH and NAV_SUMMARY_PREFIX nav_points_20261005_best.
 * Fall map (operator): 2,520 falls in 1,638 evaluation rounds, 10-03 to 10-05, normal play on the old map (helper,
@@ -6669,3 +6673,509 @@ scores. Full details and continuing experiment results are in
   step). Hot spots: the centre 2 x 2 hole 228 (9 %), then the inner corners beside it (171, 156, 99 per 2 x 2 u); jump
   falls in the four inner holes, kick falls off the outer edges. At 24 % of roll-off drop points the old map showed floor
   (all falls 16 %; corrected map 6 %, edge rounding). logs/nav/goal175/kotm_fall_locations_20261005.png.
+* Check 1 (19:13, update 32834, snapshot nav_clusters_20261007_check1_32834.pth; run paused by STOP, resumed 19:23):
+  held-out map (c1hold_20261007_1914, 32 rounds) 30.8 points (95 % 28.8-32.7) vs baseline 32.8; 22.8 s per cluster
+  (human 3.3); jump pressed on 0.93 % of decisions (baseline 0.91 %); stuck-breaker 53 a round: NO CHANGE after 2 h.
+  Training rounds on the cluster maps flat at ~51 all evening (sampled play with the nudge). KOTM (c1kotm_20261007_1919,
+  32 rounds) 160.3 (95 % 158.8-161.8), falls 0.94, kicks 0.38: DOWN 6 from 166.55; KOTM training rounds 137-140 with
+  7.8 falls a round (the nudge's random jumps near holes; before ~3). Next check ~21:20.
+* Check 2 (21:19, update 33112, snapshot nav_clusters_20261007_check2_33112.pth): held-out 28.7 (95 % 26.2-31.1),
+  jump 0.90 %, 21.7 s per cluster, stuck-breaker 52 a round: still nothing after 4 h. Memorization test (operator's
+  question: training rounds score ~51 with highs in the 80s, the held-out 30): the same checkpoint deterministic on
+  TRAINING variant v0 = 43.5 (95 % 41.0-46.0), jump 0.94 %, stuck-breaker 53, 27.6 s per cluster: it plays v0 exactly
+  like the held-out map; the point gap is v0's floor gems (39 % of its gems on the floor vs 6 % on the held-out map)
+  and the sampled rounds' extra ~8 is the nudge. NOT memorization: no learning at all. Reading: the stuck-breaker
+  masks the need to jump (driving into the box side 'works': the breaker jumps for free after a few seconds), so a
+  nudged jump earns no extra return over not jumping.
+* 21:30 THE NUDGE WAS GRADIENT-BLOCKED (my bug): JUMP_EXPLORE_P floored the jump LOGIT with torch.maximum; while the
+  head sits below the floor (it does, ~-7) the sampled jump's log-prob does not depend on the head at all, so PPO could
+  not move it: the nudged jumps happened (KOTM falls 3 -> 8 in training) and taught nothing. Fixed to the differentiable
+  mixture the brake floor uses (p = p_learn + eps (1 - p_learn) where safe, exact logit returned); gradient check
+  passes; the run resumes on the fixed model from the 33112 checkpoint after the KOTM batch. The 4 h so far say
+  nothing about discovery; the clock restarts here.
+* KOTM check 2 (c2kotm_20261007_2129, 32 rounds): 152.2 (95 % 150.4-154.0), falls 1.84: 166.5 -> 160.3 -> 152.2 in 4 h.
+  The nudge's random jumps near KOTM's holes (training falls 3 -> 8 a round) were reshaping the base. Nudge safety
+  rule retuned, map-agnostic: JUMP_EXPLORE_CLEAR_U 4 -> 10 u and only DEEP drops count (JUMP_EXPLORE_DROP -0.3 =
+  3 u; a box step reads -0.05..-0.15). Measured on floor samples: the nudge can fire at 0 % of KOTM floor points
+  (holes everywhere), 60 % of the cluster maps' (the outer 10 u band of the 90 u floor is the blocked part).
+  21:35 run restarted on the fixed model (gradient-carrying mixture + the new rule) from nav_latest (33111).
+  Check 3 ~23:45: the held-out map (does the policy's own jump rate move at all?) and KOTM (does the slide stop?).
+* Check 3 (23:45, update 33393, ~2 h on the fixed nudge; snapshot nav_clusters_20261007_check3_33393.pth): held-out
+  34.1 (95 % 32.4-35.8; checks 28.7-30.8, baseline 32.8), jump 0.93 % (unchanged), 20.7 s per cluster, stuck-breaker
+  52. The jump head's weights moved 0.3-0.7 % between the check 2 and check 3 checkpoints (steering head 3 %): the
+  gradient now flows but the head is barely learning. Training rounds on the clusters 55 -> 58 (sampled play).
+* KOTM check 3 (c3kotm_20261007_2351, 32 rounds): 159.0 (95 % 157.5-160.5), falls 2.28: recovered from 152.2 with the
+  nudge off KOTM (still 7.5 under the 166.55 base).
+* 00:05 (operator: "do reason 1", the signal is weak because random jumps mostly fire mid-floor): exploration is now
+  RISE-CONDITIONED in nav/model.py: JUMP_EXPLORE_P_RISE 0.15 where an edge ray within 2.5 u along the heading (velocity,
+  or the goal direction when slow; the heading's ray and its two neighbours) ends at a rise of 0.3 u or more
+  (JUMP_EXPLORE_RISE_DZ 0.03), JUMP_EXPLORE_P 0.01 on the rest of the safe floor, deep-drop rule unchanged. Smoke test
+  (sampled p): plain floor 0.028, rise ahead 0.165, rise behind 0.028, void ahead 0.018. Deterministic play untouched.
+  Run restarted on it from nav_latest; check 4 ~02:10 (held-out + KOTM). Reason 2 (cluster drill segments for
+  density) is held for tomorrow if the head is still asleep.
+
+### 40.65 Boxes were invisible to the rays: phantom floors under boxes and the ray follow tolerance (10-08 00:20-00:35)
+* After the rise-conditioned exploration (23:57) the cluster training rounds FELL 58 -> 39: the rise condition never
+  fired and the plain-floor exploration had gone 3 -> 1 %. Two causes, both in the map pipeline, not the policy:
+  1. generate_terrain_map kept the 90 x 90 platform's top polygon UNDER every Cube.dif box, so a box cell had two
+     levels (box top, floor) and a ray following the floor level ran on beneath the box: no edge, no rise, and the
+     walk grid routed through boxes. Real maps have no floor polygon under a raised tile. Fix (COVER_CLEARANCE 0.45):
+     a floor level with a downward-facing surface less than 0.45 u above it (no room for the 0.38 u marble) is
+     dropped. Geometry only. All 10 generated maps rebuilt; KOTM rebuilt too: 310 cells lost a phantom SUB-level
+     (19.7-20.2 under the 20.65 floor, the underside of the top slab), no cell lost its top floor.
+  2. terrain_obs FOLLOW_TOL 1.0 let a ray climb a 0.5 or 1.0 u box side as a 'ramp' (edge only at 1.5 u boxes).
+     Now 0.4 (the walkable slope is 0.3 u per step): 0.00 % of KOTM ray values change; on the cluster maps 13.7 %
+     of floor points see a rise edge within 2.5 u (was 0 %).
+  Before these, nothing in the observation distinguished a box side from open floor except the crop's second
+  level. The walk graph: 0.5 u boxes are walkable steps (slope 0.5 < 0.6 at the 1 u walk cell), 1.0 and 1.5 u
+  boxes are not; gems on them get the straight-line fallback distance (waypoints.py dist_at), so they are still
+  targeted. Step-up jump links (plan phase 1) are NOT added yet: MIN_JUMP_GAP 3 u still forbids a jump edge
+  without a gap ([[min-jump-gap-is-a-hack]]); first see whether the corrected observation plus the exploration
+  gets the jump head learning.
+* 00:34 run restarted (the trainer caches terrain at connect) on the rebuilt maps, FOLLOW_TOL 0.4, the
+  rise-conditioned exploration. Check 4 ~02:45.
+* After the map fixes the cluster training rounds went 39 -> 80 (max 114) within the first half hour and held 80-81
+  for two hours (sampled play); seconds per gem 5.0 -> 2.6; KOTM 148-150, falls ~2.5.
+* 02:45 check 4 paused the run (update 33758). During the pause the training variants were regenerated DENSER
+  (operator's overnight mandate, the density lever): build_cluster_variants --seed 1008 --per-map 30 --pitch 16
+  --skip-holdout: 30 clusters and ~220 gems a map (was 14 / ~110), the held-out map untouched. The 6-column grid
+  reached the floor's east edge (smallplatform's footprint is offset: x -2.62..2.38 at scale 1, so the 90 u floor
+  ran -47..43): the floor is now centred (FLOOR_OFF) and 100 u (FLOOR_SCALE 20); every gem on every variant sits
+  on a floor level. New generator flags: --pitch, --skip-holdout.
+* Check 4 (02:45, update 33758, ~2 h on the corrected maps and rays; snapshot nav_clusters_20261007_check4_33758.pth):
+  held-out 46.3 (95 % 44.9-47.8; checks 1-3: 30.8, 28.7, 34.1; baseline 32.8), 40.1 pickups, jump pressed on 1.56 %
+  of decisions (was 0.90-0.93 at every check before), stuck-breaker 34 a round (was 52), 16.7 s per cluster (was
+  20.7-22.8; human 3.3), travel 8.5 s (was 11-13). FIRST MOVEMENT. Caveat: the held-out terrain map was rebuilt too
+  (phantom floors gone, FOLLOW_TOL 0.4), so part of the gain can be the corrected inputs rather than learning; the
+  jump rate and the stuck-breaker count are the policy's own.
+  Jump head weights moved 2.0-2.5 % between checks 3 and 4 (0.3-0.7 % between 2 and 3): it is learning now.
+* KOTM check 4 (c4kotm_20261008_0249, 32 rounds): 157.5 (95 % 156.1-159.0), falls 1.66 (checks 1-3: 160.3, 152.2,
+  159.0; base 166.55): holding 157-160 since the nudge left KOTM. 02:53 run resumed on the DENSE variants (30 clusters
+  a map). Check 5 ~05:00.
+* Check 5 (05:00, update 34037, 2 h on the dense variants; snapshot nav_clusters_20261007_check5_34037.pth): held-out
+  46.8 (95 % 45.2-48.3; check 4 46.3), jump pressed on 2.80 % (check 4 1.56, before 0.9), stuck-breaker 34.6 (34),
+  15.3 s per cluster (16.7), 40.8 pickups. Jump head weights moved 3-4 % (check 3->4: 2.5 %). The policy jumps twice
+  as often on its own; the score is flat because the eval marble is still stuck ~100 s a round (34 breaks x 3 s)
+  waiting for the deterministic head (needs p > 0.5 at a box side) to catch up with the sampled one. Dense-variant
+  training rounds 56-58 (sampled; the sparse layouts read 80 but have fewer boxes between spawns). Dense kept for
+  now: the head learns faster on them.
+* KOTM check 5 (c5kotm_20261008_0505, 32 rounds): 153.4 (95 % 151.7-155.2), falls 3.12 (checks 1-4: 160.3, 152.2,
+  159.0, 157.5; base 166.55; falls 0.9-2.3 before). 05:09 run resumed on the dense variants. Check 6 ~07:15.
+* Check 6 (07:15, update 34319; snapshot nav_clusters_20261007_check6_34319.pth): held-out 46.6 (95 % 44.7-48.5):
+  a PLATEAU at 46-47 for three checks (6 h); jump pressed on 3.01 % (1.56, 2.80 before: the rise is slowing),
+  stuck-breaker 33.5, 15.6 s per cluster, best round 61. Jump head weights moved 1-2.7 % (3-4 % the interval before).
+  Deterministic play still waits for the head to pass p 0.5 at a box side; the sampled head sits far below it.
+* KOTM check 6 (c6kotm_20261008_0720, 32 rounds): 153.7 (95 % 151.0-156.4), falls 1.94 (down from 3.12), jump pressed
+  0.85 % (the 1.72 % rim-jumping of check 5 receded), best 169. Checks 1-6: 160.3, 152.2, 159.0, 157.5, 153.4, 153.7
+  vs the 166.55 base: KOTM sits ~13 under the base while the cluster skill trains.
+* 07:25 run resumed with JUMP_EXPLORE_P_RISE 0.15 -> 0.30 (more positive jump samples at box sides; KOTM cannot fire
+  the nudge). Check 7 ~09:30. Night summary: held-out 32.8 -> 46-47 (plateau since 02:45), policy jump rate 0.9 -> 3.0 %,
+  stuck-breaker 52 -> 33 a round, seconds per cluster 22.5 -> 15.6 (human 3.3); KOTM 166.5 -> 153.7.
+* 08:50 operator: "around game 83 on all the cluster maps the scores dropped and became inconsistent". Dashboard game
+  list (from 00:35): 10-game window means per map were 79-88 with sd 13-20 from 00:35 to 02:40, then 56-61 with sd
+  20-25 from the first window after 02:53 = the DENSE variants (30 clusters, pitch 16). Three held-out checks on them
+  showed no gain (46.3 / 46.8 / 46.6). 08:56 REVERTED to the sparse layouts (seed 1007, 14 clusters, pitch 18, floor
+  now 100 u centred; 865 gems, all on a floor), run resumed; rise exploration stays 0.30. Check 7 ~10:30.
+* 09:00 operator watched the model at 1x on BlockClusters_v5 (watch_model.ps1, run paused at update 34533), then:
+  "kill it and resume training. I'm pretty sure this will work great if we let it train throughout the day". Resumed
+  09:05 (sparse layouts, rise exploration 0.30, 2 KOTM). Checks every ~2.5 h (each costs ~25 min of pause): next ~11:30.
+* Check 7 (11:30, update 34855, snapshot nav_clusters_20261007_check7_34855.pth; the SHORT form, operator: pause <= 15
+  min: both maps side by side, 4 games x 4 rounds each, pause 11:31-11:37): held-out 57.4 (95 % 54.3-60.5; checks 4-6:
+  46.3/46.8/46.6): the plateau broke after the sparse revert + 0.30 rise exploration; jump pressed on 5.98 % (3.01),
+  stuck-breaker 30.9, 13.2 s per cluster (15.6; human 3.3), 49.6 pickups, best 71. KOTM 151.2 (95 % 148.4-154.1), falls
+  2.50, jump 1.66 % (the rim-jump leak again; check 6: 153.7, 0.85 %). Jump head moved 2-4 %. Training rounds on the
+  sparse layouts 96-100 (sampled). Resumed 11:37. Next check ~14:15.
+* 12:50 operator: BlockClusters_v3 training scores far more inconsistent than the other variants. Since 09:05: v3 mean
+  89, sd 34 (others sd 10-16), 27 of 163 rounds under 40 alternating with 100+ rounds = the marble trapped for most
+  of a round on some spawns (no stuck-breaker in training). Suspects on v3 only: TreasureBox c10, a hollow ring of
+  0.5 u boxes with the gems inside, at (9, 27); TreasureBox c14 with a 6 x 2 slab 1.17 u tall at (9, -26). Planned:
+  traced rounds on v3 at the next check, then a pool filter against enclosures and wall slabs if confirmed.
+* 13:05 TRAINING STOPPED by the operator ("kill training for the moment while I investigate the map myself"), update
+  35048, STOP file left, nav_latest = 35048. Resume with the same supervisor command when he says so.
+
+### 40.66 The held-out gains were the exploration, not the policy (10-08 13:10-13:45)
+* Operator (watching v3 at 1x): the marble hops boxes "uncannily" on the way between spawns but waits at a box side at a
+  spawn for a few seconds and then "randomly" jumps; "my spidey sense is tingling that there's a bug". He was right.
+* Diagnostics on the check 7 checkpoint (34855), held-out map, 3 games x 4 rounds each: exploration forced to 0 with the
+  evaluation stuck-breaker ON: 4.6 points (95 % 2.4-6.7), jump pressed on 0.19 % of decisions, 107 breaks a round,
+  speed 0.8; exploration 0 and breaker OFF: 0 points, speed 0.35 (it rolls to a box side and stays). The check 7
+  figure of 57.4 (jump 5.98 %) was the 0.30 exploration sampled INSIDE the breaker's 24-decision detours. The same
+  held for every check since the baseline (which ran with the 0.03 mixture in the breaker's sampling). My earlier
+  split "82 % of jumps outside detours" was a parse error. The deterministic policy has learned ~nothing.
+* Why the head barely learned: the mixture p = p_learn + eps (1 - p_learn) passes the head a gradient of
+  (1 - eps) p_learn (1 - p_learn) / p: at the head's -4 logit that is 0.36 for eps 0.03, 0.09 for 0.15, 0.04 for 0.30.
+  Raising the exploration (my 07:25 change) cut the learning signal by 2.3x. A LOGIT BONUS keeps (1 - p): 0.73 at +3.
+* Fix (nav/model.py): JUMP_EXPLORE_BONUS 3.0 added to the jump logit where a rise is ahead (sampling only; deterministic
+  reads the raw head), to be annealed 3 -> 2 -> 1 -> 0 at the checks as the pure policy's jump rate rises; the rise
+  mixture retired (JUMP_EXPLORE_P_RISE 0); the plain-floor mixture stays at 0.01 off rises. Env overrides
+  NAV_JUMP_EXPLORE_BONUS / _P / _P_RISE; the check launcher now runs every evaluation at 0, so from here the checks
+  measure the policy (breaker detours sample the pure policy). Smoke: sampled p 0.03 plain floor, 0.27 rise ahead,
+  0.03 rise behind, 0.02 void; gradient to the head at a rise 0.7+; deterministic unchanged; 13 tests pass.
+* Honest restatement of the night: true deterministic held-out progress = none measurable; the policy's sampled rounds
+  (80-105) and the checks (46-57) were exploration. KOTM 166.5 -> ~152 is real. Clean baseline of 32565 running.
+* Clean baseline (d0noexp_20261008_1323): the 32565 model on the held-out map with exploration 0 (breaker on): 3.1 points
+  (95 % 2.1-4.1), jump 0.09 %, 109 breaks a round. Check 7 model, same conditions: 4.6, jump 0.19 %. Twenty hours of
+  training moved the pure policy from 3 to 5 points. STATUS 13:50: run STOPPED (operator, 13:05, update 35048); the
+  logit-bonus fix is in nav/model.py and untested in training; evaluations now run clean. Awaiting the operator.
+* 13:33 run RESUMED on the logit-bonus exploration (operator: "proceed with the training with the fix"). Sampled cluster
+  rounds 66-74 (the bonus samples ~27 % at rises; not a policy number). Operator's question "how would we know it is
+  learning": the pure policy's jump rate at box sides (clean checks), the stuck-breaker count (clean baseline 108 a
+  round), then the score; plus a direct read of the head.
+* 15:00 SUSPECT: a synthetic box-side probe (scratchpad jump_logit_probe.py) reads the jump logit at exactly -7.0 on
+  EVERY checkpoint (32565 through nav_latest): -7 is the hard clamp floor in heads() (torch.clamp(head - JUMP_DAMP,
+  -7, 3)), and a hard clamp passes no gradient while the head sits below it. If real box-side states sit at the clamp
+  too, the head could never have learned there, whatever the exploration form, and the +3 bonus only lifts the
+  sampled logit to -4 (p 0.02). Instrumented: model.last_jump_raw (pre-clamp head output) and a jump_raw column in
+  real_run's trace, so check 8 (15:35, clean) shows the real distribution at the stall positions.
+
+### 40.67 Check 8: the logit bonus works; the clamp pinned the stalled case (10-08 15:35-16:00)
+* Check 8 (15:35, update 35302, CLEAN: exploration 0 in the evaluators): held-out 20.9 (95 % 14.2-27.6) vs 4.6 clean for
+  the check 7 model and 3.1 for 32565; the policy's own jump presses 7.00 % (0.19), stuck-breaker 87.9 (107), 7.5 s per
+  cluster, best round 54, 18.4 pickups; jump head weights moved 11 % in the interval (2-4 % under the mixture). KOTM
+  148.5 (95 % 145.6-151.4), falls 2.81, jump 2.11 % (rim jumping), best 158.
+* The jump_raw trace column: the pre-clamp head is below -7 on 88 % of decisions and 99 % of stalls (stopped on the
+  floor: median -38, p90 -12); above 0 on 7 % (the moving-at-a-rise case it now jumps in). torch.clamp(-7) passed no
+  gradient to any of the stalled states, so the stopped-at-a-box case could never be learned.
+* Fix (nav/model.py): the lower clamp removed (clamp(max=3) only; sampling below -7 was < 0.001 anyway, deterministic
+  unchanged, only the gradient changes); JUMP_FORCE_P 0.10 forced jump samples in act() where slow (< 2 u/s) at a rise,
+  with the POLICY's log-prob for the action (off-policy by design, gradient 1 - p ~ 1 when it pays); mask cannot fire on
+  KOTM's floor; evaluations run NAV_JUMP_FORCE_P 0. Smoke with the head at -31: forced 10 % at the stopped marble, bonus
+  case unchanged, gradient to the head 0.3+, deterministic 0. 13 tests pass. Resume follows.
+
+### 40.68 The PC rebooted on its own; the run died; restart hardening (10-08 15:58-16:20)
+* The machine went down ~15:58 (System log: kernel-power 41 + 6008 "unexpected shutdown", BugcheckCode 0, no dump, no
+  error logged before; the only update that day was a Defender signature AFTER the boot at 15:59). Bugcheck 0 = a hard
+  hang or power loss, NOT Windows Update. It hit ~15 min after the 15:43 relaunch (8 games + trainer = peak load).
+  The run died with it: nav_latest = update 35330 (saved 15:58), 28 updates after check 8. No STOP file.
+* Operator: "turn off as many ways for the PC to restart on its own as possible, especially automatic updates".
+  ml_agent/no_auto_restart.ps1 run elevated 16:14 (log logs/no_auto_restart.log): WU policies NoAutoUpdate=1,
+  AUOptions=2, NoAutoRebootWithLoggedOnUsers=1; updates paused to 2026-11-12; active hours 06:00-24:00; crash
+  AutoReboot=0 + automatic memory dump; no sleep/hibernate/monitor-off, wake timers off. The UpdateOrchestrator tasks
+  are protected (not disabled). If it happens again with bugcheck 0 it is hardware/power (PSU, thermals under load).
+* Training NOT restarted: awaiting the operator (a load-related crash is his call to retry).
+
+### 40.69 Check 9: the clamp removal and the forced stall samples unlock it (10-08 18:20)
+* Check 9 (18:20, update 35562, CLEAN; ~2.5 h on the clamp-free head with the logit bonus and the forced stall
+  samples, minus the reboot gap): held-out 98.4 (95 % 89.2-107.7; check 8 20.9, clean baseline 3.1), 85.7 pickups,
+  policy jump presses 37.9 % of decisions (7.0), stuck-breaker 8.6 a round (88), 6.5 s per cluster (human 3.3),
+  travel 4.5 s (human 3.2), 13.9 clusters a round, best round 118, speed 5.0. Raw jump logit at stalls: median -12
+  (was -38), above 0 on 6 % (was ~0): the stopped-at-a-box case is being learned. Jump head moved 9 % in the interval.
+  KOTM 147.1 (95 % 144.7-149.4), falls 3.00, jump 1.83 %: flat vs 148.5. Resumed 18:26. Sampled cluster rounds
+  since the 16:17 restart 113 (max 149).
+* Operator's benchmark: his round on the held-out map 173; the model's clean best 118, mean 98. Next lever when the
+  jump rate at stalls is solid: anneal JUMP_EXPLORE_BONUS 3 -> 2 (needs a restart, so at a check). Check 10 ~21:00.
+* Check 10 (20:58, update 35854, CLEAN; snapshot nav_clusters_20261007_check10_35854.pth): held-out 101.6 (95 %
+  93.9-109.2; check 9 98.4), 87.7 pickups, jump 40.2 %, stuck-breaker 9.7, 6.8 s per cluster, best 118 again; raw stall
+  logit median -21 (noisy; 7 % above 0). KOTM 149.4 (95 % 147.4-151.5), falls 3.19, jump 1.85 %. Flat vs check 9 after
+  2.5 h: the sampled training rounds also sat at 115 all evening. The jump head moved only 1-4 % this interval (9-11 %
+  the two before): the easy gains are in; what is left is speed (6.8 s per cluster vs the human 3.3) and the stalls.
+* TRAINING STOPPED 20:58 by the operator's instruction ("regardless of the check 10 results, stop training after
+  that"); STOP file left; nav_latest = 35854. He will watch the model at 1x next.
+  Summary of the discovery run, clean held-out scores: 3.1 (32565) -> 4.6 (ck7) -> 20.9 (ck8) -> 98.4 (ck9) -> 101.6
+  (ck10); the policy's own jump presses 0.1 % -> 40 %; stuck-breaker 109 -> 10 a round; KOTM 166.5 -> 149.4.
+* 21:30 operator watched the final checkpoint at 1x on the held-out map and v3 (exploration 0): "it's jumping way too
+  often ... it can't collect the gems in a controlled manner". Correct: the raw head is above 0 on 40 % of decisions
+  (the policy's own, nothing added at watch time); the bonus and the forced samples taught 'jump near anything' and a
+  wasted hop costs nothing on a flat map but time. 21:40 ANNEAL step 1 (operator: "make the fixes but don't restart
+  training yet"): JUMP_EXPLORE_BONUS 3.0 -> 1.0, JUMP_FORCE_P 0.10 -> 0.03 in nav/model.py; 13 tests pass. The
+  per-decision time cost he allowed is NOT added: with a discounted return (gamma 0.99, nav/ppo_recurrent.py) a constant per-step cost shifts
+  every state's value by the same amount and cancels in the advantage, so it cannot change the policy; the pressure
+  against wasted hops is already the discounted gem reward (gems sooner are worth more). TRAINING STILL STOPPED.
+* 21:55 operator: "do you think the forced stall samples should be 0 now?" -> kept at 0.03 (the stopped case is not learned:
+  stall logits above 0 on 7 %), the BONUS to 0.0 instead (the moving case is over-learned). nav/model.py.
+* 22:10 operator found the v3 trap by playing: "if the marble jumps and hits one of the clusters just right, the marble
+  sticks ... stuck for the rest of the game", the south side of the yellow slab of cluster 8 (schematic
+  logs/nav/blockclusters/v3_schematic.png = Incidious c06), with a "bump off the corner" rolling along that face.
+  Geometry inspection: exact rectangles, but (a) the slab was the only 2 x 4 box = the only Cube.dif with a NON-UNIFORM
+  scale (0.5 x 1.0) on v3, and (b) a 0.5 u box touches it at a single corner point (corner-only contacts are common:
+  40-60 a map, 69-92 edge contacts). Fix in build_cluster_variants (tiles()): every box is now covered by SQUARE,
+  uniformly scaled tiles (side min(w, d, 2.0)) spread to overlap, each inflated 0.03 u per side, so separate hulls
+  overlap instead of meeting at hairline seams/corner points (standard brush practice). All 9 maps regenerated (same
+  seed 1007 layouts; the holdout now also on the 100 u centred floor), every gem on a floor, 0 non-square tiles.
+  Teleport probe on the new v3 running. The operator should re-roll cluster 8's slab face to confirm.
+  Teleport probe on the tiled v3: 460/460 agree with the terrain map. Game closed; TRAINING STILL STOPPED (nav_latest 35854).
+* 21:45-22:00 operator watched the final checkpoint at 1x with the new evaluation knob NAV_JUMP_DET_THRESHOLD (deterministic
+  jump threshold 0.7, then 0.9; default 0.5 unchanged) to see what jumping less looks like. Threshold batches started
+  and stopped at his request (no result).
+* 21:48 TRAINING RESTARTED (operator "just start training now") from nav_latest 35854: regenerated maps (square 2.06 u
+  tiles), JUMP_EXPLORE_BONUS 0, JUMP_FORCE_P 0.03, plain-floor mixture 0.01, same 6 + 2 split. The reward alone prunes
+  the over-jumping from here; the forced samples keep teaching the stopped case. Checks ~2.5 h apart, clean.
+* Operator: "do not forget to put the inference code back so next time we aren't filtering out low confidence jumps".
+  State: the threshold lives ONLY in the env var NAV_JUMP_DET_THRESHOLD; the code default is 0.5 (unchanged inference);
+  the 0.7/0.9 values were set in the launching shell for the two watches and removed before the trainer started (the
+  trainer loaded 0.5, verified); no user/machine env var exists; watch_model.ps1 never sets it; the check launcher now
+  pins 0.5 explicitly. Nothing to put back.
+* 22:45 dashboard (operator: some graphs empty; fixed without touching training): the per-map cards/charts for the six
+  cluster maps were blank because their pooled MAPS speed reads 0.5-0.7 u/s and dashboard_nav's sanity floor for speed
+  was 1.0, after which the "speed None = no data" rule nulled the whole row. Floor 1.0 -> 0.0, the rule now fires only
+  on 0/missing; dashboard restarted; cluster series 674/706 updates populated. Open oddity: the trainer's pooled
+  per-map speed for cluster maps (0.6) is far below the evaluated 5 u/s (KOTM pools 7.2, plausible): the travelled
+  accounting of full-round records on those maps looks off; display only, not chased tonight.
+* 23:45 dashboard broke again, MY FAULT: the on-page error display added at 22:55 carried a literal line break inside a
+  JS string (a heredoc escaping slip), a syntax error that killed the whole page script ("not showing anything").
+  Fixed (String.fromCharCode(10)), the served script now passes `node --check`; dashboard restarted; training untouched.
+  Lesson: syntax-check the served <script> with node before restarting the dashboard.
+
+### 40.70 Check 11: the stopped case is learned; all exploration scaffolding off (10-09 00:20-00:35)
+* Check 11 (00:22, update 36301, CLEAN; 2.5 h with bonus 0 / forced 0.03 on the tiled maps): held-out 108.9 (95 %
+  104.9-112.9; check 10 101.6), 94.0 pickups, stuck-breaker 3.0 a round (9.7), 6.5 s per cluster, travel 4.4 s, best 120,
+  top rounds 120/117/117/116/115; jump pressed 41.2 % (40.2: not pruned yet); raw stall logit median +6.6, above 0 on
+  74.7 % of stalls (check 10: -21, 7 %). KOTM 148.6 (95 % 146.6-150.6), falls 2.94, jump 1.93 %: flat.
+* 00:30 JUMP_FORCE_P 0.03 -> 0.0 (the stopped case is learned). Bonus 0, forced 0, plain-floor mixture 0.01: the policy
+  now trains on the game's reward alone; the discounted return should prune the wasted hops (41 %) and that is the
+  speed lever for the operator's overnight goal (one clean round > 173; best so far 120). Resumed ~00:35. Check 12 ~03:00.
+* Check 12 (03:02, update 36640, CLEAN; 2.5 h with ALL scaffolding off): held-out 101.8 (95 % 89.5-114.1; check 11
+  108.9), stuck-breaker 13.2 (3.0), jump 35.6 % (41.2), 6.2 s per cluster, best 121; raw stall logit median -17.8, above
+  0 on 3.2 % (check 11: +6.6, 74.7 %). KOTM 144.4 (95 % 141.4-147.5), falls 4.94, jump 3.26 % (148.6 / 2.94 / 1.93 %).
+  Reading: the stopped-at-a-box case was held up by the forced samples' one-way ratchet; on-policy, the reward alone
+  pushes it back down (a jump from rest at a box often bonks or is slow, so its advantage is negative/noisy), and the
+  over-jumping is only mildly pruned (41 -> 36 %). KOTM's rim-jumping worsened too. Sampled training rounds meanwhile
+  read 123 with a 187 high on a training variant (14 clusters; not the held-out map).
+* 03:10 JUMP_FORCE_P back to 0.03 (the check 11 configuration, the best measured state); bonus stays 0. Restarted.
+  Check 13 ~05:45. The honest lever for the stall case long term is the plan's phase 2 (the option simulator's verdict
+  for a jump from rest), not a permanent sampling floor.
+* Check 13 (05:40, update 36976, CLEAN; 2.5 h with forced 0.03 restored): held-out 108.1 (95 % 98.3-118.0; check 12
+  101.8, check 11 108.9), 93.9 pickups, 5.8 s per cluster (best yet; human 3.3), travel 4.3 s, stuck-breaker 9.7, jump
+  39.7 %, best round 126 (new best; top 126/126/122/121/121); raw stall logit median -15.9, above 0 on 5.7 % (the floor at
+  3 % has not rebuilt the stall case yet). KOTM 146.7 (95 % 144.5-148.9), falls 2.31, jump 1.88 % (recovered from 144.4).
+  Training rounds since 03:11: 126 mean, last 100 at 131, high 169. Resumed 05:46. Next: a 32-round clean held-out
+  batch ~08:15 (8 games x 4 rounds, the operator's 15-minute pause cap) for the morning best-of against 173.
+* Morning batch (08:16, update 37309, CLEAN, 8 games x 4 rounds = 32 on the held-out map; snapshot
+  nav_clusters_20261007_check14_37309.pth): 111.2 (95 % 102.0-120.4), 96.6 pickups, 5.4 s per cluster (best; human 3.3),
+  travel 4.4 s, stuck-breaker 10.1, jump 37.0 %, BEST ROUND 139 (top 139/128/127/126/125/125); stall logits median -12,
+  above 0 on 6.7 %. Overnight goal (one clean round > 173) NOT met; best 139 vs 173. Training rounds since 05:46: 128
+  mean, last 100 at 131, high 179 (training variant). TRAINING PAUSED after the batch (operator's instruction), STOP
+  file left, nav_latest = 37309. Night in clean held-out means: 101.6 -> 108.9 -> 101.8 -> 108.1 -> 111.2; best rounds
+  118 -> 120 -> 121 -> 126 -> 139. KOTM last measured 146.7 (check 13).
+* 08:45 threshold experiment (operator: "it's jumping way too often ... artificially told to jump?"). Attribution on the
+  morning batch's 90,912 decisions: 99.9 % of jump presses had the head's own raw logit above 0 (27 of 33,660 did not):
+  NO outside source in deterministic play. The head is above threshold on 63 % of decisions with the target > 8 u away,
+  23 % within 3 u, 40 % while airborne (chained hops); the human held jump on 27 % of ticks. Same checkpoint on the
+  held-out map, 3 games x 4 rounds: threshold 0.7 -> 98.5 (95 % 78-119), jump 32 %, stuck 22.8, best 130; threshold
+  0.9 -> 117.2 (95 % 112-122), jump 38.5 %, stuck 2.8, best 130; reference 0.5 -> 111.2, jump 37 %, best 139. The press
+  rate barely moves with the threshold: the head is SATURATED (its hop decisions sit near p 1), so the hopping is not
+  low-confidence noise a threshold can filter; it has to be trained out (or replaced by the plan's phase 2 verdicts).
+  TRAINING STILL PAUSED (nav_latest 37309).
+
+### 40.71 Operator's direction after the night; the height-aware tour (10-09 09:00-09:40)
+* Operator (watching v0 at 1x): rejects the "ask a verdict, then jump" architecture ("if it's not actually a hack it's
+  really close to a hack"); the plan's phase 2 option-simulator verdicts are OFF the table. Agreed alternatives for the
+  jump skill: maps where a careless hop costs a fall (the game's rules as the teacher) and a learned jump-outcome
+  auxiliary head; plus time.
+* Operator: the model collects a spawn in the least efficient order (lowest box first, jumping up each step) where the
+  fastest is "jump onto the top one and roll down". Root cause: the tour (nav/gems.plan_tour, NAV_TOUR walk) orders gems
+  by walk DISTANCE only. Chosen: option 3 = (1) a height-aware tour now, (2) a learned gem chooser (an action head over
+  the visible gems) next.
+* (1) built: plan_tour prices each leg's climb: a rise above TOUR_STEP_DZ 0.3 u costs TOUR_JUMP_U 5 u of travel
+  (one jump, ~1 s at ~5 u/s), a rise above TOUR_ONE_JUMP_DZ 1.3 u (more than one plain jump) costs two, descents 0;
+  the marble's own height enters the first leg (callers pass obs[0:3]: vec_worker, real_run, hybrid). Synthetic
+  staircase: approaching from the high end now orders top -> middle -> bottom; from the low end it still climbs the
+  steps (three cheap hops beat walking round to the top and reversing). 20 tests pass. A/B on the held-out map with the
+  37309 checkpoint running (NAV_TOUR_JUMP_U 0 vs 5, 4 games each).
+* Tour A/B (09:02, held-out map, 37309 checkpoint, 4 games x 4 rounds each, clean): distance-only tour (NAV_TOUR_JUMP_U 0)
+  110.1 (95 % 101.4-118.7), 96.2 pickups, stuck 10.4, 5.8 s per cluster, top rounds 131/124/123/118; height-aware tour
+  (5 u per jump) 115.0 (95 % 105.9-124.1), 100.4 pickups, stuck 5.4, 5.6 s per cluster, top rounds 137/136/133/130.
+  A consistent gain across every measure though inside the 16-round noise; the new tour is the default from here
+  (training and evaluation). Step 2 of option 3 (a learned gem chooser) is next; training still paused.
+* Operator corrections 09:10-09:16: (a) an upward leg costs ONE jump whatever the rise (clearing two boxes in one jump is
+  no slower): the 2x charge above 1.3 u removed. (b) "brute force the fastest way measured only in jumps and distance":
+  that is plan_tour minus its KOTM-era turn penalty (TOUR_TURN_U 6) and first-leg momentum term (MOMENTUM_K 1.6). A/B on
+  the held-out map (09:12, 37309, 4 games x 4 rounds each): pure (TURN_U 0, MOMENTUM_K 0) 112.0 (95 % 107.5-116.5),
+  97.4 pickups, stuck 2.8, best 129; current 105.3 (95 % 92.2-118.4), 90.7 pickups, stuck 14.7, best 128. Pure wins
+  (the stuck count is the clean signal). KOTM A/B of the same two settings running before the defaults change.
+  (c) "all time estimates in my wall clock time, no exceptions": a 16-round batch measures 2.9-3.2 min launch to last
+  round; I had been quoting 13. Memory: feedback-wall-clock-estimates.
+* KOTM A/B of the same two tours (09:17, 4 games x 4 rounds): pure 117.8 (95 % 105.4-130.1), falls 6.31; current 143.9
+  (95 % 141.3-146.5), falls 3.25. The turn/momentum terms matter at KOTM speed. Middle ground built: the per-gem turn
+  penalty scales with the marble's current speed (TOUR_TURN_REF_SPEED 8 u/s = full penalty; cluster speeds 2-5 u/s get
+  a quarter to a half). Testing on both maps at once.
+* Speed-scaled turn penalty (09:21, both maps, 4 games x 4 rounds): held-out 113.7 (95 % 107.7-119.7), stuck 5.0, best
+  131; KOTM 143.9 (95 % 141.2-146.7), falls 3.31 = the current tour's KOTM result exactly, with the pure tour's cluster
+  gain. DEFAULT from here (TOUR_TURN_REF_SPEED 8 u/s in nav/gems.py; MOMENTUM_K and TOUR_TURN_U unchanged otherwise).
+  Tour summary on the 37309 checkpoint, held-out / KOTM: distance-only 110.1 / -, height-aware fixed-turn 105-115 /
+  143.9, pure distance+jumps 112.0 / 117.8, height-aware speed-scaled 113.7 / 143.9. TRAINING STILL PAUSED (37309).
+
+### 40.72 ExampleMission at 1x: phantom floors on a REAL map; the headroom rule (10-09 09:35-09:55)
+* Operator watched the paused model (37309) at 1x on ExampleMission (terrain map built for it): collects most gems but
+  waits at box bases far longer than on the cluster maps. Trace: 33 % of decisions stalled, 666 of them at (2, -10);
+  raw jump logit at stalls above 0 on 0.8 % (generated maps 7 %). At that spot the terrain stack holds floor levels
+  9.5 / 9.0 / 8.5: the DIF's raised tiles have NO underside faces, so COVER_CLEARANCE (needs a ceiling) kept the floor
+  under the boxes, the rays followed it under the box, no edge, no rise, the policy never jumped.
+* Fix: generate_terrain_map HEADROOM 0.75: a floor level with another floor level less than 0.75 u above it is dropped
+  (the marble is 0.38 u across). Geometry only. All maps in use rebuilt.
+* HEADROOM alone left the 8.5 floor under a 1.0 u tile (gap 1.0 > 0.75). Second rule, solid_footprints(): an upward
+  polygon whose VERTICAL faces share two or more of its vertices is a box top; those walls' lowest z is the box bottom;
+  floor levels inside that footprint between bottom and top are inside the solid and dropped. ExampleMission: the
+  stall spot (2, -10) now holds one level (9.5), (1.8, -10.8) one level (8.5, the real floor beside the box); cells
+  with 2+ levels 194 of 22,420; all 34 gems on a floor. KOTM: zero cells changed at any level. Generated maps rebuilt,
+  gems all on floors. Clean batch on ExampleMission with the fixed map running.
+* The ExampleMission verification batch (09:40) produced no rounds: the launcher's games sat in the level select (Nuked
+  category, "Block Clusters v3" still highlighted): -autotrain could not start "ExampleMission" from the batch launcher,
+  while the watch (watch_model.ps1) had played it (its trace sits at the map's z 4.5-15.5). Open: why the two launches
+  differ (the watch passes -aifreecam; both pass -autotrain ExampleMission). Verification of the ExampleMission stall fix
+  is therefore pending; the generated maps are unaffected (gems all on floors, KOTM unchanged).
+* ~09:52 TRAINING RESUMED for a two-hour block (operator) from nav_latest 37309: final tour (height-aware, speed-scaled
+  turn penalty), rebuilt terrain (headroom + solid footprints), bonus 0, forced 0.03, 6 cluster + 2 KOTM.
+
+### 40.73 ExampleMission verified after the terrain fix: NOT fixed, the policy parks at a 0.5 u ledge (10-09 09:55-10:10)
+* 09:53 TRAINING STOPPED again (operator: "stop training and see if example mission is fixed"), nav_latest 37312.
+* Why the batch launcher could not start ExampleMission: mlAgent.cs autoTrainStage 2 derives the level-select difficulty
+  from the file's folder (resolveMissionType -> "Nuked" for hunt/custom/nuked/), but the level select files it under
+  Hunt > Custom. FIX in mlAgent.cs (approved: "example mission is under hunt, then choose custom"): try the folder
+  guess first, then walk every difficulty list of the game (getDifficultyList / hasMissionList / buildMissionList)
+  until the file base name turns up; only then setGame/setMissionType. .dso deleted. The launcher now plays it.
+* Clean batch exfix3 (4 games x 4 rounds, 10:00-10:02, nav_latest 37312, rebuilt terrain): points 25.3 mean, best 66,
+  gems 19.3, falls 2.0 a round. Stalled decisions (< 1 u/s) 38.1 % (pre-fix watch 33 %); raw jump logit > 0 on 7 % of
+  stalls. Same spot as before the fix: 7,785 of 17,300 stalled decisions at (2, -11) z 8.69 on the floor, target gem
+  (3, -11, 9) 1.2 u east, median jump logit -15.6, forward stick 0.26 (barely pushing). Three more hot spots of the same
+  kind: (-7, 16) -> gem (-7, 17); (-8, 21) -> gem (-5, 21); (2, -10) -> gem (10, 14).
+* The terrain map is RIGHT there now: 0.25 u grid, one level per cell, |marble floor - map level| median 0.01 u over
+  18,595 on-floor rows. Geometry at the stall: a 0.5 u step running north-south at x = 2.0 (8.5 -> 9.0) with the gem
+  1 u east of its top edge. Reconstructed rays at (1.8, -11): edge 0.5 u ahead, dz +0.5 u (the rise mask's 0.03
+  threshold is met), goal ray 42 % clear, dz +0.5. So the observation is a plain "0.5 u rise ahead, gem just past it",
+  the model sees it correctly, and the policy answers no-jump / no-push. On the held-out cluster map the same model
+  takes 40 gems a round off 0.5 u boxes, so the skill does not carry to a long ledge beside a drop (rays 157-270 deg
+  show the void 4-5.5 u away). Generalisation gap, not a map bug.
+* 10:06 TRAINING RESUMED (two-hour block, operator) from 37312, same supervisor command; trainer 5676, 8 games by 10:08.
+  (The stamped 20261009_100636_stdout/stderr files in the run dir are the supervisor's copies of the PREVIOUS run's
+  logs, including its final connection-reset traceback from the 09:53 stop; the live log is logs/nav/stdout.txt.)
+  Block ends ~12:06; clean check after that.
+
+### 40.74 Two-hour block 10:06-12:07 and check 13; TRAINING PAUSED (10-09 12:07)
+* Block ran clean (no trainer restarts), 37312 -> 37575 (263 updates in 2 h). STOP file placed 12:07 on the operator's
+  instruction ("pause training after the next check"); nav_latest 37575.
+* Check 13 (clean, exploration 0, 4 games x 4 rounds each, 12:07-12:11): held-out 109.2 (95 % 103.2-115.3), gems 95.0,
+  falls 0, best 123; 92 % of pickups on box tops; 5.8 s per cluster visit (human 3.3), 4.7 s travel (human 3.2).
+  KOTM 147.9 (95 % 144.2-151.7), falls 3.69, best 158. Versus check 12 at 37309 (113.7 / 143.9): flat within noise on
+  both maps. The two hours bought nothing measurable. TRAINING PAUSED, STOP file left, awaiting the operator.
+
+### 40.75 Why the model parks at ExampleMission's ledges: a learned "no jump near a drop" rule (10-09 12:15-12:50)
+* Operator (12:15): no training until the ExampleMission waiting is fixed; every fix is to be shown at 1x.
+  Watch at 1x running meanwhile (37575, exploration 0, port 9961).
+* Gem heights are not it: gem z - floor level is 0.00-0.05 on KOTM, the cluster maps and ExampleMission alike.
+* Jump by approach speed, rise within 1.5 u ahead (clean batches, 16 rounds each):
+  holdout: stalled 11 % pressed (logit -11), 1-3 u/s 54 % (logit +0.7), 3-6 u/s 36 %, 6+ u/s 42 %; 3.5 stall episodes a
+  round, 3.7 s a round, 64 % ended by a jump. ExampleMission: stalled 1 % (-13.6), 1-3 u/s 4 % (-15.6), 3-6 12 %, 6+ 3 %;
+  60 stall episodes a round, 57 s a round, 5 % ended by a jump. The refusal holds at every speed: the policy sees the
+  ledge differently, not merely a stall-case hole.
+* Offline replay (scratchpad ledge_probe.py / ledge_probe2.py): the real observation builder + model, GRU state built
+  from the 80 decisions of approach, reproduces the trace's logits. Then the same episode over other terrains:
+    real map                                    logit -20 .. -30 through the stall
+    real map, void filled at 8.5 within 16 u    about -10 (drops to the east at 5-10 u and the 9.5 level stay)
+    flat 8.5 floor + endless 9.0 ledge at x>=2  +3 (= the clamp) at every stalled decision
+    flat floor + 2 u box / 2 u strip / 10 u block   +2 .. +3 at the stall
+  So the step itself is fine in any shape; what kills the jump is the surrounding geometry: drops and void within
+  5-10 u (sides, behind, and beyond the gem).
+* Training never showed that: on the holdout / v0 / v3 the nearest void to ANY gem is 28 / 19 / 17.5 u (floor 100 u
+  square, clusters centred). KOTM (2 of 8 games) has drops but no 0.5 u steps to climb, and its lesson is "jump near a
+  rim = fall". The exploration also never sampled a jump near a drop: safe = no ray within JUMP_EXPLORE_CLEAR_U 10 u
+  showing a drop > 0.3 u, so the forced stall samples (and earlier the nudge) were off anywhere drop-adjacent.
+* Proposed fix (needs approval; it is a training change, no map hack, nothing ExampleMission-specific):
+  1. Cluster-map variants with drops: holes / floor edges 1.5-6 u from clusters and lower shelves, so "box beside a
+     drop" is a trained case (build_cluster_variants option, holdout kept as is).
+  2. Forced stall samples: clearance by physics. A stalled marble's hop (< 2 u/s) lands within ~1.5 u, so a drop
+     3+ u away cannot matter: clearance 3 u for the forced stall samples (the 10 u stays for anything moving).
+  3. Validate in-game at 1x on a holes map BEFORE training (the stall should appear beside boxes near holes); train;
+     then 1x on ExampleMission.
+
+### 40.76 Real-map pool (Phase R): list, files, terrain builds, teleport verification of 10 maps (10-09 12:15-13:35)
+* Operator decisions: no training until the ExampleMission waiting is fixed; the fix is the training distribution,
+  not a curated pool: train on the game's own hunt maps (tiers Beginner/Intermediate/Advanced/Expert from the PQ app
+  at AppData/Roaming/PlatinumQuest; the mbx repo's lists are outdated; 62 maps, UI order = MissionInfo.level).
+  First pool (10): KOTM, Sprawl, Cube Isle, Bowl, Duplex, Fractured Islands, Cragmire, Vortex Effect, Treasure Box,
+  Concentric (Prophetic swapped out). Competitive Mode allowed in training. Plan written: GENERALIZATION_PLAN.md
+  "Phase R". Each part is asked before it starts.
+* Files: FracturedIslands_Hunt.mis + its DIF copied from the PQ app; TreasureBox_Hunt.mis and Prophetic_Hunt.mis
+  replaced by the PQ versions (240 s round / PQ par scores; tight bounds trigger).
+* Hunt facts (operator): a spawn group clears only when ALL its gems are collected; a gem that needs a powerup pins the
+  round (Competitive Mode's 20 s respawn runs only after the group's first pickup). All 10 maps are reachable without
+  powerups (operator), but many gems need a route (a road up a tower), not a straight line.
+* The navigator IS steered at the planner's path (real_run.path_waypoint, string-pulled, 12 u lookahead); the walk
+  graph is single-level (top floor per cell) so overhung/lower-deck gems and ramps under something are invisible to it
+  (gems off the top level: Cragmire 12 %, Concentric 11 %, Treasure Box 5 %, Cube Isle 3 %, others <= 1 %).
+  => Part 3 = multi-level walk graph before any training on these maps.
+* mlAgent.cs autotrain lookup (40.73) lets -autotrain start any tier map by file base name.
+* Teleport verification (nav/maps/teleport_probe.py, new trials_for_terrain for real maps: 40 interior, 30 void
+  0.4 u past a floor edge, 30 step edges, up to 25 gem spawns, 10 lower levels; scratchpad launch_probes.ps1 runs
+  one probe + one -autotrain game per map, 8 in parallel, ~1 min a batch). First pass found floor the game has and
+  the map lacked on Sprawl (6/30 void trials) and Vortex Effect (8/30): NOT the slope limit (53 deg added zero cells)
+  but the 10:00 solid_footprints rule: a TILTED slab (Sprawl 18 deg, Vortex 14 deg ramps) shares vertices with its
+  own side faces, its "top" was the mean vertex height, and the lower half of its own surface was deleted as "inside
+  the solid". FIX: SOLID_TOP_NORMAL_Z 0.995 (boxes only, level tops). Rebuilt all 10 + ExampleMission: KOTM 0 cells
+  changed, ExampleMission's phantom floors still gone, Sprawl +25k floor cells, Vortex +7k, Bowl +40k.
+* generate_terrain_map.py now saves .npz/.png via a temp file + os.replace: OneDrive refused the in-place overwrite
+  (Errno 22) and left Sprawl's map STALE while the build printed the new counts (caught by comparing file vs print).
+* Second pass, all 10 maps: Cube Isle, Duplex, Fractured Islands, Treasure Box, Concentric, Sprawl 135/135; Cragmire
+  134/135 (1 void trial placed into a rising wall: no floor, no fall); Vortex Effect 134/135 (one 1-cell seam crack
+  at a 0.5 u step); KOTM 87/92 (5 "lower level" trials on 25 deg surfaces under the floor: the marble ROLLED, not a
+  map error); Bowl 110/135 (10 void trials into the bowl's rising 50 deg wall, 15 stay trials on 27 deg slopes that
+  rolled downhill). No missing or phantom floor remains on any of the 10. Terrain VERIFIED for the pool.
+  Probe caveat for curved/sloped maps: a "stay" trial on a slope rolls and reads as a fall; a "void" trial beside a
+  rising wall rests at its base. Classify those from the raw DIF surfaces (normal_z at the point) before counting.
+
+### 40.77 Part 3: multi-level walk graph + physics floor rule (10-09 13:40-14:20)
+* Operator at the four viewers (teleport_hold.py, re-placed every 3 s): Concentric's gem at 5.6 over a 4.0 floor FLOATS
+  (jump for it; map right); Cube Isle's 32 deg surface is "100 % solid floor at an upward angle", not void; Bowl's 51 deg
+  wall is tarmac-like high friction and climbable; Cragmire's tower = a raised deck with ramps up its sides and a
+  navigable floor UNDER it: "two floors on top of each other ... do not make a quick cheap hack".
+* Floor rule, from the engine (marble.cc) and the marble datablock: traction <= staticFriction 1.1 x the texture's
+  friction x normal force, so a surface is climbable when tan(angle) <= 1.1 x friction. Textures map to friction in
+  platinum/data/init.cs (97 mappings: default 1.0 -> 47.7 deg, friction_high 1.5 -> 58.8, friction_low 0.2 -> 12.4,
+  tarmac 0.35, ice 0.03). generate_map_topdown.extract_surfaces(with_material=True) carries the texture;
+  generate_terrain_map: friction_table(), material_friction(), climbable(); the npz now also stores per-level
+  `slope` (rise/run) and `friction`; terrain_obs.TerrainMap loads them (defaults for old files).
+  A push cap (angularAcceleration x radius = 15 u/s^2 -> 48.6 deg) was tried and MEASURED WRONG: climb_test.py pushed
+  the marble from rest up Bowl's 51 deg wall to its top (-7 -> -1.9). Dropped; friction only, no margin.
+  Effects: Cube Isle +9k floor cells (its 32 deg ramps), Bowl +68k (its walls), KOTM +40 top-level cells (one 45 deg
+  bevel patch at (-25, 14.5)), Cragmire +100.
+* Walk graph (nav/terrain.py): nodes (level, j, i), WALK_LEVELS 4 per cell, levels = fine samples clustered within
+  LEVEL_MERGE 0.5 u (median height, max slope, min friction). DIRECTED edges to all 8 neighbour cells' levels with
+  dz in [-DOWN_MAX 6, +STEP_UP 1.5] (a wall connects downward only); cost as before; lips per level (no neighbour level
+  within [-DROP_EDGE, +STEP_UP]); edge_dist / interior / component per level; jump edges per level (floor at a sample
+  = a level within the takeoff's [-JUMP_DROP, +JUMP_RISE] band; directed; deduplicated). goal_field(x, y, jumps, z)
+  returns (KW, H, W) (Dijkstra on the transposed graph = distance TO the goal); dist_at(..., z), _nearest_walkable(...,
+  z), level_at(j, i, z), sample_goal(..., z); gem_spawns carry (k, j, i); walk_top stays as the top-level 2-D view.
+  Callers updated: real_run (snap_to_walkable, line_clear follows the floor with az, path_waypoint walks levels with
+  mz, walk_dist / mfield with z), gems.plan_tour passes z, vec_worker.walk_dist, hybrid, waypoints (edge_time_cost
+  with z, _sample_group with z). Legacy tools gap_map.py / measure_jump.py / demo_jumps.py still index 2-D: not updated.
+  MAX_SLOPE kept as a constant only. Build times: KOTM 0.9 s, Bowl 7.7 s.
+* Checks: KOTM gem-to-gem path lengths vs the old graph: median ratio 1.000, max 10 % shorter (more nodes: 1739 vs
+  1452, cells near drops are walkable now), none infinite. Reachability from the spawn triggers on all 10 maps: 0
+  unreachable gems (Cragmire 116/116, Prophetic was the only exception and is out). Cragmire routes from a spawn:
+  to the 13 u under-deck gem 30.7 u with one jump; to the 21 u top gem 36.1 u by ramps, 0 jumps, z 12 -> 14 -> 16 ->
+  17 -> 18 -> 20; down to the 2 u floor 44.5 u. Teleport probes on the rebuilt Bowl (106/135, all 29 = 27 deg slope
+  rolling or the base of a rising surface) and Cube Isle (135/135). KOTM clean check ck14k with the new planner:
+  see below.
+* KOTM with the new planner: ck14k 141.2 (138.6-143.8), falls 4.31: routes cut diagonally across the 45 deg hole bevel
+  at (-25, 14.5) that the friction rule had made floor. Slide rule added (STEEP_SLOPE 0.7: a cell steeper than 35 deg
+  with a lip beside it is not walkable; slopes cost (1 + slope)); ck15k 32 rounds 144.1 (142.3-145.8), falls 4.06.
+  A/B CONTROL, the committed old code on the same checkpoint at the same time (git archive HEAD -> TEMP, 32 rounds):
+  144.8 (143.4-146.3), falls 3.91. PARITY: the morning's 147.9 was 16-round noise. Falls at the hole rims are the
+  model's, not the planner's. Part 3 done pending the operator's 1x look at Cragmire.
+
+### 40.78 Part 4 done; PAUSED before training (10-09 14:40-14:50)
+* Operator at the Cragmire 1x watch: the untrained model falls into a spot it cannot leave and stays stuck ("this is
+  normal"); watch closed. "do part 4 now then pause".
+* nav/model.py: JUMP_FORCE_CLEAR_U 3.0: the forced stall samples use their own drop clearance (a hop from < 2 u/s
+  lands within ~1.5 u); the 10 u JUMP_EXPLORE_CLEAR_U stays for the moving exploration. nav/physics.py: MIN_JUMP_GAP
+  3.0 -> 0.5 (the marble is 0.38 u across; narrower is rolled over): KOTM jump edges 1463 -> 2291.
+* KOTM clean check ck16k (32 rounds): 143.1 (141.2-145.0), falls 3.75, best 154; ck15k 144.1, old code 144.8: parity.
+* STATE: TRAINING PAUSED (STOP file, nav_latest 37575). Parts 1-4 of Phase R done. Next = part 5 (training setup:
+  8 games over the 10 maps, Competitive Mode in the training games, baseline sweep, respawn as an action to decide),
+  only on the operator's go. Evaluations/checks with the new planner: KOTM parity holds; the cluster maps and
+  ExampleMission were not re-checked after the planner change (single-level, expected unchanged).
+
+### 40.79 Repo cleanup (10-09 15:00-15:40, operator-directed)
+* Deleted: blockclusters per-decision traces (264 csv, 454 MB), all check/probe stdout+stderr files, watch logs and
+  launch logs, supervisor console snapshots, check-update markers, dashboard probe files, the 6 watch round summaries
+  (and 8 older committed ones), two leftover json files.
+* No longer tracked in git (files stay on disk): every `*.pth` (443 were tracked; milestones are now described in
+  `ml_agent/models/CHECKPOINTS.md`), `logs/nav/live_starts_*.jsonl` (149), `logs/nav/real_run_*.json` (338); ignore
+  rules added for all three plus `logs/nav/blockclusters/*.rounds.jsonl`.
+* Every launcher/script that redirects a process's stderr now writes it under `%TEMP%\pq_checks` (check and probe
+  launchers, watch_model.ps1, play_live.ps1, supervise_points_training.ps1 incl. its per-attempt copies and the
+  game loop's streams, eval_heldout.ps1, real_run.ps1, run_dirskip.ps1).
+* Kept on disk and in the diff: the 10 cluster missions, terrain pictures, probe tooling, GENERALIZATION_PLAN.md,
+  train_nav logs, batch manifests, teleport probe results, the holdout demo recording.
+* The 345 committed `.err` files under logs/learned_nav were deleted by the same wildcard (same junk); they show as
+  deletions until committed or restored.

@@ -1,0 +1,74 @@
+[2026-10-07 17:15:42] Attempt 1: resuming nav_latest, workers by NAV_DRILL_PLAN=none, maps BlockClusters_v0_Hunt,BlockClusters_v1_Hunt,BlockClusters_v2_Hunt,BlockClusters_v3_Hunt,BlockClusters_v4_Hunt,BlockClusters_v5_Hunt,KingOfTheMarble_Hunt split 1,1,1,1,1,1,2.
+[2026-10-07 17:15:46] Trainer 46896, game loop 31948.
+[2026-10-07 19:14:18] Supervisor ended. Owned training processes closed; latest saved checkpoint retained.
+[2026-10-07 19:22:57] Attempt 1: resuming nav_latest, workers by NAV_DRILL_PLAN=none, maps BlockClusters_v0_Hunt,BlockClusters_v1_Hunt,BlockClusters_v2_Hunt,BlockClusters_v3_Hunt,BlockClusters_v4_Hunt,BlockClusters_v5_Hunt,KingOfTheMarble_Hunt split 1,1,1,1,1,1,2.
+[2026-10-07 19:23:01] Trainer 32432, game loop 31216.
+[2026-10-07 21:19:33] Supervisor ended. Owned training processes closed; latest saved checkpoint retained.
+[2026-10-07 21:33:08] Attempt 1: resuming nav_latest, workers by NAV_DRILL_PLAN=none, maps BlockClusters_v0_Hunt,BlockClusters_v1_Hunt,BlockClusters_v2_Hunt,BlockClusters_v3_Hunt,BlockClusters_v4_Hunt,BlockClusters_v5_Hunt,KingOfTheMarble_Hunt split 1,1,1,1,1,1,2.
+[2026-10-07 21:33:11] Trainer 1372, game loop 13568.
+[2026-10-07 21:35:42] Supervisor ended. Owned training processes closed; latest saved checkpoint retained.
+[2026-10-07 21:35:47] Attempt 1: resuming nav_latest, workers by NAV_DRILL_PLAN=none, maps BlockClusters_v0_Hunt,BlockClusters_v1_Hunt,BlockClusters_v2_Hunt,BlockClusters_v3_Hunt,BlockClusters_v4_Hunt,BlockClusters_v5_Hunt,KingOfTheMarble_Hunt split 1,1,1,1,1,1,2.
+[2026-10-07 21:35:50] Trainer 45876, game loop 27096.
+[2026-10-07 23:46:23] Supervisor ended. Owned training processes closed; latest saved checkpoint retained.
+[2026-10-07 23:55:18] Attempt 1: resuming nav_latest, workers by NAV_DRILL_PLAN=none, maps BlockClusters_v0_Hunt,BlockClusters_v1_Hunt,BlockClusters_v2_Hunt,BlockClusters_v3_Hunt,BlockClusters_v4_Hunt,BlockClusters_v5_Hunt,KingOfTheMarble_Hunt split 1,1,1,1,1,1,2.
+[2026-10-07 23:55:22] Trainer 35336, game loop 44116.
+[2026-10-07 23:57:23] Supervisor ended. Owned training processes closed; latest saved checkpoint retained.
+[2026-10-07 23:57:28] Attempt 1: resuming nav_latest, workers by NAV_DRILL_PLAN=none, maps BlockClusters_v0_Hunt,BlockClusters_v1_Hunt,BlockClusters_v2_Hunt,BlockClusters_v3_Hunt,BlockClusters_v4_Hunt,BlockClusters_v5_Hunt,KingOfTheMarble_Hunt split 1,1,1,1,1,1,2.
+[2026-10-07 23:57:31] Trainer 46868, game loop 10152.
+[2026-10-08 00:33:32] Supervisor ended. Owned training processes closed; latest saved checkpoint retained.
+[2026-10-08 00:33:56] Attempt 1: resuming nav_latest, workers by NAV_DRILL_PLAN=none, maps BlockClusters_v0_Hunt,BlockClusters_v1_Hunt,BlockClusters_v2_Hunt,BlockClusters_v3_Hunt,BlockClusters_v4_Hunt,BlockClusters_v5_Hunt,KingOfTheMarble_Hunt split 1,1,1,1,1,1,2.
+[2026-10-08 00:33:59] Trainer 36136, game loop 45208.
+[2026-10-08 02:45:31] Supervisor ended. Owned training processes closed; latest saved checkpoint retained.
+[2026-10-08 02:53:28] Attempt 1: resuming nav_latest, workers by NAV_DRILL_PLAN=none, maps BlockClusters_v0_Hunt,BlockClusters_v1_Hunt,BlockClusters_v2_Hunt,BlockClusters_v3_Hunt,BlockClusters_v4_Hunt,BlockClusters_v5_Hunt,KingOfTheMarble_Hunt split 1,1,1,1,1,1,2.
+[2026-10-08 02:53:31] Trainer 38092, game loop 25784.
+[2026-10-08 05:00:34] Supervisor ended. Owned training processes closed; latest saved checkpoint retained.
+[2026-10-08 05:08:41] Attempt 1: resuming nav_latest, workers by NAV_DRILL_PLAN=none, maps BlockClusters_v0_Hunt,BlockClusters_v1_Hunt,BlockClusters_v2_Hunt,BlockClusters_v3_Hunt,BlockClusters_v4_Hunt,BlockClusters_v5_Hunt,KingOfTheMarble_Hunt split 1,1,1,1,1,1,2.
+[2026-10-08 05:08:44] Trainer 30304, game loop 18224.
+[2026-10-08 07:15:47] Supervisor ended. Owned training processes closed; latest saved checkpoint retained.
+[2026-10-08 07:23:52] Attempt 1: resuming nav_latest, workers by NAV_DRILL_PLAN=none, maps BlockClusters_v0_Hunt,BlockClusters_v1_Hunt,BlockClusters_v2_Hunt,BlockClusters_v3_Hunt,BlockClusters_v4_Hunt,BlockClusters_v5_Hunt,KingOfTheMarble_Hunt split 1,1,1,1,1,1,2.
+[2026-10-08 07:23:55] Trainer 10516, game loop 37036.
+[2026-10-08 08:54:27] Supervisor ended. Owned training processes closed; latest saved checkpoint retained.
+[2026-10-08 08:54:48] Attempt 1: resuming nav_latest, workers by NAV_DRILL_PLAN=none, maps BlockClusters_v0_Hunt,BlockClusters_v1_Hunt,BlockClusters_v2_Hunt,BlockClusters_v3_Hunt,BlockClusters_v4_Hunt,BlockClusters_v5_Hunt,KingOfTheMarble_Hunt split 1,1,1,1,1,1,2.
+[2026-10-08 08:54:53] Trainer 39612, game loop 27004.
+[2026-10-08 09:01:23] Supervisor ended. Owned training processes closed; latest saved checkpoint retained.
+[2026-10-08 09:03:49] Attempt 1: resuming nav_latest, workers by NAV_DRILL_PLAN=none, maps BlockClusters_v0_Hunt,BlockClusters_v1_Hunt,BlockClusters_v2_Hunt,BlockClusters_v3_Hunt,BlockClusters_v4_Hunt,BlockClusters_v5_Hunt,KingOfTheMarble_Hunt split 1,1,1,1,1,1,2.
+[2026-10-08 09:03:52] Trainer 41220, game loop 33128.
+[2026-10-08 11:31:25] Supervisor ended. Owned training processes closed; latest saved checkpoint retained.
+[2026-10-08 11:35:51] Attempt 1: resuming nav_latest, workers by NAV_DRILL_PLAN=none, maps BlockClusters_v0_Hunt,BlockClusters_v1_Hunt,BlockClusters_v2_Hunt,BlockClusters_v3_Hunt,BlockClusters_v4_Hunt,BlockClusters_v5_Hunt,KingOfTheMarble_Hunt split 1,1,1,1,1,1,2.
+[2026-10-08 11:35:55] Trainer 17076, game loop 6084.
+[2026-10-08 13:05:27] Supervisor ended. Owned training processes closed; latest saved checkpoint retained.
+[2026-10-08 13:31:54] Attempt 1: resuming nav_latest, workers by NAV_DRILL_PLAN=none, maps BlockClusters_v0_Hunt,BlockClusters_v1_Hunt,BlockClusters_v2_Hunt,BlockClusters_v3_Hunt,BlockClusters_v4_Hunt,BlockClusters_v5_Hunt,KingOfTheMarble_Hunt split 1,1,1,1,1,1,2.
+[2026-10-08 13:31:57] Trainer 42588, game loop 30276.
+[2026-10-08 15:35:30] Supervisor ended. Owned training processes closed; latest saved checkpoint retained.
+[2026-10-08 15:41:47] Attempt 1: resuming nav_latest, workers by NAV_DRILL_PLAN=none, maps BlockClusters_v0_Hunt,BlockClusters_v1_Hunt,BlockClusters_v2_Hunt,BlockClusters_v3_Hunt,BlockClusters_v4_Hunt,BlockClusters_v5_Hunt,KingOfTheMarble_Hunt split 1,1,1,1,1,1,2.
+[2026-10-08 15:41:50] Trainer 27292, game loop 6868.
+[2026-10-08 16:17:14] Attempt 1: resuming nav_latest, workers by NAV_DRILL_PLAN=none, maps BlockClusters_v0_Hunt,BlockClusters_v1_Hunt,BlockClusters_v2_Hunt,BlockClusters_v3_Hunt,BlockClusters_v4_Hunt,BlockClusters_v5_Hunt,KingOfTheMarble_Hunt split 1,1,1,1,1,1,2.
+[2026-10-08 16:17:18] Trainer 16260, game loop 26712.
+[2026-10-08 18:20:51] Supervisor ended. Owned training processes closed; latest saved checkpoint retained.
+[2026-10-08 18:25:25] Attempt 1: resuming nav_latest, workers by NAV_DRILL_PLAN=none, maps BlockClusters_v0_Hunt,BlockClusters_v1_Hunt,BlockClusters_v2_Hunt,BlockClusters_v3_Hunt,BlockClusters_v4_Hunt,BlockClusters_v5_Hunt,KingOfTheMarble_Hunt split 1,1,1,1,1,1,2.
+[2026-10-08 18:25:28] Trainer 30236, game loop 2664.
+[2026-10-08 20:58:31] Supervisor ended. Owned training processes closed; latest saved checkpoint retained.
+[2026-10-08 21:47:58] Attempt 1: resuming nav_latest, workers by NAV_DRILL_PLAN=none, maps BlockClusters_v0_Hunt,BlockClusters_v1_Hunt,BlockClusters_v2_Hunt,BlockClusters_v3_Hunt,BlockClusters_v4_Hunt,BlockClusters_v5_Hunt,KingOfTheMarble_Hunt split 1,1,1,1,1,1,2.
+[2026-10-08 21:48:01] Trainer 20268, game loop 16160.
+[2026-10-09 00:21:34] Supervisor ended. Owned training processes closed; latest saved checkpoint retained.
+[2026-10-09 00:26:23] Attempt 1: resuming nav_latest, workers by NAV_DRILL_PLAN=none, maps BlockClusters_v0_Hunt,BlockClusters_v1_Hunt,BlockClusters_v2_Hunt,BlockClusters_v3_Hunt,BlockClusters_v4_Hunt,BlockClusters_v5_Hunt,KingOfTheMarble_Hunt split 1,1,1,1,1,1,2.
+[2026-10-09 00:26:26] Trainer 28316, game loop 32028.
+[2026-10-09 00:28:27] Supervisor ended. Owned training processes closed; latest saved checkpoint retained.
+[2026-10-09 00:28:38] Attempt 1: resuming nav_latest, workers by NAV_DRILL_PLAN=none, maps BlockClusters_v0_Hunt,BlockClusters_v1_Hunt,BlockClusters_v2_Hunt,BlockClusters_v3_Hunt,BlockClusters_v4_Hunt,BlockClusters_v5_Hunt,KingOfTheMarble_Hunt split 1,1,1,1,1,1,2.
+[2026-10-09 00:28:41] Trainer 3084, game loop 32752.
+[2026-10-09 03:02:14] Supervisor ended. Owned training processes closed; latest saved checkpoint retained.
+[2026-10-09 03:07:14] Attempt 1: resuming nav_latest, workers by NAV_DRILL_PLAN=none, maps BlockClusters_v0_Hunt,BlockClusters_v1_Hunt,BlockClusters_v2_Hunt,BlockClusters_v3_Hunt,BlockClusters_v4_Hunt,BlockClusters_v5_Hunt,KingOfTheMarble_Hunt split 1,1,1,1,1,1,2.
+[2026-10-09 03:07:17] Trainer 30232, game loop 19324.
+[2026-10-09 03:09:47] Supervisor ended. Owned training processes closed; latest saved checkpoint retained.
+[2026-10-09 03:09:58] Attempt 1: resuming nav_latest, workers by NAV_DRILL_PLAN=none, maps BlockClusters_v0_Hunt,BlockClusters_v1_Hunt,BlockClusters_v2_Hunt,BlockClusters_v3_Hunt,BlockClusters_v4_Hunt,BlockClusters_v5_Hunt,KingOfTheMarble_Hunt split 1,1,1,1,1,1,2.
+[2026-10-09 03:10:02] Trainer 31168, game loop 1908.
+[2026-10-09 05:40:35] Supervisor ended. Owned training processes closed; latest saved checkpoint retained.
+[2026-10-09 05:45:10] Attempt 1: resuming nav_latest, workers by NAV_DRILL_PLAN=none, maps BlockClusters_v0_Hunt,BlockClusters_v1_Hunt,BlockClusters_v2_Hunt,BlockClusters_v3_Hunt,BlockClusters_v4_Hunt,BlockClusters_v5_Hunt,KingOfTheMarble_Hunt split 1,1,1,1,1,1,2.
+[2026-10-09 05:45:14] Trainer 31760, game loop 20192.
+[2026-10-09 08:16:17] Supervisor ended. Owned training processes closed; latest saved checkpoint retained.
+[2026-10-09 09:50:12] Attempt 1: resuming nav_latest, workers by NAV_DRILL_PLAN=none, maps BlockClusters_v0_Hunt,BlockClusters_v1_Hunt,BlockClusters_v2_Hunt,BlockClusters_v3_Hunt,BlockClusters_v4_Hunt,BlockClusters_v5_Hunt,KingOfTheMarble_Hunt split 1,1,1,1,1,1,2.
+[2026-10-09 09:50:16] Trainer 21172, game loop 30188.
+[2026-10-09 09:53:46] Supervisor ended. Owned training processes closed; latest saved checkpoint retained.
+[2026-10-09 10:06:36] Attempt 1: resuming nav_latest, workers by NAV_DRILL_PLAN=none, maps BlockClusters_v0_Hunt,BlockClusters_v1_Hunt,BlockClusters_v2_Hunt,BlockClusters_v3_Hunt,BlockClusters_v4_Hunt,BlockClusters_v5_Hunt,KingOfTheMarble_Hunt split 1,1,1,1,1,1,2.
+[2026-10-09 10:06:39] Trainer 5676, game loop 2472.
+[2026-10-09 12:07:12] Supervisor ended. Owned training processes closed; latest saved checkpoint retained.

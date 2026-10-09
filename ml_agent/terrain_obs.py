@@ -76,7 +76,11 @@ RAY_HEADINGS = 16
 RAY_RANGE = 20.0
 RAY_STEP = 0.5
 RAY_STEPS = int(round(RAY_RANGE / RAY_STEP))     # 40
-FOLLOW_TOL = 1.0      # floor continuity per step (follows ramps up to ~63 deg)
+FOLLOW_TOL = 0.4      # floor continuity per 0.5 u step. 1.0 (ramps up to ~63 deg) until 2026-10-08 00:50: a ray then
+                      # CLIMBED a 0.5 or 1.0 u box side as if it were a ramp and reported no edge, so a box was invisible
+                      # to the rays (the walkable limit is MAX_SLOPE 0.6 = 0.3 u per step, so 0.4 still follows every
+                      # walkable ramp). Measured: 0.00 % of KOTM ray values change; on the block-cluster maps 13.7 % of
+                      # floor points now see a RISE edge within 2.5 u (0 % before). Log 40.65.
 GEM_RAYS = 3
 EDGE_DIM = RAY_HEADINGS * 2 + GEM_RAYS * 2       # 38
 PERCEPTION_DIM = TERRAIN_DIM + EDGE_DIM          # 102: what observe() returns
@@ -110,6 +114,10 @@ class TerrainMap:
         self.x0 = float(self.xs[0])
         self.y0 = float(self.ys[0])
         self.K, self.H, self.W = self.heights.shape
+        # 2026-10-09 (real-map pool): per level, the surface slope (rise/run) and the game's friction for its
+        # texture; older files have neither (flat, friction 1)
+        self.slope = d['slope'].astype(np.float32) if 'slope' in d.files else np.where(np.isnan(self.heights), np.nan, 0.0).astype(np.float32)
+        self.friction = d['friction'].astype(np.float32) if 'friction' in d.files else np.where(np.isnan(self.heights), np.nan, 1.0).astype(np.float32)
         self.name = str(d['map_name']) if 'map_name' in d.files else os.path.basename(path)
         self.z_bounds = tuple(float(v) for v in d['z_bounds']) if 'z_bounds' in d.files else None
 

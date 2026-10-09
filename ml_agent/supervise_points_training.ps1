@@ -1,6 +1,6 @@
 # Keep this specific points-training run alive. Resumes nav_latest after a crash/hang.
 # Put a STOP file in logs/nav/<RunTag>/ to stop this supervisor and its owned processes.
-param([string]$RunTag = 'points_20261005')
+param([string]$RunTag = 'points_20261005', [string]$Missions = 'KingOfTheMarble_Hunt', [string]$Split = '8')   # 2026-10-07: map list and split (run_game_loop.ps1 syntax)
 $ErrorActionPreference = 'Stop'
 $ml = $PSScriptRoot
 $py = 'C:\Users\doug\AppData\Local\Programs\Python\Python39\python.exe'
@@ -55,12 +55,14 @@ try {
     while (-not (Test-Path -LiteralPath $stopFile)) {
         $attempt++
         $stamp = Get-Date -Format 'yyyyMMdd_HHmmss'
+        # 2026-10-09 (operator): the per-attempt stdout/stderr copies and the game loop's streams go OUTSIDE the repo
+        $keep = Join-Path $env:TEMP "pq_checks\$RunTag"; New-Item -ItemType Directory -Force $keep | Out-Null
         foreach ($file in @($stdout, $stderr)) {
             if (Test-Path -LiteralPath $file) {
-                Copy-Item -LiteralPath $file -Destination (Join-Path $runDir ("{0}_{1}" -f $stamp, (Split-Path $file -Leaf)))
+                Copy-Item -LiteralPath $file -Destination (Join-Path $keep ("{0}_{1}" -f $stamp, (Split-Path $file -Leaf)))
             }
         }
-        Write-RunLog "Attempt ${attempt}: resuming nav_latest, workers by NAV_DRILL_PLAN=$env:NAV_DRILL_PLAN."
+        Write-RunLog "Attempt ${attempt}: resuming nav_latest, workers by NAV_DRILL_PLAN=$env:NAV_DRILL_PLAN, maps $Missions split $Split."
         $trainer = Start-Process $py -ArgumentList @('-u','-m','nav.train_nav') -WorkingDirectory $ml -RedirectStandardOutput $stdout -RedirectStandardError $stderr -WindowStyle Hidden -PassThru
         if (-not (Wait-NavPorts -Port0 8888 -Count 8 -TimeoutSec 120)) {
             Write-RunLog 'Worker startup failed; preserving logs and retrying the same run.'
@@ -68,7 +70,7 @@ try {
             Start-Sleep -Seconds 30
             continue
         }
-        $gameLoop = Start-Process 'powershell.exe' -ArgumentList @('-NoProfile','-ExecutionPolicy','Bypass','-File',('"' + (Join-Path $ml 'run_game_loop.ps1') + '"'),'-Mission','KingOfTheMarble_Hunt','-Split','8','-Instances','8') -WorkingDirectory $ml -RedirectStandardOutput (Join-Path $runDir "games_$stamp.out") -RedirectStandardError (Join-Path $runDir "games_$stamp.err") -WindowStyle Hidden -PassThru
+        $gameLoop = Start-Process 'powershell.exe' -ArgumentList @('-NoProfile','-ExecutionPolicy','Bypass','-File',('"' + (Join-Path $ml 'run_game_loop.ps1') + '"'),'-Mission',$Missions,'-Split',$Split,'-Instances','8') -WorkingDirectory $ml -RedirectStandardOutput (Join-Path $keep "games_$stamp.out") -RedirectStandardError (Join-Path $keep "games_$stamp.err") -WindowStyle Hidden -PassThru
         @{supervisor=$PID; trainer=$trainer.Id; game_loop=$gameLoop.Id; attempt=$attempt; started=$stamp; checkpoint=$env:NAV_CKPT} |
             ConvertTo-Json | Set-Content (Join-Path $runDir 'pids.json')
         Write-RunLog "Trainer $($trainer.Id), game loop $($gameLoop.Id)."

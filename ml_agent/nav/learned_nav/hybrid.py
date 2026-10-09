@@ -182,8 +182,8 @@ def play(port, map_name, n_rounds, memory, tag, log, shortcuts=1, rescue=True, r
         kq = (round(gq[0], 1), round(gq[1], 1))
         f = tour_fields.get(kq)
         if f is None:
-            f = tour_fields[kq] = terrain.goal_field(gq[0], gq[1], jumps=False)
-        return terrain.dist_at(f, float(a[0]), float(a[1]), (gq[0], gq[1]))
+            f = tour_fields[kq] = terrain.goal_field(gq[0], gq[1], jumps=False, z=gq[2])
+        return terrain.dist_at(f, float(a[0]), float(a[1]), (gq[0], gq[1]), z=(a[2] if len(a) > 2 else None))
     planner = PL.Planner(g, (0.0, 0.0, 0.0), seeds=None)
     route = RT.Route(g)
     guard = GD.Guard(planner)
@@ -230,7 +230,7 @@ def play(port, map_name, n_rounds, memory, tag, log, shortcuts=1, rescue=True, r
             def walk_to(gem, x, y):
                 gk = tuple(np.round(gem[:2], 0))
                 if gk not in walk_fields:
-                    walk_fields[gk] = terrain.goal_field(gem[0], gem[1], jumps=False)
+                    walk_fields[gk] = terrain.goal_field(gem[0], gem[1], jumps=False, z=gem[2])
                 return terrain.dist_at(walk_fields[gk], float(x), float(y), (gem[0], gem[1]))
             Uc, Jc = PL.reply_vector(NOOP_ACTION + (0.0,)); Up, Jp = Uc.copy(), Jc
             msg = s.env.msg
@@ -250,7 +250,7 @@ def play(port, map_name, n_rounds, memory, tag, log, shortcuts=1, rescue=True, r
                 if ORDER_TOUR == 'walk' and vis:
                     # the TRAINER's whole-spawn chooser (nav/gems.plan_tour over walk-only terrain fields, exactly
                     # vec_worker.pick with NAV_TOUR=walk): what the policy is being fine-tuned on (log 37)
-                    target, nxt = plan_tour(vis, target, ob[0:2], ob[3:5], dist=walk_dist)
+                    target, nxt = plan_tour(vis, target, ob[0:3], ob[3:5], dist=walk_dist)
                 elif ORDER_TOUR and vis:
                     # whole-spawn order (operator 10-01, log 37): walking/jumping leg times over every order of the
                     # visible gems, instead of the greedy nearest-with-momentum chooser the policy was trained on

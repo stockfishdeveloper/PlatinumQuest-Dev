@@ -121,3 +121,11 @@ ml_agent/logs/multi_probe_*.txt
 
 # ml_agent numpy archives (datasets, geometry, demos): too large for the repo; kept on disk only (2026-10-02)
 *.npz
+
+# 2026-10-09 (operator): Super Speed fire recordings and check-batch round summaries stay on disk, out of git
+ml_agent/logs/nav/live_starts_*.jsonl
+ml_agent/logs/nav/blockclusters/*.rounds.jsonl
+ml_agent/logs/nav/real_run_*.json
+
+# 2026-10-09 (operator): no model checkpoints in git at all; milestones are described in ml_agent/models/CHECKPOINTS.md
+*.pth

@@ -133,10 +133,13 @@ function Mode_hunt::onMissionReset(%this, %object) {
 		$Game::FirstSpawn = false;
 
 		//Orient all clients to face the gemspawn
-		for (%i = 0; %i < ClientGroup.getCount(); %i ++) {
-			%client = ClientGroup.getObject(%i);
-			if (!%client.spectating) {
-				%client.pointToNearestGem();
+		// 2026-10-07 (operator): the camera swinging on its own is unwanted; off unless $Hunt::PointCameraToGem is set
+		if ($Hunt::PointCameraToGem) {
+			for (%i = 0; %i < ClientGroup.getCount(); %i ++) {
+				%client = ClientGroup.getObject(%i);
+				if (!%client.spectating) {
+					%client.pointToNearestGem();
+				}
 			}
 		}
 	}
@@ -164,7 +167,9 @@ function Mode_hunt::onHuntGemSpawn(%this) {
 	}
 }
 function Mode_hunt::onRespawnPlayer(%this, %object) {
-	%object.client.pointToNearestGem();
+	// 2026-10-07 (operator): no automatic camera turn on respawn unless $Hunt::PointCameraToGem is set
+	if ($Hunt::PointCameraToGem)
+		%object.client.pointToNearestGem();
 }
 function Mode_hunt::getStartTime(%this) {
 	return (MissionInfo.time ? MissionInfo.time : 300000);
