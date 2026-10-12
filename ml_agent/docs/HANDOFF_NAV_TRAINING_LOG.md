@@ -7683,3 +7683,54 @@ target segments that ended without a pickup (upper bound: a re-plan also ends a 
 * Not acted on (not in the approved plan): a planner rule for slopes that drain into an out-of-bounds edge (Vortex),
   and anything that changes which gem is chased after repeated failures (the operator rejects calling a gem
   unreachable: the model must learn to get there). Kept for the morning report with this evidence.
+
+
+### 40.98 Map representation research and full-contact coverage requirement (2026-10-11 19:56:57)
+* Operator requested research on broader map representation and clarified that every surface the marble can physically
+  contact should be represented, including bounce surfaces; buried/inaccessible geometry may be unnecessary. This work
+  researched and documented the architecture without changing observations, policies, rewards, checkpoints, game scripts,
+  map caches or training state. No training, evaluation game, or engine probe was launched.
+* Read-only audit of the ten configured real missions and 21 unique DIF files: 55,818 candidate interior triangles,
+  about 0.09-0.56 MiB per map for float32 triangles/normals plus material IDs, before indexing/features/shape geometry.
+  These are render-surface extraction counts, not certified accessible collision counts. All audited DIFs have one
+  detail level and no hull-referenced null surfaces. No friction mismatch was found between the old/current exporters.
+* Verified in code: the policy has 16/64-unit-wide floor crops and 20-unit edge rays, not complete contact geometry.
+  Current floor selection and crop encoding omit important wall/ceiling/steep/material information. Interior-only
+  exporters omit 42 glass StaticShape instances in Duplex and 16 TSStatic instances in Concentric. Their engine
+  collision pathways exist separately; each object's runtime contact coverage remains unverified.
+* Local engine source supplies a route to authoritative geometry: InteriorInstance collision detail 0, hull-selected
+  surfaces and winding/fan masks, and separate ShapeBase/TSStatic collision details. A complete export hook is proposed,
+  not implemented. Existing floor/ramp/lip verification does not establish complete airborne collision fidelity.
+* Recommendation: precise queryable 3D collision mesh/materials plus whole-map hierarchical learned features and a known
+  dynamic-object layer. Query arbitrary future positions and swept paths; do not restrict geometry to walking routes,
+  climbable faces, nearby surfaces, or named tricks. Prune buried/decorative faces only after verified non-contact.
+* Handoff: docs/MAP_REPRESENTATION_RESEARCH_2026-10-11.md, raw audit
+  docs/MAP_REPRESENTATION_AUDIT_2026-10-11.json, reproducible script
+  docs/research/map_representation_audit_20261011.py. Research sources include OctoMap, Point Transformer V3, 3D Dynamic
+  Scene Graphs and PerAct. Proposed hybrid is an engineering recommendation; no neural latency/physics validation yet.
+* Re-ran the saved audit script and checked totals/source/material summaries. Prior log records the other run stopped
+  at 19:41; no trainer/evaluator/game was running during process inspection. This task did not stop or restart it.
+
+### 40.99 Full collision export and interactive review implementation (2026-10-11)
+* Operator authorized all ten real-map conversions, a viewer of the exact model files, and game/physics probes.
+  Added read-only engine collision export instrumentation and compiled a separate geometry probe executable;
+  shipped game executable, model architecture, observations, rewards and checkpoints are unchanged.
+* Added explicit guarded GEOMETRYEXPORT/GEOMETRYRAYS bridge commands and model-facing CollisionMap queries.
+  Concentric pilot includes all 16 TSStatic glass objects that interior-only extraction omitted. Advance neutral
+  observations after control commands before checking asynchronous output/acknowledgements.
+* Work and subsequent validation are recorded in docs/HANDOFF_COLLISION_MAPS_2026-10-11.md. No training started.
+* COMPLETED: all ten native collision artifacts and offline interactive viewers, 47,932 contact primitives,
+  58,932 native sphere checks, 216/216 valid live contacts (two respawn-interrupted trials retained separately).
+  All hull-referenced DIF surfaces and all 42 Duplex / 16 Concentric glass colliders are accounted for. Four
+  Concentric material seam tie winners remain explicit; no unexplained missing contact surfaces remain.
+* Major exporter fix: a world-AABB query omitted 140 Duplex triangles on rotated, nonuniformly scaled parts;
+  padded collection recovered them and independent hull-reference counts now guard against omissions. Fixed
+  finite sphere endpoints and float32 off-plane fan handling; viewer and queries decode native contact planes
+  consistently while retaining raw vertices. All actual browser coordinate hashes match the model geometry.
+* Gallery: collision_maps/viewer/index.html. Full change/bugfix history, final map table, reproduction and query
+  limits: docs/HANDOFF_COLLISION_MAPS_2026-10-11.md. Existing policy/training observations remain unchanged.
+* Visual review follow-up: added default-visible orange A1–A4 contact callouts, material comparisons and sidebar
+  focus buttons to Concentric, generated from the native validation records. Fixed focus-camera drift caused
+  by mutable Plotly axis ranges. All ten browser checks pass, including exact marker coordinates, four focus
+  buttons and hide/show/refocus. Operator confirmed all four are normal/tarmac seams and accepts this boundary
+  uncertainty. Details/evidence are appended to the collision-map handoff. No training or dynamics changes.

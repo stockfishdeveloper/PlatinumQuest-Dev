@@ -441,7 +441,29 @@ function MLAgent::update(%gen) {
     //   "MARK x y z"                   show the navigator's waypoint as a pad (cosmetic)
     //   "GEMRESET"                     drill maps: respawn the gem group if no gem is up
     //   "CONTACT 1|0"                  append the engine's contact telemetry to each observation
-    if (getWord(%actionStr, 0) $= "GAMERULES") {
+    if (getWord(%actionStr, 0) $= "GEOMETRYEXPORT") {
+        // Read-only map instrumentation, supplied by the separate geometry probe executable.
+        %ok = false;
+        if (isFunction("aiExportCollisionGeometry"))
+            %ok = aiExportCollisionGeometry(trim(getSubStr(%actionStr, 15, strlen(%actionStr))), true);
+        AIBridge::sendState("DEBUG|geometry_export|" @ (%ok + 0));
+        $AIBridge::LastAction = "";
+        %actionStr = "";
+    } else if (getWord(%actionStr, 0) $= "GEOMETRYSWEEPS") {
+        %ok = false;
+        if (isObject($MP::MyMarble) && isFunction("aiExportCollisionGeometry"))
+            %ok = $MP::MyMarble.aiCheckGeometrySweeps(getWord(%actionStr, 1), getWord(%actionStr, 2), getWord(%actionStr, 3));
+        AIBridge::sendState("DEBUG|geometry_sweeps|" @ %ok);
+        $AIBridge::LastAction = "";
+        %actionStr = "";
+    } else if (getWord(%actionStr, 0) $= "GEOMETRYRAYS") {
+        %ok = false;
+        if (isFunction("aiCheckGeometryRays"))
+            %ok = aiCheckGeometryRays(getWord(%actionStr, 1), getWord(%actionStr, 2), true);
+        AIBridge::sendState("DEBUG|geometry_rays|" @ (%ok + 0));
+        $AIBridge::LastAction = "";
+        %actionStr = "";
+    } else if (getWord(%actionStr, 0) $= "GAMERULES") {
         // Local training/evaluation host only. The preference persists across round resets.
         $MLAgent::Competitive = getWord(%actionStr, 1) + 0;
         $MPPref::Server::CompetitiveMode = ($MLAgent::Competitive == 1);
