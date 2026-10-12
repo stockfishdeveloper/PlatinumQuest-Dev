@@ -74,6 +74,8 @@ def parse_message(line: str) -> GameMessage:
     line = line.strip()
     parts = line.split('|')
     head = parts[0]
+    if head in ('RULES', 'RESCUE'):
+        return GameMessage(head.lower(), fields=parts[1:], raw=line)
     if head == 'STATS':
         return GameMessage('stats', fields=parts[1:], raw=line)
     if head == 'INFO':

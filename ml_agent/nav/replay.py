@@ -52,7 +52,11 @@ def restore(env, start, window_ms=WINDOW_MS):
     """One requested fixture, one restoration attempt. Never substitute a different id."""
     validate_start(start, window_ms)
     if env.replay_catalog != start['catalog']:
-        raise ValueError('mission catalog differs from the recorded fixture')
+        actual = env.replay_catalog or []
+        expected = start['catalog']
+        mismatch = next(((i, a, b) for i, (a, b) in enumerate(zip(expected, actual)) if a != b), None)
+        raise ValueError(f'mission catalog differs from the recorded fixture: expected={len(expected)} '
+                         f'actual={len(actual)}, first_difference={mismatch}')
     env.debug = None
     env.control(restore_command(start, window_ms))
     from nav.protocol import NOOP_ACTION, RAW_SCORE

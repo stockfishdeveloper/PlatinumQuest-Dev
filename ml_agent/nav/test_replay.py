@@ -106,9 +106,9 @@ class ReplayTests(unittest.TestCase):
 class FlatTerrain:
     z_floor_min = -1
 
-    def goal_field(self, *args): return None
-    def dist_at(self, field, x, y, goal): return float(np.hypot(x - goal[0], y - goal[1]))
-    def walkable_at(self, *args): return True
+    def goal_field(self, *args, **kwargs): return None
+    def dist_at(self, field, x, y, goal, **kwargs): return float(np.hypot(x - goal[0], y - goal[1]))
+    def walkable_at(self, *args, **kwargs): return True
     def floor_z(self, *args): return 0.
 
 
@@ -150,7 +150,30 @@ class LearningTests(unittest.TestCase):
         from nav.ppo_recurrent import LAMBDA
         self.assertAlmostEqual(ret[0], GAMMA ** 3 * (2 + LAMBDA ** 3), places=5)
 
-    def test_approach_can_prepare_before_fire_is_approved(self):
+    def test_real_flight_outside_recorded_grid_keeps_control_until_game_oob(self):
+        s = SegmentManager(FlatTerrain(), np.random.default_rng(0))
+        s.real_mode = True
+        s.begin_replay((0,0,20), (1,0,20), None)
+        s._on_map = lambda pos: False  # still airborne, beyond the recorded XY footprint
+        for _ in range(12):
+            reward, done, _ = s.step((50,50,20), False, True, False, picked=0)
+            self.assertFalse(done)
+            self.assertFalse(s.take_respawn())
+        self.assertEqual(s.seg.falls, 0)
+        s.step((50,50,20), True, True, False, picked=0)
+        self.assertTrue(s.take_respawn())
+        self.assertEqual(s.seg.falls, 1)
+
+    def test_synthetic_fall_inference_remains_available(self):
+        s = SegmentManager(FlatTerrain(), np.random.default_rng(0))
+        s.begin_replay((0,0,20), (1,0,20), None)
+        s._on_map = lambda pos: False
+        from nav.waypoints import OFFMAP_FALL_DECISIONS
+        for _ in range(OFFMAP_FALL_DECISIONS):
+            s.step((50,50,20), False, True, False, picked=0)
+        self.assertEqual(s.seg.falls, 1)
+
+    def test_approach_preparation_does_not_gate_open_powerup_use(self):
         import nav.model as M
         v = torch.zeros(1, VEC_DIM); v[0, VEC_USE + 5] = 1
         v[0, 0] = 1; v[0, 2] = .2; v[0, 8] = 1; v[0, VEC_POW + 1] = 1
@@ -160,7 +183,7 @@ class LearningTests(unittest.TestCase):
         M.SS_RES_APPROACH = True
         try:
             self.assertEqual(NavActorCritic.ss_gate(v).item(), 1)
-            self.assertEqual(NavActorCritic.use_prior(v).item(), 0)
+            self.assertEqual(NavActorCritic.use_prior(v).item(), 1)
             v[0, VEC_POW + 1] = 0
             self.assertEqual(NavActorCritic.ss_gate(v).item(), 0)
         finally:
@@ -178,7 +201,7 @@ class LearningTests(unittest.TestCase):
 
     def test_reward_migration_and_critic_update_preserve_actor(self):
         torch.manual_seed(7)
-        m = NavActorCritic(); m.freeze_base()
+        m = NavActorCritic()
         before = {k: t.clone() for k, t in m.state_dict().items() if not k.startswith('value')}
         self.assertTrue(prepare_points_critic(m, {'reward_version': 'old_shaped'}))
         r = Rollout(4, 'cpu')
@@ -195,8 +218,34 @@ class LearningTests(unittest.TestCase):
         for k, value in before.items():
             torch.testing.assert_close(m.state_dict()[k], value, rtol=0, atol=0)
         self.assertGreater(m.value_head[-1].weight.abs().sum().item(), 0)
-        self.assertFalse(prepare_points_critic(m, {'reward_version': REWARD_VERSION, 'critic_warmup_remaining': 4}))
+        from nav.recovery import shaping_configuration
+        self.assertFalse(prepare_points_critic(m, {'reward_version': REWARD_VERSION,
+                                                 'reward_configuration': shaping_configuration(),
+                                                 'critic_warmup_remaining': 4}))
         self.assertEqual(m.critic_warmup_remaining, 4)
+
+    def test_critic_only_preserves_unfrozen_actor_with_adam_momentum(self):
+        torch.manual_seed(17)
+        m = NavActorCritic(); prepare_points_critic(m, None)
+        opt = torch.optim.Adam(m.parameters(), lr=.001)
+        def rollout():
+            r = Rollout(4, 'cpu')
+            h = m.initial_state(1, 'cpu'); c = torch.zeros(1, *CROP_SHAPE); v = torch.zeros(1, VEC_DIM)
+            v[:, VEC_USE + 5] = 1
+            for i in range(4):
+                o = m.act(c, v, h)
+                r.add(c[0].numpy(), v[0].numpy(), o['action_buf'][0].numpy(), o['logp'].item(),
+                      o['value'].item(), float(i == 3), float(i == 3), float(i == 0), h[0].numpy())
+                h = o['h_next']
+            return r
+        with patch('nav.ppo_recurrent.SEQ_LEN', 4), patch('nav.ppo_recurrent.EPOCHS', 1):
+            ppo_update(m, opt, [rollout()], [0])  # create real Adam history in shared/actor parameters
+            before = {k:t.clone() for k,t in m.state_dict().items() if not k.startswith('value')}
+            self.assertTrue(any(not name.startswith('value_head.') and parameter in opt.state
+                                for name,parameter in m.named_parameters()))
+            ppo_update(m, opt, [rollout()], [0], critic_only=True)
+        for name, value in before.items():
+            torch.testing.assert_close(m.state_dict()[name], value, rtol=0, atol=0)
 
 
 if __name__ == '__main__':

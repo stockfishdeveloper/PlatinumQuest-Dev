@@ -13,7 +13,7 @@ import os
 import torch
 import torch.nn as nn
 
-from nav.obs import VEC_DIM, VEC_GAP, VEC_POW, VEC_NEXT, WAYPOINT_DIST_SCALE, VEL_SCALE, SS_REDIRECT_U, SS_KEY_LAG_S, SS_FIRE_U, VEC_USE, USE_T_SCALE
+from nav.obs import VEC_DIM, VEC_GAP, VEC_POW, VEC_NEXT, WAYPOINT_DIST_SCALE, VEL_SCALE, SS_REDIRECT_U, SS_KEY_LAG_S, SS_FIRE_U, VEC_USE, USE_T_SCALE, VEC_USE_TRY
 from terrain_obs import RAY_RANGE
 from nav.terrain import CROP_SHAPE
 
@@ -46,14 +46,69 @@ USE_PRIOR_FLOOR = -1.0      # -4 -> -1 on 2026-10-03 21:40 (log 40.19): the oper
                             # sampled, always in deterministic play) and the head could not cancel it where it hurts:
                             # 8-round gates 132-138 all night against 160.1 without uses (log 40.3-40.7). The floor stays
                             # above the clamp's -9 so the approved situations keep being explored. Elsewhere unchanged.
-USE_SS_ONLY = True          # 2026-10-04 (log 40.26): the first curriculum experiment isolates Super Speed: the approval
+ESCAPE_POWERUPS = os.environ.get('NAV_ESCAPE_POWERUPS', '0') == '1'
+USE_SS_ONLY = not ESCAPE_POWERUPS  # Phase R opts in; legacy runs retain their Super Speed-only mask.
+                            # 2026-10-04 (log 40.26): the first curriculum experiment isolates Super Speed: the approval
                             # mask (use_prior) keeps only its branch, so no Super Jump / blast / Mega use can be sampled
-USE_EPS = 0.2               # 40.26: inside the approval mask a use is sampled with p = USE_EPS + (1 - USE_EPS) sigmoid(logit):
+USE_DAMP = float(os.environ.get('NAV_USE_DAMP', '0.0'))   # 2026-10-09 21:00, see heads(). 21:30: a uniform damping does NOT work on this
+                            # head: its raw logit is saturated positive on real states (the mask did the deciding), 4.0 changed
+                            # nothing (KOTM 91.2, SS 24 a round) and a damping past the cap would starve the gradient. The
+                            # start checkpoint for Phase R has the use head's FINAL LAYER re-initialised instead
+                            # (models/nav/nav_phase_r_start_37575_usehead_reset.pth, bias -3: p 0.05, gradient healthy).
+USE_EPS = float(os.environ.get('NAV_USE_EPS', '0.02'))  # Set zero in learned-use evaluation; training retains 2%.
+if not 0 <= USE_EPS < 1:
+    raise ValueError('NAV_USE_EPS must be in [0, 1)')
+USE_TRY = os.environ.get('NAV_USE_TRY', '1') == '1'   # 2026-10-11 (operator approved option 1; log 40.95): the USE_EPS floor
+                            # applies only to the held powerups / blast charges the worker drew as TRY items (vec[VEC_USE_TRY],
+                            # one draw per pickup or charge, NAV_USE_TRY_P in vec_worker); every other item is the policy's
+                            # call alone and can be held as long as it likes. Before, 2 % per decision fired every held item
+                            # within ~3 s, so holding never meant saving and the head only learned WHEN among forced uses.
+                            # 2026-10-09 20:45 (operator): 'all powerups should be eligible for use any time', floor 2 % (0.2 before:
+                            # with no situational gate a held powerup would be thrown away within a second of pickup).
+                            # 40.26: inside the approval mask a use is sampled with p = USE_EPS + (1 - USE_EPS) sigmoid(logit):
                             # a differentiable exploration floor (the hard floor of 40.8-40.22 had ZERO gradient below it,
                             # so a use that paid could never raise its own probability); PPO scores this exact mixture;
                             # deterministic play fires only where the LEARNED part sigmoid(logit) > 0.5. Outside the mask
                             # p = 0. USE_PRIOR / USE_PRIOR_FLOOR are no longer used.
 USE_LOGIT_CAP = 12.0        # 40.26: soft bound on the use logit (cap tanh(raw / cap)) instead of a clamp: no dead zone
+                            # (2026-10-11: now the bound on the "hold" side only; the "use" side is capped by USE_HOLD_P)
+# 2026-10-11 00:30 (operator: "get the jumping and blasting under control ... anneal them down so that the model can learn
+# which of the jumps actually resulted in a success"; log 40.89). HOLD floors: where a head is sure it wants to jump (or to
+# use a powerup / blast), training still samples "hold off" at least this often, so the advantage can compare both
+# outcomes. Before this the jump logit had a HARD ceiling (clamp max 3.0): above it the gradient was zero, and in A2's play
+# the raw jump output sat above 3 on 48 % of decisions (Bowl 84 %, Sprawl 78 %, Treasure Box 62 %, KOTM 4 %), so a useless
+# jump there could never be unlearned while generalisation kept pushing more states over the line. The use head could
+# reach p 0.999994 (cap 12), so a blast it liked was never held back. Now both ceilings are SOFT (cap tanh(raw / cap), a
+# gradient everywhere) at the logit of 1 - HOLD_P, and RANGE_COEF pulls raw outputs that ran past the ceiling back into
+# range (a loss on the outputs, not a reward). Deterministic play reads the sign only, so it is unchanged by the caps.
+# Annealed by hand at the 2-h checks (0.10 -> 0.05 -> 0.02) as the jump and blast rates fall.
+JUMP_HOLD_P = float(os.environ.get('NAV_JUMP_HOLD_P', '0.05'))   # 0.10 -> 0.05 on 10-11 10:45 (log 40.96): first anneal step
+USE_HOLD_P = float(os.environ.get('NAV_USE_HOLD_P', '0.10'))
+RANGE_COEF = float(os.environ.get('NAV_RANGE_COEF', '0.0'))   # 0.01 -> 0 on 10-11 02:50 (log 40.92): the blanket pull-back
+                            # dragged the whole jump head down (deterministic jumps 49 % -> 7 % in 2 h, stalls up to 60 %,
+                            # ten-map 34.4 -> 20.9). The ceilings now pass a LOWERING gradient straight through instead
+                            # (_CeilingST): a jump or a use comes down only where a hold-off try did better.
+if not (0.0 < JUMP_HOLD_P < 0.5 and 0.0 < USE_HOLD_P < 0.5):
+    raise ValueError('NAV_JUMP_HOLD_P and NAV_USE_HOLD_P must be in (0, 0.5)')
+JUMP_CAP = math.log((1.0 - JUMP_HOLD_P) / JUMP_HOLD_P)     # 2.197 at 0.10 (p 0.90)
+USE_CAP = math.log((1.0 - USE_HOLD_P) / USE_HOLD_P)
+
+
+def soft_ceiling(x, cap):
+    """x below 0, cap * tanh(x / cap) above: a ceiling at `cap` with a gradient everywhere (log 40.89)."""
+    return torch.where(x > 0, cap * torch.tanh(x / cap), x)
+
+
+def ceiling_st(x, cap):
+    """soft_ceiling forward, identity backward (a straight-through ceiling; log 40.92). Sampling never exceeds the
+    ceiling, but the head receives the policy gradient as if there were none, in BOTH directions, so the comparison of
+    the hold-off and the jump samples alone moves it: a head saturated far above the ceiling (A2: raw jump ~19 on Bowl)
+    comes down where holding off did better and stays up where the jump paid. (A one-sided version, passing only the
+    lowering gradients, was rejected before use: per sample it passes only positive terms, so it lowers every
+    saturated output whatever the evidence, the slow form of the 40.92 collapse.)"""
+    return x + (soft_ceiling(x, cap) - x).detach()
+
+
 USE_BIAS_V10 = -1.0         # 40.26: a fresh use head starts unsaturated (learned p 0.27, sampled 0.41 where approved)
 SS_RES_RECENT_S = 2.0       # 40.26: the Super Speed residual acts while one is held, a kick is pending, or for this long after
 SS_RES_SCALE = 3.0          # 40.30: the residual's output x3, so each Adam step moves it 3x as far (it learned too slowly)
@@ -260,17 +315,23 @@ class NavActorCritic(nn.Module):
         self.register_buffer('value_std', torch.ones(1))
         self.register_buffer('value_sq_mean', torch.ones(1))
         self.register_buffer('value_stats_initialized', torch.zeros(1))
+        # 2026-10-11 (operator: "do it"; log 40.97): the use damping travels WITH the weights, so every path that plays a
+        # checkpoint (sweeps, the 1x viewer, lobbies) uses the damping it was trained with; a checkpoint saved before
+        # this has none (0, see load_state_dict). The trainer sets it from NAV_USE_DAMP.
+        self.register_buffer('use_damp', torch.full((1,), USE_DAMP))
 
     def load_state_dict(self, sd, strict=True):
         """A checkpoint from before the use head (ACTION_DIM 5) loads with the head at its fresh init."""
         own = self.state_dict()
+        sd = dict(sd)
+        if 'use_damp' not in sd:                                # 40.97: older checkpoints were trained without damping
+            sd['use_damp'] = torch.zeros(1)                     # (filled BEFORE the missing-key test below, review 40.97)
         missing = [k for k in own if k not in sd]
         if missing and all(k.startswith('use_head.') or k.startswith('ss_res.') for k in missing):
-            sd = dict(sd); sd.update({k: own[k] for k in missing})
+            sd.update({k: own[k] for k in missing})
         # 40.40: a checkpoint whose value_head / use_head read only the hidden state (HIDDEN columns): keep those weights
         # and add ZERO columns for the aux inputs, so the critic is unchanged until training moves them; a use head of
         # the old width is dropped (fresh init: the experiment restarts the use decision anyway)
-        sd = dict(sd)
         for head in ('value_head', 'use_head'):
             k = f'{head}.0.weight'
             if k in sd and sd[k].shape[1] != own[k].shape[1]:
@@ -286,6 +347,7 @@ class NavActorCritic(nn.Module):
         return torch.zeros(batch, HIDDEN, device=device)
 
     def core(self, crop, vec, h):
+        vec = vec * self._input_mask(vec)                   # 40.95: the TRY flag is not an input
         x = torch.cat([self.conv(crop), self.vec(vec)], dim=1)
         return self.gru(self.pre(x), h)
 
@@ -320,7 +382,20 @@ class NavActorCritic(nn.Module):
 
     @staticmethod
     def use_prior(vec):
-        """(B,) 1.0 where a powerup use is physics-approved (see USE_PRIOR). Fixed, map-independent."""
+        """(B,) 1.0 where a powerup use is ELIGIBLE: any held powerup at any time, the blast whenever it has charge.
+        2026-10-09 20:45 (operator): "open superspeed up to be able to be fired whenever ... all powerups should be
+        eligible for use any time". The physics approvals below (the Super Speed survivable-kick rule of 40.15-40.26,
+        the lip rule for Super Jump / blast, the 'slow at a rise' escape rule) are kept as code for reference but no
+        longer gate anything: when and where a use pays is for the policy to learn from the round's points."""
+        held = vec[:, VEC_POW:VEC_POW + 7]
+        meter, special = vec[:, VEC_POW + 7], vec[:, VEC_POW + 8] > 0.5
+        held_any = held.sum(-1) > 0.5
+        blast_ready = (~held_any) & ((meter >= 0.2) | special)
+        return (held_any | blast_ready).float()
+
+    @staticmethod
+    def use_prior_physics_reference(vec):
+        """The pre-20:45 approval rules, no longer used (kept for the record and for measuring hit rates)."""
         held = vec[:, VEC_POW:VEC_POW + 7]
         held_sj, held_ss = held[:, 0] > 0.5, held[:, 1] > 0.5
         held_any = held.sum(-1) > 0.5
@@ -347,6 +422,20 @@ class NavActorCritic(nn.Module):
         # the pre-pickup redirect branch (40.12-40.14) is gone: a kick before the pickup missed the gem 40 % of the time
         if USE_SS_ONLY:
             return ss.float()                     # 40.26: Super Speed isolated for the curriculum experiment
+        # Exploration permission, not a forced move or a new verdict head. Allow a held
+        # Super Jump or charged blast when slow at a nearby rise / higher navigation goal.
+        # Full rounds supply the reward; actual pickups and the engine gate supply resources.
+        rays = vec[:, 10:42].reshape(-1, 16, 2)
+        hx, hy = vec[:, 0], vec[:, 1]
+        ridx = torch.round(torch.atan2(hy, hx) / (2 * math.pi / 16)).long() % 16
+        ar = torch.arange(vec.shape[0], device=vec.device)
+        rise = torch.zeros_like(on_floor)
+        for off in (-1, 0, 1):
+            ray = rays[ar, (ridx + off) % 16]
+            rise |= (ray[:, 0] < 2.5 / RAY_RANGE) & (ray[:, 1] > .03)
+        escape = on_floor & (speed < 2.0) & (rise | (vec[:, 3] > .03))
+        sj |= held_sj & escape
+        bl |= (~held_any) & ((meter >= 0.2) | special) & escape
         return (sj | bl | ss).float()
 
     @staticmethod
@@ -383,6 +472,13 @@ class NavActorCritic(nn.Module):
         return n
 
     @staticmethod
+    def _input_mask(vec):
+        """1 everywhere but the per-item TRY flag slot (VEC_USE_TRY), which only the use distribution reads."""
+        m = torch.ones(vec.shape[-1], device=vec.device, dtype=vec.dtype)
+        m[VEC_USE_TRY] = 0.0
+        return m
+
+    @staticmethod
     def aux(vec):
         """40.40: the observation slice the use head and the critic read directly (AUX_DIM)."""
         return torch.cat([vec[:, 0:10], vec[:, VEC_POW:VEC_POW + 37]], dim=-1)
@@ -399,9 +495,9 @@ class NavActorCritic(nn.Module):
         # Applied as a GAIN on the input rather than by rescaling the weights, so it is structural
         # and visible: to switch it off, gradient descent would have to shrink those columns by the
         # same factor, which is detectable (see the effective-norm log line in train_nav).
-        vec_in = vec
+        vec_in = vec * self._input_mask(vec)                     # 40.95: the TRY flag is not an input here either
         if DIR_GOAL_GAIN != 1.0:
-            vec_in = vec.clone()
+            vec_in = vec_in.clone()
             vec_in[..., 0:2] = vec_in[..., 0:2] * DIR_GOAL_GAIN
         x_dir = torch.cat([h, vec_in], dim=-1)
         g = self.ss_gate(vec)                                    # 40.26: the Super Speed residual's gate
@@ -422,7 +518,9 @@ class NavActorCritic(nn.Module):
         # and 99 % of stalls (median -38 stopped at a box side); torch.clamp passes no gradient there, so no exploration
         # of any form could teach the head the stopped-at-a-box case. Below -7 the sampled probability is < 0.001 either
         # way and deterministic play (> 0.5) is unchanged, so only the gradient changes. The upper clamp stays.
-        jump = torch.clamp(jump_raw, max=3.0) + gp * JUMP_PRIOR
+        # 2026-10-11 (log 40.89): the upper clamp (max 3.0) is now the SOFT ceiling JUMP_CAP (hold floor JUMP_HOLD_P), and the
+        # raw output past it is pulled back by the range penalty (range_penalty), so a jump that does not pay can be unlearned.
+        jump = ceiling_st(jump_raw, JUMP_CAP) + gp * JUMP_PRIOR      # 40.92: lowering gradients pass the ceiling
         # 2026-10-07 (operator: "jump nudge is fine"; GENERALIZATION_PLAN skill 4, the discovery run): the head has learned
         # 'never' (~-7, one press in a thousand), so on a map where the gems sit on boxes the jump would almost never be
         # tried. JUMP_EXPLORE_P floors the SAMPLING probability of a jump wherever it is safe: on the floor, and no edge ray
@@ -482,10 +580,30 @@ class NavActorCritic(nn.Module):
         up = self.use_prior(vec)
         h_aux = torch.cat([h, self.aux(vec)], dim=-1)          # 40.40
         raw = self.use_head(h_aux).squeeze(-1)
-        p_learn = torch.sigmoid(USE_LOGIT_CAP * torch.tanh(raw / USE_LOGIT_CAP))
-        p = (up * (USE_EPS + (1.0 - USE_EPS) * p_learn)).clamp(1e-6, 1.0 - 1e-6)
+        # USE_DAMP (2026-10-09 21:00): a constant taken off the use logit EVERYWHERE, like JUMP_DAMP for the jump. With
+        # every powerup eligible at any time (20:45) the head's untrained output outside the old approval masks read
+        # "use": KOTM 32 clean rounds fired Super Speed 22.8 and Super Jump 20.7 times a round, falls 3.8 -> 15.9,
+        # points 143 -> 90. The damping makes "do not use" the untrained default; the USE_EPS floor supplies the tries
+        # and the head learns upward wherever a use pays. Uniform over powerups and places: it encodes nothing.
+        # 2026-10-11 (log 40.89): the "use" side is capped at USE_CAP (hold floor USE_HOLD_P), the "hold" side keeps the old
+        # soft bound; both keep a gradient. The sign, and so deterministic play, is unchanged.
+        # 2026-10-11 (log 40.97): the damping (self.use_damp, saved with the weights) is taken off BEFORE the ceilings, so
+        # the most a sampled use can reach stays logit(1 - USE_HOLD_P) and deterministic play fires where raw > use_damp.
+        # With damping 3, A2's typical ~5 % a decision becomes ~0.3 %: a held powerup stays held ~20 s on average in
+        # training instead of ~1 s, so "not now" really means not firing and a fall after a fire counts against firing.
+        x_use = raw - self.use_damp
+        z_use = torch.where(x_use > 0, ceiling_st(x_use, USE_CAP), USE_LOGIT_CAP * torch.tanh(x_use / USE_LOGIT_CAP))   # 40.92
+        p_learn = torch.sigmoid(z_use)
+        eps = USE_EPS * (vec[:, VEC_USE_TRY] > 0.5).float() if USE_TRY else USE_EPS   # 40.95: tries only on TRY items
+        p = (up * (eps + (1.0 - eps) * p_learn)).clamp(1e-6, 1.0 - 1e-6)
         use = torch.log(p) - torch.log1p(-p)
         use_det = up * (p_learn > 0.5).float()                # deterministic play: only where the head has learned it
+        # the range penalty (training loss, RANGE_COEF): raw outputs past a ceiling, squared; the use head only where a use
+        # is possible (outside the mask its output does nothing). Computed on the DETACHED features, so it moves the two
+        # heads' own weights only and never reshapes the shared encoder the steering relies on.
+        jr_d = self.jump_head(h.detach()).squeeze(-1) - JUMP_DAMP
+        ur_d = self.use_head(h_aux.detach()).squeeze(-1)
+        self.range_penalty = torch.relu(jr_d - JUMP_CAP) ** 2 + up * torch.relu(ur_d - self.use_damp - USE_CAP) ** 2
         vn = self.value_head(h_aux).squeeze(-1)
         return mean_xy, thr, jump, brake, use, vn, use_det, 1.0 + (STD_POST_MULT - 1.0) * g_post, brake_det
 
@@ -539,6 +657,7 @@ class NavActorCritic(nn.Module):
         action_buf = torch.stack([direction[:, 0], direction[:, 1], thr_s, j, b, u], dim=1)
         action_game = torch.stack([direction[:, 0], direction[:, 1], throttle, j, b, u], dim=1)
         return {'action_buf': action_buf, 'action_game': action_game, 'logp': logp,
+                'use_probability': d_use.probs,
                 'mean_dir': mean_xy,          # pre-sampling mean: TURN_COST is charged on THIS,
                                               # so it prices steering and not exploration noise
                 'value': self.value_from_norm(vn), 'h_next': h1}
@@ -553,7 +672,7 @@ class NavActorCritic(nn.Module):
         discrete entropy (T,B), value_norm (T,B)."""
         T, B = actions.shape[:2]
         h = h0
-        logps, ents, ents_d, vns = [], [], [], []
+        logps, ents, ents_d, vns, pens = [], [], [], [], []
         for t in range(T):
             r = resets[t].unsqueeze(-1)
             h = h * (1.0 - r) if h_reset is None else h * (1.0 - r) + h_reset[t] * r
@@ -576,6 +695,8 @@ class NavActorCritic(nn.Module):
             ent_cont = (d_dir.entropy() - torch.log(std_mult).unsqueeze(-1)).sum(-1) + d_thr.entropy()
             ent_disc = d_jump.entropy() + d_brake.entropy() + d_use.entropy()
             logps.append(logp); ents.append(ent_cont); ents_d.append(ent_disc); vns.append(vn)
+            pens.append(self.range_penalty)
+        self.last_range_penalty = torch.stack(pens)          # (T, B), read by the PPO loss (log 40.89)
         return torch.stack(logps), torch.stack(ents), torch.stack(ents_d), torch.stack(vns)
 
     @torch.no_grad()

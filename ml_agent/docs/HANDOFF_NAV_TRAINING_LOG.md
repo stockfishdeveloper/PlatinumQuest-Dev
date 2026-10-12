@@ -7179,3 +7179,507 @@ scores. Full details and continuing experiment results are in
   train_nav logs, batch manifests, teleport probe results, the holdout demo recording.
 * The 345 committed `.err` files under logs/learned_nav were deleted by the same wildcard (same junk); they show as
   deletions until committed or restored.
+
+### 40.80 Phase R preparation review, powerups opened, potential shaping, start checkpoint (10-09 16:30-21:45)
+* The other agent's preparation (docs/HANDOFF_REAL_MAP_PREPARATION_2026-10-09.md): routing shared by training and
+  evaluation (nav/routing.py, waypoints with the gem kept as the target), height in every field, rescue by the game's
+  quick-respawn after 8 s without progress (nav/recovery.py), rotation, finite block, 160 baseline rounds
+  (docs/REAL_MAP_BASELINES_2026-10-09.md: 37575 beats the 166.5 base on 7-8 of 10 maps; Fractured Islands 69 vs 0).
+  Reviewed as sound. Two of its choices reverted on the operator's instruction: forced stall samples back to 3 % (it
+  had 0), and no rescue penalty beyond the time lost (operator). review_real_maps.ps1: -aifreecam always, no -aiseed
+  unless asked (a fixed seed gave the same spawn and first gem every round; training never seeds).
+* Rescue refusals (RESCUE accepted=0) explained by instrumenting the game's reply: can=0 = the quick-respawn
+  permission is off for 25 s ($MP::QuickSpawnTimeout) after any quick respawn, and the fall recovery's OOB click IS a
+  quick respawn. The game's rule; the rescue retries every 8 s. Left as is (time cost = the operator's chosen price).
+* Powerups (operator 20:45): every held powerup is eligible at any time, the blast whenever charged, USE_EPS 0.02;
+  the old approvals (Super Speed survivable kick, lip rule, the other agent's "slow at a rise" escape gate) no longer
+  gate anything (model.use_prior; use_prior_physics_reference kept for the record). Worker and runner dispatch every
+  held type with the use key. RESULT on KOTM (32 clean rounds, routed): the use head is saturated positive on real
+  states (the mask had been doing the deciding): Super Speed 22.8 and Super Jump 20.7 uses a round, falls 3.8 ->
+  15.9, points 143 -> 90. A uniform USE_DAMP 4 changed nothing (91.2); past the cap it would starve the gradient.
+  FIX: a start checkpoint with the use head's FINAL LAYER re-initialised (weights N(0, 0.01), bias -3 -> p 0.05,
+  gradient healthy): models/nav/nav_phase_r_start_37575_usehead_reset.pth (= 37575 otherwise). KOTM clean 32 rounds:
+  128.6 (125.2-132.0), falls 7.97, uses 0.2-0.4 a round; the routed gated baseline was ~131. ck17k/18k/19k.
+* Potential-based progress shaping (operator: "go ahead", after the other agent's corrections): nav/recovery.
+  potential_term, Phi = -(route distance to the current gem, height-aware), F = k (Phi(after) - Phi(before)),
+  k 0.05 points/u (a 20 u approach = 1 point). Rules: no term on a gem change; settled to 0 at round end; frozen while
+  no floor level within 3 u of the marble (over a void, high in a flight: flights pay on landing); the rescue/respawn
+  jump is charged. The exact Ng form with gamma 0.99 per decision was measured in-game (scratchpad shaping_probe.py,
+  Cragmire): 10 s of idling 20 u from the gem earned +1.6 (the (1-gamma) k d standing stream), three times the
+  rescue charge, so the worker runs the UNDISCOUNTED difference (SHAPING_GAMMA 1). Probe: rolling toward the goal
+  +1.4 per 7.7 s, the rescue -0.52, airborne steps frozen, no term on retargets. Unit tests nav/test_potential.py
+  (8) + nav/test_phase_r.py (20, three rewritten for the open use rule) pass. GAME log line now carries
+  shape= and shape_frozen=.
+* Launch config (configs/real_maps_20261009.json, prepare_real_maps.ps1): checkpoint clusters_reset, routed,
+  non-competitive, rescue 8 s, forced stall 3 % (3 u clearance), jump explore 1 %, potential k 0.05 (-PotentialK 0
+  for the points-only control block), USE_EPS 2 %, rotation every 4 rounds over the 10 maps, 120-min block. The
+  recorded escape-practice starts (224, the other agent's) copied into logs/nav/real_maps_20261009/ for an optional
+  -DrillPlan on a minority of instances. TRAINING STILL PAUSED (training_approved=false).
+
+### 40.81 Phase R block A started (10-09 21:52)
+* Operator: "proceed with the plan" (two 120-min blocks from the reset start checkpoint: A shaping on, B points only).
+  training_approved=true in configs/real_maps_20261009.json. RunTag real_maps_20261009_reset; the run saves/resumes in
+  models/nav/real_maps_20261009_reset/ (the comparison checkpoints are untouched).
+* Two false starts: (1) the practice windows (-DrillPlan 0:4,1:4 with the other agent's recorded starts) failed at
+  restore: "mission catalog differs from the recorded fixture" (the fixtures' item catalog no longer matches the live
+  game; to investigate before any practice run); block A runs WITHOUT practice windows. (2) worker 3 died on
+  os.replace of its rotation state file inside the repo (OneDrive PermissionError); the rotation state dir is now
+  %TEMP%\pq_checks\<RunTag>\rotation and the write is non-fatal; a stray carriage return in that path (my patch) cost
+  one more restart. Up at 21:52: update 37579 by 21:56, 8 games on 8 maps, rescues accepted/refused as designed
+  (refusals = the 25 s quick-respawn lock). Block ends ~23:53; then the 10-map clean sweep (phase_r --checkpoints blockA).
+
+### 40.82 Block A result (10-09 21:52 - 23:52; sweep 23:58-00:07)
+* Block A (shaping k 0.05, open powerups with the reset use head, rescue 8 s): updates 37579 -> 37701 only (one 10-min
+  trainer HANG at ~22:48 after a map-rotation reconnect: a worker blocked in set_game_rules; the supervisor's 600 s stall
+  rule restarted it at 22:58). Training rounds (1,117): KOTM 76-78 sampled, Fractured Islands 46-47, Cube Isle 33-39,
+  Treasure Box 37-41, Duplex 29-36; shaping totals 5-35 a round, i.e. comparable to or above the game points on the
+  hard maps (Bowl 26.5 shaping vs 10 points; a k of 0.05 pays ~500 u of approach a round there).
+* Clean sweep of the block A checkpoint (4 rounds x 10 maps, assisted profile) vs the start checkpoint's baseline:
+  KOTM 130.8 -> 80.5 (falls 16.2, group clears 15.5), Cragmire 5.5 -> 11.8, Cube Isle 28.5 -> 25.2, Fractured Islands
+  64.8 -> 67.8, Sprawl 10.8 -> 23.5, Duplex 19.8 -> 16.0, Bowl 7.5 -> 15.5, Concentric 7.0 -> 6.8, Vortex 1.0 -> 1.8,
+  Treasure Box 31.8 -> 40.8; mean 30.7 -> 28.9. KOTM's collapse is the headline (see the uses/falls breakdown below).
+* Fixes before block B: env.set_game_rules waits 200 decisions and is non-fatal (the launch flag already set the
+  mode); quick_rescue without an ack = refused, non-fatal; supervisor stall rule 600 -> 240 s. Practice windows stay
+  off in both blocks (fixture catalog mismatch unresolved), so the A/B differs only in the shaping term.
+* Block B (points only, -PotentialK 0) started 00:08 from the same start checkpoint, RunTag real_maps_20261009_pointsonly.
+
+### 40.83 Block B and the resume bug that voids the first A/B (10-10 00:08 - 02:30)
+* Block B (points only) 00:08-02:07: training rounds per map identical to block A within noise (points, falls, rescues,
+  stall seconds) but the checkpoint only reached update 37640. Cause: train_nav's INTERNAL restart loop (worker failure
+  -> "trainer crashed; restarting") resumed from NAV_CKPT = the STARTING checkpoint every time (5 times in B, 3 times in
+  A's first attempt); only the supervisor's own restarts switched to the run's nav_latest. B's two hours yielded 65
+  updates, all from its last 45 minutes; A got ~125 (its 22:58 supervisor restart put it onto its own nav_latest and
+  attempt 2 ran 37616 -> 37700 cleanly). FIXED: train_nav resumes from whichever of NAV_CKPT and CKPT_DIR/nav_latest
+  is further along.
+* The worker failures behind the restarts were all map-rotation reconnects: no RULES ack (fixed earlier, non-fatal),
+  "reconnected game did not send replay telemetry" (now 4 x 64-decision retries, then non-fatal), no QUICKRESPAWN ack
+  (non-fatal). B's game loop rotated 86 times, A's 38.
+* Sweep of B's 37640 checkpoint ran 02:12 (results in 40.84). The A/B is NOT a fair comparison (125 vs 65 updates,
+  A's first hour also reset three times); both blocks are rerun with the fixed trainer: A' then B', 120 min each from
+  the same start checkpoint.
+
+### 40.84 First (invalid) A/B numbers and the rerun (10-10 02:25)
+* Clean sweeps, 4 rounds x 10 maps, assisted profile. start = the reset start checkpoint; A = shaping, 37700 (~125
+  updates, first hour reset 3x); B = points only, 37640 (65 updates after 5 resets):
+  KOTM 130.8 / 80.5 / 108.0; Cragmire 5.5 / 11.8 / 4.0; Cube Isle 28.5 / 25.2 / 17.8; Fractured Islands 64.8 / 67.8 /
+  78.2; Sprawl 10.8 / 23.5 / 18.8; Duplex 19.8 / 16.0 / 24.2; Bowl 7.5 / 15.5 / 10.0; Concentric 7.0 / 6.8 / 5.0;
+  Vortex 1.0 / 1.8 / 0.0; Treasure Box 31.8 / 40.8 / 47.5; mean 30.7 / 28.9 / 31.4. KOTM falls 16.2 (A) / 14.0 (B) vs
+  ~8 at the start: both blocks relearned firing powerups on KOTM (A: SS 19.5 + SJ 19 a round; B: SS 9.8 + SJ 6), so the
+  open use rule, not the shaping, drives the KOTM regression; B had half the updates, so magnitudes are not comparable.
+* Rerun with the fixed trainer: A2 (shaping) started 02:22, RunTag real_maps_20261010_A2; B2 (points only) follows
+  automatically after A2's sweep (orchestrated in the background: sweep A2 -> launch B2 -> sweep B2).
+
+### 40.85 Rerun A2 vs B2 with the fixed trainer (10-10 02:22-06:48): shaping keeps KOTM, points-only relearns firing
+* A2 (shaping k 0.05) 02:22-04:22: 37575 -> 37760 (185 updates), 3 internal restarts, each resumed from the run's own
+  latest save (the 40.83 fix works). B2 (points only) 04:39-06:39: 37575 -> 37710 (135 updates), 4 internal restarts.
+  Both single supervisor attempts, no hangs. The restart causes are still map-rotation reconnects (now non-fatal for
+  rules/replay/rescue acks; whatever still raises is in the worker step path, to read from the stderr copies).
+* Clean sweeps (4 rounds x 10 maps, assisted; 4-round means, +/- several points on the volatile maps). start / A2 / B2:
+  KOTM 130.8 / 128.5 / 97.5 (falls 6.0 / 7.0 / 17.0; A2 fires SS 2.0 + SJ 1.5 a round, B2 SS 16.5 + SJ 13.2);
+  Cube Isle 28.5 / 19.5 / 30.2; Fractured Islands 64.8 / 71.0 / 62.5; Cragmire 5.5 / 4.0 / 6.8; Duplex 19.8 / 29.8 / 27.8;
+  Sprawl 10.8 / 18.0 / 19.0; Concentric 7.0 / 5.2 / 6.5; Treasure Box 31.8 / 44.5 / 32.0; Bowl 7.5 / 4.0 / 12.2;
+  Vortex 1.0 / 0 / 0; mean of 10: 30.7 / 32.5 / 29.4.
+* Reading: the shaping term keeps the base behaviour (KOTM flat at 128.5) and lifts the maps where routes are long
+  (Treasure Box, Duplex, Sprawl, Fractured Islands) while points-only lets the use head relearn "fire everything"
+  (KOTM -33, falls x2.8) with no sign of skilled use yet. Under shaping the LEARNED use rate is ~0 on every map but
+  KOTM (deterministic play fires only where p > 0.5; training still samples the 2 % floor), i.e. the shaping
+  suppresses wasteful uses but, two hours in, has not produced learned powerup use either. Cube Isle and Bowl fell
+  under A2 (19.5, 4.0) and rose under B2: 4-round noise or the shaping's approach-over-pickup bias; to watch.
+* Recommendation for the operator: continue with A2's settings (shaping on) in longer blocks with 2-h checks; revisit
+  powerup learning (practice windows once the fixture catalog mismatch is fixed, or a per-type use floor) as its own
+  step. TRAINING PAUSED (both run folders hold STOP). Best current checkpoint: models/nav/real_maps_20261010_A2/
+  nav_latest.pth (37760).
+
+### 40.86 The long run starts (10-10 18:44-18:52): A2 settings, one block of up to 24 h, checks every 2 h
+* Operator go on the plan in docs/HANDOFF_LONG_RUN_PLAN_2026-10-10.md ("yes i approve, begin!!").
+* State at 18:44: no game, trainer or sweep running; A2 = models/nav/real_maps_20261010_A2/nav_latest.pth, update
+  37760, SHA-256 ae88f2e70a376fda; STOP present in every real_maps_* run folder. The two reconnect crash paths the
+  overnight audit flagged are already fixed in the code (the vec_worker _record_approach_at guard; env.info reset to
+  {} and the recovery reading round_ms with a default).
+* ExampleMission reference for A2 (held out, never trained on), 4 rounds, assisted, 4 games, 18:48:24-18:50:38
+  (133 s): 60.8 points (se 1.5), falls 5.2 and rescues 2.75 a round, no learned powerup use, 19 % of decisions
+  stalled (< 1 u/s). The morning-of-10-09 model scored 25.3 with 38 % stalled (40.73). Output under
+  %TEMP%\pq_checks\real_maps_20261010_long\example_ref_A2.
+* Measured sweep cost: the A2 ten-map reference (4 rounds x 10 maps, 8 games) took 401 s, set by its slowest job
+  (Vortex Effect; KOTM 112 s). Reference row from its rounds files: ten-map mean 34.4, KOTM 122.0, falls 22.3 and
+  rescues 3.25 a round, learned uses a round (10-map average) Mega 0.05, SJ 0.23, SS 0.35.
+* Start 18:50:53: prepare_real_maps.ps1 -Checkpoint A2 -RunTag real_maps_20261010_long -StartTraining -ShapingMode
+  legacy -MaxWallMinutes 1440, launched hidden with its console under %TEMP%\pq_checks\real_maps_20261010_long\
+  (launcher pid 29540, trainer 2944, game loop 23980). prepared.json: source SHA ae88f2e70a376fda, 1440 min,
+  rotation every 4 rounds, NAV_POTENTIAL_K 0.05, NAV_SHAPING_MODE legacy, NAV_JUMP_FORCE_P 0.03, NAV_JUMP_EXPLORE_P
+  0.01, NAV_RESCUE_S 8, NAV_COMPETITIVE 0, NAV_DRILL_PLAN none, NAV_USE_EPS 0.02, NAV_DIRECT_GEM 0, NAV_SEED 1,
+  NAV_STOP_UPDATE 0; starting_checkpoint.pth has the same SHA. Attempt 1 resumed update 37760; first update 37761 at
+  18:52:21 with 8 games.
+* Checks: every 2 h (first due ~20:51) STOP, sweep the run's nav_latest (4 rounds x 10 maps, assisted, 8 games),
+  resume with the same prepare command; every third check adds ExampleMission. Reported against the A2 row above and
+  ExampleMission 60.8 / 19 % stalled. A watcher (scratchpad long_run_watch.sh, reads the launcher console and
+  logs/nav/stdout.txt, never supervisor.log) wakes the runner on a supervisor restart, an internal trainer restart, a
+  trainer log quiet for 10 min, under 40 updates in an hour, or the 2-h mark.
+
+### 40.87 Check 1 (block 18:50-20:51, 37760 -> 37950): KOTM 90.5, use head firing again
+* Block: 190 updates in 2 h (95 an hour), 404 training rounds, one supervisor attempt, no internal trainer restart, no
+  traceback. Warnings (non-fatal): 14 "no RULES acknowledgement after a reconnect", 7 "no replay telemetry", 6 "no
+  RESCUE acknowledgement". Pause: STOP 20:51:01, supervisor ended 20:51:08. Logs kept as attempt1_*.txt under
+  %TEMP%\pq_checks\real_maps_20261010_long.
+* Sweep 20:51:27-20:59:50 (502 s; Bowl's job the slowest): nav_latest = update 37950 (same weights as
+  nav_real_maps_20261010_long_037950.pth), 4 rounds x 10 maps, assisted, 8 games, checkpoints unchanged. Output
+  check_1 under the same folder.
+
+  | | A2 reference (37760) | check 1 (37950) |
+  |---|---|---|
+  | ten-map mean | 34.4 | 30.1 |
+  | KOTM | 122.0 (se 3.5) | 90.5 (se 4.8) |
+  | falls a round (10-map mean) | 22.3 | 23.0 |
+  | rescues a round | 3.25 | 3.20 |
+  | learned uses a round, 10-map avg | SJ 0.23, SS 0.35, Mega 0.05 | SJ 1.95, SS 1.00, Mega 0.98, Heli 0.10 |
+  | KOTM uses a round | SJ 2.25, SS 3.0, Mega 0.5 | SJ 12.0, SS 6.25, Mega 6.25 |
+
+  Per map, reference / check 1: KOTM 122.0 / 90.5, Sprawl 18.0 / 13.8, Cube Isle 29.5 / 34.5, Bowl 5.2 / 28.0,
+  Duplex 19.2 / 33.2, Fractured Islands 82.2 / 66.5, Cragmire 5.2 / 5.5, Vortex Effect 0 / 1.0, Treasure Box
+  55.8 / 24.0, Concentric 6.8 / 3.8.
+* Reading: every KOTM round of check 1 (78, 88, 98, 98; falls 12-15; 18-30 uses) is below every reference round
+  (114-130; falls 5-12; 0-9 uses). Treasure Box now fires Super Jump/Super Speed (none at A2) and lost 32 points.
+  Bowl gained in every round (23-33 against 2-9). Fractured Islands lost 16 with no powerup use (falls 10.8 -> 14.5).
+  The training rounds' sampled use rate stayed flat across the block (SJ ~2.5, SS ~1.3, Mega ~1.4, Heli ~0.6 a round;
+  KOTM SJ ~9-12, SS ~7-8, Mega 3-5 from the first half hour on), so A2 already sampled these uses often; the
+  deterministic evaluation fires where p > 0.5, and a modest shift in the use head flips many states over that line.
+  This is the B2 pattern (40.85) at half B2's KOTM loss. Rule (handoff section 7): KOTM below 100 on two consecutive
+  checks with rising uses = stop and report; one check so far, so the run continues. Best save remains A2 (37760).
+* Resume 21:00:42 (launcher pid 8044, trainer 32860, game loop 17812): "resumed ... nav_latest.pth: update 37950" at
+  21:00:44, 8 games. Downtime for the check 9 min 41 s. Check 2 due ~23:00.
+
+### 40.88 Check 2 (block 21:00-23:00, 37950 -> 38145) and the end of the run: stop rule met
+* Block: first update 37951 at 21:02:13; 196 updates (98 an hour), 418 training rounds, one supervisor attempt, no
+  internal restart, no traceback; warnings 10 "no RULES acknowledgement", 3 "no replay telemetry". STOP 23:00:49,
+  supervisor ended 23:00:56. Logs kept as attempt2_*.txt under %TEMP%\pq_checks\real_maps_20261010_long.
+* The checked weights were copied to models/nav/real_maps_20261010_long/check2_038145.pth (nav_latest at 38145,
+  SHA-256 c5a13757ec2f70e7; no numbered save falls on 38145). Sweep 23:01:16-23:09:32 (496 s), 4 rounds x 10 maps,
+  assisted, 8 games, checkpoints unchanged.
+
+  | | A2 (37760) | check 1 (37950) | check 2 (38145) |
+  |---|---|---|---|
+  | ten-map mean | 34.4 | 30.1 | 32.0 |
+  | KOTM | 122.0 (se 3.5) | 90.5 (se 4.8) | 82.2 (se 2.1) |
+  | falls a round | 22.3 | 23.0 | 21.6 |
+  | rescues a round | 3.25 | 3.20 | 2.83 |
+  | learned uses a round, 10-map avg | 0.6 | 4.0 | 8.1 (SS 4.00, SJ 2.48, Mega 1.43, Heli 0.20) |
+  | KOTM uses a round | 5.75 | 24.5 | 41.75 (SS 22.0, SJ 13.5, Mega 6.25) |
+
+  Per map, A2 / check 1 / check 2: KOTM 122.0 / 90.5 / 82.2, Sprawl 18.0 / 13.8 / 23.8, Cube Isle 29.5 / 34.5 /
+  28.0, Bowl 5.2 / 28.0 / 16.5, Duplex 19.2 / 33.2 / 48.0, Fractured Islands 82.2 / 66.5 / 62.2, Cragmire 5.2 / 5.5 /
+  12.2, Vortex Effect 0 / 1.0 / 1.2, Treasure Box 55.8 / 24.0 / 39.8, Concentric 6.8 / 3.8 / 6.0.
+* Training rounds (sampled play) by hour over the 4 h: all-map points 32.0, 29.5, 30.3, 30.4; uses a round SJ 2.66,
+  2.50, 3.38, 3.46, SS 1.35, 1.33, 1.67, 2.09, Mega 1.33, 1.50, 1.73, 1.93; KOTM points 79.7, 74.6, 71.0, 71.0 with
+  SS 7.1, 7.8, 9.4, 11.4 and Mega 3.4, 4.5, 6.6, 7.4 a round. The use head climbs steadily under the A2 settings.
+* Reading: the handoff's stop rule is met (KOTM below 100 on two consecutive checks with uses rising 0.6 -> 4.0 ->
+  8.1 a round). The KOTM loss (-40, about 10 standard errors) is real; the gains on Duplex (+29), Cragmire (+7), Bowl
+  (+11) and Sprawl (+6) sit within 1.4 to 1.8 standard errors of 4-round noise. Shaping k 0.05 delayed the B2 pattern
+  (40.85) but did not prevent it: B2 reached KOTM 97.5 with SS 16.5 a round after 135 updates from 37575; this run
+  reached 82.2 with SS 22 a round 385 updates after A2.
+* End: operator 23:05 "after the sweep go ahead and stop everything, i want to see something". Run stopped for good
+  after the sweep: STOP stays in logs/nav/real_maps_20261010_long, no game, trainer or watcher running (the dashboard,
+  pid 33732, stays up). Best checkpoint remains A2 (models/nav/real_maps_20261010_A2/nav_latest.pth, 37760). No
+  ExampleMission sweep was taken for this run's saves (it was due at check 3).
+
+### 40.89 Jump and use heads could not unlearn; hold floors and a slope-aware floor flag (10-10 23:35 - 10-11 00:24)
+* The operator watched the check-2 save (38145) at 1x on KOTM, ExampleMission, Sprawl and Bowl: "the model is
+  virtually jumping 100 % of the time ... it uses blast and powerups almost continually", and on Bowl it left nearby
+  gems to climb toward a platform. Bowl round 1 (23 points, 10 gems): 75 s on the blue gem on the deck at
+  (148.2,-13.2,-6.85) (closest 8.6 u; three climbs to ~2 u under the deck's lip, each rolled back to the floor), 43 s
+  at the end on (56,96,-19) behind a 0.5 rise/run mound (the straight-line test passed, the waypoint was the gem; the
+  marble hopped at the foot until the 8 s rescue sent it ~250 u away, twice). Operator: every gem on Bowl is
+  reachable; the model was not good enough to get there; the fastest way is sometimes neither the straight line nor
+  the planned path.
+* Measured: jump pressed on 84 % of decisions in that round; A2's sweep: Bowl 87 %, Sprawl 83 %, Treasure Box 68 %,
+  Cragmire 60 %, KOTM 4 % (so the habit predates the long run). Uses per 1000 decisions: A2 0.3, check 1 4.6, check 2
+  17.5, of which 77-88 % were blasts (holding nothing).
+* Cause found: the jump logit had a HARD upper clamp (torch.clamp max 3.0, sampled p 0.953) with ZERO gradient above
+  it. In A2's sweep the raw jump output sat above 3 on 48 % of all decisions (Bowl 84 %, Sprawl 78 %, Treasure Box
+  62 %, Cragmire 56 %, KOTM 4 %; Bowl median raw ~19). There the model did try "no jump" 4.7 % of the time, but the
+  outcome could never reach the head, while learning elsewhere kept lifting more states over the clamp: a one-way
+  ratchet toward always jumping (the same class of bug as the lower clamp removed 10-08, 40.67). The use head's soft
+  cap of 12 let p reach 0.999994, so once it liked a blast it never tried holding it (USE_EPS only adds tries of using).
+* Floor flag: on_floor = |vz| < 0.3 and within 0.6 u of the map's floor. Rolling on a slope has vertical speed, so the
+  flag read "in the air" there. Validated against the engine's contact telemetry (CONTACT 1, scratchpad
+  contact_probe.py: 90 Bowl cells, teleport, roll with no input, a hop on every third; 2160 decisions): on tilted
+  floor the marble was in contact on 76.6 % of decisions; the old flag agreed 40.5 % (said contact 21.1 %), the new
+  one agrees 97.3 % (77.0 %); flat floor identical (86.2 %); overall 50.6 % -> 94.8 %; threshold 0.3 best (0.5: 94.5,
+  0.8: 94.0, 1.2: 93.6). On A2's recorded rounds the new test moves the flag little (Bowl 1.4 -> 1.8 %, KOTM 82.5 ->
+  83.7 %): there the marble really is airborne most of the time from hopping. The fix matters when it rolls.
+* Changes (operator approved 00:15, "you are approved for all of those"):
+  - nav/model.py: JUMP_HOLD_P = USE_HOLD_P = 0.10 (env NAV_JUMP_HOLD_P / NAV_USE_HOLD_P), soft_ceiling(x, cap) =
+    cap tanh(x / cap) above 0, identity below; the jump logit uses it at JUMP_CAP = logit(0.90) = 2.197 instead of
+    the clamp; the use logit's "use" side the same at USE_CAP (the "hold" side keeps 12 tanh(raw / 12)). Sampled jump
+    and use probabilities are now at most ~0.90 wherever the head is sure, with a gradient everywhere. Deterministic
+    play reads the sign only (both caps preserve it), so evaluation behaviour is unchanged by the caps themselves.
+  - Range penalty: RANGE_COEF 0.01 x mean(relu(raw_jump - JUMP_CAP)^2 + mask x relu(raw_use - USE_CAP)^2), computed
+    from the two heads on DETACHED features (it moves jump_head / use_head weights only, never the shared encoder;
+    checked: only jump_head received gradient in a smoke test with A2). nav/ppo_recurrent.py adds it to the loss and
+    reports rng= on the NAV line (key=value, dashboard-safe). A2's first update: rng 119.7.
+  - terrain_obs.py: TerrainMap.floor_gradient (dh/dx, dh/dy on the floor's level; 0 where the map's slope there is
+    under FLAT_SLOPE 0.02; neighbours continue the surface within (1.5 x slope + 0.05) x cell); nav/obs.py:
+    floor_contact() = near the floor and |speed along the surface normal| < 0.3 (identical to the old test on flat
+    floor). Used by ObsBuilder.build (vec[8], the airborne counter, the gap and SS features, the jump exploration
+    masks). The SS experiment modules (ss_routes, ss_command_aim, off in Phase R) keep the old test.
+  - Reward unchanged: game points + legacy shaping k 0.05. No penalty on jumps or uses.
+* Tests: the 72 nav unit tests pass; smoke test of evaluate_seq + loss with A2 weights (shapes, finite loss).
+* Anneal plan: hold floors 0.10 now, 0.05 then 0.02 at the 2-h checks as the deterministic jump and blast rates fall.
+
+### 40.90 Run real_maps_20261011_hold started from A2 (10-11 00:24)
+* prepare_real_maps.ps1 -Checkpoint A2 -RunTag real_maps_20261011_hold -StartTraining -ShapingMode legacy
+  -MaxWallMinutes 1440 at 00:24:19 (launcher 32972, trainer 33344, game loop 25548); console under
+  %TEMP%\pq_checks\real_maps_20261011_hold. prepared.json: source SHA AE88F2E70A376FDA, A2 settings (POTENTIAL_K
+  0.05 legacy, FORCE_P 0.03, EXPLORE_P 0.01, RESCUE_S 8, COMPETITIVE 0, DRILL none, USE_EPS 0.02, DIRECT_GEM 0, SEED
+  1); the new hold floors are code defaults (0.10 / 0.10, RANGE_COEF 0.01). Resumed update 37760; first update 37761
+  at 00:25:46 (critic warm-up), 8 games. Watcher: run_watch.sh in the same folder; first check due ~02:24.
+* The Bowl 1x viewer (check-2 save) was closed at the start, as agreed.
+* First policy update 37781 (after the 20 critic-only updates): kl 0.048 / clip 0.28, then kl 0.006-0.019, clip
+  0.08-0.15, no KL early stop; rng 120-150 during warm-up, 50-70 by 37790-37796.
+* Training rounds blast ~43 times a round under both A2 and this run (long run's first 40 min: 42.5): that is the
+  USE_EPS 2 % floor on every blast-ready decision (the meter refills to 0.2 in 5 s), not the learned head.
+
+### 40.91 Where A2 loses its rounds (analysis of the 4-round reference, 10-11 00:40-00:55)
+Script %TEMP%\pq_checks\real_maps_20261011_hold\run_breakdown.py (rerun on every check). Per map, points a round,
+stalled share, falls a round with the share that repeat on the same target as the previous fall, and the time on
+target segments that ended without a pickup (upper bound: a re-plan also ends a segment):
+  Bowl 5.2, stall 7 %, falls 0, unreached 66 %; Concentric 6.8, 10 %, 43.2 falls (86 % repeats), 71 %; Cragmire 5.2,
+  11 %, 18.5 (65 %), 83 %; Cube Isle 29.5, 9 %, 35.5 (62 %), 95 %; Duplex 19.2, 18 %, 18.2 (52 %), 78 %; Fractured
+  Islands 82.2, 7 %, 10.8 (28 %), 45 %; KOTM 122.0, 4 %, 8.2 (21 %), 7 %; Sprawl 18.0, 8 %, 0, 75 %; Treasure Box 55.8,
+  8 %, 0.5, 58 %; Vortex Effect 0.0, 10 %, 88.0 (65 %), 100 %.
+* Fall loops (the same target fall after fall): Vortex round 1, 105 falls, median 2.8 s apart, all at two spots, gems
+  (4.1,-23.9,5.5) and (4.1,-40.0,5.5). From the respawns at (-33,-49,6) / (-25,-58,6) the route crosses the vortex
+  funnel's slope; at ~10-12 u/s the marble slides down it and goes below the InBoundsTrigger floor (z -6.5) every
+  cycle. The terrain map keeps the funnel above -6.5 as walkable floor (it is floor), with nothing marking that a
+  marble on it cannot stop. Concentric round 1: 58 falls, 50 on gem (21,6,4): the route goes straight over the gap
+  between two rings at ~(24,10); the marble starts its jump only once already dropping (z 2.9, below the ring at
+  4.2), hits the inner ring's wall and falls. A timing problem the hold floors should help with.
+* Bowl (40.89): 75 s on the deck gem, 43 s behind the mound, both chased until a rescue moved the marble.
+* Rescues (8 s without route progress) close to the gem: Sprawl 36 rescues in 4 rounds, typically 1.4-5.5 u from the
+  target (e.g. 1.4 u from (23,-19)), with jump pressed on 70-100 % of the 8 s before and the marble bouncing within
+  10-20 u; Treasure Box 22 rescues, many 1.8-3.2 u from the target, jump 84-100 %. The hopping keeps it from landing on
+  gems that sit a step or a box up. Supports the operator's reading that the jumping costs most of the score there.
+* Pull-back progress in the run: rng mean 58.9 (to 37798), 29.3 (37806), 14.8 (37814), 8.8 (37822), 12.8 (37830);
+  kl 0.007-0.024, clip ~0.10; ~90 updates an hour.
+
+### 40.92 Check 1 of the hold run: the pull-back collapsed the jumps; A2 re-measured; straight-through ceilings (10-11 02:24-02:57)
+* Block 00:24-02:24, 37760 -> 37951, 405 rounds, no restart. STOP 02:24:31, weights check1_037950.pth (SHA
+  37ca673eb0070103). Sweep 02:24:40-02:33:57 (ten maps + ExampleMission, 4 rounds, assisted, 8 games):
+  ten-map 20.9 (A2 ref 34.4), KOTM 85.5 (122.0), jump 7 % of decisions (49 %), uses 5.4/1000 (75 % blasts), floor
+  flag 44 %; Sprawl 9.2 (stalled 30 %), Cube Isle 23.0, Bowl 24.0 (5.2), Duplex 13.0 (stalled 38 %), Fractured
+  Islands 15.8 (82.2; stalled 42 %), Cragmire 4.5, Vortex 0.2, Treasure Box 24.0 (55.8), Concentric 9.2,
+  ExampleMission 5.8 (60.8; stalled 60 %). KOTM fired SJ 12.25 / SS 11.0 / Mega 3.0 a round (as the long run did by
+  its check 1 from the same start: the use head's rise under the A2 settings, untouched by the hold floor in 2 h).
+* A2 re-measured now with the same harness (11 maps, 4 rounds): new floor test: ten-map 28.8, KOTM 127.2, jump 50 %,
+  floor flag 15 %, Fractured 54.8, Treasure Box 24.2, Cube Isle 13.8, ExampleMission 48.2; OLD floor test
+  (NAV_FLOOR_TEST=vertical, a switch added to nav/obs.py for this): ten-map 30.8, KOTM 125.5, jump 50 %, floor flag
+  14 %, Fractured 74.5, Treasure Box 11.5, Cube Isle 28.8, ExampleMission 67.0. The yesterday reference was 34.4
+  (Treasure Box 55.8). So the 4-round sweeps vary far more between runs than their standard errors (Treasure Box
+  55.8 / 11.5 / 24.2 with the same weights); the floor flag's effect on A2's play is inside that spread (A2 hops,
+  so the flag barely changes: 14-15 %). The check-1 collapse (20.9, ExampleMission 5.8, jumps 7 %) is far outside
+  it: training did it.
+* Mechanism: the range penalty (RANGE_COEF 0.01) moved the jump head alone (detached features) to bring ~half of all
+  outputs from ~19 down to 2.2; the cheapest way for the 64-unit head is to shrink its hidden contributions, which
+  pulls EVERY output toward the final bias (-2.97 - JUMP_DAMP = -3.97), so outputs that were moderately positive
+  (jumps at ledges and gaps) flipped negative: the marble stalled at ledges (first-layer weights changed 26 %, final
+  bias unchanged). Operator's warning ("don't lobotomize the model") applies; my implementation did exactly that.
+* Fix (02:50, within the approved item "restore learning on jumps"): RANGE_COEF 0 (the term is still computed and
+  printed as rng=, informational), and both ceilings are STRAIGHT-THROUGH: forward = the soft ceiling (sampling
+  never above logit(0.90)), backward = identity, so the head gets the plain policy gradient in both directions and
+  only the comparison of hold-off and jump samples moves it. A one-sided variant (pass only lowering gradients) was
+  written and rejected before use: per sample it passes only positive terms, so it lowers every saturated output
+  whatever the evidence. Tests: 72 pass; gradient check (identity) ok.
+* Run real_maps_20261011_st from A2: launched 02:55:32 (launcher 28196, trainer 28204, game loop 30596), starting
+  snapshot SHA ae88f2e70a376fda, resumed 37760, first update 37761 at 02:57:05, 8 games. New floor test, hold floors
+  0.10, straight-through ceilings, no pull-back. An early check (2 rounds on a few maps, jump rate and stalls) at
+  ~03:55, then the 2-h check at ~04:55. The hold run (real_maps_20261011_hold) is ended (STOP in its folder).
+
+### 40.93 Early check of the straight-through run; what follows a powerup use; a hole in the legacy shaping (10-11 03:55-04:25)
+* First policy updates (37781-37795): kl 0.006-0.052 (first), clip 0.07-0.26 (first), no early stop; rng
+  (informational now) 105-156, i.e. raw outputs stay above the ceiling unless the evidence lowers them.
+* Early check (run_mini.sh: 8 maps x 2 rounds, 03:56:20-04:00:51) on mini1_037850.pth (SHA eb71b629380f067f, ~70
+  policy updates): jump % of decisions KOTM 4, Sprawl 62 (A2 tonight 82), Cube Isle 42 (45), Bowl 85 (83), Duplex 48
+  (40), Fractured Islands 28 (32), Treasure Box 58 (82), ExampleMission 17 (27); stalls 4-22 % (normal). No
+  collapse. Points (2 rounds, noisy): KOTM 99.5, Sprawl 24.5, Cube Isle 29.0, Bowl 4.0, Duplex 28.5, Fractured 59.0,
+  Treasure Box 29.5, ExampleMission 31.5. KOTM already fires SS 15.5 and SJ 6.5 a round (the use head's rise again).
+  Resumed 04:01:24 (launcher 5952) at update 37850; full check due ~05:55.
+* What follows a powerup use on KOTM (deterministic sweeps, 3 s after the use vs 3 s windows elsewhere):
+  A2: baseline fall 14 %, 2.07 points; SS (12 uses) fall 58 %, 1.08 points; SJ (9) fall 33 %, 0.33; Mega (2) 100 %.
+  Long-run check 2: baseline 28 %, 1.33; SS (88) fall 80 %, 0.98; SJ (54) 35 %, 0.11; Mega (25) 4 %, 1.84.
+  This run at 1 h: baseline 19 %, 1.65; SS (31) fall 55 %, 1.10; SJ (13) 0 %, 0.00.
+  Super Speed as the model fires it on KOTM roughly doubles to quadruples the chance of a fall within 3 s and halves
+  the points in that time, yet training raises its use: the training signal favours it.
+* A hole in the legacy shaping (nav/recovery.legacy_progress_term, A2's setting): a target switch makes the term 0
+  and re-bases the potential. A fall's lost progress is charged only at the respawn, and only if the target is the
+  same then; when the tour picks another gem after the respawn the loss is never charged while the progress made
+  before the fall was paid. Share of falls followed by a target switch in A2's sweep: 27 % overall (Concentric 9,
+  Cragmire 23, Cube Isle 35, Duplex 26, Fractured 35, KOTM 15, Vortex 34). The exact 'discounted' mode charges target
+  switches; switching modes is a reward change for the operator to decide (the handoff keeps legacy for this run
+  family). Not acted on.
+* Why the use head keeps rising (hypothesis, not acted on): USE_EPS 2 % per decision on a held powerup means it is
+  used at a random moment within ~3 s anyway (and a blast every ~8 s: ~43 a training round). "Not now" never means
+  "never" in training, so the head only learns WHEN among forced uses, and its rising preference shows up in
+  deterministic play as uses where A2 held. Per-pickup exploration (or a much lower floor) would let holding pay.
+  The approved plan kept the existing tries; for the operator.
+
+### 40.94 Check 1 of the straight-through run (block 02:57-05:56 with the early check, 37760 -> 38043)
+* 408 training rounds in the second block, no restart. STOP 05:56:13, weights check1_038040.pth (SHA
+  e6cc48675d3dcab9), sweep 05:56:45-06:05:12 (11 maps x 4 rounds). Against A2 under the same code tonight
+  (a2_newcode): ten-map 28.4 (28.8), KOTM 95.5 (127.2), jump 35 % of decisions (50 %), uses sent 2.3/1000 (0.2;
+  80 % blasts), floor flag 19 % (15 %); Sprawl 20.8 (16.0), Cube Isle 20.5 (13.8), Bowl 8.8 (13.2), Duplex 37.2
+  (21.8), Fractured Islands 66.5 (54.8), Cragmire 5.2 (5.5), Vortex 0.0 (1.0), Treasure Box 25.2 (24.2), Concentric
+  4.8 (10.0), ExampleMission 38.8 (48.2). Mean of the nine maps other than KOTM 21.0 (17.8). Falls a round Duplex
+  8.0 (26.0), Fractured 17.5 (25.8), Cube Isle 28.2 (42.2). KOTM uses SS 8.75, SJ 7.0, Mega 1.75 a round.
+* Reading: the jumps come down without the collapse (50 -> 35 %), falls drop on the jump-heavy maps, the non-KOTM
+  maps are flat to slightly up (inside the between-run spread of these sweeps); KOTM loses 32 to the use head's rise,
+  as in the long run (40.87-40.88). The early check had KOTM 99.5 (2 rounds); counting full checks only, this is the
+  first below 100. Decision: resume unchanged (hold floors stay 0.10: jumps at 35 % are far from done); if check 2
+  (~08:05) has KOTM below 100 with uses rising, stop and report (the handoff's rule).
+* Resumed 06:06:04 (launcher 29484) at update 38040.
+
+### 40.95 Check 2 ends the straight-through run; fall charge, per-pickup tries, A2's use head (10-11 08:05-08:27)
+* Check 2 (block 06:06-08:05, 38040 -> 38227; weights check2_038225.pth, SHA 1c1b4978b47511e4; sweep
+  08:05:52-08:14:53): ten-map 24.4, KOTM 85.0 (uses SJ 17.25, SS 11.75, Mega 4.75 a round), jump 16 % of decisions
+  (35 % at check 1), uses sent 11.5/1000 with 83 % blasts (~27 blasts a round in play), ExampleMission 25.5 (stalled
+  52 %), Cube Isle 40.8, Treasure Box 34.2, Fractured 41.8, Duplex 16.2, Sprawl 12.8, Bowl 3.5, Cragmire 7.2,
+  Concentric 2.2, Vortex 0. The model trades jumps for blasts. KOTM below 100 at two full checks with uses rising:
+  the handoff's stop rule; the run stays stopped (STOP in its folder).
+* Operator (08:0x): "You can charge every fall", then option 1 (per-pickup tries) and 3 (A2's use head on check 1)
+  approved: "You are approved to do that and start training again".
+* Fall charge (nav/vec_worker.py, nav/recovery.py): at a fall the worker keeps the gem it was chasing and that gem's
+  route field; once the marble is back on the floor the legacy term is charged against that gem (-k x the route
+  distance from the respawn point minus the pre-fall potential), whatever target the tour picks after the respawn,
+  then re-bases on the current target. Pickups unchanged (no term on a gem change). recovery.shaping_configuration
+  now records fall_charge: True (legacy, k > 0, NAV_FALL_CHARGE default 1), so a checkpoint trained without it
+  re-warms the critic. GAME lines report fall_charge=<round total>.
+* Per-pickup tries (nav/obs.py VEC_USE_TRY = 44, nav/model.py USE_TRY, nav/vec_worker.py _try_flag): one draw per
+  usable item (a pickup, or a blast charge after the previous blast went off; a held slot blinking to 0 and back to
+  the same type within 2 s is the same item; each item keeps its draw), USE_TRY_P 0.25. TRY items carry the USE_EPS
+  2 % floor as before; all others are the policy's own sampled probability, no floor. The flag sits in vec[44] (the
+  unused second gem ray, always 0) and is masked out of every learned input (core's vec encoder and the direction /
+  Super Speed residual input), read only by the use distribution; checked: with the flag on vs off only the use
+  probability changes (3 seeds), deterministic use identical. Draw share 25.4 % over 2000 synthetic pickups.
+  GAME lines report try_items=<TRY>/<all>.
+* Start weights: models/nav/real_maps_20261011_st/check1_038040_a2use.pth (SHA c67459e9880bc884) = check 1 of the
+  straight-through run (jumps 35 %, best non-KOTM maps of the night) with use_head.* copied from A2 (37760); all
+  other tensors equal to check 1 (verified).
+* Tests: 72 pass. Run real_maps_20261011_pp launched 08:23:00 (launcher 19136, trainer 31240, game loop 34036) with
+  -SourceCheckpoint (above), A2 settings otherwise, hold floors 0.10, straight-through ceilings, slope floor flag.
+  "reward configuration changed or is unknown: reset critic/Adam; 20 critic-only updates" (expected: fall_charge).
+  First update 38041 at 08:24:32, 8 games. First rounds: fall_charge -2.7 to -17.9 a round; try_items 79/283 (28 %);
+  training blasts still 32-53 a round: A2's use head samples ~5 % a decision on its own, which training can now
+  lower where holding pays. Early check ~09:25, full check ~10:25.
+* Training rounds, first hour (3 thirds): points 34.4 / 31.2 / 35.2, falls 17.8 / 19.3 / 24.2, blasts 41.8 / 43.7 /
+  43.1, item uses 5.5 / 6.2 / 5.4, fall charge -9.9 / -14.2 / -15.3 a round, TRY share 0.24-0.25; KOTM training rounds
+  73 / 73 / 81 points with ~20-21 item uses (A2's head samples ~5 % a decision by itself).
+* Early check (mini1_038140.pth, SHA bac428f9411b5862, 8 maps x 2 rounds, 09:26:49-09:31:04): KOTM 100.0 (SS 3.0, SJ
+  0.5 a round; the straight-through run's early check had SS 15.5, SJ 6.5), uses sent 0-2.1/1000 on every map (A2's
+  level), Cube Isle 56.0, Bowl 32.0, Fractured 63.5, ExampleMission 37.0, Sprawl 19.0, Duplex 13.0 (falls 34),
+  Treasure Box 16.5; jumps KOTM 2 %, Sprawl 62 %, Cube Isle 22 %, Bowl 48 %, Duplex 48 %, Fractured 23 %, Treasure
+  Box 45 %, ExampleMission 22 %. Powerup use in play is back under control; KOTM stays ~25 under A2 even without the
+  spam, so check 1's weights lost some KOTM skill beyond the uses (2 rounds: the full check decides).
+* Resumed 09:31:27 (launcher 9552) at 38140, reward configuration compatible (no second critic reset). Full check
+  ~10:30.
+
+### 40.96 Check 1 of the per-pickup run; A2's use head restored and frozen; jump hold floor 0.05 (10-11 10:30-10:45)
+* Check 1 (check1_038225.pth, SHA 463da356820878fb; sweep 10:31:16-10:41:08, 11 maps x 4 rounds): ten-map 26.0, KOTM
+  86.0 (SJ 8.0, SS 7.75, Mega 2.5 a round), jump 26 % of decisions, uses sent 2.7/1000 (78 % blasts); Sprawl 17.5,
+  Cube Isle 42.0, Bowl 11.2, Duplex 28.0, Fractured Islands 38.2 (jumps 19 %), Cragmire 5.5, Vortex 0, Treasure Box
+  23.2, Concentric 8.5, ExampleMission 40.5 (stalled 34 %). Against A2 tonight (28.8-30.8; KOTM 125-127; Fractured
+  55-75; ExampleMission 48-67): KOTM, Fractured and ExampleMission down, Cube Isle up, the rest flat.
+* Training rounds did not use fewer powerups with the per-pickup tries: blasts 42.5-43.2 a round, KOTM item uses
+  ~20 a round (SJ 8-10, SS 8-10, Mega 3-5) in all four half-blocks since 08:25. The policy's own sampled use
+  probability (~5 % a decision from A2's head and rising) still fires an item within seconds, so holding is still
+  never seen at length; the critic cannot value it and the advantage keeps favouring use.
+* Applied (within the approved option 3, "restore A2's powerup decisions ... and optionally slow how fast it
+  learns"): use_head.* copied from A2 into models/nav/real_maps_20261011_pp/nav_latest.pth (38225; the drifted head
+  stays in check1_038225.pth) and frozen for training (nav/train_nav.py FREEZE_USE_HEAD, env NAV_FREEZE_USE_HEAD
+  default 1: requires_grad False, Adam skips it; logged "40.96 FREEZE_USE_HEAD"). Exploration and the critic keep
+  learning uses; deterministic play keeps A2's rare uses. Jump hold floor annealed 0.10 -> 0.05 (JUMP_CAP 2.944) as
+  the plan says once jumps fall (35 -> 26 %), since Fractured and ExampleMission are losing needed jumps.
+* Tests 72 pass. Resumed 10:43:37 (launcher 13340) at 38225, first update 38226 at 10:45:05, 8 games. Next full check
+  ~12:45.
+
+### 40.97 Use damping replaces the frozen use head (prepared 10-11 10:56-11:20, applied at the 12:45 check)
+* Operator asked why per-pickup tries did not cut use, then why falls after Super Speeds do not suppress them. The
+  answer: in training the policy itself fires a held item within ~1 s (A2's head samples ~5-8 % a decision), so "not
+  now" always means "a second later"; both choices end in the same fall, so the fall cannot count against firing
+  (a baseline does not change which action looks better). A timed block (the 30 s idea) only delays the same thing;
+  dropped. What "not now" needs is a low own firing rate, in training and play alike. Operator: "do it".
+* nav/model.py: register_buffer('use_damp') (init from NAV_USE_DAMP, default 0), saved with the weights; a checkpoint
+  without the key loads with 0 (old checkpoints, A2 and the lobby default, behave exactly as before; checked). In
+  heads() the damping is taken off the raw use logit BEFORE the ceilings (x = raw - use_damp; soft ceiling on x > 0),
+  so the sampled maximum stays logit(1 - USE_HOLD_P) and deterministic play fires where raw > use_damp. The
+  informational range term compares raw - use_damp to the cap. nav/train_nav.py: after loading, if NAV_USE_DAMP is set
+  the buffer is filled with it (logged "40.97 use damping"), before act_model copies the weights.
+  prepare_real_maps.ps1: NAV_USE_DAMP 3 (was 0) and NAV_FREEZE_USE_HEAD 0 for the runs it starts; the code default of
+  FREEZE_USE_HEAD stays 1 so a supervisor restart of the 10:45 attempt (old environment) keeps its frozen head.
+* Measured on A2's use head (4096 synthetic states holding a Super Speed): per-decision use probability mean 0.082
+  (hold ~12 decisions, 0.8 s) -> 0.0061 with damping 3 (hold ~165 decisions, ~10.6 s); deterministic fires 0 % of
+  those states either way. Round trip: a model saved with damping 3 reloads with 3. Tests 72 pass.
+* An independent review (workflow review-use-damping: three lenses, each finding put to two skeptics) runs before the
+  switch. It confirmed (11:12): (1, major) load_state_dict computed the missing keys before filling use_damp, so
+  checkpoints without use_head/ss_res (nav_v10_28897.pth, nav_night_30575_137.pth, the obs-width migration) no
+  longer loaded; (2) FREEZE_USE_HEAD default 1 while the damping travels with the weights: a launch outside
+  prepare_real_maps.ps1 would train a frozen head under damping 3; (3) powerup_practice_eval set NAV_USE_DAMP 0, now a
+  no-op, and did not record the damping; (4) a target switch while airborne before the out-of-bounds step skipped the
+  fall charge (phi_prev re-based to None over the void); (5) firing a powerup and picking up the same type within 2 s
+  reused the fired item's TRY draw (the respawn-blink rule caught it). The math lens found act() and evaluate_seq()
+  log-probabilities identical with damping 3 and mixed TRY flags, the flag invisible to every learned layer, and the
+  straight-through ceiling correct.
+* Fixes (11:15-11:25): (1) use_damp filled before the missing-key test (all five checked checkpoints load, damping
+  0); (3) the practice tool keeps the checkpoint's damping and writes it into its manifest; (4) the worker records the
+  gem, route field and potential at the last decision on a route floor (_ground_ref) and charges a fall against that,
+  cleared at round ends, replays, terminal shaping and rescues; (5) the blink rule also needs a respawn within 60
+  decisions (try_respawn_step, set at a fall and an accepted rescue). (2) at the switch: the code default of
+  FREEZE_USE_HEAD becomes 0 once the 10:45 attempt is stopped. Scripted checks: a mid-air switch then fall then
+  respawn 20 u further charges -k x 20 = -1.0 as expected; fire then quick re-pickup = 2 items, respawn blink = 1.
+  Tests 72 pass. A second review of the fixes (workflow rereview-damping-fixes) runs before the switch: both
+  lenses (worker; loader, with real checkpoints loaded) returned no findings (11:27).
+* Check 2 of the frozen-head attempt (block 10:45-12:43, 38225 -> 38409; check2_038405.pth; sweep 12:44-12:54,
+  640 s): ten-map 26.3, KOTM 108.5 (SJ 1.0, SS 1.0 a round), uses sent 0.1/1000, jump 33 %, ExampleMission 55.2,
+  Duplex 37.2, Fractured 44.0, Treasure Box 24.0, Sprawl 13.0, Cube Isle 14.5, Concentric 10.2, Cragmire 7.2, Bowl
+  4.0, Vortex 0.2. Powerup use under control; KOTM back up 22 but still ~17 under A2 tonight.
+* Switch (12:45-12:56): FREEZE_USE_HEAD code default 1 -> 0 once the 10:45 trainer had stopped (review finding 2);
+  tests 72 pass. Resumed 12:54:56 (launcher 13840) from the run's nav_latest (38405, A2's use head): "40.97 use
+  damping 3 (saved with the weights)", no freeze line, prepared.json NAV_USE_DAMP 3 / NAV_FREEZE_USE_HEAD 0; first
+  update 38406 at 12:56:34, 8 games. First 13 training rounds: blasts 21.8 a round (~43 before), item uses 3.4 (~6;
+  KOTM 10-12, ~20 before); the remaining blasts come mostly from the 25 % TRY charges. Early check ~13:55.
+* Throughput dip 12:40-13:12 (operator asked about 188 decisions a second): the trainer's own work slowed (fwd 11-12
+  ms vs 7, w_obs 24-30 vs 14-17), so something competed for the CPU (the 8 game relaunches at the restart and map
+  rotations 13:05-13:12, test runs ~12:45, VS Code git); it began under the old settings and recovered to 223-271 by
+  13:13 (245-260 the next hour). Not the damping.
+* Early check (mini2_038495.pth, 8 maps x 2 rounds, 13:57-14:01): uses sent 0.0/1000 on every map (no deterministic
+  use yet under damping 3), KOTM 109.5 (falls 7.5), Fractured 72.0, Treasure Box 51.0, ExampleMission 51.5, Duplex
+  40.0, Sprawl 10.0, Bowl 3.0, Cube Isle 4.5 (falls 56). Jumps Sprawl 74 %, Bowl 72 %, Treasure Box 63 %, Fractured
+  37 %, ExampleMission 26 %, KOTM 4 %. Training rounds 12:58-13:57: blasts 22.1 -> 26.3 a round, item uses 3.5 ->
+  3.0, KOTM 79 -> 88 points with 10-12 uses. Resumed 14:01:42 (launcher 17188) at 38495 with damping 3; full check
+  ~15:00.
+* Check 3 (check3_038580.pth, 11 maps x 4 rounds, 15:00-15:10): ten-map 30.6 (A2 tonight 28.8 / 30.8), KOTM 109.8
+  (falls 9.5), uses sent 0.0/1000 (SS 0.25 a round on KOTM, nothing elsewhere), jump 43 % (check 2: 33 %, A2: 50 %);
+  Duplex 41.2, Cube Isle 35.2, Fractured 50.8, ExampleMission 49.2 (stalled 19 %), Treasure Box 27.8, Sprawl 20.5,
+  Bowl 13.2, Cragmire 3.8, Concentric 2.2, Vortex 1.0. Training rounds since 12:58 (four half-hours): blasts 22.1,
+  26.3, 32.0, 35.3 a round; item uses 3.5, 3.0, 4.0, 4.7; KOTM uses 10.2, 11.8, 13.2, 14.4: the use head is learning to
+  fire more again in training, not yet past the damping in play. Resumed 15:10:55 (launcher 9588) at 38580; next full
+  check ~17:10.
+* Training-time use, 12:58-15:00 (operator asked whether uses are frequent enough to learn from): confirmed fires per
+  hour SJ ~260, SS ~260, Mega ~190, Heli ~60, blasts ~5600; KOTM ~12 item fires a round (~270 an hour); 25 % of
+  usable items drawn as TRY (3252 / 13177). Plenty of samples; the direction of learning is the issue.
+* Check 4 (check4_038770.pth, 17:09-17:20): ten-map 33.9 (the day's best; A2 tonight 28.8 / 30.8), KOTM 100.8 (SS
+  9.0, SJ 6.0, Mega 2.75 a round), uses sent 12.8/1000 (87 % blasts, ~30 blasts a round in play), jump 30 %; Treasure
+  Box 54.0, Fractured 62.0, Duplex 39.8, Sprawl 23.0, Cube Isle 24.0, Bowl 19.0, ExampleMission 39.0, Cragmire 8.2,
+  Concentric 6.8, Vortex 1.0. Training rounds 15:13-17:09: blasts 40.6-43.7 a round (back to the pre-damping level),
+  item fires 4.1-4.6, KOTM fires 12-16. The use head has learned past the damping within ~4 h: the damping delayed
+  the rise, it did not stop it. Resumed 17:20:10 (launcher 27252) at 38770.
+* Check 5 (19:18-19:29): ten-map 34.0, KOTM 102.8 (SS 11.25, SJ 7.5, Mega 4.75 a round), uses sent 17.3/1000 (87 %
+  blasts), jump 41 %; Sprawl 36.8, Cube Isle 48.5, Cragmire 18.0, ExampleMission 50.2, Treasure Box 40.8, Fractured
+  46.0, Duplex 32.8, Concentric 7.2, Bowl 6.2, Vortex 0.8. Training rounds 17:22-19:18: blasts 43-45 a round, item
+  fires 3.9-4.8, KOTM 13-17. A plateau at ~34 with uses back; KOTM steady just above 100. Resumed 19:29:03 (launcher
+  25296).
+* STOPPED 19:41:45 on the operator's word ("stop training for now"): supervisor ended 19:41:46, no games, only the
+  dashboard (33732) running; last update 38978, nav_latest 38975. STOP stays in logs/nav/real_maps_20261011_pp;
+  logs kept as attempt7_*.txt under %TEMP%\pq_checks\real_maps_20261011_pp. Best save of the day by the sweeps:
+  models/nav/real_maps_20261011_pp/check5_038960.pth (ten-map 34.0, KOTM 102.8, ExampleMission 50.2); not promoted.
+  A2 (37760) remains the registered best and the best KOTM (125-127 tonight).
+* Not acted on (not in the approved plan): a planner rule for slopes that drain into an out-of-bounds edge (Vortex),
+  and anything that changes which gem is chased after repeated failures (the operator rejects calling a gem
+  unreachable: the model must learn to get there). Kept for the morning report with this evidence.

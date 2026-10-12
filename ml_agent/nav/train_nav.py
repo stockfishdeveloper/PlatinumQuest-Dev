@@ -26,15 +26,22 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from nav.env import TRAINING_MODE, OBS_MS                                          # noqa: E402
 from nav.obs import NAV_OBS_VERSION                                                # noqa: E402
 from nav.model import NavActorCritic, HIDDEN, DIR_GOAL_GAIN, FREEZE_BASE, SS_LR_MULT   # noqa: E402
+FREEZE_USE_HEAD = os.environ.get('NAV_FREEZE_USE_HEAD', '0') == '1'   # 40.96: the use head keeps its loaded weights
+                            # (default 1 -> 0 at 12:45 on 10-11, log 40.97: the use damping replaces the freeze; review
+                            # finding: a damped checkpoint must not train a frozen head when launched another way)
 from nav.waypoints import (ARRIVE_MIN_SEGMENTS, ARRIVE_TIGHTEN_AT, ARRIVE_STEP,     # noqa: E402
                            ARRIVE_R_FINAL, ARRIVE_DZ_FINAL)
 from nav.ppo_recurrent import Rollout, ppo_update, LR, GAMMA                       # noqa: E402
 from nav.replay import REWARD_VERSION
+from nav.recovery import shaping_configuration
 
 
 def prepare_points_critic(model, checkpoint):
-    """Old shaped-value estimates and Adam moments must not price point-only returns."""
-    if checkpoint and checkpoint.get('reward_version') == REWARD_VERSION:
+    """Warm the critic when reward settings change; preserve the actor weights."""
+    config = shaping_configuration(GAMMA)
+    stored = checkpoint.get('reward_configuration') if checkpoint else None
+    compatible = (stored == config or (stored is None and config['mode'] == 'off'))
+    if checkpoint and checkpoint.get('reward_version') == REWARD_VERSION and compatible:
         model.critic_warmup_remaining = int(checkpoint.get('critic_warmup_remaining', 0))
         return False
     with torch.no_grad():
@@ -69,7 +76,7 @@ PIPELINE_GROUPS = 2 if N_INSTANCES > 1 else 1   # workers are stepped in this ma
 CHECKPOINT_EVERY = 25          # numbered checkpoint every N updates
 LATEST_EVERY = 5               # nav_latest.pth (the resume point) every N updates
 LOG_EVERY_SEGMENTS = 100
-SEED = 1
+SEED = int(os.environ.get('NAV_SEED', '1'))
 HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 LOG_DIR = os.path.abspath(os.environ.get('NAV_LOG_DIR', os.path.join(HERE, 'logs', 'nav')))
 CKPT_DIR = os.path.abspath(os.environ.get('NAV_OUTPUT_DIR', os.path.join(HERE, 'models', 'nav')))
@@ -93,7 +100,16 @@ def save_ckpt(model, opt, update, steps, stats, mission, numbered=True, arrive_r
     d = {'model': model.state_dict(), 'opt': opt.state_dict(), 'update': update, 'steps': steps,
          'obs_version': NAV_OBS_VERSION, 'stats': stats, 'mission': mission, 'saved': datetime.now().isoformat(),
          'arrive_r': arrive_r, 'arrive_dz': arrive_dz}
-    d.update(reward_version=REWARD_VERSION, critic_warmup_remaining=model.critic_warmup_remaining)
+    d.update(reward_version=REWARD_VERSION, reward_configuration=shaping_configuration(GAMMA),
+             critic_warmup_remaining=model.critic_warmup_remaining)
+    d['practice_configuration'] = {
+        'plan': os.environ.get('NAV_DRILL_PLAN', 'none'),
+        'mode': os.environ.get('NAV_PRACTICE_MODE', 'judgment'),
+        'mission': os.environ.get('NAV_PRACTICE_MISSION', ''),
+        'starts': os.environ.get('NAV_DRILL4_STARTS', ''),
+        'use_exploration_floor': float(os.environ.get('NAV_USE_EPS', '.02')),
+        'reset_activation_in_rollout': False,
+    }
     latest = os.path.join(CKPT_DIR, 'nav_latest.pth')
     _save_atomic(d, latest)
     if not numbered:
@@ -197,6 +213,21 @@ def main():
     act_model = NavActorCritic().to(cdev); act_model.eval()
     update, steps = 0, 0
     latest = os.environ.get('NAV_CKPT', os.path.join(CKPT_DIR, 'nav_latest.pth'))
+    # 2026-10-10 02:30: an INTERNAL restart (the loop in __main__) must continue from the run's own latest save, not from
+    # NAV_CKPT (the starting checkpoint). Block B of Phase R restarted five times on worker failures and each time went
+    # back to update 37575: two hours of training yielded 65 updates, all from the last 45 minutes. The supervisor only
+    # switched NAV_CKPT at ITS restarts, never inside this loop. Rule: whichever of NAV_CKPT and CKPT_DIR/nav_latest.pth
+    # is further along is the resume point.
+    run_latest = os.path.join(CKPT_DIR, 'nav_latest.pth')
+    if RESUME and os.path.abspath(run_latest) != os.path.abspath(latest) and os.path.exists(run_latest) and os.path.exists(latest):
+        try:
+            u_run = torch.load(run_latest, map_location='cpu').get('update', -1)
+            u_env = torch.load(latest, map_location='cpu').get('update', -1)
+            if u_run >= u_env:
+                print(f'resume point: {run_latest} (update {u_run}) is further along than {latest} (update {u_env})', flush=True)
+                latest = run_latest
+        except Exception as e:
+            print(f'resume point check failed ({e}); using {latest}', flush=True)
     ck = None
     if RESUME and os.path.exists(latest):
         ck = torch.load(latest, map_location=dev)
@@ -217,8 +248,9 @@ def main():
     else:
         log(f'fresh model ({sum(p.numel() for p in model.parameters()):,} params), obs {NAV_OBS_VERSION}, device {dev}')
     reward_changed = prepare_points_critic(model, ck)
+    log(f'reward configuration: {shaping_configuration(GAMMA)}')
     if reward_changed:
-        log(f'reward changed to {REWARD_VERSION}: reset critic/Adam; {model.critic_warmup_remaining} critic-only updates')
+        log(f'reward configuration changed or is unknown: reset critic/Adam; {model.critic_warmup_remaining} critic-only updates')
         opt = torch.optim.Adam(model.parameters(), lr=LR, eps=1e-5)
     if FREEZE_BASE:
         # 40.33: the critic's head at LR, the Super Speed parts (use head, residual) at LR x SS_LR_MULT in their own group
@@ -234,6 +266,18 @@ def main():
                 how = f'fresh Adam state ({e})'
         log(f'40.33 FREEZE_BASE: {n_tr:,} trainable parameters (value_head at LR {LR:g}; use_head, ss_res at {LR * SS_LR_MULT:g}); '
             f'the navigator is frozen; {how}')
+    if FREEZE_USE_HEAD:
+        # 2026-10-11 (operator approved option 3, "restore A2's powerup decisions ... and optionally slow how fast it
+        # learns"; log 40.96): the use head keeps its weights (A2's); Adam skips parameters without a gradient. Training
+        # still samples uses (exploration) and the critic still learns their value; deterministic play uses as A2 did.
+        for p in model.use_head.parameters():
+            p.requires_grad_(False)
+        log('40.96 FREEZE_USE_HEAD: the use head is frozen (deterministic powerup decisions stay as loaded)')
+    if 'NAV_USE_DAMP' in os.environ:
+        # 40.97: the run's damping goes into the model (and every checkpoint it saves), whatever the start checkpoint had
+        with torch.no_grad():
+            model.use_damp.fill_(float(os.environ['NAV_USE_DAMP']))
+    log(f'40.97 use damping {float(model.use_damp):g} (saved with the weights)')
     act_model.load_state_dict(model.state_dict())
     arrive = {'r': 1.5, 'dz': 2.0}
     if ck is not None:
@@ -420,7 +464,7 @@ def main():
                 log(f'DIRGAIN effective goal-bearing norm {dg:.2f} (gain {DIR_GOAL_GAIN:g})') if update % 20 == 0 else None
                 log(f'NAV upd={update} map={"+".join(missions)} r={arrive["r"]:.2f} steps={steps:,} segs={seg_total} arrive={s["arrive_pct"]:.0f}% '
                     f'falls100={s["falls_per_100u"]:.2f} speed={s["speed"]:.1f} gems={s["gems_per_group"]:.1f} pickup={s["pickup_speed"]:.1f} sgem={s["s_per_gem"]:.2f} carry={s["carry_speed"]:.1f} turn={s["turn_deg"]:.1f} rew={np.mean(recent_rewards) if recent_rewards else 0:.1f} '
-                    f'pl={st.get("pl", 0):.3f} vl={st.get("vl", 0):.3f} ent={st.get("ent", 0):.2f} entd={st.get("ent_d", 0):.2f} ec={st.get("ent_coef", 0):.4f} kl={st.get("kl", 0):.3f} '
+                    f'pl={st.get("pl", 0):.3f} vl={st.get("vl", 0):.3f} ent={st.get("ent", 0):.2f} entd={st.get("ent_d", 0):.2f} ec={st.get("ent_coef", 0):.4f} kl={st.get("kl", 0):.3f} rng={st.get("rng", 0):.3f} '
                     f'clip={st.get("clipfrac", 0):.2f} gn={st.get("gn", 0):.2f} ep={st.get("epochs", 0)} '
                     f'dstd={model.log_std.clamp(model.LOG_STD_MIN, model.LOG_STD_MAX).exp().item():.2f} flips={flips} vcont={v_cont or 0.0:.1f} '
                     f'upd_s={time.perf_counter() - t0:.1f} wall_s={wall:.0f} inst={len(workers)} dps={(steps - steps_last) / max(wall, 1e-6):.0f} '

@@ -44,9 +44,10 @@ RESUME_RE = re.compile(r'resumed .*: update (\d+)')
 # dropped (None) before it reaches any chart, gauge or table, so one absurd log value (e.g. a 0.02 s
 # 'seconds between pickups' right after a restart) cannot wreck the axis. Optimiser diagnostics
 # (gn, kl, pl, vl) are deliberately NOT gated: their spikes are the signal.
-SANE = {'sgem': (0.8, 30.0), 'pickup': (0.5, 25.0), 'speed': (0.0, 25.0),   # speed floor 1.0 -> 0.0 (10-08 22:45): the cluster maps pool at 0.5-0.7 and every card went blank 'falls100': (0.0, 50.0), 'gems': (0.0, 200.0),
+SANE = {'sgem': (0.8, 30.0), 'pickup': (0.5, 25.0), 'speed': (0.0, 25.0),
+        'falls100': (0.0, 50.0), 'gems': (0.0, 10000.0),
         'arrive': (0.0, 100.0), 'ent': (0.0, 5.0), 'dstd': (0.0, 3.0), 'clip': (0.0, 1.0), 'wall_s': (0.0, 600.0),
-        'upd_s': (0.0, 600.0), 'dps': (0.0, 5000.0), 'rew': (-1e5, 1e5), 'r': (-10.0, 10.0), 'points': (0.0, 200.0)}
+        'upd_s': (0.0, 600.0), 'dps': (0.0, 5000.0), 'rew': (-1e5, 1e5), 'r': (-10.0, 10.0), 'points': (0.0, 10000.0)}
 
 
 WARMUP_SEGS = 20       # pooled segment stats from fewer segments than this (right after a restart) are noise
@@ -143,8 +144,9 @@ def parse_logs():
             m = GAME_RE.search(line)
             if m:
                 pts = sane('points', float(m.group(4)))
-                if pts is not None and int(m.group(5)) <= 190:     # 130 until 10-02: it hid a clean 167-point, 136-gem round
-                    games.append((last_update, int(m.group(2)), m.group(3), pts, int(m.group(5)), int(m.group(6)), m.group(1), parse_pow(m.group(7))))
+                if pts is not None:
+                    recovery = {k: float(v) for k, v in KV_RE.findall(line) if k in ('rescues', 'rescue_attempts', 'stalled_s', 'escape_uses', 'powerup_escapes', 'failed_escape_uses', 'group_completions')}
+                    games.append((last_update, int(m.group(2)), m.group(3), pts, int(m.group(5)), int(m.group(6)), m.group(1), parse_pow(m.group(7)), recovery))
                 continue
             m = MAP_RE.search(line)
             if m:
@@ -272,8 +274,8 @@ def build_state():
                 'best_speed': g('speed', max), 'r': us[-1]['r'], 'sgem': None, 'best_sgem': None,
             }
     latest = updates[-1] if updates else None
-    ckpts = sorted(glob.glob(os.path.join(CKPT_DIR, 'nav_*.pth')), key=os.path.getmtime)
-    latest_ckpt = os.path.basename(ckpts[-1]) if ckpts else '--'
+    ckpts = sorted(glob.glob(os.path.join(CKPT_DIR, '**', 'nav_*.pth'), recursive=True), key=os.path.getmtime)
+    latest_ckpt = os.path.relpath(ckpts[-1], CKPT_DIR) if ckpts else '--'
     latest_ckpt_time = datetime.fromtimestamp(os.path.getmtime(ckpts[-1])).strftime('%H:%M:%S') if ckpts else '--'
     stdout = os.path.join(LOG_DIR, 'stdout.txt')
     alive = os.path.exists(stdout) and (time.time() - os.path.getmtime(stdout)) < 120
@@ -289,7 +291,7 @@ def build_state():
                                                              'ent', 'kl', 'clip', 'gn', 'dstd', 'wall_s', 'steps', 'ep', 'sgem', 'pickup')},
         'pm': pm, 'human_sgem': HUMAN_S_PER_GEM, 'evals': eval_series(), 'human_points': HUMAN_POINTS,
         'jumps': _jumps_by_update(updates),
-        'games': [{'update': g[0], 'inst': g[1], 'map': g[2], 'points': g[3], 'gems': g[4], 'falls': g[5], 'time': g[6], 'pow': g[7]} for g in games[-RECENT_GAMES:]],
+        'games': [{'update': g[0], 'inst': g[1], 'map': g[2], 'points': g[3], 'gems': g[4], 'falls': g[5], 'time': g[6], 'pow': g[7], 'recovery': g[8]} for g in games[-RECENT_GAMES:]],
         'pow_labels': POW_LABELS,
     }
 
@@ -435,6 +437,7 @@ td.num { text-align:right; font-variant-numeric:tabular-nums; }
 <div id="charts">
   <div class="chart-card"><div class="chart-title">SECONDS BETWEEN PICKUPS, selected map (pickup-to-pickup inside a group; lower is better; dashed = human 1.57 s on KOTM)</div><div id="c-sgem" style="height:230px"></div></div>
   <div class="chart-card"><div class="chart-title" id="pts-title">POINTS PER TRAINING GAME, selected map (one bar per finished round in order, real score from the game; dashed = human; sampled policy, no stuck-breaker)</div><div id="c-points" style="height:230px"></div></div>
+  <div class="chart-card"><div class="chart-title">RECOVERY, selected map: rescues, progress after escape-powerup use, and stalled seconds</div><div id="c-recovery" style="height:230px"></div></div>
   <div class="chart-card"><div class="chart-title">POWERUP FIRES PER TRAINING GAME, selected map (stacked by type: a held powerup that went off, and blasts of the meter; line = 10-game mean of all fires)</div><div id="c-pow1" style="height:230px"></div></div>
   <div class="chart-card"><div class="chart-title">POWERUP USE LEARNING, selected map (10-game means: points of games with at least one fire vs games without; use decisions sent per game, dotted)</div><div id="c-pow2" style="height:230px"></div></div>
   <div class="chart-card"><div class="chart-title">APPROVED TAKEOFFS (KOTM instances, from the training trace): per instance-minute (bars) and how many of them landed the crossing (line, %); bucket = 25 updates</div><div id="c-jump1" style="height:230px"></div></div>
@@ -550,7 +553,7 @@ function update(st) {
   document.getElementById('g-sgem-sub').textContent = 'human 1.57 s (KOTM)' + ((pmSel && pmSel.best_sgem) ? ' | best ' + fmt(pmSel.best_sgem) : '');
   {
     const bmap = SEL === 'ALL' ? 'KingOfTheMarble_Hunt' : SEL;
-    const all = (st.games || []).filter(g => g.map === bmap && g.gems <= 190);
+    const all = (st.games || []).filter(g => g.map === bmap);
     const best = all.length ? all.reduce((a, b) => (b.points > a.points ? b : a)) : null;
     document.getElementById('g-best-label').textContent = 'Best points per game (' + bmap.replace('_Hunt', '') + ')';
     document.getElementById('g-best').textContent = best ? best.points.toFixed(0) : '--';
@@ -576,9 +579,8 @@ function update(st) {
   }
   {
     const emap = SEL === 'ALL' ? 'KingOfTheMarble_Hunt' : SEL;
-    // one round cannot hold more than ~130 gems: larger entries are two rounds merged by a worker
-    // that crossed a round end mid-respawn (fixed in vec_worker 17:00; older workers may still emit them)
-    const gs = (st.games || []).filter(g => g.map === emap && g.update >= LO && g.gems <= 130);
+    // Map durations and gem values differ; keep complete rounds above KOTM's old range.
+    const gs = (st.games || []).filter(g => g.map === emap && g.update >= LO);
     const x = gs.map((g, i) => i + 1), y = gs.map(g => g.points);
     let bi = -1; y.forEach((v, i) => { if (bi < 0 || v > y[bi]) bi = i; });
     const cols = y.map((v, i) => (i === bi ? '#3fb950' : '#f0883e'));
@@ -591,10 +593,18 @@ function update(st) {
     const hp = (st.human_points || {})[emap];
     if (hp && x.length) tr.push({x:[Math.min(...x), Math.max(...x)], y:[hp, hp], type:'scatter', mode:'lines', line:{dash:'dash', color:'#e6edf3', width:1}, name:'human'});
     Plotly.react('c-points', tr, darkLayout(Object.assign({yaxis:{title:'points', gridcolor:'#21262d', color:'#7d8590'}, xaxis:{title:'training game (in order)', gridcolor:'#21262d', color:'#7d8590'}, bargap:0.15}, legend)), cfg);
+    const recoveryGames = gs.filter(g => g.recovery && g.recovery.stalled_s !== undefined);
+    const rx = recoveryGames.map((g, i) => i + 1);
+    const recoveryTraces = [
+      {x:rx, y:recoveryGames.map(g => g.recovery.rescues || 0), name:'rescues', type:'scatter', mode:'lines+markers'},
+      {x:rx, y:recoveryGames.map(g => g.recovery.powerup_escapes || 0), name:'progress after powerup', type:'scatter', mode:'lines+markers'},
+      {x:rx, y:recoveryGames.map(g => g.recovery.stalled_s || 0), name:'stalled seconds', type:'scatter', mode:'lines', yaxis:'y2'}
+    ];
+    Plotly.react('c-recovery', recoveryTraces, darkLayout(Object.assign({yaxis:{title:'events / game', rangemode:'tozero'}, yaxis2:{title:'seconds', overlaying:'y', side:'right', rangemode:'tozero'}, xaxis:{title:'training game'}}, legend)), cfg);
   }
   {
     const emap = SEL === 'ALL' ? 'KingOfTheMarble_Hunt' : SEL;
-    const gs = (st.games || []).filter(g => g.map === emap && g.update >= LO && g.gems <= 130 && g.pow);
+    const gs = (st.games || []).filter(g => g.map === emap && g.update >= LO && g.pow);
     const x = gs.map((g, i) => i + 1);
     const labels = st.pow_labels || {};
     const colors = {f1:'#3fb950', f2:'#58a6ff', f3:'#f0c040', f4:'#bc8cff', f5:'#39d2c0', f6:'#f0883e', blast:'#f85149'};

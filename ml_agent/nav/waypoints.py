@@ -507,30 +507,30 @@ class SegmentManager:
     def begin_replay(self, pos, goal, next_goal):
         """Use the restored game's target without a teleport, synthetic gems, or a settling step."""
         x, y, z = map(float, pos)
-        field = self.terrain.goal_field(goal[0], goal[1])
+        field = self.terrain.goal_field(goal[0], goal[1], z=goal[2])
         self.seg = Segment(tuple(goal), field, 0.0, (x, y, z))
-        self.seg.prev_d = self.terrain.dist_at(field, x, y, goal[:2])
+        self.seg.prev_d = self.terrain.dist_at(field, x, y, goal[:2], z=z)
         self.seg.path_len = self.seg.prev_d
         self.seg.last_pos = np.asarray(pos, dtype=float)
         self.seg.chain_from_prev = True
         self._prev_cmd = None
-        self.set_next(x, y, next_goal)
+        self.set_next(x, y, next_goal, z=z)
 
-    def retarget(self, x, y, goal, next_goal):
+    def retarget(self, x, y, goal, next_goal, z=None):
         """Real-gem mode: the chooser switched target (a pickup or a better gem). Rebase on the new gem."""
         s = self.seg
         gx, gy, gz = goal
         s.goal = (gx, gy, gz)
-        s.field = self.terrain.goal_field(gx, gy)
-        s.prev_d = self.terrain.dist_at(s.field, x, y, (gx, gy)); s.path_len = s.prev_d
+        s.field = self.terrain.goal_field(gx, gy, z=gz)
+        s.prev_d = self.terrain.dist_at(s.field, x, y, (gx, gy), z=z); s.path_len = s.prev_d
         s.fall_mark = None
-        self.set_next(x, y, next_goal)
+        self.set_next(x, y, next_goal, z=z)
         self.pending_mark = (gx, gy, gz)
 
-    def set_next(self, x, y, next_goal):
+    def set_next(self, x, y, next_goal, z=None):
         s = self.seg
         s.real_next = (float(next_goal[0]), float(next_goal[1]), float(next_goal[2])) if next_goal is not None else None
-        self._set_next_field(x, y)
+        self._set_next_field(x, y, z=z)
 
     def take_respawn(self):
         r = self.pending_respawn; self.pending_respawn = False
@@ -570,18 +570,18 @@ class SegmentManager:
         self._settle(env)
         x, y, z = (float(v) for v in env.pos())
         gx, gy, _ = s.goal
-        s.prev_d = self.terrain.dist_at(s.field, x, y, (gx, gy))   # field is from the goal: still valid
+        s.prev_d = self.terrain.dist_at(s.field, x, y, (gx, gy), z=z)   # field is from the goal: still valid
         s.last_pos = np.array([x, y, z])
         s.offmap = 0
 
-    def _set_next_field(self, x, y):
+    def _set_next_field(self, x, y, z=None):
         """(Re)build the next gem's Dijkstra field and prime its distance, for PROGRESS_NEXT."""
         s = self.seg; ng = self.next_goal()
         if ng is None:
             s.next_field = None; s.prev_dn = None
             return
-        s.next_field = self.terrain.goal_field(ng[0], ng[1])
-        s.prev_dn = self.terrain.dist_at(s.next_field, x, y, (ng[0], ng[1]))
+        s.next_field = self.terrain.goal_field(ng[0], ng[1], z=ng[2])
+        s.prev_dn = self.terrain.dist_at(s.next_field, x, y, (ng[0], ng[1]), z=z)
 
     def next_goal(self):
         """The gem the greedy order will hand over after the current one, or None on the last gem.
@@ -618,18 +618,18 @@ class SegmentManager:
             group.append(g); px, py, pz = g[0], g[1], g[2]
         return group
 
-    def _advance_goal(self, x, y):
+    def _advance_goal(self, x, y, z=None):
         """Pick the nearest remaining gem (greedy stand-in for the planner) and retarget onto it.
         Recomputes the Dijkstra field and resets prev_d so the goal switch awards no progress."""
         s = self.seg
         i = int(np.argmin([math.hypot(g[0] - x, g[1] - y) for g in s.remaining]))
         gx, gy, gz, path_len = s.remaining.pop(i)
         s.goal = (gx, gy, gz); s.path_len = path_len
-        s.field = self.terrain.goal_field(gx, gy)
-        s.prev_d = self.terrain.dist_at(s.field, x, y, (gx, gy))
+        s.field = self.terrain.goal_field(gx, gy, z=gz)
+        s.prev_d = self.terrain.dist_at(s.field, x, y, (gx, gy), z=z)
         s.fall_mark = None                        # new goal, new field: the mark no longer applies
         s.grace = PICKUP_GRACE                    # the arc out of this pickup is not charged as loss
-        self._set_next_field(x, y)
+        self._set_next_field(x, y, z=z)
         self.pending_mark = (gx, gy, gz)
 
     def maybe_tighten(self):
@@ -693,7 +693,7 @@ class SegmentManager:
             if do_tp or attempt > 0:
                 self._settle(env)
             x, y, z = (float(v) for v in env.pos())
-            g = [(float(real_goal[0]), float(real_goal[1]), float(real_goal[2]), 0.0)] if real_goal is not None else self._sample_group(x, y)
+            g = [(float(real_goal[0]), float(real_goal[1]), float(real_goal[2]), 0.0)] if real_goal is not None else self._sample_group(x, y, z=z)
             if g is not None:
                 break
             self.log(f'no reachable goal from {(round(x, 1), round(y, 1), round(z, 1))}; teleporting')
@@ -704,15 +704,15 @@ class SegmentManager:
         dt = time.perf_counter() - t_begin
         if dt > 5.0:
             self.log(f'segment start took {dt:.0f} s wall / {env.ticks - ticks_begin} ticks (teleport {do_tp}, waited {waited})')
-        field = self.terrain.goal_field(gx, gy)
+        field = self.terrain.goal_field(gx, gy, z=gz)
         self.seg = Segment((gx, gy, gz), field, path_len, (x, y, z), remaining=g[1:])
         self._prev_cmd = None      # a teleport makes the previous heading meaningless
-        self.seg.prev_d = self.terrain.dist_at(field, x, y, (gx, gy))
+        self.seg.prev_d = self.terrain.dist_at(field, x, y, (gx, gy), z=z)
         self.seg.last_pos = np.array([x, y, z])
         if real_goal is not None:
             self.seg.path_len = self.seg.prev_d; self.seg.chain_from_prev = True
             self.seg.real_next = (float(real_next[0]), float(real_next[1]), float(real_next[2])) if real_next is not None else None
-        self._set_next_field(x, y)
+        self._set_next_field(x, y, z=z)
         return self.seg.goal
 
     def begin_drill(self, env, state, goals):
@@ -739,13 +739,13 @@ class SegmentManager:
         if math.hypot(x - x0, y - y0) > 2.0:
             return None
         gl = [(float(g[0]), float(g[1]), float(g[2]), 0.0) for g in goals]
-        field = self.terrain.goal_field(gl[0][0], gl[0][1])
+        field = self.terrain.goal_field(gl[0][0], gl[0][1], z=gl[0][2])
         self.seg = Segment(gl[0][:3], field, 0.0, (x, y, z), remaining=gl[1:])
         self._prev_cmd = None
-        self.seg.prev_d = self.terrain.dist_at(field, x, y, (gl[0][0], gl[0][1])); self.seg.path_len = self.seg.prev_d
+        self.seg.prev_d = self.terrain.dist_at(field, x, y, (gl[0][0], gl[0][1]), z=z); self.seg.path_len = self.seg.prev_d
         self.seg.last_pos = np.array([x, y, z])
         self.seg.chain_from_prev = True           # pickups are timed from the drill start
-        self._set_next_field(x, y)
+        self._set_next_field(x, y, z=z)
         env.mark(gl[0][0], gl[0][1], gl[0][2])
         return self.seg.goal
 
@@ -828,10 +828,10 @@ class SegmentManager:
         prev_pos = s.last_pos                     # 40.28: the path since the last decision, for the continuous arrival
         s.last_pos = p
         d_before = s.prev_d                       # last known distance, for the fall mark below
-        d = self.terrain.dist_at(s.field, x, y, (gx, gy))
+        d = self.terrain.dist_at(s.field, x, y, (gx, gy), z=z)
         # AIRBORNE HOLD (28.29): over the void the field has no value; keep the takeoff distance and settle
         # the whole flight on the decision the marble is back over walkable floor.
-        in_air_gap = airborne and not self.terrain.walkable_at(x, y)
+        in_air_gap = airborne and not self.terrain.walkable_at(x, y, z=z)
         landing_clip = PROGRESS_CLIP
         if in_air_gap:
             d = s.prev_d if s.prev_d is not None else d
@@ -881,7 +881,7 @@ class SegmentManager:
         if PROGRESS_NEXT > 0.0 and s.next_field is not None and s.fall_mark is None:
             ng = self.next_goal()
             if ng is not None:
-                dn = self.terrain.dist_at(s.next_field, x, y, (ng[0], ng[1]))
+                dn = self.terrain.dist_at(s.next_field, x, y, (ng[0], ng[1]), z=z)
                 if in_air_gap and s.prev_dn is not None:
                     dn = s.prev_dn                          # same hold for the next-gem term
                 if s.prev_dn is not None and np.isfinite(dn) and np.isfinite(s.prev_dn):
@@ -911,7 +911,7 @@ class SegmentManager:
             s.offmap += 1
         else:
             s.offmap = 0
-        if not fell and s.offmap >= OFFMAP_FALL_DECISIONS:
+        if not self.real_mode and not fell and s.offmap >= OFFMAP_FALL_DECISIONS:
             fell = True
             self.log(f'fall without OOB flag: {s.offmap} decisions off the map at {np.round(p, 1)} (time left {self._elapsed:.0f}s)')
         if fell:
@@ -940,7 +940,7 @@ class SegmentManager:
                 s.grace = PICKUP_GRACE               # the worker retargets onto the game's next gem next decision
             elif s.remaining:
                 # keep going: no teleport, no reset, momentum carries into the next gem
-                self._advance_goal(x, y)
+                self._advance_goal(x, y, z=z)
                 # ...and pay for the part of that momentum already aimed at the new gem. Computed
                 # AFTER the retarget so it uses the gem actually chosen, not the one just taken.
                 nx, ny = s.goal[0] - x, s.goal[1] - y
@@ -1006,18 +1006,18 @@ class SegmentManager:
         game does it. Records the finished group, rebases the live Segment and returns True; False if no
         group can be placed (the caller then ends the segment as before)."""
         s = self.seg
-        g = self._sample_group(x, y, dmin=SPAWN_BLOCK_U, dmax=2.0 * SPAWN_BLOCK_U)
+        g = self._sample_group(x, y, dmin=SPAWN_BLOCK_U, dmax=2.0 * SPAWN_BLOCK_U, z=z)
         if not g:
             return False
         self._record(s, 'arrived')
         gx, gy, gz, path_len = g[0]
         s.goal = (gx, gy, gz); s.path_len = path_len; s.remaining = list(g[1:])
-        s.field = self.terrain.goal_field(gx, gy); s.prev_d = self.terrain.dist_at(s.field, x, y, (gx, gy))
+        s.field = self.terrain.goal_field(gx, gy, z=gz); s.prev_d = self.terrain.dist_at(s.field, x, y, (gx, gy), z=z)
         s.start = (x, y, z); s.decisions = 0; s.travelled = 0.0; s.collected = 0; s.group_size = len(g)
         s.falls = 0; s.fall_mark = None; s.offmap = 0; s.grace = PICKUP_GRACE
         s.pickup_speeds = []; s.carry_vals = []; s.turn_degs = []; s.chain_dec = 0; s.chain_n = 0
         s.chain_from_prev = True
-        self._set_next_field(x, y)
+        self._set_next_field(x, y, z=z)
         self.pending_mark = (gx, gy, gz)
         return True
 

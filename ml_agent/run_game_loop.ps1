@@ -9,9 +9,9 @@
 # Start the trainer first: python -m nav.train_nav keeps its networks, optimizer and counters in
 # memory across game disconnects, so a relaunched instance simply resumes on its port.
 #
-#   .\run_game_loop.ps1                                             # 16 instances, all FlatIslands_Hunt
-#   .\run_game_loop.ps1 -Mission "FlatIslands_Hunt,KingOfTheMarble_Hunt" -Split "8,8"
-#                                                                   # instances 0-7 islands, 8-15 KOTM (a map mix,
+#   .\run_game_loop.ps1                                             # 8 instances, all FlatIslands_Hunt
+#   .\run_game_loop.ps1 -Mission "FlatIslands_Hunt,KingOfTheMarble_Hunt" -Split "4,4"
+#                                                                   # instances 0-3 islands, 4-7 KOTM (a map mix,
 #                                                                   #  every update sees both maps; no forgetting)
 #   .\run_game_loop.ps1 -Mission "A,B,C"                            # no -Split: round-robin A,B,C,A,B,C,...
 #   .\run_game_loop.ps1 -Instances 1 -Exe marbleblast.exe           # the shipped exe (one instance only: its mutex)
@@ -32,9 +32,18 @@ param(
     [double]$RestartEveryHours = 0,                # relaunch every instance this often (0 = only when one exits)
     [int]$Instances = 8,                           # must match N_INSTANCES in nav/train_nav.py
     [string]$Exe = "marbleblast_mbx.exe",          # built engine; marbleblast.exe = the shipped one
-    [int]$Port0 = 8888
+    [int]$Port0 = 8888,
+    [int]$Competitive = 0,
+    [int]$RotateEveryRounds = 0,
+    [string]$RotationStateDir = "",
+    [switch]$DryRun
 )
 $missions = @($Mission -split "," | ForEach-Object { $_.Trim() } | Where-Object { $_ -ne "" })   # @() keeps a single mission an array (a scalar would index its first LETTER)
+if ($Instances -lt 1 -or $Instances -gt 8) { throw 'Use between one and eight game instances.' }
+if ($missions.Count -eq 0) { throw 'At least one mission is required.' }
+if ($Competitive -notin @(0, 1)) { throw 'Competitive must be 0 or 1.' }
+if ($RotateEveryRounds -lt 0) { throw 'RotateEveryRounds cannot be negative.' }
+if ($RotateEveryRounds -gt 0 -and ($Split -ne '' -or $RotationStateDir -eq '')) { throw 'Rotation needs no Split and an explicit RotationStateDir.' }
 
 # mission per instance index
 $assign = @()
@@ -47,6 +56,22 @@ if ($Split -ne "") {
     for ($i = 0; $i -lt $Instances; $i++) { $assign += $missions[$i % $missions.Count] }
 }
 
+if ($env:NAV_PRACTICE_MISSION) {
+    $practiceIndex = 0
+    if ($env:NAV_PRACTICE_WORKER) { $practiceIndex = [int]$env:NAV_PRACTICE_WORKER }
+    if ($practiceIndex -lt 0 -or $practiceIndex -ge $Instances) { throw 'Practice worker index is outside the instance pool.' }
+    $assign[$practiceIndex] = $env:NAV_PRACTICE_MISSION
+}
+
+if ($DryRun) {
+    $waves = @()
+    for ($wave = 0; $wave -lt $missions.Count; $wave++) {
+        $waves += ,@((0..($Instances - 1)) | ForEach-Object { $missions[($_ + $wave * $Instances) % $missions.Count] })
+    }
+    @{ initial=$assign; rotation=$waves; instances=$Instances; competitive=$Competitive; rounds_per_map=$RotateEveryRounds } | ConvertTo-Json -Depth 5
+    return
+}
+
 $exe = Join-Path $PSScriptRoot "..\Marble Blast Platinum\$Exe"
 $exe = [System.IO.Path]::GetFullPath($exe)
 if (-not (Test-Path $exe)) { Write-Error "Game executable not found: $exe"; exit 1 }
@@ -55,7 +80,7 @@ $workdir = Split-Path $exe
 function Launch-Instance([int]$i) {
     $port = $Port0 + $i
     $mission = $assign[$i]
-    $p = Start-Process -FilePath $exe -ArgumentList @("-autotrain", $mission, "-aiport", "$port", "-offline") -WorkingDirectory $workdir -WindowStyle Hidden -PassThru
+    $p = Start-Process -FilePath $exe -ArgumentList @("-autotrain", $mission, "-aiport", "$port", "-offline", "-aicompetitive", "$Competitive") -WorkingDirectory $workdir -WindowStyle Hidden -PassThru
     Write-Host ("[{0}] instance {1} launched: {2} -autotrain {3} -aiport {4} (pid {5})" -f (Get-Date).ToString("HH:mm:ss"), $i, $Exe, $mission, $port, $p.Id)
     return $p
 }
@@ -85,9 +110,25 @@ while ($true) {
     while ((Get-Date) -lt $deadline) {
         Start-Sleep -Seconds 10
         for ($i = 0; $i -lt $Instances; $i++) {
+            $rotated = $false
+            if ($RotateEveryRounds -gt 0 -and -not ($env:NAV_PRACTICE_MISSION -and $i -eq $practiceIndex)) {
+                $statePath = Join-Path $RotationStateDir "instance_$i.json"
+                if (Test-Path -LiteralPath $statePath) {
+                    try { $state = Get-Content -LiteralPath $statePath -Raw | ConvertFrom-Json } catch { $state = $null }
+                    $workerAlive = $state -and $state.worker_pid -gt 0 -and @(Get-Process -Id $state.worker_pid -ErrorAction SilentlyContinue).Count -gt 0
+                    if ($workerAlive -and $state.mission -eq $assign[$i] -and $state.rounds -ge $RotateEveryRounds) {
+                        $at = [Array]::IndexOf($missions, $assign[$i])
+                        $assign[$i] = $missions[($at + $Instances) % $missions.Count]
+                        Write-Host ("[{0}] instance {1} rotates to {2} after {3} completed rounds" -f (Get-Date).ToString("HH:mm:ss"), $i, $assign[$i], $state.rounds)
+                        Remove-Item -LiteralPath $statePath -ErrorAction SilentlyContinue
+                        if (-not $procs[$i].HasExited) { Stop-Process -Id $procs[$i].Id; $procs[$i].WaitForExit() }
+                        $rotated = $true
+                    }
+                }
+            }
             if ($procs[$i].HasExited) {
                 Write-Host ("[{0}] instance {1} exited (code {2}); relaunching in 10 s" -f (Get-Date).ToString("HH:mm:ss"), $i, $procs[$i].ExitCode)
-                Start-Sleep -Seconds 10
+                if (-not $rotated) { Start-Sleep -Seconds 10 }
                 $procs[$i] = Launch-Instance $i
             }
         }

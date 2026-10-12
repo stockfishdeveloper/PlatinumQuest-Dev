@@ -81,6 +81,10 @@ FOLLOW_TOL = 0.4      # floor continuity per 0.5 u step. 1.0 (ramps up to ~63 de
                       # to the rays (the walkable limit is MAX_SLOPE 0.6 = 0.3 u per step, so 0.4 still follows every
                       # walkable ramp). Measured: 0.00 % of KOTM ray values change; on the block-cluster maps 13.7 % of
                       # floor points now see a RISE edge within 2.5 u (0 % before). Log 40.65.
+FLAT_SLOPE = 0.02    # 2026-10-11 (log 40.89, floor_gradient): a surface flatter than this (rise/run) has no tilt; the
+                     # on-floor test there is the old vertical-speed one, unchanged (every KOTM floor)
+SURFACE_TOL_K = 1.5  # a neighbour cell continues a tilted surface when within (SURFACE_TOL_K x slope + 0.05) x cell of
+                     # it; a box step beside flat floor never does (slope 0 -> 0.05 x cell)
 GEM_RAYS = 3
 EDGE_DIM = RAY_HEADINGS * 2 + GEM_RAYS * 2       # 38
 PERCEPTION_DIM = TERRAIN_DIM + EDGE_DIM          # 102: what observe() returns
@@ -272,6 +276,43 @@ class TerrainMap:
         if np.all(np.isnan(h)):
             return float(z)
         return float(h[np.nanargmin(np.abs(h - z))])
+
+    def floor_gradient(self, x, y, z_floor):
+        """(dh/dx, dh/dy) of the floor surface at (x, y), on the level nearest z_floor: (0, 0) where the map's slope
+        there is under FLAT_SLOPE; else central differences one grid cell either side, one-sided where a side has no
+        floor on this surface (an edge, a step, a hole), 0 on an axis where neither side continues it.
+        2026-10-11 (log 40.89): the on-floor test measures the speed along the surface normal with it."""
+        d = self.res
+        i = int(np.rint((x - self.x0) / d)); j = int(np.rint((y - self.y0) / d))
+        if not (0 <= i < self.W and 0 <= j < self.H):
+            return 0.0, 0.0
+        col0 = self.heights[:, j, i]; fin0 = np.isfinite(col0)
+        if not fin0.any():
+            return 0.0, 0.0
+        k0 = int(np.nanargmin(np.abs(np.where(fin0, col0, np.inf) - z_floor)))
+        s = float(self.slope[k0, j, i])
+        if not math.isfinite(s) or s < FLAT_SLOPE:
+            return 0.0, 0.0
+        h = self.heights_at([x - d, x + d, x, x], [y, y, y - d, y + d])        # (K, 4)
+        tol = (SURFACE_TOL_K * s + 0.05) * d
+        side = []
+        for c in range(4):
+            col = h[:, c]
+            fin = np.isfinite(col)
+            if not fin.any():
+                side.append(None); continue
+            k = int(np.nanargmin(np.abs(np.where(fin, col, np.inf) - z_floor)))
+            side.append(float(col[k]) if abs(float(col[k]) - z_floor) <= tol else None)
+
+        def axis(lo, hi):
+            if lo is not None and hi is not None:
+                return (hi - lo) / (2.0 * d)
+            if hi is not None:
+                return (hi - z_floor) / d
+            if lo is not None:
+                return (z_floor - lo) / d
+            return 0.0
+        return axis(side[0], side[1]), axis(side[2], side[3])
 
     def gap_along(self, x, y, z, ux, uy, max_u=RAY_RANGE):
         """(lip_u, gap_u, landing_dz): along unit heading (ux, uy) from (x, y): distance to the lip

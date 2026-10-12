@@ -109,7 +109,7 @@ ml_agent/models/nav/nav_0*.pth
 ml_agent/models/nav/*.tmp
 
 # Navigator runtime outputs: per-decision traces (tens of MB), process stdout/stderr,
-# game-loop and dashboard output, probe scratch. The train_nav_*.log files stay committable.
+# game-loop and dashboard output, probe scratch. (The train_nav_*.log exception ended 2026-10-11: *.log below.)
 ml_agent/logs/nav/trace_*.csv
 ml_agent/logs/nav/trace_*.csv.gz
 ml_agent/logs/nav/stdout.txt
@@ -129,3 +129,17 @@ ml_agent/logs/nav/real_run_*.json
 
 # 2026-10-09 (operator): no model checkpoints in git at all; milestones are described in ml_agent/models/CHECKPOINTS.md
 *.pth
+# 2026-10-10 (operator): no per-decision trace CSVs in git, anywhere (the committed ones stay until untracked)
+*.csv
+# 2026-10-11 (operator): no JSON files in git. The game's own JSON data (Marble Blast Platinum/**, build-packages.json)
+# stays tracked because the game needs it; ignoring only stops NEW JSON files from being picked up
+*.json
+# 2026-10-11 (operator): no .jsonl or .txt files in git. Still tracked (not affected): the game's own text data
+# (Marble Blast Platinum/platinum/**: help pages, login terms, gamecontrollerdb.txt, readmes) and ml_agent/requirements.txt
+*.jsonl
+*.txt
+# 2026-10-11 (operator): no .log files in git (all were logs: training, datasets, game crash uploads)
+*.log
+# 2026-10-11 (operator): no temp files and no run STOP markers in git (the STOP files stay on disk: they keep runs stopped)
+*.tmp
+STOP

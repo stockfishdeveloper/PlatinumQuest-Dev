@@ -65,6 +65,8 @@ class HuntEnv:
         self.reads = 0; self.stale_reads = 0   # lines served from the buffer without waiting = we were late
         self.msg = None                   # the observation awaiting our reply
         self.info = {}                    # from the INFO control word
+        self.game_rules = None
+        self.rescue_accepted = None
         self.replay_catalog = None
         self.replay_world = None
         self.last_round_score = None
@@ -90,6 +92,9 @@ class HuntEnv:
         # delayed ACK (~200 ms) (lockstep timing probe 2026-09-29)
         self.conn.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
         self.buf = b''
+        self.info = {}; self.game_rules = None
+        self.replay_catalog = None; self.replay_world = None
+        self.last_round_score = None; self.debug = None; self.stats = None
         self.connections += 1
         self.reconnected = self.connections > 1
         self.log(f'[env:{self.port}] game connected ({self.connections})')
@@ -188,6 +193,10 @@ class HuntEnv:
             self.recent_lines = self.recent_lines[-20:]
             if m.kind == 'stats':
                 self.stats = m.fields
+            elif m.kind == 'rules':
+                self.game_rules = {'competitive': bool(int(m.fields[0]))}
+            elif m.kind == 'rescue':
+                self.rescue_accepted = bool(int(m.fields[0]))
             elif m.kind in ('replaycat', 'replayworld'):
                 import json
                 value = json.loads(m.fields[0])
@@ -231,6 +240,38 @@ class HuntEnv:
         becomes the pending one."""
         self._send(word)
         self.msg = self._recv_obs()
+        self.control_info = {'gem_delta': float(self.msg.gem_delta), 'fell': bool(self.msg.oob),
+                             'round_ended': self.round_ended, 'reconnected': self.reconnected}
+
+    def set_game_rules(self, competitive):
+        self.game_rules = None
+        self.control(f'GAMERULES {int(bool(competitive))}')
+        for _ in range(200):          # 2026-10-10 00:05: 16 was too few when REPLAYWORLD lines flood the bridge after a reconnect
+            if self.game_rules is not None:
+                break
+            self.step(NOOP_ACTION, repeat=1)
+        if self.game_rules != {'competitive': bool(competitive)}:
+            # Not fatal (block A lost a trainer restart to this): the game was launched with -aicompetitive, so the mode
+            # is already what we asked for; GAMERULES only confirms it. Log and carry on with the requested value.
+            self.log(f'WARNING: no RULES acknowledgement after a reconnect (got {self.game_rules}); assuming competitive={int(bool(competitive))} from the launch flag')
+            self.game_rules = {'competitive': bool(competitive)}
+
+    def quick_rescue(self):
+        if self.game_rules is None or self.game_rules['competitive']:
+            return False
+        self.rescue_accepted = None
+        self.control('QUICKRESPAWN')
+        for _ in range(16):
+            if self.rescue_accepted is not None:
+                break
+            _, info = self.step(NOOP_ACTION, repeat=1)
+            self.control_info['gem_delta'] += info['gem_delta']
+            for key in ('fell', 'round_ended', 'reconnected'):
+                self.control_info[key] |= info[key]
+        if self.rescue_accepted is None:
+            self.log('WARNING: no RESCUE acknowledgement within 16 decisions; treating the rescue as refused')   # 2026-10-10: non-fatal
+            return False
+        return self.rescue_accepted
 
     def request_debug(self, wait_ticks=24):
         """Ask the game for frame diagnostics (DEBUG control); returns the fields or None."""
@@ -302,6 +343,11 @@ class HuntEnv:
 
     def time_left_s(self):
         return float(self.msg.obs[RAW_TIME_LEFT]) / 1000.0 if self.msg is not None and self.msg.obs is not None else 0.0
+
+    def round_started(self):
+        """Unknown INFO after reconnect is not evidence that countdown has ended."""
+        round_ms = self.info.get('round_ms')
+        return round_ms is not None and round_ms > 0 and self.time_left_s() < round_ms / 1000.0
 
     elapsed_s = time_left_s      # old name; the field counts DOWN
 

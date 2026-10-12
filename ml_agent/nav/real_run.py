@@ -36,13 +36,21 @@ from nav.terrain import TerrainGrid                                  # noqa: E40
 from nav.obs import (ObsBuilder, NAV_OBS_VERSION, VEC_DIM, ss_aim, fill_use_state,
                      VEC_POW, SS_VMAX, SS_LAM_MAX, WAYPOINT_DIST_SCALE, VEL_SCALE)  # noqa: E402
 from nav.terrain import CROP_SHAPE                                   # noqa: E402
-from nav.model import NavActorCritic, action_to_joystick, USE_RUN_U   # noqa: E402
+from nav.model import NavActorCritic, action_to_joystick, USE_RUN_U, ESCAPE_POWERUPS   # noqa: E402
 from nav.ss_routes import first_turn_costs                          # noqa: E402
 from nav.ss_tour import kick_credits, order_credits                 # noqa: E402
 from nav.ss_prepare import prepare_action                          # noqa: E402
 from nav.ss_follow import follow_action                            # noqa: E402
 from nav.through_gem import through_gem_dir                         # noqa: E402
 from nav.ss_command_aim import predict_aim                          # noqa: E402
+from nav.routing import line_clear, path_waypoint, snap_to_walkable, goal_key, RoutePlanner
+from nav.recovery import ProgressMonitor, simulation_time
+from nav.escape_practice import EscapeRecorder
+
+COMPETITIVE = os.environ.get('NAV_COMPETITIVE', '0') == '1'
+RESCUE_S = float(os.environ.get('NAV_RESCUE_S', '0'))
+if COMPETITIVE and RESCUE_S > 0:
+    raise ValueError('stuck rescue is unavailable in competitive Hunt')
 
 PORT = int(os.environ.get('NAV_PORT', '8920'))
 GAME_SPEED = int(os.environ.get('NAV_SPEED', '3'))   # NAV_SPEED=1 to watch it play in real time
@@ -129,27 +137,6 @@ TOUR = os.environ.get('NAV_TOUR', '').replace('greedy', '')   # 2026-09-26 (HAND
                                # distances. 'greedy' exists because PowerShell $env:NAV_TOUR = "" DELETES the variable.
 
 
-def snap_to_walkable(terrain, gx, gy, gz, radius=3):
-    """Real gems can sit on cells our terrain grid calls non-walkable (thin ledges, bevels, or
-    just rasterisation error at 1 u). Handing the navigator such a goal makes it stall: it reads
-    the goal as beyond an edge and refuses to close. Measured cost, 2026-09-19: one such gem ate
-    1165 decisions -- 42 % of a round -- and was never collected, and because a group must be
-    cleared before the next spawns, it blocks the round outright.
-
-    So path to the nearest cell the grid DOES call walkable. The marble ends up adjacent to the
-    gem and the game's own pickup radius finishes the job. Returns the goal to steer at.
-    """
-    j, i = terrain.cell_of(gx, gy)
-    k = terrain.level_at(j, i, gz)                            # 2026-10-09: multi-level walk grid (the level nearest the gem)
-    if k >= 0 and abs(float(terrain.walk_z[k, j, i]) - gz) <= 1.5:
-        return (gx, gy, gz), False
-    c = terrain._nearest_walkable(j, i, radius=radius, z=gz)
-    if c is None:
-        return (gx, gy, gz), False
-    kk, jj, ii = c
-    return (float(terrain.wxs[ii]), float(terrain.wys[jj]), float(terrain.walk_z[kk, jj, ii])), True
-
-
 NO_NEXT = os.environ.get('NAV_NO_NEXT', '0') == '1'   # ABLATION (2026-09-23): hide the next-gem block from the policy
 STUCK_S = float(os.environ.get('NAV_STUCK_S', '3.0'))     # STUCK-BREAKER (2026-09-23, HANDOFF 28.16). If the
 STUCK_U = float(os.environ.get('NAV_STUCK_U', '1.0'))     # marble has moved less than STUCK_U in the last
@@ -161,7 +148,8 @@ STUCK_DETOUR = int(os.environ.get('NAV_STUCK_DETOUR', '24'))   # STUCK_S seconds
                                # the gem 12 u away across a hole and the route a few units north: a fixed
                                # point of mean action + hidden state that a sample or a new bearing breaks.
                                # NAV_STUCK_S=0 disables.
-DIRECT_GEM = os.environ.get('NAV_DIRECT_GEM', '1') == '1'   # default ON since 2026-09-20 23:50 by
+DIRECT_GEM = os.environ.get('NAV_DIRECT_GEM', '0') == '1'   # Phase R: routed by default, same as workers.
+                               # Historical direct-gem setting, ON since 2026-09-20 23:50 by
                                # user instruction: the waypoint is the gem's exact position, always.
                                # Routing corner points and snap_to_walkable are bypassed. The
                                # 2026-09-19 measurement below is why routing existed; the cost of
@@ -188,96 +176,6 @@ GEM_SNAP_U = 1.5               # a routing waypoint this close to the gem IS the
 LOOKAHEAD_U = 12.0             # how far along the path the navigator is aimed. Training goals were
                                # 8-40 u (first gem) and 6-22 u (group links), so this keeps the goal
                                # in-distribution instead of pointing at something 30 u away.
-
-
-def line_clear(terrain, ax, ay, bx, by, step=0.35, az=None):
-    """True if every sample on the straight line ax,ay -> bx,by is walkable ground. With `az` (the marble's height)
-    the line FOLLOWS the floor: each sample needs a level within [-DROP_EDGE, +STEP_UP] of the running height, so a
-    deck above or a floor below does not count as the ground this line crosses (multi-level grid, 2026-10-09)."""
-    from nav.terrain import DROP_EDGE, STEP_UP
-    d = math.hypot(bx - ax, by - ay)
-    n = max(int(d / step), 1)
-    z = az
-    for k in range(n + 1):
-        x = ax + (bx - ax) * k / n
-        y = ay + (by - ay) * k / n
-        j, i = terrain.cell_of(x, y)
-        lk = terrain.level_at(j, i, z)
-        if lk < 0:
-            return False
-        if z is not None:
-            dz = float(terrain.walk_z[lk, j, i]) - z
-            if dz < -DROP_EDGE or dz > STEP_UP:
-                return False
-            z = float(terrain.walk_z[lk, j, i])
-    return True
-
-
-def path_waypoint(terrain, mx, my, field, gem, lookahead=LOOKAHEAD_U, mz=None):
-    """Aim the navigator at the furthest point on the path it can reach IN A STRAIGHT LINE.
-
-    The navigator only receives a direction and distance to its goal plus local terrain rays --
-    it has no route. Walking `lookahead` units along the Dijkstra path is not enough, because the
-    path curves around a hole while the straight line to its end still crosses that hole: measured
-    2026-09-19, the marble sat at (-13.5,18.3) with a goal at (-23.7,13.5) whose straight line hit
-    the void 2.3 u ahead, and oscillated there for 2234 decisions.
-
-    So walk the path, then string-pull: take the FURTHEST path point with clear line of sight from
-    the marble. The heading handed to the policy is then always traversable ground.
-    """
-    from nav.terrain import DOWN_MAX, STEP_UP
-    j, i = terrain.cell_of(mx, my)
-    k = terrain.level_at(j, i, mz)
-    if k < 0 or not np.isfinite(field[k, j, i]):
-        c = terrain._nearest_walkable(j, i, radius=3, z=mz)
-        if c is None or not np.isfinite(field[c]):
-            return (gem[0], gem[1], gem[2]), False
-        k, j, i = c
-    if field[k, j, i] <= terrain.walk_res * 2 or line_clear(terrain, mx, my, gem[0], gem[1], az=mz):
-        return (gem[0], gem[1], gem[2]), False        # the gem itself is directly reachable
-
-    path = []
-    travelled = 0.0
-    for _ in range(int((lookahead * 3) / terrain.walk_res) + 8):
-        best = None
-        zc = float(terrain.walk_z[k, j, i])
-        for dj in (-1, 0, 1):
-            for di in (-1, 0, 1):
-                if dj == 0 and di == 0:
-                    continue
-                jj, ii = j + dj, i + di
-                if not terrain.in_walk_grid(jj, ii):
-                    continue
-                for kk in range(terrain.KW):              # every level of the neighbour cell the marble can step to
-                    zz = float(terrain.walk_z[kk, jj, ii])
-                    if not np.isfinite(zz) or zz - zc < -DOWN_MAX or zz - zc > STEP_UP:
-                        continue
-                    f = field[kk, jj, ii]
-                    if np.isfinite(f) and (best is None or f < best[0]):
-                        best = (f, kk, jj, ii, math.hypot(dj, di) * terrain.walk_res)
-        if best is None or best[0] >= field[k, j, i]:
-            break
-        travelled += best[4]
-        k, j, i = best[1], best[2], best[3]
-        path.append((float(terrain.wxs[i]), float(terrain.wys[j]), float(terrain.walk_z[k, j, i])))
-        if field[k, j, i] <= terrain.walk_res or travelled >= lookahead * 3:
-            break
-    if not path:
-        return (gem[0], gem[1], gem[2]), False
-    # string-pull: furthest point on the path that is a straight clear shot from here
-    pick = None
-    for wp in path:
-        if math.hypot(wp[0] - mx, wp[1] - my) > lookahead:
-            break
-        if line_clear(terrain, mx, my, wp[0], wp[1], az=mz):
-            pick = wp
-    if pick is None:
-        pick = path[0]                                # nothing visible: take the next path cell
-    if math.hypot(pick[0] - gem[0], pick[1] - gem[1]) <= GEM_SNAP_U:
-        return (gem[0], gem[1], gem[2]), False        # beside the gem: aim at the gem itself
-    return pick, True
-
-
 
 
 GEO_ORDER = os.environ.get('NAV_GEO_ORDER', '0') == '1'   # 2026-09-22: rank gems by WALKING distance
@@ -333,6 +231,7 @@ def choose(gems, current, pos=None, vel=None, terrain=None, mfield=None):
 
 def main():
     torch.set_num_threads(int(os.environ.get('NAV_TORCH_THREADS', '1')))
+    torch.set_num_threads(int(os.environ.get('NAV_TORCH_THREADS', '1')))
     if SS_ROUTE and (not FORCE_USE or TOUR != 'walk'):
         raise ValueError('SS route experiment requires NAV_FORCE_USE=1 and NAV_TOUR=walk; NAV_NO_USE=1 provides its control')
     if SS_PREP and not FORCE_USE:
@@ -369,6 +268,8 @@ def main():
           + (f', terrain "{pre_map}" pre-built' if pre_map else ''))
 
     env.connect()                      # already bound and listening: this only accepts
+    env.set_game_rules(COMPETITIVE)
+    env.control('REPLAYCAPTURE 1')
     if SS_YAW_FIX:
         env.control('SSYAWFIX 1')
         for _ in range(8):
@@ -420,6 +321,10 @@ def main():
     trace.write('round,dec,x,y,z,vx,vy,speed,on_floor,tx,ty,tdist,nx,ny,gx,gy,nvis,gem,fell,fwd,back,left,right,jump,'
                 'held_before,use_sent,command_aim_x,command_aim_y,spin_before_x,spin_before_y,spin_before_z,jump_raw\n')   # jump_raw 10-08: pre-clamp jump head output
     for r in range(ROUNDS):
+        recovery = ProgressMonitor(window_s=RESCUE_S or 8.0)
+        route = RoutePlanner(terrain)
+        played_seconds = 0.0
+        recorder = EscapeRecorder(os.environ.get('NAV_ESCAPE_RECORD_DIR'), RUN_TAG, mission)
         env.last_round_score = None
         obs_b.reset(); h = model.initial_state(1, dev)
         target = None
@@ -476,7 +381,7 @@ def main():
             vis = visible_gems(env.msg.obs)
             mfield = None
             if GEO_ORDER and vis:
-                mcell = terrain.cell_of(float(env.msg.obs[0]), float(env.msg.obs[1]))
+                mcell = (*terrain.cell_of(float(env.msg.obs[0]), float(env.msg.obs[1])), terrain.level_at(*terrain.cell_of(float(env.msg.obs[0]), float(env.msg.obs[1])), z=float(env.msg.obs[2])))
                 if mcell != mfield_key:
                     mfield_cache = terrain.goal_field(float(env.msg.obs[0]), float(env.msg.obs[1]), z=float(env.msg.obs[2])); mfield_key = mcell
                 mfield = mfield_cache
@@ -558,10 +463,6 @@ def main():
                 gem_goal, snapped = snap_to_walkable(terrain, target[0], target[1], target[2])
             if snapped:
                 n_snapped += 1
-            key = (round(gem_goal[0], 2), round(gem_goal[1], 2))
-            if key != field_key:                          # Dijkstra is expensive: one per target
-                field = terrain.goal_field(gem_goal[0], gem_goal[1]); field_key = key
-                held_goal = None                          # new target: the old waypoint is stale
             mx, my = float(env.msg.obs[0]), float(env.msg.obs[1])
             pos_hist.append((mx, my))
             in_countdown = round_s > 0 and env.time_left_s() >= round_s - 0.001
@@ -581,15 +482,10 @@ def main():
             # line-of-sight cleared round a corner, and the policy reads that snap as a heading
             # change: steering swung 84.6 deg on decisions where the goal jumped >3 u, against
             # 63.8 deg otherwise. A waypoint should be a fixed point you drive at.
-            if DIRECT_GEM and not detour:
-                goal, pathed = gem_goal, False     # the goal IS the gem, never a point beside it
-            elif (held_goal is not None
-                    and math.hypot(held_goal[0] - mx, held_goal[1] - my) > WAYPOINT_HOLD_U
-                    and line_clear(terrain, mx, my, held_goal[0], held_goal[1], az=float(env.msg.obs[2]))):
-                goal, pathed = held_goal, True
+            if DIRECT_GEM:
+                goal, pathed = gem_goal, False
             else:
-                goal, pathed = path_waypoint(terrain, mx, my, field, gem_goal, mz=float(env.msg.obs[2]))
-                held_goal = goal if pathed else None
+                goal, pathed = route.navigate(env.msg.obs[:3], gem_goal)
             if pathed:
                 n_pathed += 1
             ngoal = ((nxt[0], nxt[1], nxt[2]) if DIRECT_GEM else
@@ -603,9 +499,12 @@ def main():
                 elif marked is not None:
                     env.mark_off()                        # no gem on the map: draw nothing anywhere
                     marked = None
-            crop, vec, on_floor = obs_b.build(env.msg.obs, goal, None if NO_NEXT else ngoal)
+            crop, vec, on_floor = obs_b.build(env.msg.obs, goal, None if NO_NEXT else ngoal, gem_goal=gem_goal)
             fill_use_state(vec, use_sent[0], use_sent[1], pending_since is not None, latched_aim,
                            (decisions - ss_fire_dec) * 0.064)
+            recorder.observe(env, gem_goal, goal, ngoal, vec,
+                             [use_sent[0], use_sent[1], pending_since is not None, latched_aim,
+                              (decisions - ss_fire_dec) * .064], r + 1)
             if not in_countdown:
                 ss_opportunities['decisions'] += 1
                 if vec[VEC_POW + 1] > .5:
@@ -670,7 +569,7 @@ def main():
             prev_js = js_cmd
             kw = {}
             ob_ = env.msg.obs; held_ = int(ob_[RAW_POW_HELD]) if len(ob_) > RAW_POW_HELD else 0
-            sent_ = False
+            sent_ = False; aim_ = (0.0, 0.0)
             # the use bit (log 40), as vec_worker turns it into words; 40.26: Super Speed only, like training
             if len(a) > 5 and a[5] > 0.5 and not NO_USE and held_ == 2:
                 aim_ = ss_aim(vec)
@@ -684,9 +583,19 @@ def main():
                 sent_ = True; latched_aim = aim_
                 if pending_since is None:
                     pending_since = decisions
+            if len(a) > 5 and a[5] > .5 and not NO_USE and held_ != 2:      # 2026-10-09 20:45: every held type, blast when empty
+                if held_ > 0:
+                    kw = {'use_pow': 1}; sent_ = True
+                    round_uses[held_] = round_uses.get(held_, 0) + 1
+                else:
+                    kw = {'use_blast': 1}; sent_ = True
+            before_s = simulation_time(env)
             msg, info = paced_step(js_cmd, **kw)
             previous_motion = ob_.copy()
             held_after = int(msg.obs[RAW_POW_HELD]) if len(msg.obs) > RAW_POW_HELD else 0
+            blast_fired = (kw.get('use_blast', 0) and float(msg.obs[RAW_POW_BLAST]) < float(ob_[RAW_POW_BLAST]) - .05)
+            if not info['fell'] and ((held_ == 1 and held_after == 0 and sent_) or blast_fired):
+                recovery.escape_use(simulation_time(env))
             use_sent = [sent_, use_sent[0]]
             if held_ == 2 and held_after == 0 and not info['fell']:
                 if pending_since is not None and decisions - pending_since <= 3:
@@ -716,6 +625,11 @@ def main():
                     break
             h = out['h_next']
             if info['round_ended'] or info['reconnected']:
+                if not info['reconnected']:
+                    points += max(0.0, float(info['gem_delta']))
+                    gems += int(info['gem_delta'] > 0)
+                    falls += int(info['fell'])
+                    played_seconds += max(0.0, simulation_time(env) - before_s)
                 break
             decisions += 1
             p = np.array(msg.obs[:3], dtype=np.float64)
@@ -748,6 +662,7 @@ def main():
                 falls += 1
                 target = None
                 obs_b.reset(); h = model.initial_state(1, dev)   # respawn = a fresh start
+                recorder.history.clear()
                 if OOB_CLICK:
                     # THE LEGAL QUICK RESPAWN, the one a human gets by clicking the left mouse the
                     # instant the "Out of Bounds" text appears. Without it the marble waits out the
@@ -759,24 +674,54 @@ def main():
                     # 3.26 s, the 2.43 s gap IS the 2500 ms schedule, and at 4.5 falls a round that
                     # is 7.3 s or 4.0 % of a 3.02 min round, worth about 3 gems.
                     env.control('OOBCLICK')
-        # NOT from the round clock: at round end it already reads the NEXT round's full time, so
-        # (t_start - time_left) is 0. Decisions are the reliable clock -- one per 64 ms of sim.
-        # OBS_MS, not a hardcoded 0.064: at a finer decision rate the decision count doubles
-        # and a hardcoded step made speed and gems/min read HALF their true value (found
-        # 2026-09-20 during the 32 ms eval, where 5.78 u/s was reported as 2.89).
+            now = simulation_time(env)
+            vis_after = visible_gems(env.msg.obs)
+            if not in_countdown and not info['round_ended'] and not info['reconnected']:
+                if target is not None:
+                    route.navigate(env.msg.obs[:3], target[:3])
+                distance = route.distance(env.msg.obs[:3])
+                idle = recovery.observe(now, goal_key(gem_goal), distance, picked=info['gem_delta'],
+                                        fell=info['fell'], gems=[goal_key(g) for g in vis_after],
+                                        groups_completed=(env.replay_world or {}).get('group_completions'))
+                if RESCUE_S > 0 and idle >= RESCUE_S and vis_after and not info['fell']:
+                    recovery.rescue_attempts += 1
+                    accepted = env.quick_rescue()
+                    points += float(env.control_info['gem_delta']); gems += int(env.control_info['gem_delta'] > 0)
+                    for key in ('fell', 'round_ended', 'reconnected'):
+                        info[key] |= env.control_info[key]
+                    if accepted:
+                        route.reset(); route.navigate(env.msg.obs[:3], gem_goal)
+                        recovery.rescued(simulation_time(env), route.distance(env.msg.obs[:3]))
+                        obs_b.reset(); h = model.initial_state(1, dev)
+                        recorder.history.clear()
+                        smooth_dir = None; pending_since = None; latched_aim = None; use_sent = [False, False]
+                        pos_hist = []; last = np.array(env.msg.obs[:3], dtype=np.float64)
+                    else:
+                        recovery.last_progress = simulation_time(env)
+                    why = next((l.split('RESCUE|', 1)[1] for l in reversed(env.recent_lines) if 'RESCUE|' in l), '')
+                    print(f'RESCUE accepted={int(accepted)} idle_s={idle:.2f} game_s={simulation_time(env):.3f} game_reply={why}')
+            if not in_countdown:
+                played_seconds += max(0.0, simulation_time(env) - before_s)
+            if info['round_ended'] or info['reconnected']:
+                break
+        # Replay clock deltas include control/rescue time and exclude the countdown.
         played = decisions - n_countdown          # decisions after GO (the countdown is not play time)
-        mins = max(played * (OBS_MS / 1000.0) / 60.0, 1e-6)
+        mins = max(played_seconds / 60.0, 1e-6)
         row = {'round': r + 1, 'gems': gems, 'points': round(points, 1), 'minutes': round(mins, 2),
                'decisions': played, 'countdown_decisions': n_countdown,
                'gems_per_min': round(gems / mins, 1), 'points_per_min': round(points / mins, 1),
                'falls': falls,
                'falls_per_100u': round(100.0 * falls / max(travelled, 1e-6), 3),
                'travelled_u': round(travelled, 1),
-               'speed': round(travelled / max(played * (OBS_MS / 1000.0), 1e-6), 2),
+               'speed': round(travelled / max(played_seconds, 1e-6), 2),
                'blind_pct': round(100.0 * blind / max(decisions, 1), 1), 'stuck_breaks': n_stuck,
                'snapped_pct': round(100.0 * n_snapped / max(decisions, 1), 1),
                'pathed_pct': round(100.0 * n_pathed / max(decisions, 1), 1),
                'smooth': SMOOTH, 'pow_uses': {str(k): v for k, v in sorted(round_uses.items())}}
+        row.update(recovery.stats())
+        row['escape_fixtures_recorded'] = recorder.count
+        row.update(competitive=COMPETITIVE, rescue_window_s=RESCUE_S, direct_gem=DIRECT_GEM,
+                   sample=SAMPLE, escape_powerups=ESCAPE_POWERUPS, played_seconds=round(played_seconds, 3))
         row.update(engine_points=env.last_round_score, completed=bool(info['round_ended'] and not info['reconnected']),
                    ss_fires=len(ss_events), ss_events=ss_events, no_use=NO_USE, force_use=FORCE_USE,
                    checkpoint=os.path.basename(ckpt), update=ck.get('update'),
@@ -810,8 +755,9 @@ def main():
                         'speed': round(agg['speed'] / HUMAN['speed'], 2),
                         'falls_ratio': round(agg['falls_per_100u'] / HUMAN['falls_per_100u'], 1)},
            'value_weight': VALUE_WEIGHT, 'h_reset': H_RESET, 'when': datetime.now().isoformat()}
-    os.makedirs(os.path.join(HERE, 'logs', 'nav'), exist_ok=True)
-    p = os.path.join(HERE, 'logs', 'nav',
+    output_dir = os.path.abspath(os.environ.get('NAV_EVAL_OUTPUT_DIR', os.path.join(HERE, 'logs', 'nav')))
+    os.makedirs(output_dir, exist_ok=True)
+    p = os.path.join(output_dir,
                      f'real_run_{mission}_{os.path.splitext(os.path.basename(ckpt))[0]}{("_" + RUN_TAG) if RUN_TAG else ""}.json')
     json.dump(out, open(p, 'w'), indent=1)
     print('REAL RUN', json.dumps(out['mean']), 'vs human', json.dumps(out['vs_human']))

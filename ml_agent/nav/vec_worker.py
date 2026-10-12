@@ -33,7 +33,7 @@ from nav.protocol import RAW_VEL, RAW_POW_HELD, RAW_POW_BLAST, RAW_POW_SPECIAL, 
 from nav.env import HuntEnv, OBS_MS                                                         # noqa: E402
 from nav.replay import SCHEMA, WINDOW_MS, APPROACH_MS, validate_start, load_starts, restore as restore_replay
 from nav.terrain import TerrainGrid                                                 # noqa: E402
-from nav.obs import ObsBuilder, VEC_GAP, VEC_POW, ss_aim, ss_redirect_window, WAYPOINT_DIST_SCALE, fill_use_state, USE_T_SCALE   # noqa: E402
+from nav.obs import ObsBuilder, VEC_GAP, VEC_POW, ss_aim, ss_redirect_window, WAYPOINT_DIST_SCALE, fill_use_state, USE_T_SCALE, VEC_USE_TRY   # noqa: E402
 USE_T_SCALE_WARM = 9.0        # 40.40: 'no recent fire' in the warm-up observations
 import json                                                                         # noqa: E402
 # 40.26 SUPER SPEED CURRICULUM, Stage 1: these instances do not play rounds; each segment teleports the marble INTO a
@@ -62,6 +62,9 @@ SS_DATABLOCK = 'SuperSpeedItem_MBU'                          # granted at a stag
 # Stage 4 restores the game state and plays a fixed simulation-time window through real pickups.
 LIVE_RECORD = os.environ.get('NAV_LIVE_RECORD', '1') == '1'
 LIVE_HIST = 32                # raw observations kept before the pre state (2 s)
+PRACTICE_MODE = os.environ.get('NAV_PRACTICE_MODE', 'judgment')
+if PRACTICE_MODE not in ('handling', 'judgment'):
+    raise ValueError('NAV_PRACTICE_MODE must be handling or judgment')
 LIVE_PRE_DEC = int(round(APPROACH_MS / OBS_MS))  # 1.5 s before a fire; preserve the approach
 LIVE_LOOKBACKS = tuple(sorted({int(n) for n in os.environ.get('NAV_LIVE_LOOKBACKS', str(LIVE_PRE_DEC)).split(',')}, reverse=True))
 if not LIVE_LOOKBACKS or min(LIVE_LOOKBACKS) < 3 or max(LIVE_LOOKBACKS) > 128:
@@ -82,6 +85,23 @@ def drill_stage_of(idx):
 from nav.joystick import action_to_joystick                                         # noqa: E402
 from nav.waypoints import SegmentManager, RoundOver                                 # noqa: E402
 from nav.gems import visible_gems, choose, plan_tour, STICKY_TOL                    # noqa: E402
+from nav.routing import RoutePlanner, goal_key
+from nav.recovery import (ProgressMonitor, simulation_time, potential_term,
+                          legacy_progress_term, shaping_configuration)
+from nav.ppo_recurrent import GAMMA
+REWARD_CONFIGURATION = shaping_configuration(GAMMA)
+SHAPING_MODE = REWARD_CONFIGURATION['mode']
+SHAPING_GAMMA = REWARD_CONFIGURATION['gamma']
+POTENTIAL_K = REWARD_CONFIGURATION['k']
+POTENTIAL_GROUND_U = REWARD_CONFIGURATION['floor_hold_u']
+FALL_CHARGE = bool(REWARD_CONFIGURATION.get('fall_charge', False))   # 40.95 (operator 10-11: "You can charge every fall")
+USE_TRY_P = float(os.environ.get('NAV_USE_TRY_P', '0.25'))      # 40.95: share of pickups / blast charges drawn as TRY items
+from nav.model import ESCAPE_POWERUPS
+DIRECT_GEM = os.environ.get('NAV_DIRECT_GEM', '0') == '1'
+COMPETITIVE = os.environ.get('NAV_COMPETITIVE', '0') == '1'
+RESCUE_S = float(os.environ.get('NAV_RESCUE_S', '0'))
+if COMPETITIVE and RESCUE_S > 0:
+    raise ValueError('stuck rescue is unavailable in competitive Hunt')
 TOUR = os.environ.get('NAV_TOUR', '').replace('greedy', '')   # 2026-09-26 (HANDOFF 28.51-28.54, operator): the gem
                               # chooser for real-gem training, same default as nav/real_run.py. '' or 'greedy' = choose()
                               # (DEFAULT again since 28.54: training with the planner gave no gain, 28.52); 'walk' = the
@@ -125,6 +145,15 @@ class InstanceWorker:
         self.env = HuntEnv(port, speed=GAME_SPEED, log=self.log)
         self.mission = ''; self.terrain = None; self.obs_b = None; self.segs = None
         self.goal = None; self.crop = None; self.vec = None; self.on_floor = True
+        self.route = None
+        self.phi_prev = None; self.phi_key = None       # potential shaping state (recovery.potential_term)
+        self.round_shaping = 0.0; self.shape_frozen = 0
+        self.fall_charge = None; self.round_fall_charge = 0.0   # 40.95: a fall awaiting its charge; the round's total
+        self.ground_ref = None; self.try_respawn_step = -10 ** 9   # 40.97
+        self._reset_try()
+        self.recovery = ProgressMonitor(window_s=RESCUE_S or 8.0)
+        self.pathed = False
+        self.map_rounds = 0
         self.seg_steps = 0; self.fc_num = 0.0; self.fc_den = 0.0
         self.ep_reward = 0.0; self.seg_count = 0; self.frame_flips = 0; self.steps = 0
         self.smooth_dir = None            # EMA state for the commanded direction
@@ -151,6 +180,8 @@ class InstanceWorker:
         self.last_drill_result = None
         self.eval_starts = None
         self.drill_starts = []; self.drill_cur = None
+        self.last_use_request = None
+        self.practice_recorder = None
         self.drill_agg = {'n': 0, 'hit1': 0, 'hit2': 0, 'fell': 0, 't1': 0.0, 't2': 0.0, 'ret': 0.0}
         self.t0 = time.perf_counter()
         self.prof = {'game': 0.0, 'obs': 0.0, 'begin': 0.0}   # wall seconds since the last reply
@@ -166,8 +197,17 @@ class InstanceWorker:
     def load_map(self, name):
         t = TerrainGrid(TerrainMap.resolve(name))
         self.mission = name; self.terrain = t; self.obs_b = ObsBuilder(t)
+        if os.environ.get('NAV_PRACTICE_RECORD_DIR'):
+            from nav.escape_practice import EscapeRecorder
+            self.practice_recorder = EscapeRecorder(os.environ['NAV_PRACTICE_RECORD_DIR'],
+                                                     f'{self.session_id}_{self.idx}', name)
         self.segs = SegmentManager(t, self.rng, self.log, arrive_r=self.arrive_r, arrive_dz=self.arrive_dz)
         self.real = REAL_GEMS and bool(getattr(t, 'gem_spawns', None)); self.segs.real_mode = self.real
+        self.route = RoutePlanner(t)
+        self.recovery.reset()
+        self.map_rounds = 0
+        self._rotation_state()
+        self.drill_stage = drill_stage_of(self.idx); self.drill = self.drill_stage > 0
         if self.drill:
             if self.drill_stage != 4 and not DRILL_EVAL:
                 raise ValueError('synthetic stages 1-3 are diagnostics only; points training uses stage 4')
@@ -176,16 +216,23 @@ class InstanceWorker:
                 if DRILL_EVAL:
                     self.drill_starts = self.eval_starts or []
                 else:
-                    self.drill_starts = load_starts(src)
-                self.real = True; self.segs.real_mode = True
-                self.segs.drill_mode = True; self.segs.drill_window = True
-                self.tour_fields = {}
-                self.log(f'real-game replay: {len(self.drill_starts)} fixtures, game points, {WINDOW_MS} ms')
-                return
-            try:
-                allst = json.load(open(src))
-            except Exception as e:
-                allst = []; self.log(f'drill starts {src} not readable: {e}')
+                    self.drill_starts = [s for s in load_starts(src) if s['mission'] == name]
+                if not self.drill_starts and not DRILL_EVAL:
+                    self.log(f'no replay starts for {name}: ordinary real-map rounds')
+                    self.drill = False; self.drill_stage = 0
+                else:
+                    self.real = True; self.segs.real_mode = True
+                    self.segs.drill_mode = True; self.segs.drill_window = True
+                    self.tour_fields = {}
+                    self.log(f'real-game replay: {len(self.drill_starts)} fixtures, game points, {WINDOW_MS} ms')
+                    return
+            allst = []
+            if self.drill:
+                try:
+                    with open(src) as file:
+                        allst = json.load(file)
+                except Exception as e:
+                    self.log(f'drill starts {src} not readable: {e}')
             self.drill_starts = [s for s in allst if s.get('mission', name) == name and s['speed_after'] <= DRILL_MAX_SPEED]
             if self.drill_starts:
                 self.real = False; self.segs.real_mode = False; self.segs.drill_mode = True
@@ -198,6 +245,10 @@ class InstanceWorker:
         self.log(f'real-gem training mode: {self.real}')
         self.log(f'mission {name}: terrain {t.W}x{t.H} @ {t.res} u, walkable {int(t.walkable.sum())} cells')
         self.tour_fields = {}                 # walk-only Dijkstra field per gem position (TOUR == 'walk'), per map
+        self.route = RoutePlanner(t)
+        self.recovery.reset()
+        self.map_rounds = 0
+        self._rotation_state()
         self.log(f'gem chooser: {"whole-spawn planner (" + TOUR + ")" if TOUR else "greedy"}')
 
     def walk_dist(self, a, g):
@@ -220,8 +271,24 @@ class InstanceWorker:
             self.load_map(self.env.info['mission'])
             self.log(f'MAP {self.mission}')
 
+    def configure_reconnected_game(self):
+        self.env.request_info(); self.env.set_speed(GAME_SPEED)
+        self.env.set_game_rules(COMPETITIVE)
+        if LIVE_RECORD or self.drill_stage == 4 or RESCUE_S > 0:
+            for attempt in range(4):           # 2026-10-10 02:15: block B lost a restart to this after a map rotation; ask again, never die
+                self.env.control('REPLAYCAPTURE 1')
+                for _ in range(64):
+                    if self.env.replay_world is not None:
+                        break
+                    self.env.step((0, 0, 0, 0, 0), repeat=1)
+                if self.env.replay_world is not None:
+                    break
+            if self.env.replay_world is None:
+                self.log('WARNING: reconnected game sent no replay telemetry; progress timing falls back to the round clock')
+
     def connect(self):
         self.env.connect()
+        self.env.set_game_rules(COMPETITIVE)
         for attempt in range(10):
             if self.env.info.get('mission'):
                 break
@@ -230,7 +297,7 @@ class InstanceWorker:
         if not self.env.info.get('mission'):
             raise RuntimeError(f'instance {self.idx} never answered INFO; is mlAgent.cs up to date (delete the .dso)?')
         self.load_map(self.env.info['mission'])
-        if LIVE_RECORD or self.drill_stage == 4:
+        if LIVE_RECORD or self.drill_stage == 4 or RESCUE_S > 0:
             self.env.control('REPLAYCAPTURE 1')
             for _ in range(8):
                 if self.env.replay_world is not None:
@@ -250,20 +317,50 @@ class InstanceWorker:
             return                       # evaluator explicitly starts each named fixture once
         self.start_segment()
 
+    def _rotation_state(self):
+        directory = os.environ.get('NAV_ROTATION_STATE_DIR')
+        if not directory:
+            return
+        os.makedirs(directory, exist_ok=True)
+        path = os.path.join(directory, f'instance_{self.idx}.json')
+        tmp = path + f'.{os.getpid()}.tmp'
+        try:
+            with open(tmp, 'w') as f:
+                json.dump(dict(mission=self.mission, rounds=self.map_rounds, worker_pid=os.getpid()), f)
+            os.replace(tmp, path)
+        except OSError as e:                      # 2026-10-09 21:50: a locked state file (OneDrive) must never kill a worker
+            self.log(f'rotation state not written ({e}); the game loop keeps the current map')
+            try:
+                os.remove(tmp)
+            except OSError:
+                pass
+
     def _round_over(self):
         """Every path that crosses a round end goes through here: log the finished round's real
         score once, reset the counters. (Before 2026-09-23 17:00 the RoundOver paths inside
         start_segment/recover skipped both, so a round ending mid-respawn merged into the next.)"""
         if self.real and self.env.round_ended:
+            self.map_rounds += 1
+            self._rotation_state()
             uses = ','.join(f'{k}:{v}' for k, v in sorted(self.round_uses.items())) or '-'
             pk = ' '.join(f'pk{k}={v[0] / v[1]:.1f}/{v[1]}' for k, v in self.pk.items() if v[1] > 0)
             pk += ' ' + ' '.join(f'rw{k}={v[0] / v[1]:.3f}/{v[1]}' for k, v in self.rw.items() if v[1] > 0)
-            self.log(f'GAME map={self.mission} points={self.round_points:.0f} gems={self.round_gems} falls={self.round_falls} rtf={self.env.rtf():.1f} pow={uses} {pk}')
+            recovery = ' '.join(f'{k}={v}' for k, v in self.recovery.stats().items())
+            self.log(f'GAME map={self.mission} points={self.round_points:.0f} gems={self.round_gems} falls={self.round_falls} rtf={self.env.rtf():.1f} pow={uses} {pk} {recovery} shape={self.round_shaping:.2f} shape_frozen={self.shape_frozen} fall_charge={self.round_fall_charge:.2f} '
+                     f'try_items={self.try_counts[0]}/{self.try_counts[1]}')
+        self.recovery.reset()
+        self.phi_prev = None; self.phi_key = None; self.round_shaping = 0.0; self.shape_frozen = 0
+        self.fall_charge = None; self.round_fall_charge = 0.0; self.ground_ref = None
+        self._reset_try()
+        if self.route is not None:
+            self.route.reset()
         self.round_points = 0.0; self.round_gems = 0; self.round_falls = 0; self.round_uses = {}
         self.pk = {'on': [0.0, 0], 'off': [0.0, 0], 'none': [0.0, 0]}
         self.rw = {'fire': [0.0, 0], 'all': [0.0, 0]}
         self.round_id += 1
         self.hist = []
+        if self.practice_recorder is not None:
+            self.practice_recorder.history.clear()
 
     def start_segment(self):
         tb = time.perf_counter()
@@ -296,7 +393,7 @@ class InstanceWorker:
                 if self.env.round_ended:
                     self.env.wait_new_round()
                 else:
-                    self.env.request_info(); self.env.set_speed(GAME_SPEED)
+                    self.configure_reconnected_game()
                 self.sync_map()
                 self.log(f'new round (game connection {self.env.connections})')
         self.obs_b.reset()
@@ -305,6 +402,49 @@ class InstanceWorker:
         self.crop, self.vec, self.on_floor = self._build()
         self.prof['begin'] += time.perf_counter() - tb
 
+    def _reset_try(self):
+        """40.95: per-item TRY state (held type, pickup and blast-charge sequence numbers, the usable item's identity and
+        its drawn flag); try_counts = [TRY items, all usable items] this round."""
+        self.try_held = 0; self.try_seq = 0; self.try_meter = 0.0; self.try_special = False; self.try_blast_seq = 0
+        self.try_last_type = 0; self.try_zero_step = -10 ** 9
+        self.try_ident = None; self.try_flag = False; self.try_counts = [0, 0]; self.try_seen = {}
+
+    def _try_flag(self, raw):
+        """1.0 if the powerup or blast charge usable now was drawn as a TRY item: one draw (USE_TRY_P) when a new item
+        becomes usable (a pickup, or a blast charge after the previous blast went off). A held slot that blinks to 0
+        and back to the same type within 2 s (a respawn) is the same item."""
+        if len(raw) <= RAW_POW_SPECIAL:
+            return 0.0
+        held = int(raw[RAW_POW_HELD]); meter = float(raw[RAW_POW_BLAST]); special = float(raw[RAW_POW_SPECIAL]) > 0.5
+        if held != self.try_held:
+            blink = (held == self.try_last_type and self.steps - self.try_zero_step <= 30
+                     and self.steps - getattr(self, 'try_respawn_step', -10 ** 9) <= 60)   # 40.97: only after a respawn
+            if held > 0 and not blink:
+                self.try_seq += 1
+            if held == 0 and self.try_held > 0:
+                self.try_last_type = self.try_held; self.try_zero_step = self.steps
+            self.try_held = held
+        if meter < self.try_meter - 0.05 or (self.try_special and not special):
+            self.try_blast_seq += 1                       # a blast went off: the next charge is a new item
+        self.try_meter = meter; self.try_special = special
+        if held > 0:
+            ident = ('item', held, self.try_seq)
+        elif meter >= BLAST_REQUIRED or special:
+            ident = ('blast', self.try_blast_seq)
+        else:
+            ident = None
+        if ident != self.try_ident:
+            self.try_ident = ident
+            if ident is None:
+                self.try_flag = False
+            elif ident in self.try_seen:                  # the same item again (e.g. after a held-slot blink)
+                self.try_flag = self.try_seen[ident]
+            else:
+                self.try_flag = bool(self.rng.random() < USE_TRY_P)
+                self.try_seen[ident] = self.try_flag
+                self.try_counts[0] += int(self.try_flag); self.try_counts[1] += 1
+        return 1.0 if self.try_flag else 0.0
+
     def _build(self):
         """The observation for the next decision: obs.build plus the V10 use state (40.26). In a drill the Super Speed
         has just been spent, so the held slot (and the blast meter) read empty whatever the game holds."""
@@ -312,12 +452,22 @@ class InstanceWorker:
         if self.drill_stage == 1 and len(raw) > RAW_POW_HELD:
             raw = np.array(raw, dtype=np.float64)
             raw[RAW_POW_HELD] = 0.0; raw[RAW_POW_BLAST] = 0.0; raw[RAW_POW_SPECIAL] = 0.0
-        crop, vec, on_floor = self.obs_b.build(raw, self.goal, self.segs.next_goal())
+        nav_goal = self.goal
+        self.pathed = False
+        if self.real and (not self.drill or self.drill_stage == 4) and not DIRECT_GEM:
+            nav_goal, self.pathed = self.route.navigate(raw[:3], self.goal)
+        crop, vec, on_floor = self.obs_b.build(raw, nav_goal, self.segs.next_goal(), gem_goal=self.goal)
         fill_use_state(vec, self.use_sent[0], self.use_sent[1], self.pending_since is not None, self.latched_aim,
                        (self.steps - self.ss_fire_step) * OBS_MS / 1000.0)
+        vec[VEC_USE_TRY] = self._try_flag(raw) if (self.real and not self.drill) else 0.0   # 40.95 (not a network input)
+        recorder = getattr(self, 'practice_recorder', None)
+        if recorder is not None and self.real and not self.drill:
+            recorder.observe(self.env, self.goal, nav_goal, self.segs.next_goal(), vec,
+                             [*self.use_sent, self.pending_since is not None, self.latched_aim,
+                              (self.steps - self.ss_fire_step) * OBS_MS / 1000.0], self.round_id)
         if self.real and not self.drill and LIVE_RECORD:
             ng = self.segs.next_goal()
-            self.hist.append({'raw': [float(q) for q in self.env.msg.obs], 'goal': list(self.goal),
+            self.hist.append({'raw': [float(q) for q in self.env.msg.obs], 'goal': list(nav_goal), 'gem_goal': list(self.goal),
                               'next': list(ng) if ng is not None else None,
                               'world': self.env.replay_world,
                               'use': [self.use_sent[0], self.use_sent[1], self.pending_since is not None,
@@ -369,10 +519,12 @@ class InstanceWorker:
                 return g
         return None
 
-    def begin_replay(self, s):
+    def begin_replay(self, s, handling=None):
         validate_start(s, self.replay_window_ms)
         self.replay_start_ms = restore_replay(self.env, s, self.replay_window_ms)
         self.recovery_pending = False
+        self.route.reset(); self.recovery.reset()
+        self.phi_prev = None; self.phi_key = None; self.fall_charge = None; self.ground_ref = None
         self.segs.abandon()
         self.segs.pending_respawn = False; self.segs.pending_mark = None
         self.goal = tuple(s['goal'])
@@ -380,20 +532,67 @@ class InstanceWorker:
         self.target = (*self.goal, 1.0, 0.0)  # chooser preserves the recorded first target
         self.obs_b.reset(); self.smooth_dir = None
         self.use_sent = [False, False]; self.pending_since = None; self.latched_aim = None
+        self.last_use_request = None
         self.ss_fire_step = -10**9; self.redirect_sent = -10**9
         self.redirect_open = []; self.fire_pending = None
         self.seg_steps = 0; self.ep_reward = 0.0
         self.drill_cur = {'id': s['id'], 't0': self.steps, 'n1': None, 'n2': None,
                           'v0': math.hypot(*s['world']['pose'][3:5]), 'ret': 0.0,
-                          'ngoals': 0, 'fire': None, 'falls': 0, 'picks': [], 'points': 0.0}
+                          'ngoals': 0, 'fire': None, 'falls': 0, 'picks': [], 'points': 0.0,
+                          'activation_events': [], 'use_requests': {}}
         self.warm = []
         ob = ObsBuilder(self.terrain)
         for row in s.get('hist', []):
-            c, v, _ = ob.build(np.asarray(row['raw']), tuple(row['goal']), row.get('next'))
+            c, v, _ = ob.build(np.asarray(row['raw']), tuple(row['goal']), row.get('next'), gem_goal=row.get('gem_goal'))
             fill_use_state(v, *row.get('use', [False, False, False, None, USE_T_SCALE_WARM]))
             self.warm.append((c, v))
         self.crop, self.vec, self.on_floor = self._build()
+        self.drill_cur['mode'] = 'judgment'
+        self.drill_cur['resource'] = int(self.env.msg.obs[RAW_POW_HELD])
+        self.drill_cur['reset_activation_ms'] = 0
+        activate = handling if handling is not None else PRACTICE_MODE == 'handling'
+        if activate:
+            self._activate_handling_reset()
         return self.goal
+
+    def _activate_handling_reset(self):
+        """Consume recorded SJ/SS/Helicopter/blast before requesting a PPO action."""
+        from nav.protocol import NOOP_ACTION
+        held = int(self.env.msg.obs[RAW_POW_HELD])
+        charge = float(self.env.msg.obs[RAW_POW_BLAST])
+        if held not in (1, 2, 5) and not (held == 0 and charge >= BLAST_REQUIRED):
+            raise ValueError('handling fixture needs recorded SJ/SS/Helicopter or charged blast')
+        clock = self.env.replay_world['clock_ms']
+        next_goal = self.segs.next_goal()
+        setup_points = 0.0
+        consumed = False
+        for _ in range(8):
+            self.warm.append((self.crop.copy(), self.vec.copy()))
+            msg, info = self.env.step(NOOP_ACTION, use_pow=int(held > 0),
+                                      use_blast=int(held == 0), repeat=1)
+            if info['fell'] or info['round_ended'] or info['reconnected']:
+                raise RuntimeError('handling reset activation crossed a fall or game boundary')
+            setup_points += float(info['gem_delta'])
+            self.use_sent = [True, self.use_sent[0]]
+            self.crop, self.vec, self.on_floor = self._build()
+            consumed = (int(msg.obs[RAW_POW_HELD]) != held if held else
+                        float(msg.obs[RAW_POW_BLAST]) < charge - .05)
+            if consumed:
+                break
+        if not consumed:
+            raise RuntimeError('handling reset activation was not confirmed by engine inventory')
+        # Release the key; none of these reset transitions enter the rollout or its reward.
+        self.warm.append((self.crop.copy(), self.vec.copy()))
+        _, info = self.env.step(NOOP_ACTION, repeat=1)
+        if info['fell'] or info['round_ended'] or info['reconnected']:
+            raise RuntimeError('handling reset release crossed a fall or game boundary')
+        setup_points += float(info['gem_delta'])
+        self.use_sent = [False, True]
+        self.replay_start_ms = self.env.replay_world['clock_ms']
+        self.drill_cur.update(mode='handling', reset_activation_ms=self.replay_start_ms - clock,
+                              reset_points=setup_points)
+        self.segs.begin_replay(self.env.pos(), self.goal, next_goal)
+        self.crop, self.vec, self.on_floor = self._build()
 
     def _write_live(self, rec):
         """Append a restorable approach fixture, even when the later manoeuvre fails."""
@@ -408,18 +607,23 @@ class InstanceWorker:
             self._record_approach_at(lookback)
 
     def _record_approach_at(self, lookback):
+        # Reconnect clears current telemetry before the new mission is configured.
+        # Never pair an old history row with a missing/new connection catalog.
+        world = self.env.replay_world
+        if world is None or self.env.replay_catalog is None or self.env.reconnected:
+            return
         if len(self.hist) < lookback + 2:
             return
         k = len(self.hist) - lookback - 1
         row = self.hist[k]
-        if row['world'] is None:
+        if row['world'] is None or world['clock_ms'] < row['world']['clock_ms']:
             return
         group = f'{self.session_id}:{self.round_id}'
         s = {'schema': SCHEMA, 'id': f'{group}:{row["world"]["clock_ms"]}', 'split_group': group,
              'mission': self.mission, 'catalog': self.env.replay_catalog, 'world': row['world'],
-             'raw': row['raw'], 'goal': row['goal'], 'next': row['next'],
+             'raw': row['raw'], 'goal': row.get('gem_goal', row['goal']), 'next': row['next'],
              'hist': [{key: value for key, value in h.items() if key != 'world'} for h in self.hist[:k][-LIVE_HIST:]],
-             'approach_ms': self.env.replay_world['clock_ms'] - row['world']['clock_ms'],
+             'approach_ms': world['clock_ms'] - row['world']['clock_ms'],
              'lookback_decisions': lookback,
              'behavior': os.environ.get('NAV_COLLECTION_BEHAVIOR', 'policy')}
         try:
@@ -438,6 +642,11 @@ class InstanceWorker:
             self.last_drill_result = {'id': c['id'], 'status': 'ok', 'points': c['points'],
                                      'falls': c['falls'], 'pickup_times_ms': c['picks'],
                                      'fired': c['fire'] is not None, 'elapsed_ms': elapsed,
+                                     'mode': c.get('mode', 'judgment'), 'resource': c.get('resource'),
+                                     'reset_activation_ms': c.get('reset_activation_ms', 0),
+                                     'reset_points': c.get('reset_points', 0),
+                                     'activation_events': c.get('activation_events', []),
+                                     'use_requests': c.get('use_requests', {}),
                                      'outcome': outcome}
             self.log('WINDOW ' + json.dumps(self.last_drill_result, separators=(',', ':')))
             self.drill_cur = None
@@ -464,9 +673,131 @@ class InstanceWorker:
             self.drill_agg = {'n': 0, 'hit1': 0, 'hit2': 0, 'fell': 0, 't1': 0.0, 't2': 0.0, 'ret': 0.0}
         self.drill_cur = None
 
+    def _phi(self, pos):
+        """-(route distance) at pos for the current gem, or None where it is undefined (no route, or no floor level
+        within POTENTIAL_GROUND_U of the marble height: over a void, high in a flight) so the caller keeps the last."""
+        if self.route is None or self.goal is None:
+            return None
+        if self.route.key != goal_key(self.goal):
+            self.route.navigate(pos, self.goal)
+        x, y, z = (float(v) for v in pos[:3])
+        j, i = self.terrain.cell_of(x, y)
+        k = self.terrain.level_at(j, i, z)
+        if k < 0 or abs(float(self.terrain.walk_z[k, j, i]) - z) > POTENTIAL_GROUND_U:
+            return None
+        d = self.route.distance((x, y, z))
+        return -float(d) if (math.isfinite(d) and d < 1e6) else None
+
+    def _shaping(self, pos_after, duration_steps, terminal, key_before):
+        """The potential term for this transition; updates the shaping state. 0 unless points mode with POTENTIAL_K > 0."""
+        if POTENTIAL_K <= 0.0 or not (self.real and (not self.drill or
+                                                   (self.drill_stage == 4 and SHAPING_MODE == 'discounted'))):
+            return 0.0
+        key_after = goal_key(self.goal) if self.goal is not None else None
+        changed = key_after != key_before
+        phi_after = None if terminal else self._phi(pos_after)
+        if phi_after is None and not terminal:
+            self.shape_frozen += 1
+        # 2026-10-11 (operator: "You can charge every fall"; log 40.95): in the legacy mode a target switch zeroes the
+        # term and re-bases the potential, so a fall followed by a new target at the respawn (27 % of A2's falls) was
+        # never charged while the progress made before it had been paid. Now a fall is charged against the gem it was
+        # chasing (its route field at the fall) as soon as the marble is back on the floor, whatever the new target.
+        if SHAPING_MODE != 'discounted' and getattr(self, 'fall_charge', None) is not None:
+            if terminal:
+                self.fall_charge = None                       # round over: the ordinary terminal handling below
+            elif phi_after is None:
+                return 0.0                                    # still in the air / over the void: the charge waits
+            else:
+                ogoal, ofield = self.fall_charge
+                self.fall_charge = None
+                x, y, z = (float(v) for v in pos_after[:3])
+                d_old = self.terrain.dist_at(ofield, x, y, ogoal[:2], z=z)
+                term = (POTENTIAL_K * (-float(d_old) - self.phi_prev)
+                        if (self.phi_prev is not None and math.isfinite(d_old) and d_old < 1e6) else 0.0)
+                self.round_fall_charge = getattr(self, 'round_fall_charge', 0.0) + term
+                self.phi_prev = phi_after; self.phi_key = key_after
+                self._ground_ref(phi_after, key_after)
+                self.round_shaping += term
+                return term
+        if SHAPING_MODE == 'discounted':
+            term = potential_term(self.phi_prev, phi_after, duration_steps, SHAPING_GAMMA, POTENTIAL_K,
+                                  terminal=terminal)
+        else:
+            term = legacy_progress_term(self.phi_prev, phi_after, POTENTIAL_K,
+                                        terminal=terminal, goal_changed=changed)
+        if terminal:
+            self.phi_prev = None; self.phi_key = None
+        elif changed and SHAPING_MODE != 'discounted':
+            self.phi_prev = self._phi(pos_after); self.phi_key = key_after
+        else:
+            if phi_after is not None:
+                self.phi_prev = phi_after
+            self.phi_key = key_after
+        if not terminal and phi_after is not None:
+            self._ground_ref(phi_after, key_after)
+        elif terminal:
+            self.ground_ref = None
+        self.round_shaping += term
+        return term
+
+    def _ground_ref(self, phi, key):
+        """40.97 (review): the gem, its route field and the potential at the last decision on a route floor. A fall is
+        charged against this, so a target switch while airborne, before the out-of-bounds step, cannot skip the charge."""
+        route = getattr(self, 'route', None)
+        if self.goal is None or route is None or route.key != key:
+            self.ground_ref = None
+            return
+        self.ground_ref = (tuple(self.goal[:3]), route.field, float(phi))
+
+    def finish_round_transition(self, info, reward, ep=None, duration_steps=1.0):
+        if self.drill_stage == 4 and DRILL_EVAL:
+            raise RuntimeError('round ended or connection changed during named replay')
+        ended = bool(info['round_ended'])
+        ep = self.ep_reward + reward if ep is None else ep
+        round_stats = None
+        if ended and self.real and not self.drill and self.segs.seg is not None:
+            self.segs.seg.outcome = 'round'
+            self.segs._record(self.segs.seg, 'round')
+            round_stats = self.segs.stats()
+        self.segs.abandon()
+        self._round_over()
+        if ended:
+            self.env.wait_new_round()
+        else:
+            self.configure_reconnected_game()
+        self.sync_map()
+        self.log(f'new round (game connection {self.env.connections}); rtf {self.env.rtf():.1f}')
+        self.ep_reward = 0.0
+        self.start_segment()
+        return self._reply(skip=not ended, truncate=0, r=reward, done=ended, outcome='round',
+                           new_segment=True, trace='', stats=round_stats, ep_reward=ep,
+                           duration_steps=duration_steps)
+
     # ------------------------------------------------------------------ one decision
+    def _transition_duration(self, clock_before, time_before):
+        world = self.env.replay_world
+        if clock_before is not None and world is not None and world['clock_ms'] >= clock_before:
+            return max(1.0, (world['clock_ms'] - clock_before) / OBS_MS)
+        if self.env.reconnected:
+            return 1.0  # Connection-boundary transitions are skipped, not discounted across game clocks.
+        return max(1.0, (simulation_time(self.env) - time_before) * 1000 / OBS_MS)
+
     def step(self, a_game):
         clock_before = self.env.replay_world['clock_ms'] if self.env.replay_world else None
+        time_before = simulation_time(self.env)
+        key_before = goal_key(self.goal) if self.goal is not None else None
+        if POTENTIAL_K > 0.0 and self.real and (not self.drill or
+                                               (self.drill_stage == 4 and SHAPING_MODE == 'discounted')):
+            if self.phi_prev is None or (SHAPING_MODE != 'discounted' and self.phi_key != key_before
+                                         and getattr(self, 'fall_charge', None) is None):   # 40.95: a pending fall keeps its potential
+                self.phi_prev = self._phi(self.env.msg.obs[:3])
+                if self.phi_prev is None and SHAPING_MODE == 'discounted':
+                    self.phi_prev = 0.0
+                self.phi_key = key_before
+        # 40.95: the gem and route field this decision starts from, for charging a fall against them (see _shaping)
+        goal_before = self.goal
+        route = getattr(self, 'route', None)
+        field_before = route.field if (route is not None and route.key == key_before) else None
         vel = self.env.msg.obs[RAW_VEL]
         a = [float(v) for v in a_game]
         if ACTION_SMOOTH < 1.0:
@@ -510,6 +841,20 @@ class InstanceWorker:
             if self.pending_since is None:
                 self.pending_since = self.steps
             self.latched_aim = (ax, ay)           # the bridge re-latches the yaw on every use word
+        # 2026-10-09 20:45 (operator): every held powerup (1 Super Jump, 3 Super Bounce, 4 Shock Absorber, 5 Helicopter,
+        # 6 Mega Marble, 7 Blast pickup) is used with the ordinary use key whenever the policy says so; the blast when
+        # nothing is held. Super Speed (2) keeps its aimed dispatch above.
+        if len(a) >= 6 and a[5] > .5 and self.drill_stage != 1 and not DRILL_NO_USE and held != 2:
+            if held > 0:
+                use_pow = 1; sent = True
+                self.round_uses[f'u{held}'] = self.round_uses.get(f'u{held}', 0) + 1
+            else:
+                use_blast = 1; sent = True
+        if sent:
+            self.last_use_request = (held, self.steps)
+            if self.drill_cur is not None and self.drill_stage == 4:
+                requests = self.drill_cur['use_requests']
+                requests[str(held)] = requests.get(str(held), 0) + 1
         tg = time.perf_counter()
         if TRAIN_WATCH:
             # hold each decision to OBS_MS of wall clock, the same pacing real_run uses in WATCH
@@ -525,8 +870,11 @@ class InstanceWorker:
         if self.real and self.recovery_pending:
             # Recovery occupies an ordinary timed transition, with its own score delta.
             self.recovery_pending = False
+            self.last_use_request = None
             self.env.round_ended = False; self.env.reconnected = False
             self.env.control('OOBCLICK')
+            if self.practice_recorder is not None:
+                self.practice_recorder.history.clear()
             msg = self.env.msg
             info = {'fell': bool(msg.oob), 'gem_delta': msg.gem_delta,
                     'round_ended': self.env.round_ended, 'reconnected': self.env.reconnected}
@@ -534,11 +882,42 @@ class InstanceWorker:
         else:
             msg, info = self.env.step(js, use_pow=use_pow, pow_yaw=pow_yaw, use_blast=use_blast)
         self.prof['game'] += time.perf_counter() - tg
+        if info['round_ended'] or info['reconnected']:
+            # The observation can already belong to another game. Handle the
+            # boundary before inventory accounting, recording, or old-map routing.
+            duration = self._transition_duration(clock_before, time_before)
+            term = (self._shaping(msg.obs[:3], duration, True, key_before)
+                    if info['round_ended'] else 0.0)
+            self.round_points += float(info['gem_delta'])
+            return self.finish_round_transition(info, float(info['gem_delta']) + term,
+                                                duration_steps=duration)
+        if info['fell']:
+            self.try_respawn_step = self.steps                          # 40.97: a held-slot blink follows a respawn
+        gr = getattr(self, 'ground_ref', None)
+        if FALL_CHARGE and info['fell'] and getattr(self, 'fall_charge', None) is None and gr is not None and gr[1] is not None:
+            # 40.95/40.97: charged once back on the floor, against the gem chased at the last floor contact
+            self.fall_charge = (gr[0], gr[1]); self.phi_prev = gr[2]
         held_now = int(msg.obs[RAW_POW_HELD]) if len(msg.obs) > RAW_POW_HELD else 0
-        self.use_sent = [sent, self.use_sent[0]]                   # 40.26 V10 use state
-        if held > 0 and held_now == 0 and not info['fell'] and self.drill_stage != 1:   # the held powerup went: fired (or lost to a respawn)
-            if self.drill_stage >= 2 and held == 2 and self.drill_cur is not None and self.drill_cur['fire'] is None:
+        recent_request = getattr(self, 'last_use_request', None)
+        requested = (recent_request is not None and 0 <= self.steps - recent_request[1] <= 8)
+        blast_fired = (requested and recent_request[0] == 0 and not info['fell']
+                       and float(msg.obs[RAW_POW_BLAST]) < float(prev_obs[RAW_POW_BLAST]) - .05)
+        if blast_fired:
+            self.round_uses['blast'] = self.round_uses.get('blast', 0) + 1
+            if self.drill_cur is not None and self.drill_stage == 4:
+                self.drill_cur['activation_events'].append(dict(resource=0, time_ms=self.env.replay_world['clock_ms'] - self.replay_start_ms))
+            if self.drill_cur is not None and self.drill_cur['fire'] is None:
                 self.drill_cur['fire'] = self.steps - self.drill_cur['t0'] + 1
+        if not info['fell'] and ((held == 1 and held_now == 0 and requested and recent_request[0] == 1) or blast_fired):
+            self.recovery.escape_use(simulation_time(self.env))
+        if info['fell']:
+            self.last_use_request = None
+        self.use_sent = [sent, self.use_sent[0]]                   # 40.26 V10 use state
+        if held > 0 and held_now == 0 and not info['fell'] and self.drill_stage != 1 and requested and recent_request[0] == held:
+            if self.drill_stage >= 2 and requested and recent_request[0] == held and self.drill_cur is not None and self.drill_cur['fire'] is None:
+                self.drill_cur['fire'] = self.steps - self.drill_cur['t0'] + 1
+            if self.drill_stage == 4 and requested and recent_request[0] == held and self.drill_cur is not None:
+                self.drill_cur['activation_events'].append(dict(resource=held, time_ms=self.env.replay_world['clock_ms'] - self.replay_start_ms))
             self.round_uses[f'f{held}'] = self.round_uses.get(f'f{held}', 0) + 1
             if held == 2:
                 self.ss_fire_step = self.steps; self.fire_pending = self.steps
@@ -590,31 +969,6 @@ class InstanceWorker:
             self.env.control('RESPAWN')
             self.start_segment()
             return self._reply(skip=True, truncate=k)
-        if info['round_ended'] or info['reconnected']:
-            if self.drill_stage == 4 and DRILL_EVAL:
-                raise RuntimeError('round ended or connection changed during named replay')
-            ended = bool(info['round_ended'])
-            final_reward = float(info['gem_delta'])
-            ep = self.ep_reward + final_reward
-            round_stats = None
-            if ended and self.real and not self.drill and self.segs.seg is not None:
-                # 2026-10-05 22:40 (operator: the speed, falls and seconds-per-pickup cards were empty with every game on
-                # full rounds): a real round is one whole segment; record it so SegmentManager.stats() reports it
-                self.segs.seg.outcome = 'round'
-                self.segs._record(self.segs.seg, 'round')
-                round_stats = self.segs.stats()
-            self.segs.abandon()
-            self._round_over()
-            if info['round_ended']:
-                self.env.wait_new_round()
-            else:
-                self.env.request_info(); self.env.set_speed(GAME_SPEED)
-            self.sync_map()
-            self.log(f'new round (game connection {self.env.connections}); rtf {self.env.rtf():.1f}')
-            self.ep_reward = 0.0
-            self.start_segment()
-            return self._reply(skip=not ended, truncate=0, r=final_reward, done=ended, outcome='round',
-                               new_segment=True, trace='', stats=round_stats, ep_reward=ep, duration_steps=1.0)
         airborne = not self.on_floor
         r, done, outcome = self.segs.step(msg.obs[:3], info['fell'], airborne, info['round_ended'], self.env.time_left_s(),
                                           braked=a[4] > 0.5, airborne_decisions=self.obs_b.airborne,
@@ -684,23 +1038,68 @@ class InstanceWorker:
                  f'{int(self.on_floor)},{js[0]:.2f},{js[1]:.2f},{js[2]:.2f},{js[3]:.2f},{js[4]},{int(a[4] > 0.5)},{int(info["fell"])},'
                  f'{r:.2f},{int(done)},{outcome or ""},{self.segs.seg.prev_d:.1f},{self.goal[0]:.1f},{self.goal[1]:.1f}')
         self.steps += 1
-        duration_steps = ((self.env.replay_world['clock_ms'] - clock_before) / OBS_MS
-                          if clock_before is not None else 1.0)
+        duration_steps = self._transition_duration(clock_before, time_before)
         if self.real:
             vis = visible_gems(msg.obs)
             if vis:
                 tgt, nxt = self.pick(vis, self.target, msg.obs[0:3], msg.obs[3:5])
                 g = self.segs.seg.goal
                 want = (nxt[:3] if nxt else None)
-                if tgt is not None and math.hypot(tgt[0] - g[0], tgt[1] - g[1]) > STICKY_TOL:
-                    self.segs.retarget(float(msg.obs[0]), float(msg.obs[1]), tgt[:3], want)
+                if tgt is not None and (math.hypot(tgt[0] - g[0], tgt[1] - g[1]) > STICKY_TOL or abs(tgt[2] - g[2]) > .25):
+                    self.segs.retarget(float(msg.obs[0]), float(msg.obs[1]), tgt[:3], want, z=float(msg.obs[2]))
                     self.goal = self.segs.seg.goal
                     # Cosmetic MARK controls advance the simulation; omit them in scored transitions.
                 elif tgt is not None:
                     nn = self.segs.seg.real_next
                     if (nn is None) != (want is None) or (want is not None and math.hypot(want[0] - nn[0], want[1] - nn[1]) > STICKY_TOL):
-                        self.segs.set_next(float(msg.obs[0]), float(msg.obs[1]), want)
+                        self.segs.set_next(float(msg.obs[0]), float(msg.obs[1]), want, z=float(msg.obs[2]))
                 self.target = tgt
+        rescued = False
+        if self.real and not self.drill and not done and self.env.round_started():
+            self.route.navigate(msg.obs[:3], self.goal)
+            now = simulation_time(self.env)
+            keys = [goal_key(g) for g in visible_gems(msg.obs)]
+            idle = self.recovery.observe(now, goal_key(self.goal), self.route.distance(msg.obs[:3]),
+                                         picked=info['gem_delta'], fell=info['fell'], gems=keys,
+                                         groups_completed=(self.env.replay_world or {}).get('group_completions'))
+            if RESCUE_S > 0 and idle >= RESCUE_S and keys and not info['fell']:
+                self.recovery.rescue_attempts += 1
+                rescued = self.env.quick_rescue()
+                extra = float(self.env.control_info['gem_delta'])
+                r += extra; self.round_points += extra; self.round_gems += int(extra > 0)
+                self.ep_reward += extra
+                for key in ('fell', 'round_ended', 'reconnected'):
+                    info[key] |= self.env.control_info[key]
+                if info['round_ended'] or info['reconnected']:
+                    duration_steps = self._transition_duration(clock_before, time_before)
+                    term = (self._shaping(self.env.msg.obs[:3], duration_steps, True, key_before)
+                            if info['round_ended'] else 0.0)
+                    r += term; self.ep_reward += term
+                    return self.finish_round_transition(info, r, ep=self.ep_reward,
+                                                        duration_steps=duration_steps)
+                if rescued:
+                    self.ground_ref = None; self.try_respawn_step = self.steps   # 40.97: a teleport, not a fall
+                    self.last_use_request = None
+                    if self.practice_recorder is not None:
+                        self.practice_recorder.history.clear()
+                    self.route.reset()
+                    self.route.navigate(self.env.msg.obs[:3], self.goal)
+                    self.recovery.rescued(simulation_time(self.env), self.route.distance(self.env.msg.obs[:3]))
+                    self.obs_b.reset(); self.smooth_dir = None
+                    self.pending_since = None; self.latched_aim = None; self.use_sent = [False, False]
+                    self.segs.seg.last_pos = np.asarray(self.env.msg.obs[:3], dtype=float)
+                    self.segs.seg.prev_d = self.route.distance(self.env.msg.obs[:3])
+                    self.hist = []  # a replay approach must not bridge the rescue discontinuity
+                else:
+                    self.recovery.last_progress = simulation_time(self.env)
+                why = next((l.split('RESCUE|', 1)[1] for l in reversed(self.env.recent_lines) if 'RESCUE|' in l), '')
+                self.log(f'RESCUE map={self.mission} accepted={int(rescued)} idle_s={idle:.2f} game_s={simulation_time(self.env):.3f} game_reply={why}')
+        # Controls/recovery are part of this transition, not dropped or charged as one tick.
+        duration_steps = self._transition_duration(clock_before, time_before)
+        term = self._shaping(self.env.msg.obs[:3], duration_steps, bool(info['round_ended']), key_before)
+        r += term; self.ep_reward += term
+        if info['round_ended'] or info['reconnected']:
+            return self.finish_round_transition(info, r, ep=self.ep_reward, duration_steps=duration_steps)
         stats = None; ep = None
         if done:
             if self.drill_stage == 4:
@@ -719,7 +1118,7 @@ class InstanceWorker:
             tg = time.perf_counter()
             self.crop, self.vec, self.on_floor = self._build()
             self.prof['obs'] += time.perf_counter() - tg
-        return self._reply(skip=False, r=r, done=done, outcome=outcome, new_segment=bool(done), fell=info['fell'],
+        return self._reply(skip=False, r=r, done=done, outcome=outcome, new_segment=bool(done or rescued), fell=info['fell'],
                            trace=trace, stats=stats, ep_reward=ep,
                            duration_steps=duration_steps,
                            truncated=bool(done and outcome == 'window'))

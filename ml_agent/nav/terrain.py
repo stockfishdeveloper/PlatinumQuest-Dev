@@ -38,7 +38,8 @@ def gem_spawn_points(map_name):
     try:
         sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         from generate_terrain_map import resolve_mission
-        txt = io.open(resolve_mission(map_name), encoding='utf-8', errors='ignore').read()
+        with io.open(resolve_mission(map_name), encoding='utf-8', errors='ignore') as f:
+            txt = f.read()
         for m in re.finditer(r'new\s+Item\s*\([^)]*\)\s*\{(.*?)\};', txt, re.S):
             body = m.group(1)
             db = re.search(r'dataBlock\s*=\s*"([^"]+)"', body)

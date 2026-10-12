@@ -10,7 +10,7 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 
-from nav.model import HIDDEN, ACTION_DIM
+from nav.model import HIDDEN, ACTION_DIM, RANGE_COEF
 from nav.terrain import CROP_SHAPE
 from nav.obs import VEC_DIM
 
@@ -218,7 +218,7 @@ def ppo_update(model, opt, rolls, last_values, log=print, critic_only=False):
     # 32-step GRU unroll and costs the same whatever the batch, and the GPU is shared with the
     # game instances (16 s per 8192-sample update at 8 minibatches x 4 epochs, 2026-09-18)
     mb = max(MINIBATCH_SEQS, nseq // 2)
-    stats = {'pl': 0.0, 'vl': 0.0, 'ent': 0.0, 'ent_d': 0.0, 'kl': 0.0, 'clipfrac': 0.0, 'gn': 0.0, 'n': 0}
+    stats = {'pl': 0.0, 'vl': 0.0, 'ent': 0.0, 'ent_d': 0.0, 'kl': 0.0, 'clipfrac': 0.0, 'gn': 0.0, 'rng': 0.0, 'n': 0}
     stop = False
     for epoch in range(EPOCHS):
         perm = torch.randperm(nseq, device=dev)
@@ -236,16 +236,25 @@ def ppo_update(model, opt, rolls, last_values, log=print, critic_only=False):
             pl = -torch.min(ratio * a, torch.clamp(ratio, 1 - CLIP, 1 + CLIP) * a).mean()
             v_clipped = old_vn[idx] + torch.clamp(vn - old_vn[idx], -CLIP, CLIP)
             vl = torch.max(F.mse_loss(vn, ret_s[idx], reduction='none'), F.mse_loss(v_clipped, ret_s[idx], reduction='none')).mean()
+            # 2026-10-11 (log 40.89): pull raw jump/use outputs that ran past their soft ceilings back into range, so the
+            # hold-off samples can teach them (model.RANGE_COEF; a loss on the outputs, never part of the reward)
+            rng = model.last_range_penalty.mean()
             loss = (VALUE_COEF * vl if critic_only else
-                    pl + VALUE_COEF * vl - _ent_coef * ent.mean() - DISCRETE_ENT_COEF * ent_d.mean())
+                    pl + VALUE_COEF * vl - _ent_coef * ent.mean() - DISCRETE_ENT_COEF * ent_d.mean() + RANGE_COEF * rng)
             opt.zero_grad(); loss.backward()
+            if critic_only:
+                # Value loss flows through the shared encoder/GRU. Clearing their
+                # gradients also prevents Adam momentum from moving the actor.
+                for name, parameter in model.named_parameters():
+                    if not name.startswith('value_head.'):
+                        parameter.grad = None
             gn = torch.nn.utils.clip_grad_norm_(model.parameters(), MAX_GRAD_NORM)
             opt.step()
             with torch.no_grad():
                 kl = (old_logp[idx] - logp).mean().item()
                 stats['pl'] += pl.item(); stats['vl'] += vl.item(); stats['ent'] += ent.mean().item(); stats['ent_d'] += ent_d.mean().item()
                 stats['kl'] += kl; stats['clipfrac'] += ((ratio - 1).abs() > CLIP).float().mean().item()
-                stats['gn'] += float(gn); stats['n'] += 1
+                stats['gn'] += float(gn); stats['rng'] += rng.item(); stats['n'] += 1
             if kl > TARGET_KL:
                 stop = True; break
         if stop:

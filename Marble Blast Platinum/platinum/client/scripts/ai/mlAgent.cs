@@ -441,7 +441,39 @@ function MLAgent::update(%gen) {
     //   "MARK x y z"                   show the navigator's waypoint as a pad (cosmetic)
     //   "GEMRESET"                     drill maps: respawn the gem group if no gem is up
     //   "CONTACT 1|0"                  append the engine's contact telemetry to each observation
-    if (getWord(%actionStr, 0) $= "STATS") {
+    if (getWord(%actionStr, 0) $= "GAMERULES") {
+        // Local training/evaluation host only. The preference persists across round resets.
+        $MLAgent::Competitive = getWord(%actionStr, 1) + 0;
+        $MPPref::Server::CompetitiveMode = ($MLAgent::Competitive == 1);
+        AIBridge::sendState("RULES|" @ ($MPPref::Server::CompetitiveMode + 0));
+        $AIBridge::LastAction = "";
+        %actionStr = "";
+    } else if (getWord(%actionStr, 0) $= "QUICKRESPAWN") {
+        // Same server command as the human key. Never bypass competitive-mode/cooldown gates.
+        %accepted = false;
+        if (isObject(ClientGroup) && ClientGroup.getCount() == 1) {
+            %cl = ClientGroup.getObject(0);
+            if (!$Game::Finished && $Game::State !$= "End" &&
+                $MPPref::AllowQuickRespawn && !$MPPref::Server::CompetitiveMode &&
+                %cl.canQuickRespawn && !%cl.isOOB && isObject(%cl.player)) {
+                serverCmdQuickRespawn(%cl);
+                %accepted = true;
+            }
+        }
+        // 2026-10-09 20:30: the 1x review's rescues were refused (RESCUE|0) with no reason visible: report every gate
+        %why = "";
+        if (!%accepted && isObject(ClientGroup) && ClientGroup.getCount() == 1) {
+            %cl = ClientGroup.getObject(0);
+            %why = "finished=" @ ($Game::Finished + 0) @ ",state=" @ $Game::State @ ",allow=" @ ($MPPref::AllowQuickRespawn + 0)
+                 @ ",comp=" @ ($MPPref::Server::CompetitiveMode + 0) @ ",can=" @ (%cl.canQuickRespawn + 0)
+                 @ ",oob=" @ (%cl.isOOB + 0) @ ",player=" @ (isObject(%cl.player) + 0) @ ",clients=" @ ClientGroup.getCount();
+        } else if (!%accepted) {
+            %why = "clients=" @ (isObject(ClientGroup) ? ClientGroup.getCount() : -1);
+        }
+        AIBridge::sendState("RESCUE|" @ (%accepted + 0) @ (%why $= "" ? "" : "|" @ %why));
+        $AIBridge::LastAction = "";
+        %actionStr = "";
+    } else if (getWord(%actionStr, 0) $= "STATS") {
         AIBridge::sendState("STATS|" @ $AIBridge::DelayedReplies @ "," @ $AIBridge::LateReplies @ ","
                             @ $AIBridge::HeldTicks @ "," @ $MLAgent::ActionDelay @ "," @ $MLAgent::Tick);
         $AIBridge::DelayedReplies = 0; $AIBridge::LateReplies = 0; $AIBridge::HeldTicks = 0;
@@ -945,7 +977,14 @@ function MLAgent::onGameStart() {
 
     $MPPref::AllowQuickRespawn = true;
     $MP::AllowQuickRespawn = true;
-    $MPPref::Server::CompetitiveMode = false;
+    $MPPref::Server::CompetitiveMode = ($MLAgent::Competitive == 1);
+    // Offline Hunt omits the multiplayer onClientEnterGame initialization. Match the
+    // initial human permission; serverCmdQuickRespawn still owns every subsequent cooldown.
+    if ($Server::ServerType $= "SinglePlayer" && isObject(ClientGroup)) {
+        for (%i = 0; %i < ClientGroup.getCount(); %i++)
+            ClientGroup.getObject(%i).setQuickRespawnStatus(true);
+    }
+    $MLAgent::ClearedGroups = 0;
     $pref::Video::disableVerticalSync = true;
 
     echo("MLAgent: Game started, waiting for GO!");
@@ -1102,6 +1141,13 @@ function MLAgent::enableDiagnostic() {
 
 $MLAgent::AutoTrainMission = "";
 for ($MLAgent::_argi = 1; $MLAgent::_argi < $Game::argc; $MLAgent::_argi++) {
+    if ($Game::argv[$MLAgent::_argi] $= "-aiseed" && $MLAgent::_argi + 1 < $Game::argc) {
+        $MLAgent::EvalSeed = $Game::argv[$MLAgent::_argi + 1] + 0;
+        $MLAgent::EvalRound = 0;
+    }
+    if ($Game::argv[$MLAgent::_argi] $= "-aicompetitive" && $MLAgent::_argi + 1 < $Game::argc) {
+        $MLAgent::Competitive = $Game::argv[$MLAgent::_argi + 1] + 0;
+    }
     if ($Game::argv[$MLAgent::_argi] $= "-autotrain" && $MLAgent::_argi + 1 < $Game::argc) {
         $MLAgent::AutoTrainMission = $Game::argv[$MLAgent::_argi + 1];
     }

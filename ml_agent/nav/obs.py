@@ -10,6 +10,7 @@ Layout NAV_OBS_V1 (stored in every checkpoint; change => bump the version):
     later versions append blocks at the end: next gem (V2, 48-52), gap (V3-V5, 53-57), spin (V6, 58-60)
 """
 import math
+import os
 import numpy as np
 
 from terrain_obs import EDGE_DIM
@@ -69,6 +70,11 @@ POW_DIM = 37                  # V10 (40.26): [30] the kick's resulting speed / S
 VEC_USE = VEC_POW + 31
 USE_T_SCALE = 3.0             # s
 VEC_DIM = VEC_POW + POW_DIM   # 98 (91 in V9, 88 in V8, 87 in V7)
+VEC_USE_TRY = 10 + 32 + 2     # 44: 2026-10-11 (log 40.95) the per-item TRY flag (1 = this held powerup / blast charge is an
+                              # exploration item: the USE_EPS floor applies to it). It lives in the unused second gem ray
+                              # (always 0: obs.build passes one gem ray) and is NOT a network input: model.core zeroes it;
+                              # only the use distribution in heads() reads it, so the stored vec makes PPO score exactly the
+                              # distribution that was sampled. Written by the training worker; 0 everywhere else.
 
 
 def fill_use_state(vec, sent1, sent2, pending, aim, t_since_fire):
@@ -209,6 +215,24 @@ WAYPOINT_DIST_SCALE = 50.0
 VEL_SCALE = 20.0
 ON_FLOOR_VZ = 0.3
 ON_FLOOR_DZ = 0.6
+FLOOR_TEST = os.environ.get('NAV_FLOOR_TEST', 'surface')   # 'surface' (10-11, log 40.89) | 'vertical' (the old test)
+
+
+def floor_contact(terrain, x, y, z, vx, vy, vz, floor=None):
+    """The observation's on-floor flag: within ON_FLOOR_DZ of the map's floor and moving along the surface (speed
+    along its normal under ON_FLOOR_VZ). 2026-10-11 (operator; log 40.89): the old test used the VERTICAL speed, so a
+    marble rolling on any slope read "in the air" (Bowl: on the floor in 1 % of A2's decisions against 83 % on KOTM)
+    and the policy could not tell when a jump would fire. On a flat floor (the map's slope under FLAT_SLOPE) the
+    normal is vertical and the test is the old one exactly."""
+    if floor is None:
+        floor = terrain.floor_z(x, y, z)
+    if abs(z - floor) >= ON_FLOOR_DZ:
+        return False
+    if FLOOR_TEST == 'vertical':                  # the pre-10-11 test (A/B and evaluation of older checkpoints)
+        return abs(vz) < ON_FLOOR_VZ
+    sx, sy = terrain.floor_gradient(x, y, floor)
+    vn = (vz - sx * vx - sy * vy) / math.sqrt(1.0 + sx * sx + sy * sy)
+    return abs(vn) < ON_FLOOR_VZ
 
 
 class ObsBuilder:
@@ -221,7 +245,7 @@ class ObsBuilder:
     def reset(self):
         self.airborne = 0
 
-    def build(self, raw, goal, next_goal=None):
+    def build(self, raw, goal, next_goal=None, gem_goal=None):
         x, y, z = (float(v) for v in raw[RAW_POS])
         vx, vy, vz = (float(v) for v in raw[RAW_VEL])
         gx, gy, gz = goal
@@ -230,7 +254,7 @@ class ObsBuilder:
         d = math.hypot(dx, dy)
         ux, uy = (dx / d, dy / d) if d > 1e-6 else (0.0, 0.0)
         floor = self.terrain.floor_z(x, y, z)
-        on_floor = abs(vz) < ON_FLOOR_VZ and abs(z - floor) < ON_FLOOR_DZ
+        on_floor = floor_contact(self.terrain, x, y, z, vx, vy, vz, floor)
         self.airborne = 0 if on_floor else self.airborne + 1
         vec = np.zeros(VEC_DIM, dtype=np.float32)
         vec[0] = ux; vec[1] = uy
@@ -290,6 +314,14 @@ class ObsBuilder:
         vec[VEC_SPIN + 0] = max(-SPIN_CLIP, min(SPIN_CLIP, wy * k))
         vec[VEC_SPIN + 1] = max(-SPIN_CLIP, min(SPIN_CLIP, -wx * k))
         vec[VEC_SPIN + 2] = max(-SPIN_CLIP, min(SPIN_CLIP, wz * k))
+        # Navigation can point at a route corner. Powerup geometry still refers to the actual
+        # gem; a route waypoint is never treated as a pickup or a two-gem kick target.
+        routed = gem_goal is not None and any(abs(float(a) - float(b)) > 1e-4 for a, b in zip(goal, gem_goal))
+        if gem_goal is not None:
+            gx, gy, gz = gem_goal
+            dx, dy = gx - x, gy - y
+            d = math.hypot(dx, dy)
+            ux, uy = (dx / d, dy / d) if d > 1e-6 else (0.0, 0.0)
         # POWERUP block (V7): what the marble holds and can use, and the nearest powerup item (raw 38-60,
         # observer.cs collectPowerups). The planner reads the raw block itself; the policy gets this summary.
         if len(raw) > RAW_POW_HELD:
@@ -314,7 +346,7 @@ class ObsBuilder:
                 vec[VEC_POW + 23] = min(dd / WAYPOINT_DIST_SCALE, 1.0)
                 vec[VEC_POW + 24] = max(-1.0, min(1.0, idz / 10.0))
                 vec[VEC_POW + 25] = min(1.0, max(0.0, left) / POW_RESPAWN_S)
-            if held == 2 and on_floor and d > 1e-6:
+            if held == 2 and on_floor and d > 1e-6 and not routed:
                 # V8: can a Super Speed fired NOW along the line to the waypoint be survived? The boosted marble
                 # (its speed along the line + SS_DV, at most SS_VMAX) rolls v^2 / (2 SS_DECEL) u before it stops
                 # (the floor's own braking; log 40.5: the overnight falls were overshoots past the gem at ~30 u/s).
@@ -340,7 +372,7 @@ class ObsBuilder:
                     vec[VEC_POW + 30] = sp0 / SS_VMAX
                     nrel = (next_goal[0] - x, next_goal[1] - y) if next_goal is not None else None
                     vec[VEC_POW + 26] = 1.0 if ss_kick_ok(self.terrain, x, y, z, rvx, rvy, sp0, d, ux, uy, nrel) else 0.0
-            if held == 2 and next_goal is not None and d > 1e-6:
+            if held == 2 and next_goal is not None and d > 1e-6 and not routed:
                 # approach information [27]: the SAME rule applied at the gem ahead with the predicted pickup velocity
                 # (the current speed along the line to it, at least SS_REDIRECT_MIN_SPEED), kicking toward the next gem
                 sp_in = max(SS_REDIRECT_MIN_SPEED, math.hypot(vx, vy))

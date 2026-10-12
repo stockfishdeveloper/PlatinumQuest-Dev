@@ -18,6 +18,12 @@ old pre-navigator project; `models/learned_nav` 17 files 206 MB).
 | `nav/nav_clusters_20261007_check1..14_<update>.pth` | the overnight check milestones of the block-cluster run (10-07 to 10-09), one per check; held-out 3 -> 111 mean over the run (log 40.64-40.70). |
 | `nav/nav_points_20261005_best_<update>_<score>.pth` | the points run's 50-round highs (154-157), 10-05/06. |
 | `nav/nav_points_20261005_stop_30295.pth` | Super Speed run end, 10-05 20:16 (operator stop; log 40.5x). |
+| `nav/real_maps_20261010_A2/nav_latest.pth` | A2, update 37760 (SHA-256 ae88f2e70a376fda): best real-map checkpoint (10 hunt maps, shaping k 0.05), 4 rounds x 10 maps: mean 34.4, KOTM 122.0; held-out ExampleMission 60.8 (log 40.85-40.86). Config key `A2`. Never overwrite. |
+| `nav/real_maps_20261010_long/nav_real_maps_20261010_long_037950.pth` | long run check 1, 10-10 20:51: mean 30.1, KOTM 90.5, uses climbing (log 40.87). Not a promotion. |
+| `nav/real_maps_20261010_long/check2_038145.pth` | long run end (check 2), 10-10 23:00: mean 32.0, KOTM 82.2, KOTM fires SS 22 a round; stop rule met (log 40.88). Not a promotion. |
+| `nav/real_maps_20261011_hold/check1_037950.pth` | DO NOT USE: the range-penalty run, 10-11 02:24; jumps collapsed 49 -> 7 %, ten-map 20.9, ExampleMission 5.8 (log 40.92). Kept as the record of that failure. |
+| `nav/real_maps_20261011_pp/check5_038960.pth` | per-pickup + fall charge + use damping 3 run, 10-11 19:20: ten-map 34.0 (A2 same night 28.8-30.8), KOTM 102.8 (fires SS 11 a round), ExampleMission 50.2; best ten-map of 10-11. Carries use_damp 3 in its weights (log 40.97). Not a promotion. |
+| `nav/real_maps_20261011_st/check1_038040.pth` | straight-through run check 1, 10-11 05:56: ten-map 28.4 (A2 same night 28.8), KOTM 95.5 (use head firing SS 8.75 a round), jumps 35 % (A2 50 %), non-KOTM maps 21.0 (17.8) (log 40.94). Not a promotion. |
 
 ## Families and naming
 

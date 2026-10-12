@@ -259,10 +259,12 @@ Rules that follow from Hunt itself (operator, 10-09):
   is allowed in training; it does not help when a whole group is unreachable.
 * Most of these maps need a route (a road up a tower, a ramp), not a straight line at the gem. Routing is the
   planner's job: the navigator is steered at a string-pulled waypoint on the Dijkstra path (real_run.path_waypoint,
-  12 u lookahead). The walk graph is single-level (top floor per cell), so gems under overhangs or on lower decks
-  and ramps that pass under something are invisible to it (Cragmire 12 % of gems, Concentric 11 %, Treasure Box 5 %).
+  12 u lookahead). The graph is now multilevel; route fields, source height and destination-floor checks must
+  use those levels consistently. The prior top-floor-only behavior hid lower decks on Cragmire, Concentric
+  and Treasure Box; shared height-aware routing addresses those calls.
 
-Order, each part shown to the operator at 1x where it is behaviour, and each part asked before starting:
+Order (historical per-part approval is superseded by the operator's authorization to implement preparation;
+actual training still requires a separate review and approval):
 1. DONE 10-09: mission files in place, terrain maps built for the 10 (generate_terrain_map.py).
 2. DONE 10-09 13:35: teleport verification of all 10 terrains (footprint rule fixed for tilted slabs; log 40.76).
 3. DONE 10-09 14:30 (log 40.77): floor = physics per surface (texture friction from init.cs, tan a <= 1.1 mu; the
@@ -270,9 +272,19 @@ Order, each part shown to the operator at 1x where it is behaviour, and each par
    edges, slide rule for steep cells beside a lip); every gem on all 10 maps reachable; KOTM at parity (A/B 144.1 vs
    144.8 with the committed code).
 4. DONE 10-09 14:45 (log 40.78): forced-stall clearance 3 u (JUMP_FORCE_CLEAR_U); MIN_JUMP_GAP 0.5 u; KOTM 143.1.
-5. NEXT: training setup: 8 games across the 10 maps (uniform at first; progress-weighted by par/platinum later),
-   Competitive Mode on in the training games, baseline sweep of the current model first (4 clean rounds a map);
-   decide whether respawn becomes an action (a human presses it when stuck; the only price is its time).
+5. PREPARATION 10-09 (operator authorized implementation, explicitly excluding training): shared height-aware
+   routing for workers/evaluation, Super Jump/blast escape exploration from normal pickups, and a legal rescue
+   after eight seconds without progress. Initial training profile is noncompetitive, rescue enabled, no extra
+   rescue reward penalty. Competitive evaluation has rescue disabled. Eight instances rotate uniformly through
+   all ten maps after four completed rounds. Compare the 32565 base and 37575 cluster checkpoint with four
+   deterministic rounds/map/profile before choosing the source. The first approved training block is limited
+   to two hours, saves in its own directory, and disables off-policy forced jumps. Preparation does not start
+   that block: `training_approved=false` and its STOP file remain in place. See
+   [the implementation handoff](docs/HANDOFF_REAL_MAP_PREPARATION_2026-10-09.md) for final results and commands.
+   Preparation validation is complete: 42 tests and all 160 baseline rounds passed.
+   Fresh matched baselines favor cluster checkpoint 37575 overall, with KOTM and
+   Cube Isle retention tradeoffs. See [the baseline report](docs/REAL_MAP_BASELINES_2026-10-09.md).
+   The prepared source is 37575; training remains stopped pending operator review and approval.
 6. Watch the held-out trend and KOTM retention, not single-map scores. Expect slow numbers on complex maps; the
    model has never rolled on a slope.
 

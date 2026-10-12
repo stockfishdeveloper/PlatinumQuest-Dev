@@ -72,7 +72,8 @@ function MLReplay::snapshot() {
     AIBridge::sendState("REPLAYWORLD|{\"schema\":2,\"supported\":" @ (%ok ? "true" : "false")
         @ ",\"clock_ms\":" @ getSimTime() @ ",\"header\":" @ MLReplay::array(%header)
         @ ",\"held\":\"" @ %held @ "\",\"pose\":" @ MLReplay::array(%pose)
-        @ ",\"items\":[" @ %items @ "],\"groups\":[" @ %groups @ "]}");
+        @ ",\"items\":[" @ %items @ "],\"groups\":[" @ %groups @ "]"
+        @ ",\"group_completions\":" @ ($MLAgent::ClearedGroups + 0) @ "}");
 }
 
 function MLReplay::queueRestore(%payload) {

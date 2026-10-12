@@ -828,6 +828,7 @@ function unspawnGem(%gem, %nocheck) {
 		%remainingPoints = getCurrentSpawnScore() - $Hunt::CurrentCompetitivePointsLeftBehind;
 		%remainingGems = $Hunt::CurrentGemCount - $Hunt::CurrentCompetitiveGemsLeftBehind;
 		if (%remainingGems <= 0) {
+			if ($MLAgent::AutoStart) $MLAgent::ClearedGroups++;
 			Hunt_CompetitiveRespawn(%gem);
 		} else if (%remainingGems == 1) {
 			Hunt_CompetitiveSetTimerDownTo($Hunt::Competitive_Leftbehind_1Gem);
@@ -838,8 +839,10 @@ function unspawnGem(%gem, %nocheck) {
 		}
 	} else {
 		%gem._leftBehind = false;
-		if ($Hunt::CurrentGemCount <= 0 && !%nocheck)
+		if ($Hunt::CurrentGemCount <= 0 && !%nocheck) {
+			if ($MLAgent::AutoStart && $Game::Running) $MLAgent::ClearedGroups++;
 			spawnHuntGemGroup(%gem);
+		}
 	}
 
 	//Nukesweeper deletes gems, causes warnings

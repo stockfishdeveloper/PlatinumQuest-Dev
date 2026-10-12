@@ -121,6 +121,12 @@ function Mode_hunt::shouldDisablePowerup(%this, %object, %user) {
 }
 
 function Mode_hunt::onMissionReset(%this, %object) {
+	// Paired preparation baselines start each round with the same RNG seed.
+	// Ordinary games and later training do not supply -aiseed.
+	if ($MLAgent::AutoStart && $MLAgent::EvalSeed !$= "") {
+		setRandomSeed($MLAgent::EvalSeed + $MLAgent::EvalRound);
+		$MLAgent::EvalRound++;
+	}
 	resetSpawnWeights();
 	hideGems();
 

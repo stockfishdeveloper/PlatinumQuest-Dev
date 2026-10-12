@@ -1,6 +1,8 @@
 # Keep this specific points-training run alive. Resumes nav_latest after a crash/hang.
 # Put a STOP file in logs/nav/<RunTag>/ to stop this supervisor and its owned processes.
-param([string]$RunTag = 'points_20261005', [string]$Missions = 'KingOfTheMarble_Hunt', [string]$Split = '8')   # 2026-10-07: map list and split (run_game_loop.ps1 syntax)
+param([string]$RunTag = 'points_20261005', [string]$Missions = 'KingOfTheMarble_Hunt', [string]$Split = '8',
+      [string]$Checkpoint = '', [int]$RotateEveryRounds = 0, [double]$MaxWallMinutes = 0,
+      [string]$DrillPlan = 'none', [string]$DrillStarts = '')
 $ErrorActionPreference = 'Stop'
 $ml = $PSScriptRoot
 $py = 'C:\Users\doug\AppData\Local\Programs\Python\Python39\python.exe'
@@ -10,13 +12,15 @@ New-Item -ItemType Directory -Path $runDir -Force | Out-Null
 if (Get-CimInstance Win32_Process | Where-Object { $_.Name -eq 'python.exe' -and $_.CommandLine -match '-m nav\.train_nav(?:\s|$)' }) {
     throw 'A trainer already exists; refusing to stack another run.'
 }
-$env:NAV_CKPT = Join-Path $ml 'models/nav/nav_latest.pth'
+$env:NAV_CKPT = if ($Checkpoint) { [System.IO.Path]::GetFullPath($Checkpoint) } else { Join-Path $ml 'models/nav/nav_latest.pth' }
 $env:NAV_CHECKPOINT_PREFIX = "nav_$RunTag"
 $env:NAV_INSTANCES = '8'
-$env:NAV_DRILL_PLAN = 'none'   # 2026-10-05 22:15 (log 40.58): all eight games play full rounds while the navigator relearns the
+$env:NAV_DRILL_PLAN = $DrillPlan   # Phase R can opt one worker into recorded escape windows after review.
+                               # 2026-10-05 22:15 (log 40.58): all eight games play full rounds while the navigator relearns the
                                # corrected map ('none' matches no worker; an empty value would DELETE the variable in PowerShell
                                # and the worker default 0:4,1:4,2:4,3:4 would apply). Before: '0:4,1:4,2:4,3:4'
 $env:NAV_DRILL4_STARTS = Join-Path $ml 'datasets/ss_drill/starts_replay_dev.json'
+if ($DrillStarts) { $env:NAV_DRILL4_STARTS = [System.IO.Path]::GetFullPath($DrillStarts) }
 $env:NAV_TOUR = 'walk'
 $env:NAV_REAL_GEMS = '1'
 $env:NAV_LIVE_RECORD = '1'
@@ -32,11 +36,23 @@ $stdout = Join-Path $ml 'logs/nav/stdout.txt'
 $stderr = Join-Path $ml 'logs/nav/stderr.txt'
 $stopFile = Join-Path $runDir 'STOP'
 $trainer = $null; $gameLoop = $null
+$endAt = if ($MaxWallMinutes -gt 0) { (Get-Date).AddMinutes($MaxWallMinutes) } else { [DateTime]::MaxValue }
+if ($RotateEveryRounds -gt 0) { $env:NAV_ROTATION_STATE_DIR = Join-Path (Join-Path (Join-Path $env:TEMP 'pq_checks') $RunTag) 'rotation' }   # 2026-10-09 21:50: OUTSIDE the repo (OneDrive denied the atomic replace of a state file inside it: worker died)
 
 function Write-RunLog([string]$message) {
     $line = "[$((Get-Date).ToString('yyyy-MM-dd HH:mm:ss'))] $message"
     Write-Host $line
     Add-Content -LiteralPath (Join-Path $runDir 'supervisor.log') -Value $line
+}
+
+function Complete-FiniteExperiment {
+    if (-not $env:NAV_STOP_UPDATE -or [int]$env:NAV_STOP_UPDATE -le 0 -or -not (Test-Path -LiteralPath $stdout)) { return $false }
+    $limit = [int]$env:NAV_STOP_UPDATE
+    $finished = Get-Content -LiteralPath $stdout -Tail 80 | Select-String -Pattern "finite experiment (completed at update $limit;|already reached update $limit;)"
+    if (-not $finished) { return $false }
+    New-Item -ItemType File -Path $stopFile -Force | Out-Null
+    Write-RunLog "Requested update $limit reached; stopping instead of restarting the completed experiment."
+    return $true
 }
 
 function Stop-OwnedProcesses {
@@ -51,44 +67,63 @@ function Stop-OwnedProcesses {
 }
 
 $attempt = 0
+$stamp = $null; $keep = $null
+$attemptStarted = $false
+function Save-AttemptStreams {
+    if (-not $attemptStarted -or -not $stamp -or -not $keep) { return }
+    foreach ($file in @($stdout, $stderr)) {
+        if (Test-Path -LiteralPath $file) {
+            Copy-Item -LiteralPath $file -Destination (Join-Path $keep ("{0}_{1}" -f $stamp, (Split-Path $file -Leaf)))
+        }
+    }
+}
 try {
-    while (-not (Test-Path -LiteralPath $stopFile)) {
+    while (-not (Test-Path -LiteralPath $stopFile) -and (Get-Date) -lt $endAt) {
         $attempt++
+        $attemptStarted = $false
         $stamp = Get-Date -Format 'yyyyMMdd_HHmmss'
         # 2026-10-09 (operator): the per-attempt stdout/stderr copies and the game loop's streams go OUTSIDE the repo
         $keep = Join-Path $env:TEMP "pq_checks\$RunTag"; New-Item -ItemType Directory -Force $keep | Out-Null
-        foreach ($file in @($stdout, $stderr)) {
-            if (Test-Path -LiteralPath $file) {
-                Copy-Item -LiteralPath $file -Destination (Join-Path $keep ("{0}_{1}" -f $stamp, (Split-Path $file -Leaf)))
-            }
-        }
         Write-RunLog "Attempt ${attempt}: resuming nav_latest, workers by NAV_DRILL_PLAN=$env:NAV_DRILL_PLAN, maps $Missions split $Split."
+        if ($Checkpoint -and $env:NAV_OUTPUT_DIR -and (Test-Path -LiteralPath (Join-Path $env:NAV_OUTPUT_DIR 'nav_latest.pth'))) {
+            $env:NAV_CKPT = Join-Path $env:NAV_OUTPUT_DIR 'nav_latest.pth'
+        }
         $trainer = Start-Process $py -ArgumentList @('-u','-m','nav.train_nav') -WorkingDirectory $ml -RedirectStandardOutput $stdout -RedirectStandardError $stderr -WindowStyle Hidden -PassThru
+        $attemptStarted = $true
         if (-not (Wait-NavPorts -Port0 8888 -Count 8 -TimeoutSec 120)) {
+            if (Complete-FiniteExperiment) { break }
             Write-RunLog 'Worker startup failed; preserving logs and retrying the same run.'
             Stop-OwnedProcesses
+            Save-AttemptStreams
             Start-Sleep -Seconds 30
             continue
         }
-        $gameLoop = Start-Process 'powershell.exe' -ArgumentList @('-NoProfile','-ExecutionPolicy','Bypass','-File',('"' + (Join-Path $ml 'run_game_loop.ps1') + '"'),'-Mission',$Missions,'-Split',$Split,'-Instances','8') -WorkingDirectory $ml -RedirectStandardOutput (Join-Path $keep "games_$stamp.out") -RedirectStandardError (Join-Path $keep "games_$stamp.err") -WindowStyle Hidden -PassThru
+        $gameArgs = @('-NoProfile','-ExecutionPolicy','Bypass','-File',('"' + (Join-Path $ml 'run_game_loop.ps1') + '"'),'-Mission',$Missions,'-Instances','8','-Competitive', $(if ($env:NAV_COMPETITIVE -eq '1') { '1' } else { '0' }))
+        if ($Split) { $gameArgs += @('-Split', $Split) }
+        if ($RotateEveryRounds -gt 0) { $gameArgs += @('-RotateEveryRounds', "$RotateEveryRounds", '-RotationStateDir', ('"' + $env:NAV_ROTATION_STATE_DIR + '"')) }
+        $gameLoop = Start-Process 'powershell.exe' -ArgumentList $gameArgs -WorkingDirectory $ml -RedirectStandardOutput (Join-Path $keep "games_$stamp.out") -RedirectStandardError (Join-Path $keep "games_$stamp.err") -WindowStyle Hidden -PassThru
         @{supervisor=$PID; trainer=$trainer.Id; game_loop=$gameLoop.Id; attempt=$attempt; started=$stamp; checkpoint=$env:NAV_CKPT} |
             ConvertTo-Json | Set-Content (Join-Path $runDir 'pids.json')
         Write-RunLog "Trainer $($trainer.Id), game loop $($gameLoop.Id)."
-        while (-not $trainer.HasExited -and -not (Test-Path -LiteralPath $stopFile)) {
+        while (-not $trainer.HasExited -and -not (Test-Path -LiteralPath $stopFile) -and (Get-Date) -lt $endAt) {
             Start-Sleep -Seconds 30
             $age = ((Get-Date) - (Get-Item -LiteralPath $stdout).LastWriteTime).TotalSeconds
-            if ($gameLoop.HasExited -or $age -gt 600) {
+            if ($gameLoop.HasExited -or $age -gt 240) {   # 600 -> 240 s (2026-10-10): a hung trainer cost block A 10 min before the restart
                 Write-RunLog "Run stalled (stdout age $([int]$age)s, game loop exited=$($gameLoop.HasExited)); recovering from latest checkpoint."
                 break
             }
         }
+        Complete-FiniteExperiment | Out-Null
         Stop-OwnedProcesses
-        if (-not (Test-Path -LiteralPath $stopFile)) {
+        Save-AttemptStreams
+        if (-not (Test-Path -LiteralPath $stopFile) -and (Get-Date) -lt $endAt) {
             Write-RunLog 'Trainer exited or hung; restarting the same experiment in 15 seconds.'
             Start-Sleep -Seconds 15
         }
     }
 } finally {
+    if ((Get-Date) -ge $endAt) { New-Item -ItemType File -Path $stopFile -Force | Out-Null }
     Stop-OwnedProcesses
+    Save-AttemptStreams
     Write-RunLog 'Supervisor ended. Owned training processes closed; latest saved checkpoint retained.'
 }

@@ -1,3 +1,0 @@
-  nominal: 168000 sequences, 281 s
-  robust: 720 candidates, 284 s
-kotmjump_p1: 162 seeds of 6000 states (284 s)
