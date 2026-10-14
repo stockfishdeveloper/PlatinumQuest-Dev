@@ -10,6 +10,7 @@ $MLAgent::UpdateInterval = 16; // 60 Hz (16ms) - matches game physics tick rate
 $MLAgent::AutoStart = true;  // Auto-start when Hunt mode begins
 $MLAgent::TrainingSpeed = 3.0;  // Game speed multiplier (1.0 = normal, 3.0 = 3x speed, etc.)
 $MLAgent::DiagnosticMode = false; // When true: send obs but don't execute actions or change speed
+$MLAgent::DynamicsLive = false; // Opt-in separate-probe telemetry; normal observations unchanged.
 $MLAgent::PowYawHoldTicks = 12;   // 2026-10-02: ticks the powerup yaw (action word 8) overrides the steering yaw after a
                                   // use (the key fires 2 decisions = 8 ticks later; Super Speed takes the yaw then)
 $MLAgent::SSYawFix = false;      // Opt-in local training probe: release consumed SS yaw; preserve input direction.
@@ -67,9 +68,84 @@ $AIBridge::HeldTicks = 0;
 // State tracking (reward computation is in Python)
 $MLAgent::LastGemScore = 0;
 $MLAgent::WasOOB = false;
+$MLAgent::OOBRespawnSchedule = "";
+$MLAgent::AutomaticOOBKeyRequests = 0;
 
 // Local training replay helpers stay dormant until the Python test/trainer opts in.
 exec("./trainingReplay.cs");
+
+function MLAgent::liveDynamicsGameContext() {
+    %cl = (isObject(ClientGroup) && ClientGroup.getCount() > 0) ? ClientGroup.getObject(0) : 0;
+    if (!isObject(%cl)) return "{\"available\":false}";
+    return "{\"available\":true,\"respawns\":" @ (%cl.respawns + 0)
+        @ ",\"automatic_oob_key_requests\":" @ ($MLAgent::AutomaticOOBKeyRequests + 0)
+        @ ",\"pending_automatic_oob\":" @ (isEventPending($MLAgent::OOBRespawnSchedule) ? "true" : "false")
+        @ ",\"can_quick_respawn\":" @ (%cl.canQuickRespawn ? "true" : "false") @ "}";
+}
+
+function MLAgent::liveDynamicsItems() {
+    // Live items are separate from static collision geometry. Export native
+    // world boxes and IDs; actual game score still confirms every pickup.
+    %items = ""; %count = 0;
+    if (!isObject(ServerConnection)) return "[]";
+    for (%i = 0; %i < ServerConnection.getCount(); %i++) {
+        %o = ServerConnection.getObject(%i);
+        if (!(%o.getType() & $TypeMasks::ItemObjectType) || %o.isHidden()) continue;
+        %db = %o.getDataBlock(); %gem = %db.classname $= "Gem";
+        %power = AIObserver::powerupType(%db);
+        if (!%gem && %power == 0) continue;
+        %items = %items @ (%count ? "," : "") @ "{\"id\":" @ %o.getId()
+            @ ",\"gem\":" @ (%gem ? "true" : "false") @ ",\"powerup\":" @ %power
+            @ ",\"position\":" @ MLReplay::array(%o.getPosition())
+            @ ",\"bounds\":" @ MLReplay::array(%o.getWorldBox())
+            @ ",\"value\":" @ (%gem ? AIObserver::getGemValue(%o) : 0) @ "}";
+        %count++;
+    }
+    return "[" @ %items @ "]";
+}
+
+function MLAgent::liveDynamicsBlast() {
+    // Read-only context for the opt-in mechanics probe. Keep mode-specific
+    // actuation visible so the predictor can refuse unsupported rules.
+    return "{\"value\":" @ ($MP::BlastValue + 0)
+        @ ",\"special\":" @ ($MP::SpecialBlast ? "true" : "false")
+        @ ",\"enabled\":" @ (shouldEnableBlast() ? "true" : "false")
+        @ ",\"charging\":" @ (shouldUpdateBlast() ? "true" : "false")
+        @ ",\"required\":" @ ($MP::BlastRequiredAmount + 0)
+        @ ",\"charge_ms\":" @ ($MP::BlastChargeTime + 0)
+        @ ",\"power\":" @ ($MP::BlastPower + 0)
+        @ ",\"special_power\":" @ ($MP::BlastRechargePower + 0)
+        @ ",\"triple\":" @ (($MP::PartyTripleBlast || ($Game::IsMode["challenge"] && $CurrentWeeklyChallenge.tripleBlast)) ? "true" : "false")
+        @ ",\"frozen\":" @ ($Client::Frozen ? "true" : "false")
+        @ ",\"fireball\":" @ ($Client::FireballActive ? "true" : "false")
+        @ ",\"cannon\":" @ (isCannonActive() ? "true" : "false") @ "}";
+}
+
+function MLAgent::liveDynamicsInventory() {
+    // The engine's held ID excludes script-only Mega. Read the same inventory
+    // and schedule as AIObserver, without changing game state or normal obs.
+    %player = -1; %held = 0; %mega = $Client::MegaMarble; %left = 0; %timer = false; %normalRadius = 0;
+    if (isObject(ClientGroup) && ClientGroup.getCount() > 0)
+        %player = ClientGroup.getObject(0).player;
+    if (isObject(%player)) {
+        if (isObject(%player.powerUpData)) %held = AIObserver::powerupType(%player.powerUpData);
+        %mega = %player.megaMarble || MissionInfo.mega;
+        %timer = isEventPending(%player.megaSchedule);
+        if (%timer) %left = getEventTimeLeft(%player.megaSchedule);
+        if (isObject(%player.client)) {
+            %choice = %player.client.getMarbleChoice(); %db = getField(%choice, 0);
+            if (isObject(%db)) %normalRadius = (getField(%choice, 2) ? %db.scale : %db.getCollisionRadius());
+        }
+    } else if (isObject($MP::MyMarble)) {
+        %held = ($MP::FastPowerups ? $MP::MyMarble._powerUpId : $MP::MyMarble.powerUpId) + 0;
+        %timer = isEventPending($MP::MyMarble.unMega);
+        if (%timer) %left = getEventTimeLeft($MP::MyMarble.unMega);
+    }
+    return "{\"held_type\":" @ %held @ ",\"mega_active\":" @ (%mega ? "true" : "false")
+        @ ",\"mega_timer_known\":" @ (%timer ? "true" : "false") @ ",\"mega_left_ms\":" @ %left
+        @ ",\"normal_radius\":" @ (%normalRadius + 0)
+        @ ",\"permanent_mega\":" @ (MissionInfo.mega ? "true" : "false") @ "}";
+}
 
 function MLAgent::start() {
     if ($MLAgent::Enabled) {
@@ -162,6 +238,8 @@ function MLAgent::stop() {
 
     echo("MLAgent: Stopping (completed " @ $MLAgent::StepCount @ " steps)");
     $MLAgent::Enabled = false;
+    cancel($MLAgent::OOBRespawnSchedule);
+    $MLAgent::OOBRespawnSchedule = "";
 
     // Cancel scheduled update
     if ($MLAgent::UpdateSchedule !$= "") {
@@ -278,6 +356,28 @@ function MLAgent::update(%gen) {
     // Tick number: always the last field, so the reply can name the tick it
     // answers (fixed action delay, see $MLAgent::ActionDelay).
     $MLAgent::Tick++;
+    if ($MLAgent::DynamicsLive && isFunction("aiDynamicsProbeAvailable")) {
+        %native = $MP::MyMarble.aiLiveDynamicsJSON();
+        %pending = strreplace($AIBridge::LastAction, ",", " ");
+        %bridge = "[";
+        for (%di = 0; %di < 9; %di++) {
+            %word = getWord(%pending, %di);
+            if (%word $= "" || strpos(%word, "t") == 0) %word = "0";
+            // Keep the actual decimal reply text. Converting through +0 here
+            // rounds to six significant digits and loses input-grid boundaries.
+            %bridge = %bridge @ (%di ? "," : "") @ %word;
+        }
+        %bridge = %bridge @ "]";
+        %inputs = MLReplay::array((($mvRightAction + 0) - ($mvLeftAction + 0)) SPC
+            (($mvForwardAction + 0) - ($mvBackwardAction + 0)) SPC ($mvTriggerCount2 + 0) SPC ($mvTriggerCount0 + 0));
+        if (%native !$= "")
+            %msg = %msg @ "|DYNAMICS:{\"native\":" @ %native @ ",\"bridge_action\":" @ %bridge
+                @ ",\"input_move\":" @ %inputs @ ",\"pow_yaw_hold\":" @ ($MLAgent::PowYawHold + 0)
+                @ ",\"pow_yaw\":" @ ($MLAgent::PowYaw + 0) @ ",\"items\":" @ MLAgent::liveDynamicsItems()
+                @ ",\"blast\":" @ MLAgent::liveDynamicsBlast()
+                @ ",\"inventory\":" @ MLAgent::liveDynamicsInventory()
+                @ ",\"game_context\":" @ MLAgent::liveDynamicsGameContext() @ "}";
+    }
     %msg = %msg @ "|" @ $MLAgent::Tick;
 
     // 6. Send to Python server and get action
@@ -441,7 +541,43 @@ function MLAgent::update(%gen) {
     //   "MARK x y z"                   show the navigator's waypoint as a pad (cosmetic)
     //   "GEMRESET"                     drill maps: respawn the gem group if no gem is up
     //   "CONTACT 1|0"                  append the engine's contact telemetry to each observation
-    if (getWord(%actionStr, 0) $= "GEOMETRYEXPORT") {
+    if (getWord(%actionStr, 0) $= "DYNAMICSLIVE") {
+        %on = (getWord(%actionStr, 1) + 0) == 1;
+        %ok = isFunction("aiDynamicsProbeAvailable") && $AI::Lockstep && $Server::Hosting && !$MLAgent::Live;
+        $MLAgent::DynamicsLive = %on && %ok;
+        AIBridge::sendState("DEBUG|dynamics_live|" @ (%ok + 0));
+        $AIBridge::LastAction = ""; %actionStr = "";
+    } else if (getWord(%actionStr, 0) $= "DYNAMICSWAIT") {
+        // Slow local prediction must not trigger the engine's 5s free-run
+        // fallback. SpinWait controls busy polling, not this safety timeout.
+        %wait = getWord(%actionStr, 1) + 0;
+        %ok = isFunction("aiDynamicsProbeAvailable") && $AI::Lockstep && $Server::Hosting
+            && !$MLAgent::Live && %wait >= 5000 && %wait <= 600000;
+        if (%ok) $AI::WaitTimeoutMs = %wait;
+        AIBridge::sendState("DEBUG|dynamics_wait|" @ (%ok + 0) @ "|" @ $AI::WaitTimeoutMs);
+        $AIBridge::LastAction = ""; %actionStr = "";
+    } else if (getWord(%actionStr, 0) $= "DYNAMICSDETAIL") {
+        %ok = false;
+        if (isFunction("aiDynamicsDetail"))
+            %ok = aiDynamicsDetail(getWord(%actionStr, 1));
+        AIBridge::sendState("DEBUG|dynamics_detail|" @ (%ok + 0));
+        $AIBridge::LastAction = "";
+        %actionStr = "";
+    } else if (getWord(%actionStr, 0) $= "DYNAMICSRECORD") {
+        %ok = false;
+        if (isObject($MP::MyMarble) && isFunction("aiDynamicsProbeAvailable"))
+            %ok = $MP::MyMarble.aiRecordDynamics(getWord(%actionStr, 1));
+        AIBridge::sendState("DEBUG|dynamics_record|" @ (%ok + 0));
+        $AIBridge::LastAction = "";
+        %actionStr = "";
+    } else if (getWord(%actionStr, 0) $= "DYNAMICSSTATE") {
+        %ok = false;
+        if (isObject($MP::MyMarble) && isFunction("aiDynamicsProbeAvailable"))
+            %ok = $MP::MyMarble.aiWriteDynamicsState(getWord(%actionStr, 1));
+        AIBridge::sendState("DEBUG|dynamics_state|" @ (%ok + 0));
+        $AIBridge::LastAction = "";
+        %actionStr = "";
+    } else if (getWord(%actionStr, 0) $= "GEOMETRYEXPORT") {
         // Read-only map instrumentation, supplied by the separate geometry probe executable.
         %ok = false;
         if (isFunction("aiExportCollisionGeometry"))
@@ -532,6 +668,10 @@ function MLAgent::update(%gen) {
         $AIBridge::LastAction = "";
         %actionStr = "";
     } else if (getWord(%actionStr, 0) $= "OOBCLICK") {
+        // Explicit recovery owns this fall. A delayed legacy quick-respawn key
+        // could otherwise arrive after the click and cause a second spawn.
+        cancel($MLAgent::OOBRespawnSchedule);
+        $MLAgent::OOBRespawnSchedule = "";
         // THE LEGAL QUICK RESPAWN. A human who falls out of bounds clicks the left mouse as soon
         // as the "Out of Bounds" text appears and comes straight back, instead of waiting out the
         // game's automatic respawn. Their click runs
@@ -618,7 +758,11 @@ function MLAgent::update(%gen) {
            @ "|clientOmega=" @ (isObject($MP::MyMarble) ? $MP::MyMarble.getAngularVelocity() : "?")
            @ "|serverOmega=" @ (isObject(%sp) ? %sp.getAngularVelocity() : "?")
            @ "|clientVel=" @ (isObject($MP::MyMarble) ? $MP::MyMarble.getVelocity() : "?")
-           @ "|serverVel=" @ (isObject(%sp) ? %sp.getVelocity() : "?");
+           @ "|serverVel=" @ (isObject(%sp) ? %sp.getVelocity() : "?")
+           @ "|respawns=" @ (isObject(%cl) ? %cl.respawns : "?")
+           @ "|canQuickRespawn=" @ (isObject(%cl) ? (%cl.canQuickRespawn + 0) : "?")
+           @ "|automaticOOBKeyRequests=" @ ($MLAgent::AutomaticOOBKeyRequests + 0)
+           @ "|pendingOOBRespawn=" @ (isEventPending($MLAgent::OOBRespawnSchedule) + 0);
         echo("MLAgent: DEBUG requested -> " @ %d);
         AIBridge::sendState(%d);
         $AIBridge::LastAction = "";
@@ -702,6 +846,18 @@ function MLAgent::update(%gen) {
     } else if (getWord(%actionStr, 0) $= "DELAY") {
         $MLAgent::ActionDelay = getWord(%actionStr, 1) + 0;
         echo("MLAgent: action delay set to " @ $MLAgent::ActionDelay @ " ticks by the Python server");
+        $AIBridge::LastAction = "";
+        %actionStr = "";
+    } else if (getWord(%actionStr, 0) $= "HUNTSEEDTEST") {
+        // Explicit owned diagnostic only; restore the original RNG state.
+        %savedSeed = getRandomSeed();
+        %rawSeed = getWord(%actionStr, 1);
+        %numericSeed = %rawSeed + 0;
+        setRandomSeed(%numericSeed); %legacySeed = getRandomSeed();
+        setRandomSeed(%rawSeed); %exactSeed = getRandomSeed();
+        setRandomSeed(%savedSeed);
+        AIBridge::sendState("DEBUG|hunt_seed_test|1|" @ %rawSeed @ "|" @ %numericSeed
+            @ "|" @ %legacySeed @ "|" @ %exactSeed);
         $AIBridge::LastAction = "";
         %actionStr = "";
     } else if (getWord(%actionStr, 0) $= "GEMRESET") {
@@ -963,14 +1119,28 @@ function MLAgent::onOOB() {
 
         // Delay respawn by 2 update intervals so the next update() fires
         // while the marble is still at the edge position.
-        schedule($MLAgent::UpdateInterval * 2, 0, "MLAgent::triggerQuickRespawn");
+        cancel($MLAgent::OOBRespawnSchedule);
+        $MLAgent::OOBRespawnSchedule = "";
+        // A connected Python controller owns recovery through OOBCLICK. The
+        // legacy key can win a timer race before that reply is applied, so
+        // cancellation alone is insufficient. The game's own automatic OOB
+        // respawn remains available if the controller does not click.
+        if (!$AIBridge::Connected)
+            $MLAgent::OOBRespawnSchedule = schedule($MLAgent::UpdateInterval * 2, 0, "MLAgent::triggerQuickRespawn");
     }
 }
 
 function MLAgent::triggerQuickRespawn() {
-    // Send quick respawn command to server (same as left-click after OOB)
-    // Called immediately when OOB message appears
-    if ($MLAgent::Enabled && isObject($MP::MyMarble)) {
+    // Legacy automatic retry uses the respawn KEY, not the OOB mouse click.
+    // Explicit bridge OOBCLICK cancels this callback. A late callback must not
+    // press a new key after the listen-server player has already recovered.
+    $MLAgent::OOBRespawnSchedule = "";
+    if ($MLAgent::Enabled && !$AIBridge::Connected && isObject($MP::MyMarble)) {
+        if (isObject(ClientGroup) && ClientGroup.getCount() > 0) {
+            %cl = ClientGroup.getObject(0);
+            if (!isObject(%cl) || !%cl.isOOB) return;
+        }
+        $MLAgent::AutomaticOOBKeyRequests++;
         commandToServer('QuickRespawn');
 
         // Restore time scale after respawn (respawn resets it)
@@ -1162,10 +1332,29 @@ function MLAgent::enableDiagnostic() {
 //------------------------------------------------------------------------------
 
 $MLAgent::AutoTrainMission = "";
+$MLAgent::EvalRandomStart = false;
+// Console numeric formatting uses six significant digits. Preserve decimal
+// seed strings through the engine's integer console argument, including rounds.
+function MLAgent::huntRoundSeed(%seed, %round) {
+    %result = ""; %carry = 0;
+    %a = strLen(%seed) - 1; %b = strLen(%round) - 1;
+    while (%a >= 0 || %b >= 0 || %carry) {
+        %x = (%a >= 0) ? getSubStr(%seed, %a, 1) : 0;
+        %y = (%b >= 0) ? getSubStr(%round, %b, 1) : 0;
+        %a--; %b--;
+        %sum = %x + %y + %carry;
+        %result = (%sum % 10) @ %result;
+        %carry = mFloor(%sum / 10);
+    }
+    return %result;
+}
 for ($MLAgent::_argi = 1; $MLAgent::_argi < $Game::argc; $MLAgent::_argi++) {
     if ($Game::argv[$MLAgent::_argi] $= "-aiseed" && $MLAgent::_argi + 1 < $Game::argc) {
-        $MLAgent::EvalSeed = $Game::argv[$MLAgent::_argi + 1] + 0;
+        $MLAgent::EvalSeed = $Game::argv[$MLAgent::_argi + 1];
         $MLAgent::EvalRound = 0;
+    }
+    if ($Game::argv[$MLAgent::_argi] $= "-airandomstart") {
+        $MLAgent::EvalRandomStart = true;
     }
     if ($Game::argv[$MLAgent::_argi] $= "-aicompetitive" && $MLAgent::_argi + 1 < $Game::argc) {
         $MLAgent::Competitive = $Game::argv[$MLAgent::_argi + 1] + 0;

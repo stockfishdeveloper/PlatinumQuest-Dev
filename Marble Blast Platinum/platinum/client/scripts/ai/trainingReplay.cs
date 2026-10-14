@@ -73,6 +73,10 @@ function MLReplay::snapshot() {
         @ ",\"clock_ms\":" @ getSimTime() @ ",\"header\":" @ MLReplay::array(%header)
         @ ",\"held\":\"" @ %held @ "\",\"pose\":" @ MLReplay::array(%pose)
         @ ",\"items\":[" @ %items @ "],\"groups\":[" @ %groups @ "]"
+        @ ",\"eval_seed\":" @ ($MLAgent::EvalAppliedSeed $= "" ? "0" : $MLAgent::EvalAppliedSeed)
+        @ ",\"eval_engine_seed\":" @ ($MLAgent::EvalEngineSeed $= "" ? "0" : $MLAgent::EvalEngineSeed)
+        @ ",\"eval_round\":" @ ($MLAgent::EvalRound + 0)
+        @ ",\"random_opening\":" @ ($MLAgent::EvalRandomStart ? "true" : "false")
         @ ",\"group_completions\":" @ ($MLAgent::ClearedGroups + 0) @ "}");
 }
 

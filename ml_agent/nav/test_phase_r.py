@@ -222,6 +222,29 @@ class RecoveryTests(unittest.TestCase):
         self.assertEqual(m.observe(8, 'a', 20), 8)
         self.assertEqual(m.observe(9, 'a', 20, picked=1), 0)
 
+    def test_target_switches_cannot_repeat_already_credited_approaches(self):
+        m=ProgressMonitor();m.observe(0,'a',20)
+        self.assertEqual(m.observe(1,'a',18),0)
+        self.assertEqual(m.observe(2,'b',10),1)
+        self.assertEqual(m.observe(3,'b',8),0)
+        self.assertEqual(m.observe(4,'a',20),1)
+        self.assertEqual(m.observe(5,'a',18),2)
+        self.assertEqual(m.observe(6,'b',10),3)
+        self.assertEqual(m.observe(7,'b',8),4)
+        self.assertEqual(m.observe(8,'a',16.9),0)
+
+    def test_small_advances_accumulate_and_new_life_resets_anchors(self):
+        m=ProgressMonitor();m.observe(0,'a',20)
+        self.assertEqual(m.observe(1,'a',19.6),1)
+        self.assertEqual(m.observe(2,'a',19.2),2)
+        self.assertEqual(m.observe(3,'a',18.8),0)
+        self.assertEqual(m.observe(4,'a',30,fell=True),0)
+        self.assertEqual(m.observe(5,'a',28.8),0)
+        self.assertEqual(m.observe(6,'a',40,picked=1),0)
+        self.assertEqual(m.observe(7,'a',38.8),0)
+        self.assertEqual(m.observe(0,'a',50),0)
+        self.assertEqual(m.observe(1,'a',48.8),0)
+
     def test_rescue_does_not_look_like_a_powerup_escape(self):
         m = ProgressMonitor(); m.observe(0, 'a', 20); m.escape_use(2)
         m.rescued(8.064, 30)

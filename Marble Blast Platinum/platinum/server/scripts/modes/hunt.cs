@@ -124,7 +124,11 @@ function Mode_hunt::onMissionReset(%this, %object) {
 	// Paired preparation baselines start each round with the same RNG seed.
 	// Ordinary games and later training do not supply -aiseed.
 	if ($MLAgent::AutoStart && $MLAgent::EvalSeed !$= "") {
-		setRandomSeed($MLAgent::EvalSeed + $MLAgent::EvalRound);
+		$MLAgent::EvalAppliedSeed = MLAgent::huntRoundSeed($MLAgent::EvalSeed, $MLAgent::EvalRound);
+		setRandomSeed($MLAgent::EvalAppliedSeed);
+		$MLAgent::EvalEngineSeed = getRandomSeed();
+		echo("MLAgent: Hunt RNG seed=" @ $MLAgent::EvalAppliedSeed @ " round=" @ $MLAgent::EvalRound
+			@ " engineSeed=" @ $MLAgent::EvalEngineSeed @ " randomOpening=" @ $MLAgent::EvalRandomStart);
 		$MLAgent::EvalRound++;
 	}
 	resetSpawnWeights();

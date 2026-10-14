@@ -621,6 +621,10 @@ function getHuntSpawnType() {
 	if ($Game::Menu) {
 		return 2;
 	} else if ($Game::FirstSpawn && !mp()) {
+		// Opt-in seeded evaluation: use the ordinary Hunt spawn algorithm for
+		// varied opening layouts instead of the fixed highest-value opening.
+		if ($MLAgent::EvalRandomStart && $MLAgent::EvalSeed !$= "")
+			return 0;
 		return 1;
 	}
 	return 0;

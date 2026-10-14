@@ -234,11 +234,12 @@ class ConvexHull:
     def write(self,io,version):
         io.writeInt32(self.hullStart)
         io.writeUInt16(self.hullCount)
+        # Native InteriorIO stores each axis as a min/max pair.
         io.writeFloat(self.minX)
-        io.writeFloat(self.minY)
-        io.writeFloat(self.minZ)
         io.writeFloat(self.maxX)
+        io.writeFloat(self.minY)
         io.writeFloat(self.maxY)
+        io.writeFloat(self.minZ)
         io.writeFloat(self.maxZ)
         io.writeInt32(self.surfaceStart)
         io.writeUInt16(self.surfaceCount)
@@ -255,10 +256,10 @@ class ConvexHull:
         ret.hullStart = io.readInt32()
         ret.hullCount = io.readUInt16()
         ret.minX = io.readFloat()
-        ret.minY = io.readFloat()
-        ret.minZ = io.readFloat()
         ret.maxX = io.readFloat()
+        ret.minY = io.readFloat()
         ret.maxY = io.readFloat()
+        ret.minZ = io.readFloat()
         ret.maxZ = io.readFloat()
         ret.surfaceStart = io.readInt32()
         ret.surfaceCount = io.readUInt16()
@@ -353,16 +354,22 @@ class Dif:
     @staticmethod
     def Load(path):
         f = sys_io_File.read(path)
-        _hx_bytes = f.readAll()
+        try:
+            _hx_bytes = f.readAll()
+        finally:
+            f.impl.stream.close()
         br = io_BytesReader(_hx_bytes)
         return Dif.read(br)
 
     @staticmethod
     def Save(dif,version,path):
         f = sys_io_File.write(path)
-        bw = io_BytesWriter()
-        dif.write(bw,version)
-        f.write(bw.getBuffer())
+        try:
+            bw = io_BytesWriter()
+            dif.write(bw,version)
+            f.write(bw.getBuffer())
+        finally:
+            f.impl.stream.close()
 
     @staticmethod
     def LoadFromBuffer(buffer):

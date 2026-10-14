@@ -68,6 +68,7 @@ class GameMessage:
     fields: List[str] = field(default_factory=list)   # raw '|' fields, for stats/info/other
     raw: str = ''
     extra: Optional[np.ndarray] = None          # numbers after the RAW_DIM observation (CONTACT telemetry), or None
+    dynamics: Optional[dict] = None             # opt-in synchronized probe state/control telemetry
 
 
 def parse_message(line: str) -> GameMessage:
@@ -106,9 +107,14 @@ def parse_message(line: str) -> GameMessage:
             raise ValueError(f'the game sends {len(obs)} observation numbers but NAV_OBS_V7 needs {RAW_DIM} '
                              f'(spin and powerups). Delete client/scripts/ai/observer.cs.dso so the game recompiles observer.cs.')
         return GameMessage('other', fields=parts, raw=line)
+    dynamics_fields = [p[len('DYNAMICS:'):] for p in parts[4:] if p.startswith('DYNAMICS:')]
+    if len(dynamics_fields) > 1:
+        raise ValueError('Duplicate synchronized dynamics telemetry')
+    dynamics = json.loads(dynamics_fields[0]) if dynamics_fields else None
     return GameMessage('obs', obs=np.asarray(obs[:RAW_DIM], dtype=np.float32), gem_delta=gem_delta,
                        oob=oob, done=done, tick=tick, fields=parts, raw=line,
-                       extra=np.asarray(obs[RAW_DIM:], dtype=np.float64) if len(obs) > RAW_DIM else None)
+                       extra=np.asarray(obs[RAW_DIM:], dtype=np.float64) if len(obs) > RAW_DIM else None,
+                       dynamics=dynamics)
 
 
 def format_action(fwd, back, left, right, jump, cam_yaw=0.0, use_pow=0, tick='', pow_yaw=None, use_blast=0):

@@ -19,6 +19,7 @@ Reports gems/min, falls per 100 u, speed and how often no gem was visible, again
 demo. Writes logs/nav/real_run_<map>_<ckpt>.json.
 """
 import os
+import copy
 import sys
 import time
 import json
@@ -353,6 +354,11 @@ def main():
         ss_tour_sig = None; ss_tour_cache = {}  # NAV_SS_TOUR: credits recomputed when the gems or the held powerup change
         last = np.array(env.msg.obs[:3], dtype=np.float64)
         t_start = env.time_left_s()          # recorded only; see the note on mins below
+        initial_score = float(env.msg.obs[RAW_SCORE])
+        start_context = dict(raw_observation=env.msg.obs.tolist(), tick=env.msg.tick,
+            replay_world=copy.deepcopy(env.replay_world),
+            replay_catalog=copy.deepcopy(env.replay_catalog))
+        first_play_context = None
         next_tick = [time.perf_counter()]
 
         def paced_step(js, **kw):
@@ -590,6 +596,10 @@ def main():
                 else:
                     kw = {'use_blast': 1}; sent_ = True
             before_s = simulation_time(env)
+            if not in_countdown and first_play_context is None:
+                first_play_context = dict(raw_observation=env.msg.obs.tolist(), tick=env.msg.tick,
+                    replay_world=copy.deepcopy(env.replay_world),
+                    policy_hidden_state=h.detach().cpu().tolist())
             msg, info = paced_step(js_cmd, **kw)
             previous_motion = ob_.copy()
             held_after = int(msg.obs[RAW_POW_HELD]) if len(msg.obs) > RAW_POW_HELD else 0
@@ -723,6 +733,8 @@ def main():
         row.update(competitive=COMPETITIVE, rescue_window_s=RESCUE_S, direct_gem=DIRECT_GEM,
                    sample=SAMPLE, escape_powerups=ESCAPE_POWERUPS, played_seconds=round(played_seconds, 3))
         row.update(engine_points=env.last_round_score, completed=bool(info['round_ended'] and not info['reconnected']),
+                   round_seconds=round_s, start_time_left_s=t_start, initial_score=initial_score,
+                   start_context=start_context, first_play_context=first_play_context,
                    ss_fires=len(ss_events), ss_events=ss_events, no_use=NO_USE, force_use=FORCE_USE,
                    checkpoint=os.path.basename(ckpt), update=ck.get('update'),
                    ss_opportunities=dict(ss_opportunities), ss_route=SS_ROUTE, ss_prepare=SS_PREP,
@@ -755,6 +767,11 @@ def main():
                         'speed': round(agg['speed'] / HUMAN['speed'], 2),
                         'falls_ratio': round(agg['falls_per_100u'] / HUMAN['falls_per_100u'], 1)},
            'value_weight': VALUE_WEIGHT, 'h_reset': H_RESET, 'when': datetime.now().isoformat()}
+    out['evaluation_settings'] = dict(decision_ms=OBS_MS, view_substeps=VIEW_SUBSTEPS,
+        watch=WATCH, oob_click=OOB_CLICK, tour=TOUR, smooth=SMOOTH,
+        stuck_s=STUCK_S, competitive=COMPETITIVE, rescue_s=RESCUE_S,
+        direct_gem=DIRECT_GEM, sample=SAMPLE, no_use=NO_USE, force_use=FORCE_USE,
+        ss_yaw_fix=SS_YAW_FIX)
     output_dir = os.path.abspath(os.environ.get('NAV_EVAL_OUTPUT_DIR', os.path.join(HERE, 'logs', 'nav')))
     os.makedirs(output_dir, exist_ok=True)
     p = os.path.join(output_dir,

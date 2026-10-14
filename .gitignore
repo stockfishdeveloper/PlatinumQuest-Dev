@@ -143,3 +143,9 @@ ml_agent/logs/nav/real_run_*.json
 # 2026-10-11 (operator): no temp files and no run STOP markers in git (the STOP files stay on disk: they keep runs stopped)
 *.tmp
 STOP
+# 2026-10-12 (operator): no .gz files in git (collision-map snapshots, compressed traces, datasets stay on disk)
+*.gz
+
+# Generated historical sources are packed after verification, not loose .py trees.
+ml_agent/dynamics_reports/**/*.zip
+ml_agent/datasets/marble_dynamics/**/*.zip

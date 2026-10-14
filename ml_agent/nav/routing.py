@@ -22,9 +22,16 @@ def line_clear(terrain, ax, ay, bx, by, step=0.35, az=None, bz=None):
     n = max(int(math.ceil(math.hypot(bx - ax, by - ay) / step)), 1)
     z = az
     last = None
+    clearance=getattr(terrain,'ground_clearance',None)
+    floor_points=[] if clearance is not None else None
     for u in range(n + 1):
         x, y = ax + (bx - ax) * u / n, ay + (by - ay) * u / n
         j, i = terrain.cell_of(x, y)
+        # Repeated samples in the same static walk cell cannot change its floor
+        # after the first sample resolves z to that floor. Keep the exact sample
+        # arithmetic/cell sequence and check every cell transition and endpoint.
+        if last is not None and (j, i) == last[1:]:
+            continue
         k = terrain.level_at(j, i, z)
         if k < 0:
             return False
@@ -33,11 +40,15 @@ def line_clear(terrain, ax, ay, bx, by, step=0.35, az=None, bz=None):
             return False
         z = zz
         last = (k, j, i)
+        if floor_points is not None:floor_points.append((x,y,zz))
     if bz is not None:
         k, j, i = last
         dest = terrain.level_at(j, i, bz)
         if dest < 0 or abs(float(terrain.walk_z[dest, j, i]) - z) > LEVEL_MERGE:
             return False
+    if clearance is not None:
+        if not floor_points or floor_points[-1][:2]!=(bx,by):floor_points.append((bx,by,z))
+        return clearance(floor_points)
     return True
 
 

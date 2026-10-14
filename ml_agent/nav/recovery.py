@@ -57,6 +57,7 @@ class ProgressMonitor:
     def reset(self):
         self.target = None
         self.best = math.inf
+        self.target_bests = {}
         self.last_progress = None
         self.last_now = None
         self.stalled_s = 0.0
@@ -73,6 +74,11 @@ class ProgressMonitor:
         now = float(now)
         if self.last_now is not None and now < self.last_now:
             self.last_progress, self.best = now, math.inf
+            self.target_bests.clear()
+        if picked > 0 or fell:
+            # A new collection/life starts a fresh set of useful approaches.
+            self.target_bests.clear()
+            self.best = float(distance)
         dt = max(0.0, now - self.last_now) if self.last_now is not None else 0.0
         if groups_completed is not None:
             self.group_completions = int(groups_completed)
@@ -80,13 +86,17 @@ class ProgressMonitor:
             self.last_gems = set(gems)
         changed = target != self.target
         if changed:
-            self.target, self.best = target, float(distance)
+            self.target = target
             # Gem-chooser oscillation is not progress. First observation initializes the clock.
+        if target is not None:
+            self.best = self.target_bests.setdefault(target, float(distance))
         progress = picked > 0 or (math.isfinite(distance) and distance <= self.best - self.progress_u)
         if self.last_progress is None or progress or fell:
             self.last_progress = now
         if progress:
             self.best = float(distance)
+            if target is not None:
+                self.target_bests[target] = self.best
         idle = max(0.0, now - self.last_progress)
         if idle >= 1.0 and target is not None and not fell:
             self.stalled_s += dt
@@ -112,6 +122,9 @@ class ProgressMonitor:
             self.failed_escape_uses += 1
             self.pending_escape = None
         self.last_progress, self.last_now, self.best = float(now), float(now), float(distance)
+        self.target_bests.clear()
+        if self.target is not None:
+            self.target_bests[self.target] = self.best
 
     def stats(self):
         return dict(rescues=self.rescues, rescue_attempts=self.rescue_attempts,

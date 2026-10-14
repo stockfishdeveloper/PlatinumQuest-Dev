@@ -1,9 +1,14 @@
 # Full collision map export and review viewer — 2026-10-11
 
+**Current continuation (2026-10-13):** the map exports below now feed the experimental full-map navigator.
+See [the fast navigator handoff](HANDOFF_FAST_NAVIGATOR_2026-10-13.md) for the confirmed parent,
+frozen data-scaling recipe, running supervisor, distinct-state collection repair and current results.
+The remainder of this document records the October 11 collision-export milestone.
+
 Operator authorized conversion of all ten selected Hunt maps, an interactive 3D review of the exact model-facing
 files, and engine/teleport verification. Accuracy and inclusion of all contact orientations take priority over
 compression. **Completed:** model-facing collision files and offline interactive viewers exist for all ten maps.
-No policy training was started. The existing policy still uses its previous observations.
+At that export milestone, no policy training had started and the existing policy used its previous observations.
 
 Open [the ten-map gallery](../collision_maps/viewer/index.html) in a browser (double-click the HTML file in Explorer).
 Use orbit/pan, scroll zoom, material/direction colors, polygon boundaries, object visibility, “Focus game area”,

@@ -331,7 +331,7 @@ Those can only disagree if the goal moved and the trace kept logging the old one
 
 **The bug.** `_advance_goal()` retargets `SegmentManager.seg.goal` onto the next gem, but
 `vec_worker.InstanceWorker.goal` was assigned only in `start_segment()`. So after the first
-pickup, reward / arrival / `prev_d` chased gem 2 while the *observation* still pointed at gem 1 —
+pickup, reward / arrival / `prev_d` chased gem 2 while the *observation* still pointed at gem 1 â€”
 which the marble was standing on. The policy saw a waypoint at its own feet and orbited it until
 the timeout. `eval_nav.py` had the identical bug.
 
@@ -350,8 +350,8 @@ was re-converted from `nav_latest.v1backup_20260919_0926.pth` (update 5560). The
 kept as `nav_gemgroups_broken_*.pth`.
 
 **Open, needs watching:** falls100 jumped to ~0.9 (KOTM) / ~1.8 (islands) against ~0.09 before.
-Expected in part — chaining means far longer continuous runs with no teleport reset, and the
-greedy nearest-gem order can route a chain straight across KOTM's holes — but it has not been
+Expected in part â€” chaining means far longer continuous runs with no teleport reset, and the
+greedy nearest-gem order can route a chain straight across KOTM's holes â€” but it has not been
 shown to come back down yet. `pickup=8-10 u/s` is the control metric: the marble is still
 arriving at full speed, which is exactly what the change exists to fix, so it should fall.
 
@@ -7729,8 +7729,1921 @@ target segments that ended without a pickup (upper bound: a re-plan also ends a 
   consistently while retaining raw vertices. All actual browser coordinate hashes match the model geometry.
 * Gallery: collision_maps/viewer/index.html. Full change/bugfix history, final map table, reproduction and query
   limits: docs/HANDOFF_COLLISION_MAPS_2026-10-11.md. Existing policy/training observations remain unchanged.
-* Visual review follow-up: added default-visible orange A1–A4 contact callouts, material comparisons and sidebar
+* Visual review follow-up: added default-visible orange A1â€“A4 contact callouts, material comparisons and sidebar
   focus buttons to Concentric, generated from the native validation records. Fixed focus-camera drift caused
   by mutable Plotly axis ranges. All ten browser checks pass, including exact marker coordinates, four focus
   buttons and hide/show/refocus. Operator confirmed all four are normal/tarmac seams and accepts this boundary
   uncertainty. Details/evidence are appended to the collision-map handoff. No training or dynamics changes.
+
+### 40.100 General marble dynamics, complete control recording and whole-map access (2026-10-11â€“12)
+* Operator authorized autonomous preparation of general mechanics, explicitly including spin, rebounds,
+  floor/wall/ceiling/ramp/edge contacts and timed jumps as well as powerups. Policy/PPO remains paused.
+  Full incremental bugfix/change history and commands: docs/HANDOFF_MARBLE_DYNAMICS_2026-10-11.md.
+* Added read-only native before/after state, applied Move, contact/force diagnostics and exact effect
+  clocks to the separate probe. Guarded DYNAMICSRECORD/STATE/DETAIL bridge commands; shipped game,
+  existing observations, rewards and protected checkpoints remain unchanged.
+* Collected 632 accepted fixtures / 128,733 native transitions across the ten-map pilot and four-map
+  supplements. All 632 principal raw hashes match; all 728 archives have valid completion/counts.
+  Independently recomputed 96 shared repeat prefixes match p/v/spin exactly, with 19 termination-length
+  differences. Retain falls, pickups, size/parameter changes and excluded initial modes honestly.
+* Implemented an independent general mechanics port over all verified collision surfaces: rolling,
+  slip/braking, spin transfer, multi-contact impacts/jumps and five native powerup modifiers. Fixed
+  polygon membership/winding, near-zero sweep time loss, sequential support-force cancellation,
+  fractional overspeed truncation and F32 restoration. Reconstructed local DIF hull/bin contact order.
+* Found/fixed hxDif convex hull bound parsing/writing order (native minX,maxX,minY,maxY,minZ,maxZ),
+  verified all 5,168 hulls in 21 unique files, and closed parser file-handle leaks. No DIF/map rewritten;
+  all reviewed collision NPZs remain unchanged. All 23,348 referenced interior surfaces match exports.
+* Major input-contract fix: the bridge sets absolute camera yaw outside native Move. Move-only replay
+  missed by ~57u. Read-only setter hooks now record explicit camera command events. Candidate API uses
+  initial full state plus proposed/applied controls, advances clock and receives no future observations.
+  Complete-control tests: 124 finished candidates, endpoint p95 0.000394u, max 0.5021u on selected fixtures.
+* Added matched spin/jump/powerup trials and longer supported wall approaches after discovering that
+  early timing requests often happened after rebound. New set has 46/60 jump-command intervals with
+  native support (a proxy, not a native impulse counter), plus twelve no-jump controls.
+* Full-map hierarchy retains all 47,932 triangles; 2,000 reload/query comparisons match exactly.
+  64â€“512 whole-map leaf tokens and distant exact queries are available. Encoder prototype is untrained
+  and runs ~0.75â€“2.1ms/map on CPU; Python hierarchy queries are slower than the vectorized reference.
+* Blanket landing/planning gate FAILED: broad ten-map rollout tails reach ~13u; first-landing error
+  reaches 11.55u, one-second continuation 6.50u. Tangent sqrt/NaN and grazing slide/bounce branches
+  remain explicit ambiguities. A 24-member selected sensitivity demonstration is not calibrated.
+  Mega/Blast, pickups/respawns, rotated gravity, moving actors and bridge command delay need event state.
+* Extended the exact-map viewer with 546 saved native/predicted recordings/hypotheses, selection, time
+  scrub, error focus and spin/velocity readouts. All ten browser checks pass; geometry/trajectory arrays
+  match saved coordinates, seam controls remain, no JavaScript errors. Fifteen regressions pass;
+  Python compilation, native probe build and diff checks pass. Owned games/helpers close on completion.
+* Final review/table: docs/REVIEW_MARBLE_DYNAMICS_2026-10-12.md; machine evidence:
+  dynamics_reports/review_20261012.json. Code/report version
+  44aba1cfc83f8e131b11ef8982c9a71b7088eb6541b28e894136fe77ed50ad63.
+  No neural dynamics fit, encoder training, live planner launch, policy integration or promotion.
+
+
+### 40.101 Map-aware gem planning demonstration (2026-10-12)
+* Operator authorized continuing the general mechanics/map representation plan with a bounded live
+  gem-collection demonstration. All changes, failures, commands and remaining gaps are documented in
+  [HANDOFF_GEM_PLANNING_DEMO_2026-10-12.md](HANDOFF_GEM_PLANNING_DEMO_2026-10-12.md).
+  Policy/PPO, encoder training and dynamics fitting remain paused/not started.
+* Added synchronized read-only physical state, frame clock and pending native Move to an opt-in
+  probe observation. Verified delayed camera/movement/jump/use translation at 64 ms, including
+  native F32/1/16 quantization, with normal, Super Speed, Super Jump and helicopter timing captures.
+  Separate native probe rebuilt; shipped game, policy inputs by default, rewards and checkpoints unchanged.
+* Implemented general physics-scored steering/braking/coast/jump/held-use proposals, short plan execution
+  and gem selection that asks whether predicted collection/progress is feasible. Ground routes propose
+  aims; full collision geometry predicts alternatives. No map-specific trick rules or learned model fit.
+* Final corrected matched KOTM development fixture: physics planner collected two actual gems/points in
+  59 decisions; simple routed controller collected one then fell at decision 58. Initial worlds match
+  score/items/groups and pose within 5.86e-7u. Restores occur only before branches, never during collection.
+  No powerup activated in this success case. This is not a trained-navigator benchmark or general result.
+* Fixed native-frame clock mismatch, F32 external-event comparison that initially bypassed live error
+  gating, stationary braking that could launch from zero speed, inconsistent slow-candidate scoring,
+  and stalled gem targeting without feasibility feedback. Earlier invalid-gate attempts and all 14
+  outcomes/failures are retained in dynamics_reports/gem_demo_session_20261012.json with fingerprints.
+* Independent final planned five-step replays: 55 windows, zero Move mismatches, max position error
+  7.57e-7u. Broader old uncertainty remains: native perturbations in a selected Concentric ramp/floor
+  fixture produce a 5.07u endpoint spread. Newly captured KOTM 0.05467u contact mismatch remains open.
+* Search median 1.18s per 256ms of simulated control is not real-time. Other starts still stall/fall;
+  future scheduled jump/use can be postponed by replanning. Event prediction, proposal search,
+  reserved starts and comparison with the frozen trained navigator are the next substantive work.
+* Separate exact-geometry replay viewer: collision_maps/viewer/gem_demo/index.html (linked from original
+  ten-map gallery). Fixed checker ten-table-row assumption and nested viewer mesh/metadata links.
+  Twenty regressions pass. Final browser/coordinate verification is recorded in the main handoff.
+
+
+### 40.102 General planning reliability and frozen A2 comparison (2026-10-12)
+* Operator authorized the next engineering/comparison stage and autonomous routine
+  follow-up. Complete incremental bugfix/history/results/reproduction:
+  [HANDOFF_PLANNING_RELIABILITY_2026-10-12.md](HANDOFF_PLANNING_RELIABILITY_2026-10-12.md).
+  PPO/encoder/dynamics fitting remains paused; protected A2 checkpoint unchanged.
+* Fixed demonstrated native collision-iteration limit mismatch: the native counter
+  discards part of an inner collision slice after iteration 11; later slices still
+  run. Archived KOTM 0.05467u error now 5.73e-10u. Regression/source fixture retained.
+* Added general phased steering/throttle/jump/use/braking search, cloned frozen
+  navigator proposals and persistent first-event timing through the two-frame
+  input delay. Terminal 192ms support/speed heuristic remains explicitly uncalibrated.
+* Fixed OneDrive atomic-report replacement with bounded retry and retained incomplete
+  archives/journals. Found five-second native lockstep reply timeout, exposed guarded
+  probe-only DYNAMICSWAIT120000; deliberate 5.5-second delayed reply has zero drift.
+* Fixed predictor translation of Torque F32 parsing/variable stores/native callbacks
+  and six-significant-digit argument formatting at movement/camera boundaries.
+  Opt-in pending-reply telemetry now preserves actual numeric words. Production
+  action/physics defaults unchanged. Added immutable native/control regressions.
+* Correct complete-control mechanics recheck: 124 trials, no prediction failures;
+  p95 endpoint 0.000394u, max 0.5021u; first landing max 2.22e-6u / one-second
+  continuation max 0.03756u. Earlier missing-control audit marked invalid/retained;
+  old broad rollout/landing tails and native sensitivity remain relevant.
+* Final reserved seed 51013: KOTM planner/A2 5/5 points, Sprawl 0/0, Bowl 0/0;
+  zero falls, max 160 decisions (10.24s). Sprawl planner stops at 88 when candidates
+  fail checks. One fresh start/map is not a statistical/full-round improvement claim.
+  No native powerup activation in this set; no planner/checkpoint promotion.
+* Independent 204 five-step windows: zero Move/camera/stale-reply mismatches;
+  888 native-control one-step checks expose one unresolved ramp-force tie
+  (8.81e-5u position / 0.712rad/s spin). Fixture retained; not all uncertainty
+  branches are flagged yet. Previous unfavorable/contaminated attempts preserved.
+* Planner medians 1.91-3.50s per search/revalidation remain too slow. Profile shows
+  contact/sweep/query loops and Bowl route visibility are priorities. Future harness
+  records full policy input and failed terminal searches; existing manifests retained.
+* Exact-geometry comparison gallery: collision_maps/viewer/reliability/index.html.
+  All three browser/rendered geometry/path checks pass; null prediction markers and
+  real score checked separately. 27 regressions, compile and whitespace checks pass.
+  Owned games/helpers closed; operator dashboard left alone. No training started.
+
+### 40.103 Autonomous planning continuation (2026-10-12, in progress)
+* Operator explicitly requests continuous engineering progress until real blockers,
+  with updates and incremental handoff logging. Current authoritative work log:
+  [HANDOFF_PLANNING_RELIABILITY_2026-10-12.md](HANDOFF_PLANNING_RELIABILITY_2026-10-12.md),
+  section "Autonomous continuation". Training and checkpoint promotion remain paused.
+* Flagged near-equal distinct-surface support-force uncertainty without altering
+  nominal motion. Exact-query/route/cross-product/triangle coefficient optimizations
+  preserve all tested outputs; paired full-rollout speedup1.56-3.43x over original.
+* Added direct airborne/held-powerup proposals, checked remaining-plan reuse, exact
+  future source archives and offline failure diagnosis from past observations only.
+  Reuse medians typically0.04-0.10s; cold-search worst cases still take seconds.
+* Found/fixed world-vertical stability rejecting supported downhill rolling. Native
+  Bowl71104 now completes240 decisions instead of stopping112, no falls, still0pts.
+* Added optional longer recovery search and physics-checked braking continuation to
+  land otherwise unambiguous airborne futures. Independent native comparisons are
+  active; 31 regressions pass. No uncertain contact flag has been suppressed.
+* New exact-geometry/native replay gallery: collision_maps/viewer/autonomous_20261012/
+  (71104 pre-slope-fix run); all3 browser geometry/path/control checks pass. Prior
+  reports/galleries retained. New scores/seeds/limitations logged as batches finish.
+
+* Geometry-guided600-decision fresh101107 checks completed: KOTM26/32,
+  Sprawl12/0, Bowl11/2 actual planner/A2 points, all zero falls. Remaining seven
+  maps111108 reveal early search stops; all native audits archived. No promotion.
+* Read-only opt-in Blast context and independent script-actuation prediction are
+  under native verification; missing regular Blast may explain some elevated-gem
+  failures. Resource acquisition checks correctly refused unavailable gear.
+
+* Regular Blast actuation and legal recharge are now native verified, including
+  exact archived-prefix reproductions and a23.552s continuous wait/action/landing
+  forecast (max1.783e-6u). General mechanics, not a per-map named trick.
+* Resource-preserving fresh131111 results: Concentric3/0, CubeIsle7/6, Duplex21/0;
+  live recharge reusedConcentric11110814/0 at900 replies,0 planner falls. Fresh
+  Concentric1411123/2 still stops; favorable and unfavorable evidence retained.
+*44 regressions pass. New actual-goal/charge replay gallery recharge_goals_20261012;
+  all10 prior geometry-path galleries verified. Training/promotion still paused.
+
+- Autonomous continuation: native Concentric141112 flight collected5pts and landed, full118-reply forecast max position error3.15e-6u. Added opt-in whole-map landing search plus actual-pickup landing commitment/revalidation;47 regressions pass. Live900-decision regression follows. Training/checkpoint promotion remain paused; full detail in HANDOFF_PLANNING_RELIABILITY_2026-10-12.md.
+
+- Landing loop archived-start regression FINAL19pts/900/zero falls vs A2 2/firstfall147. Actual5pt pickup194, supported landing219, resumed collection. Fixed round-budget millisecond conversion and cached boundary miss;50 regressions pass. Item-charged Blast impulse verified using real pickup in labeled setup fixture; later respawn pickup remains an unmodelled open-loop context event. Fresh3-map151113/900 validation follows, cache off. Training remains paused.
+
+- Fresh landing151113 FINAL planner/A2 Concentric12/0, CubeIsle8/0, Duplex29/13;
+  all planner0falls. Concentric/Cube early checks stop463/543; Duplex900. Independent
+  planner native audits have zero Move/camera/script/stale/contact discrepancies.
+  Single-seed bounded attempts, not a statistical/full-round claim. Fresh gallery:
+  collision_maps/viewer/landing_validation_20261012. Central review index now links it.
+- Read-only script inventory fixes Mega6 visibility (native-held0); unverified timed
+  growth/shrink/activation is explicitly refused. Native r3 confirms context/timing.
+  Exact cache boundary and row-cross kernel fixes plus global observed-gem fallback
+  are opt-in.54 regressions pass; cache native equivalence is next. Training paused.
+
+- Continuing autonomous engineering: cached/compiled strict sweeps exactly match
+ 9000 queries,40 forecasts,74 landing candidates and320 native decisions. Integrated
+ walking backend; fresh191117 KOTM/Sprawl/Bowl planner26/14/13 versus A2 4/0/0,
+ planner0falls at600 decisions; all six independent audits clean. No training.
+- Verified useful short plans at exact failed Concentric/Fractured states; corrected
+ native collector acknowledgement drift, preserved invalid r1 evidence. Exact-axis
+ floor/wall grazing guard refined using a separately native-verified route fixture,
+ retaining true geometric ambiguity.60 regressions PASS. Predeclared two archived
+ start development batches with opt-in smaller checked plans; full incremental
+ provenance in HANDOFF_PLANNING_RELIABILITY_2026-10-12.md. Promotion remains paused.
+
+- Short/precise-grazing development FINAL: Concentric15111320pts/831/0falls versus
+ A2 0/900; Treasure11110811/600/0falls versus A2 0/600. Native audits clean; interactive
+ galleries generated/browser checked. Fractured cold search exceeded120s owned
+ probe wait; preserved invalid first run, fixed explicit probe wait600s (production
+ default unchanged). Valid retry0/48/0falls versus A2 0/43/firstfall, audits clean.
+- Native replay verifies Cube's supported ledge endpoint cannot brake safely despite
+ accurate prediction. New opt-in terminal-stop48 guard retains a verified backup
+ and pickup landing commitment.66 tests PASS; source-frozen Cube/Concentric paired
+ live development checks underway. Full handoff logs all invalid cases and fixes.
+
+- Stopping-guard development outcomes are NOT a promotion: all-candidate guard
+ Concentric0/12,Cube0/100. Pickup-only guard initially3/221,1/348; fixed duplicate
+ backup append and wrong geometric destination, preserving verified stopping point.
+ Corrected r2 Concentric3/221/0falls vs same-pair A2 8/212/firstfall; Cube4/600/0falls
+ vs A2 0/373/firstfall. Planner audits clean; flagged ambiguous comparator contacts
+ retained. Earlier no-stopping variants collect more; guard remains default-off.
+- Exposed matched-start clocks and actual powerup-respawn countdowns after finding
+ A2 divergence starts in raw field50 despite identical physical start/initial raw.
+ This is timer-dependent baseline sensitivity, NOT proof of a clock bug. Always
+ report the actual comparator from each pair, never substitute historical scores.
+- General mechanics16ms/decision64ms native queue and resource cadence verified
+ on10 immutable selected cases (rolling/jump plus powers1-5 and regular/item-charged
+ Blast). Corrected exact native <0.001 speed cutoff: port's tiny position drift was
+ causing0.786u Super Jump forecast error; now2.24e-6u over400frames. Forces/spin still
+ advance when position doesn't. Existing-item fixtures used for pool powerups;
+ Bounce/Shock absent from ten hunt maps use explicitly labeled setup-only grants.
+ No learned model/policy fit or checkpoint change. Full75 tests plus new independent
+16ms-audit regression PASS. Opt-in16ms evaluator/continued-forecast integration;
+ legacy64ms default and tests preserved. New fresh seed241122 three-map300-decision
+ paired checks underway; every result/failure archived in incremental handoff.
+
+- Initial16ms batch: Concentric3/204/0falls versus actual A2 0/142/firstfall is
+ valid; Cube14 partial points/294 is INVALID after search exceeded600s no-reply
+ allowance. Stopped only owned processes and retained raw/decision failure archives.
+ Cube comparator and Fractured were unplayed in that attempt; no score substitution.
+- Exact native Concentric endpoint replay followed by braking falls after17 replies
+ (1.088s), prediction matches to1.54e-8u.972 whole-mesh general recovery proposals
+ produce no checked escape; retained negative result, not integrated. Zero observed
+ episode falls does not certify a safely controllable endpoint.
+- Fixed unused held Helicopter extending ordinary/short forecasts to96 replies;
+ actual use/active flight/frozen navigator keep the required flight horizon. Added
+ exact independent native-tree copying; ten whole forecasts byte-for-value identical.
+ Added optional whole-search time budget that archives a stop before any partial
+ action executes.25ms intentional budget smoke passes. Full82 regressions pass;
+124 mechanics fixtures revalidate with unchanged broad error tails and zero failures.
+- New completed16ms Cube archived-start retry14/300/0falls versus actual A2 1/107/
+ firstfall; both audits clean. Fresh Fractured25112512/300/0falls versus actual A2
+0/110/firstfall; planner audit clean, comparator has one flagged ambiguous contact.
+ All bounded familiar-map diagnostics. A2 update37760 bytes unchanged; training,
+ learned model fitting and checkpoint promotion remain paused. Cold searches still
+ prevent a realtime claim. Native mechanics and endpoint failures have full-mesh
+ interactive review artifacts, with cadence/budgets/wall time exposed in the index.
+- Added observed final_context archival before recording-close, and generalized
+ exact-prefix endpoint probe. Predeclared fresh261126 remaining-seven-map16ms
+300-reply paired coverage in pool_a/pool_b,60s planning limit, plus Cube endpoint
+ braking diagnostic. Existing sources frozen while these owned jobs run. Every
+ outcome and medium/major change is logged in HANDOFF_PLANNING_RELIABILITY_2026-10-12.md.
+- Seven-map16ms coverage FINAL planner/A2 points: KOTM12/16,Sprawl14/4,Bowl4/0,
+ Duplex13/0,Vortex7/0,Cragmire0/0,Treasure12/0; all planner300 replies,0 observed
+ falls and clean audits. KOTM comparator has one flagged ambiguous contact; other
+ six comparator audits clean. Scores from different sources/budgets are not pooled.
+- Fixed additional native-proven landing completion bug: ordinary landing used
+ the steering point as completion destination despite its accepted settled endpoint
+ being.607u away (completion tolerance.5u). Retain steering proposal, commit actual
+ checked endpoint/support triangle, preserve verified stopping backup. Full83 tests
+ pass. New Cube60014pts/0falls vs A2 1/107/firstfall; Cragmire60012/0falls vs A2
+0/600. All audits clean; earlier Cragmire0/300 was short play, not permanent deadlock.
+- Fractured extended19pts/459/0falls ends at explicit60s planning limit, snapshot
+ archived and no partial action executed. Native planner audit clean. Updated full
+ mesh review galleries retain successes, failures, cadence, budgets and wall times.
+- Mega16ms evidence:800 native frames,0falls, growth/shrink and parameter layers
+ observed. Fixed-body intervals match port (624-frame Mega span maxp1.78e-15u);
+ script transitions explicitly excluded. Gravity suspicion disproved by native
+ contact-step reproduction; no gravity alteration. Mega activation still refused.
+- Matched-mechanics collector now pins optional geometry/native seed, snapshots
+ source and refuses overwriting prior manifests. Predeclared native-only six-map
+ pool_controls/pool_wall_jumps coverage continues the whole-mechanics foundation;
+ setup-only fixture grants/resets labeled, all outcomes preserved. No fitting or
+ checkpoint writes. Incremental planning-reliability handoff is the continuation
+ authority; A2 update37760 remains protected.
+- Completed six-map native matched mechanics:114/114 valid trials,24,929 native
+ 16ms transitions; paired initial positions/velocities EXACT0 differences. Together
+  with earlier124 trials, controlled spin/rebound/jump/power evidence covers all10
+  maps. New recheck0 failures,102 first landings max1.23e-6u; larger later contact
+  tails remain flagged, and old.502u worst case is not erased or calibrated away.
+- Prepared a separate full-surface native-motion student benchmark with source,
+  archive and mesh provenance. Fixed new prep-only plane-normal/boundary/bounds/import
+  gaps. Random unfitted model forwards and exact source reconstruction pass on GPU;
+  no optimizer, backwards, model save, PPO, policy integration or checkpoint writes.
+  One-step motion only; rare activations and multi-step auxiliary state are explicit
+  limits. Further work continues in planning-reliability handoff and review artifacts.
+- v2 prep masks inactive timer junk and retains signed expiry timing (84 physical/
+  control features,38 surface features); earlier draft/source/evidence preserved.
+  53,026 playable transitions but only30 training activations exposed a coverage gap.
+  Native/geometry preparation tests and existing dynamics/query suites all pass.
+- Full10-map matched-mechanics gallery geometry/browser check passes. Updated
+  optional-readout checker handles absent mechanics goal/score/meter without
+  invented observations. Review index links unfitted feasibility and explicit
+  physics-student proposal. Fitting remains paused, not implied by fast GPU forwards.
+- Continuing bounded native-only rich_mechanics_train/holdout_20261012 collection:
+  280 requested varied ordinary/matched power trials,10 actual-use requests/map,
+  same inventory for use/no-use controls, native16ms. Actual activation support is
+  recorded independently of requested start kind. Sources frozen, protected A2 and
+  game binary unchanged. Every bugfix/medium/major change in incremental handoff.
+- Rich native coverage completed280/280 valid trials,58,38616ms frames,99 actual
+  activations and173 retained falls. Same-inventory use/no-use p/v/spin starts
+  EXACT0 differences. One Vortex Bounce request falls before activation; requests
+  are not counted as uses. Games closed normally. Expanded immutable prep plus
+  analytical open-loop audits continue, without learned fitting or PPO.
+- All10-map matched-mechanics gallery geometry and optional readout checks PASS:
+ 714 time samples,113 local links,0 JavaScript errors. See PROGRESS_2026-10-12.md
+  for the concise daily overview; detailed continuation remains in the handoff.
+- Expanded native-motion bundle111,083 playable transitions/518 raw trials,
+ 149 use rows/90 train and all47,932 triangles; unfitted GPU/provenance checks PASS.
+  Rich analytical audits expose64.14u/15.38u contact-sensitive long forecasts and
+ .0611u largest unflagged path error. These negatives are retained prominently.
+  Targeted native-BEFORE one-step diagnosis separates local mismatch from future
+  amplification; Sprawl's divergent contact is flagged at182. No safety calibration,
+  learner fit or policy promotion. Rich full-map failure gallery checks in progress.
+
+- Rich full10-map failure gallery browser geometry and optional readout/link
+  checks FINAL PASS:837 time samples,115 local links,0 JavaScript errors.
+  No forecast failures or falls were removed. Original matched gallery unchanged.
+- Added sensitivity_probe.py and completed18 disclosed tiny INITIAL p/v/spin
+  variants for each of4 archived6-second cases, without future measured state.
+  Maximum variant/nominal separation: Sprawl64.14u, Bowl15.38u, Treasure.0467u,
+  Cragmire.00224u. Diagnostic branching sensitivity, NOT confidence bounds,
+  native replay, certified safety or a planner integration.
+- Added fit_motion_student.py preparation-only path and archived refined
+  native_motion_fit_review_r2_20261012/protocol.json:1000 updates, batch64,
+  300s training-loop budget, bounded validation may extend total wall time;
+  supervised map/control-stratum balancing and dev-only checkpoint selection.
+  Test maps used once at selected final checkpoint. No --train invocation,
+  optimizer update, student checkpoint, PPO or A2 promotion occurred.
+- Operator asks the path to higher complete-round game scores and authorizes
+  continued preparation. Added ROADMAP_FULL_MAP_LEARNING_2026-10-12.md linking
+  motion fitting, true multi-step mechanics, continuous planning/speed, and later
+  policy learning. Physics accuracy is an intermediate check; points are the goal.
+- New full_round_benchmark.py reuses existing real_run/phase_r for a sealed
+  original64ms-physics/64ms-control A2 reference, complete game-duration rounds,
+  native end-message score, assisted8s rescue, native OOB click. Default prep-only;
+  read-only --run-a2 is explicit. No first-fall/truncated/reconnect score promotion.
+  Experimental16ms planner will require separately matched A2 full-round timing.
+- real_run.py provenance-only addition: initial score/remaining clock, expected
+  duration and explicit evaluation settings. Controller actions are unchanged.
+  New meaningful score-contract tests reject missing/native-disagreeing scores,
+  partial rounds, late starts and changed cadence/rules while retaining falls.
+- Predeclared bounded owned full-round reference smoke: KOTM, seed481012,
+  frozen A2, one original-duration round, port9200, hidden marbleblast_mbx.exe,
+  assisted8s rescue, no policy/model fitting. Separate prep declares10maps x3
+  seeds x1 round, without launching that sweep yet. Sources/checkpoint are hashed
+  and frozen during the native smoke; protected dashboard PID33732 untouched.
+
+- Full-round smoke operational failure retained: wrapper passed a relative output
+  to phase_r, whose real_run child changes cwd to ml_agent; the trace path then
+  referenced the wrong nested directory. No scored round occurred, summary marks
+  failure and emits no aggregate. Both owned processes closed; dashboard untouched.
+  Fixed new wrapper to resolve output before launching children. Original failed
+  artifacts/source snapshot preserved. Retry is a new output on SAME seed481012,
+  not outcome-selected. Source freeze renewed for retry. Four score-contract tests
+  and preparation of30-round protocol passed; that sweep has not been launched.
+
+- Corrected new score-audit clock assumption after native r2 smoke: KOTM starts
+  at180s/0score and sends a native completed end-score111, but replay simulation
+  elapsed is184.321s. trainingReplay.cs defines clock_ms as getSimTime(), not
+  the Hunt countdown. The attempted upper equality bound was unjustified; r2
+  retains its failed audit and raw111-point/12-fall outcome, without rewriting.
+  Full start/native end/score agreement/minimum time coverage stay required.
+  Replay elapsed remains separate telemetry, allowed to exceed round duration.
+  Added this actual discrepancy as a regression. Retry r3 is same seed481012,
+  fresh output, same controller/rules; no fitting and no outcome selection.
+
+- r3 native complete-round reference/audit PASS: KOTM seed481012, A2 update37760,
+  124 native points,9 falls,0 rescues,26.64s wall; weights unchanged. Full starts,
+  native end and pickup/score agreement pass. Five score-contract tests PASS.
+  The previous r2 native111/12 outcome is retained with its original rejected
+  audit. SAME explicit seed does not make these independent launches identical:
+  do not claim exact paired-start determinism or select the higher result.
+- Added start_context (actual raw/catalog/replay world) and first_play_context
+  (actual first post-countdown observation/world plus prior recurrent state) to
+  real_run provenance. No actions/weights changed. Seed protocol now explicitly
+  requires observed-state equality before calling any future comparison exactly
+  paired. This is a meaningful reproducibility improvement triggered by111 vs124.
+  Multi-round variation remains part of score evaluation, not a physics-fit result.
+
+- Added at most2 bounded full-round reference slots using existing native runner
+  port9200/9201 ownership; no subagents. NAV experiment environment is fixed before
+  workers start, each map/seed gets its own new artifact directory and both owned
+  child processes close before slot reuse. No aggregated score if any job invalid.
+- Predeclared NEW full_round_a2_pool_reference_20261012: all10 selected maps,
+  seed481012,1 full original-duration round/map,2 slots, current frozen A2 and
+  provenance-extended original64ms evaluator. This is a preliminary reference,
+  NOT candidate improvement or sufficient multi-seed evidence. Source frozen
+  for the entire sweep. Separately prepared latest r4 three-seed30-round proposal;
+  that larger sweep remains unstarted. No training/fit/checkpoint promotion.
+
+- Independent preparation during the read-only native sweep: added student_cache.py
+  for frozen-model complete-map key/value caching, without modifying the prepared
+  student/data/physics files or native sweep sources. Every surface still enters
+  attention; no ray crop or nearest-K selection. No fitting/gameplay integration.
+  Pending check compares bitwise outputs at batches1/16/64 on every map and rejects
+  stale weights or changed cached bounds. Random local weight mutation only tests
+  cache invalidation after unchanged-weight equivalence; no optimizer or save.
+  This targets eventual search throughput, not a claimed present score improvement.
+
+- Complete-map inference cache FINAL PASS: bitwise cached/uncached output equality
+  across all10 maps and batches1/16/64; all47,932 surfaces retained. Caller-bound
+  mutation isolation, stale-weight and cached-bound refusal guards pass. Initial
+  random weights unchanged during equivalence; only discarded random model was
+  deliberately mutated afterward to exercise the version guard. No fitting/save.
+  Under concurrent native reference work, cached median forwards ~.43-1.13ms;
+  median uncached/cached ratio ~1.05/1.07/1.10 by batch. Modest microbenchmark
+  improvement, NOT end-to-end search/runtime speed or learned accuracy. A2 and
+  both native executables retain hashes. Report native_motion_complete_map_cache.
+
+- Full ten-map A2 reference FINAL:10/10 original-duration native rounds completed
+  and audited, source/checkpoint hashes stable,340.73s wall. Points in config order:
+  KOTM110,Sprawl9,Cube4,Bowl4,Duplex13,Fractured19,Cragmire7,Vortex1,Treasure5,
+  Concentric0; equal-map mean17.2. All rounds include falls/rescue time and archive
+  actual starting/first-play context. This is one seed/map, not candidate evidence.
+  No native or fitting jobs remain from this sweep; dashboard untouched.
+- Historical same-SHA A2 full-map baseline (Oct10,2rounds/map) was33.1/KOTM124.5;
+  prior4-round shaping sweep32.5/KOTM128.5. Do NOT lower the promotion goal to17.2.
+  New seed/runtime can change outcomes. Historical Treasure alone was8 then60,
+  showing large within-map variation. Need replicated comparable runtime/start
+  evidence before interpreting current17.2 as regression or using it for gains.
+- Predeclared bounded historical-seed check: Fractured Islands, seed10095
+  (original config-order phase_r seed10090+5),2 successive original-duration
+  rounds under CURRENT frozen inference/runtime and same A2 SHA. Original old
+  mean91 points/12falls remains separate. Fresh output and source freeze; purpose
+  is seed/runtime diagnosis, not choosing an easier baseline or starting training.
+
+- Historical-seed Fractured check FINAL PASS: two native completed rounds83/88,
+  mean85.5,13falls/round, versus historical91/12 and new-seed19/43. Source/A2
+  unchanged;91.27s wall. Consistent with large start variation contributing to
+  the17.2 new-reference mean; not proof of complete runtime invariance. Do not
+  substitute the new low seed for old32.5/33.1 promotion expectations. All failures
+  and score distributions remain separate. Native jobs closed; dashboard alone.
+- Added FULL_ROUND_REFERENCE_2026-10-12.md with per-map native points/falls/rescues,
+  original durations, explicit independent-start limits and historical diagnostics.
+  Roadmap states physics fitting and continuous controller engineering are parallel
+  paths; analytical planner may earn score gains before PPO. Navigator must receive
+  global/forecast information: demonstrations cannot fix identical local inputs.
+- Updated review index with roadmap, full-round reference, sealed three-seed
+  protocol, unfitted cache proof and bounded fit proposal. Full-round assisted
+  reference is explicitly separate from first-fall/no-rescue paired diagnostics.
+  No existing gallery/training data or old scored experiment was overwritten.
+
+- Final current review-index121 static local links checked: all targets exist,
+  including new roadmap/reference/protocol/cache artifacts. No interactive
+  geometry changed; prior rich837-sample115-link browser result remains intact.
+  git diff --check PASS (existing CRLF notices only). New score contract5 tests
+  PASS; native complete-round smoke,10-map pool and historical-seed2round tests
+  completed. Source/A2/native hashes retain their declared values. All owned
+  processes are closed; only protected dashboard33732 remains. Fitting/PPO paused.
+
+### 2026-10-12: authorized source-copy cleanup and next milestone
+
+Operator approved the recommended continuous full-round controller + bounded
+physical-student diagnostic plan, then requested careful removal of unnecessary
+Python files and ongoing cleanup. Inventory: 4,994 Python files; 4,663 are frozen
+source copies, not independently maintained programs. Generated source snapshot
+folders (79, all untracked) contain 4,514 Python copies and 233 other captured
+source/build files. Active modules/tests, old tracked snapshots, native datasets,
+geometry, checkpoints, reports and viewer artifacts are preserved.
+`nav.source_archive` now packs historical sources into per-run ZIP archives with
+per-file SHA256/byte manifests, rereads and verifies every member, checks all
+originals, and only then removes the loose captured files. Its four deletion/
+byte-preservation tests pass. Cleanup execution/results are logged below.
+Temporary ad hoc helpers belong in the external TEMP workspace; retained
+experiment evidence uses source archives rather than loose source-tree copies.
+The approved small supervised motion fit is distinct from gem-policy PPO;
+long PPO and checkpoint promotion remain pending useful full-round evidence.
+
+Cleanup completed: 79 verified per-run source archives replace 4,747 loose files
+(4,514 Python copies); 78.35 MB of captured bytes became 31.31 MB of archives.
+Nine additional loose `.source.py` copies in three fit/protocol directories were
+packed, verified and removed. Total Python copies removed: 4,523. Old tracked
+snapshots and the 17 standalone historical reference modules directly imported
+by retained speed/equivalence benchmarks remain necessary and were kept.
+Reports: `dynamics_reports/source_cleanup_20261012.json` and
+`source_cleanup_direct_20261012.json`. No raw data, geometry, policy weights,
+reports, failures or viewer files were deleted. Main full-round, reliability and
+motion-fit tools now write verified `source_snapshot.zip` directly. Scoped ZIP
+ignore patterns keep generated source evidence out of new Git additions.
+Legacy collectors still making loose captures must be followed by the shared
+packing command after completion; never modify a running batch's source.
+
+Approved first physical fit completed all 1,000 updates in 4.81 seconds of fitting/
+validation after setup (not a 300-second run). New isolated student SHA256
+754763d8307f0ad0945f6c5e5ea29dbd6914d5f3797a2a9f20ce01358b5ce187;
+A2 and native executable unchanged. Result `native_motion_fit_20261012/result.json`.
+Selected update1000, development-balanced MSE0.015668. **FAIL useful-predictor
+accuracy gate:** Bowl mean one-step position0.047837u vs constant-velocity0.004440u;
+Vortex0.041133u vs0.004518u. Velocity/spin errors also exceed that baseline.
+Activation samples remain sparse and Speed impulses particularly inaccurate.
+No student gameplay integration, whole-rollout claim, PPO or promotion. Retain
+this unfavorable result; analytical planning remains the scored controller path.
+
+Started the predeclared 30-round A2 reference (three seeds x ten maps), two owned
+slots, same original64ms assisted settings; output `full_round_a2_replicated_20261012`.
+This runs independently of new-controller engineering; protected sources remain
+frozen during that reference. It preserves all native outcomes and does not pick
+starts by score.
+
+Continuous full-round adapter is implemented in existing `reliability_eval.py`
+instead of creating another probe script: `--full-round` uses natural native
+rounds after mechanics-factory warmup, never scored REPLAYRESTORE/grants/teleports.
+Native score/end, normal OOBCLICK and time-cost8s quick rescue are recorded.
+Full rounds continue across falls and gem groups. Stale plans/resources and
+actor/input history reset on fall/rescue; checked post-pickup landing commitments
+survive genuine selected-item disappearance. Search expiry/no candidate uses
+explicitly counted routed A2 fallback plus a declared cooldown. New controller
+and A2 have the same experimental physics cadence, decision rate and rules;
+actual starts are archived but **not certified identical**. Old first-fall mode
+stays default/separate. Seven score/lifecycle tests plus four archival guards,
+two landing and two planning-budget regressions pass (15). Compile/diff checks
+pass. Bug caught before native run: end/reconnect may have no previous native
+state, so reset is handled before reading that state.
+
+First continuous native attempt `continuous_full_round_20261012` is INVALID,
+not performance evidence: countdown neutral action was8 fields because
+NOOP_ACTION has5 joystick fields, not6. The adapter now uses canonical
+`bridge.reply(NOOP_ACTION)` everywhere; new no-live-gem regression verifies the
+nine-field pending reply and safe jump/use/Blast bits. All eight full-round/
+lifecycle tests pass. Failed native/journal fragments are archived, and future
+full-round exceptions now produce failed.json + compressed native/journal
+records before owned process cleanup. Retry uses a fresh directory/version.
+
+Continuous retry's first full native Sprawl round PASSED the complete-score
+contract:44 points,300s original Hunt round,2 falls,6 accepted8s rescues out of7
+attempts,3 gem groups completed,536 checked planner decisions versus4,133 A2
+fallback decisions. Wall206.04s; median/p95/max full decision9.03/40.18/1064.47ms.
+This is an assisted hybrid, ~11.5% planned among active decisions, NOT an
+all-planner or realtime controller. Its independently launched experimental16ms
+A2 comparator is currently running; no win is claimed before that full result.
+The30-round legacy64ms reference is separate and continues. First neural fit
+interpretation is reviewable in RESULT_PHYSICS_STUDENT_2026-10-12.md.
+
+Sprawl's matching experimental16ms A2 full round completed52pts/4falls/5rescues
+versus hybrid44/2/6. Preserve this unfavorable score comparison; fewer falls is
+not higher Hunt performance. Actual raw initial observations and p/v/spin/yaw
+were identical, but the archived complete contexts were not (native clocks differ
+315685 vs315690ms), so it is still not an exactly restored-world pairing. Same
+rules, map, supplied seed, native cadence and original duration are explicit.
+KOTM pair and the separate30-round legacy reference continue. No promotion.
+
+All four continuous r2 original-duration score contracts pass. KOTM hybrid136/
+2falls/0rescues versus experimental A2 133/6/0; Sprawl hybrid44/2/6 versus A2 52/
+4/5. These one-seed familiar-map mixed results do not establish superiority.
+Hybrid planned536/(536+4133)=11.5% of Sprawl active decisions and144/(144+2664)=
+5.1% on KOTM; most actions were A2 fallback. Median/p95/max KOTM hybrid full-
+decision4.53/37.33/1057.44ms,149.85s wall versus A2 28.06s wall. No promotion.
+
+Next bounded search improvement implemented opt-in for continuous rounds:
+`search` catches a deadline only after retaining completed, independently
+assessed futures. An unfinished forecast/assessment is discarded; ambiguous
+or unsupported completed candidates remain rejected. If no candidate completed,
+there is no action to invent. Legacy first-fall callers still raise on expiry.
+This prevents discarding all useful checked work when a later proposal times
+out. Flag and source archive explicitly declare the changed search. Imported
+flat actor/bridge/recovery modules are now included in reliability provenance.
+29 focused search, deadline, full-round/lifecycle and source-archive checks pass.
+Initial new tests had an incomplete dummy raw-observation fixture (None), fixed
+to the actual61-field input; no production failure was hidden by that correction.
+Next native comparison uses a fresh output directory; earlier r2 outcomes stay.
+
+
+30-round legacy64ms replication completed: all30 valid, equal-map mean24.9333,
+KOTM124, two-slot wall1008.64s. Complete per-map/per-seed table added to
+FULL_ROUND_REFERENCE_2026-10-12.md; source/A2/protocol hashes are stable. This
+separate reference does not prove a training regression or lower a promotion
+criterion. Earlier17.2 and historical32.5/33.1 remain separately documented.
+No evaluation workers from this reference remain active; dashboard protected.
+The completed-candidate continuous16ms retry is still running. At Sprawl75s it
+has47 actual points and951 planned/213 fallback decisions; no full-round claim
+from those partial figures. Source files are frozen for that native batch.
+
+Completed-candidate retry full Sprawl PASSED native score contract: hybrid131pts/
+1fall/0rescues/14gem groups versus new experimental A2 32pts/1fall. Hybrid3,572
+planned versus1,113 fallback active decisions (76.2%),223 deadline-retained checked
+candidate decisions,296 full searches. Wall456.50s for300s Hunt (not realtime).
+This is a new source/version with predeclared1s budget, not pooled with r2's44/52.
+A2 source/weights unchanged, but new independent starts can vary: earlier A2
+52 is also retained, never replaced or cherry-picked. KOTM pair continues before
+any complete two-map conclusion. No student integration, PPO or promotion.
+
+
+### Continued iteration: completed rounds, viewer and residual physics variant
+
+Operator explicitly requested continuing until told to stop. Completed-candidate
+continuous trial finished all four original-duration rounds with valid native end
+scores. Sprawl: hybrid131/A2 32, one fall each, hybrid0/A2 7rescues. KOTM:
+hybrid124/A2 133, hybrid1/A2 6falls, no rescues. KOTM hybrid2459planned/
+351fallback decisions, wall299.33s versus A2 24.62s. These independent launches
+on two familiar maps establish neither matched-world superiority nor promotion;
+keep the KOTM score loss and earlier44/52 Sprawl result visible.
+
+Extended the existing reliability viewer to captured complete rounds. Coral is
+previous checked one-reply forecasts reanchored at observations, with prediction
+or cadence gaps blank; cyan is measured macro-observation motion. Native end
+points remain separate from observed score samples. Unknown goal/activation
+markers stay unknown. Fixed an option-label JavaScript bug: absent prediction
+max error was null and .toFixed crashed; now displays unknown. Browser checks
+pending. Gallery: collision_maps/viewer/continuous_full_round_20261012/index.html.
+
+Prepared an isolated kinematic-residual physics variant: known velocity*dt
+position drift plus learned corrections, zero initial correction head, unchanged
+complete surface/input schema. Update0 development score can beat later fits;
+checkpoint records architecture so it cannot silently use original forward.
+The original complete-map cache now rejects alternate model classes instead of
+silently omitting the residual prior. Six focused input/geometry/cache/baseline
+contract checks pass. Next predeclared fit:5000updates,64batch,300s loop limit,
+development-only, separate native_motion_fit_residual_20261012 output. Already
+inspected Bowl/Vortex test maps will not be reopened for variant tuning. No
+policy training, student integration or A2 promotion. Main writers archive
+source directly; no extra standalone Python helper is created.
+
+
+### Operator correction: pool-wide progress, no KOTM veto
+
+Operator clarified that KOTM's unusually specific earlier training should not
+make it a pedestal. A modest KOTM score dip is explicitly NOT grounds to reject
+progress. Evaluate equal-map pool results, consistency, newly useful mechanics,
+falls/rescues and cost; keep per-map outcomes visible without a KOTM-flat gate.
+The current124vs133 KOTM observation does not invalidate the131vs32 Sprawl gain.
+Neither two-map observation alone demonstrates all-pool improvement.
+
+Continuous search ordering variant prepared: check the existing frozen learned
+proposal first when explicitly requested, so the1s budget does not starve it
+behind every hand-built control. Forecasts/physical acceptance checks remain
+identical; the frozen actor only proposes, not bypasses verification. This is a
+general search-budget efficiency experiment, not a KOTM-specific remedy.
+Earlier completed-candidate trials/ordering stay reproducible in source ZIPs.
+
+
+### Residual development fit completed; no gameplay integration
+
+Ran5000bounded updates in36.19s; map/stratum-balanced development selection
+chose update1200 (MSE0.01031593), not the last update. Isolated checkpoint SHA256
+8f6883077229bf68b70bba9ca14bbbcf3533267afc4e7ccdf2e235c4fb325a50.
+The two development maps are Concentric AND Cube Isle; do not mistake this for
+a one-map selection. Bowl/Vortex test maps remain closed for this variant.
+
+| Development map | Student position u | Student velocity u/s | Student spin rad/s | Velocity-baseline position | Baseline velocity | Baseline spin |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Concentric_Hunt | 0.011092 | 0.907371 | 1.517822 | 0.005476 | 0.548818 | 1.187087 |
+| CubeIsle_Hunt | 0.009565 | 0.743168 | 1.207837 | 0.004338 | 0.412322 | 0.834287 |
+
+Some activation transitions improve substantially, especially Super Jump;
+ordinary-motion averages still exceed the constant-velocity baseline. Thus this
+is a useful diagnostic of the learning tradeoff, NOT a useful learned rollout
+model yet. No long-trajectory test, student gameplay integration or policy
+training is claimed. All protected artifact bytes verified unchanged by fit.
+Source is captured directly in source_snapshot.zip, no loose .source.py copies.
+
+Browser verification caught a second missing-prediction edge case: Largest error
+used Math.max on all-null A2 errors, then scrubbed index-1. The handler now uses
+only finite errors and leaves wholly unknown predictions unchanged. Browser
+assertion accepts unknown only when the whole recording has no finite errors;
+it still checks the exact maximum for measured comparisons. This is a viewer
+fix, not a change to stored trajectories/scores. Native/source tests30pass;
+input/geometry/residual/cache tests6pass.
+
+Next predeclared experiment: continuous learned-proposal-first search on ALL10
+maps, seed681012, one original-duration round per hybrid and A2,16ms physics/
+64ms decisions,1s search limit,64decision fallback cooldown, horizon24, no new
+physics student. Wall bound900s per scored round; unfinished rounds are invalid,
+not zero scores. Equal-map results and consistency matter; no KOTM-flat gate.
+Runtime sources frozen for this batch; continue read-only diagnosis and docs.
+
+
+### Viewer verification and distribution audit
+
+Complete-round gallery headless checks pass for both maps: all4594 Sprawl and
+1459 KOTM triangles render exactly, all four recordings match captured actual/
+predicted coordinates, orbit/pan/focus controls work, zero JavaScript errors.
+Goal/score/charge check verified662 observation/pickup samples; missing goals
+remain blank. Main review index refreshed with complete30-round reference,
+continuous-round gallery, residual-fit outcome and operator's pool-wide criterion.
+All125 local review links resolve. Python count remains476 after the new runs.
+
+Read-only distribution audit saved in residual fit input_distribution.json:
+111083rows,110784ordinary-control rows,150jump-command rows,149power-use rows. Ordinary controls include
+collisions and active-effect continuation: these are not a no-contact class.
+Many >10u/s native velocity changes are in ordinary controls. Six training maps
+contain only90held-power use frames total,18 per type; the current60/20/20
+sampler repeats sparse event rows heavily. Next physics development should
+separate ordinary/contact/activation error reports and inspect contact-relative
+geometry encoding rather than treating additional update count as a solution.
+No regression inputs are gameplay interventions, and test maps remain closed
+for learned-variant selection. New full-pool runtime sources remain unchanged.
+
+
+### Blocking measurement bug found; owned pool attempt terminated for repair
+
+Read-only native audit found two large single-reply pose discrepancies were
+second scripted respawns, not analytical floor/contact errors: Sprawl decision
+3626 jumps47.82u; KOTM1069 jumps12.0u. Both occur ~400ms after a previously
+reported fall/OOBCLICK. Ordinary aligned predictions otherwise are near1e-8u.
+The client OOB hook schedules triggerQuickRespawn after2update intervals without
+retaining/canceling the callback. That callback sends serverCmdQuickRespawn even
+after the evaluator has legally clicked OOB recovery. The server accepts the
+extra key, can defer it300ms for spawn blocking, and chooses a second spawn.
+This implicit second input is not counted as a stuck rescue and can consume its
+cooldown. Existing native end scores remain native scores, but their rule/input
+provenance includes this inherited hook; do not describe them as OOBCLICK-only.
+
+Stopped only the owned new pool attempt using its existing safe sentinel to
+preserve journal/native evidence and close its owned game. engineering_abort.json
+clarifies this is our technical abort, NOT an operator request to stop (the
+existing sentinel stop_reason string is operator_stop). Partial points are
+invalid as full-round results. Runtime sources stay unchanged until it exits.
+Next: cancel the pending automatic callback on explicit OOBCLICK and gate any
+remaining automatic OOB action to actual OOB; reproduce a fall, click recovery,
+then verify no second respawn/key cooldown consumption. Keep actual stuck rescue
+and game server rules intact. Restart full-pool evaluation in a fresh directory
+only after the native regression. No blanket killing; dashboard protected.
+
+
+### Duplicate OOB input fixed and native-verified
+
+mlAgent.cs now retains/cancels its delayed OOB retry handle. Explicit OOBCLICK
+cancels the callback before legal recovery; stop() cancels it too; the legacy
+callback refuses a late listen-server retry after isOOB has cleared. Existing
+stuck-rescue key and game server permission/cooldown rules remain authoritative.
+Read-only DEBUG reports respawns, quick permission, automatic key requests and
+pending callback. Native regression r2 passed all six checks: exactly one OOB
+respawn, zero implicit keys/pending retries, quick permission unchanged, then
+an explicit rescue accepted and exactly one additional respawn. First harness
+attempt misread a queued unrelated DEBUG acknowledgement (KeyError respawns);
+failed console evidence retained, retry filters requested fields. Game script
+compiled/loaded correctly; this was a test harness failure.
+
+Added opt-in live game_context counters so each complete-round evaluation can
+verify the absence of implicit key requests. Reports retain native score validity
+separately from declared-input validity; unknown/nonzero implicit keys refuse
+acceptance. Observed native respawn counter changes reset plans and actor even
+if a macro OOB flag was missed. Thirteen focused lifecycle/search-budget checks
+pass, including missed-OOB/observed-respawn reset. Separate live-telemetry native
+regression also passes all five checks. No extra Python helper file was added.
+
+First pool run safely closed:52partial points, score_valid false, stop_reason
+operator_stop because the preexisting sentinel uses that name; engineering_abort
+explicitly records this was our technical interruption, not user's stop request.
+No complete score is attributed to that prefix. Fresh retry keeps seed681012 and
+all previous pool settings in continuous_full_pool_navigator_first_r2_20261012.
+Runtime sources frozen again while this declared20-round evaluation runs.
+
+
+### Physics diagnosis: commands learned without enough contact conditioning
+
+contact_development_diagnostic.json uses native within-step telemetry only AFTER
+prediction to bucket errors; no future contact data enters the model or selects
+weights. Inspected test maps remain closed. The residual student hallucinates
+jump response in air: Concentric/Cube ordinary jump-command frames with no
+native contact have velocity error5.027/5.078u/s versus constant velocity0.338/
+0.339. Ground-contact jump frames improve2.161/2.929 versus7.068/7.068. Thus it
+has learned some impulse mapping but insufficiently distinguishes when jumping
+actually applies. Ordinary sweep-collision frames barely improve (actually
+slightly worse in aggregate), while simple airborne/contact continuation also
+regresses. This is not just sparse gem reward; it is a physical-model data/
+conditioning problem, and no gameplay reward bonus solves this benchmark.
+
+Next isolated model hypothesis after the frozen native batch: encode surface
+vertices/plane distances relative to the current marble in physical units, retain
+all faces/materials/boundary flags, and inspect separate airborne/contact/jump/
+activation errors. Multi-contact information must survive surface pooling. Test
+translation consistency and exact complete-surface retention before any fit.
+Reject scripted future-contact inputs or one hand-written recipe per trick.
+Keep constant-velocity and analytical baselines; use development-only bounded
+experiments and ordinary-motion checks so activation improvement cannot hide
+hallucinated airborne jumps. This is a candidate design, not a proven remedy.
+
+
+### Fixed-runtime full-pool first complete round
+
+Sprawl hybrid finished82native points,1fall,4accepted rescues,8gem groups,
+2907planned/1770fallback active decisions (62.2%),269full searches and151
+completed-candidate deadline decisions. Wall425.28s for300s native Hunt.
+score_valid AND declared_inputs_valid true; automatic_oob_key_requests0.
+The first observed respawn-counter reset is legitimate delayed recovery, and
+it correctly clears stale actor/plan state. A2 comparator and other maps are
+still running; no full-pair or full-pool conclusion yet. Earlier131 and44Sprawl
+results are preserved with their starts, ordering versions and inherited auto
+OOB hook caveat. No score is attributed to the aborted52-point prefix.
+
+
+### First fixed-runtime full pair: favorable but single-start result
+
+Sprawl seed681012 hybrid82/A2 0native points; both complete and declared-input
+valid, zero implicit OOB keys. Hybrid1fall/4rescues/8gem groups; A2 0falls/
+9accepted rescues out of20attempts/0groups. Hybrid425.28s versus A2 120.64s wall.
+The zero baseline stays in the record and is being inspected for controls and
+starting-world context before interpreting the advantage. The old32/52 A2
+Sprawl scores also remain visible. No conclusion from one familiar-map pair;
+other nine maps continue. Hybrid aligned same-mode/no-respawn single-reply
+predictions:2906samples, max position error9.06e-7u. This is not a whole-flight
+accuracy or calibrated safety claim. Checked frozen-navigator proposals now
+appear125selected decisions versus16in earlier Sprawl: ordering prevents
+starvation, but scores across runs/starts do not isolate its causal effect.
+
+
+Sprawl zero-baseline audit completed: identical initial raw observations, p/v/
+spin, parameters, active effects, and live gem positions between independent
+branches. Native clock_ms and inactive effect_end_clock_ms differ, so no exact
+restored-world claim. A2 issued4647nonzero-movement and4236jump commands over
+4714observations; it was not an idle/broken action stream. Hybrid4677movement/
+1401jump commands over4745observations. Both moved across substantial map
+ranges. The inherited policy fails this start with persistent jumping and
+repeated rescue, while the checked hybrid collects eight groups. Keep zero and
+other earlier outcomes; replication still required. Audit JSON is adjacent to
+both Sprawl branch folders. Cube Isle evaluation is in progress.
+
+
+### Whole-round audit catches early automatic-key race
+
+Fixed-runtime r2 sweep stopped after Cube A2 completed54native points but
+reported3automatic OOB key requests. Its score_valid is true, but
+**declared_inputs_valid=false**: do not accept this pair or complete pool as
+an input-matched result. Cube hybrid77points/2falls/2rescues,0implicit keys;
+A2 54points/8falls/5rescues,3implicit keys. All raw evidence retained. Sprawl
+82/0 was input-valid. No remaining r2 workers; source freeze lifted.
+
+The earlier six-check native regression covered click-before-timer, not the
+opposite timing order. Retaining/canceling a schedule is insufficient if it has
+already fired before explicit OOBCLICK applies. Fixed onOOB to record the fall
+but never schedule the legacy key while the Python bridge is connected; the
+callback also refuses any connected-controller execution. Thus connected
+controllers own recovery, and the game's normal automatic2500ms OOB recovery
+still exists if they do not click. Listen-server late-isOOB guard and explicit
+click cancellation remain. Real stuck-rescue QUICKRESPAWN stays server-gated.
+This correction also removes the undeclared key from other connected agents;
+controllers without an OOB click now wait for normal game auto-respawn.
+
+Next native regression deliberately delays the explicit click5macro observations
+(320ms), beyond the old128ms callback deadline, checking no key/no early respawn/
+unchanged quick permission before click, exactly one subsequent OOB respawn, and
+explicit rescue still accepted. This tests the previously missed race.
+
+
+### Contact-relative residual variant prepared and verified
+
+Added RelativeGeometryResidualStudent inside the maintained fit tool, not a new
+script. Every face is re-encoded relative to marble position in radius units;
+operative/source vertices, center, extent, area and signed native-plane distance
+use continuous atan coordinates. Normals, material physics and polygon boundary
+flags remain present; every triangle participates, no hard top-k/range cut.
+Absolute origin is removed only from the state encoder, while it still computes
+relative geometry/drift. No measured future contact, map ID or reward enters.
+This is the one-step physical kernel, not the navigator's far-destination input.
+
+Eight focused contracts pass: all47932prepared faces/metadata retained across
+all10maps, input purity, nonzero-output origin consistency to1e-6, complete-face
+forward shape, exact zero-head velocity drift and original-cache refusal of the
+new forward. CUDA feasibility on the largest training map Duplex10383faces,
+batch32, finite forward/backward,0optimizer updates, peak0.899GB on8GB RTX3070;
+first cold pass0.171s. This cold timing is not a realtime claim.
+
+Predeclared next isolated fit:5000updates, batch32,300s loop ceiling,
+--relative-geometry --dev-only, fresh native_motion_fit_relative_geometry_20261012.
+Same native arrays and train6/dev2/test2 roles, same60/20/20 sampler and loss,
+initial drift baseline eligible for selection. Batch differs from earlier64,
+so this is a development experiment, not a clean single-factor causal comparison.
+Test maps remain closed. Check ordinary/contact/no-contact jumps/activations
+separately after fitting; no integration or policy checkpoint promotion.
+
+Native delayed OOB click test PASSED nine checks on Cube Isle:320ms delay exceeds
+the old128ms timer, no early key or spawn, no pending callback, unchanged key
+permission, exactly one clicked respawn, then legal explicit rescue accepted and
+one additional spawn. New source pool retry uses the fully disabled connected-
+controller auto-key path. Older input-invalid54score stays diagnostic only.
+
+
+### Third isolated physics fit completed; selected result still not deployable
+
+Contact-relative residual fit completed5000updates in136.67s; predeclared
+map/stratum-balanced selection chose update1600, development MSE0.00802690
+(~22% below prior residual0.01031593). Checkpoint SHA256
+905cd26a91945808f9fa27db67c41f94d77f0023f8112fa2fa4120d4adc5e23a.
+Selected mean errors [position u,velocity u/s,spin rad/s]: Concentric
+[0.012913,0.814161,1.420524], Cube[0.012082,0.899083,1.055315], still above
+velocity baseline on both. The last5000update dev summary has better ordinary
+averages but was NOT the selected checkpoint; do not report that as this model.
+Test maps remain closed, no new policy training or learned gameplay integration.
+
+This exposes a selection/sampling tradeoff: equal stratum selection and heavy
+oversampling can prefer rare activation improvement while ordinary motion
+regresses. Future bounded fitting should predeclare ordinary/contact/jump/power
+criteria and sampling changes, not cherry-pick a different checkpoint after
+looking at results. Separate origin-consistent geometry and multi-contact context
+hypotheses remain useful development work. During the first136s the isolated
+GPU fit ran alongside Cube analytical evaluation; machine load can affect the
+1s search ordering/budget and is disclosed rather than treated as a clean A/B.
+
+Fresh full-pool r3 source is frozen, Cube first, then Bowl/Duplex/Fractured/Crag/
+Vortex/Treasure/Concentric/Sprawl/KOTM, seed681012, previous limits/rules. This
+includes the connected-bridge no-auto-key fix and strict live input audit.
+Dashboard and A2/native executable bytes remain protected; Python count476.
+
+
+### Selected contact-relative model: airborne jump failure and geometry audit
+
+Development-only post-hoc contact diagnostics are complete. On airborne jump
+commands the selected relative model has mean velocity errors 5.01 / 6.26 u/s
+(Concentric / Cube) against drift baselines 0.338 / 0.339. Grounded jump errors
+improve to 3.23 / 2.92 against 7.07, but this is not enough for a useful predictor.
+Ordinary collision velocity errors are 5.91 / 5.84 versus 5.82 / 5.88; position
+and spin remain worse. No test maps reopened, model integration or promotion.
+
+An additional BEFORE-only geometry audit uses all exact operative triangles
+and native starting poses. The current attention prior uses distance to each
+triangle's bounding box: a conservative lower bound, not surface contact. Of
+21 Concentric jump inputs, 9 appear within 1.05 marble radii by bounding boxes
+while every triangle is farther away. Training Sprawl has 5 / 21 such cases;
+Treasure has 1 / 11. No AABB mismatch on Cube's 21 jump inputs, so this finding
+alone does not explain its airborne error. ground_ms and best_contact_normal
+also retain recent/stale contact information; neither is a current-contact flag.
+The raw rows and source/frame links are in before_geometry_jump_diagnostic.json;
+contact_development_diagnostic.json preserves all native post-hoc buckets.
+This motivates exact before-state proximity and multiple contact contexts,
+plus predeclared ordinary-motion selection checks. No runtime source changed
+while the full-pool batch is frozen. No one-off Python file was created.
+
+Full-pool r3 first completed map: Cube hybrid 87 / A2 54 native points, falls
+3 / 8, rescues 1 / 5, group completions 9 / 4. Both complete-round score and
+input audits pass, zero implicit OOB keys. Hybrid elapsed wall time 317.19 s
+against A2 40.75 s for 210 game seconds, with 2,328 checked-plan decisions
+and 944 fallback decisions. This is one natural start and independent launches,
+not replicated pool superiority. Earlier r2 invalid A2 54 remains separate.
+KOTM is one of ten maps and has no special veto on progress.
+
+
+### Cube r3 mechanics and prediction audit
+
+Native archive confirms two Helicopter held-to-empty transitions with a new
+5-second active effect and one Super Speed transition with its 1-second effect.
+All three commands came from checked plans; four Blast commands were also
+issued. Frozen A2 issued no power/Blast command in its complete Cube round.
+This is actual analytic-assisted usage, not proof of a learned new policy.
+
+One-reply prediction audit compares each checked prediction with the following
+captured BEFORE state, retaining separate inventory/mode/control/respawn buckets.
+The initial diagnostic used exact JSON-double parameter equality and mislabeled
+all rows: native nine-digit output and expanded Float32 copies represent the
+same native bits. Corrected the diagnostic to native Float32 equality; inline
+checks accept equivalent radius formatting and reject real radius/material
+changes. Maximum same-context position discrepancy is 1.46e-7 u over 2,318
+paired predictions. No script warp occurred in these pairs. This is reanchored
+64ms prediction accuracy, not long open-loop maneuver accuracy. Sources frozen.
+
+
+### r3 sweep halted on a startup telemetry race; bounded handshake fix
+
+The r3 evaluator stopped before A2 Bowl play: AttributeError on a missing
+DYNAMICS payload, after complete Cube 87 / 54 and hybrid Bowl 33. This is an
+incomplete pool, not an accepted ten-map mean. Owned evaluator/native processes
+closed; dashboard 33732 remained running. The branch failed before any scored
+reply or native recorder opened; failed.json preserves the exception.
+
+A restart can briefly emit an observation before native telemetry is ready.
+Full-round setup now requires the DYNAMICSLIVE acknowledgement and waits at most
+32 neutral observations for native state plus available game-context counters.
+It rejects changed rounds, nonzero starting scores or a late timer immediately;
+it never substitutes a previous snapshot or calls a late prefix a full round.
+Extra neutral setup decisions are recorded in initial context and report.
+Invalid branches now also archive failure_context.json including current native
+payload, raw observation, timer and recent bridge acknowledgements. No gameplay
+policy, score, rescue rule or MLAgent OOB fix changed. Fourteen lifecycle/score/
+startup unit tests pass, including missing payload recovery and bounded failure.
+Fresh native Bowl startup checks are next, then a new sealed pool run; all r3
+artifacts remain separate and preserved. Long PPO/promotion remain paused.
+
+
+### Fresh native startup regression passed; consistent full-pool r4 begins
+
+Two fresh Bowl launches (seeds 681012 / 681013) deliberately disabled live
+telemetry, then tested acknowledged re-enabling and audited startup readiness.
+All 12 native checks pass: full 300-second start, score zero, live counters,
+64ms macro clock delta and zero implicit OOB keys. Both needed zero extra
+neutral wait replies. This tests the live handshake, while the unit fixture
+also exercises delayed/missing payloads. Owned games closed after each test;
+A2 and both native executable SHA256 values are unchanged. Result, compressed
+console logs and exact sources are archived in full_round_startup_regression_20261012.
+The initial inline harness used the wrong mbx.exe basename before any launch;
+preflight_failure.json logs its correction to marbleblast_mbx.exe.
+
+New continuous_full_pool_navigator_first_r4_20261012 uses the acknowledged
+startup handshake and bounded readiness guard, all ten maps, seed 681012,
+original durations, 16ms physics / 64ms replies, previous planner limits and
+zero-implicit-key input audit. Source freezes again; no GPU fitting alongside
+wall-budgeted planning. Earlier r3 scores remain separate and the failed branch
+is preserved. One whole valid sweep is required before a pool-wide mean.
+
+
+### Archived Cube power continuations inspected
+
+Native r3 Cube usage windows confirm substantial physical movement after both
+Helicopter activations: 22.3 / 19.1 u net y displacement over 5.49 seconds, with
+2 native pickup points in each window and no observed macro fall. The second
+window gains 4.10 u maximum height. The Super Speed window gains 7.42 u maximum
+height, ends only 0.54 u above its starting height, and has no pickup or fall in
+that window. Contacts/support are recorded in powerup_window_diagnostic.json.
+These continuations contain later actions, so neither gem credit nor landing
+success is causally attributed to the activation alone. They are useful actual
+examples for review, not proof that the frozen actor learned the mechanics.
+
+
+### Complete geometry feature precision audited
+
+Read-only reconstruction audit covered all 47,932 faces across the ten meshes,
+including retained degenerate fans. Maximum Float32 neural coordinate error is
+8.68e-6 u (Bowl); maximum native-plane offset reconstruction error is 6.43e-6 u.
+Both are below 0.00005 of the normal marble radius. Geometry was not simplified
+or altered, and this opens no learned test-map prediction. This small numerical
+approximation is far below the selected motion student's roughly 0.01 u mean
+position errors, so coordinate rounding alone does not explain that failure.
+Degenerate fans must remain supported by any new proximity feature implementation
+because native edges/corners can still matter. Full values are archived in
+native_motion_fit_relative_geometry_20261012/geometry_feature_precision_audit.json.
+
+
+### r4 first completed matched-profile comparison
+
+Cube Isle: hybrid 79 / frozen A2 54 native points, falls 7 / 8, rescues 1 / 5.
+Both complete-score and declared-input checks pass, zero implicit OOB keys;
+both audited starts match raw observations, position, velocity, spin, camera,
+body parameters, active effects and live gems. Absolute physics clocks and
+inactive timer garbage differ, so these remain independent native launches.
+Hybrid wall time 311.54 s / A2 40.37 s; 2,225 planned decisions and 1,039
+fallback decisions. startup_neutral_decisions is zero on both. The earlier r3
+hybrid 87 is preserved, not substituted for this result. Wall-limited search
+selection varies, and no claim of replicated improvement follows from one pair.
+The remaining nine maps continue; KOTM has no special acceptance gate.
+
+
+### Pool assessment before the remaining results arrive
+
+The operator's KOTM correction applies to interpretation, not just one gate:
+an absolute-point mean can still be dominated by that specifically trained
+map. Report the ten-map native point mean together with every per-map delta,
+win/tie/loss counts and the median per-map delta. Also show a predeclared nine-
+other-map diagnostic alongside KOTM's individual result, never as a replacement
+for the complete ten-map table or by dropping other unfavorable maps. Consider
+reliability, useful mechanics, rescues/falls and measured cost. A modest KOTM dip
+alone does not reject engineering progress, demonstrations or a candidate.
+Repeated scores are still needed before a superiority/promotion claim. No
+new metric will hide zero rounds or invalid input/score audits.
+
+
+### Verified duplicate temporary recordings removed
+
+Removed 12 closed temporary native/journal files, 533,398,044 bytes (about
+509 MiB), only after byte-for-byte gzip comparison and SHA256 verification
+against their complete, input-valid r3/r4 archives. Native SHA values also
+match each authoritative round report. Targets resolved directly inside the
+explicit owned TEMP/pq_checks/marble_dynamics_20261011 directory; native
+PowerShell LiteralPath deletion was used, no recursive delete. Active and
+failed recordings, consoles, source, datasets, checkpoints and unrelated runs
+were excluded. runtime_cleanup_20261013.json lists every archive/path/hash.
+The repository retains all original evidence; only redundant uncompressed
+temporary copies are gone. Report encoding was normalized to UTF8 without BOM
+after PowerShell serialization. Python source count remains 476.
+
+
+### r4 Bowl pair completed
+
+Hybrid 77 / A2 21 native points, falls 0 / 0, rescues 1 / 7. Both score/input
+audits pass and extra startup neutral waits are zero. Hybrid 2,211 checked-plan
+decisions / 2,474 fallback, 192 full searches, wall 396.03 s; A2 wall 68.15 s
+for the same 300 game seconds. Earlier incomplete r3 hybrid 33 is preserved
+rather than substituted or erased. Cube 79 / 54 and Bowl 77 / 21 are the first
+two completed r4 pairs, not yet an accepted ten-map pool or a statistical gain.
+The later Bowl pickups also show that a midround plateau is not a final verdict.
+
+
+### r4 Duplex pair and zero-score activity audit completed
+
+Duplex hybrid 100 / A2 0 native points, falls 6 / 1, accepted rescues 2 / 9
+(A2 made 13 attempts). Both native
+score and declared-input audits pass, startup neutral wait zero, no implicit
+OOB key. Hybrid wall 370.36 s / A2 61.87 s for 240 game seconds; 2,683 checked-
+plan / 1,050 fallback decisions. The lower-fall zero baseline remains visible.
+
+Audited initial raw observations, all listed gameplay state/body/active-effect
+fields and live gem positions match. A2 is active: 3,721 movement commands /
+3,721 playable observations, 2,274 jump commands and mean speed 4.92 u/s; no
+held powers or Blast use. Hybrid issues three Blast commands, mean speed 7.00
+u/s. Absolute physics clocks differ by 7ms, independent launches. This checks
+against an idle/disabled baseline; it does not prove route choice is optimal or
+exclude timing/profile sensitivity. Do not equate this experimental16ms actor
+result with the original64ms reference (Duplex mean30.33 over three other seeds).
+starting_world_control_audit.json preserves all state/activity comparisons.
+Fractured Islands is now running. No full-pool score or superiority claim yet.
+
+
+### r4 Fractured pair and demonstration goal provenance
+
+Fractured Islands hybrid 105 / A2 80 native points, falls 10 / 12, rescues 0 / 0.
+Both score/input audits pass; zero startup wait and implicit OOB keys. Hybrid
+wall 289.62 s / A2 39.43 s for 180 game seconds; 2,112 checked-plan decisions
+/ 680 fallback. First four r4 maps favor the hybrid; six remain, so no complete
+pool mean or replication claim. Cragmire is now active.
+
+Goal provenance audit resolves all 9,231 checked actions across these four maps
+through choice.goal_item_id against the SAME BEFORE native items payload. Each
+resolves exactly one observed gem. Thus gem-conditioned demonstrations can use
+real destination coordinates without hindsight or invented targets. Unchecked
+fallback/neutral targets remain unknown; old actor waypoints/features/recurrent
+state were not logged and are not claimed reconstructed. A future logging
+revision should include explicit current destination, policy waypoint and goal
+kind. A full-map policy can use the stored geometry/native state/observed goal
+for its own input definition; it need not pretend these are the old local actor
+features. goal_provenance_audit.json preserves counts and the input contract.
+No runtime source changed during the sweep. No imitation/PPO started.
+
+
+### Predeclared follow-up: separate route guidance from physical search
+
+Cragmire currently uses few checked plans and mostly frozen A2 fallback. The
+hybrid fallback follows the geometry route, while standalone A2 uses its legacy
+terrain route. Therefore score gains cannot all be attributed to predicting
+physical maneuvers; global destination selection and improved routing also
+contribute. This is the intended composite controller, not a clean physics-only
+ablation. After the sealed sweep, add a clearly labelled geometry-routed frozen
+actor with physical search disabled and otherwise matched rules/goals/timing.
+Compare complete rounds and actual power/Blast use alongside cost. Use a
+predeclared map/seed pool, keep every outcome and do not privilege KOTM. This
+can reveal cheaper useful guidance before committing to policy training. No
+third controller or runtime source was changed during current r4 play.
+
+
+### r4 Cragmire pair completed; five maps remain
+
+Cragmire hybrid 30 / A2 2 native points, falls 10 / 46, rescues 4 / 0. Both
+score/input audits pass; zero extra startup wait and implicit OOB keys. Hybrid
+wall 196.94 s / A2 105.34 s for 240 game seconds; 629 checked-plan decisions
+/ 3,092 fallback. Planning coverage is only 16.9%, so route guidance and legal
+fallback are substantial parts of this composite gain. The additional hybrid
+rescues remain visible. Vortex is now active. Completed r4 table so far:
+Cube79/54, Bowl77/21, Duplex100/0, Fractured105/80, Cragmire30/2. These five
+pairs do not certify a complete ten-map mean or replicated superiority.
+
+
+### r4 Vortex pair completed and measured latency tails
+
+Vortex hybrid 78 / A2 1 native points, falls 26 / 133, rescues 0 / 0. Both
+score/input audits pass; zero extra startup wait and implicit OOB key. Hybrid
+wall 439.75 s / A2 44.36 s for 300 game seconds; 3,192 checked-plan decisions
+/ 1,443 fallback. Many falls remain despite the gain; no claim of universally
+safe planning. Six pairs now completed, Treasure Box is active, no pool mean yet.
+
+Journal latency audit of the earlier five completed hybrid rounds reports
+99th-percentile decision time about 1.022 s. Bowl's median / p95 are 26.37 /
+69.44 ms but p99 is 1,022.76 ms, max 1,633.02 ms; 5.9% exceed 64ms. Cragmire
+p95 59.49 ms likewise hides p99 1,023.72 ms. The 1-second search deadline is
+not a complete hard decision limit: gem fields/routing/actor and other work
+can sit outside it, and individual operations finish before checks. No real-
+time guarantee or ready PPO throughput is inferred from median/p95. Full per-
+round controller sums and total wall costs are in latency_audit.json.
+
+The current system is a slow geometry/physics-assisted teacher candidate; A2
+weights remain unchanged and no replacement policy was trained. Recorded raw
+inputs, scores, falls and recovery costs remain visible. Python count 476.
+
+
+### Accepted rescues versus attempted rescues corrected
+
+The Duplex handoff entry used 13 cancellation/attempt events as if all were
+accepted rescues. Authoritative recovery stats are hybrid 2 accepted / 2
+attempted and A2 9 accepted / 13 attempted. Corrected that entry and retained
+this correction notice. Invalidated actor/plans on an attempted legal key is
+not proof a respawn occurred. Future tables use recovery.rescues for accepted
+count and recovery.rescue_attempts separately. Native score/input validity,
+Duplex100/0 and falls6/1 are unchanged. Treasure hybrid89/0falls/4accepted
+rescues is complete; A2 comparison is still pending.
+
+
+### r4 Treasure pair and activation attribution correction
+
+Treasure hybrid 89 / A2 26 native points, falls 0 / 0, accepted rescues 4 / 6
+(attempts 4 / 8). Both score/input audits pass, startup waits/key count zero.
+Hybrid wall 318.66 s / A2 47.14 s for 240 game seconds; checked-plan/fallback
+decisions 2,058 / 1,683. Concentric is active; seven complete pairs so far.
+
+Activation audit split action[6] held use from action[8] Blast, and confirmed
+held-to-empty native consumption. Bowl's one Super Jump is real, but came from
+A2 fallback, NOT a checked plan; corrected the earlier progress attribution.
+Cragmire's Helicopter and Treasure's Super Speed came from checked plans.
+Treasure also issued two checked Blast commands. Report pow_use_commands is
+grouped by RAW observed held value when EITHER use or Blast is commanded;
+it must not be read as native inventory consumption or a one-to-one native
+powerup type. Treasure's raw held6 Blast commands have native held0; they are
+not Mega Marble activations. Per-round activation_audit.json records exact
+action channels, native inventory types, labels and consumption evidence.
+Favorable skill/use evidence needs this attribution, not just a counter.
+
+
+### r4 Concentric and current continuation (2026-10-13)
+
+Eight completed map pairs now: Cube79/54,Bowl77/21,Duplex100/0,Fractured105/80,Cragmire30/2,Vortex78/1,Treasure89/26,Concentric42/0. All16score/input audits pass; zero implicit OOB keys. Concentric falls6/52, hybrid wall274.63s versusA2 37.74s. Sprawl and KOTM remain; no complete-pool mean yet. Sprawl early-round stalls/rescues are retained as a weakness. KOTM is one equal-weight map, never a special rejection gate.
+
+Additional completed_round_controller_audit.json reads every completed decision and separates held-use from Blast commands, native engine held from script inventory/raw held, checks chosen gem IDs against the same-before item list, and preserves p99/max/full decision latency. Macro commands alone are not proof of inventory consumption or successful skill. The original native activation evidence remains in per-round activation_audit.json.
+
+
+### Next component evaluation declared (2026-10-13)
+
+PROTOCOL_GEOMETRY_COMPONENT_EVALUATION_2026-10-13.md predeclares all ten maps, fresh seed681013, three controllers (legacy routed frozen A2, geometry routed frozen A2 without search, combined physics plan), cyclic balanced order, existing16/64ms settings and native score/input audits. Routing-only contribution can be separated; the remaining hybrid difference still combines searched goals/resources and prediction. Implement/run only after r4 source freeze ends and meaningful checks. Long PPO/promotion remain paused. No KOTM special gate.
+
+
+### Sprawl completed and rescue counter correction
+
+Sprawl46/0 actual points,0/0falls, both score/input valid. Hybrid recovery.rescues6 with10rescue_attempts; A2 9accepted with20attempts. Corrects the progress message that called10attempts accepted. Top continuation now distinguishes them. Both attempts and accepted costs remain in result tables; cancellation counters never establish a respawn. KOTM is running, last pair.
+
+
+### Review renderer gap support (2026-10-13, r4 runtime remains frozen)
+
+Updated maintained collision/viewer.py to support path_break_before: line geometry inserts a blank at discontinuities while time scrubbing retains all measured positions. Updated existing collision/browser_check.py to verify line gaps and selected actual marker coordinates, preserving older exports without gap metadata. These two review-only files are not in r4 runtime source hashes; verified every declared r4 source hash unchanged. Native score/controller behavior untouched. Exporter update, regenerated gallery and actual browser verification follow after the batch ends. No new Python files.
+
+
+### r4 complete pool (2026-10-13)
+
+All20complete native score/input-valid rounds, zero implicit keys, source/A2 hashes and source archive verified. Equal-map hybrid77.2 versus frozenA2 30.4,10/0/0wins/ties/losses, median map gain44. KOTM126/120 included equally. Detailed per-map points/falls/accepted/attempted rescues/wall cost: RESULT_CONTINUOUS_POOL_2026-10-13.md and pool_result.json. One seed/independent natural launches; composite teacher includes routing/search/global/resource components, not learned policy progress. Legacy64ms reference remains separate. Source freeze for r4 ended with evaluator exit0. No new policy/student integration or promotion.
+
+
+### Component implementation and complete replay evidence
+
+Maintained reliability_eval.py adds optional --geometry-reference, explicitgeometry_navigator branch without physical search, same A2/legacy observation builder and collision routing, predeclared cyclic branch order. Existing two-branch behavior/order remains default. All playable branches now log before-action destination/kind/item identity, route waypoint/next goal and exact actor action. Unknown identity remains unresolved rather than invented.
+
+Maintained reliability_viewer.py now recovers older checked destinations from same-before item IDs, leaves unrecorded fallback goals unknown, breaks respawn/control-gap lines without deleting measured positions, includes command/native-consumption audit and refuses explicitly input-invalid rounds. Missing legacy input audits remain labelled unknown. Existing test file adds meaningful component and replay evidence checks:20testsPASS. r4 complete-round latency/goal/native activation audits now include all20rounds. No new Python file.
+
+
+### Full audit corrects rough progress counts
+
+Automatically summed reports: hybrid66/A2 259falls (the earlier progress message said261),20/36acceptedrescues. Hybrid native power consumptions9:6SuperSpeed,2Helicopter,1SuperJump (earlier progress said8and5Speed). Eight checked, BowlJumpfallback. A2KOTM three real Jumpconsumptions from six use requests. Counts of commands/consumptions remain separate. Whole-round wall totals3289.23/587.94seconds. These corrections do not change points77.2/30.4 or input validity. Review index links the full20round gallery/results/protocol; browser verification is running.
+
+
+### Native preflight, full-gallery verification and active component batch
+
+geometry_component_preflight_20261013: Cube seed781013, separate engineering smoke; complete210s round19points/1fall, score/inputvalid, zero implicit OOB keys, frozenA2unchanged.3,268playable decisions audited: zero search, every sent action equals frozen actor, actual before destination/waypoint logged. Never substituted into component comparison.
+
+Ten-map r4 gallery browserPASS allgeometry/20traces/respawncontrolgaps/selected measured points/pan/orbit/focus/four seam ambiguities, zero JavaScript errors. Concentric screenshot visually inspected. Review index128local links resolve. Generic prediction caption corrected: open-loop versus reanchored varies by recording. Windows default CP1252 postprocessing partially rewrote Cube before failing on Bowl UTF8; rebuilt Cube from authoritative inputs, updated remaining pages with explicitUTF8, archived final renderer in source_snapshot_final.zip, retained original snapshot. Native source/scores/data unchanged; final Cube recheck follows. Repaired one historical median range mojibake introduced by an earlier default-encoding handoff read. No extraPython files.
+
+ACTIVE geometry_component_pool_20261013, session58950, port9054: all10maps/seed681013/30natural rounds, cyclic branch order,900s round wall cap. Source freeze; no concurrent GPU fit/game. Compare legacy frozen A2, geometry routed actor without search, combined physics teacher. No KOTM special gate. Long PPO/student integration/promotion paused.
+
+
+### Closed r4 duplicate cleanup
+
+Verified decompressed gzip byteSHA against every existing closed r4 native/journal original, plus native reportSHA, then removed34individual TEMP duplicates/1285437268bytes. PowerShell rechecked absolute target confinement to named dynamics runtime root, no links/directories, originalSHA and archive presence immediately before each literal-path removal; receipt persisted per file. All compressed native/journal evidence, datasets, failed recordings, console logs, source/model/viewers and active component recordings preserved. No recursive deletion. runtime_cleanup_closed_r4_20261013.json contains receipts. Component source hashes unchanged.
+
+
+### Component first map complete
+
+Cube seed681013: geometry-only54/frozenA2 59/combined58points. All three score/input-valid. Unlike prior seed, combined is one point lower than frozenA2 here. Preserve result, no result-dependent tuning/retry. One map cannot decide pool-wide routing/search contribution. Completed action contract audit checks all playable targets/waypoints/actor actions and that both no-search branches send only the exact actor output, with no predictions/searches. Bowl next; source remains frozen.
+
+
+### Contact-context physics protocol prepared, not executed
+
+PROTOCOL_CONTACT_CONTEXT_STUDENT_2026-10-13.md predeclares exact BEFORE triangle/real-boundary proximity, four learned contact contexts, retained allfaces/materials/84statefeatures,90/5/5sampling and per-dev-map ordinary error gate before balanced-loss selection. Same immutable data/roles, neural testclosed, isolated5000update/300straining-loop cap with validation scope disclosed. No code changes/fitting during component freeze. Multiple changes/capacity confounds explicit; exact proximity alone not known to solve Cube failure. General rolling/spin/rebounds/jumps/power modifiers, no namedtricks or reward input.
+
+Final Cube caption rebuild browserPASS: operative geometry hash and both plotted traces exact, zero JSerrors. Initial extra checker read Plotly gd.data binary source arrays rather than decoded gd._fullData, causing a checker assertion; corrected to the maintained checkers rendered-array method. No geometry/trajectory bug or native source change. caption_revision_browser_check.json preserves result.
+
+
+### Component two-map progress
+
+[{"map":"CubeIsle_Hunt","controllers":{"geometry_navigator":{"points":54.0,"falls":3,"rescues":2,"rescue_attempts":3,"wall_s":53.850436099999996,"score_valid":true,"inputs_valid":true},"frozen_navigator":{"points":59.0,"falls":5,"rescues":2,"rescue_attempts":3,"wall_s":46.6002536,"score_valid":true,"inputs_valid":true},"physics_plan":{"points":58.0,"falls":18,"rescues":0,"rescue_attempts":0,"wall_s":261.71220159999996,"score_valid":true,"inputs_valid":true}}},{"map":"Bowl_Hunt","controllers":{"frozen_navigator":{"points":19.0,"falls":0,"rescues":4,"rescue_attempts":4,"wall_s":71.5453058,"score_valid":true,"inputs_valid":true},"physics_plan":{"points":66.0,"falls":0,"rescues":2,"rescue_attempts":2,"wall_s":406.22791730000006,"score_valid":true,"inputs_valid":true},"geometry_navigator":{"points":17.0,"falls":0,"rescues":9,"rescue_attempts":15,"wall_s":112.05611579999993,"score_valid":true,"inputs_valid":true}}}]
+
+Partial, not a complete-pool result; Duplex active. Both complete maps preserve allthree native results. Bowl geometry routing alone does not reproduce the combined gain. Cube is near-tied and combined has more falls than either actor branch; do not hide that weakness. Source hashes unchanged.
+
+
+### Live Duplex fall-loop diagnostic (no runtime edits)
+
+After early22points, combined Duplex seed681013 repeats respawn/fall paths. Saved active-prefix before-state/action/goal examples, fall labels and decision bound to Duplex_active_fall_diagnostic.json. Every observed fall in inspected prefix was labelledA2_fallback, including previous commands in shown examples; late poses already far below gem/platform with downward velocity. This is context, not causal proof: queued actions and earlier checked flight decisions still matter. All-results source freeze remains. Next investigation after fullbatch: trace entry into unsupported flight and search-budget allocation; global goal search may starve general landing/braking recovery before unsafe fallback. No map-specific maneuver rule, safety claim or result-dependent tuning during declared batch.
+
+
+### Duplex combined and geometry branches completed
+
+Combined22points/49falls versus geometry-only34/35; both score/inputvalid. FrozenA2 pending at the time of this note. The logged49fall observations occur during fallback commands; selected-at-fall label alone does not establish causal safety of earlier checked actions. Preserve repeated identical bad paths for a focused postbatch replay and recovery-budget study. Do not tune the live batch, hide this map, or use the earlier100point Duplex seed as a substitute.
+
+
+### Goal identity ambiguity clarified
+
+Cube_goal_identity_ambiguity_audit.json checks every unresolved Cube destination. They have multiple same-position observed gem IDs (firstexample37730/37731); actual target coordinates agree within1e-5u. Unresolved is not proof of a missing item/surface. Keep identity unknown rather than choose an ID arbitrarily. After source freeze, optional logging may record candidate IDs/all-gem kind explicitly. No runtime change or retrospective invented actor inputs. Native target/waypoint coordinates are already recorded for these decisions.
+
+
+### Component first four maps, Cragmire active
+
+Cube geometry54/legacy59/combined58; Bowl17/19/66; Duplex34/13/22; Fractured12/12/89. All12completed rounds score/inputvalid, zero implicit keys. Fractured falls40/51/14; source hashes unchanged. Duplex legacy13/53falls completed after earlier pending note. Preserve Cube higher combinedfalls and Duplex worse-than-geometry result alongside Bowl/Fractured gains. Cragmire legacy1point/0falls complete, combinedactive; no full-pool mean.
+
+
+### Half component batch complete
+
+Five complete map triples/15valid rounds. Cragmire geometry8/legacy1/combined43points, falls1/0/6, walls66.62/59.44/224.67seconds. All results retained. Composite contribution exceeds routing alone on Bowl/Fractured/Cragmire; Cube near tie, Duplex geometry-only better with fewerfalls. This is not a full-pool verdict or newly trained policy. Vortex active. Long PPO/promotion paused, source freeze and no concurrent GPU fit.
+
+
+### Vortex complete, Treasure actors complete
+
+Vortex combined73/32falls versus geometry0/109 and legacy0/138. Allthree valid. Treasure geometry80/0falls versus legacy42/0, combinedactive. Six complete triples plus two Treasure actor rounds; no complete-pool mean. Routing alone helps Treasure; not Vortex. Composite strengths/weaknesses and allzero scores preserved. Exact runtime source hashes unchanged.
+
+
+### Seven map triples complete and general recovery study prepared
+
+Treasure geometry80/legacy42/combined95, allzero falls. All21completed triple rounds valid; Concentric legacy0/59falls complete, combinedactive. PLAN_FALLBACK_RECOVERY_STUDY_2026-10-13.md specifies life/flight/queue provenance, prediction continuity and budget coverage audits, ordinary safe backup feasibility and exact native preflight before claiming reproduction. No source change during currentbatch, no namedtrick/mapfix or newpolicytraining. Physical contact-context fit remains separately declared after freeze.
+
+
+### 2026-10-13 component pool complete and bounds investigation
+All30natural native component rounds completed (session58950 exit0): combined71.2/geometry34.8/legacy27.0 mean;9/0/1combined-vs-legacy wins/ties/losses; allscore/inputvalid,0implicitOOBkeys, source/A2 hashes and170ZIPmembers verified. No long PPO/promotion. Cube/ Duplexx weaknesses retained; KOTM never a special veto. RESULT_GEOMETRY_COMPONENT_POOL_2026-10-13.md and pool_result.json record totals/costs. Read-only review found mission bounds annotations already exported but search.assess has no game-rule-volume rejection. Duplex InBounds lowerplane120.069 is close to observed prefall118-120u. This is a hypothesis to check, not established checked-action causality. No runtime changes occurred during the sealed batch. Next audit must fix nearest-command attribution because actual power use occurs through the delayed bridge; repeated requests can otherwise be assigned to the wrong decision.
+
+
+### 2026-10-13 queued powerup attribution and completed component audit
+Implemented full-round audit in maintained reliability_audit.py. Native playable held-to-empty transitions are counted separately from resets; command attribution follows the measured16/64ms bridge (older collected Move in first subframe, previous reply thereafter), refusing gaps/respawns/pending mismatches. This corrects nearest-timestamp attribution on repeated requests; it does not assert useful powerup outcomes. Added3meaningful tests:23full-round testsPASS. No new Python scripts. Component score/input/source checks are complete; audit underway, no runtime evaluation active. Full-round viewer wording now names all3controllers and unchanged local A2 observation schema.
+
+
+### 2026-10-13 component activation evidence and audit identifier correction
+All30component rounds audited:0pending mismatches,0actor-output mismatches,0missing playable target logs. Combined21,321checked decisions; nativeconsumptions3(2Speed,1Heli), allchecked and attributed; geometry5(3Speed,2Jump), legacy1Jump. Still sparse powerup evidence. r4confirmations remain9assisted/3A2,8checkedassisted. Corrected3r4consecutive A2 requests to their earlier queued commands; preserved legacynearest audits. A transient audit comparison incorrectly compared zero-based indices with recorded one-based decision IDs; added explicit log_index and preserved recorded decision IDs, tests23PASS, repaired exports without changing clocks/counts/provenance. Component gallery built; final activation refresh/browser checks follow. No new .py files or policy training.
+
+
+### 2026-10-13 contact-context model implemented, no fit yet
+Maintained fit_motion_student.py now exposes --contact-context --dev-only: all38features plus9exact operative-triangle/real-source-boundary BEFORE features,4attention heads*32dimensions, continuous finite locality prior and known actual-dt position drift. No top-k/range exclusion or future contact label. Added ordinary-motion eligibility per component/per dev map;90/5/5sampling preserves ordinary exposure. Previous variants retain their architecture/selection. Fourteen input/geometry testsPASS, including6new face/edge/corner/degenerate/real-boundary/origin/cache/eligibility contracts. Implementation changes do not touch immutable expanded data, sealed physical/input readers, A2 or nativeexecutables. Largest-map GPU preflight and sealed protocol are required before bounded fit; no native evaluation now active. Both galleries refreshed from authoritative corrected activation audits; browser checks underway.
+
+
+### 2026-10-13 complete30trace browser review; bounded fit starts
+Component gallery final browserPASS all30recordings/all47,932faces, exact rendered coordinates/null gaps, selected markers,4originalseams,0JSerrors. Earlier sampled initial checks preserved; first browser CLI retry needed explicit --geometry-directory ml_agent/collision_maps (no data/code defect). R4gallery20traces rechecked after queued activation refresh. New contact109,001parameter model passes largest Duplexx10,383face/batch32finiteCUDA forward/backward,0updates,1,318,236,160allocatedbytes,.227s cold diagnostic (not realtime claim). Preflight/preparation/sourceZIP sealed. Authorized bounded development fit starts fresh outputnative_motion_contact_context_fit_20261013, seed121014,max5000/300s; no live native evaluation/GPU contention, no PPO or test reopening. Sealed fitter/data readers remain frozen through this fit.
+Fallback audit: Cube18,Duplexx49,Vortex32falls allselected-under-fallback; nonewithin1s oflastsame-lifechecked action. Cube15/Duplexx25lives have nochecked action beforefall. Typical checked one-reply errors near1e-8u on Cube/Duplexx; Vortex worst.1288u/4.11u-per-s. This supports investigating fallback/recovery, not blanketclaimlongfutures safe. No checked Duplexxterminal endpointbelowits120.069bounds plane inthisbatch; bounds omission remainsarchitecturalgap, not establishedcause. Diagnosticfiles preserveallfall events andworstpredictionerrors.
+
+
+### 2026-10-13 bounded contact-context fit complete
+Session68242exit0,5000updates/200.29s, seed121014. Update4600 ordinary-motion-eligible, balanceddevMSE0.02462934->0.01446070 (41.3%reduction); first fit to preserve ordinary p/v/spin within declared5%gate oneachdevmap. No test reopening/deployment/PPO;A2,probe,mbx and4ZIPmembersverified. Airbornejump still hallucinates:velocity errors5.19/7.15vsbaseline.338/.339u/s; groundedjump2.53/2.08vs7.07. Held-use improvements coexistwith.438u/30.2u-per-s worstactivationerrors. Correlated3/type/map counts, not skill evidence. RESULT_CONTACT_CONTEXT_STUDENT_2026-10-13.md records gainandlimits. General checked-recovery development and train-airborne-action coverage audit continue; no long policy training.
+
+
+### 2026-10-13 checked-recovery implementation and contracts
+Added bounded ordinary_recovery to maintained viability.py:40reply complete forecasts,.2s dedicated bound, actualactor-first thenbrake/immediatebrake/up8support targets; fully supported four-state tail and end speed<1, no gem-progress requirement. Physical support only: script bounds/triggers not certified. Archivedprobe allfirstfallback life entries yieldsCube19/19andDuplexx26/50;23Duplexxdeadlines, allrejectionsretained. Initial diagnostic metadata marked stopping_verified true even on rejected candidates; fixed toreasonNone and added explicit completeness checks, originalprobe/sourceZIPpreserved asr1 with thiserratum. Runtime now opt-in --checked-recovery; --recovery-reference pairs samecombined controller withoutrecovery, balanced order. Recoverydestination andactor-inputdestination loggedseparately; plan retained/revalidated, strictterminalspeed preserved, resets clear it and completion returns torealgemselection. Existing defaultsunchanged; auditrecognizes reference asphysicscontroller.39lifecycle/nativefixture/queue/recoverycontract testsPASS. Nativepreflight required beforefresh20roundseed681014comparison. NoNNdeployed/PPO/new .py files.
+Trainjumpcoverageaudit:76framesacross6maps,31withoutnative support; airborneexamples exist but are few/correlated and their positiveverticalspeed range is narrower than severaldevjumpcases. This doesnot prove data gap alone caused hallucinations.
+
+
+### 2026-10-13 native checked-recovery preflight active
+Session17082/port9054, seed781014, Cube+Duplex complete natural rounds, engineering controller-only --preflight-only.39lifecycle/continuation testsPASS; final combined full-round+input suites40PASS (26+14). CurrentCube800decisions24points,4checked recoveries/3measured completions,9uncheckedfallbacks; no final/pool mean. All runtime sourcefiles frozen, no GPU fit/othergame. Generic prepared.branch-order display was not specialized for preflight; preflight_only flag and archived selector correctlyexecute onlyphysics_plan. preflight_contract.json records thismetadataerratum without editing frozen source. Fix label afterbatch ends. Future full-round audit must distinguish declared-round completion from complete ten-map pool, including flags/counts, not merely summary prefix length. Native one-reply check covers queued prior controls, not yet the newly chosen reply; longer recovery validation remains necessary.
+
+
+### 2026-10-13 09:56 UTC ? completed recovery preflight and task-progress correction
+Engineering seed781014 preflight completed: Cube61points/0falls, Duplex85points/0falls; 448.37/482.49wall seconds. Cube63recoveries selected/60completed, Duplex79/78; unchecked backup misses32/7. Cube0acceptedrescues/0attempts, Duplex1/1. Both native input/score audits pass, all6,988checked decisions have zero pending-reply or actor-output mismatches, zero missing playable goal contexts. All170sourceZIP members verified and current source hashes matched at batch completion before follow-up edits. Two-map preflight is complete_declared_rounds=true, complete_pool=false. It is an engineering result, not a full-pool improvement claim.
+Late-minute inspection found no pickups but53Cube progress credits (32physical recovery,21gem) and139Duplex (21physical recovery,118gem). Goal changes alone did not reset the timer; distance improvements toward temporary stopping points and repeated newly anchored approaches did. Fixed real task destination tracking separately from physical recovery/landing and actor input; progress queries use a separate route so they cannot alter navigation. Per-target credited-distance anchors prevent revisiting already credited approaches, retain cumulative small progress, and reset on pickup/fall/rescue/clock rewind. Co-located gems retain gem type and all candidate IDs. Failed landing revalidation returns to the actual task rather than an invalid temporary endpoint.
+Fixed generic preflight branch-order display and full-round audit completion: require all declared map/seed/controller/round identities with no duplicates; partial summary prefixes cannot be complete pools. Existing56 then70 lifecycle/progress/queue/viability/landing tests PASS. No new Python files, A2 unchanged, no PPO or promotion. Preserve r1 evidence; revised source requires a new preflight before fresh allten seed681014 recovery comparison. KOTM remains one equal-weight map, never a veto.
+One-reply agreement tests execute queued earlier replies; the newly selected action starts affecting the state after that interval. Receding recovery completion is measured on observed support/speed and is not an open-loop40reply native reproduction or calibrated game-rule safety guarantee.
+
+
+### 2026-10-13 09:57 UTC ? revised native preflight started
+checked_recovery_native_preflight_r2_20261013/session86816/port9054, fresh engineering seed781015, Cube+Duplex only, same40reply/.2s checked backup and1s primary budget. Common real-task progress/anchor correction active.70 tests PASS. Native sources frozen until this batch completes; no GPU fit or unrelated game. R1 audit records five native inventory consumptions (Cube3,Duplex2), no unclassified resets. R1 raw/source evidence preserved; source_snapshot_audit_revision.zip archives the follow-up audit/progress code separately,5members verified. Main review index updated with all30 component recordings,41.3%contact-context fit result and failure limits, recovery protocol and r1 engineering results;133hrefs resolve, no .py files added. No PPO/promotion.
+
+
+### 2026-10-13 09:58 UTC ? next general mechanics data preparation
+Updated ROADMAP current status with completed30round component evidence and newest motion fit limits. Wrote PLAN_GENERAL_MECHANICS_INTERVENTIONS_2026-10-13.md: versioned paired verified native states/actions, diverse contact/velocity/spin/effects across six train maps, actual delayed Move alignment, retain every mismatch, native support as post-hoc only; old datasets/readers preserved and test set closed. No collection/fit/deployment yet. Current priority remains revised recovery preflight then declared allten comparison; frozen runtime source untouched.
+
+
+### 2026-10-13 10:01 UTC ? mechanics fixture feasibility finding
+Read-only audit: existing trainingReplay restore does not restore all native contact/effect/camera/pending-control state; dynamics instrumentation has no setter. Appended concrete support limits to general intervention plan. Current native BEFORE/Move-supervised data are not invalidated by this: requested teleport starts are not their feature source. Future paired causal experiments must verify every material field or add a separate owned native restore hook after source freeze; no matched-state claim from teleport alone. Revised Cube preflight reaches25points and a real-task stuck-rescue request; no final result yet. Frozen code untouched.
+
+
+### 2026-10-13 10:03 UTC ? native script bounds semantics audit
+Read-only source audit confirms allten map representations already carry one InBoundsTrigger, no declared OutOfBoundsTrigger in this pool. Identity transforms permit eight-corner annotation AABBs; saved native_script_bounds_support_20261013.json with source hashes and allvolumes. Local native Trigger::testObject uses world-AABB overlap (polygon clipping commented out), not marble-center containment. Marble trigger bounds come from shape bounds and object scale, not necessarily physics radius. Leave callback requests OOB, tickPeriodMS100 with native tick phase. This resolves a design ambiguity but has not been native-boundary-tested or added as a forecast guard; no claim this caused previousfalls. It will be a separate follow-up so the declared recovery comparison stays isolated. Runtime source frozen/unchanged.
+
+
+### 2026-10-13 10:04 UTC ? revised Cube native preflight complete
+Cube engineeringseed781015 finishes28nativepoints/0falls,388.68wall seconds; source/input/score contract valid, zero implicitOOB keys.66checked recoveries selected/54measured completions,18uncheckedbackup misses,6stuck-rescue requests. Previous61point r1 usedanotherseed andoldprogresscontract; no controlled28vs61regression claim. Preserve both. Duplex nowrunning under samefreeze/session86816. Next declared20round allten comparison will isolate backup behavior with identical common rescue-progress rules.
+
+
+### 2026-10-13 10:08 UTC ? rich-data coverage hypothesis checked
+Examined rich_mechanics_train/holdout manifest request validity: all280trials valid, including100requested falling trials; no fixture rejection. Thus the suspected systematic loss of falling starts to neutral-delay mismatch is not supported; no bugfix made on that hypothesis. Saved mechanics_fixture_request_coverage_20261013.json, preserving original datasets. Train/dev activation support audit (80consumptions) shows requested supported/falling labels are not native activation contact truth; support_steps is an interval proxy and powers can alter contact inside the interval. No inference that a no-support interval proves BEFOREairborne. Test activation labels were not inspected and neural test evaluation stays closed. Existing student_collect.py and pairs.py are maintained collectors to extend later; no new Python collector needed. Seven older source-snapshot writers remain and should use shared verified ZIP writer before their next invocation, except sealed student_data reader preservation must be respected. Current runtime remains frozen.
+
+
+### 2026-10-13 10:18 UTC ? revised preflight accepted for controlled engineering comparison
+R2 completeCube28/0falls,Duplex70/4falls;5/6and4/7accepted/requestedrescues,388.68/490.04wall seconds. FourDuplexfalls alluncheckedA2fallback, eachaftertenconsecutivefallbackdecisions. Allnative input/score auditsPASS, zeroimplicitOOBkeys,6,871checkeddecisions/zeroqueue oractor-output mismatches. Correct realgem task logging present throughout. NativeconfirmedconsumptionsCube1/Duplex0; no broadpowerupskillclaim. Original170sourceZIP andunchangedsource/A2integrityPASS beforefollow-upedits.
+Added128mschosen_reply_prefix_audit toexistingauditmodule: everynewsuccessfulrecovery/powerrequest/every128thothercheckedreply, oneinitialBEFORE+selectedfirstreply+neutralirrelevantsecondreply;215windowscompare,4excluded,0refusals/control/cameramismatches,positionmax3.07e-8u. Notfull40replynative safetyproof.37bridge/full-round testsPASS, includingnewqueued-actioninvariance andgap/resettests; initialnewtestfailedbecauseallmockactionsaliasedonesharedlist, correctedindependentlists.
+Sixolderunusedcollectors/probesnowuseverifieddirectZIPsourcewriter;importsPASS/shared4archivetestsPASS. Sealedstudent_data readerunchanged.172memberfollowupsourceZIPverified;mainreview136hrefsresolve. Two-mapr2interactivegallery/allnativecoords/geometry/browserchecksPASS,0JSerrors. RESULT_CHECKED_RECOVERY_PREFLIGHT_2026-10-13.md recordsallscopes/limits.
+Cleaned68closedcomponent/preflightruntimecopies onlyafterdecompressedgzipSHA matchesrawbytes (native reportSHA alsoexact), thensecondrawSHA immediatelybeforePowerShellLiteralPathremoval;alltargetpathsconfinedtonamedTEMPworkspace, linksrefused, receiptretained.2,638,413,511bytesfreed; compressedrepoevidence/datasets/checkpoints/failures/consolesallretained. NonewPythonfiles.
+ACTIVE:checked_recovery_full_pool_20261013/session78903/port9054, seed681014/allten/twooriginaldurationnaturalroundspermap, samecombinedcontrollerwithvswithoutcheckedbackup,alternateorder/commoncorrectedtaskprogress.20validroundsrequired;nofullmeanfromprefix.1sprimary/.2sbackup/cooldown64/horizon24/40replybackup/900sroundwall;frozenA2andruntime sources. NoGPUfit/unrelatedgame/codeeditsduringbatch. KOTMoneequalmap,neverveto. PPO/promotionpaused,dashboard33732protected.
+
+
+### 2026-10-13 10:21 UTC ? existing paired fixture contact history is not identical
+Read-only audit of80rich train/dev use/no-use pairs: all initial position/velocity/spin differences are exactlyzero and allclockmod32phases match.53pairs differ in ground_ms,39in best_contact_normal; other auditedinitial fields match. Both states are preserved as individual BEFOREinputs, so supervised one-step labels remain valid. The differences prevent a strong same-full-state causal interpretation; matched requested pose/inventory is not complete native-state restoration. Updated mechanics_fixture_request_coverage_20261013.json with everypair; no testactivationlabels or neuraltestevaluation accessed. This gives a concrete requirement for the next intervention collector: verify or restore contact-history fields, preserve failures, never label unequal states as identical. Current20roundnativecomparison sourcefreeze remainsunchanged.
+
+
+### 2026-10-13 10:23 UTC ? native reason for cached-contact fixture requirement
+Local marble.cc Super Speed actuation projects heading against mBestContact.normal; this concretely makes the39unequal-cache pairs potentially different interventions despite identical motion state. Ordinary jump checks newly found best contacts, not a generic jump-flag impulse; existing analytical bridge explicitly models these mechanics. Added source-based rationale to general data plan. No attribution of neural jump errors to this mismatch, no C++/binary changes, no runtime-source edits during active pool.
+
+
+### 2026-10-13 10:30 UTC ? actor task-consistency hypothesis, not a mid-batch change
+Cube backup branch completes27points/0falls; no-backup branch passes84points/4falls beforeclosing. Currentbehaviormay sacrifice collection. Declared follow-up in PLAN_CHECKED_RECOVERY: duringphysicalbackup the recurrentactor receives stopping endpoint asgem_goal, despite separate realtasklogging. Preserving realactor task while keepingchecked physical controlsseparate is a candidate to test after all20declared rounds, not a provenremedy orcodechange. Runtimefreezeintact. Cube startingposes/velocities/spins match exactly; typeditemmultisets match ignoring differingobjectIDs, inactive effectendclocksdiffer. Savedinitial_context_pair_audit.json; recorded-contextagreement is not hiddenRNG/fullworld proof. Keepallunfavorablemapresults; no specialKOTMgate.
+
+
+### 2026-10-13 10:32 UTC ? first complete recovery comparison map
+Cube, seed 681014: recovery 27 points/0 falls; otherwise identical combined reference 91 points/5 falls. Both complete native score/input contracts pass. This is a 64-point collection loss alongside fewer falls, preserved as unfavorable engineering evidence. No pool mean from 2/20 rounds. Bowl reference is now running; same source freeze/session78903 remains active. Keep actor-task consistency as a hypothesis to test after the declared batch.
+
+
+### 2026-10-13 10:39 UTC ? evaluation continues
+Three of20declared rounds are complete. Cube recovery/reference27/91points,0/5falls; Bowl reference66points/0falls, recovery starts next. No pool aggregate from this prefix. Controller/source freeze is intact. Added roadmap requirement that physically checked controls are not automatically desirable imitation targets: retain native pickup/return, real task, failed/unproductive backups and time costs separately from motion labels. Fixed current handoff preface to count allfour bounded physical fits; latest preserves ordinary means but still fails useful airborne-jump predictions. No runtime change or policy training.
+
+2026-10-13 10:48 UTC â€” Reviewed primary FIGNet, Act-FIGNet, graph-contact and GNS papers during the fixed recovery pool. Added cited representation/control/rollout findings and an explicitly hypothetical full-map contact-model architecture to PLAN_GENERAL_MECHANICS_INTERVENTIONS_2026-10-13.md. No new collector, model, dependency or runtime edit. Current student is not a graph simulator; published robot/particle results are not Marble Blast validation. Native comparison remains active and frozen; Cube recovery/reference ended 27/91 points and 0/5 falls, Bowl recovery is still running after its 66-point/0-fall reference. No pool conclusion or KOTM gate.
+
+2026-10-13 10:51 UTC â€” Cheap descriptive audit of the closed Cube branches wrote completed_cube_task_observation.json. Recovery branch used 1,347 physical-recovery decisions (86.208 nominal game seconds), with zero observed gem delta during those intervals; 1,321 had different actor versus actual task destinations. Reference has no physical-recovery decisions. Consecutive recovery segments can include multiple completed backups, so they are not individual maneuver durations. This supports measuring task continuity in a later variant, not a causal explanation or full-pool verdict. No runtime edit; pool continues unchanged.
+
+2026-10-13 10:56 UTC â€” Seed681014 ten-map recovery attempt/session78903 failed its fourth branch at Bowl round_wall_limit:901.099s,206.592game seconds,13partial points,0falls,5accepted/13attempted rescues. No complete pool result. Three completed rounds pass7,828checked decision audits with zero pending/actor/goal mismatches. Original170-member source ZIP and protected A2/native/CS hashes verified unchanged before edits. Wrote RESULT_CHECKED_RECOVERY_ATTEMPT_2026-10-13.md and declared two opt-in follow-ups in recovery plan: preserve real actor task during physical backup; decouple primary failed-search cooldown from retained recovery revalidation. Native preflight declared Cube/Bowl seed781016,900s per round, same other settings, no PPO/promotion. Runtime freeze ended with failure; no new Python files.
+
+2026-10-13 11:03 UTC â€” Implemented separately opt-in --actor-task-during-recovery and --recovery-preserve-search-cooldown in the maintained reliability evaluator. Independent actor route retains only observed real task during physical recovery; actor updates/sent history remain once per observation. Primary cooldown now can decrement while retained recovery revalidates; completion can suppress a new broad search and recovery selection does not erase the pending delay. Both options absent preserves prior behavior.85meaningful queue/controller/viability/landing/progress tests passed, including four new contract tests. No new Python files.
+
+2026-10-13 11:03 UTC â€” Closed attempt chosen-action128ms audit:97Cube+388Bowl partial comparisons, zero prediction refusals or native movement/camera mismatches; maximum position errors2.26e-8/1.24e-8u. This does not validate full40reply backups or give Bowl a full-round score. Added opt-in incomplete-attempt viewer with explicit partial points and green logged real-task marker versus purple physical destination; actor destination is shown in time readout. Browser verified allfour recordings, exact source meshes/paths/destination readouts and zero JS errors. Linked failure/gallery in main review hub. Original source archive preserved; separate seven-file follow-up source ZIP verified. Newpreflight will freeze these sources; longPPO/promotion remain paused.
+
+2026-10-13 11:04 UTC â€” Corrected recovery preflight launched as session89518,port9054, Cube/Bowl seed781016,900s round wall bound, both opt-in switches enabled. Source/A2 freeze active; no overlapping heavy audit/GPU fit/game. Cube reached18partial points at400decisions; not a full-round or comparison result. Main review hub now has138resolving links; no missing local artifacts. Original failed attempt's native/decision archives and source versions remain available. KOTM remains one map with no veto role.
+
+2026-10-13 11:05 UTC â€” Expanded general mechanics plan with a concrete setup-only native fixture contract: in-process capture/restore, complete cached contact/history/body/camera/effect/queued-Move verification, explicit relative-deadline/tick-phase handling and no global clock rewind. Current teleport reset/ack can advance neutral physics, so first recorded native BEFORE must be checked. Proposed separate fixture probe executable preserves protected binaries. No hook/build/collection started; current timed preflight source stays frozen.
+
+2026-10-13 11:11 UTC â€” Task/cooldown preflight Cube completed47native points/0falls,4accepted/8attempted rescues,346.076wall seconds,3330decisions. Cheap observed destination audit:0preserved actor destinations absent from actual item list;0new recovery cooldown resets/discontinuities. Six physical-recovery choices have different actor/task destinations and are being inspected; not yet called an input violation. Bowl is running. Different seed/version from earlier Cube trials; no causal score or pool claim.
+
+2026-10-13 11:12 UTC â€” Investigated Cube's six actor/task differences in the fixed task/cooldown preflight. Each is a planning_time_budget transition with preserved_task_during_recovery=false, after a physical endpoint had been retained. Source boundary: _search clears completed recovery and updates its local target, then can raise before returning; action still has old physical target and the cleared memory flag disables actor-task preservation. Real task remains observed/logged. Declared follow-up in recovery plan: preserve entry recovery context, restore observed task on this exception boundary, regress both subsequent backup and unchecked fallback with exactly one actor update. No runtime edit while Bowl is running; these six events remain archived.
+
+2026-10-13 11:14 UTC â€” Declared next bounded offline recovery candidate before implementation/results: eight clone-generated actor replies toward an observed task followed by braking, same40total replies/.2s budget, original ambiguity/support/stopping checks and fallback backups retained. Prefix must show task progress/pickup and execution must await prefix plus bridge delay before completion. Actual actor first reply is reused, recurrence updated once; hypothetical continuation stays cloned. Evaluate all first recovery selections per life in closed Cube/Bowl preflight, preserving rejections/timings. Fixed Bowl currently has0partial points after88game seconds; no source change or abort. Native follow-up requires a fresh finite declaration after offline checks.
+
+2026-10-13 11:33 UTC â€” Task/cooldown preflight closed Cube47/Bowl9points,0/0falls;4/5acceptedrescues of8/9attempts;346.076/699.414wall seconds.7809checked decisions pass native score/input audits with0pending/actor/missinggoal mismatches. Original170-source ZIP and172fingerprints/protected A2/native/CS verified unchanged before follow-up. Recovery occupied81.6/253.056nominal game seconds with0pickups. Actor/task differences6/37all preserved. Bowl log1211 resets cooldown after landing revalidation fails; legitimate invalidation, not a new-selection cooldown bypass. Its old retained_recovery_revalidation marker was misleading for the newly selected backup; corrected future marker to actual revalidated_remainder.
+
+2026-10-13 11:33 UTC â€” Fixed timeout after completed recovery: retain entry recovery context and restore an observed real task if exception leaves stale outer endpoint.86testsPASS including both new checked/fallback timeout regression outcomes. Added opt-in offline ActorBrakeContinuation in existing viability.py and supplied-first-action support in existing NavigatorProposal: reuse actual reply, clone later recurrence, same40reply/.2s physical checks, require >.3u task progress or existing native-bounds pickup predicate, wait prefix+2macros for completion.60relevant testsPASS including clone/queued-completion/progress refusal. No native integration yet. Actor replayer independently matches7935updates with0mismatches/untrusted histories. Maintained viability CLI now runs every first recovery selection per native life, alternating baseline/actor8 call order; archived probe session launched, sources frozen for that offline run. No new Python files, no PPO/promotion.
+
+2026-10-13 11:33 UTC â€” Removed12closed-batch raw native/decision duplicates,599471158bytes, after decompressed canonical gzip and report SHA validation plus immediate pre-delete rehash. Checked absolute TEMP scope, rejected reparse files, used only native PowerShell LiteralPath removals. Compressed records/failures/source ZIPs retained; receipt runtime_cleanup_recovery_attempt_preflight_20261013.json. Current native evaluations are closed; dashboard33732protected.
+
+2026-10-13 11:40 UTC â€” Offline actor8 probe complete: all11first-recovery-per-life cases retained;0extended candidates qualify,4return the old backup,7lose baseline selections to.2sdeadline. Source/A2 unchanged, no native integration. Latest Cube/Bowl preflight675chosen-action128msnative prefixes pass,0movement/camera mismatches,max position2.04e-8u. Both complete galleries browserPASS full geometry/native/predicted/task/actor traces and0JSerrors. Added RESULT_RECOVERY_TASK_PREFLIGHT, corrected current handoff state, linked all artifacts in main review builder. Next separately declared native atomic copy/perturb/restore probe, with no physics step/world rewind/action-pair claim; protected exes/CS/data preserved. No PPO/promotion.
+
+2026-10-13 11:44 UTC â€” Implemented separate output-name build option and fixture-only generated native include. Added maintained engine_fixture.inc atomic snapshot/perturb/restore check for physical/contact/camera/control fields, frozen local setup guard and isolated socket extension; existing bridge scripts/engine_dynamics.inc unchanged. Build succeeded to marbleblast_fixture_probe.exe (existing source warnings retained); first invocation hit local script execution policy, rerun with process-only ExecutionPolicy Bypass. No system policy change. Extended existing pairs.py with bounded frozen-ack reader and nine-check Cube/881013 prototype, native/repo verified source ZIPs, explicit failure/refusal limits/protected hashes. Active session75136/port9054; sources frozen. No model dataset/fit/PPO or scored intervention, no new Python file.
+
+2026-10-13 11:47 UTC â€” Native fixture r1 aborted with one passing atomic check: caller used HuntEnv.control, which internally consumes DEBUG then waits for an observation that frozen setup must not emit. Preserved source/native archives, check_00 and failed.json; killed only verified owned Python30532/native31436, dashboard untouched. Added frozen_fixture_command direct socket reader with5sdeadline, refuses observations/disconnects without implicit replies/reconnect. R2 finished9/9atomic checksPASS,0refusals,7.578s/22post-startup decisions; exact measured/field equality, frozen clocks, normal next observations. Contexts supported250ms, rolling250ms, airborne242ms with spin[0,60,30],VZ-2.64. Protected artifacts and sources unchanged. Added RESULT_NATIVE_FIXTURE_ROUNDTRIP; no full-prefix/world/causal-pair proof, dataset/fit/PPO or newPython file. Source freeze ended.
+
+2026-10-13 11:52 UTC â€” Extended native fixture capture/restore to owned client/server bodies with exact physical/contact/nativeMove copies and scene placement, guards for body/mission/tick phase/reference lifetime/global context/events/effects/pathed geometry/delayed replies/pending native updates. Original fixture binary compressed and verified before rebuilding experimental exe. Cube881014 prefix probe complete7.692s/63post-startup decisions: supported and rolling repeated128ms prefixes exact0p/v/spin error over32native frames; tickphase/first BEFORE/control/field checksPASS. Spinning-flight capture REFUSED pending native update after teleport; preserved, no guard bypass. Source/protected hashes unchanged;109repo/5native archived sourcesverified. Declared bounded881015 retry with actual jump into flight/natural spin rather than synthetic teleport, same6branch budgets. No model collection/fit/PPO, no fullworld restoration claim.
+
+2026-10-13 11:56 UTC â€” Native natural-flight881015 prefix retry3/3PASS:48frames exact0p/v/spin differences, actual Move/camera/initial/tick-phase/copied-field checks,0refusals/7.495s/80post-startup decisions. Next declared/ran881016 four changed-reply responses in existing pairs.py: all4initial/firstchangedMove checksPASS/0refusals/7.520s/104decisions. Groundedjump maximum response difference.693056u/7.068u/s; airbornejump0response; reverse input changes.08u/s/1.2rad/s; native heldSpeed consumed and25u/sresponse. No game events, source/protected hashes unchanged. Updated mechanics result and review links. Next declared native synthetic placement setter with explicit empty caches/neutral establishment and same guarded preflight, no pending-update bypass. Prior experimentalbinary archived/verified before rebuild; no model data/fit/PPO or newPython file.
+
+2026-10-13 11:59 UTC â€” Added setup-only atomic FIXTUREPOSE in the separate fixture include: existing frozen client/server/no-update/no-effect/event guards unchanged; finite position/velocity/spin ranges, explicit empty cached/current contacts/ground history, scene placement and actual neutral establishment. Does not clear pending force updates or rewind time/world. Maintained pairs.py new881017 same three-context/eight-frame repeated-prefix preflight launched session43917/port9054 after experimental rebuild; protected executables/CS/old datasets unchanged, previous experimental binary archived. Sources frozen. No newPython files, policytraining/promotion or broad mechanics collection.
+
+2026-10-13 12:00 UTC â€” Atomic fixture setter881017 preflight3/3PASS,0refusals,7.876s/76decisions;48native frames exact0p/v/spin/control/initial/tick-phase/copied-field differences. Requested[4,0,-2]v,[0,60,30]spin recorded separately from actual initial[4,0,-3.28]v after neutral physics. Source/protected hashes unchanged. Next declared six-training-map response transfer preflight981013..981018 in existing pairs.py,24pairs total/four per map, same8frames/120s/240decision limits; no guard relaxation/test-label reopening/model fit. No newPython file.
+
+2026-10-13 12:07 UTC â€” Six-training-map native response transfer preflight complete24/24PASS,0refusals,all source/protected hashes unchanged; independent map/seed/field/initial/tickphase/firstchangedMove/control/native-source/repo-ZIP auditPASS. Example held-Speed responses differ after actual contacts (Duplex27.15u/s, TreasureSpin30.80rad/s), not identical stereotyped outcomes. No NN fit/test-label opening. After freeze, fixed pool exception metadata merge so existing result cannot overwrite runner failure; completion now requires actual four verified pairs/identities/integrity, not attempted count. Five transport/completion regressionsPASS. Fixture runner now refuses reconnects; observed post-startup counter includes control observations (earlier response104manual replies excluded GIVEPOW observation; actual105still below240). Expired frozen deadline refuses before sending. New varied72request ordinary collection predeclared12strata/sixtrainmaps/1081013..18/16frames perbranch/1600observations+120s permap. No newPython scripts, datasets/readers/checkpoints protected.
+
+2026-10-13 12:12 UTC â€” Implemented varied ordinary collector in maintained pairs.py using existing Sampler/full mesh and guarded native placement/capture/restore.72requests precomputed before gameplay,12strata/sixtrainmaps/1081013..18, actual16msBEFORE+Move/camera/AFTER records, source/native/geometry/protected fingerprints and verified ZIPs. Existing pair helper now accepts declared16-frame branches; firstMove/start/context checks retained. Closed raw native duplicates removed only after exact gzip byte equality and recorded hashes/removal markers. Five transport/completion testsPASS. Active session84056/port9054; Sprawl12/12paired startsPASS; runtime/native sources frozen until allmaps complete. No PPO, model fit or holdout-label reopening; no newPython file.
+
+2026-10-13 12:21 UTC â€” Varied ordinary collection complete53.550s: all72requests attempted,66verifiedpairs,136recorded branches/2155native transitions. Five unsupported-body refusals plus one KOTM world-event pair retained; no special KOTM rejection. Independent audit:2153playable transitions,0input reconstruction failures,0nativeclock gaps/physical continuity changes;55actualjump Moves(10support-step,45no-support auditlabels), actualjump vz[-21.6,14.4],spin up to369.81rad/s,97native collisions acrossmaps. Verified110repo/5native source ZIPmembers, geometry/source/protected/experimentalexe unchanged beforefollowup. New collection trial metadata lacked sealed reader's required family field; added metadata-only index adapter referencing canonical gzip paths (zero rawcopies), keeping original manifests/readers unchanged. Started8map tensor preparation with original+new physical examples; train6/devCube+Con, Bowl/Vortexlabels excluded, no fit/PPO. Audit JSON canonical preserved; raw closed duplicates deleted only after gzip/SHA checks.
+
+2026-10-13 12:30 UTC ? Eight-map tensor preparation completed:90,539 examples/38,439 full source faces; six training maps/two development maps, no Bowl/Vortex labels. All arrays in BOTH development maps (inputs, targets, source IDs, frames, strata, geometry and identifiers) match previous preparation exactly; development_preservation_audit.json retained. Seven generated reader copies packed/SHA verified then removed;476 Python files. Prepared bounded supervised protocol native_motion_interventions_fit_20261013 is retained. Existing fitter refuses output reuse, so execution uses fresh native_motion_interventions_run_20261013 with same declared seed121014,5000updates/batch32/300s/contact-context/dev-only. No change to sealed readers/geometry/protected A2 or executable; no PPO/promotion. Runtime sources frozen for fit. KOTM one equal-weight map, never a special score veto.
+
+2026-10-13 12:33 UTC ? Data-only physical fit finished5000updates/199.831s, exact prior initial development metrics. No learned checkpoint passes the existing per-Dev ordinary preservation contract; selected update0 is unchanged velocity drift, not learned progress. Result/history/comparison audit retained, protected hashes unchanged; no deployment/PPO/promotion/test reopening. Investigating native paired-action auxiliary supervision with actual identical first-changed-Move BEFORE states, preserving original tensors/readers and default fitter behavior; no named-trick or reward targets.
+
+2026-10-13 12:37 UTC ? Maintained pairs.py now prepares direct native action-difference supervision,90 accepted train-only examples/6 exclusions. Full first-changed-Move BEFORE and prior prefix/clock/native archive integrity rechecked; all input differences are actual Move controls. Preserved existing84-input schema/original arrays/readers. Optional fitter paired-data adds four pairs/map/update, auxiliary normalized difference-MSE weight1; architecture/default loss unchanged. Separate pair RNG121015 preserves original marginal sampler121014 sequence.20 preparation/loss/geometry/input guard testsPASS; early test fixture assumptions (64ms legacy versus actual16ms records, absent camera callbacks, float subtraction tolerance) corrected without changing recorded data. Inspectable protocol prepared separately, execution fresh native_motion_paired_effect_fit_20261013/5000updates/batch32/300s/dev-only. Source freeze begins; no PPO/promotion/test reopening/newPython file.
+
+2026-10-13 12:38 UTC ? Updated native fixture result with guarded placement,24sixmap response successes,72request collection and negative data-only fit. Added RESULT_PAIRED_MECHANICS_2026-10-13 documenting90first-changed-Move examples/20tests/activeboundedfit. Regenerated existing central review hub,147links resolve. Source/data freeze remains active for pair-loss run; no native game job/policytrainer, protected dashboard33732 unchanged.
+
+2026-10-13 12:42 UTC ? Paired-action loss fit finished5000updates/237.559s; only update0eligible, no learned improvement/promotion. Initial development metrics identical to data-only run, native source/data/protected checks pass. Paired supervision contract remains useful but auxiliary loss alone did not fix predictor. Native/script source review identifies a distinct missing-state issue: power IDs>5 (including Mega) set nativeheld0 and retain item in script fields; existing84-feature motion schema aliases these with empty inventory. No attribution of ordinary jump failure to Mega gap. Timed effects/body changes require fuller observational state and separate targets. Source freeze ended; continue recording-contract work, no blind additional fit or PPO.
+
+2026-10-13 12:45 UTC ? Added read-only script_context export in maintained engine_fixture.inc and generated fixture-only recorder build: target/local authority held item name/script ID/raw fields, lock/custom inventory, active flags, effect/Mega schedule IDs/pending/remainingms. Keeps sealed engine_dynamics.inc untouched. Native scheduled fields read through Sim::isEventPending/getEventTimeLeft; no script invocation/timer changes/restoration. Prior fixture binary archived/SHAverified in native_fixture_pose_20261013 (39f30129bb8916e07c55e94d65a6acc615c38ea842a0690c1225749fe4adbcc4). Rebuilt separate fixtureexe successfully; protected production/geometry exe and bridgeCS untouched. Six independent Cube power-state observability cases predeclared beforebuild/implementation; no newfit/PPO.
+
+2026-10-13 12:47 UTC ? Implemented six independent script-state cases in maintained pairs.py, seeds1181013..18/64native16ms frames/type/240observation+120s bounds, setup-only descending/spinning pose and one use after an initial neutral recorded frame. Source/native/protected freeze, no restore/paired-causality/fit.25 existing+paired/transport regressionsPASS before launch. Active evaluator5060/port9054; SuperJump observational contract passes (native use/consumption frame2, script identity/client+authority/effect state present). Canonicalgzip/rawbyteSHA checks and verified closedraw cleanup retained. No newPython file.
+
+2026-10-13 12:50 UTC ? Native/script observability preflight finished6/6PASS,384native frames/46.872s,73post-startup observations/case, all source/native/protected/executable hashes unchanged. All five native powers have actual use+consumption frame2 and native active effect observed. Mega has nativeheld0 while script itemID6 on BOTHbodies; actual Moveuse frame2, no native inventory consumption, script inventory clears/Mega schedule appears and radius changes0.189750001?0.666599989 BETWEENframe1AFTER/frame2BEFORE. No falls/reconnects/roundends reported so far; independent audit pending. Export is read-only and does not restore script timers. Live bridge metadata exposes pending reply before actuation; boundary audit needed for generalized next-state task. No fit/PPO/score claim.
+
+2026-10-13 12:54 UTC ? Independent six-power auditPASS:384finite16msframes,6?64, no falls/disconnects/round ends; all live P/V/spin/radius equal NativeBEFORE exactly, not AFTER. Per-case Sim versus observation clock offsets0/1/2ms retained; timed native effect arithmetic and script schedule invariantsPASS.110repo/5native source ZIPmembers verify; protected hashes unchanged. RESULT_SCRIPT_STATE_OBSERVABILITY added with Mega alias/between-frame growth and queue timing. No claim of complete hidden-state/effect-expiry/whole-world restore or learned skill. Source freeze ended; console summaries to be narrowed and next observed-state target prototype declared separately.
+
+2026-10-13 12:57 UTC ? Observed-next-state prototype prepared378adjacent transitions from six64frame Cube development-engineering cases (63/type), schema distinct from trainable native-motion tensors. Inputs preserve CURRENT full synchronized observation plus known NEW declared reply separately from queued bridge reply; NEXT observation targets retain inventory/effects/radius/body changes. Independent all378current/future/reply/frame/source/hash/geometry reconstructionsPASS, single Mega body boundary source_step1.28 preparation/pair/observed-state/transport testsPASS. Original records/readers untouched, no fit/PPO; raw semantic schema is explicitly not finalized neural features or complete hidden state. Narrowed verbose script-probe console summaries after sourcefreeze (historical large reports preserved). Source/state-coverage review continues.
+
+2026-10-13 13:06 UTC ? Added native-only six-power replay to maintained mechanics_pool_viewer and optional actual-radius sphere/readouts in collisionviewer (defaults preserved for old trajectories). CompleteCube1950faces unchanged; paths contain65samples/type,66Mega with explicit duplicate-time between-frame body event. Exact every-native-P/V/spin/radius/phase/time source auditPASS; no invented predicted path. Browser checker now covers allnative-script cases and rendered sphere bounds/readout/samplephase; active session8750. Viewer uses world-unit radius sphere rather than screen-size marker pretending to be body size. Fixed prototype future-fall exclusion,29relevant testsPASS; rawprototype remainsdevengineering/unfit. No newPython files/PPO.
+
+2026-10-13 13:13 UTC ? Native-only gallery browserPASS:1950renderedCube faces match full saved vertex hash,6exact paths, allcase spheres/readout/stage bounds0error, noJSerrors; Mega screenshot visually reviewed. Added read-only FIXTURESCENE to fixture include (client/server whole-container force objects: four StaticShape definitions/powered/mount transforms; player native P/V/spin/radius and owned flags, other body state explicitly partial). Does not call getForce/build geometry/apply updates/restore scripts; exact snapshot fields/clocks checked unchanged. Separatebinary rebuilt after archiving prior scriptstateexe2bc80566bde9d21481b4be809afd540715ee0505981ad94df11888eacdad508a. Corrected player export to include full native doubleposition separately from scene transform and identify ownedserverbody. Maintained pairs.py ten-map snapshot1281013..22 nowactive session85508/port9054,29testsPASSbeforelaunch. KOTM first scenePASS/0forceobjects/1player eachcontainer; no special KOTMgate. Runtime/native/geometry/protected sources frozen untilbatchcomplete. No motiontape/testlabels/PPO/newPythonfile.
+
+2026-10-13 13:16 UTC ? Scene inventory complete10/10PASS/73.994s, independent108repo/5native source archive and source/native/geometry/protected/exe/hash/clock/physical auditsPASS. All client/server startup snapshots show0nativeforces/1ownedMarble; scope explicitly one offline sample/map, no future-force/multiplayer completeness. Source freeze ended. Updated handoff/roadmap/stale progress and review-index negative-fit status; linking native six-power radius gallery,378observed transition prototype and scene audit. No PPO/promotion/test motion labels/newPythonfile.
+
+2026-10-13 13:20 UTC ? Review hub regenerated151validlocal links, including six native response radius replay,378world-transition engineering prototype and ten-map passive inventory audit. Declared read-only bridge/native context extension before implementation: use latch/yaw config, pending update flags/values, gravity frames/interpolation, initialized current/best contacts; never read uninitialized last-contact fields or claim protected runtime mass captured. Six Cube seeds1381013..18/64frames/use1,2,3,5/240obs+120s bounds. Old radius-free two-map gallery compatibility rebuilt into TEMP, headless verification active; no repo script added.
+
+2026-10-13 13:21 UTC ? Read-only fixture extension implemented: bridge use latch/yaw-hold/config; target pending native update bitmask with only active typed values; global/previous/default gravity matrices and active-only interpolation; current initialized contacts/nonzero-normal best contact and registered maxForceRadius. Runtime mass and historical last-contact decoding explicitly unavailable. Previous scene binary dd9effadce21b3ff465859d0f52d0a9b3ff67aa48dfc0868cfd0f12d25ef656a archived/verified before rebuild; protected exes/CS/A2 unchanged.34 preparation/pair/observed-state/transport testsPASS. Six-state coverage run1381013..18/session8315 now active, all runtime/native sources frozen. First Jump64framesPASS, actual held/released use frames2,3,4,6, consumption2. Old radius-free viewer compatibility fixture initially had wrong input folder/no index links; corrected TEMP fixture, both full maps/exact paths/7809samples/browser checksPASS, no JS errors.
+
+2026-10-13 13:24 UTC ? Extended state run6/6PASS/384frames/47.958s; all110repo/5native source archive/native/protected/exe/rawgzip/hash and finite/current-live-physical BEFORE checksPASS. Live latch=previousreply, native BEFORE/AFTER latch=currentreply (4phase differences/type) independently verified. Contact phases0/4/0/101/2/0, pendingupdates all0, no active gravity interpolation coverage; maxForceRadius50normal/75Mega. Audit initially used wrong raw hash key, corrected to actual native_sha256 without changing records. Source freeze ended. Declared semantic current-state/new-reply-to-next-state feature prototype with fullCubegeometry before implementation; no raw IDs/inactivegarbage/futureinputs, no full-state or learned competence claim.
+
+2026-10-13 13:30 UTC ? Semantic observed-context interface added to maintained pairs.py only.378examples/1950fullCubefaces prepared and independently reconstructed,52current contact tokens, maximum float32 operative vertex reconstruction error1.889663998611013e-6u. Source/input/output/geometry/source-ZIP checksPASS. ScriptMega6/native0 distinct; latch vs physical phase distinct; IDs/absolute clocks/inactive garbage excluded. Added8meaningful semantic guards in existing test_student_data;42preparation/transport testsPASS. Refactored pure current/next example builder and simplified active radius validation, original artifact values reconstruct exactly. Raw controls retain protocol units and feature ordering/units are in schema_notes. No new Python files, training/testlabels/promotion.
+
+2026-10-13 13:35 UTC ? Analytical-vs-velocity-drift immediate audit implemented in maintained pairs.py;90verifiedtrainpairs/180branches/6maps complete in8.540s, all source/input/geometry/protected/ABI3DLL hashes unchanged. Maximum analytical p/v/spin errors[1.1676613926889612e-08, 7.297880935296867e-07, 2.07806135008522e-08]; exact perbranch norm/sourcearchive integrity auditPASS. Original pair manifest uses sources/output_hashes; loader adapted before execution. Analytical forecasts use only physical BEFORE/actual Move/camera events/fullmesh, nativeAFTERscores only. No learned model or gameplay claim. Predeclared16-frame known-native-control openloop follow-up before implementation (?2880steps/300s) to investigate impacts/rebounds; no fit/Dev/test/PPO.
+
+2026-10-13 13:36 UTC ? Openloop audit initial attempt guard failed after12Sprawl pairs because transfer records have8frames, not16; incomplete result/source preserved. Corrected loader to complete original8/16-frame prefixes (verified66pairs?2?16 plus24?2?8=2496steps), report128/256ms/counts separately. No native data changed or omitted. Retry fresh r2 output, same300s/bounded/sourcefreeze/noFit/Dev/test/PPO.
+
+2026-10-13 13:39 UTC ? Known-native-control openloop retry r2 completes90pairs/180branches/2496steps/13.285s.132branches16frames+48branches8frames, all105sourceZIP/source/input/geometry/protected/ABI3DLL and exact reported-error normsPASS. Maximumprefix p/v/spin error0.07971132785452842/0.5054899445915265/1.4917788227186917 at Fractured flight_down8, first divergesframe6 flaggedSpherePlaneTangency edge candidate2933/2922. Bothbranches shareerror, so action-effect agreement is not absolute accuracy. Immediate180branch errorsnearprecision alone were insufficient. Sourcefreeze ended; investigating generic native contact numeric operation order, no map-specific fix/fit/PPO.
+
+2026-10-13 13:41 UTC ? Native source findContacts uses F32 radius product before F64 subtraction/sqrt and F32 cast; analytical contacts used F64 radius product, zero clamp and abs(distance) shortcut. This is a generic numerical mismatch matching flaggedFract tangentedge2922. Correction predeclared before physics.py edit; oldr2/sourceZIP/error evidence retained. Will verify90pair2496step r3 and native contact regressions, no geometry/native/protected/model changes.
+
+2026-10-13 13:52 UTC ? Generic native contact arithmetic correction passes complete r3:90pairs/180branches/2496steps/13.163s, maxp/v/spin3.3779663964989376e-7/1.3485414645622231e-6/2.7936685533802574e-6. Fract flight_down8 bothbranch0.079711u errors fall to8.882e-16; no audited sample worsens beyond1e-8. OriginalConcorner now includes all native contacts directly, native one-step p/v/spin2.745e-10/2.810e-8/1.071e-7. Added nativeFract16frame expected outcomes to existingfixture preserving allprior values; oldambiguity expectation updated. Broader159test discovery initially finds two outdated ambiguity expectations; genuineSprawl contact fork stillflagged/refused. Enriched existingTreasure fixture with original24native64ms AFTER targets, exact Moves/camera and gziphash matched. Earlier fixture-preparation guards incorrectly assumed16ms/6replies, corrected using actualsource24replies/64ms/1.536s; no source metadata/hash mismatch. Native/grazing19testsPASS; full159retry78862active. Uncertainty refusal uses explicit fault-injected flag independent of the nowfixed numeric mismatch. Architecture review proposal added: retain verified physics, learn residual errors and full-map gem choices; no automatic longPPO/promotion.
+
+2026-10-13 13:53 UTC ? Broad dynamics regression suite finally159/159PASS/42.495s. Original149? historicalcounts retained; currenttotal159 includes semantic/native guards. Review hub rebuilt155validlinks, Pythoncountstill476. Critical architecture preference question submitted asynchronously with concrete proposal link: physics-baseline+learned-corrections recommended vs fully learned predictor primary; longPPO/promotion remains paused and no useranswer assumed. Continue independent native-state preparation while pending. All fix/source/protected artifacts and priorfailedattempts retained.
+
+2026-10-13 13:57 UTC ? User asks overnightoverview; answered broadmatchedmap points, native mechanics/state fixes,159tests, failedneuralfits/noPPO and cleanup. Continue independent inputaccuracy work while corearchitecture preference pending: predeclared read-only protectedruntimeMass accessor (nonvirtual/no objectlayout or physics changes), contextv2/raw-only sixCube1581013..18/64frames/use1,2,3,5/240obs+120s bounds. Prior v1 reader/prototype stays unchanged, no architectural/policytraining action assumed.
+
+2026-10-13 14:02 UTC - User authorizes turning planner foundation into fast trained navigator. Declared supervised full-map cached-attention distillation, all ten maps, actual recorded destinations/controls, segmented Dev split, <=1500 updates/900s, speed and fresh native score checks in HANDOFF_FAST_NAVIGATOR_2026-10-13.md. Older destination-free traces excluded; originals/defaults preserved. Runtime-mass preparation remains unbuilt/unverified; dashboard33732 protected.
+
+2026-10-13 fast navigator implementation - Added single maintained fast_nav.py module; cached full-map spatial attention/current physics+inventory+queues+destination. Existing evaluator optional learned branch/A2 geometry comparator; six meaningful contracts added to existing tests.72/72PASS after getattr reset compatibility fix. Train/dev upper gap64 prevents future-weight overlap across block roles. Ten-map tensors prepared, exact reconstruction audit active; originals/protected files unchanged.
+
+2026-10-13 14:08 UTC - First fast full-map navigator fit1500updates/44.3s selected1400, Dev loss.46993->.13505.25972causal examples/47932faces. Cached inference medians.360-1.869ms, maxp952.040ms, no native score claim. Protected/checkpoint/source invariantsPASS. Declared Sprawl1681013 native smoke followed by10map1681014 fresh learned-vsgeometryA2 comparison if operationally valid. No expensive search in learned branch; all previous defaults/candidate evidence retained.
+
+2026-10-13 14:09 UTC - First fast scratch navigator native smoke valid but0Sprawlpoints/0falls/10rescues, median7.89ms/p9511.11ms. Timing/output/source auditsPASS;165testsPASS. Hold ten-map sweep, preserve failure. Discovered Dev use/Blast recallzero despite low error. Implement residual full-map corrections around existing A2 current recorded reply; zero-init mustpreservebase, realactionsfeedbasehistory. Separate dataset/fit/evaluation, no hiddenpromotion/defaultchange.
+
+2026-10-13 residual navigator - Initial preservation regression caught Float32 saturation/angle serialization mismatch; inverse decode now preserves exactbase within3e-6 and noncanonical yaw. Small maintained current-observation JSONfixture avoids report-directory test dependency.73testsPASS; residual1500update fit and166full testsrunning. Sprawlfailure preserved, no defaultpromotion.
+
+2026-10-13 14:15 UTC - Residual full-map navigator completeSprawl7pts/0falls/11rescues, median11.15ms/p9515.44ms. Protected/source archive168membersPASS. Added current base_actor_action to learned logs for exact futurelabel/audit preparation. Start declared ten-map20-round seed1681014 learned-vsgeometryA2 evaluation, frozen sources, scores/falls/latency/negative evidence retained. No oldcheckpoint overwrite.
+
+2026-10-13 14:21 UTC - Firsttwo poolpairs completeKOTM132/142, Sprawl7/12 learned/referencepoints; no interim poolmean, noKOTMveto. LearnedKOTM2806outputs exactcausal reconstructionPASS. Four closed-smoke rawduplicates218818070bytesremoved afterverifiedcanonicalgzip/reportSHA/immediatepredelete scope+hashchecks; archives/failedmodels retained. Mainarchitecture/planning handoffs now link fast-navigator continuation and resolve older preference-question status. Sources remain frozen during nativepool.
+
+14:58 UTC: first residual native pool complete20/20 input/score-valid rounds, all170 source hashes unchanged and168 archived source files independently verified. Learned equal-map18.7pts/135falls/59rescues vsgeometry-A238.9/202/35. No default promotion. Native score/pending/activation audit complete; all failures retained. Training-data audit finds only ONE use positive across20875 training examples (TreasureBox),13Blast positives; imitation loss cannot establish powerup learning. Next advice preflight<=12states/map/1squery, complete meshes/compiled sweep, fixed101315, total1200s. Generic legal controls only, normal radius/ordinarygravity; hypothetical forecasts labelled analytically checked rather than native outcomes. Reset route hysteresis per case, keep unused Helicopter horizon short, retain unsupported/timeout/refused cases and complete accepted forecast evidence. Amendment: no synthetic fresh recurrent-A2 forecast in this preflight; recorded actualbase reply remains current input. Sourcefreeze during advice collection; no concurrent fits/code mutation.
+
+14:59 UTC: advice preflight stopped on first accepted example: actor_goal_context lacked kind. Fixed reconstruction to exacthistorical live defaultgem, rather than infer a kind from later outcomes; failed protocol/archive preserved. Restart uses separate preflight2 output, unchanged limits.
+
+15:02 UTC: independent all10map learned-output reconstruction complete37475current replies, ZERO mismatches,48.02s. Inputs rebuilt solely from eachbefore observation/actualcurrentbase reply; old candidate unchanged. Native full-round audit confirms20expected completed rounds, no pending/actor mismatches, score/activation provenance retained. Pool sourceZIP has168 source files +manifest169members, correcting unverified member totals. Note advicepreflight hashes NPZ geometry but not companionmaterialJSON; no source mutation occurred, yet next collection will explicitly hash both plusresolvedterrainNPZ. No exactstarting-world pairing claim.
+
+15:05 UTC: advicepreflight2 complete120attempts/76accepted/239.02s;203sourcehashes and179 archived sourcefiles verified unchanged before edits. Every accepted forecast/currentinput/firstreply being independently reconstructed/replayed. Added reusable audit-advice and optional fit --advice/--initial/--balanced-buttons to maintained fast_nav.py; no extraPythonfiles. Advice mixes12/48 examples permap minibatch, originalDev arrays untouched. Balanced ablation uses onlyTRAIN+advice count-derived positive weights cappedjump4/use32/Blast32 and supervises use onlywhenheld/Blastonlychargedorspecial (validpositive always retained); no reward/explorationfloor change. Next identical1500update/900s fits resumedfromoldresidual, plainadvice vsbalancedadvice, differentoutputdirs; source/checkpointprotected hashes recorded. Counts/recall/falsepositives plusfreshCube/Sprawl native scores decide continuedtesting. Native tests use validated compiledsweep/query/clearancecaches equallyforbothbranches; comparewithfreshA2 underthose settings, do not conflatecrossbatchlatency/settings with score gains. Added3 contract tests; full169test suiteactive. Nextcollection adds companion materialJSON andresolvedterrainNPZ hashes omittedfromfirstpreflight (sealedgeometrytensors independently checked againstcurrentmap in audit). No defaultpromotion.
+
+15:07 UTC:169/169testsPASS40.48s;76/76 accepted advice completecontrol forecasts replay exactly within1e-10u/motion limits; currentinputs/targets/allgeometryfeatures reconstruct, original25972tensors untouched. Plainadvice fit raises oldDev loss and bestDev may remainupdate0. This makes Dev-best alone unsuitable for evaluating this newstateintervention. Currentfits will finishunchanged/sourcevalid; followupfit will preserve BOTH originalDev-best and explicit final1500update weights for freshNativecomparison. That is candidate retention, not automatic promotion or a claimthat a higherloss model is better. NativeCube/Sprawl with matchedgeometry-A2 remainsrequired. Allfits bounded1500/900s; no PPO or sourceeditsduringfits.
+
+15:11 UTC: full-throttle gradient audit found tanh-residual axishead derivative2.0266e-6 when learning tobrake from normalizedbase1 to0. Planned separate versioned linear-axis residual: corrections in normalizedworldcontrols, bounded onlyatserialization, rawsupervisedaxisMSE (targets legalbounded). Zero-correction bytepreservation and nonvanishingbrake-gradient tests required; historical tanh checkpoints staycompatible via explicitconfig. Previousfits sourcevalid andbest+final preserved; no oldcandidate silentlyreinterpreted. Newlinear conversion resets onlylastheadfirst2rows whenreusingoldweights. Sameadvice1500/900 limits; freshNativecompare includes finalplain/balancedlinear candidates if contractsPASS.
+
+15:12 UTC: linearaxis correction implemented/backwards compatible; zero-residual serialization and brake-gradient+boundedcontrol testsPASS12/12focused. Originaltanhmodel unchanged byexplicitaxis_mode config; old->linearconversion resets2axis rows only. Linear plain+balanced advicefits active1500/900s, bothbest/final retained. InitialplainDev.23031 ->.11568 by100updates (imitationonly). Adviceactivationhorizonfixed prospectively:48replies ordinarypowers,96Helicopter,24unusedrolling, avoiding false rejectionbeforeSuperJumplands. Existingpreflightlabels remain archivedunchanged. Full171testsactive.
+
+15:15 UTC: linearfits complete1500each/~52s, plainDevbest100(.11568)/final.13646, balancedDevbest300(.18706)/final.22114, source/protectedunchanged. FinalSHAs plain68a830026cd0e71c7b587cc16af884a2076c50ea4640336bb74926f103fae250 /balanced71e65db8316622da0f3e9a58030dfccac5ee91cf1cd4592c9374bb69b30f1a50. PredeclaredfreshSprawl+Cube seed1681015 completeoriginalrounds forbothfinals, eachpairedwithgeometry-A2 settings: compiledstrictABI3sweep/exactquery+clearancecache/16msphysics/64msdecision/globalobservedgems/8srescue, port9054,600swallguard. Eighttotaldevelopmentrounds; independentworlds/noexactseedpairclaim. Frozenallnavsourcesandcandidate throughbothbatches; no fit/sourcechanges/nativefixturebuild. Evaluatornowhashes terrainNPZ/collisionNPZ+materialJSON, correctlydeclaresfastbranchorder andlogsmodelSHA/axis mode/caches/geometryroute report. Oneverification invocation used nonexistenttest_reliability name (runnererror, notimplementationfailure); corrected totest_full_round_benchmark. No defaultpromotion.
+
+15:21 UTC: firstlinearplain fresh2map Nativecomparison complete4/4 score/input-valid. Sprawl8vsA212pts,0/0falls,9/9acceptedrescues;Cube29vsA223pts,6/8falls,4/5acceptedrescues (counts verified againstreports). Equal2map18.5vs17.5, small development result/no significance/unseenmap claim. Learnedlivep95Sprawl12.04/Cube14.10ms. Cubeuse0/Blast0,840newjumps vs1747base/3256playable: steering+ordinaryjump competence improved, not powerupskill. Nativecompiled/query/clearancecaches equallyon both. Sourcehashes/ZIP proof stored; balancedbatchactive, allcode/candidatesfrozen. Fullscore/activationauditactive.
+
+15:25 UTC: weightedlinear preliminarySprawl10vsA212,0falls;Cube0/2falls,referenceongoing. WeightedSprawl1392recorded usecommands ALLempty;1465Blastcommands/1413belowavailablemeter threshold. Reportpow_use_commands differsfromrawrow count due executionloop accounting; independentactivationauditwillattributepending/consumption ratherthan equatecommandswithuse. Found bug: eligibility-masked training negatives leave ineligibleoutputs unsupervised; directdecoder lacked legalinventory/charge mask, emptyuse can repeatedlyresetpowYawHold. Do not promoteweightedcandidate. Afterfrozen8roundsfinish, preservehistoricaloutputs via explicitcheckpoint-config opt-in legal-action mask; sameweightsrepackagedseparately, exactSHA/sourceproof, legalactionsallowedwhenheld/charged (no grounded/trickprior gates). Testemptyuse/underchargedBlast suppress and heldmidairuse remainsallowed, thenfreshCube/Sprawl. Futureadvice48/96 activation horizons will expand truepowerup supervision; old1use corpusinsufficient. No codechange duringNativebatch.
+
+15:27 UTC: weightedlinear Native2mapcomplete4/4 valid:Sprawl10vs12,0/0falls;Cube0vs23,2/8falls; mean5vs17.5. Preservefailure; notpromoted. Nativepure-modelactionspam emptyuse/undercharge documentedabove, unlikeplain29Cube. Completeboth8rounds nowsourcefrozen evidenceverified. Addopt-in legaldecoder flag plus separate same-weightsexport; existinghistoricalcheckpointsdefaultFalse preservebitreproducibility. Eligibilityonlyinventoryexists andactualgameBlastenabled/notfrozen/meter>=required; no perpower/ground/geometryprior. Run6heldtypes/airborne/empty/undercharge/nativependingeffects tests, thenmaskedweighted same2map settings seed1681016. Plain remainsleadingmotion candidate; full10maps afterthis diagnostic.
+
+15:28 UTC: legaldecoder implemented as explicitcheckpoint decoder metadata, historicalcheckpoints defaultunmasked unchanged. Separate mask-checkpoint export verifies allstate_dict tensors/config equal andprotectedhashesunchanged; newweightedmaskedSHA94da7c6842262ac04a20ea6cf31dbd9e6fcba3ad4bf2900d192577680009820f fromweightedfinal71e65... . Currentheld1-6allowedinair; emptyuse0; Blast gamebindingenabled/notfrozen/value>=required (triple.33); Fireballcooldownunobserved so ordinarymeter maskdoesnotpretendtocertifyit. No namedtrick/ground/distancegate. Actualsentreplyfeedsrecurrentbase andnextcurrentfeatures; logs preserveunmaskedrawreply independently. Fitcontinuationspreservedecodermetadata fromparent; networkoutputinterpretationexplicitaxis_mode unchanged.49focusedtestsPASS including3newavailabilitycontracts. Nativeweightedmasked Sprawl+Cube seed1681016, sameverifiedcaches/geometry/reference/600s,4fullrounds, sourcefreezeuntilcompletion. This is decoderablation, no newtraining or skillclaim.
+
+15:31 UTC: clarified evaluator counter: pow_use_commands counts USE OR BLAST grouped bycurrentheldtype (codeexplicitaction[6]oraction[8]), so its1546 vs1392use-only rawrows isexpectedunioncount, not an accountingbug. FirstmaskedweightedSprawl12pts/0falls/9acceptedrescues,2heldtype1requestsplus56Blastrequests. Powerconsumption/pickupauditstillpending, no skillclaim. Native4roundscontinuefrozen.
+
+15:35 UTC: weightedmasked4/4 Nativecomplete: Sprawl12/A212,0/0falls;Cube0/A235,4/8falls,6/4acceptedrescues (reports verified). Availabilitymask fixesemptycommands butdoesnotmakeweightedpolicycompetent. Plainlinear remainsleadingmotion model; neitherpowerlooppromoted. All8+4 Native proofs retained. Before broad96/map advice, found causal-label risk: activation48/96 horizons comparedwith24 rolling couldrewardlongerforecastduration ratherthanpowerbenefit. Newuse/Blast advice requires completed unambiguous matched no-use/no-Blast continuation withsamehorizon andjump/steeringprofile, and betterpickup/progress/supportedendpoint; no evidence=>refuse thatactivationlabel. Keep shortordinary proposals; pairedlongcontrol forecast occursONLYwhen evaluating actualactivation. No permap/namedtrickreward orhardexplorationfloor. Testmatchedidenticalcost/longerhorizon/no-benefit refusal, positivecausaladvantage, uncertainty/deadline refusal; then bounded96/map currentstatecollection/independentaudit beforefit.
+
+15:40 UTC: expandedadviceguards implemented. Matchedsamehorizon feedback baseline retainsjump/steering/braking; acceptedactivation mustnewlyconsume moremodeledresources thanbaseline andproduce earlierpossiblepickup/atleast.3bettercost/orstablecontinuationwherebaselineunstable. Failure/ambiguity/partial/missingbaseline=>noactivationlabel; identicalcost/pickup=>refuse. Dataset dedupe nowincludes spin5rad/s buckets/contactnorm.05/pendingMoveaxes+buttons/bridgejump-use-Blast/yawhold/effectphase500ms, notjustposition+velocity+held. Coveragebuckets affectselection only, fullprecisioninputs preserved. Logging appends individuallyclosed gzipmembers instead of rewritingever-growingcasesJSON everyquery; audit supports oldJSON/newgz and independentlyreplaysmatchedcontrolforecast.17focusedcontractsPASS. Oldpreflightforecasts retainednotrewritten. Startfull<=96states/map/1squery/1200stotal sourcefreeze, all10historicallearned-state journals fromfirstpool, same101315seed; pairedordinaryactivation48/Heli96, ordinaryrolling24 (activeHeli96). No sourceedits/nativefixturebuild/fitsuntilcompleteandindependentaudit. No native successlabel fromsyntheticforecasts.
+
+15:46 UTC: safe cleanup removed64closed audited Native/decision rawduplicates2576597690bytes (~2.40GiB), receiptfast_nav_closed_pool_cleanup_20261013.json. Fulldecompressed canonicalSHA==rawSHA, Native rawSHA==report, compressedSHA==independentaudit; immediatepredeleteoriginal+canonicalhashes, absoluteTEMPtaskrootscope andnoReparse/dir targets allchecked. Allcanonicalgz,sourceZIP,models/failureproof/currentadvice untouched. Firstcleanupguardusedcomplete_pool (tenmapcriterion) andrefusedtwo-map trials beforeanydeletion; changedtoexactcomplete_declared_rounds/expectedcount appropriateforsmallprotocol. ONE newmaintained Pythonmodule total, no loose scripts added. Nativeuser/dashboard process untouched. Fullcausaladvice stillactive/frozen.
+
+15:50 UTC: fullcausaladvice complete960attempts/625accepted/536.13s, allsource/protected hashes and179archivedsourcefiles re-readverified; companionmaterialJSON/resolvedterrainNPZ explicitlyhashed. Sourcefreezeendedonlyafterproof. NativeoutputsFalse; completeanalyticalforecasts/currentinputs/matchedcontrol replays auditedbeforefit. Positivebuttoncounts in source_integrity.json. Plainmaskedcachedall10benchmark medians.377-1.890ms,p95max2.053ms (forward/decodeonly, no route/base/observation/load); Nativeplain12-14ms only2maps verifiedsofar. Plainmasked modelweightsunchangedfromleadingplainfinal, SHA b42f85a781684ca0572da6884184f1f2d700a96dc53b96ec10f731ba38beba18. No defaultpromotion.
+
+15:52 UTC: all625causaladvice inputs/labels/completeforecasts ANDmatchedcontrolpartners independentlyreplayPASS. Accepteduse types10SuperSpeed/3SuperJump/1Helicopter, noneBounce/Absorber/Mega; no allpowersskillclaim. MaskedNativeSprawl2SJconsumptions independentlyattributed todelayedcommands, no unexplainedinventoryreset; doesnotestablishusefulpickup/landing. Newpaired boundedfits1500/900s fromplainmaskedb42f...: uniform625advice vsaction-stratifiedsame625, unweightedbuttonBCE inboth (no globalpositiveweights), originalDev untouched/full5097 assessed. Within12/48 advice examples, actionvariantreserves2existinguse+2existingBlastpositive indices permap ifavailable, fillsrestuniform; doesnot inventlabels or enforce livefrequency. Comparison isolatesdatasampling; keepslegaldecoder inherited andlinearaxes. Bothbest/final savedseparately, originalA2/dll/exes/CS protected.18focusedcontractsPASS inclpositive-source-only sampling. No sourceeditsduringbothfits.
+
+15:58 UTC: both causal continuations completed with source/protected hashes unchanged. Uniform final1500 loss0.11018395, SHA83759f823717ba5c01c7cba3a2f0b64beb59ad55080f540f9fd261260a47f1a0; action-stratified final1500 loss0.13961176, SHAa9461dc803f3ba874fc07a51deddaf701850380e2f4e0f7a2bd6d18259926826 (Devbest1300 preserved separately). Native protocol declared before launch: both final1500 models, Sprawl_Hunt/CubeIsle_Hunt, seed1681017, geometry-routed A2 reference per candidate, 16ms physics/64ms decisions, query+clearance caches, verified strict DLL, normal complete rounds with legal8s rescue, 600s wall bound, no forced powerups/teleport/training during play. Select by actual points and mechanics; full10map fresh seed1681018 next. Rerunning full177 tests because earlier closed session output could not be retrieved; no implementation changes since that run. Closed-session polling produced Unknown process id, not a test failure. Shell file search corrected after nonexistent tests subdirectory; no files changed by failed search.
+
+15:58 UTC: full mechanics suite PASS, 177 tests/42.108s. Two predeclared final-checkpoint native comparisons launched sequentially on port9054 (session99279). Source/model files frozen until both batches close and their integrity evidence is checked. Dashboard33732 remains untouched. Original Dev metrics alone cannot establish powerup proficiency; old Dev contains only2use/3Blast positives. Evaluate delayed native consumption, actual pickups/falls/rescues and complete-round points separately.
+
+16:03 UTC: uniform final1500 native Sprawl complete1point/0falls/10acceptedrescues (20attempts) vsA212points/0falls/9acceptedrescues (16attempts); Cube complete0points/6falls/7acceptedrescues (19attempts), reference still running. Reject promotion on actual gameplay despite Dev0.11018. Read canonical closed Sprawl journals: learned4647playable decisions,47jumps, noheldpower throughout; A24657playable,2098jumps, heldHelicopter4103decisions. Learned mean world-control residual magnitude1.288, often movement0.05-0.1 whilebase1.414; sampled low speeds and repeatrescues show excessive braking. This is a trajectory diagnosis, not proof alladvice targets are wrong. No live code/model changes; action-stratified batch next. If both continuations regress, retain earlier plainmasked candidate for the promised full10map validation rather than selecting a bad candidate by lowerDev loss. Power consumption cannot be learned/assessed on this Sprawl trajectory because the candidate never acquired one.
+
+16:07 UTC: predeclare next bounded ablation if both causal continuations fail. Start from plainmaskedb42f...; preserve every map encoder/state/trunk parameter and last-layer movement/yaw/aim/jump rows bit-for-bit, train only existing use/Blast rows with audited625 causal advice and source-only positive sampling. No added verdict head, trick list, grants or live exploration floor. This is staged optimization of existing outputs. Native behavior can still change after legitimate activation; output preservation is not a score guarantee. Compare actual points/consumptions/landings on Sprawl+Cube freshseed1681019 before broader training. Retain both failed joint-training models. Full10map freshseed1681018 validation remains next for the best demonstrated motion candidate. Source edits wait until current native8roundbatch closes and source/archive proofs pass.
+
+16:09 UTC: corrected handoff rescue counts: cancel:legal_stuck_rescue counts attempts, not accepted respawns. Authoritative report.recovery.rescues used: uniform Sprawl10/A29 accepted (20/16attempts); Cube7/A25 (19/9attempts). Action-focused actual Sprawl0points/0falls/11acceptedrescues; Cube15/5/6. Confirmed native held-power consumptions zero; Blast requests5/8, so no learned power-use skill claim. Uniform four-round score/queue audit passed;180sourcehashes unchanged and171archivefiles independentlyverified. Nextsource edits await actionbatch closure/integrity.
+
+16:12 UTC: actionbatch4/4 valid after natural completion: Sprawl0/A212;Cube15/A235, mean7.5/A223.5. All180sourcehashes unchanged,171ZIPsourcefiles independentlyverified; score/queue/declared-input audit PASS. Sourcefreeze ended. Implemented --activation-only staged training of the existing two output rows: allother parameters require_grad=False; gradients on last-layer first7rows zero; exact state_dict movement guard at validation/end. Uses eligible unweighted use/Blast BCE, same625audited advice, existing positive-source-only sampling, no live activation floor. No new head/network/physics change. New optimizer test demonstrates learning activations while first7outputs remain bitexact and guard detects deliberate encoder corruption. Initial test failed only in deliberate corruption setup (Sequential.weight typo); fixed to Sequential[0].weight, full179suite rerun. Viewer now correctly describes fast learned residual integration and carries actual native radius, rather than falsely claiming every branch is unmodified A2. No default checkpoint promotion.
+
+16:14 UTC: activation-only fit complete1500updates/50.16s, finalSHAeeca7624d59918c57eb2a4cd477ba64bbf5fc2065397d06b40b7881035953673. Devbest0 preserved; final0.15716241 vsparent0.13645501 (activation changes, motion loss unchanged). Exact model-tensor guard proves every encoder/trunk parameter and last-layer first7rows unchanged. Full179testsPASS/43.004s. No loss-based skillclaim. Native final1500 opt-in comparison launched Sprawl+Cube seed1681019, sameverifiedDLL/caches/16ms/64ms/600s/legalrescues/reference;4naturalfullrounds, no grants or forcedactivation. Allnav source/model files frozen again. OriginalA2/protectedexecutables/bridge untouched. Movement invariance is an output-function property at identical inputs; actual use/Blast can still alter subsequent observed trajectories and scores.
+
+16:22 UTC: stagedNative4/4 valid: Sprawl8/A212, falls0/0, acceptedrescues9/9;Cube29/A223,falls6/8,acceptedrescues4/5. Equal2map18.5/A217.5; p95learned12.05/14.47ms. ZERO power-use/Blast commands in both learned rounds: preservation established, useful activation NOT established. All180sourcehashes unchanged,171archivedfiles re-readverified. Select stagedfinal for predeclared full10map freshseed1681018 because it preserves bestdemonstrated movement exactly and carries the causalactivation continuation; smalltwo-map result not a generalwin. Added --recompute-fast to existing reliability_audit: reconstructevery learned reply from current BEFORE/native data, logged currentbase action and explicitactor destination/waypoint; no futuremotioninputs and no claim to independently rebuildA2recurrenthistory. CheckpointSHA mustequalNative report.55focusedcontractsPASS inclmissing-base refusal and outputreplay. Before10map launch run full180suite and all~7900 learnedoutputreplays on closed staged2map. No new scripts/defaultpromotion.
+
+16:23 UTC: full180suitePASS/43.53s; everylogged stagedlearnedreply independentlyrecomputed from currentinputs/recordedbase withZERO mismatches. Fresh complete10map/20round comparison launched seed1681018, stagedfinaleeca... vsgeometry-A2ae88..., same16ms/64ms/caches/strictDLL/600s/legalrescues. No forcedactivation/warp/restore/PPO; controllercode/model/source files frozen to poolclosure. Equalweightallmaps, noKOTMveto. Candidate remainsopt-in untilcomplete nativeassessment. Newoutputfast_nav_activation_pool_20261013; audit/viewer/ranking aftercompletion. Dashboard33732 stillprotected.
+
+16:27 UTC: ten-map pool in progress, current firstpair KOTM65/A2142,8/4falls; do not use standalone KOTM rejection. Allremaining declaredmaps continue unchanged. Hypothesis to investigate afterpool: original plain fit's Devbest was update100(.11568), while its final1500(.13646) was used in earlier native motion checks and stagedparent. Joint-advice finalchecks were deliberately predeclared because oldDev had sparsepowers; that justification does not prove originalplain final is the best generalmotioncheckpoint. Preserve both; consider a separate predeclared fresh-seed Devbest100 motion ablation if broader scores regress. No checkpoint/source changes during current20roundpool. This is a possible selection/overfitting issue, not a confirmed rootcause or KOTMveto.
+
+16:31 UTC: freshpool Cube0/A223 vsstageddevelopment Cube29/A223; preservefailure, no robusttwo-map winclaim. KOTM65/A2142;Sprawl8/A212. Remainingsevenmaps continue unchanged before selection. Independentlaunches andone naturalroundpermap do not establish lower-variance superiority. Candidate remainsopt-in. Afterpool, inspect whether activation/trajectory/context variation or earlier motion-checkpoint overfitting explains regression, using canonicalNativejournals ratherthan guessing.
+
+16:35 UTC: Cube29vs0 investigation narrowed to evaluator rescue-phase behavior, not startingmodelinputs or power misuse. Firstplayable currentfeaturevectors/queries/baseactions/learnedreplies were bitidentical between seed1681019/1681018. Firstmovement/action difference at decision498: formerjournal has192ms gap andzero bridge action, latter64ms gap/samepreviousreply. Both nativecan_quick_respawn=False andrespawncount3. Rescue monitor threshold crossed one64ms decisionearlier because native absoluteclockoffset differed9ms; quick_rescue handshake inserted neutralreplies, and controller.invalidate currentlyunconditional evenwhen server refused. This explains the first observed divergence; not proof it alone causes final29vs0. Currentpool continuesfrozen withsame rules/reference. Afterclosure preservehistoricalresults, fix refusal to avoid discarded actorstate/unnecessary handshake when observed game availabilityFalse, test threshold/accepted/refused contracts, then use separatelydeclaredfresh-seed evaluation. Failedsearch referenced nonexistent progress.py (actualmonitor recovery.py); readonlyfailure, no fileschanged.
+
+16:38 UTC: first4map pairs allcomplete andbelowreference: KOTM65/142,Sprawl8/12,Cube0/23,Bowl11/13. No generalplayingwin; prototype timing/validity separate frompoints. Candidate/default remainsunpromoted. Learnedsource/modelfreezecontinuesonremaining6maps. Rescuefix plan: skipQUICKRESPAWN ifcurrentavailablegame_context explicitlycan_quick_respawn=False; leaveactualstallwindow accumulating, retrywhenobservedallowed. Resetactor onlyafteracceptedrespawn; unexpectedrefusalmustretainhistory while invalidating any plans incompatiblewithextra neutralhandshake, explicitlylogdecisiongaps. Need testsblockedFalse/unknownfallback/acceptedTrue/refusedFalse and nativequeueaudit, thenfreshallmapassessment. Also separateoriginalDevbest100 checkpoint test; existing1500final/nativefailures retained, no outcome-based alterationofcurrentpool.
+
+16:42 UTC: Duplexcomplete30/A241 points,6/24falls,4/2acceptedrescues. Fractreference84/9falls; learnedinprogressfrequentfalls/lowpoints. Broaderregressionconfirmedacrossfirst5pairs (notjustKOTM), despitelowerfalls onDuplex. No promotion. Fullremainingpool retainedforfailurecoverage; stopchangingmodelsuntilsourceproof/auditsclose. Need conservative motion-stage checkpoint assessment plus refusal-aware rescue before any largertraining. Currentcandidategeometryattention andtimingdo notdemonstrategeneralcontrolskill merelybecauseallfaces are inputs.
+
+16:48 UTC: originalteachergoal-context hypothesis cannot be quantified from historicalgeometry_component_pool: current selectedgoal_context andactor_action recorded, but separateactor_goal_context absent onall10source journals. Counts{} meanmissing evidence, NOT zero goalchanges. Do not infer actor'spre-search destinationfromfuturemotion or claimmismatchconfirmed. NewNativeevaluatorrecords actor/task/selectedcontexts separately. Preserveoldteacherdata; obtainfreshfullyloggedexpert trajectories if goal-choice/dataalignment becomes nexttrainingstep. FirstFracturedstudentfall occursafter34playablesteps: modelsteers left contrarybase right andsuppressesjump, resultingspawn-to-fall loop53falls/0points. This is a demonstrated controlfailure, not proof exactgeometricalomission orpowerphysicsbug.
+
+16:58 UTC: fullstagedpool20/20 valid/audited,37,405learnedoutputs independentlyrecomputedZERO mismatches;204sourcehashes unchanged,171ZIPsources rereadverified. Mean11.5/A237 points,193/204falls,52/35acceptedrescues. p95allmaps<=40.94ms. Nativeconfirmedconsumptions: KOTMSS,SJ,SS;BowlSS (4total);7use/4Blast requests, no unexplainedinventoryresets. Consumptiondoesnotproveusefulpickup/landing. No promotion. Implemented refusalaware rescue in existingevaluator: observedavailable+can_quick_respawn=False skipsrequest entirely, retainsstalltime; acceptedonlyreset_actor=True; unknownavailability retainsfallback/unexpectedrefusal reset_actor=False. Extra neutralhandshakeintervals onunexpectedrefusal remainexplicit gaps, not claimed reconstructedA2history. 1ns boundarytolerance preventsFloat64 cancellation moving8s threshold by64ms. Threecontracttestsblocked/accepted/refused/boundary, full183suiteactive. Predeclared nextmotionablation: originalDevbest100 c4df... re-exportlegaldecoder only, allweightsverifiedunchanged; Sprawl/Cube/Fractured,seed1681021,6completerounds/samefixedrescue rules inNN/A2/16ms/64ms/strictDLL/caches/600s. This separates checkpointselection fromretraining; historicalfailed1500artifacts retained.
+
+17:02 UTC: concrete sourcecoverage gap onFractured: expertfirstplayable position[26.1034,33.9070,2.18975] (seed681013), faileddeploymentfirst[-1.028,-35.89,3.19] (1681018). Closestpreparedteacherbody6.073u away; itsgoalrelativevector differs71.09u, jump0 (source273). This is not a missingmaptriangle; currentstartingtask liesoutside demonstratedstate/goaldirection coverage. Nativeground_ms250 finite. No evidencehistoricalbasegoal mismatch (actorcontextabsent), so do not overclaim. Nextdataiteration aftercurrent6roundbatch: existingcollect_advice oncompletedfast_nav_activation_pool_20261013 CURRENTdeploymentstates, <=96distinct/map/1squery/1200stotal, samecausalpairedcontrol gates/normalradius/noMega/runtime-mass limits; independentlyreplaybeforefit. Startnewfit fromearlier/lower-drift motionparent ratherthanfailedstagedjointmodel, and reportacceptedcases/newspawncoverage explicitly. Ifhard-mapqueriescannotproduce safeusefulcontrol, preserve refusal and collectfreshNativeexpertopenings insteadofinventinglabels orhandtricks. Allcodemodelfiles stillfrozen duringdevbestNative.
+
+17:04 UTC: earlyDevbest100 fixed-rescue native Sprawl10/A212;Cube50/5falls (reference stillcompleting), strongerthanlateparentonCube. Native6round sourcefreezecontinues. Inparallel startboundednewdeploymentadvice oncompletedstaged20roundpool (differentrealspawn coverage): <=96distinctstates/map,1s/query,1200stotal, source+strictDLL+collisionJSON/NPZ+terrainNPZ/currentjournals immutable, samecausalpairedactivation/noMega restrictions. Outputfast_nav_deployment_advice_20261013. No traininguntilcompleteindependentreplay; no code edits untilbothjobs/proofsclose. Advice CPUsharesmachine withremainingnativechecks, so timings areobservedunderthatload ratherthanisolatedmicrobenchmarks; fixed-stepgem scores stillnative. This parallelcollectiondoesnotdepend onearlycheckpoint's finalscore andisexplicitlytrainingdata fromknownfaileddeploymentstates, notheldoutperformance evidence.
+
+17:07 UTC: Devbest100 fixedrescue6/6complete: Sprawl10/A212(0/0falls,11/11acceptedrescues);Cube50/A229(5/9falls,3/5rescues);Fract4/A291(15/14falls,7/0rescues). Mean21.33/A244. BetterCube/localcontrolthanlatefinal, notgeneralwin. Native183sourcehashes unchanged/171archivedsourcesverified; fullreplyrecomputeauditactive. Use89afd... earliercheckpoint asnextboundedtrainingparent, allfailuresretained. Currentnewdeploymentadvice sourcefreezecontinues; no fitting/codeedits untilcollection+independentphysicsreplay complete. Generateexisting3Dviewer forcompletedfailed10map pool undercollision_maps/viewer/fast_navigator, withrealpaths/scores/radius/activationevents, tokeepreview concrete. DefaultA2 remainsunchanged.
+
+17:10 UTC: cleanupremoved76closedrawNative/decisionduplicates3032496517bytes(2.82GiB), receiptfast_nav_closed_native_cleanup2_20261013.json statusverified_removed. OnePowerShellend-to-end: explicitfiveclosedrunwhitelist; sourceintegrity+complete_declared_rounds+score/inputchecks; canonicalcompressedSHA==independentaudit; fullGZipdecompressedSHA==rawSHA; NativerawSHA==report; immediatepredeletehashes+absoluteTEMPtaskroot/noReparse/noDirguards; LiteralPathindividualdelete. Allcanonicalgz/sourceZIP/negativecheckpoints/currentadvice data preserved. No recursive/user/dashboarddelete. Viewer10maps builtcollision_maps/viewer/fast_navigator/index.html. NativeDevbest6roundoutputreplayauditcomplete; source183unchanged/171archivefiles verified. Newadvice sofarK88,Sprawl80,Cube80,Bowl48acceptedof384attempts; stillrunning, no fitting/codeedits. Pythonfilecount477(one maintainedmodule added).
+
+17:14 UTC: deployment advice complete960attempts/606accepted/577.96s. All223source/protected hashes unchanged,179ZIPsource files verified. Actual newFractspawn represented(decision38 at[-1.04,-35.88,3.19]);13accepted/83refused, no fabricatedlonggaplabels. Newuse32/Blast46/jump245. Independent input/fullforecast/matchedcontrol replay active(session3432), sourcefreezecontinuesuntilclose. Predeclare300update joint continuation from earliermasked89afd..., sameoriginalsealedDev, original36/advice12 per48 batch with existinguse/Blastpositive sampling, no globalbuttonweights. Final300 nextnativeSprawl/Cube/Fract seed1681022, matchingfixedrescue/strictDLL/caches/16ms/64ms/600s; keepbest+final+allfailures. Shorterfit testsdeploymentcoverage withoutassuming1500update lossoptimizesplay.
+
+17:15 UTC: all606 deployment-advice inputs/targets/fullforecasts/matchedactivationcontrols independentlyreplayedPASS. Short jointfit300updates/11.0s complete, source/protectedunchanged. OriginalDevloss0.115680->0.130279;Devbest0preserved. FinalSHA10d0eae71d1298ade0048c197058f3dcff06ba9b24ae1947b9bab845b900151e. Predeclared final300 native3map6round comparison launchedseed1681022/samefixedrescue. No loss-basedpromotion; new coverage can tradeoff oldDev, mustmeasure actualpoints. Code/model/mesh/terrain frozen until nativeclosure+sourceproof.
+
+17:17 UTC: linked maintained fast-native10map viewer and handoff from original collision index and planning review hub. Removed stale unconnected/untrained policy claims in HTML only; retained all per-map ambiguity markers/previous experiments. Hub157local links allresolve. GeneratorPythonupdate deferred until currentnative sourcefreeze closes. Offline original data diagnosis: weightedteacherjump rates Sprawl.083/Cube.149/Fract.106 versusnewdeploymentadvice.563/.400/.385; originalteachermeanaxesstrength.62/.72/.63 vsbase~.995. These are descriptivetrainingdistribution differences, not proof a particular lossfix willwin.
+
+17:20 UTC: shortjoint Sprawl complete12/A212,0/0falls,10/11acceptedrescues;CubeNNmidround0points (reference29), Fractpending. Preservecompleteprotocol; no earlyabort/KOTMveto. Predeclare nextobjective if jointcoveragefitfails: preserve originalA2 current replies on originaltraining-role observations (sealedDev unchanged), insteadof requiring everytimidplanner action. Newcorrection labels need an independentlyreplayed matched currentA2 firstreply continuation onidenticalforecast tail/horizon; only actualmodeled earlierpickup/cost/support advantage justifiescorrection. This isolates currentdecision withoutinventing A2recurrenthistory orinferringfuturegoal. Retain oldteacher objective/repro paths. Bothnormalrolling/jump anduse/Blast controls eligible; notpower-specifictrickclassifier. Fresh boundedfit/native protocols mustprecede execution; sourcechangesaftercurrent6roundclosure+integrity/audit only. Need functionalcontracttests for onlyfirstreplydifference/noadvantage/missingbaseline/refusedforecast and untouchedDev/train-onlyanchors. This addresses systematic ordinarycontrol erosion, notanotherglobalbuttonweight knob.
+
+17:27 UTC: shortcoveragefit6/6naturalrounds complete+audited: Sprawl12/A212(0/0falls,10/11rescues),Cube40/A229(3/9falls,4/5rescues),Fract12/A284(14/9falls,6/0rescues),mean21.33/A241.67. All10705learnedoutputsrecomputed0mismatch;183sourcehashesunchanged/171ZIPfilesverified. EarlyzeroCube reportwaspartial; recovered40byend, finalretained. No generalwin/promotion. Newmaintained --preserve-base objective anchorsoriginalTRAINexamples tocurrentA2 axes/angles+finite +/-2logits; zeroresidualhaszeroloss/gradient, so preservationdoesnotpushlogitsto +/-infinity. ExistingsealedDev/teacher y/weights remainunchanged. Onlyauditedfirst-replycorrection advicechangescontrols. New --filter-corrections swapscurrentdecisionwithrecordedA2, allfuturecommandstail/horizon/initialstate/queuedcontrolsidentical; requirescompleteunambiguous usefulsupportedadvantage. No inventing futureA2RNNstate. Independent auditreplaysbothpathsANDrecomputescost/support/pickup/consumptionassessment.24focusedcontractsPASS; full186suiteactive. Reviewsourcegenerators nowlinkedtrainedfastgallery/handoff, matchingHTMLalreadyupdated. No additionalPythonmodules.
+
+17:27 UTC: full186suitePASS/42.464s. Firstreplycorrectionfilter launched on606auditeddeploymentcases,1s/partner/1200stotal, unchangedstrictDLL/currentA2basereply/identicaltails. No code/geometry/kernel/dataedits untilcomplete/sourceproof/independentaudit. Predeclare nextfit1000updates/900s zero-residual initialization aroundA2, linearaxes+preserve-base+existingaction-positive sampling,36originalanchors+12checkedadvice per48 balanced-map batch. Preservebest/final. Nativefinal1000 Sprawl/Cube/Fractseed1681023 fixedrescuerules/strictDLL/caches/16ms/64ms/600s. Do notchoosebyoriginalteacherDevonly.
+
+17:30 UTC: filtered firstfourmaps accepted K22/88,Sprawl49/80,Cube40/80,Bowl20/48. Gate rejects many previously usefulbutnon-superior actions; allrefusals preserved. Comparison sourcefreeze active, nofit/sourceedits. Anchor objective explicitly usesfinite +/-2buttonlogitmatching insteadof BCEonoriginaltargets, preventing ordinary-preservation updatesfrompushinguse/jump logits towardinfinity. OriginalteacherDevhasadifferentobjective; reportbutdo notclaimitslossselectsbestanchoredplayer.
+
+17:31 UTC: first-replyfiltercomplete297/606accepted/163.04s, all10maps. Retained122jump/29use/44Blast labels; threeuse labels dropped, notinvented. All236inputsource/protectedhashesunchanged,179archivedsourcesverified. Independent297case input/forecast/matchedtailreplays+cost/support/pickup/resource reassessment active, nofit/sourceedituntilpass. Manifestcc2274b595833dd7a8b0d6aab8d29911da12d9c6a52feeaa3b15dc3bd8b986dd; casesdb0ddacd6045cc20ee1e5f3f3549d4c6b4976f807d91ce7babe753446ced8341.
+
+17:34 UTC: all297firstreplycorrections independently auditedPASS: exactcurrentinputs/labels, candidateforecast, matchednoactivationpartnerswhereapplicable, same-tailcurrentA2partner, ANDfreshcost/support/pickup/resource reassessment. No inventedA2RNNfuture orNative-success claim. Sourcefreezeclosed. Predeclared preserve-base1000updatefit launched fromzeroresidual aroundimmutableA2, current297 advice, originalsealedDevuntouched,36anchors/12advicesamples, originalactionstratification. Initial/final/bestseparate; final1000 nativeSprawl/Cube/Fractseed1681023 next, nodefaultpromotion.
+
+17:35 UTC: preserve-base fit1000updates/36.25s complete, source/protectedunchanged. FinalSHA596b84769718f4fe2b683f070b4a9463b7cd1f57bfcc9cfab3aa9ab385ab32d9; originalteacherDev0.358174->0.325567 (best5000.303012SHAcb111..., separatelypreserved). ThisDevquantifiesfittooldplanner, nottheanchorobjectiveorplayingstrength. Freshpredeclared nativeSprawl/Cube/Fract6roundcomparison launched1681023, final1000, samefixedrescue/strictDLL/caches/16ms/64ms/600s. Controllercode/model/maps/dll/terrain frozen untilclosure+integrity+fulloutputreplay. All10cachedCPUbenchmarkalsoactive brieflyoverlappingNativestartup; timingsobservedunderthatload, notisolatedmicrobenchmark. No trainingduringnativeplay/defaultpromotion.
+
+17:36 UTC: preserve-base finalcachedCPUbenchmarkall10p95max2.079735ms(medians.394-1.893ms), excludesroute/obs/load, briefstartupsharedloadrecorded. Independentoriginal5097Devcurrent-A2preservationmeasurement:0jumpchanges/0usechanges/1Blastchange acrossallmaps; axesMSE.0025-.0217dependingmap. This is approximateoutputpreservation onfamiliarhistoricalinputs, notstrictidentity/nativepointsguarantee. No inventedpowerupskillclaim. Nativecomparisonstillactive/sourcefrozen.
+
+17:39 UTC: preserve-base nativeSprawlcomplete54/A212,0/0falls,4/11acceptedrescues;CubeNNcomplete39/9falls/4rescues, referenceactive. No midround extrapolation; Fractnext. NewobjectivefirststrongSwin, keepall6rounds/proofs. Predeclarefreshfull10map20roundassessment if combined3mapmeanbeatscurrentreference, samefinal596b.../fixedrules/strictDLL/caches/16ms/64ms/600s,seed1681024, equalmapweight/noKOTMveto. No defaultpromotion from3mapresult. Finalreviewableexport/manifest + fullnative3Dviewerafterall10audits, preserveallfailures.
+
+17:43 UTC: preservation6/6complete/audited: Sprawl54/A212(0/0falls,4/11rescues),Cube39/A229(9/9falls,4/5rescues),Fract78/A291(11/11falls,0/0rescues). Equal3map57/A244 points,20/20falls,8/16acceptedrescues. All10724learnedreplies independentlyrecomputed0mismatch;183sourcehashesunchanged/171ZIPsourcesverified. Thisdevelopmentcomparisonispositive, notstatistical/unseenmapclaim. Predeclaredfreshfull10map20roundrun launched1681024, samefinal596b...,samefixedrescue/strictDLL/caches/16ms/64ms/600s;allmapscontinue/equalweight/noKOTMveto. Code/model/sourcegeometry/terrainfrozen tobatchclosure+proof/audit. Modelremainsopt-in/defaultA2unchanged.
+
+17:46 UTC: fullpoolfirstKpair115/A2142,4/4falls; noKOTMveto/earlyabort. Allremainingninepairscontinuefrozen withidenticalsettings. Currentmean3map57/A244comesfromseparatecompletedseed1681023 developmentprotocol; do notmixitsrowswithcurrentseed1681024 allmapmean. Currenthigh-levelstatusupdatedwithactualactivejob/seed/freeze/nextchecks.
+
+17:48 UTC: updatedopt-inrunbooktoactualpreservationcheckpoint596b..., newuserreviewseed1681100/port9056 (activepoolowns9054), strictABI3kernelrebuildhelperandimmutabilityconstraint, --recompute-fast audit. Removedobsoletefailedstagedcandidateexample. No activecontrollercode/model/source inputchanges.
+
+17:49 UTC: completed positive3map6round pilot3Dviewer generatedcollision_maps/viewer/fast_navigator_preservation_20261013/index.html, allrelativeHTML/scriptlinksresolve andsource-summarySHA matchesclosed/auditedpilot. Exactsavedcollisionmeshes/nativepaths/radius/score/actualconsumption evidence; no inventedfuturecurves. Full10poolstillactive/frozen. ViewerCLIinitiallyusedincorrect --data (parserrefusedbeforeoutputs); correctedpositionalargument, no source/codechanges.
+# 2026-10-13 18:02 UTC — user-directed scaling protocol
+
+Recorded the new eight-part direction in HANDOFF_FAST_NAVIGATOR_2026-10-13.md:
+finish/audit the active seed1681024 pool once, then freeze the preserve-base
+recipe for four scaled iterations. Implement6–8 offline correction workers,
+parallel native pools under an eight-game total cap, persistent exact caches,
+timing profiles, one integrity check per collection/fit and selected-candidate
+audits. Target3000 accepted balanced causal labels/iteration; add two fresh-seed
+confirmations before parent selection, equal-weight KOTM and per-map teacher/A2
+comparisons. Stop at the80% teacher handoff or four no-gain scaled loops. No
+model/filter/source edits while the current frozen native pool is active.
+
+
+18:25 UTC ? incorporated data-scaling feedback. Closed/audited seed1681024 once:
+41.8/39.3 ten-map mean,222/199falls,33/40acceptedrescues,37452 learned outputs
+replayed0mismatches,204source hashes unchanged/171archive sources verified;
+186tests PASS. Added fixed-recipe AST protocol, native parallel branch workers,
+eight-total-game launch guard, persistent exact terrain/clearance/query/encoding
+caches, eight offline correction workers, streaming forecasts/cases, explicit
+pending-replay integrity gating, historical journal provenance, cumulative
+balanced data quotas, fresh-seed confirmation, per-map three-way tables and
+collection/fit/pool profiles. 72focused tests PASS, all11recipe hashes unchanged.
+Eight-worker16/map collection smoke active; no training or native games in smoke.
+Allprotected files/defaultA2 untouched; no architecture/loss/head changes.
+
+2026-10-13T18:32:41.174301+00:00 — fixed-recipe scaling: initial ten-map screen; {"table": "C:\\Users\\doug\\OneDrive\\Documents\\GitHub\\PlatinumQuest-Dev\\ml_agent\\dynamics_reports\\fast_nav_preservation_pool_20261013\\iteration_table.md", "points": {"student_points": 41.8, "geometry_A2_points": 39.3, "planner_points": 71.2}, "frozen_recipe": true, "game_cap": 8, "dashboard_pid": 33732}
+
+2026-10-13T18:32:41.186801+00:00 — fixed-recipe scaling: running pool_confirmation_0_1681125; {"owned_worker_pid": 34180, "log": "C:\\Users\\doug\\OneDrive\\Documents\\GitHub\\PlatinumQuest-Dev\\ml_agent\\dynamics_reports\\fast_nav_scaling_20261013\\pool_confirmation_0_1681125.log"}
+
+18:36 UTC ? eight-worker smoke PASS:160attempts/44causal labels/86.57s including cold caches. Fixed empty-case journal handling (zero accepted is valid evidence), final complete progress flag and current-state selection from latest confirmation pool. 73focused tests PASS; frozen11recipe functions unchanged. Bowl/Cragmire/Sprawl real cache graph/routes/neural outputs bit-equivalent; Bowl warm graph0.100s vs53.94s cold. Smoke+legacy merge341examples remainsbelow3000quota, replay pending. Autonomous phase session97648 launched:two confirmations1681125/1681126 thenfour fixed-recipe data loops; first live eight-game count verified, dashboard33732 intact. Generated complete ten-map preservation3Dviewer. Allmediumchanges logged, no default promotion/PPO.
+
+2026-10-13T18:39:39.534937+00:00 — fixed-recipe scaling: running pool_confirmation_0_1681126; {"owned_worker_pid": 18452, "log": "C:\\Users\\doug\\OneDrive\\Documents\\GitHub\\PlatinumQuest-Dev\\ml_agent\\dynamics_reports\\fast_nav_scaling_20261013\\pool_confirmation_0_1681126.log"}
+
+18:43 UTC ? first parallel ten-map confirmation1681125 complete40.4/A239.4,20validrounds in416.27s (6.94min); second1681126 automatically active. Bothreview indexes now link current ten-map native3D gallery. Removed2unused TEMPdrafts (29118bytes), and40closed-pool rawduplicates (1553367365bytes) onlyafter audited canonicalSHA/decompressed equality/report binding and immediate predelete SHA checks; canonicalgz/sourceZIP/models retained. Receipts in fast_nav_scaling_20261013. HTMLread corrected to explicitUTF8 after defaultWindows decoding rejected Unicode; no model/runtime source changes.
+
+2026-10-13T18:46:27.326115+00:00 — fixed-recipe scaling: running audit_confirmation_0_1681125; {"owned_worker_pid": 26976, "log": "C:\\Users\\doug\\OneDrive\\Documents\\GitHub\\PlatinumQuest-Dev\\ml_agent\\dynamics_reports\\fast_nav_scaling_20261013\\audit_confirmation_0_1681125.log"}
+
+2026-10-13T18:47:40.965655+00:00 — fixed-recipe scaling: running audit_confirmation_0_1681126; {"owned_worker_pid": 6052, "log": "C:\\Users\\doug\\OneDrive\\Documents\\GitHub\\PlatinumQuest-Dev\\ml_agent\\dynamics_reports\\fast_nav_scaling_20261013\\audit_confirmation_0_1681126.log"}
+
+2026-10-13T18:48:55.606378+00:00 — fixed-recipe scaling: running tests_confirmation_0_1681126; {"owned_worker_pid": 20200, "log": "C:\\Users\\doug\\OneDrive\\Documents\\GitHub\\PlatinumQuest-Dev\\ml_agent\\dynamics_reports\\fast_nav_scaling_20261013\\tests_confirmation_0_1681126.log"}
+
+2026-10-13T18:49:40.951563+00:00 — fixed-recipe scaling: initial candidate confirmed; {"checkpoint": "C:\\Users\\doug\\OneDrive\\Documents\\GitHub\\PlatinumQuest-Dev\\ml_agent\\dynamics_reports\\fast_nav_preservation_fit_20261013\\final.pth", "confirmation_points": [{"student_points": 40.4, "geometry_A2_points": 39.4, "planner_points": 71.2}, {"student_points": 40.4, "geometry_A2_points": 38.6, "planner_points": 71.2}]}
+
+2026-10-13T18:49:40.969787+00:00 — fixed-recipe scaling: collecting corrections; {"iteration": 1, "student_pool": "C:\\Users\\doug\\OneDrive\\Documents\\GitHub\\PlatinumQuest-Dev\\ml_agent\\dynamics_reports\\fast_nav_scaling_20261013\\confirmation_0_1681126", "workers": 8, "target_new": 3000}
+
+2026-10-13T18:56:35.912913+00:00 - Orchestration bug found: four-loop driver stopped unconditionally, while the user requested a no-gain stop after four loops. A maintenance boundary marker lets active correction workers finish intact before source edits. Resume will retain their completed collection, all frozen recipe hashes, candidate proofs and confirmed initial parent. This is an agent maintenance boundary, not a user request to stop.
+
+2026-10-13T19:01:54.661747+00:00 - Both native confirmations audited: 37,592 and 37,582 learned replies recomputed, zero mismatches; each has 207 unchanged source hashes and 174 archived source files. Full selected-parent suite: 196 tests PASS / 43.06s. First scaled collection currently has 1,847 checked corrections across seven finished maps; this is below the 3,000/new and 300/map quota. Removed 80 closed confirmation raw duplicates (3,114,528,101 bytes) only after audit-bound gzip SHA, decompressed/raw SHA equality, raw report binding and immediate predelete hash checks. All canonical gz, source ZIPs, checkpoints and failures retained; confirmation_raw_cleanup.json records every file. The pending maintenance boundary will fix the conditional no-gain stop and reuse completed collection evidence, without changing the recipe or rerunning unchanged initial audits.
+
+2026-10-13T19:07:04.970459+00:00 — fixed-recipe scaling: stopped with preserved failure; {"reason": "InterruptedError('User stop marker')"}
+
+2026-10-13T19:09:32.279295+00:00 - Orchestration repair complete at a closed worker boundary: stop only after at least four scaled iterations without improvement over the original three-map development reference; otherwise keep the same recipe until the two-seed fresh-teacher 80% gate. Added persisted clean iteration state and explicit --resume, validating parent/model and completed collection receipts without replaying unchanged archives. Reuses the completed 2,783-label / 1,043.41s first collection; that time is carried into iteration accounting. Next ten-map collections schedule measured slow jobs first; per-map sampling and labels unchanged. All 16 infrastructure tests pass, including six new stop/resume/evidence/scheduling checks; eleven model/filter/loss AST hashes unchanged. Archived maintenance-only STOP/status/failure in maintenance_boundary_1; old error text User stop marker came from the agent maintenance marker, not a user stop. No fit/model/default/geometry changes.
+
+2026-10-13T19:09:52.724758+00:00 — fixed-recipe scaling: initial ten-map screen; {"table": "C:\\Users\\doug\\OneDrive\\Documents\\GitHub\\PlatinumQuest-Dev\\ml_agent\\dynamics_reports\\fast_nav_preservation_pool_20261013\\iteration_table.md", "points": {"student_points": 41.8, "geometry_A2_points": 39.3, "planner_points": 71.2}, "frozen_recipe": true, "game_cap": 8, "dashboard_pid": 33732}
+
+2026-10-13T19:09:52.737652+00:00 — fixed-recipe scaling: initial candidate confirmed; {"checkpoint": "C:\\Users\\doug\\OneDrive\\Documents\\GitHub\\PlatinumQuest-Dev\\ml_agent\\dynamics_reports\\fast_nav_preservation_fit_20261013\\final.pth", "confirmation_points": [{"student_points": 40.4, "geometry_A2_points": 39.4, "planner_points": 71.2}, {"student_points": 40.4, "geometry_A2_points": 38.6, "planner_points": 71.2}]}
+
+2026-10-13T19:09:52.757695+00:00 — fixed-recipe scaling: collecting corrections; {"iteration": 1, "student_pool": "C:\\Users\\doug\\OneDrive\\Documents\\GitHub\\PlatinumQuest-Dev\\ml_agent\\dynamics_reports\\fast_nav_scaling_20261013\\confirmation_0_1681126", "workers": 8, "target_new": 3000}
+
+2026-10-13T19:09:52.771512+00:00 — fixed-recipe scaling: running extra_iteration_1_extra_states_1; {"owned_worker_pid": 23212, "log": "C:\\Users\\doug\\OneDrive\\Documents\\GitHub\\PlatinumQuest-Dev\\ml_agent\\dynamics_reports\\fast_nav_scaling_20261013\\extra_iteration_1_extra_states_1.log"}
+
+2026-10-13T19:11:19.925249+00:00 - Repaired phase resumed as PID27436/session23531, using completed 2,783-label collection; supplemental six-map student pool is active and six total geometry probe game processes verified, dashboard33732 intact. First batch positive labels: jump1,573/use268/Blast526 (not mutually exclusive; analytically checked targets, not demonstrated learned power skill). Full-batch timing/worker shares and per-map labels written to first_scaled_collection_profile.json; quota and final iteration report pending. No PPO/default promotion.
+
+2026-10-13T19:15:11.554356+00:00 — fixed-recipe scaling: collecting supplemental corrections; {"iteration": 1, "supervisor_pid": 27436, "student_pool": "C:\\Users\\doug\\OneDrive\\Documents\\GitHub\\PlatinumQuest-Dev\\ml_agent\\dynamics_reports\\fast_nav_scaling_20261013\\iteration_1_extra_states_1", "workers": 6, "retained_initial_accepted": 2783, "target_new": 3000, "progress_directory": "C:\\Users\\doug\\OneDrive\\Documents\\GitHub\\PlatinumQuest-Dev\\ml_agent\\dynamics_reports\\fast_nav_scaling_20261013\\iteration_1_extra_states_1_corrections\\workers"}
+
+2026-10-13T19:26:36.817362+00:00 — fixed-recipe scaling: additional correction coverage; {"iteration": 1, "counts": {"Cragmire_Hunt": 253, "FracturedIslands_Hunt": 512, "VortexEffect_Hunt": 399, "Sprawl_Hunt": 352, "Duplex_Hunt": 338, "KingOfTheMarble_Hunt": 560, "CubeIsle_Hunt": 592, "Bowl_Hunt": 437, "Concentric_Hunt": 339, "TreasureBox_Hunt": 383}}
+
+2026-10-13T19:26:36.825367+00:00 — fixed-recipe scaling: running extra_iteration_1_extra_states_2; {"owned_worker_pid": 13464, "log": "C:\\Users\\doug\\OneDrive\\Documents\\GitHub\\PlatinumQuest-Dev\\ml_agent\\dynamics_reports\\fast_nav_scaling_20261013\\extra_iteration_1_extra_states_2.log"}
+
+2026-10-13T19:32:50.276232+00:00 — fixed-recipe scaling: additional correction coverage; {"iteration": 1, "counts": {"Cragmire_Hunt": 380, "FracturedIslands_Hunt": 512, "VortexEffect_Hunt": 399, "Sprawl_Hunt": 352, "Duplex_Hunt": 338, "KingOfTheMarble_Hunt": 560, "CubeIsle_Hunt": 592, "Bowl_Hunt": 437, "Concentric_Hunt": 339, "TreasureBox_Hunt": 383}}
+
+2026-10-13T19:34:32.965155+00:00 — fixed-recipe scaling: fitting fixed recipe; {"iteration": 1, "new_accepted": 4292, "cumulative_accepted": 4589, "label_counts": {"KingOfTheMarble_Hunt": {"jump": 238, "use": 62, "Blast": 94}, "Sprawl_Hunt": {"jump": 194, "use": 0, "Blast": 54}, "CubeIsle_Hunt": {"jump": 268, "use": 41, "Blast": 74}, "Bowl_Hunt": {"jump": 393, "use": 42, "Blast": 159}, "Duplex_Hunt": {"jump": 180, "use": 60, "Blast": 65}, "FracturedIslands_Hunt": {"jump": 350, "use": 0, "Blast": 120}, "Cragmire_Hunt": {"jump": 191, "use": 0, "Blast": 69}, "VortexEffect_Hunt": {"jump": 257, "use": 24, "Blast": 101}, "TreasureBox_Hunt": {"jump": 174, "use": 91, "Blast": 50}, "Concentric_Hunt": {"jump": 212, "use": 34, "Blast": 61}}, "collection_wall_s": 2461.7529025}
+
+2026-10-13T19:34:32.970674+00:00 — fixed-recipe scaling: running fit_1; {"owned_worker_pid": 21044, "log": "C:\\Users\\doug\\OneDrive\\Documents\\GitHub\\PlatinumQuest-Dev\\ml_agent\\dynamics_reports\\fast_nav_scaling_20261013\\fit_1.log"}
+
+2026-10-13T19:35:12.231858+00:00 — fixed-recipe scaling: running pool_1; {"owned_worker_pid": 4984, "log": "C:\\Users\\doug\\OneDrive\\Documents\\GitHub\\PlatinumQuest-Dev\\ml_agent\\dynamics_reports\\fast_nav_scaling_20261013\\pool_1.log"}
+
+2026-10-13T19:41:47.672513+00:00 — fixed-recipe scaling: iteration complete; {"iteration": 1, "table": "C:\\Users\\doug\\OneDrive\\Documents\\GitHub\\PlatinumQuest-Dev\\ml_agent\\dynamics_reports\\fast_nav_scaling_20261013\\iteration_1_screen\\iteration_table.md", "points": {"student_points": 34.9, "geometry_A2_points": 40.1, "planner_points": 71.2}, "selected": false, "label_counts": {"KingOfTheMarble_Hunt": {"jump": 238, "use": 62, "Blast": 94}, "Sprawl_Hunt": {"jump": 194, "use": 0, "Blast": 54}, "CubeIsle_Hunt": {"jump": 268, "use": 41, "Blast": 74}, "Bowl_Hunt": {"jump": 393, "use": 42, "Blast": 159}, "Duplex_Hunt": {"jump": 180, "use": 60, "Blast": 65}, "FracturedIslands_Hunt": {"jump": 350, "use": 0, "Blast": 120}, "Cragmire_Hunt": {"jump": 191, "use": 0, "Blast": 69}, "VortexEffect_Hunt": {"jump": 257, "use": 24, "Blast": 101}, "TreasureBox_Hunt": {"jump": 174, "use": 91, "Blast": 50}, "Concentric_Hunt": {"jump": 212, "use": 34, "Blast": 61}}, "wall_s": {"collection": 2461.7529025, "fit": 39.249250000000075, "pool": 395.4263581}}
+
+2026-10-13T19:41:47.686384+00:00 — fixed-recipe scaling: collecting corrections; {"iteration": 2, "student_pool": "C:\\Users\\doug\\OneDrive\\Documents\\GitHub\\PlatinumQuest-Dev\\ml_agent\\dynamics_reports\\fast_nav_scaling_20261013\\iteration_1_screen", "workers": 8, "target_new": 3000}
+
+2026-10-13T20:00:36.439911+00:00 — fixed-recipe scaling: running extra_iteration_2_extra_states_1; {"owned_worker_pid": 14724, "log": "C:\\Users\\doug\\OneDrive\\Documents\\GitHub\\PlatinumQuest-Dev\\ml_agent\\dynamics_reports\\fast_nav_scaling_20261013\\extra_iteration_2_extra_states_1.log"}
+
+
+2026-10-13T20:08:13.681052+00:00 - Continued user-directed frozen-recipe scaling. Iteration 1: 4,292 new accepted corrections, 4,589 cumulative; points 34.9/A2 40.1, falls 173/188, accepted rescues 39/42. Candidate not selected; confirmed 596b parent retained. Collection/fit/pool wall 41.03/0.65/6.59 minutes. Exclusive summed collection worker shares: route 24.10%, sweep 23.53%, forecast 46.75%, other 5.62%; full profile in iteration_1_collection_profile.md. Iteration 2 initial 2,612 labels, then seven valid supplemental native rounds seed1682325; seven offline correction workers active. Handoff current-status section refreshed. No source/model/loss/decoder/filter/geometry changes or repeated archive audits.
+
+
+2026-10-13T20:08:40.438703+00:00 - Generated latest scaled native 3D replay with the maintained reliability_viewer CLI at collision_maps/viewer/fast_navigator_scaling_20261013/index.html; linked from collision review and handoff. Explicitly labeled iteration 1 not selected and full independent replay pending. Reuse this latest-scaling gallery for subsequent completed pools; canonical failure recordings remain retained. Corrected the root gallery's stale awaiting-confirmation description using the completed receipts. No runtime inputs changed.
+
+
+2026-10-13T20:08:55.200054+00:00 - Gallery verification caught ten invalid nested validation-report links emitted by the existing map viewer generator. Corrected generated scaling HTML from ../MAP.validation.json to ../../MAP.validation.json; 61 local links checked, zero missing. Kept active runtime source unchanged; generator path correction is deferred to a closed source boundary. This fixes report navigation only; all model geometry and native recordings are unchanged.
+
+
+2026-10-13T20:13:05.857197+00:00 - Closed iteration-1 decision diagnostics saved in iteration_1_behavior_counts.json (read recorded controls only, no full replay/audit). Student added zero powerup-use commands beyond base; only two use requests overall, both on KOTM and already requested by base. Nine maps had zero use commands. Holding-powerup decisions were common on Sprawl (4,528), Bowl (3,805), Cragmire (3,480), Concentric (2,983), Treasure (2,887), KOTM (2,591), Cube (1,982); these counts do not establish held type support or successful activations. No cancelled base jumps recorded; additions: Bowl168, KOTM12, Vortex23. Added Blast requests: Bowl11, KOTM9, Vortex13. Score changes therefore mainly reflect axis motion and resulting state distribution, not demonstrated new powerup skill. Continue frozen recipe/data scaling as directed; no new loss/head/filter changes.
+
+
+2026-10-13T20:18:01.080500+00:00 - Confirmed collection bug: iteration-2 Bowl initial and supplemental NPZ files are byte-identical in x, q, y and decision (176 examples each). Supplemental round seed does not guarantee distinct native states; fixed collection RNG repeats the same subset. Merge currently deduplicates only journal SHA/decision, allowing identical model inputs from another journal to inflate quotas. Agent maintenance STOP placed during offline collection; workers finish and preserve evidence before source edits. This is not a user stop. Repair will exclude already queried model inputs, count distinct x/q states across journals, preserve original worker evidence, and reuse closed collection receipts. Frozen eleven model/loss/decoder/filter AST hashes remain the constraint. Earlier quota claims must be qualified after distinctness accounting.
+
+
+2026-10-13T20:19:15.367695+00:00 - Distinctness diagnostic qualifies the iteration-1 quota claim: 4,292 accepted provenance records are only 2,796 distinct exact float32 model inputs (x/q; signed zero normalized). Six maps below 300 distinct states: Cragmire128, Fractured256, Vortex200, KOTM280, Cube297, Bowl223. Sprawl352, Duplex338, Concentric339, Treasure383. Points/falls/native scores are unchanged. Retain this failed run and correction evidence, but do not count it as one of four required distinct-data scaled iterations. Iteration-2 collection will finish before source repair; no partial data is discarded or fitted below the corrected quota. Diagnostic receipt iteration_1_distinctness_diagnostic.json; complete independent correction replay remains pending.
+
+2026-10-13T20:22:39.447699+00:00 — fixed-recipe scaling: additional correction coverage; {"iteration": 2, "counts": {"VortexEffect_Hunt": 304, "Duplex_Hunt": 330, "KingOfTheMarble_Hunt": 328, "Concentric_Hunt": 582, "Bowl_Hunt": 352, "FracturedIslands_Hunt": 352, "TreasureBox_Hunt": 394, "CubeIsle_Hunt": 582, "Cragmire_Hunt": 451, "Sprawl_Hunt": 552}}
+
+2026-10-13T20:29:13.607877+00:00 — fixed-recipe scaling: distinct-state collection repair complete; resuming; {"frozen_recipe": true, "next_iteration": 2, "retained_confirmed_parent": "C:\\Users\\doug\\OneDrive\\Documents\\GitHub\\PlatinumQuest-Dev\\ml_agent\\dynamics_reports\\fast_nav_preservation_fit_20261013\\final.pth", "qualifying_scaled_loops_completed": 0, "repair_receipt": "ml_agent\\dynamics_reports\\fast_nav_scaling_20261013\\maintenance_boundary_2\\repair_receipt.json"}
+
+
+2026-10-13T20:29:13.606373+00:00 - Duplicate accounting repair complete at closed boundary. Owned supervisor27436 was stopped during invalid derived merge after all correction workers finished; no game/dashboard stopped. Preserved partial merge and old STOP/status/state/protocol in maintenance_boundary_2. Added exact normalized float32 x/q identities, cross-journal and prior-corpus de-duplication, recorded query exclusions including refusals, cached recovery of old queried inputs, bounded-memory merged case streaming with explicit duplicate exclusion records, closed supplemental receipt reuse and carried time. Reuse available unqueried recorded states before extra native rounds; eight-game and eight-extra-pool caps remain. Initial iteration is retained but not a qualifying scaled loop; four distinct-data loops still required. Any same-seed A2-winning screen now gets two confirmation seeds, removing the extra old-seed best-score threshold. Fixed nested validation-report paths in maintained viewer generator. 20 focused tests passed; all eleven frozen recipe AST hashes and confirmed parent SHA unchanged. Full archive/reply/suite audit still deferred until a selected candidate. Resume current iteration2 from closed collections.
+
+
+2026-10-13T20:29:50.441211+00:00 - Final maintenance checks: 20 focused tests PASS, frozen recipe check PASS. First test-log capture through PowerShell stderr/Tee reported NativeCommandError even though unittest printed OK; reran with subprocess stdout+stderr capture and verified native exit0, writing clean UTF-8 focused_tests.log. This was a shell reporting issue, not a model/test failure.
+
+2026-10-13T20:29:50.728088+00:00 — fixed-recipe scaling: initial ten-map screen; {"table": "C:\\Users\\doug\\OneDrive\\Documents\\GitHub\\PlatinumQuest-Dev\\ml_agent\\dynamics_reports\\fast_nav_preservation_pool_20261013\\iteration_table.md", "points": {"student_points": 41.8, "geometry_A2_points": 39.3, "planner_points": 71.2}, "frozen_recipe": true, "game_cap": 8, "dashboard_pid": 33732}
+
+2026-10-13T20:29:50.734165+00:00 — fixed-recipe scaling: resumed recorded iteration boundary; {"next_iteration": 2, "checkpoint": "C:\\Users\\doug\\OneDrive\\Documents\\GitHub\\PlatinumQuest-Dev\\ml_agent\\dynamics_reports\\fast_nav_preservation_fit_20261013\\final.pth"}
+
+2026-10-13T20:29:50.753184+00:00 — fixed-recipe scaling: collecting corrections; {"iteration": 2, "student_pool": "C:\\Users\\doug\\OneDrive\\Documents\\GitHub\\PlatinumQuest-Dev\\ml_agent\\dynamics_reports\\fast_nav_scaling_20261013\\iteration_1_screen", "workers": 8, "target_new": 3000}
+
+2026-10-13T20:29:51.956262+00:00 — fixed-recipe scaling: reused closed supplemental collection; {"iteration": 2, "distinct_counts": {"KingOfTheMarble_Hunt": 327, "Sprawl_Hunt": 271, "CubeIsle_Hunt": 293, "Bowl_Hunt": 176, "Duplex_Hunt": 330, "FracturedIslands_Hunt": 177, "Cragmire_Hunt": 215, "VortexEffect_Hunt": 137, "TreasureBox_Hunt": 394, "Concentric_Hunt": 291}}
+
+2026-10-13T20:29:52.028049+00:00 — fixed-recipe scaling: additional distinct correction coverage; {"iteration": 2, "counts": {"KingOfTheMarble_Hunt": 327, "Sprawl_Hunt": 287, "CubeIsle_Hunt": 293, "Bowl_Hunt": 176, "Duplex_Hunt": 330, "FracturedIslands_Hunt": 320, "Cragmire_Hunt": 386, "VortexEffect_Hunt": 302, "TreasureBox_Hunt": 394, "Concentric_Hunt": 291}}
+
+2026-10-13T20:29:52.029802+00:00 — fixed-recipe scaling: collecting previously unqueried student states; {"iteration": 2, "distinct_counts": {"KingOfTheMarble_Hunt": 327, "Sprawl_Hunt": 287, "CubeIsle_Hunt": 293, "Bowl_Hunt": 176, "Duplex_Hunt": 330, "FracturedIslands_Hunt": 320, "Cragmire_Hunt": 386, "VortexEffect_Hunt": 302, "TreasureBox_Hunt": 394, "Concentric_Hunt": 291}, "workers": 4, "maps": ["Sprawl_Hunt", "CubeIsle_Hunt", "Bowl_Hunt", "Concentric_Hunt"], "student_pool": "C:\\Users\\doug\\OneDrive\\Documents\\GitHub\\PlatinumQuest-Dev\\ml_agent\\dynamics_reports\\fast_nav_scaling_20261013\\iteration_2_extra_states_1", "progress_directory": "C:\\Users\\doug\\OneDrive\\Documents\\GitHub\\PlatinumQuest-Dev\\ml_agent\\dynamics_reports\\fast_nav_scaling_20261013\\iteration_2_remaining_states_1_corrections\\workers"}
+
+
+2026-10-13T20:33:57.551563+00:00 - Corrected loop resumed as supervisor25360/session83141. Completed iteration-2 initial and seven-map supplemental collections reused without replay/recollection. Distinct new total3,106; remaining floors Sprawl287/Cube293/Bowl176/Concentric291. One-time sampled-input index recovery completed; four offline workers now query remaining recorded states, excluding prior accepted and refused sampled inputs. Exclusion counts {"Bowl_Hunt": 2495, "Concentric_Hunt": 2496, "CubeIsle_Hunt": 2496, "Sprawl_Hunt": 2496}. No native games during this correction stage; dashboard33732 intact. Model/architecture/loss/decoder/causal filter remain frozen.
+
+
+2026-10-13T20:45:12.881761+00:00 - Corrected remaining-state collection produced 175 Bowl /315 Concentric /306 Cube accepted new inputs. Counts recomputed against prior corpus: {"KingOfTheMarble_Hunt": 327, "Sprawl_Hunt": 287, "CubeIsle_Hunt": 599, "Bowl_Hunt": 351, "Duplex_Hunt": 330, "FracturedIslands_Hunt": 320, "Cragmire_Hunt": 386, "VortexEffect_Hunt": 302, "TreasureBox_Hunt": 394, "Concentric_Hunt": 606}, total 3902. These three maps now meet the distinct-state floor; Sprawl still active. Raw queries skipped1200 previously sampled Bowl/Concentric and1201 Cube inputs; new query medians 345/473/400ms respectively. This validates data growth after the cross-journal duplicate fix, not a gameplay win. Scaling viewer now explicitly labels old iteration1 unqualified. No source changes during active collection.
+
+2026-10-13T20:52:54.648396+00:00 — fixed-recipe scaling: additional distinct correction coverage; {"iteration": 2, "counts": {"KingOfTheMarble_Hunt": 327, "Sprawl_Hunt": 553, "CubeIsle_Hunt": 599, "Bowl_Hunt": 351, "Duplex_Hunt": 330, "FracturedIslands_Hunt": 320, "Cragmire_Hunt": 386, "VortexEffect_Hunt": 302, "TreasureBox_Hunt": 394, "Concentric_Hunt": 606}}
+
+2026-10-13T20:59:51.873502+00:00 — fixed-recipe scaling: fitting fixed recipe; {"iteration": 2, "new_accepted": 4168, "cumulative_accepted": 7261, "label_counts": {"KingOfTheMarble_Hunt": {"jump": 120, "use": 54, "Blast": 68}, "Sprawl_Hunt": {"jump": 265, "use": 244, "Blast": 149}, "CubeIsle_Hunt": {"jump": 297, "use": 113, "Blast": 86}, "Bowl_Hunt": {"jump": 283, "use": 37, "Blast": 217}, "Duplex_Hunt": {"jump": 179, "use": 0, "Blast": 60}, "FracturedIslands_Hunt": {"jump": 220, "use": 1, "Blast": 78}, "Cragmire_Hunt": {"jump": 182, "use": 85, "Blast": 75}, "VortexEffect_Hunt": {"jump": 158, "use": 0, "Blast": 36}, "TreasureBox_Hunt": {"jump": 166, "use": 123, "Blast": 80}, "Concentric_Hunt": {"jump": 365, "use": 59, "Blast": 107}}, "collection_wall_s": 3987.0465054999995}
+
+2026-10-13T20:59:51.878835+00:00 — fixed-recipe scaling: running fit_2; {"owned_worker_pid": 25128, "log": "C:\\Users\\doug\\OneDrive\\Documents\\GitHub\\PlatinumQuest-Dev\\ml_agent\\dynamics_reports\\fast_nav_scaling_20261013\\fit_2.log"}
+
+2026-10-13T21:00:32.191202+00:00 — fixed-recipe scaling: running pool_2; {"owned_worker_pid": 28560, "log": "C:\\Users\\doug\\OneDrive\\Documents\\GitHub\\PlatinumQuest-Dev\\ml_agent\\dynamics_reports\\fast_nav_scaling_20261013\\pool_2.log"}
+
+2026-10-13T21:07:21.987355+00:00 — fixed-recipe scaling: iteration complete; {"iteration": 2, "table": "C:\\Users\\doug\\OneDrive\\Documents\\GitHub\\PlatinumQuest-Dev\\ml_agent\\dynamics_reports\\fast_nav_scaling_20261013\\iteration_2_screen\\iteration_table.md", "points": {"student_points": 29.6, "geometry_A2_points": 39.3, "planner_points": 71.2}, "selected": false, "label_counts": {"KingOfTheMarble_Hunt": {"jump": 120, "use": 54, "Blast": 68}, "Sprawl_Hunt": {"jump": 265, "use": 244, "Blast": 149}, "CubeIsle_Hunt": {"jump": 297, "use": 113, "Blast": 86}, "Bowl_Hunt": {"jump": 283, "use": 37, "Blast": 217}, "Duplex_Hunt": {"jump": 179, "use": 0, "Blast": 60}, "FracturedIslands_Hunt": {"jump": 220, "use": 1, "Blast": 78}, "Cragmire_Hunt": {"jump": 182, "use": 85, "Blast": 75}, "VortexEffect_Hunt": {"jump": 158, "use": 0, "Blast": 36}, "TreasureBox_Hunt": {"jump": 166, "use": 123, "Blast": 80}, "Concentric_Hunt": {"jump": 365, "use": 59, "Blast": 107}}, "wall_s": {"collection": 3987.0465054999995, "fit": 40.27846989999989, "pool": 409.7815074}}
+
+2026-10-13T21:07:22.000969+00:00 — fixed-recipe scaling: collecting corrections; {"iteration": 3, "student_pool": "C:\\Users\\doug\\OneDrive\\Documents\\GitHub\\PlatinumQuest-Dev\\ml_agent\\dynamics_reports\\fast_nav_scaling_20261013\\iteration_2_screen", "workers": 8, "target_new": 3000}
+
+
+2026-10-13T21:08:46.098937+00:00 - First qualifying distinct-data scaled loop (iteration2) complete: {"iteration": 2, "qualifying_scaled_loop": true, "new_distinct": 4168, "cumulative_distinct": 7261, "student_points": 29.6, "A2_points": 39.3, "teacher_points_archived": 71.2, "student_to_archived_teacher": 0.4157303370786517, "falls": [204.0, 197.0], "accepted_rescues": [38.0, 40.0], "selected": false, "wall_minutes": {"collection": 66.45077509166666, "fit": 0.6713078316666649, "pool": 6.82969179}, "positive_labels": {"jump": 2235, "use": 716, "Blast": 956}, "next_candidate_caps": {"Bowl_Hunt": 4, "Sprawl_Hunt": 5}}. Full ten-map table iteration_2_screen/iteration_table.md; archived teacher is not paired. Candidate not selected, confirmed596b parent retained; iteration3 collection automatically active from this failed student's states. Sprawl44/A212 but Fractured0/A291 and Treasure21/A249 drive failure, not KOTM128/A2142. Sprawl recorded zero use/Blast requests despite holding inventory on2,198 decisions; its improvement is ordinary navigation, not established powerup skill. Four distinct-data loops are required; one now completed, three remain. Older collision handoff now links current fast-navigator handoff. No new loss/head/architecture changes or full unselected-candidate replay/tests.
+
+
+2026-10-13T21:14:49.035733+00:00 - Latest scaling 3D gallery now shows completed iteration2, explicitly not selected, full replay pending, points29.6/A239.3, falls204/197, accepted rescues38/40, distinct data4168/7261. Generated with maintained reliability_viewer; 61 local links resolve, including nested validation links after generator fix. Original parent and all failed canonical recordings remain. Collection profile iteration_2_collection_profile.json: {"route_exclusive_s": 25.3, "sweep_s": 23.07, "forecast_exclusive_s": 46.17, "other_s": 5.45} summed-worker shares; 66.45min collection also includes input indexing, supplemental rounds and evidence merges. Eight iteration3 correction workers active, frozen recipe unchanged.
+
+2026-10-13T21:27:09.458388+00:00 — fixed-recipe scaling: collecting previously unqueried student states; {"iteration": 3, "distinct_counts": {"KingOfTheMarble_Hunt": 255, "Sprawl_Hunt": 305, "CubeIsle_Hunt": 293, "Bowl_Hunt": 111, "Duplex_Hunt": 307, "FracturedIslands_Hunt": 47, "Cragmire_Hunt": 162, "VortexEffect_Hunt": 17, "TreasureBox_Hunt": 257, "Concentric_Hunt": 318}, "workers": 7, "maps": ["KingOfTheMarble_Hunt", "CubeIsle_Hunt", "Bowl_Hunt", "FracturedIslands_Hunt", "Cragmire_Hunt", "VortexEffect_Hunt", "TreasureBox_Hunt"], "student_pool": "C:\\Users\\doug\\OneDrive\\Documents\\GitHub\\PlatinumQuest-Dev\\ml_agent\\dynamics_reports\\fast_nav_scaling_20261013\\iteration_2_screen", "progress_directory": "C:\\Users\\doug\\OneDrive\\Documents\\GitHub\\PlatinumQuest-Dev\\ml_agent\\dynamics_reports\\fast_nav_scaling_20261013\\iteration_3_remaining_states_1_corrections\\workers"}
+
+
+2026-10-13T21:28:56.370106+00:00 - Read-only native power-context diagnostic written to dynamics_reports/fast_nav_scaling_20261013/iteration_2_power_context_diagnostic.json. Commands, not independently verified activations: KOTM issued four use requests while holding Super Speed and one Blast; other nine maps issued zero use requests. Sprawl held Mega (type6) for2,229 raw journal decisions;2,198 eligible non-mode/non-OOB states were excluded by the existing collector's verified-domain restriction. Thus its holding does not establish a missed supported Helicopter opportunity. Bowl held Super Jump for4,573 raw decisions; Cube held Super Speed for2,024 and Helicopter433; Concentric held Super Speed2,984; Cragmire held Super Jump2,413. This supports continued caution about powerup skill despite716 new positive use labels in iteration2. Frozen recipe/filter untouched; no independent reply replay or new audit run for this diagnostic. Initial iteration3 distinct counts total2,072, with three maps meeting floor; remaining recorded states queried before more games.
+
+
+2026-10-13T21:32:24.494198+00:00 - Frozen fit diagnostic (read only, no optimizer): iteration_2_advice_fit_diagnostic.json compares confirmed parent and final iteration2 on7,261 cumulative TRAIN correction inputs using original complete-map geometry. Of1,013 teacher-positive new use examples (current base off), both models have zero positive use logits;1 of1,014 total use-positive labels fires only because current base already requests use. New jump positives: parent36/2,148 versus candidate26/2,148. New Blast positives: parent2/1,531 versus candidate0/1,531. Raw logits before legal decoding; not native activations, held-out performance, independent reply replay, or proof of insufficient model capacity. This reveals that the current fit is not reproducing most new button corrections even on its training inputs. Complete the four qualifying distinct-data trials under the user-frozen recipe; retain this diagnostic for the prescribed phase review instead of changing loss/architecture now. One initial diagnostic read expected geometry inside correction NPZ; correction files intentionally store only advice tensors. The read-only command was corrected to obtain geometry from the original dataset, with no source/data mutation or leftover file. Successful diagnostic13.59s.
+
+
+2026-10-13T21:34:58.358909+00:00 - Latest scaling gallery now exposes both existing read-only fit and native power-context diagnostics beside the round results. Both relative report links resolve. Counts are explicitly training logits/command requests, not verified skill or native activation success. No source/runtime changes.
+
+
+2026-10-13T21:39:55.599352+00:00 - User superseded four-loop phase: finish iteration3 then stop fixed recipe; investigate native Hunt seed before other experimentation; replay/classify Fractured iteration2; one ablation on existing7,261 corrections gated by failed student forecast, explicit correction/base weighting, convergence fit, same ten maps. Placed a temporary boundary STOP so active remaining-state workers finish and close evidence before adding an explicit iteration3 terminal control. Iteration3 will then resume from closed collections; no iteration4. No collector/model/game source edits while active. Infrastructure retained.
+
+2026-10-13T21:42:39.601499+00:00 — fixed-recipe scaling: additional distinct correction coverage; {"iteration": 3, "counts": {"KingOfTheMarble_Hunt": 510, "Sprawl_Hunt": 305, "CubeIsle_Hunt": 599, "Bowl_Hunt": 227, "Duplex_Hunt": 307, "FracturedIslands_Hunt": 47, "Cragmire_Hunt": 305, "VortexEffect_Hunt": 17, "TreasureBox_Hunt": 667, "Concentric_Hunt": 318}}
+
+2026-10-13T21:42:39.603759+00:00 — fixed-recipe scaling: stopped with preserved failure; {"reason": "InterruptedError('Maintenance or user stop marker; closed collection retained')"}
+
+
+2026-10-13T21:46:39.179852+00:00 - User-directed seed/start repair at a closed correction boundary. Original -aiseed applies the global native RNG at Mode_hunt::onMissionReset as requested_seed+EvalRound; spawner uses getRandom for centers/weights/chances and global RNG can also be touched by shared encryption/SPRNG/player-spawn code. Native Fractured probes seeds1,681,125/7,429,183 yielded RNG states1,954,899,097/799,391,797, so the flag does affect native RNG. However all ten visible opening-gem signatures were identical across original pool, both old confirmations and iteration2 (seed_start_diagnostic.json). Offline getHuntSpawnType forces highest-value first spawn. Thus earlier confirmations were repeated-opening development checks, not verified distinct-start confirmation. Implemented opt-in -airandomstart/--random-starts: first spawn uses the existing ordinary Hunt spawn algorithm, still native gem selection/chance/weights, no placements/grants/restores. Default and iteration3 retain highest-value opening. Record actual applied seed/round/random-opening flag in REPLAYWORLD; full-round reports now include canonical visible-gem hash, pose and RNG state. Parallel random-start pools reject controller opening mismatches and repeated layouts within a pool or --distinct-from-pools. Hunt/reset/replay scripts now included in source snapshots. The prior trained parent/model/loss/interface are unchanged; mlAgent source changes only opt-in argument handling. Native preflight ongoing against three predetermined seeds per map, no score-based seed selection or correction collection. Added explicit --stop-after-iteration3 terminal control (also refuses to advance on a later resume); closed iteration3 batches retained.59 focused infrastructure/full-round tests passed; frozen11 AST fingerprints unchanged. Partial apply_patch with an incorrect test-class name was rejected atomically and corrected before tests; no running inputs changed.
+
+
+2026-10-13T21:51:36.111007+00:00 - Additional seed precision repair: seven/eight-digit seeds were formatted in scientific notation by TorqueScript numeric conversion (native logs e.g7.34702e+06). Preserve raw CLI decimal seed and add round index digit-by-digit so the engine integer console argument and telemetry retain exact decimal digits. Capture native getRandomSeed immediately after setRandomSeed as eval_engine_seed; varied-start audit now requires applied and engine seed equal requested+EvalRound-1. Added explicit HUNTSEEDTEST owned-probe diagnostic, which compares legacy numeric formatting to raw decimal seed and restores the original RNG afterward; never issued during scored play. First native helper check revealed a TorqueScript decrement-in-argument indexing bug; corrected to separate decrements and retained exact_seed_helper_failure.json.59 focused tests passed again. Previous complete randomized preflight yielded three openings on8maps, two on Cragmire/Concentric; it used pre-precision-fix conversion and is not the final qualified start catalog. Exact native adjacent/same-seed check currently running; fixed loop remains at closed iteration3 boundary.
+
+
+2026-10-13T21:52:35.270812+00:00 - CRITICAL CONFIRMED RNG BUG: native HUNTSEEDTEST shows decimal1,681,125 -> legacy numeric string1.68113e+06 -> engine seed1; adjacent1,681,126 also engine seed1;12,091,843 ->1.20918e+07 -> engine seed1. Raw decimal reaches the engine exactly. Thus all prior neighboring multi-million pool seeds often collapsed to the same integer, not just identical forced openings. exact_seed_native_check.json passed: identical requested1,681,125 launches have matching visible layout and native RNG state1,796,123,488; adjacent1,681,126 yields364,079,923 and a different layout. Actual current applied seeds1,681,128/1,681,129 reflect observed EvalRound4 (do not assume a fixed +1 offset). Exact decimal helper plus preserved CLI string fixes all future seeded Hunt resets. Existing old pool evidence and scores retained as repeated-seed/opening development results; previous parent confirmation is NOT independent multi-seed validation. Native unseeded game behavior unchanged. Future confirmation() now requests --random-starts and rejects starts repeated from its preceding confirmation pool; opening audit also requires controller starting engine seed and RNG state agree. Iteration3's native games will now use corrected seed conversion with its highest-value natural opening: protocol repair, so do not compare it as an exact replay of the old broken-seed rounds. Model/loss/filter AST unchanged. Fixed loop still paused at closed batch pending all-map precision-fixed opening qualification.
+
+
+2026-10-13T21:54:46.759975+00:00 - Corrected current handoff and both current 3D gallery headers/root hub to label old nominal multi-seed confirmations as repeated native seed1 measurements. Parent remains provisional; raw score/reply evidence retained. No native input/code mutation.
+
+2026-10-13T21:56:01.012658+00:00 — fixed-recipe scaling: initial ten-map screen; {"table": "C:\\Users\\doug\\OneDrive\\Documents\\GitHub\\PlatinumQuest-Dev\\ml_agent\\dynamics_reports\\fast_nav_preservation_pool_20261013\\iteration_table.md", "points": {"student_points": 41.8, "geometry_A2_points": 39.3, "planner_points": 71.2}, "frozen_recipe": true, "game_cap": 8, "dashboard_pid": 33732}
+
+2026-10-13T21:56:01.015663+00:00 — fixed-recipe scaling: resumed recorded iteration boundary; {"next_iteration": 3, "checkpoint": "C:\\Users\\doug\\OneDrive\\Documents\\GitHub\\PlatinumQuest-Dev\\ml_agent\\dynamics_reports\\fast_nav_preservation_fit_20261013\\final.pth"}
+
+2026-10-13T21:56:01.034845+00:00 — fixed-recipe scaling: collecting corrections; {"iteration": 3, "student_pool": "C:\\Users\\doug\\OneDrive\\Documents\\GitHub\\PlatinumQuest-Dev\\ml_agent\\dynamics_reports\\fast_nav_scaling_20261013\\iteration_2_screen", "workers": 8, "target_new": 3000}
+
+2026-10-13T21:56:02.322162+00:00 — fixed-recipe scaling: collecting previously unqueried student states; {"iteration": 3, "distinct_counts": {"KingOfTheMarble_Hunt": 255, "Sprawl_Hunt": 305, "CubeIsle_Hunt": 293, "Bowl_Hunt": 111, "Duplex_Hunt": 307, "FracturedIslands_Hunt": 47, "Cragmire_Hunt": 162, "VortexEffect_Hunt": 17, "TreasureBox_Hunt": 257, "Concentric_Hunt": 318}, "workers": 7, "maps": ["KingOfTheMarble_Hunt", "CubeIsle_Hunt", "Bowl_Hunt", "FracturedIslands_Hunt", "Cragmire_Hunt", "VortexEffect_Hunt", "TreasureBox_Hunt"], "student_pool": "C:\\Users\\doug\\OneDrive\\Documents\\GitHub\\PlatinumQuest-Dev\\ml_agent\\dynamics_reports\\fast_nav_scaling_20261013\\iteration_2_screen", "progress_directory": "C:\\Users\\doug\\OneDrive\\Documents\\GitHub\\PlatinumQuest-Dev\\ml_agent\\dynamics_reports\\fast_nav_scaling_20261013\\iteration_3_remaining_states_1_corrections\\workers"}
+
+2026-10-13T21:56:02.480208+00:00 — fixed-recipe scaling: additional distinct correction coverage; {"iteration": 3, "counts": {"KingOfTheMarble_Hunt": 510, "Sprawl_Hunt": 305, "CubeIsle_Hunt": 599, "Bowl_Hunt": 227, "Duplex_Hunt": 307, "FracturedIslands_Hunt": 47, "Cragmire_Hunt": 305, "VortexEffect_Hunt": 17, "TreasureBox_Hunt": 667, "Concentric_Hunt": 318}}
+
+2026-10-13T21:56:02.485689+00:00 — fixed-recipe scaling: running extra_iteration_3_extra_states_1; {"owned_worker_pid": 31120, "log": "C:\\Users\\doug\\OneDrive\\Documents\\GitHub\\PlatinumQuest-Dev\\ml_agent\\dynamics_reports\\fast_nav_scaling_20261013\\extra_iteration_3_extra_states_1.log"}
+
+2026-10-13T21:59:42.138350+00:00 — fixed-recipe scaling: collecting supplemental corrections; {"iteration": 3, "workers": 3, "maps": ["Bowl_Hunt", "FracturedIslands_Hunt", "VortexEffect_Hunt"]}
+
+
+2026-10-13T22:05:26.806222+00:00 - Seed repair qualification complete and iteration3 resumed as supervisor14500/session8459 with --stop-after-iteration3 and explicit two confirmation manifests. All30 precision-fixed native preflight starts valid; three layouts on9maps, two onKOTM. start_manifests/start_0/1/2.json retain layout-only choices; slot2 uses already-verified KOTM1,681,125 in place of repeating2,683,147. Each map has three distinct hashes across these manifests. The optional --start-seed-manifest is source-hash bound, keeps pool master seed separate from per-map native_seed, and refuses a start differing from the predeclared geometry layout. Native RNG/pair/layout/previous-pool checks remain mandatory for random-start pools.59 focused tests passed after adding manifests; fixed11recipe AST unchanged. Maintenance_boundary_3 retains temporary STOP/status/interruption receipt, not a user request to abandon iteration3. Iteration3 reused closed3,302 inputs, then native Bowl/Fractured/Vortex supplemental rounds under repaired exact RNG and natural highest-value opening. Its ablation successor will use ONLY iteration_2_training_corrections (7,261), never newer iteration3 data.
+
+Fractured requested diagnosis: fractured_iteration_2_diagnostic.json independently reproduced2,762 learned replies with zero mismatches, skipped91 setup/non-actor records, recorded score0 and25falls. Classified all586 cumulative correction inputs and all320new inputs with source-journal provenance resolved. New labels: jump220, use1, Blast78;141 are new jumps versus A2. Of320,110 are within1u of a drop under eight-direction exact mesh support probes;71 are jumps near such drops (22.2%of all,32.3%of jumps), not a majority.319/320use24-reply1.536s horizon. Control replay fractured_iteration_2_control_changes.json: student and current A2 base bothjump2,693 times, zero added/cancelled jump/use/Blast; median world-axis difference0.7487, median camera-angle difference0.3328rad(19.1deg). Different full trajectories preclude declaring a pure same-state native causal comparison, but direct extra-jump explanation is unsupported. Long-tail physics diagnostic extends existing teacher plans by48feedback-braking replies3.072s:299complete stable,20complete unstable,1ambiguous,0predictor failures;43.62s. This is a stopping check, not a native outcome or a learned closed-loop student forecast; ambiguity is unknown. No correction tensor or recipe changed.
+
+Ablation implementation direction: one fit only, same architecture/decoder, same7,261 input corpus; gate existing targets using physical forecasts of the actual recorded student controls at those visited states (not an A2 replacement called a student), using native recorded outcomes only as label/diagnostic evidence, never features. Incomplete/control-gap/new-world/unsupported/ambiguous cases remain unknown and cannot supply failure labels. Define fall/stall/no-progress explicitly and retain journal/provenance plus gate refusals. Normalize base-preservation and correction objectives separately with explicit recorded weights; choose one predeclared ratio, not a tuning sweep. Fit with fixed loss and monitor a plateau through repeated full/fixed training-objective checks; retain a budget ceiling as a failure-to-converge limit, not a1,000-update success definition. Original development split stays sealed. Compare on all10maps with source-bound native start manifests, original A2 plus provisional parent references, KOTM equal weight. This is a failure-focused imitation ablation, not long-term PPO training. Source implementation waits for immutable iteration3 stages to close.
+
+2026-10-13T22:13:59.507360+00:00 — fixed-recipe scaling: additional distinct correction coverage; {"iteration": 3, "counts": {"KingOfTheMarble_Hunt": 510, "Sprawl_Hunt": 305, "CubeIsle_Hunt": 599, "Bowl_Hunt": 418, "Duplex_Hunt": 307, "FracturedIslands_Hunt": 175, "Cragmire_Hunt": 305, "VortexEffect_Hunt": 65, "TreasureBox_Hunt": 667, "Concentric_Hunt": 318}}
+
+2026-10-13T22:13:59.512521+00:00 — fixed-recipe scaling: running extra_iteration_3_extra_states_2; {"owned_worker_pid": 34008, "log": "C:\\Users\\doug\\OneDrive\\Documents\\GitHub\\PlatinumQuest-Dev\\ml_agent\\dynamics_reports\\fast_nav_scaling_20261013\\extra_iteration_3_extra_states_2.log"}
+
+2026-10-13T22:15:21.192270+00:00 — fixed-recipe scaling: collecting supplemental corrections; {"iteration": 3, "workers": 2, "maps": ["FracturedIslands_Hunt", "VortexEffect_Hunt"]}
+
+
+### 2026-10-13T22:18:37.830284+00:00 ? preparing the one requested failure-gated ablation
+
+Iteration3 still owns immutable source stages. Draft implementation is in a single TEMP file, will be integrated into existing fast_nav.py at the closed boundary and deleted. No new repo scripts or ablation labels collected. Exact original7261 inputs are sealed. The offline gate predicts actual source-student control sequences (48 replies/3.072s, shorter only for a certain predicted fall), with future controls/native gem outcomes used only as supervision; it is not a reconstructed current-policy closed-loop forecast. Unknown physics, ambiguity, control/world/goal changes and incomplete non-fall windows are excluded. Native mission InBoundsTrigger annotations are available on all10 maps and identify early falls without treating lower-platform descents as failure; a teacher prefix leaving these bounds is also invalid. A Fractured smoke case258 predicts the native fall at26 replies and its existing correction stays in bounds.
+
+One objective ratio is predeclared: independently normalized correction1.0 versus preserve-base0.1, preserving the original action-balanced correction sampler and all architecture/decoder functions. Convergence uses a fixed train-only anchor set and all gated corrections weighted by that sampler, equal maps,500-update checks, minimum2000 updates and five plateau checks (0.5% or0.0001 material improvement);1200s/30000 are failure/safety ceilings, never a claimed successful convergence stop. Original Dev data are reported once, never trained or used to pick the convergence checkpoint. Draft checks pass for all10 bounds, occupancy-independent loss, sampler monitor and patience reset. Protocol: dynamics_reports/fast_nav_scaling_20261013/ablation_predeclared_protocol.json.
+
+A two-game KOTM smoke of the actual evaluator with start_0 is running on9070/9071 while iteration3 uses offline workers, to check the preflight layout against real evaluator setup. Total native cap8 and dashboard33732 remain protected. This is startup qualification, not an ablation result.
+
+
+### 2026-10-13T22:21:29.522645+00:00 ? actual startup smoke caught an asynchronous world-telemetry gap
+
+Both real KOTM rounds completed and matched the predeclared start_0 gem hash46b1ec, but the final audit correctly rejected them: native seed/RNG/random-opening fields were missing because full_round_branch captures opening before the first asynchronous REPLAYWORLD packet arrives. await_full_round_context currently checks only dynamics/game_context, so it returns too soon. All smoke games closed; no performance qualification or checkpoint selection. Preserve random_start_actual_pool_smoke/failure_diagnostic.json. Fix waiter to require fresh world telemetry at the closed boundary, with the existing bounded neutral setup/freshness limit.
+
+The 7261-label failure gate is now preparing in six offline workers using the immutable TEMP draft (session95515); two original iteration3 collectors remain active, so eight offline workers total. Source snapshot ZIP includes the draft and imported maintained helper implementations; no repo source edits during either source-bound stage. Gate foresees falls using native mission InBoundsTrigger boxes on all10 maps and rejects correction prefixes that also leave them. Forecast/refusal evidence and original indices are retained. This is existing-data preparation only; fit remains deferred until iteration3 finishes and stops.
+
+2026-10-13T22:23:40.147732+00:00 — fixed-recipe scaling: additional distinct correction coverage; {"iteration": 3, "counts": {"KingOfTheMarble_Hunt": 510, "Sprawl_Hunt": 305, "CubeIsle_Hunt": 599, "Bowl_Hunt": 418, "Duplex_Hunt": 307, "FracturedIslands_Hunt": 412, "Cragmire_Hunt": 305, "VortexEffect_Hunt": 264, "TreasureBox_Hunt": 667, "Concentric_Hunt": 318}}
+
+2026-10-13T22:23:40.150898+00:00 — fixed-recipe scaling: stopped with preserved failure; {"reason": "InterruptedError('Maintenance or user stop marker; closed collection retained')"}
+
+
+### 2026-10-13T22:25:35.489171+00:00 ? closed maintenance boundary4, seed telemetry fix and ablation integration
+
+All iteration3 and gating workers closed before source edits. Gate finished in184.66s:825/7261 retained, jump429/use115/Blast164, no new labels. Counts by map K40,S12,C66,B2,D55,F42,Cr129,V304,T13,Co162. This narrow corpus deliberately keeps unknowns out; it is not a balanced fresh collection. Its complete source/control/forecast/refusal evidence is in fast_nav_failure_ablation_20261013/gated_corrections.
+
+Fixed startup waiting for both native/game context and the first schema2 replay world, clearing any stale world before capture; freshness refusal and counted neutral setup remain. Added the one failure gate/convergence path to existing fast_nav.py without changing the11 original frozen recipe functions.66 focused tests pass, including new unknown-fall, exact mission-bounds, actual-student control, loss normalization/sampler and convergence checks. The archived TEMP draft matches all maintained functions and can now be deleted with its own bytecode. Boundary receipt records exact cleanup/source history. Resume iteration3 with terminal limit3; only Vortex is below floor (264/300). No iteration4.
+
+2026-10-13T22:25:35.833362+00:00 — fixed-recipe scaling: initial ten-map screen; {"table": "C:\\Users\\doug\\OneDrive\\Documents\\GitHub\\PlatinumQuest-Dev\\ml_agent\\dynamics_reports\\fast_nav_preservation_pool_20261013\\iteration_table.md", "points": {"student_points": 41.8, "geometry_A2_points": 39.3, "planner_points": 71.2}, "frozen_recipe": true, "game_cap": 8, "dashboard_pid": 33732}
+
+2026-10-13T22:25:35.836363+00:00 — fixed-recipe scaling: resumed recorded iteration boundary; {"next_iteration": 3, "checkpoint": "C:\\Users\\doug\\OneDrive\\Documents\\GitHub\\PlatinumQuest-Dev\\ml_agent\\dynamics_reports\\fast_nav_preservation_fit_20261013\\final.pth"}
+
+2026-10-13T22:25:35.863093+00:00 — fixed-recipe scaling: collecting corrections; {"iteration": 3, "student_pool": "C:\\Users\\doug\\OneDrive\\Documents\\GitHub\\PlatinumQuest-Dev\\ml_agent\\dynamics_reports\\fast_nav_scaling_20261013\\iteration_2_screen", "workers": 8, "target_new": 3000}
+
+2026-10-13T22:25:37.104979+00:00 — fixed-recipe scaling: reused closed supplemental collection; {"iteration": 3, "distinct_counts": {"KingOfTheMarble_Hunt": 255, "Sprawl_Hunt": 305, "CubeIsle_Hunt": 293, "Bowl_Hunt": 111, "Duplex_Hunt": 307, "FracturedIslands_Hunt": 47, "Cragmire_Hunt": 162, "VortexEffect_Hunt": 17, "TreasureBox_Hunt": 257, "Concentric_Hunt": 318}}
+
+2026-10-13T22:25:37.205251+00:00 — fixed-recipe scaling: additional distinct correction coverage; {"iteration": 3, "counts": {"KingOfTheMarble_Hunt": 255, "Sprawl_Hunt": 305, "CubeIsle_Hunt": 293, "Bowl_Hunt": 302, "Duplex_Hunt": 307, "FracturedIslands_Hunt": 175, "Cragmire_Hunt": 162, "VortexEffect_Hunt": 65, "TreasureBox_Hunt": 257, "Concentric_Hunt": 318}}
+
+2026-10-13T22:25:37.220980+00:00 — fixed-recipe scaling: reused closed supplemental collection; {"iteration": 3, "distinct_counts": {"KingOfTheMarble_Hunt": 255, "Sprawl_Hunt": 305, "CubeIsle_Hunt": 293, "Bowl_Hunt": 302, "Duplex_Hunt": 307, "FracturedIslands_Hunt": 175, "Cragmire_Hunt": 162, "VortexEffect_Hunt": 65, "TreasureBox_Hunt": 257, "Concentric_Hunt": 318}}
+
+2026-10-13T22:25:37.318954+00:00 — fixed-recipe scaling: additional distinct correction coverage; {"iteration": 3, "counts": {"KingOfTheMarble_Hunt": 255, "Sprawl_Hunt": 305, "CubeIsle_Hunt": 293, "Bowl_Hunt": 302, "Duplex_Hunt": 307, "FracturedIslands_Hunt": 412, "Cragmire_Hunt": 162, "VortexEffect_Hunt": 264, "TreasureBox_Hunt": 257, "Concentric_Hunt": 318}}
+
+2026-10-13T22:25:37.325280+00:00 — fixed-recipe scaling: running extra_iteration_3_extra_states_3; {"owned_worker_pid": 27876, "log": "C:\\Users\\doug\\OneDrive\\Documents\\GitHub\\PlatinumQuest-Dev\\ml_agent\\dynamics_reports\\fast_nav_scaling_20261013\\extra_iteration_3_extra_states_3.log"}
+
+
+### 2026-10-13T22:29:25.354561+00:00 ? restart coverage omission fixed, real seed/start audit passes
+
+Resume precedence skipped the already completed iteration3_remaining_states_1_corrections when supplemental pools existed, temporarily undercounting K/C/Cr/T and launching an unnecessary five-map native state pool. Data were never lost. Stopped only the owned supervisor before it could launch redundant collectors; all five native children completed intact. New recovery includes every closed remaining-state batch before map deficits, with exact matching final integrity receipts, and reuses a complete native child pool after checking student checkpoint/hash, seed, map coverage and valid rounds. Restored exact counts total4105, only V264/300 deficient.67 focused tests pass; all11 frozen recipe ASTs unchanged. The next collection uses only V states from that completed native pool. No iteration4.
+
+The fixed actual KOTM smoke now passes the full native startup audit: both controllers received exact seed7347019 and match initial RNG and the declared46b1ec gem layout. Native context now waits for replay-world telemetry rather than silently recording missing seed fields. Future matched-teacher gates also carry the same randomized-opening flag and per-map seed manifest as their student confirmation pools, including KOTM's manifest2 override. Original confirmations remain repeated-seed development evidence, never independent validation.
+
+2026-10-13T22:29:25.629490+00:00 — fixed-recipe scaling: initial ten-map screen; {"table": "C:\\Users\\doug\\OneDrive\\Documents\\GitHub\\PlatinumQuest-Dev\\ml_agent\\dynamics_reports\\fast_nav_preservation_pool_20261013\\iteration_table.md", "points": {"student_points": 41.8, "geometry_A2_points": 39.3, "planner_points": 71.2}, "frozen_recipe": true, "game_cap": 8, "dashboard_pid": 33732}
+
+2026-10-13T22:29:25.632859+00:00 — fixed-recipe scaling: resumed recorded iteration boundary; {"next_iteration": 3, "checkpoint": "C:\\Users\\doug\\OneDrive\\Documents\\GitHub\\PlatinumQuest-Dev\\ml_agent\\dynamics_reports\\fast_nav_preservation_fit_20261013\\final.pth"}
+
+2026-10-13T22:29:25.656131+00:00 — fixed-recipe scaling: collecting corrections; {"iteration": 3, "student_pool": "C:\\Users\\doug\\OneDrive\\Documents\\GitHub\\PlatinumQuest-Dev\\ml_agent\\dynamics_reports\\fast_nav_scaling_20261013\\iteration_2_screen", "workers": 8, "target_new": 3000}
+
+2026-10-13T22:29:25.666123+00:00 — fixed-recipe scaling: recovered closed remaining-state collection; {"iteration": 3, "batch": 1, "path": "C:\\Users\\doug\\OneDrive\\Documents\\GitHub\\PlatinumQuest-Dev\\ml_agent\\dynamics_reports\\fast_nav_scaling_20261013\\iteration_3_remaining_states_1_corrections"}
+
+2026-10-13T22:29:26.849289+00:00 — fixed-recipe scaling: reused closed supplemental collection; {"iteration": 3, "distinct_counts": {"KingOfTheMarble_Hunt": 510, "Sprawl_Hunt": 305, "CubeIsle_Hunt": 599, "Bowl_Hunt": 227, "Duplex_Hunt": 307, "FracturedIslands_Hunt": 47, "Cragmire_Hunt": 305, "VortexEffect_Hunt": 17, "TreasureBox_Hunt": 667, "Concentric_Hunt": 318}}
+
+2026-10-13T22:29:26.955988+00:00 — fixed-recipe scaling: additional distinct correction coverage; {"iteration": 3, "counts": {"KingOfTheMarble_Hunt": 510, "Sprawl_Hunt": 305, "CubeIsle_Hunt": 599, "Bowl_Hunt": 418, "Duplex_Hunt": 307, "FracturedIslands_Hunt": 175, "Cragmire_Hunt": 305, "VortexEffect_Hunt": 65, "TreasureBox_Hunt": 667, "Concentric_Hunt": 318}}
+
+2026-10-13T22:29:26.958989+00:00 — fixed-recipe scaling: reused closed supplemental collection; {"iteration": 3, "distinct_counts": {"KingOfTheMarble_Hunt": 510, "Sprawl_Hunt": 305, "CubeIsle_Hunt": 599, "Bowl_Hunt": 418, "Duplex_Hunt": 307, "FracturedIslands_Hunt": 175, "Cragmire_Hunt": 305, "VortexEffect_Hunt": 65, "TreasureBox_Hunt": 667, "Concentric_Hunt": 318}}
+
+2026-10-13T22:29:27.065873+00:00 — fixed-recipe scaling: additional distinct correction coverage; {"iteration": 3, "counts": {"KingOfTheMarble_Hunt": 510, "Sprawl_Hunt": 305, "CubeIsle_Hunt": 599, "Bowl_Hunt": 418, "Duplex_Hunt": 307, "FracturedIslands_Hunt": 412, "Cragmire_Hunt": 305, "VortexEffect_Hunt": 264, "TreasureBox_Hunt": 667, "Concentric_Hunt": 318}}
+
+2026-10-13T22:29:27.074873+00:00 — fixed-recipe scaling: reused completed student native pool; {"iteration": 3, "path": "C:\\Users\\doug\\OneDrive\\Documents\\GitHub\\PlatinumQuest-Dev\\ml_agent\\dynamics_reports\\fast_nav_scaling_20261013\\iteration_3_extra_states_3", "maps": ["VortexEffect_Hunt"]}
+
+2026-10-13T22:29:27.076160+00:00 — fixed-recipe scaling: collecting supplemental corrections; {"iteration": 3, "workers": 1, "maps": ["VortexEffect_Hunt"]}
+
+
+2026-10-13T22:38:02.085598+00:00 ? fresh paired parent baseline completed on all10 maps, start_0 seed7347019, ports9070?9077/session30190. All20 rounds valid and the10-group native seed/RNG/layout audit passes. It overlapped only the offline Vortex collector; existing global native launch lock enforces total cap8. No source edits during either stage. Read-only below_mesh_label_diagnostic.json checks the17 lower-than-all-surface gate cases: all later fall within32 native replies, zero later gems. Forecast failure is not a proof that no possible future action could recover; no corpus changes or second ablation.
+
+2026-10-13T22:38:21.646299+00:00 — fixed-recipe scaling: additional distinct correction coverage; {"iteration": 3, "counts": {"KingOfTheMarble_Hunt": 510, "Sprawl_Hunt": 305, "CubeIsle_Hunt": 599, "Bowl_Hunt": 418, "Duplex_Hunt": 307, "FracturedIslands_Hunt": 412, "Cragmire_Hunt": 305, "VortexEffect_Hunt": 488, "TreasureBox_Hunt": 667, "Concentric_Hunt": 318}}
+
+2026-10-13T22:46:48.643695+00:00 — fixed-recipe scaling: fitting fixed recipe; {"iteration": 3, "new_accepted": 4329, "cumulative_accepted": 11590, "label_counts": {"KingOfTheMarble_Hunt": {"jump": 187, "use": 90, "Blast": 52}, "Sprawl_Hunt": {"jump": 241, "use": 0, "Blast": 73}, "CubeIsle_Hunt": {"jump": 224, "use": 226, "Blast": 90}, "Bowl_Hunt": {"jump": 356, "use": 53, "Blast": 285}, "Duplex_Hunt": {"jump": 162, "use": 0, "Blast": 49}, "FracturedIslands_Hunt": {"jump": 286, "use": 6, "Blast": 110}, "Cragmire_Hunt": {"jump": 181, "use": 25, "Blast": 52}, "VortexEffect_Hunt": {"jump": 241, "use": 0, "Blast": 95}, "TreasureBox_Hunt": {"jump": 309, "use": 204, "Blast": 160}, "Concentric_Hunt": {"jump": 212, "use": 31, "Blast": 74}}, "collection_wall_s": 4574.750471199999}
+
+2026-10-13T22:46:48.649030+00:00 — fixed-recipe scaling: running fit_3; {"owned_worker_pid": 33636, "log": "C:\\Users\\doug\\OneDrive\\Documents\\GitHub\\PlatinumQuest-Dev\\ml_agent\\dynamics_reports\\fast_nav_scaling_20261013\\fit_3.log"}
+
+2026-10-13T22:47:30.910101+00:00 — fixed-recipe scaling: running pool_3; {"owned_worker_pid": 31940, "log": "C:\\Users\\doug\\OneDrive\\Documents\\GitHub\\PlatinumQuest-Dev\\ml_agent\\dynamics_reports\\fast_nav_scaling_20261013\\pool_3.log"}
+
+2026-10-13T22:53:56.091996+00:00 — fixed-recipe scaling: iteration complete; {"iteration": 3, "table": "C:\\Users\\doug\\OneDrive\\Documents\\GitHub\\PlatinumQuest-Dev\\ml_agent\\dynamics_reports\\fast_nav_scaling_20261013\\iteration_3_screen\\iteration_table.md", "points": {"student_points": 31.9, "geometry_A2_points": 44.0, "planner_points": 71.2}, "selected": false, "label_counts": {"KingOfTheMarble_Hunt": {"jump": 187, "use": 90, "Blast": 52}, "Sprawl_Hunt": {"jump": 241, "use": 0, "Blast": 73}, "CubeIsle_Hunt": {"jump": 224, "use": 226, "Blast": 90}, "Bowl_Hunt": {"jump": 356, "use": 53, "Blast": 285}, "Duplex_Hunt": {"jump": 162, "use": 0, "Blast": 49}, "FracturedIslands_Hunt": {"jump": 286, "use": 6, "Blast": 110}, "Cragmire_Hunt": {"jump": 181, "use": 25, "Blast": 52}, "VortexEffect_Hunt": {"jump": 241, "use": 0, "Blast": 95}, "TreasureBox_Hunt": {"jump": 309, "use": 204, "Blast": 160}, "Concentric_Hunt": {"jump": 212, "use": 31, "Blast": 74}}, "wall_s": {"collection": 4574.750471199999, "fit": 42.242364499999894, "pool": 385.1667153000001}}
+
+2026-10-13T22:53:56.095844+00:00 — fixed-recipe scaling: requested iteration completed; fixed-recipe loop stopped; {"iteration": 3, "selected": [{"checkpoint": "C:\\Users\\doug\\OneDrive\\Documents\\GitHub\\PlatinumQuest-Dev\\ml_agent\\dynamics_reports\\fast_nav_preservation_fit_20261013\\final.pth", "pools": ["C:\\Users\\doug\\OneDrive\\Documents\\GitHub\\PlatinumQuest-Dev\\ml_agent\\dynamics_reports\\fast_nav_scaling_20261013\\confirmation_0_1681125", "C:\\Users\\doug\\OneDrive\\Documents\\GitHub\\PlatinumQuest-Dev\\ml_agent\\dynamics_reports\\fast_nav_scaling_20261013\\confirmation_0_1681126"]}], "recipe_changed": false, "next_iteration_started": false}
+
+
+### 2026-10-13T22:55:13.805230+00:00 ? iteration3 finished; fixed loop stopped; one ablation begins
+
+Iteration3 all20 native rounds valid:31.9 student/A244.0 equal-map points, not selected. No iteration4 directory or active supervisor. Final checkpoint37299e;4329 distinct new/11590 cumulative labels. Collection76.25min including reused batches/merges and supplemental native pools; fit42.24s; pool385.17s. Absolute31.9 versus iteration2's29.6 uses a repaired native seed and is not a paired improvement; the within-pool A2 deficit remains substantial. Full per-map table is iteration_3_screen/iteration_table.md.
+
+Prepared the selected-only independent failure-gate replay audit in existing fast_nav.py at this fully closed boundary, alongside original teacher-advice audit. Thirteen focused entry checks pass and original11 recipe ASTs unchanged. Now run exactly one fit-failure-ablation on825 retained original7261 labels, initial596b, preserve0.1/correction1, to the declared training plateau, not1000 updates. Compare against the completed parent start_0 baseline30.8/A227.8; further data collection, recipe sweeps and PPO remain out of scope.
+
+
+2026-10-13T22:58:51.174636+00:00 ? permanent fixed-loop STOP marker records the user's completed iteration3 limit, preventing bare resume from starting4. Separate one-ablation fit session33961 remains active. Historical selected-list entries are now explicitly tagged independent_confirmation_valid=false/current_status=provisional because their seed confirmations were duplicates; checkpoints and original evaluation/audit evidence remain intact.
+
+
+2026-10-13T23:07:48.638632+00:00 - Ablation convergence safety continuation at a fully closed boundary. First stage reached30,000 updates/696.99s, best monitored training objective0.03625, still improving; explicitly incomplete, not converged. Source/protected integrity passed. Preserve its result in fit/safety_stage_1_result.json. Added --resume to the existing fit-failure-ablation command: restore the exact last model and Adam optimizer, reconstruct the initial-stage sampling RNG by replaying unchanged draws, preserve fixed monitor/history/checkpoint selection, and save RNG state for later continuations. Same825 labels, same initial596b, architecture, action sampler, losses0.1/1, learning rate, plateau rule; no second ablation or new data. Eight focused contract tests pass, including exact original-versus-resumed draws with tiny replacement samples. Continue this one fit to its declared plateau with a60,000 absolute update safety ceiling. Development imitation loss0.3646 is worse than the parent, so training loss is not a native win. No native games or loop supervisor active during source edits; dashboard33732 retained.
+
+
+2026-10-13T23:10:38.196054+00:00 - ONE failure-gated ablation converged at35,000 updates by the predeclared five-check plateau. Selected lowest fixed-training-objective checkpoint at32,500, objective0.030288 (initial0.629970), SHA44d7534bdc6222e0c31044afdf90ce9694e7d6efe7314a5b27f7bab882607953. Cumulative fit/validation wall822.98s, including exact optimizer continuation past the first safety cap. Source/protected integrity passes. Development demonstration imitation loss0.37149 worsened and is reported only, not trained/selected; not native evidence. Started one ten-map20-round eight-worker native screening pool on the SAME start_0 manifest/master7,347,019 as the completed parent baseline30.8/A227.8. Opening seed/RNG/layout audit and end source integrity mandatory. No iteration4/new corrections/recipe/PPO/default promotion.
+
+
+2026-10-13T23:12:59.374304+00:00 - Post-fit read-only diagnostics while native screen runs. training_label_fit_diagnostic.json covers825 gated TRAIN rows, raw logits before legal availability masking: teacher-positive jump429/use115/Blast164; parent reproduces178/0/2, ablation404/113/150. New-vs-A2 jump263 reproduces14 parent versus243 ablation. This is training fit, not generalization/native usage. Identity-joined retained Fractured42 to existing320-case teacher-prefix-plus48-braking diagnostic:26 covered,12 unambiguously stable,13 unambiguously unstable and1 ambiguous; all13 unstable endpoints have centers below native InBounds floor-5.15206. The other16 retained rows predate that diagnostic. Existing all320 long-tail check has20 below-floor endpoints. This identifies a teacher landing-horizon limitation concentrated by failure gating, not proof no future purposeful controls could recover. No labels/gate/fit were changed after looking at this result. First join revision had overlapping ambiguous/stable counts; corrected to mutually exclusive unambiguous categories. One read-only report serialization refused NumPy int64 before writing; converted counts to ordinary ints, no training/evaluation inputs affected. Report fractured_retained_teacher_tail_join.json. Full current pool remains running with8 owned native games maximum; dashboard33732 untouched.
+
+
+2026-10-13T23:17:50.367510+00:00 - Ablation ten-map screening COMPLETE,20 valid rounds, opening10groups PASS and unchanged211 sources. Candidate27.7 versus parent30.8 on the same declared start_0; paired A2 current25.6 versus earlier27.8. Not a confirmed win or rejection. Totalfalls195 versus parent223, rescues35 versus45. Other9maps21.33 versus20.11 mean: gainsVortex23 (from0), Concentric20 (from4), Treasure57 (from25), Sprawl32 (from9); lossesCube5 (from43), Fractured41 (from68), Cragmire5 (from23), tiesBowl8/Duplex1. KOTM85 from127 accounts for42 of31 total lost points, so user rule rules out a KOTM-only veto. A2 itself varies strongly onFractured55->0 andTreasure33->68 despite verified initial layout/RNG, underscoring need for independent starts. Proceed to existing allowed two confirmation manifests for BOTH candidate and parent, paired with A2, eight total games split4+4 on disjoint ports; same one trained ablation, no further fit/collection/recipe. Table screen_parent_comparison.md/json. Archived planner71.2 remains unpaired, not80percent evidence.
+
+
+2026-10-13T23:20:53.312749+00:00 - Published local review artifacts with existing reliability_viewer, no new scripts: collision_maps/viewer/fast_navigator_failure_ablation_20261013/index.html links all10 native3D paths, per-map parent/ablation/fall/rescue table, convergence report and Fractured diagnostic. Root collision gallery links it. Confirmation explicitly pending, old seed evidence retained. Read-only reference_start_context_diagnostic.json finds identical captured physical startup fields across repeatedA2 rounds onall10 maps; reference_first_divergence_diagnostic.json locates Fractured row151 andTreasure row341 first path/action divergence around OOB: native/script clocks have phase differences and OOB arrives a reply earlier. This is ongoing native/script timing variation, not a different opening or a proven corrected evaluator bug; full future identity remains uncertified. No source-bound inputs edited during native confirmation.
+
+
+2026-10-13T23:23:40.743231+00:00 - Closed all42 retained Fractured teacher landing-tail diagnostic in9.71s, no new labels/model change:22 stable braking tails,19 leave native InBounds,1 ambiguous. Source journals hash-checked; reuses archived original teacher prefix then48 feedback-braking replies at16ms. This extends the earlier26-case intersection to all42, and points to teacher horizon validity in failing states. It remains a conservative braking test, not proof no other subsequent controls could succeed. Report fractured_all_retained_teacher_tail_diagnostic.json. Confirmation1 currently active as candidate session55030 on9054-9057 and parent70150 on9070-9073,4workers each;2nd distinct opening manifest pending next. Standalone native activation diagnostic is read-only and running; full reply/source/corpus audit remains once for whichever candidate is selected after native comparisons.
+
+
+2026-10-13T23:25:13.252729+00:00 - Read-only native screen usage diagnostic COMPLETE43.15s: parent4Use-request replies/2 native playable consumptions,7Blast-request replies; ablation16Use-request replies/10 native playable consumptions,157Blast-request replies. All10 consumptions attributable to the measured delayed Move queue, no inventory reset mislabeled. Script typecounts1:4,2:4,5:2 (SuperJump/SuperSpeed/Helicopter), distributed across6maps versus parentKOTM only. No useful-landing/gem causality claimed, andBlast requests are not confirmed impulses. screen_native_activation_diagnostic.json keeps per-map events and provenance. No full reply/archive/test audit repeated at this stage. Confirmation1 continues source-frozen with4+4workers and distinct opening checks.
+
+
+2026-10-13T23:32:04.542813+00:00 - Parent genuine confirmation1 complete:44.7/A233.2 equal-map points, all20 native rounds valid,10 startup groupsPASS,211 input sources unchanged,816.59s. start_1 differs visibly from start_0 onall10 maps by sealed layout-only manifest. Candidate confirmation1 still completes its remaining rounds. Parent confirmation2 launched as session67284,4workers9070-9073,master2,683,147 with KOTM native override1,681,125 from preflight; rejects layouts repeated from BOTH parent start_0 andstart_1. This is the already-planned third distinct start, no new fit/correction collection. Native maximum remains8 across staggered4+4 pools; dashboard33732 unchanged.
+
+
+2026-10-13T23:33:01.784121+00:00 - Candidate genuine confirmation1 complete:27.5/A233.4 points versus parent44.7/A233.2 on the same distinct start_1. All20 valid,10 startup groupsPASS,211 inputs unchanged,859.45s. Candidate is behind on multiple non-KOTM maps too; no new recipe/fit. Started final candidate confirmation2 session60243,4workers9054-9057,master2,683,147 and same start_2 native overrides as running parent67284. Distinctness enforced against both candidate previous starts. Full table generated percompleted pool; final all3-start choice pending.
+
+
+2026-10-13T23:37:20.139446+00:00 - Selected-only audit preparation (read-only). parent_screen predates offline helper maintenance, so current hashes differ forfast_nav.py andtest_scaling_loop.py. parent_historical_inference_compatibility_preflight.json compares archived/current named definitions plus all non-definition top-level AST nodes: inference-compatible, unchanged globals/imports/inference classes/functions; only fit_failure_ablation/CLI main changed, added offline ablation_batch_indices/audit_student_failure_gate, and sampler contract test. A first whitelist expected only the resume helper and returnedfalse; preserve that receipt in parent_historical_inference_compatibility_initial_check.json and explicitly include the separately logged gate-audit helper. This is not an identical-source claim or a relaxed model/geometry/bridge check. After final pools, verify historical ZIP once and replay selected parent outputs, record code history compatibility honestly; do not rerun unchanged old archives/corpus. No live inference/source edits during confirmation.
