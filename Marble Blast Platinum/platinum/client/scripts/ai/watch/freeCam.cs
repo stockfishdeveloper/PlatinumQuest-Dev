@@ -16,9 +16,9 @@
 // While the agent runs at 1x with every frame drawn (watch mode: SPEED 1 and RENDEREVERY 1 from nav.real_run
 // with NAV_WATCH), and in live play (-ailive: always real time, the view pinned by ai/live/agentLive.cs) whenever
 // the marble exists, this file sends the mouse and the turn keys (left/right arrows) to the render-only yaw
-// instead. Mouse up/down is locked meanwhile (operator 2026-10-18). Since 2026-10-18 the view turns from the
-// pointer's left/right motion (MLWatchCam::holdMouse), which works through remote desktop (absolute pointer
-// positions) as well as with the PC's own mouse.
+// instead; mouse up/down tilts the view (locked 10-18 to 10-19). Since 2026-10-19 the mouse is locked to the
+// window as in normal play (MLWatchCam::holdMouse), so the pointer never leaves the window and the view keeps
+// turning however far the mouse moves (this PC's own mouse; remote desktop's absolute pointer is not supported).
 // The mouse buttons do nothing meanwhile, so the click that focuses
 // the window cannot fire the agent's powerup (left button) or blast (right button). The keyboard otherwise works
 // as usual: W/A/S/D and space still act on the marble, Esc pauses the round. Outside watch mode (menus,
@@ -61,58 +61,29 @@ function MLWatchCam::menuOpen() {
     return (isObject(ExitGameDlg) && ExitGameDlg.isAwake()) || (isObject(MPExitGameDlg) && MPExitGameDlg.isAwake());
 }
 
-// 2026-10-18 (operator: "the camera doesn't move in any direction when I move the mouse"): the operator watches
-// through Chrome Remote Desktop, which sends the mouse as ABSOLUTE pointer positions. The engine's mouse look only
-// takes RELATIVE raw-input motion while the mouse is locked (platformWin32/winWindow.cc WM_INPUT; an absolute move
-// becomes a pointer-position event and no look), so the mouse never turned the view, while the arrow keys did (a
-// local test with injected relative motion passed and missed this). The view therefore looks from the pointer's
-// position: while the agent plays at 1x and no pause menu is open, the mouse is left unlocked and the canvas cursor
-// on (GuiCanvas::processMouseMoveEvent tracks the pointer only while it is on) but not drawn, and every 16 ms the
-// pointer's left/right motion since the last tick turns the view at the game's mouse sensitivity (up/down is
-// locked, operator 2026-10-18). Local
-// relative mice work the same way (WM_MOUSEMOVE positions). At the window edge the pointer stops; move back, or use
-// the arrow keys. Otherwise the cursor goes back to what the open GUIs want (pause menu, menus after the round).
-$MLWatchCam::LastX = "";
-$MLWatchCam::LastY = "";
+// 2026-10-19 (operator: "when i go far to the right or left the mouse leaves the screen and it just stops moving the
+// camera. make it so that it never loses focus from the window"; viewing is always on this PC, never through remote
+// desktop): while the agent plays at 1x and no pause menu is open, the mouse is LOCKED to the window exactly as in
+// normal play (core/client/cursor.cs cursorOff: lockMouse(true) + no canvas cursor). The engine then confines the
+// pointer to the window (winWindow.cc setMouseClipping: ClipCursor) and reads the mouse as raw relative motion
+// (WM_INPUT), which the yaw handler below sends to the view, so the view turns however far the mouse moves and the
+// pointer never leaves the window. A GUI change can turn the cursor back on (Canvas.checkCursor -> cursorOn ->
+// unlock); the next tick locks it again. The pause menu (Esc) and the menus after the round get the cursor as usual.
+// (2026-10-18 22:50 - 10-19: the view followed the unlocked pointer's position instead, for Chrome Remote Desktop's
+// absolute pointer; the pointer then stopped at the window edge and the turning stopped with it.)
 function MLWatchCam::holdMouse() {
     %want = MLWatchCam::active() && !MLWatchCam::menuOpen();
     if (!%want) {
         if ($MLWatchCam::HoldsMouse) {
             $MLWatchCam::HoldsMouse = false;
-            $MLWatchCam::LastX = "";
-            Canvas.showCursor();
-            Canvas.checkCursor();
+            Canvas.checkCursor();   // whatever the open GUIs want now (the pause menu and the end-of-round menus: the cursor)
         }
         return;
     }
-    if (!$MLWatchCam::HoldsMouse) {
+    if (!$MLWatchCam::HoldsMouse || Canvas.isCursorOn()) {
         $MLWatchCam::HoldsMouse = true;
-        $MLWatchCam::LastX = "";
-        lockMouse(false);
+        cursorOff();               // lockMouse(true) + Canvas.cursorOff(), as in normal play
     }
-    if (!Canvas.isCursorOn()) {   // a GUI change ran Canvas.checkCursor -> cursorOff (which also locks the mouse)
-        lockMouse(false);
-        Canvas.cursorOn();
-    }
-    Canvas.hideCursor();
-    %p = Canvas.getCursorPos();
-    %x = getWord(%p, 0);
-    %y = getWord(%p, 1);
-    // "0 0" = no pointer event yet (the first real position would read as a jump)
-    if ($MLWatchCam::LastX !$= "" && !($MLWatchCam::LastX == 0 && $MLWatchCam::LastY == 0)) {
-        %dx = %x - $MLWatchCam::LastX;
-        %dy = %y - $MLWatchCam::LastY;
-        if (mAbs(%dx) < 250 && mAbs(%dy) < 250) {   // a larger jump in 16 ms = the pointer came back into the window elsewhere
-            if (%dx != 0) {   // left / right only (operator 2026-10-18: "lock up and down")
-                %d = getMouseAdjustAmount(%dx);
-                if ($pref::Input::InvertXAxis)
-                    %d = -%d;
-                MLWatchCam::turn(%d * $Game::CameraSpeedMultiplier);
-            }
-        }
-    }
-    $MLWatchCam::LastX = %x;
-    $MLWatchCam::LastY = %y;
 }
 
 // Every 16 ms (one move at 1x): turn while an arrow key is held, and take the view back when the bridge re-pins
@@ -144,12 +115,12 @@ function yaw(%val) {
         input_yaw(%d);
 }
 
-// Mouse y: locked while the agent plays at 1x (operator 2026-10-18: "lock up and down, I only need left to right").
+// Mouse y: tilts the view while the agent plays at 1x (operator 2026-10-19: "can we not lock the up/down camera
+// movement"; locked 2026-10-18 to 10-19). The camera pitch only shapes the picture: the marble moves along the camera
+// yaw alone (engine marble.cc), and the view's own yaw already ignores the mouse's effect on the agent.
 // Otherwise the game's own handler (free look key / preference).
 function pitch(%val) {
-    if (MLWatchCam::active())
-        return;
-    if ($freelooking || $pref::Input::AlwaysFreeLook || isCannonActive()) {
+    if (MLWatchCam::active() || $freelooking || $pref::Input::AlwaysFreeLook || isCannonActive()) {
         if ($pref::input::InvertYAxis)
             input_pitch(-getMouseAdjustAmount(%val));
         else
