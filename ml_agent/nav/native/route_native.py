@@ -6,13 +6,14 @@ the same answers and the same waypoint memory on the route object, ~25 us instea
 model's rollout. Cases the port does not cover (a goal field to (re)compute, a terrain without ground clearance, which
 the compiled line_clear always checks, or input types it does not model) run the Python method."""
 import math
+import threading
 
 import numpy as np
 
 import nav.routing as RT
 from nav.native.marble_sim import _ptr
 
-_BUF = {}
+_BUF = threading.local()   # per thread: the real-time server routes on two threads (realtime.py)
 _SIMS = []          # the compiled simulators of this process (nav.native.attach); route terrains registered with them
 
 
@@ -94,9 +95,9 @@ def _navigate(lib, handle, route, pos, gem):
     if (wp is not None and math.hypot(wp[0] - x, wp[1] - y) > RT.WAYPOINT_HOLD_U
             and lib.ms_line_clear(th, x, y, wp[0], wp[1], 1, z, 1, wp[2], 0, 0)):
         return wp, True
-    bufs = _BUF.get('b')
+    bufs = getattr(_BUF, 'b', None)
     if bufs is None:
-        bufs = _BUF['b'] = (np.empty(3), np.empty(3))
+        bufs = _BUF.b = (np.empty(3), np.empty(3))
     g, out = bufs; g[0] = gx; g[1] = gy; g[2] = gz
     if lib.ms_path_waypoint(th, _ptr(field), x, y, _ptr(g), 1, z, _ptr(out)):
         wp = (float(out[0]), float(out[1]), float(out[2]))

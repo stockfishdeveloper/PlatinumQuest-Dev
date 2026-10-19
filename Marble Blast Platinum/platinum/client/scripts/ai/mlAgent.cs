@@ -487,6 +487,17 @@ function MLAgent::update(%gen) {
         AIBridge::sendState("DEBUG|spinwait=" @ $AI::SpinWaitMs @ "|lockstep=" @ $AI::Lockstep @ "|fixedstep=" @ $AI::FixedStepMs);
         $AIBridge::LastAction = "";
         %actionStr = "";
+    } else if (getWord(%actionStr, 0) $= "REALTIMESTEP") {
+        // "REALTIMESTEP 0|1" (2026-10-19, real-time play, nav.marble_dynamics.realtime): built engine $AI::RealtimeStep
+        // (marbleblast_realtime.exe), each fixed step waits for its own slot of wall clock, so with FIXEDSTEP 16 a frame
+        // is simulated and drawn every 16 ms instead of four frames back-to-back when a 64 ms reply arrives. Physics
+        // unchanged. The reply says whether this exe has it: an engine integer drops the "x" of "2x", a script variable keeps it.
+        $AI::RealtimeStep = "2x";
+        %engine = $AI::RealtimeStep $= "2";
+        $AI::RealtimeStep = (getWord(%actionStr, 1) + 0) > 0;
+        echo("MLAgent: AI::RealtimeStep = " @ $AI::RealtimeStep @ (%engine ? "" : " (not in this exe)") @ " (Python server)");
+        AIBridge::sendState("DEBUG|realtime_step|" @ (%engine + 0) @ "|" @ ($AI::RealtimeStep + 0));
+        $AIBridge::LastAction = ""; %actionStr = "";
     } else if (getWord(%actionStr, 0) $= "SLOWLOG") {
         // "SLOWLOG ms" (2026-09-30, diagnostic): main-loop stages slower than this are logged by the engine
         $AI::SlowLogMs = getWord(%actionStr, 1) + 0;

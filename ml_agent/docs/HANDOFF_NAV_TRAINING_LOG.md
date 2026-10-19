@@ -12324,3 +12324,85 @@ Changes (v40, code defaults; module switches for the sim):
   projections and braking backups ~2x; exact); (2) the order-choice alternatives searched concurrently (exact); (3)
   latency-compensated planning: plan from the predicted state while the committed plan runs, plus a real-time
   emulation in sim_bench (behavior change: sims and pools); (4) a non-lockstep live mode (DYNAMICS outside lockstep).
+
+### 2026-10-19 12:40 MDT - Real-time planner play in the real game (operator: "my main goal is for us to be able to play these maps (or any map in the future) via the play > chose map option in the game i.e. in realtime")
+* New: nav/marble_dynamics/realtime.py (server on port 8888, the bridge's default: any Hunt round started from the menu
+  connects) and ml_agent/play_realtime.ps1 (starts the server and marbleblast_geometry_probe.exe -offline -aifreecam;
+  then Play > Hunt > a map). The planner is the v86 pool planner unchanged (flag set baked in as code defaults, 8 search
+  workers); the game runs 16 ms physics frames, one decision per 64 ms, lockstep, exact marble state (DYNAMICS), and every
+  reply is paced to 64 ms of wall clock, so the round plays at 1x.
+* Plan-ahead: a planner thread runs up to LEAD 5 decisions (0.32 s) ahead of the game on the observation the game will
+  send then: an exact compiled forecast of the committed replies from the newest real observation, with collected gems /
+  powerups removed (the game's per-tick pickup test). Checked offline on recorded v86 rounds (scratchpad
+  test_rt_predict.py): marble state equal to the recording in 667 / 670 windows (Sprawl) and 535 / 536 (Treasure);
+  items equal except the unknowable (new groups, powerup respawns). New gems reach the plan with up to 0.32 s delay.
+* First live round (Sprawl, game auto-started for the test, 12:34): plays well (55 points after 94 s, 0 falls; v86 pools
+  168-179 on Sprawl), but the planner averaged more than 64 ms a decision, so the game was held 477 times (38.6 s in
+  94 s: ~70 % speed). Fixed in code (not yet run live): adaptive budget (optional re-searches and the 3-target cluster
+  order only while >= 2 decisions ahead; a needed search gets the time left before the game reaches it; no budget
+  extensions) and 1x pacing of every reply (the setup exchanges had run the countdown at full speed).
+* freeCam.cs: the mouse is locked to the window as in normal play (turning never stops at the edge); up/down look is
+  locked again because the marble's camera pitch feeds its movement frame (marble.cc getMarbleAxis): a replay drifted
+  off its recording when the operator tilted. A view-only pitch needs an engine change (Marble.setViewPitch).
+* Next: run the adaptive version live (holds, points); any new map = build its collision / terrain data automatically
+  when it is first chosen (the planner needs ml_agent/collision_maps/<map>.npz + terrain map + caches).
+
+### 2026-10-19 13:20 MDT - Real-time frames (smooth 1x picture), view-only up/down look, stale-observation backlog fixed (operator: "the fps still seems to be really low like 15 fps or something, any easy way to make it as smooth as normal play?")
+* Cause of the ~15 fps: in lockstep the four 16 ms frames of a 64 ms decision ran back-to-back the moment the reply
+  arrived and the game then stood still until the next reply, so the picture moved in bursts ~15 times a second.
+* Engine (C:/Users/doug/src/OpenPQ-TGEMIT-mbx, uncommitted): $AI::RealtimeStep (FrameRateUnlock.cpp
+  TimeManagerProcessOverride, registered in main.cc): in fixed-step mode each step waits for its own slot of wall clock
+  (sleep 1 ms while more than 2 ms early, spin the rest; timeBeginPeriod(1) once via MultimediaTimer-win32.cpp
+  aiRequestMillisecondTimer); a step later than a whole slot (a hold) restarts the clock instead of a catch-up burst.
+  The steps themselves are unchanged. Also Marble.setViewPitch / clearViewPitch: a render-only pitch in
+  getCameraTransform, like setViewYaw (mLastContact, which the camera's testMove writes, is read only by the finish
+  animation). Built (incremental, ~1 min) as 'Marble Blast Platinum/marbleblast_realtime.exe'; the pool exe
+  marbleblast_geometry_probe.exe is unchanged.
+* Scripts: mlAgent.cs control word "REALTIMESTEP 0|1" (acks DEBUG|realtime_step|<engine has it>|<value>; an engine S32
+  drops the "x" of "2x", a script variable keeps it); freeCam.cs: mouse up/down drives the view-only pitch where the exe
+  has it (isMethod setViewPitch), still locked elsewhere; play_realtime.ps1 starts marbleblast_realtime.exe and logs the
+  game console to logs/realtime/play_realtime_game.txt.
+* Physics identity (scratchpad verify_rt_exe.py: replay of the v86 start0 Sprawl round, hidden window): the new exe
+  unpaced = recording exactly (600 decisions, position and velocity difference 0); the new exe with REALTIMESTEP 1 =
+  recording exactly over 1,500 decisions (96.2 s, points 54 = 54) at 64.0 ms per decision (p50; p99 65.5 ms). A first
+  paced replay "diverged" only because REALTIMESTEP was sent after the round began: its two setup ticks shifted the
+  replay by two decisions (send it during the warmup round).
+* BUG found and fixed (realtime.py): the server paced every reply to 64 ms from the first exchange. Between connect's
+  FIXEDSTEP 64 and LOCKSTEP 1 (nav/env.py set_speed) the game ran fixed frames unpaced, one observation each, for a
+  whole paced reply: ~50 observations ahead. In lockstep that backlog never shrinks, so every later reply answered an
+  observation ~50 decisions (~3 s) old, and acknowledgements sat behind it (with the new exe the setup failed:
+  "No acknowledgement: DYNAMICSWAIT"). The 12:34 live round (55 points in 94 s) most likely played on such stale
+  observations. Fix: never pace in Python unless the exe lacks real-time frames (decided in setup_round, after
+  REALTIMESTEP is acknowledged; it is sent first); env.drain() after connect and after setup; catch_up() after every
+  reply skips any observations already waiting (their points and falls kept; logged as "skipped").
+* Hidden test of the fixed server (13:16, Sprawl): setup clean, planner ready in ~6 s, GO, 18 points in the first 49 s,
+  no skipped observations. Holds: 191 longer than 20 ms in 67 s of play (10.7 s): median 44 ms (~3 frames), p90 85 ms,
+  p99 185 ms, max 0.56 s (the first search at GO); each hold freezes the picture briefly. Planner mean 45-55 ms a
+  decision, 3.2-3.6 decisions ahead on average.
+* FIRST VISIBLE REAL-TIME ROUND on the fixed server + marbleblast_realtime.exe (13:18-13:24, -autotrain Sprawl, free
+  camera): 179 points, 0 falls, 0 rescues, 0 skipped observations = the best v86 pool Sprawl round (start0 179; pools
+  168-179). Holds 684 (31.2 s in the 300 s round: the round took 335.5 s of wall clock), longest 0.41 s; planner p50
+  13 ms, p99 212 ms a decision, mean 3.75 decisions ahead; 933 of 4,718 decisions planned while fewer than 2 ahead.
+  Holds cost no points (the game is frozen during them) but show as brief freezes (~2 a second).
+* Next for smoothness: fewer holds, e.g. optional re-searches only from the lead beyond a reserve, or a larger LEAD
+  (more reaction delay to new gem groups); measure on hidden rounds one at a time (planner timing is wall clock).
+
+### 2026-10-19 17:25 MDT - Real-time server crashes: two threads on the compiled simulator (fixed)
+* The server died twice without a Python traceback: 13:24:36 (18 s into its second round) and 17:24 (129 points with
+  72 s left, after 3.5 min of a round that was ahead of the 179 round's pace). Windows Application log: python.exe,
+  0xc0000374 (heap corruption).
+* faulthandler (enabled 17:19, writes every thread's stack to logs/realtime/play_realtime.err) showed the cause: the
+  game thread's stuck check (RoutePlanner.navigate -> routing.line_clear -> ground_cache.segment ->
+  marble_sim.segment) was inside the compiled simulator while the planner thread was inside predict_native on the
+  same simulator. The compiled simulator is not safe for two threads at once.
+* Fix (realtime.py): the planner thread measures the stuck check's route distance for each new real observation with
+  its own RoutePlanner (AheadPlanner._measure_progress / progress_for); the game thread only reads it and never calls
+  route or physics code. Also: route_native's scratch buffer is per thread, AheadPlanner.stop() joins the thread (no
+  overlap with the next round's planner), faulthandler stays on. Relaunched 17:25.
+* After the fix (visible, -autotrain Sprawl, random gem spawns): round 1 150 points (0 falls, 2 stuck respawns), round 2
+  163 points (0 falls, 0 respawns); no crash. Fewer holds as a side effect (the game thread no longer routes): 382 /
+  15.7 s and 356 / 12.2 s per round (was 684 / 31.2 s), longest 0.31 / 0.21 s; a 300 s round takes 316-320 s of wall
+  clock (was 335.5 s). Earlier 179-point round for comparison: same map, other gem spawns.
+* Round 3 (17:36-17:41): 181 points, 0 falls, 0 respawns, holds 301 / 11.3 s, longest 0.18 s, 315.6 s of wall clock.
+  Above every v86 pool Sprawl round (168-179); the best real Sprawl round stays 191 (v84 pool, 10-18), so the
+  best-scores sheet is unchanged.

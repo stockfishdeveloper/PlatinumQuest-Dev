@@ -16,7 +16,8 @@
 // While the agent runs at 1x with every frame drawn (watch mode: SPEED 1 and RENDEREVERY 1 from nav.real_run
 // with NAV_WATCH), and in live play (-ailive: always real time, the view pinned by ai/live/agentLive.cs) whenever
 // the marble exists, this file sends the mouse and the turn keys (left/right arrows) to the render-only yaw
-// instead; mouse up/down tilts the view (locked 10-18 to 10-19). Since 2026-10-19 the mouse is locked to the
+// instead; mouse up/down tilts the view only in marbleblast_realtime.exe and is locked in the other exes (see pitch
+// below). Since 2026-10-19 the mouse is locked to the
 // window as in normal play (MLWatchCam::holdMouse), so the pointer never leaves the window and the view keeps
 // turning however far the mouse moves (this PC's own mouse; remote desktop's absolute pointer is not supported).
 // The mouse buttons do nothing meanwhile, so the click that focuses
@@ -26,6 +27,8 @@
 //------------------------------------------------------------------------------
 
 $MLWatchCam::Yaw = "";        // the viewer's yaw, radians; "" until the viewer first turns (starts from the pinned view)
+$MLWatchCam::Pitch = "";      // the viewer's pitch, radians; "" until the viewer first tilts (starts from the marble's)
+$MLWatchCam::PitchApplied = "";   // the marble the view pitch was last set on
 $MLWatchCam::TurnLeft = 0;    // held arrow keys, radians per move (the engine's $mvYawLeftSpeed units)
 $MLWatchCam::TurnRight = 0;
 $MLWatchCam::HoldsMouse = false;   // this file turned the cursor off (MLWatchCam::holdMouse)
@@ -54,6 +57,26 @@ function MLWatchCam::turn(%delta) {
     %y = $MLWatchCam::Yaw + %delta;
     $MLWatchCam::Yaw = %y - 6.283185307179586 * mFloor(%y / 6.283185307179586);   // [0, 2 pi) like the engine
     MLWatchCam::apply();
+}
+
+// View-only pitch (2026-10-19, operator: "can we not lock the up/down camera movement?"). marbleblast_realtime.exe has
+// Marble.setViewPitch, a render-only pitch like setViewYaw: the picture tilts while the camera pitch, which is part of
+// the movement frame, stays where the agent keeps it. Other exes do not have it; there the pitch stays locked.
+function MLWatchCam::canPitch() {
+    return isObject($MP::MyMarble) && $MP::MyMarble.isMethod("setViewPitch");
+}
+
+function MLWatchCam::applyPitch() {
+    $MP::MyMarble.setViewPitch($MLWatchCam::Pitch);
+    $MLWatchCam::PitchApplied = $MP::MyMarble.getId();
+}
+
+function MLWatchCam::tilt(%delta) {
+    if ($MLWatchCam::Pitch $= "")
+        $MLWatchCam::Pitch = $MP::MyMarble.getCameraPitch();
+    %p = $MLWatchCam::Pitch + %delta;
+    $MLWatchCam::Pitch = %p > 1.5 ? 1.5 : (%p < -0.95 ? -0.95 : %p);   // the engine's camera pitch range
+    MLWatchCam::applyPitch();
 }
 
 // The pause menu (Esc) needs the cursor.
@@ -97,6 +120,8 @@ function MLWatchCam::tick() {
         else if ($MLWatchCam::Yaw !$= "" && (!$MLAgent::ViewYawOn || $MLAgent::ViewYaw != $MLWatchCam::Yaw
                  || $MLAgent::ViewYawApplied !$= $MP::MyMarble.getId()))
             MLWatchCam::apply();
+        if ($MLWatchCam::Pitch !$= "" && $MLWatchCam::PitchApplied !$= $MP::MyMarble.getId() && MLWatchCam::canPitch())
+            MLWatchCam::applyPitch();   // a respawn makes a new marble
     }
     schedule(16, 0, "MLWatchCam::tick");
 }
@@ -115,12 +140,22 @@ function yaw(%val) {
         input_yaw(%d);
 }
 
-// Mouse y: tilts the view while the agent plays at 1x (operator 2026-10-19: "can we not lock the up/down camera
-// movement"; locked 2026-10-18 to 10-19). The camera pitch only shapes the picture: the marble moves along the camera
-// yaw alone (engine marble.cc), and the view's own yaw already ignores the mouse's effect on the agent.
+// Mouse y, while the agent plays at 1x: the view-only pitch where the exe has it (marbleblast_realtime.exe), else
+// locked. The marble's own camera pitch is not render-only: the engine builds the movement frame from the camera
+// offset (marble.cc getMarbleAxis), so tilting it moved the marble a little (2026-10-19: a replay left its recording at
+// decision 250) and real-time play needs the physics to match the planner's forecast exactly.
 // Otherwise the game's own handler (free look key / preference).
 function pitch(%val) {
-    if (MLWatchCam::active() || $freelooking || $pref::Input::AlwaysFreeLook || isCannonActive()) {
+    if (MLWatchCam::active()) {
+        if (MLWatchCam::canPitch()) {
+            %d = getMouseAdjustAmount(%val);
+            if ($pref::input::InvertYAxis)
+                %d = -%d;
+            MLWatchCam::tilt(%d * $Game::CameraSpeedMultiplier);
+        }
+        return;
+    }
+    if ($freelooking || $pref::Input::AlwaysFreeLook || isCannonActive()) {
         if ($pref::input::InvertYAxis)
             input_pitch(-getMouseAdjustAmount(%val));
         else
