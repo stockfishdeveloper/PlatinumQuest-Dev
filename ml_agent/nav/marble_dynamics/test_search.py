@@ -220,3 +220,23 @@ class SearchRegressions(unittest.TestCase):
 
 
 if __name__=='__main__':unittest.main()
+
+
+def test_apply_blast_value_charges_only_fired_blasts():
+    from nav.marble_dynamics.search import apply_blast_value
+    fired=dict(label='direct_blast_7_jump_3',cost=50.,rejected=None)
+    idle=dict(label='blast_3_jump_0',cost=50.,rejected=None)
+    roll=dict(label='route',cost=40.,rejected=None)
+    pairs=[(fired,dict(controls=[{},{'script_events':[1]}])),(idle,dict(controls=[{},{}])),(roll,dict(controls=[{}]))]
+    apply_blast_value(pairs,0.6,10.)
+    assert abs(fired['cost']-56.)<1e-9 and fired['blast_charge_u']==6.
+    assert idle['cost']==50. and roll['cost']==40.
+    apply_blast_value(pairs,0.,10.);assert abs(fired['cost']-56.)<1e-9
+
+
+def test_apply_blast_value_floor():
+    from nav.marble_dynamics.search import apply_blast_value
+    fired=dict(label='blast_3_jump_0',cost=50.,rejected=None)
+    pairs=[(fired,dict(controls=[{'script_events':[1]}]))]
+    apply_blast_value(pairs,0.2,10.,5.)
+    assert abs(fired['cost']-57.)<1e-9 and abs(fired['blast_charge_u']-7.)<1e-9

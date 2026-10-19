@@ -139,6 +139,33 @@ def save_queries(mesh):
         write_cache(path,key,saved)
 
 
+class GoalFieldMemo:
+    """Exact memo of TerrainGrid.goal_field for one static walking terrain (2026-10-16).
+
+    The field depends only on the snapped source node and the graph, so goals that snap to the same node share one
+    read-only array (an in-place write would raise instead of corrupting the cache). The resource search switches
+    the route between the gem and every powerup item: v41 Bowl recomputed 153 fields (30 ms each) in one decision.
+    """
+    def __init__(self, terrain, entries=16):
+        self.terrain=terrain;self.compute=terrain.goal_field;self.entries=int(entries)
+        from collections import OrderedDict
+        self.fields=OrderedDict();self.hits=0;self.misses=0
+
+    def __call__(self, x, y, jumps=True, z=None):
+        t=self.terrain
+        if t._graph is None:return self.compute(x,y,jumps=jumps,z=z)
+        j,i=t.cell_of(x,y);src=t._nearest_walkable(j,i,radius=3,z=z)
+        graph=t._graph if (jumps or t._graph_nojump is None) else t._graph_nojump
+        key=(src,id(graph));field=self.fields.get(key)
+        if field is None:
+            field=self.compute(x,y,jumps=jumps,z=z);field.setflags(write=False)
+            self.fields[key]=field;self.misses+=1
+            while len(self.fields)>self.entries:self.fields.popitem(last=False)
+        else:
+            self.fields.move_to_end(key);self.hits+=1
+        return field
+
+
 def cached_walking(terrain, mesh, dll, folder, memo=True):
     from nav.marble_dynamics.geometry_route import GroundClearance,walking_terrain
     from nav.marble_dynamics.ground_cache import MemoGroundClearance
@@ -162,6 +189,7 @@ def cached_walking(terrain, mesh, dll, folder, memo=True):
         with file_lock(query_path.with_suffix('.lock')):segments=read_cache(query_path,key)
         if segments is not None:result.ground_clearance.regions=segments
         result.ground_clearance.persistent_file=query_path;result.ground_clearance.persistent_key=key
+    result.goal_field=GoalFieldMemo(result)
     result.geometry_route_report.update(persistent_graph_cache_hit=hit,
         current_setup_s=time.perf_counter()-started,original_construction_s=result.geometry_route_report['construction_s'])
     return result

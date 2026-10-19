@@ -32,7 +32,7 @@ from nav.marble_dynamics.bridge import predict_replies,reply
 from nav.marble_dynamics.evaluate import errors
 from nav.marble_dynamics.events import external_changes
 from nav.marble_dynamics.navigator import FrozenNavigator
-from nav.marble_dynamics.search import search,assess,PlanMemory,retained_candidate,useful_candidate
+from nav.marble_dynamics.search import search,assess,PlanMemory,retained_candidate,useful_candidate,safe_hold_choice,actor_forecast_unsafe
 from nav.marble_dynamics.resources import choose_resource,item_goal
 from nav.marble_dynamics.geometry_route import walking_terrain
 from nav.marble_dynamics.recharge import choose_recharge
@@ -48,14 +48,125 @@ from nav.marble_dynamics.viability import ordinary_recovery
 from nav.source_archive import snapshot_sources
 
 
+def edge_ahead(mesh,state,horizon_s=1.0,step_s=0.1,depth=4.0):
+    """True when the free roll along the current velocity reaches a point with no floor below.
+
+    A conservative floor-continuity sample, used only to decide whether the
+    unchecked actor fallback is safe; it never chooses a route.
+    """
+    p=np.asarray(state['position'],dtype=float);v=np.asarray(state['velocity'],dtype=float)
+    speed=float(np.linalg.norm(v[:2]))
+    if speed<1.:return False
+    r=float(state['radius']);t=step_s
+    while t<=horizon_s+1e-9:
+        q=p+v*t
+        hit=mesh.raycast(np.array([q[0],q[1],p[2]+r+.5]),np.array([q[0],q[1],p[2]-depth]),cull_backfaces=True)
+        if hit is None:return True
+        t+=step_s
+    return False
+
+
+PLANNER_TOUR_TURN_U=6.   # u charged per full reversal at a gem in the planner's tour (= nav.gems default). v28 tried 12 on
+                         # 2026-10-15: 109.0 / 98.4 vs 109.5 / 101.2 (Treasure +15, KOTM +5; Cragmire -16, Duplex -14), not kept.
+RESEARCH_PROGRESS_PLANS=True  # 2026-10-16 v47 (operator: "it drives until it hits the wall, only then jumps and blasts"): a kept plan
+                          # that collects nothing no longer skips the search. Every decision searches; a plan that collects a gem
+                          # replaces it, otherwise the kept plan stays. Before, a 'get closer' plan was reused without searching
+                          # for as long as it stayed valid (v45 Treasure s1 decisions ~620-663: 2 s of an A2 hop approach into the
+                          # wall while a fresh search would have found a jump + Blast pickup 1.4 s out).
+RESEARCH_EVERY=1          # 2026-10-16 v50: with a kept no-pickup plan, search every N-th decision (1 = every decision, v47); v50 tried 3: 114.8 vs 120.0, NOT adopted
+LEARNED_OTHER_GEMS=False  # 2026-10-16 v43: pick() gives the learned (A2) proposal only to the target gem. When the target has
+                          # no useful plan, pick() searches every visible gem; the A2 rollout (Python, 3.7 ms per reply) was
+                          # 60 % of those searches (Cragmire 7 gems: 0.6-0.8 of 1.0-1.2 s) and it won for a non-target gem
+                          # in 1.0 % of fresh searches (v41/v42), while 683 v42 decisions still ran into the 2 s deadline.
+NATIVE_FORECAST=True     # 2026-10-16: forecasts run in nav/native (compiled physics, routing and controllers; bit-identical to
+                         # the Python port on 1,620 recorded search candidates, ~10x faster). The DLL is part of the inputs.
+
+
+STALL_PLATFORM_U=25.       # 2026-10-17 v66 tests 25 (v63 adopted 15): a stalled raised gem also drops the gems on its platform (within this many u
+                            # horizontally, within 1 u of its height; the stalled gem >= 1.5 u above the marble); 0 = off
+
+
+STALL_RAISED_S=0.          # 2026-10-17 v64: stall time for a gem >= --stall-rise-u above the marble (0 = --stall-rule-s)
+
+
+STALL_FETCH=True           # 2026-10-17 v65 tests False: a stall asks the inventory hypotheses for a powerup to fetch (Super Jump /
+                            # Helicopter) before the gem is skipped; tonight's fetch rounds scored below the stall-only rounds
+
+
+def same_platform(g,ref,marble_z):
+    """v63: gem g sits on the same raised platform as the stalled gem ref (unreachable for the same reason)."""
+    if not STALL_PLATFORM_U:return False
+    g=np.asarray(g[:3],dtype=float);r=np.asarray(ref[:3],dtype=float)
+    return bool(np.linalg.norm(g[:2]-r[:2])<=STALL_PLATFORM_U and abs(g[2]-r[2])<=1. and r[2]-float(marble_z)>=1.5)
+
+
+def walk_distance(terrain,fields,a,g):
+    """Walk-grid distance from point a to gem g (the tour's measure); inf off the walking grid (a crossing or a climb)."""
+    key=goal_key(g)
+    if key not in fields:fields[key]=terrain.goal_field(g[0],g[1],jumps=False,z=g[2])
+    return float(terrain.dist_at(fields[key],a[0],a[1],g[:2],z=a[2]))
+
+
+def endgame_order(dist,position,gems,time_left_s,current):
+    """v75: (first gem, next gem) of an order of up to ENDGAME_DEPTH gems that reaches a HIGHER-VALUE gem (value g[3])
+    than any order from `current` can, judged robustly: the orders from `current` are timed optimistically
+    (ENDGAME_FAST), the switched order pessimistically (ENDGAME_SLOW), and the switched order must also collect at least
+    ENDGAME_MIN_GAIN more points; else None (the planner's target stands)."""
+    budget=float(time_left_s)-ENDGAME_MARGIN_S;n=len(gems)
+    if not n or budget<=0:return None
+    ci=next((i for i,g in enumerate(gems) if current is not None and np.linalg.norm(np.asarray(g[:3])-np.asarray(current[:3]))<.1),None)
+    if ci is None:return None
+    dcache={}
+    def d(i,j):   # walk distance from gem i (the marble for i = -1) to gem j; inf off the walking grid
+        if (i,j) not in dcache:dcache[(i,j)]=dist(position if i<0 else gems[i][:3],gems[j])
+        return dcache[(i,j)]
+    # only where walking reaches the planner's target: crossings and climbs stay the planner's (a Cube sim episode fell
+    # when the target changed mid-crossing)
+    if not math.isfinite(d(-1,ci)):return None
+    def orders(firsts,speed,pick_s):
+        best={}
+        def dfs(order,t,pts,top):
+            r=best.get(order[0])
+            if r is None or (pts,-t)>(r[0],r[1]):best[order[0]]=(pts,-t,list(order),max(top,r[3] if r else 0.))
+            else:best[order[0]]=(r[0],r[1],r[2],max(top,r[3]))
+            if len(order)>=ENDGAME_DEPTH:return
+            for j in range(n):
+                if j in order:continue
+                tt=t+d(order[-1],j)/speed+pick_s
+                if tt<=budget:
+                    order.append(j);dfs(order,tt,pts+float(gems[j][3]),max(top,float(gems[j][3])));order.pop()
+        for i in firsts:
+            t0=d(-1,i)/speed+pick_s
+            if t0<=budget:dfs([i],t0,float(gems[i][3]),float(gems[i][3]))
+        return best
+    mine=orders([ci],*ENDGAME_FAST).get(ci)
+    mine_pts,mine_top=(mine[0],mine[3]) if mine else (0.,0.)
+    ok=[r for r in orders([i for i in range(n) if i!=ci],*ENDGAME_SLOW).values()
+        if r[3]>mine_top and r[0]>=mine_pts+ENDGAME_MIN_GAIN]
+    if not ok:return None
+    order=max(ok,key=lambda r:(r[0],r[1]))[2]
+    return gems[order[0]],(gems[order[1]] if len(order)>1 else None)
+
+
 def tour(terrain,fields,raw,current):
     gems=visible_gems(raw)
     def distance(a,g):
         key=goal_key(g)
         if key not in fields:fields[key]=terrain.goal_field(g[0],g[1],jumps=False,z=g[2])
         return terrain.dist_at(fields[key],a[0],a[1],g[:2],z=a[2])
-    gem,nxt=plan_tour(gems,current,raw[:3],raw[3:5],dist=distance)
+    gem,nxt=plan_tour(gems,current,raw[:3],raw[3:5],dist=distance,turn_u=PLANNER_TOUR_TURN_U)
     return gem,nxt,gems
+
+
+def runtime_stem(args,name,seed,kind,round_index=None):
+    """Runtime native/decision file stem, unique per pool.
+
+    Parallel children run in <pool>/_jobs/<map>.<seed>.<kind>; two pools with the same
+    seeds shared that name, so on 2026-10-15 concurrent start_0/start_1 pools wrote into
+    ONE runtime journal (their archived journals mixed both rounds). Prefix the pool.
+    """
+    out=Path(args.output);pool=out.parent.parent.name+'__' if out.parent.name=='_jobs' else ''
+    return pool+out.name+'_'+name+'_'+str(seed)+'_'+kind+('' if round_index is None else '_'+str(round_index))
 
 
 def pending_reply_matches(observed,sent):
@@ -66,19 +177,165 @@ def pending_reply_matches(observed,sent):
     return all(bool(observed[i])==bool(sent[i]) for i in (4,6,8))
 
 
+def blast_meter(dynamics):
+    blast=dynamics.get('blast') if isinstance(dynamics,dict) else None
+    return float(blast['value']) if blast and blast.get('enabled',True) else None
+
+
+CORNER_DEFAULT=True       # v70: corner-speed through plans on (search.CORNER_PROPOSALS; with the cluster re-ranking)
+ENDGAME_S=15.             # 2026-10-17 v75 (operator: "prioritize getting the highest value gem in the final seconds of the
+                          # round"): in the last ENDGAME_S s the target switches to an order that reaches a higher-value gem
+                          # than any order from the planner's own target can (endgame_order)
+ENDGAME_FAST=(12.,.3)     # (u/s of walk distance, s per gem): the optimistic timing of the orders from the planner's target
+ENDGAME_SLOW=(7.5,.7)     # the pessimistic timing of a switched order (v70 travel: 9.4 u/s along the path; the estimate is
+                          # rough: on Cragmire rocks it gave the planner's own path 2 points where that path took 8)
+ENDGAME_DEPTH=4           # gems per order
+ENDGAME_MARGIN_S=.5       # an order's gem counts only when reached this long before the end
+ENDGAME_MIN_GAIN=1.       # points the switched order must add (timed pessimistically) over the planner's (optimistically)
+DETOUR_MAX_RISE_U=3.      # 2026-10-17 v74: no opportunistic powerup detour to an item this far above the marble (v70: 4 of
+                          # 19 such detours got it; Vortex ~10 s a round climbing to a raised powerup, Cragmire ~5 s, 0 of 8)
+ORDER_CANDIDATES=3        # cluster order choice: first-target candidates (tour target + nearest others; 1 = off)
+ORDER_RADIUS_U=12.
+ORDER_REST_SPEED=6.        # u/s for the run from the next gem to the nearest gem left
+ORDER_COMMIT_S=3.          # a chosen first target other than the tour's stays the target this long
+ORDER_MIN_LEFT_S=.35
+ORDER_EXTRA_S=.8            # v69: the alternatives may run this far past the search deadline (pools: the game waits)
+ORDER_MARGIN=2.             # replies an alternative first target must save over the tour's       # skip the alternatives when less than this much of the search budget is left
+
+
+def order_choice(engine,route,dynamics,raw,gems,current,nav,horizon,memory,brake_replies,preserve_resources):
+    """(chosen, pairs, first target, next gem) for the best first target in a cluster, or None."""
+    import time as _t
+    from nav.marble_dynamics.search import useful_candidate as _useful
+    position=np.asarray(dynamics['native']['state']['position'],dtype=float)
+    near=[g for g in gems if np.linalg.norm(np.asarray(g[:2])-position[:2])<=ORDER_RADIUS_U]
+    if current is None or len(near)<2:return None
+    others=sorted([g for g in near if np.linalg.norm(np.asarray(g[:3])-np.asarray(current[:3]))>.1],
+                  key=lambda g:float(np.linalg.norm(np.asarray(g[:2])-position[:2])))
+    cands=[current]+others[:max(0,ORDER_CANDIDATES-1)]
+    best=None;results=[];extended=False;dl0=getattr(engine,'planning_deadline',None)
+    for X in cands:
+        if X is not current and not extended and dl0 is not None:
+            engine.planning_deadline=dl0+ORDER_EXTRA_S;extended=True
+        dl=getattr(engine,'planning_deadline',None)
+        if X is not current and dl is not None and dl-_t.perf_counter()<ORDER_MIN_LEFT_S:break
+        rest=[g for g in gems if np.linalg.norm(np.asarray(g[:3])-np.asarray(X[:3]))>.1]
+        if not rest:continue
+        Y=min(rest,key=lambda g:float(np.linalg.norm(np.asarray(g[:2])-np.asarray(X[:2]))))
+        rest2=[g for g in rest if np.linalg.norm(np.asarray(g[:3])-np.asarray(Y[:3]))>.1]
+        tail=min((float(np.linalg.norm(np.asarray(g[:2])-np.asarray(Y[:2]))) for g in rest2),default=0.)/(ORDER_REST_SPEED*.064)
+        engine.next_for={goal_key(X):Y}
+        route.navigate(position,X[:3]);start=route.distance(position)
+        warm=memory.remaining if memory.gem and np.linalg.norm(np.asarray(memory.gem)-np.asarray(X[:3]))<.1 else None
+        engine._light_search=X is not current
+        try:chosen,pairs=search(engine,route,dynamics,raw,np.asarray(X[:3]),nav,horizon,warm=warm,brake_replies=brake_replies,learned=X is current)
+        except PlanningBudgetExceeded:
+            engine._light_search=False
+            if X is current:raise
+            break
+        finally:engine._light_search=False
+        c=_useful(pairs,route,start,preserve_resources)
+        if not c or c[0].get('possible_pickup_interval') is None:
+            results.append((X,Y,None,None,pairs));continue
+        tl=c[0].get('two_level_replies')
+        if tl is None:tl=c[0]['possible_pickup_interval']+float(np.linalg.norm(np.asarray(Y[:2])-np.asarray(X[:2])))/(ORDER_REST_SPEED*.064)
+        total=float(tl)+tail
+        results.append((X,Y,total,c,pairs))
+        margin=0. if X is current else ORDER_MARGIN
+        if best is None or total+margin<best[2]:best=(X,Y,total,c,pairs)
+    if extended:engine.planning_deadline=dl0
+    engine.next_for={goal_key(current):getattr(engine,'_tour_next',None)} if getattr(engine,'_tour_next',None) is not None else {}
+    if best is None:return None
+    X,Y,total,c,pairs=best
+    engine.next_for={goal_key(X):Y}
+    engine.order_stats=getattr(engine,'order_stats',None) or Counter()
+    engine.order_stats['evaluated']+=1;engine.order_stats['switched']+=int(X is not current)
+    route.navigate(position,np.asarray(X[:3]))
+    return c,[p for r_ in results for p in [{**q[0],'gem':list(r_[0][:3]),'search_horizon':horizon} for q in r_[4]]],X,Y
+
+
 def pick(engine,route,dynamics,raw,gems,current,nav,horizon,memory,brake_replies=0,recovery_horizon=0,target_item=None,preserve_resources=False):
     position=dynamics['native']['state']['position'];all_pairs=[];options=[]
-    for index,gem in enumerate([current]+[g for g in gems if np.linalg.norm(np.asarray(g[:3])-current[:3])>.1]):
-        route.navigate(position,gem[:3]);start=route.distance(position)
-        warm=memory.remaining if memory.gem and np.linalg.norm(np.asarray(memory.gem)-gem[:3])<.1 else None
-        chosen,pairs=search(engine,route,dynamics,raw,gem[:3],nav,horizon,warm=warm,brake_replies=brake_replies,target_item=target_item)
-        chosen=useful_candidate(pairs,route,start,preserve_resources)
-        all_pairs.extend([{**p[0],'gem':list(gem[:3]),'search_horizon':horizon} for p in pairs])
+    if (ORDER_CANDIDATES>1 and target_item is None and not getattr(engine,'crossing_phase',False)
+            and getattr(engine,'crossings',None) is not None and not getattr(engine,'endgame',False)):
+        oc=order_choice(engine,route,dynamics,raw,gems,current,nav,horizon,memory,brake_replies,preserve_resources)
+        if oc is not None:
+            chosen,pp,X,Y=oc;engine.order_pick=(list(X),list(Y));engine.safe_hold=None
+            return chosen,pp,X
+    crossings=getattr(engine,'crossings',None);engine.last_crossing_phase=None
+    engine.safe_hold=None
+    detour=float(getattr(engine,'opportunistic_powerups',0.) or 0.)
+    if detour>0 and target_item is None and int(dynamics['native']['state']['held'])==0 and not getattr(engine,'endgame',False):
+        # Holding nothing: a visible powerup that costs little extra walking on the
+        # way to the current gem becomes the goal (pickup credited by the item bounds).
+        from nav.marble_dynamics.resources import item_goal
+        items=[i for i in dynamics.get('items',[]) if not i['gem'] and 1<=i['powerup']<=5]
+        route.navigate(position,current[:3]);direct=route.distance(position);best=None
+        for item in items:
+            q=item['position']
+            if np.linalg.norm(np.asarray(q)-position)>25.:continue
+            if float(q[2])-float(position[2])>=DETOUR_MAX_RISE_U:continue
+            route.navigate(q,current[:3]);rest=route.distance(q)
+            route.navigate(position,q);to=route.distance(position)
+            extra=to+rest-direct
+            if math.isfinite(extra) and extra<=detour and (best is None or extra<best[0]):best=(extra,item)
+        if best is not None:
+            item=best[1];goal=item_goal(item,np.asarray(position,dtype=float))
+            route.navigate(position,goal[:3]);start=route.distance(position)
+            chosen,pairs=search(engine,route,dynamics,raw,goal[:3],nav,horizon,brake_replies=brake_replies,target_item=item)
+            chosen=useful_candidate(pairs,route,start,preserve_resources)
+            all_pairs.extend([{**p[0],'gem':list(goal[:3]),'search_horizon':horizon,'opportunistic_powerup':item['powerup'],'detour_u':best[0]} for p in pairs])
+            if chosen:
+                info,rollout=chosen;progress=start-route.distance(rollout['states'][-1]['position'])
+                if info.get('possible_pickup_interval') is not None or progress>.3:
+                    info.update(goal_kind='opportunistic_powerup',item_id=item['id'],powerup=item['powerup'],detour_u=best[0])
+                    route.navigate(position,goal[:3]);return chosen,all_pairs,goal
+    ordered=[current]+[g for g in gems if np.linalg.norm(np.asarray(g[:3])-current[:3])>.1]
+    for index,gem in enumerate(ordered):
+        phase=None;crossing=None
+        if crossings is not None and target_item is None:
+            # A gem on another walking component: pursue the narrowest crossing
+            # (launch cell, then landing cell) instead of aiming over the edge.
+            gem,phase,crossing=crossings.stage(position,gem,velocity=dynamics['native']['state']['velocity'],meter=blast_meter(dynamics),route=route)
+            if index==0:engine.last_crossing_phase=phase
+            if phase=='charge' and index<len(ordered)-1:
+                # The climb needs more Blast than we hold: collect other gems while
+                # the meter charges instead of waiting under the ledge.
+                all_pairs.append(dict(label='charge_skipped',gem=list(gem[:3]),crossing_phase=phase,crossing=crossing,rejected='blast_charging'))
+                continue
+        engine.crossing_phase=(phase=='cross');engine.crossing=crossing if phase=='cross' else None
+        # A climb needs its Blast meter: while approaching or charging, candidates
+        # that would spend it are not forecast (a pickup on the way is still won
+        # by the ordinary candidates).
+        engine.blast_reserved=bool(crossing and crossing.get('climb') and phase in ('approach','charge'))
+        try:
+            route.navigate(position,gem[:3]);start=route.distance(position)
+            if index==0:
+                # v62: each target's starting distance (route length when it first became the target); plans for a
+                # target that started >= search.ARRIVAL_FAR_U away keep search.ARRIVAL_MIN_SPEED at the pickup
+                from nav.marble_dynamics import search as _S
+                key=goal_key(gem[:3]) if phase is None else None;leg=getattr(engine,'leg_start',None)
+                if key is not None and (leg is None or leg[0]!=key):engine.leg_start=leg=(key,float(start))
+                engine.arrival_fast=key if key is not None and math.isfinite(leg[1]) and leg[1]>=_S.ARRIVAL_FAR_U else None
+            warm=memory.remaining if memory.gem and np.linalg.norm(np.asarray(memory.gem)-gem[:3])<.1 else None
+            chosen,pairs=search(engine,route,dynamics,raw,gem[:3],nav,horizon,warm=warm,brake_replies=brake_replies,target_item=target_item,
+                                learned=index==0 or LEARNED_OTHER_GEMS)
+        finally:engine.crossing_phase=False;engine.blast_reserved=False;engine.crossing=None
+        if index==0:
+            # v22 safe hold: the gate-checked plans for the current target, used
+            # (best one with a braking backup) only when nothing useful is found
+            engine.safe_hold=(pairs,list(gem),dynamics)
+        from nav.marble_dynamics.search import keep_blast_for
+        chosen=useful_candidate(pairs,route,start,preserve_resources,keep_blast=target_item is None and keep_blast_for(position,gem))
+        all_pairs.extend([{**p[0],'gem':list(gem[:3]),'search_horizon':horizon,'crossing_phase':phase,'crossing':crossing} for p in pairs])
         if chosen:
             info,rollout=chosen;progress=start-route.distance(rollout['states'][-1]['position'])
             pickup=info.get('possible_pickup_interval')
             if pickup is not None or progress>.3:
-                rank=(int(pickup is not None),float(gem[3])/max((pickup or horizon)*.064,.064),progress)
+                # v25: a plan with a braking backup outranks any penalised one across gems too (v24 Cube s0:
+                # a backed-up stop for the target lost to a neighbour's pickup plan that then fell off the edge)
+                backed=int(not info.get('no_braking_backup') and not info.get('braking_backup_unchecked'))
+                rank=(backed,int(pickup is not None),float(gem[3])/max((pickup or horizon)*.064,.064),progress)
                 options.append((rank,chosen,gem))
                 if index==0:break
     if not options:
@@ -105,7 +362,7 @@ def branch(env,proc,world,name,seed,kind,args,terrain,engine,checkpoint_hash):
     nav=FrozenNavigator(terrain,args.checkpoint)
     proposal_terrain=args.geometry_terrain if kind=='physics_plan' and args.geometry_route else terrain
     route=RoutePlanner(proposal_terrain);fields={};memory=PlanMemory()
-    raw_file=RUNTIME/(args.output.name+'_'+name+'_'+str(seed)+'_'+kind+'.jsonl')
+    raw_file=RUNTIME/(runtime_stem(args,name,seed,kind)+'.jsonl')
     command(env,'DYNAMICSRECORD '+raw_file.as_posix(),'dynamics_record')
     match.update(start_native_sim_clock_ms=env.msg.dynamics['native']['state']['clock_ms'],
         start_native_frame_clock_ms=env.msg.dynamics['native']['frame_clock_ms'],
@@ -116,7 +373,7 @@ def branch(env,proc,world,name,seed,kind,args,terrain,engine,checkpoint_hash):
     initial=float(env.msg.obs[RAW_SCORE]);logs=[];pickups=[];searches=[];current=None;stop='decision_budget'
     started=time.perf_counter();lock_steps=0;reuse_steps=0;full_search_steps=0;cancelled=[];budget_stop_elapsed=None
     resource=None;resource_decisions=[];acquisitions=[];recharge_decisions=[];landing_decisions=[];landing_events=[];global_goal_decisions=[];short_decisions=[]
-    journal=(RUNTIME/(args.output.name+'_'+name+'_'+str(seed)+'_'+kind+'.decisions.jsonl')).open('w',encoding='utf-8',buffering=1)
+    journal=(RUNTIME/(runtime_stem(args,name,seed,kind)+'.decisions.jsonl')).open('w',encoding='utf-8',buffering=1)
     while len(logs)<args.decisions:
         if (args.output/'STOP').exists():stop='operator_stop';break
         snapshot=copy.deepcopy(env.msg.dynamics);state=snapshot['native']['state'];raw=env.msg.obs.copy()
@@ -362,7 +619,7 @@ class ContinuousController:
             self.nav=FastNavigator(engine.mesh,args.fast_checkpoint,terrain=terrain,base_checkpoint=checkpoint,cache_dir=getattr(args,'cache_dir',None))
         else:self.nav=FrozenNavigator(terrain,checkpoint)
         self.route=RoutePlanner(args.geometry_terrain if kind in ('physics_plan','physics_plan_reference','geometry_navigator','fast_navigator') and args.geometry_route else terrain)
-        self.memory=PlanMemory();self.fields={};self.current=None;self.resource=None
+        self.memory=PlanMemory();self.fields={};self.current=None;self.resource=None;self.order_commit=None
         self.task_goal=None
         # Progress queries must not change the route used to produce actions.
         self.progress_route=RoutePlanner(self.route.terrain)
@@ -371,6 +628,13 @@ class ContinuousController:
         self.commit_left=0;self.cooldown=0;self.last_prediction=None;self.last_action=None
         self.counts=Counter();self.fallback_reasons=Counter();self.planning_times=[]
         self.observed_respawns=None
+        # v20 (2026-10-15) stall rule: route progress toward the current gem is
+        # tracked per goal; no progress for --stall-rule-s seconds means the gem
+        # is not reachable from here with what we hold (a ledge above, a wall):
+        # ask the inventory hypotheses for a powerup that would make it
+        # reachable and go fetch it, else drop the gem for --stall-skip-s.
+        self.stall=None;self.stall_pending=False;self.skipped={};self.decision_index=0
+        self.fall_log={};self.last_fall_decision=-999
         engine.use_completed_candidates_on_timeout=True
         engine.navigator_first=getattr(args,'navigator_first',False)
 
@@ -380,7 +644,7 @@ class ContinuousController:
 
     def invalidate(self,reason,reset_actor=False):
         self.memory.clear();self.current=None;self.resource=None;self.commit_left=0
-        self.task_goal=None
+        self.task_goal=None;self.stall=None;self.stall_pending=False
         self.last_prediction=None;self.last_action=None;self.cooldown=0;self.route.reset()
         if getattr(self,'actor_task_route',None) is not None:self.actor_task_route.reset()
         self.observed_respawns=None
@@ -392,6 +656,22 @@ class ContinuousController:
             else:self.nav=FrozenNavigator(self.terrain,model=self.nav.model)
 
     def observe(self,before,msg,outcome):
+        if outcome['fell'] and not outcome['round_ended'] and self.uses_physics and self.current is not None:
+            # v22b: a fall resets the stall timer (invalidate), so a gem whose every
+            # approach ends off an edge was chased forever (v22 Cube s0: 11 falls in
+            # 60 s on one edge gem). Two falls pursuing the same gem within 60 s
+            # skip it (and its cluster) like a stalled gem.
+            now=self.decision_index
+            if now-self.last_fall_decision>30:
+                key=goal_key(self.current)
+                hist=[t for t in self.fall_log.get(key,[]) if now-t<=int(60/.064)]+[now];self.fall_log[key]=hist
+                if len(hist)>=2:
+                    until=now+int(float(getattr(self.args,'stall_skip_s',20.) or 20.)/.064)
+                    cluster_u=float(getattr(self.args,'stall_cluster_u',6.) or 0.)
+                    self.skipped[key]=until;self.counts['fall_goal_skipped']+=1
+                    for g in observed_gems(msg.dynamics,msg.obs):
+                        if cluster_u and np.linalg.norm(np.asarray(g[:3])-np.asarray(self.current[:3]))<=cluster_u:self.skipped[goal_key(g)]=until
+            self.last_fall_decision=now
         if outcome['round_ended'] or outcome['reconnected'] or outcome['fell']:
             self.invalidate('round_or_fall',reset_actor=True);return
         game_context=msg.dynamics.get('game_context',{})
@@ -411,7 +691,11 @@ class ContinuousController:
         if picked and not events and self.memory.observe_pickup(picked,msg.dynamics['items']):
             self.counts['post_pickup_landing']+=1;self.commit_left=0
         elif events or (picked and not self.memory.landing_mode):
+            # keep-plan: the remainder of the checked plan that was running at the pickup becomes the fallback for
+            # the next decisions whose searches find nothing useful (instead of the A2 actor)
+            keep=list(self.memory.remaining) if (picked and not events and getattr(self.args,'keep_plan',False)) else None
             self.invalidate('observed_context_or_pickup')
+            if keep and len(keep)>=4:self.continue_plan=keep
 
     def _search(self,snapshot,raw,target,gems,remaining,skip_new_search=False):
         a=self.args;engine=self.engine;route=self.route;memory=self.memory
@@ -431,8 +715,15 @@ class ContinuousController:
                 return retained,memory.landing_goal+[0.,-1.]
             task=getattr(self,'task_goal',None)
             self.invalidate('landing_revalidation_failed');return None,task if task is not None else target
+        # A gem on another walking component is pursued through a staged crossing
+        # goal; stage it here too so remembered plans toward the launch/landing
+        # cell can be revalidated cheaply instead of forcing a full search.
+        staged=target
+        if getattr(engine,'crossings',None) is not None and self.resource is None and target is not None:
+            staged,_,_=engine.crossings.stage(state['position'],target,velocity=state['velocity'],meter=blast_meter(snapshot),route=self.route)
         if memory.locked:
             held=next((g for g in gems if np.linalg.norm(np.asarray(g[:3])-memory.gem)<.1),None)
+            if held is None and staged is not None and np.linalg.norm(np.asarray(staged[:3])-memory.gem)<.1:held=staged
             if held is not None:
                 target=held;route.navigate(state['position'],target[:3])
                 forecast=predict_replies(engine,snapshot,memory.remaining,stop_on_ambiguity=True)
@@ -447,14 +738,83 @@ class ContinuousController:
                 self.counts['resource_goal_observed_end']+=1;self.resource=None;memory.clear()
             else:
                 self.resource=present;target=item_goal(present,np.asarray(state['position']));gems=[target]
+        if self.stall_pending and self.resource is None and not memory.landing_mode:
+            self.stall_pending=False
+            # v22: every gem has a stall timer; only a gem above the marble can be
+            # made reachable by a fetched Super Jump/Helicopter, the others are skipped.
+            rise=float(getattr(a,'stall_rise_u',1.5) or 0.)
+            raised=target is not None and (not rise or float(target[2])-float(state['position'][2])>=rise)
+            if a.resource_acquisition and raised:
+                # The inventory hypotheses are several full searches (9-18 s
+                # unbudgeted on Treasure): inside the ordinary 2 s deadline they
+                # never finish. A stall is rare and has already cost 5 s, so give
+                # this one search its own budget (--stall-budget-s).
+                budget=float(getattr(a,'stall_budget_s',6.) or 0.)
+                saved=engine.planning_deadline
+                if budget:engine.planning_deadline=time.perf_counter()+budget
+                try:
+                    # Only the powerups that add height (Super Jump, Helicopter) can
+                    # make a gem above the marble reachable; a plain pickup that the
+                    # ordinary search already predicts needs no fetch at all.
+                    plain,_=search(engine,route,snapshot,raw,np.asarray(target[:3]),self.nav,48,brake_replies=0)
+                    plain_pickup=plain is not None and plain[0].get('possible_pickup_interval') is not None
+                    narrowed=copy.deepcopy(snapshot)
+                    narrowed['items']=[i for i in snapshot.get('items',[]) if i.get('gem') or i.get('powerup') in (1,5)]
+                    chosen=None
+                    if STALL_FETCH and not plain_pickup and any(not i.get('gem') for i in narrowed['items']):
+                        chosen,item,resource_target,_,_=choose_resource(engine,route,narrowed,raw,target,self.nav,
+                            48,a.brake_continuation,a.preserve_resources)
+                except PlanningBudgetExceeded:chosen=None
+                finally:engine.planning_deadline=saved
+                self.counts['stall_resource_searches']+=1
+                if chosen:
+                    self.resource=item;memory.clear();self.commit_left=0;self.counts['stall_resource_goals']+=1
+                    info,forecast=chosen;memory.accept(forecast,info['label'],resource_target[:3],info)
+                    return chosen,resource_target
+            skip_s=float(getattr(a,'stall_skip_s',20.) or 20.);cluster_u=float(getattr(a,'stall_cluster_u',6.) or 0.)
+            until=self.decision_index+int(skip_s/.064);self.skipped[goal_key(target)]=until
+            for g in gems:
+                # the neighbours on the same platform are unreachable for the same reason
+                if ((cluster_u and np.linalg.norm(np.asarray(g[:3])-np.asarray(target[:3]))<=cluster_u)
+                        or same_platform(g,target,state['position'][2])):self.skipped[goal_key(g)]=until
+            self.counts['stall_goal_skipped']+=1
+            memory.clear();self.commit_left=0;self.stall=None
+            alive=[g for g in gems if goal_key(g) not in self.skipped]
+            if alive:
+                target=alive[0];staged=target;route.navigate(state['position'],target[:3])
+                if getattr(engine,'crossings',None) is not None:
+                    staged,_,_=engine.crossings.stage(state['position'],target,velocity=state['velocity'],meter=blast_meter(snapshot),route=self.route)
+        held=None
         if a.reuse_plan:
-            retained=retained_candidate(engine,route,snapshot,np.asarray(target[:3]),memory,target_item=self.resource)
+            retained=retained_candidate(engine,route,snapshot,np.asarray((staged if staged is not None else target)[:3]),memory,target_item=self.resource)
             if retained:
-                self.counts['remaining_plan_revalidations']+=1;return retained,target
-        if skip_new_search:return None,target
+                if (not RESEARCH_PROGRESS_PLANS or retained[0].get('possible_pickup_interval') is not None
+                        or memory.label=='safe_hold'):
+                    self.counts['remaining_plan_revalidations']+=1;return retained,target
+                held=retained
+                # v50: between re-searches the kept plan simply runs (one search every RESEARCH_EVERY decisions)
+                self.research_wait=getattr(self,'research_wait',0)+1
+                if self.research_wait<RESEARCH_EVERY:
+                    self.counts['remaining_plan_revalidations']+=1;self.counts['research_waited']+=1
+                    return retained,target
+        self.research_wait=0
+        if skip_new_search:
+            if held is not None:self.counts['remaining_plan_revalidations']+=1
+            return held,target
         self.counts['full_searches']+=1
+        kept_target=target
+        engine.order_pick=None
         chosen,pairs,target=pick(engine,route,snapshot,raw,gems,target,self.nav,a.horizon,memory,
             a.brake_continuation,a.recovery_horizon,self.resource,a.preserve_resources)
+        op=getattr(engine,'order_pick',None)
+        if op is not None and np.linalg.norm(np.asarray(op[0][:3])-np.asarray(kept_target[:3]))>.1:
+            self.order_commit=(op[0],op[1],self.decision_index+int(ORDER_COMMIT_S/.064));self.counts['order_switch']+=1
+        if held is not None and not (chosen and chosen[0].get('possible_pickup_interval') is not None):
+            # v47: nothing new collects a gem, so the running plan stays (no switching between plans that only get closer)
+            self.counts['remaining_plan_revalidations']+=1;self.counts['research_kept_plan']+=1
+            route.navigate(snapshot['native']['state']['position'],np.asarray((staged if staged is not None else kept_target)[:3]))
+            return held,kept_target
+        if held is not None:self.counts['research_found_pickup']+=1
         if not chosen and a.resource_acquisition and self.resource is None:
             chosen,item,resource_target,_,_=choose_resource(engine,route,snapshot,raw,target,self.nav,
                 max(a.horizon,a.recovery_horizon),a.brake_continuation,a.preserve_resources)
@@ -478,9 +838,55 @@ class ContinuousController:
         context=dynamics.get('game_context',{})
         self.observed_respawns=context['respawns'] if context.get('available') else None
         target,nxt,gems=tour(self.terrain,self.fields,raw,self.current)
+        oc=getattr(self,'order_commit',None)
+        if oc is not None:
+            alive=[g for g in visible_gems(raw) if np.linalg.norm(np.asarray(g[:3])-np.asarray(oc[0][:3]))<.1]
+            if alive and self.decision_index<oc[2]:
+                target=alive[0];nn=[g for g in visible_gems(raw) if np.linalg.norm(np.asarray(g[:3])-np.asarray(oc[1][:3]))<.1]
+                nxt=nn[0] if nn else nxt
+            else:self.order_commit=None
+        self.engine.endgame=False
+        if (ENDGAME_S and self.uses_physics and self.resource is None and not self.memory.landing_mode
+                and float(raw[31])<=ENDGAME_S*1000. and getattr(self.engine,'last_crossing_phase',None) is None):
+            # v75: the last seconds of the round go to a higher-value gem when the planner's own order cannot reach one
+            eg=endgame_order(lambda a,g:walk_distance(self.terrain,self.fields,a,g),state['position'],
+                             observed_gems(dynamics,raw),float(raw[31])/1000.,target)
+            if eg is not None:
+                target,nxt=eg;self.order_commit=None;self.engine.endgame=True;self.counts['endgame_target']+=1
+        self.engine._tour_next=nxt
+        # v22 through-gem: the tour's next gem after this target scores the part of
+        # a plan that follows the pickup (search.through_context).
+        self.engine.next_for={goal_key(target):nxt} if target is not None and nxt is not None else {}
         if self.kind in ('physics_plan','physics_plan_reference','geometry_navigator','fast_navigator') and self.args.global_goals:
             gems=observed_gems(dynamics,raw)
             if target is None and gems:target=gems[0]
+        self.decision_index+=1
+        stall_s=float(getattr(self.args,'stall_rule_s',0.) or 0.)
+        rise_min=float(getattr(self.args,'stall_rise_u',1.5) or 0.)
+        raised_only=getattr(self.args,'stall_raised_only',False)
+        if self.uses_physics and stall_s>0 and target is not None and self.resource is None and not self.memory.landing_mode and state['mode']==0 and not state['oob']                 and (not raised_only or not rise_min or float(target[2])-float(state['position'][2])>=rise_min):
+            now=self.decision_index
+            self.skipped={k:v for k,v in self.skipped.items() if v>now}
+            if self.skipped:
+                alive=[g for g in gems if goal_key(g) not in self.skipped]
+                if alive:
+                    if goal_key(target) in self.skipped:target=alive[0]
+                    gems=alive
+            key=goal_key(target);self.progress_route.navigate(state['position'],target[:3]);d=self.progress_route.distance(state['position'])
+            if not math.isfinite(d):d=float(np.linalg.norm(np.asarray(target[:3])-np.asarray(state['position'])))
+            cluster_u=float(getattr(self.args,'stall_cluster_u',6.) or 0.)
+            if self.stall is None:self.stall=dict(key=key,goal=list(target[:3]),best=d,since=now)
+            elif self.stall['key']!=key:
+                # A switch to a neighbouring gem (same platform / cluster) is not
+                # progress: keep the timer, re-base the distance on the new goal.
+                if ((cluster_u and np.linalg.norm(np.asarray(target[:3])-np.asarray(self.stall['goal']))<=cluster_u)
+                        or same_platform(target,self.stall['goal'],state['position'][2])):
+                    self.stall.update(key=key,goal=list(target[:3]),best=d)
+                else:self.stall=dict(key=key,goal=list(target[:3]),best=d,since=now)
+            elif d<self.stall['best']-1.:self.stall['best']=d;self.stall['since']=now
+            elif (now-self.stall['since'])*.064>=(STALL_RAISED_S if STALL_RAISED_S and rise_min
+                                                   and float(target[2])-float(state['position'][2])>=rise_min else stall_s):
+                self.counts['stall_detected']+=1;self.stall_pending=True;self.stall['since']=now
         if target is not None and (not self.memory.landing_mode or
                 not destination_context(dynamics,getattr(self,'task_goal',None))['candidate_item_ids']):
             self.task_goal=list(target)
@@ -499,6 +905,7 @@ class ContinuousController:
                 self.cooldown-=1;reason='search_cooldown'
             else:
                 if preserve_cooldown and cooldown_before:self.cooldown-=1
+                self.engine.safe_hold=None   # set by this decision's pick() only (never a stale state)
                 self.engine.planning_deadline=t0+self.args.search_budget_s if self.args.search_budget_s else None
                 try:
                     if preserve_cooldown:
@@ -508,6 +915,42 @@ class ContinuousController:
                 except PlanningBudgetExceeded:reason='planning_time_budget'
                 except ValueError as exc:reason='unsupported_context:'+str(exc)
                 finally:self.engine.planning_deadline=None
+                kept=(getattr(self,'continue_plan',None) or (list(self.memory.remaining) if self.memory.actions else None)) if getattr(self.args,'keep_plan',False) else None
+                if not chosen and kept and len(kept)>=2 and self.resource is None and not self.memory.landing_mode:
+                    # keep-plan: revalidate the kept remainder from the current state (same gates as any plan)
+                    try:
+                        saved_deadline=self.engine.planning_deadline;self.engine.planning_deadline=None
+                        try:kroll=predict_replies(self.engine,dynamics,kept,stop_on_ambiguity=True)
+                        finally:self.engine.planning_deadline=saved_deadline
+                        kinfo=assess(self.engine,self.route,dynamics,np.asarray(target[:3],dtype=float),kroll,'continue_plan',None)
+                        if kinfo['rejected'] is None:
+                            kinfo=dict(kinfo,label='continue_plan',primary_fallback_reason=reason)
+                            chosen=(kinfo,kroll);reason=None;self.counts['continue_plan']+=1
+                            self.memory.accept(kroll,'continue_plan',list(target[:3]),kinfo)
+                        else:self.counts['continue_plan_rejected']+=1
+                    except ValueError:self.counts['continue_plan_error']+=1
+                    self.continue_plan=None
+                elif chosen:self.continue_plan=None
+                hold=getattr(self.engine,'safe_hold',None)
+                if (not chosen and hold is not None and not getattr(self.args,'no_safe_hold',False) and self.resource is None
+                        and not self.memory.landing_mode and getattr(self.engine,'last_crossing_phase',None) not in ('cross','charge')):
+                    # v22: no useful plan anywhere; the best plan that passed every physics
+                    # gate for the current target and keeps a braking backup beats the
+                    # unchecked actor (every fall in the clean v16/v21 start_2 journals
+                    # followed an actor streak).
+                    hpairs,hgem,hdyn=hold
+                    # v22c: hold only when the actor's own forecast is unsafe; a parked
+                    # marble trips the 8 s no-progress rescue (v22b Cube s0: respawned
+                    # 100 u away twice, 65 s without a pickup) where the actor explores.
+                    actor_unsafe=actor_forecast_unsafe(self.engine,hdyn,hpairs,np.asarray(hgem[:3],dtype=float))
+                    picked=safe_hold_choice(self.engine,hdyn,hpairs,np.asarray(hgem[:3],dtype=float)) if actor_unsafe else None
+                    if not actor_unsafe:self.counts['safe_hold_actor_safe']+=1
+                    if picked is not None:
+                        hinfo,hroll=picked;hinfo=dict(hinfo)
+                        hinfo.update(safe_hold_from=hinfo.get('label'),label='safe_hold',primary_fallback_reason=reason)
+                        chosen=(hinfo,hroll);reason=None;self.counts['safe_holds']+=1
+                        self.memory.accept(hroll,'safe_hold',list(hgem[:3]),hinfo)
+                    elif actor_unsafe:self.counts['safe_hold_none']+=1
                 if not chosen and reason is None:
                     reason='search_cooldown' if preserve_cooldown and cooldown_before else 'no_checked_candidate'
                 if not chosen and not (preserve_cooldown and cooldown_before):self.cooldown=self.args.fallback_cooldown
@@ -556,7 +999,23 @@ class ContinuousController:
             self.last_prediction=forecast['states'][1];self.counts['planner_decisions']+=1
         else:
             action=actor_action;self.last_prediction=None
-            info=dict(label='A2_fallback' if self.uses_physics else self.kind,reason=reason)
+            if self.uses_physics and getattr(self.engine,'last_crossing_phase',None) in ('cross','charge'):
+                # At a gap with no checked crossing candidate, or waiting for the
+                # Blast meter a climb needs, brake rather than let the local actor
+                # drive over the edge or wander off.
+                from nav.marble_dynamics.gem_demo import Proposal
+                action=Proposal(np.asarray(target[:3],dtype=float),brake=True)(state,0)
+                self.counts['crossing_brake_fallback']+=1
+                if getattr(self.engine,'last_crossing_phase',None)=='cross':self.engine.crossings.braked()
+                info=dict(label='crossing_brake',reason=reason)
+            elif self.uses_physics and getattr(self.args,'safe_fallback',False) and edge_ahead(self.engine.mesh,state):
+                # The free roll along the current velocity leaves the floor within
+                # about a second: brake instead of handing the marble to the actor.
+                from nav.marble_dynamics.gem_demo import Proposal
+                action=Proposal(np.asarray(target[:3],dtype=float),brake=True)(state,0)
+                self.counts['edge_brake_fallback']+=1
+                info=dict(label='edge_brake',reason=reason)
+            else:info=dict(label='A2_fallback' if self.uses_physics else self.kind,reason=reason)
             if self.uses_physics:
                 self.memory.clear();self.resource=None;self.counts['fallback_decisions']+=1
                 self.fallback_reasons[reason]+=1
@@ -695,6 +1154,16 @@ def full_round_branch(env,proc,name,seed,kind,args,terrain,engine,checkpoint_has
     """Score original-duration native rounds; partial runs remain explicitly invalid."""
     folder=args.output/name/str(seed)/kind/str(round_index);folder.mkdir(parents=True,exist_ok=False)
     env.control('FIXEDSTEP '+str(args.physics_frame_ms)+' 64')
+    watch=bool(getattr(args,'watch',False))
+    if watch:
+        # Operator viewing: draw every frame; replies are paced below. The free
+        # camera (watch/freeCam.cs) only turns the view when the game speed is 1.
+        env.speed=1;env.control('SPEED 1');env.control('RENDEREVERY 1')
+    recorder=None
+    if getattr(args,'record_video',None):
+        # 2026-10-16 operator viewing: film the real round, one frame per 64 ms decision (round_video.py)
+        from nav.marble_dynamics.round_video import WindowRecorder
+        recorder=WindowRecorder(proc.pid,args.record_video)
     command(env,'DYNAMICSLIVE 1','dynamics_live')
     env.replay_world=None
     env.control('REPLAYCAPTURE 1')
@@ -713,8 +1182,8 @@ def full_round_branch(env,proc,name,seed,kind,args,terrain,engine,checkpoint_has
     atomic_json(folder/'initial_context.json',dict(dynamics=context,raw=env.msg.obs.tolist(),
         start_time_left_s=start_left,initial_score=initial,round_seconds=duration,
         startup_neutral_decisions=startup_neutral_decisions))
-    native=RUNTIME/(args.output.name+'_'+name+'_'+str(seed)+'_'+kind+'_'+str(round_index)+'.jsonl')
-    journal=native.with_suffix('.decisions.jsonl');started=time.perf_counter()
+    native=RUNTIME/(runtime_stem(args,name,seed,kind,round_index)+'.jsonl')
+    journal=native.with_suffix('.decisions.jsonl');started=time.perf_counter();next_tick=started
     command(env,'DYNAMICSRECORD '+native.as_posix(),'dynamics_record')
     decisions=falls=0;points=0.;played=0.;uses=Counter();controls=[];latencies=[]
     stop='unknown';completed=False;in_fall=False
@@ -736,6 +1205,12 @@ def full_round_branch(env,proc,name,seed,kind,args,terrain,engine,checkpoint_has
             if action[6] or action[8]:uses[int(before[RAW_POW_HELD])]+=1
             msg,outcome=env.step(action[:6],repeat=1,use_pow=int(action[6]),
                 pow_yaw=action[7] if action[6] else None,use_blast=int(action[8]))
+            if recorder is not None:recorder.capture()
+            if watch and recorder is None:
+                # Real time for a human viewer: one 64 ms decision per 64 ms of wall clock.
+                next_tick+=.064;slack=next_tick-time.perf_counter()
+                if slack>0:time.sleep(slack)
+                else:next_tick=time.perf_counter()
             points+=max(0.,float(outcome['gem_delta']));decisions+=1
             stream.write(json.dumps(dict(decision=decisions,tick=msg.tick,before=dynamics,
                 raw_observation=before.tolist(),action=action,choice=choice,latency_s=elapsed,
@@ -749,6 +1224,7 @@ def full_round_branch(env,proc,name,seed,kind,args,terrain,engine,checkpoint_has
                 if not in_fall:falls+=1
                 in_fall=True
                 env.control('OOBCLICK');controller.invalidate('legal_oob_click',reset_actor=True);controls.clear()
+                if recorder is not None:recorder.capture()
                 points+=max(0.,float(env.control_info['gem_delta']))
                 if env.control_info['round_ended'] or env.control_info['reconnected']:
                     completed=bool(env.control_info['round_ended'] and not env.control_info['reconnected'])
@@ -777,6 +1253,9 @@ def full_round_branch(env,proc,name,seed,kind,args,terrain,engine,checkpoint_has
     score=env.last_round_score if completed else None
     atomic_json(folder/'final_context.json',dict(dynamics=env.msg.dynamics,raw=env.msg.obs.tolist(),completed=completed))
     command(env,'DYNAMICSRECORD off','dynamics_record')
+    if recorder is not None:
+        video=recorder.close();atomic_json(folder/'video.json',video)
+        print(json.dumps(dict(video=video)),flush=True)
     archive(native,folder/'native.jsonl.gz');archive(journal,folder/'decisions.jsonl.gz')
     valid=bool(completed and initial==0 and duration>0 and duration-.256<=start_left<=duration+.01
                and score is not None and math.isfinite(score) and score>=0 and abs(points-score)<.01)
@@ -859,7 +1338,45 @@ def main():
     p.add_argument('--only-branch',choices=['fast_navigator','geometry_navigator','physics_plan','frozen_navigator','physics_plan_reference'])
     p.add_argument('--map-index-offset',type=int,default=0)
     p.add_argument('--prepared-parent',type=Path,help=argparse.SUPPRESS)
+    p.add_argument('--landing-continuation',type=int,default=0,help='Planner: a candidate that ends airborne is continued with ordinary route following for up to this many replies and scored at its landing instead of being rejected; 0 keeps the original rejection')
+    p.add_argument('--pickup-landing-continuation',type=int,default=0,help='Planner: only a candidate whose forecast already collects the gem but is still airborne at the horizon is continued for up to this many replies and scored at its landing; 0 keeps the original rejection')
+    p.add_argument('--ballistic-reserve-s',type=float,default=0.,help='Planner: stop forecasting new candidates this many seconds before the search deadline so the ballistic landing projections of the candidates already forecast still run')
+    p.add_argument('--safe-fallback',action='store_true',help='Planner: when a search finds nothing, brake instead of using the local actor if the free roll along the current velocity leaves the floor within ~1 s')
+    p.add_argument('--ballistic-landing',action='store_true',help='Planner (operator-approved 10-14): a candidate still airborne at the horizon is continued with NO input (coarse parabola filter, exact engine projection for the best few) and judged at its settled landing; the sent plan is that prefix plus the no-input tail')
+    p.add_argument('--opportunistic-powerups',type=float,default=4.,help='Planner (default 4 since 2026-10-17 v58, adopted; v53 tried 8): while holding no powerup, pick up a visible one whose walking detour on the way to the current gem is at most this many units (0 = off)')
+    p.add_argument('--component-crossing',action='store_true',help='Planner: a gem on another walking component is pursued via the narrowest gap between the components (route to the launch cell, then jump to the landing cell with landing-continued candidates); general, no map rules')
+    p.add_argument('--blast-value-u',type=float,default=10.,help='Planner: a candidate that fires the Blast is charged meter * this many route units (opportunity cost of the emptied meter); 0 = free Blast (pre-2026-10-14 22:30 behaviour)')
+    p.add_argument('--stall-rule-s',type=float,default=5.,help='Planner: seconds without >= 1 u of route progress toward the current gem before the inventory hypotheses are asked for a powerup that makes it reachable (fetch it) or the gem is dropped for --stall-skip-s; 0 = off (pre-v20)')
+    p.add_argument('--stall-cluster-u',type=float,default=6.,help='Planner: gems within this distance of a stalled gem count as the same target for the stall timer and the skip (0 = per gem)')
+    p.add_argument('--stall-rise-u',type=float,default=1.5,help='Planner: the stall rule applies only when the gem is at least this far above the marble (0 = any stalled gem)')
+    p.add_argument('--stall-budget-s',type=float,default=6.,help='Planner: wall-clock budget for the one powerup-fetch search that a stall triggers (0 = the ordinary search budget)')
+    p.add_argument('--stall-skip-s',type=float,default=20.,help='Planner: how long a stalled, unhelpable gem stays dropped')
+    p.add_argument('--end-velocity-weight',type=float,default=.12,help='Planner: cost per u/s of a candidate end speed (negative = credit; +0.12 = pre-v17 penalty)')
+    p.add_argument('--waypoint-brake-law',action='store_true',help='Planner: restore the pre-v16 stopping law (brake for the next waypoint and to a stop at the gem); default = brake on the remaining route length with a %.0f u/s floor'%6.)
+    p.add_argument('--brake-decel',type=float,default=7.,help='Planner proposals: deceleration (u/s^2) assumed by the stopping law target_speed = sqrt(2*decel*distance)')
+    p.add_argument('--speed-cap',type=float,default=11.,help='Planner proposals: top target speed (u/s); 13.5 = v26 (tied v23, more falls)')
+    p.add_argument('--throttle-gain',type=float,default=4.,help='Planner proposals: commanded acceleration (u/s^2) per unit of stick; 12 = pre-v23')
+    p.add_argument('--throttle-cap',type=float,default=1.,help='Planner proposals: stick ceiling; 0.85 = pre-v23')
+    p.add_argument('--no-safe-hold',action='store_true',help='Planner: pre-v22 fallback (the unchecked actor drives whenever no useful plan is found)')
+    p.add_argument('--stall-raised-only',action='store_true',help='Planner: pre-v22 stall rule (timer only for gems at least --stall-rise-u above the marble)')
+    p.add_argument('--no-braking-backup',action='store_true',help='Planner: pre-v22 selection (no braking-backup check of the chosen plan after its horizon)')
+    p.add_argument('--corner-proposals',action='store_true',help='Planner v38 (under test): through proposals that slow to the turn speed at the gem')
+    p.add_argument('--raised-blast-first',action='store_true',help='Planner v39 (under test): Blast families first below a nearby raised gem')
+    p.add_argument('--keep-plan',action='store_true',help='Planner (under test): after a pickup, the running plan remainder replaces the A2 fallback while searches find nothing useful')
+    p.add_argument('--open-top',action='store_true',help='Planner (v36, under test): top target speed 13.5 u/s far from drops (11 within 4 u, linear to 8 u)')
+    p.add_argument('--no-through-gem',action='store_true',help='Planner: pre-v22 scoring (a pickup plan is scored by its end distance from the collected gem) and no through proposals')
+    p.add_argument('--pickup-min-speed',type=float,default=6.,help='Planner: floor on the target speed when driving at a gem (u/s); 0 = stop at the gem')
+    p.add_argument('--blast-floor-u',type=float,default=0.,help='Planner: fixed charge (route units) for any candidate that fires the Blast, on top of meter * --blast-value-u; 0 = none (v12/v13 behaviour)')
+    p.add_argument('--detour-blast-ratio',type=float,default=1.5,help='Planner: when the walking route is at least this many times the straight-line distance to the gem and the Blast meter is charged, forecast the Blast+jump families first; 0 = never')
+    p.add_argument('--climb-crossings',action='store_true',help='Planner (with --component-crossing): also stage climbs onto higher levels (strong components, Blast charge phase, far-side landing rule); v8-v10 of 2026-10-14, lost points on Concentric/Cube, default off')
+    p.add_argument('--use-margin-s',type=float,default=0.,help='Planner: a powerup-use candidate must beat the best non-use candidate by this many seconds of nominal rolling (8 u/s) unless it alone predicts a pickup; 0 = no margin')
+    p.add_argument('--use-first',action='store_true',help='Planner: when holding a powerup, forecast its use candidates right after the two route candidates so the search deadline cannot starve them')
+    p.add_argument('--use-horizon',type=int,default=0,help='Planner: powerup-use candidates (Super Jump, Super Speed, Bounce, Absorber) are forecast over at least this many replies so the effect is judged over its duration; Helicopter keeps 96; 0 keeps the ordinary horizon')
+    p.add_argument('--interleave-candidates',action='store_true',help='Planner: evaluate candidate families round-robin (drive, jump, blast, powerup, steering) so a search deadline does not starve the later families; acceptance gates unchanged')
+    p.add_argument('--record-video',type=Path,default=None,help='Operator viewing: film the real round to this MP4 (one frame per 64 ms decision, plays at 1x; implies --watch without real-time pacing; keep the window uncovered)')
+    p.add_argument('--watch',action='store_true',help='Operator viewing only: visible game window with the free camera (-aifreecam), every frame drawn, replies paced to real time; one worker, not comparison evidence')
     a=p.parse_args()
+    if getattr(a,'record_video',None):a.watch=True   # the window must be visible and drawn every frame
     if not 1<=a.workers<=8:p.error('Workers must be1?8')
     if a.workers>1 and not a.full_round:p.error('Parallel workers require full rounds')
     if a.cache_dir and not (a.sweep_dll and a.query_cache and a.geometry_route):p.error('Persistent caches require compiled/query/geometry routing')
@@ -909,6 +1426,12 @@ def main():
         for path in (a.sweep_dll,ML/'nav/collision/experimental_sweep.py',ML/'nav/collision/sweep_kernel.cpp',ML/'nav/collision/build_sweep_kernel.ps1'):
             sources[str(path)]=sha(path)
         dest=a.output/'external_artifacts'/a.sweep_dll.name;dest.parent.mkdir();dest.write_bytes(a.sweep_dll.read_bytes())
+    if NATIVE_FORECAST:
+        from nav.native.marble_sim import DEFAULT_DLL as _native_dll
+        for path in sorted((ML/'nav/native').glob('*.py'))+[ML/'nav/native/marble_sim.cpp',ML/'nav/native/controllers.inc',
+                                                            ML/'nav/native/build.ps1',Path(_native_dll)]:
+            sources[str(path)]=sha(path)
+        dest=a.output/'external_artifacts'/'marble_sim.dll';dest.parent.mkdir(exist_ok=True);dest.write_bytes(Path(_native_dll).read_bytes())
     # Preserve executable Python/script source alongside hashes so later edits
     # cannot erase the exact implementation that produced this batch.
     if a.prepared_parent:
@@ -965,13 +1488,51 @@ def main():
         mesh=(CachedCompiledSweepMap if a.query_cache else CompiledSweepMap)(path,a.sweep_dll) if a.sweep_dll else (CachedCollisionMap if a.query_cache else CollisionMap)(path)
         if a.cache_dir:load_queries(mesh,a.sweep_dll,a.cache_dir)
         engine=GeneralPhysics(mesh)
+        if NATIVE_FORECAST:
+            from nav.native import attach
+            attach(engine)
         engine.bridge_physics_ms=a.physics_frame_ms
         engine.terminal_stop_replies=a.terminal_stop_replies
         engine.terminal_stop_scope=a.terminal_stop_scope
+        engine.landing_replies=getattr(a,'landing_continuation',0)
+        engine.pickup_landing_replies=getattr(a,'pickup_landing_continuation',0)
+        engine.use_horizon=getattr(a,'use_horizon',0)
+        engine.use_first=getattr(a,'use_first',False)
+        engine.blast_value_u=float(getattr(a,'blast_value_u',10.))
+        engine.blast_floor_u=float(getattr(a,'blast_floor_u',0.))
+        import nav.marble_dynamics.gem_demo as _gem_demo
+        _gem_demo.END_VELOCITY_WEIGHT=float(getattr(a,'end_velocity_weight',.12))
+        _gem_demo.THROTTLE_GAIN=float(getattr(a,'throttle_gain',4.));_gem_demo.THROTTLE_CAP=float(getattr(a,'throttle_cap',1.))
+        _gem_demo.BRAKE_DECEL=float(getattr(a,'brake_decel',7.))
+        _gem_demo.TARGET_SPEED_CAP=float(getattr(a,'speed_cap',11.))
+        import nav.marble_dynamics.search as _search
+        _search.ROUTE_SPEED_LAW=not getattr(a,'waypoint_brake_law',False)
+        _search.PICKUP_MIN_SPEED=float(getattr(a,'pickup_min_speed',6.))
+        _search.THROUGH_GEM=not getattr(a,'no_through_gem',False)
+        _search.OPEN_TOP=13.5 if getattr(a,'open_top',False) else 0.
+        _search.RAISED_BLAST_FIRST=bool(getattr(a,'raised_blast_first',False))
+        _search.CORNER_PROPOSALS=CORNER_DEFAULT or bool(getattr(a,'corner_proposals',False))
+        _search.BRAKING_BACKUP=not getattr(a,'no_braking_backup',False)
+        engine.detour_blast_ratio=float(getattr(a,'detour_blast_ratio',1.5) or 0.) or math.inf
+        engine.use_margin_u=float(getattr(a,'use_margin_s',0.) or 0.)*float(getattr(engine,'ballistic_time_rate',8.) or 8.)
+        engine.interleave_candidates=getattr(a,'interleave_candidates',False)
         if a.geometry_route:
             a.geometry_terrain=cached_walking(terrain,mesh,a.sweep_dll,a.cache_dir,memo=a.clearance_cache) if a.cache_dir else walking_terrain(terrain,engine.mesh)
             if a.clearance_cache and not a.cache_dir:a.geometry_terrain.ground_clearance=MemoGroundClearance(a.geometry_terrain.ground_clearance)
             atomic_json(a.output/(name+'.geometry_route.json'),a.geometry_terrain.geometry_route_report)
+            if NATIVE_FORECAST:engine.native_sim.bind_clearance(a.geometry_terrain)
+        engine.ballistic_landing=getattr(a,'ballistic_landing',False)
+        engine.ballistic_reserve_s=getattr(a,'ballistic_reserve_s',0.)
+        engine.opportunistic_powerups=getattr(a,'opportunistic_powerups',0.)
+        engine.mission_bounds=None
+        try:
+            from nav.marble_dynamics.fast_nav import mission_inbounds
+            engine.mission_bounds=mission_inbounds(json.loads((ML/'collision_maps'/(name+'.json')).read_text()))
+        except (ValueError,OSError):engine.mission_bounds=None
+        engine.crossings=None
+        if getattr(a,'component_crossing',False):
+            from nav.marble_dynamics.crossings import Crossings
+            engine.crossings=Crossings(a.geometry_terrain if a.geometry_route else terrain,mesh=engine.mesh,climbs=getattr(a,'climb_crossings',False))
         FrozenNavigator(terrain,a.checkpoint)
         for seed in a.seeds:
             # New native games load scripts from disk. Refuse a mixed-version
@@ -988,7 +1549,7 @@ def main():
                     if any(sha(Path(source))!=digest for source,digest in sources.items()):
                         raise RuntimeError('Full-round source changed during declared batch')
                     native_seed=a.start_seeds[name]['seed'] if a.start_seed_manifest else seed
-                    with game(name,a.port,obs_ms=64,seed=native_seed,process_cap=8,random_start=a.random_starts) as (env,proc):
+                    with game(name,a.port,obs_ms=64,seed=native_seed,process_cap=8,random_start=a.random_starts,watch=a.watch) as (env,proc):
                         env.set_game_rules(False)
                         # The mechanics game factory warms up midround. Wait for
                         # the NEXT actual native round; do not pretend that warm
@@ -1008,7 +1569,7 @@ def main():
                                     dynamics=env.msg.dynamics,raw=env.msg.obs.tolist(),
                                     time_left_s=env.time_left_s(),round_ended=env.round_ended,
                                     reconnected=env.reconnected,recent_lines=env.recent_lines))
-                                stem=a.output.name+'_'+name+'_'+str(seed)+'_'+kind+'_'+str(ri)
+                                stem=runtime_stem(a,name,seed,kind,ri)
                                 raw=RUNTIME/(stem+'.jsonl');journal=raw.with_suffix('.decisions.jsonl')
                                 for path,label in ((raw,'native'),(journal,'decisions')):
                                     if path.exists():archive(path,dest/(label+'.failed.jsonl.gz'))
@@ -1046,7 +1607,7 @@ def main():
                         dest=folder/kind;dest.mkdir(exist_ok=True)
                         try:command(env,'DYNAMICSRECORD off','dynamics_record')
                         except Exception:pass
-                        stem=a.output.name+'_'+name+'_'+str(seed)+'_'+kind
+                        stem=runtime_stem(a,name,seed,kind)
                         raw=RUNTIME/(stem+'.jsonl');journal=RUNTIME/(stem+'.decisions.jsonl')
                         if raw.exists():archive(raw,dest/'native.failed.jsonl.gz')
                         if journal.exists():

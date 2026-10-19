@@ -14,6 +14,8 @@ class MemoGroundClearance:
         if entries<1:raise ValueError('Positive clearance cache capacity required')
         self.original=original;self.entries=int(entries);self.regions=OrderedDict()
         self.hits=0;self.misses=0;self.checked=0;self.blocked=0
+        # 2026-10-16: nav.native NativeSim.bind_clearance sets the compiled predicate (bit-identical) for misses
+        self.native_segment=None
 
     @property
     def radius(self):return self.original.radius
@@ -26,7 +28,7 @@ class MemoGroundClearance:
         if key in self.regions:
             clear=self.regions[key];self.hits+=1;self.regions.move_to_end(key)
         else:
-            clear=self.original.segment(start,end);self.regions[key]=clear;self.misses+=1
+            clear=(self.native_segment or self.original.segment)(start,end);self.regions[key]=clear;self.misses+=1
             if len(self.regions)>self.entries:self.regions.popitem(last=False)
         self.blocked+=int(not clear)
         return clear

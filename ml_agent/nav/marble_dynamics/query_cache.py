@@ -20,25 +20,30 @@ class CachedCollisionMap(CollisionMap):
         self.query_regions=OrderedDict();self.cache_hits=0;self.cache_misses=0
 
     def query_aabb(self,lo,hi):
-        lo=np.asarray(lo);hi=np.asarray(hi)
-        lower_values=tuple(map(float,lo));upper_values=tuple(map(float,hi));span=4*self.cache_cell
-        if not all(math.isfinite(a) and math.isfinite(b) and 0<=b-a<=span for a,b in zip(lower_values,upper_values)):
+        # Same exact semantics as before (2026-10-15 speed-up: scalar maths
+        # instead of array/tuple conversions on this hot path).
+        try:
+            l0=float(lo[0]);l1=float(lo[1]);l2=float(lo[2]);h0=float(hi[0]);h1=float(hi[1]);h2=float(hi[2])
+        except (TypeError,IndexError,ValueError):
+            return super().query_aabb(lo,hi)
+        cell=self.cache_cell;span=4*cell
+        if not (math.isfinite(l0) and math.isfinite(l1) and math.isfinite(l2) and math.isfinite(h0) and math.isfinite(h1) and math.isfinite(h2)
+                and 0<=h0-l0<=span and 0<=h1-l1<=span and 0<=h2-l2<=span):
             return super().query_aabb(lo,hi)
         try:
-            key=tuple(math.floor(v/self.cache_cell) for v in lower_values)+tuple(math.ceil(v/self.cache_cell) for v in upper_values)
+            key=(math.floor(l0/cell),math.floor(l1/cell),math.floor(l2/cell),math.ceil(h0/cell),math.ceil(h1/cell),math.ceil(h2/cell))
         except OverflowError:
             return super().query_aabb(lo,hi)
-        lower=tuple(v*self.cache_cell for v in key[:3]);upper=tuple(v*self.cache_cell for v in key[3:])
         # Check every lookup: two rounded division results can share a key
         # even when one request lies outside the cached enclosing region.
-        if any(a>b for a,b in zip(lower,lower_values)) or any(a<b for a,b in zip(upper,upper_values)):
+        if key[0]*cell>l0 or key[1]*cell>l1 or key[2]*cell>l2 or key[3]*cell<h0 or key[4]*cell<h1 or key[5]*cell<h2:
             return super().query_aabb(lo,hi)
-        ids=self.query_regions.get(key)
+        regions=self.query_regions;ids=regions.get(key)
         if ids is None:
-            ids=super().query_aabb(lower,upper);self.query_regions[key]=ids;self.cache_misses+=1
-            if len(self.query_regions)>self.cache_entries:self.query_regions.popitem(last=False)
+            ids=super().query_aabb((key[0]*cell,key[1]*cell,key[2]*cell),(key[3]*cell,key[4]*cell,key[5]*cell));regions[key]=ids;self.cache_misses+=1
+            if len(regions)>self.cache_entries:regions.popitem(last=False)
         else:
-            self.cache_hits+=1;self.query_regions.move_to_end(key)
+            self.cache_hits+=1;regions.move_to_end(key)
         low=self.lo[ids];high=self.hi[ids]
-        keep=(high[:,0]>=lo[0])&(low[:,0]<=hi[0])&(high[:,1]>=lo[1])&(low[:,1]<=hi[1])&(high[:,2]>=lo[2])&(low[:,2]<=hi[2])
+        keep=(high[:,0]>=l0)&(low[:,0]<=h0)&(high[:,1]>=l1)&(low[:,1]<=h1)&(high[:,2]>=l2)&(low[:,2]<=h2)
         return ids[keep]

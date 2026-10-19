@@ -59,15 +59,18 @@ def command(env, text, ack=None):
 
 
 @contextmanager
-def game(name, port, obs_ms=16, seed=None, process_cap=None, random_start=False):
+def game(name, port, obs_ms=16, seed=None, process_cap=None, random_start=False, watch=False):
     RUNTIME.mkdir(parents=True,exist_ok=True)
     exe=ROOT/'Marble Blast Platinum/marbleblast_geometry_probe.exe'
     env=HuntEnv(port,speed=3,log=lambda s: print(s,flush=True))
     env.obs_ms=obs_ms
     env.srv.settimeout(70)
-    startup=subprocess.STARTUPINFO()
-    startup.dwFlags|=subprocess.STARTF_USESHOWWINDOW
-    startup.wShowWindow=0
+    # Operator viewing (watch): visible window with the free camera (-aifreecam,
+    # every 1x viewing launch); otherwise owned probes stay hidden.
+    startup=None if watch else subprocess.STARTUPINFO()
+    if not watch:
+        startup.dwFlags|=subprocess.STARTF_USESHOWWINDOW
+        startup.wShowWindow=0
     # Parallel owned probes may play the same map. Keep their native console
     # evidence separate rather than truncating/interleaving one shared file.
     log=(RUNTIME/(name+'.port'+str(port)+'.seed'+str(seed)+'.game.log')).open('wb')
@@ -79,6 +82,7 @@ def game(name, port, obs_ms=16, seed=None, process_cap=None, random_start=False)
         if random_start:
             if seed is None:raise ValueError('Randomized Hunt opening requires an explicit seed')
             arguments+=['-airandomstart']
+        if watch:arguments+=['-aifreecam']
         if process_cap is None:
             proc=subprocess.Popen(arguments,cwd=str(exe.parent),startupinfo=startup,stdout=log,stderr=log)
         else:

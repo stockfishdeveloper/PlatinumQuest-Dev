@@ -1,5 +1,57 @@
 # Navigator training: handoff
 
+**Read first, 2026-10-16 08:00 MDT (overnight loop; operator: "continue working on this all night"):** REFERENCE = v23
+(code = v23 + backed-up-first gem ranking). Three identical-code runs on starts 0+1 (two-start means 105.4 / 106.0 / 102.4
+at 07:52 today) -> baseline 104.6; one 20-round run lands up to ~3.6 points from another. Default code = v23 behaviour:
+every overnight feature is flag-gated and OFF (--corner-proposals, --raised-blast-first, --keep-plan, --open-top).
+Overnight in-game candidates vs 104.6 (two-start): v31 3 s budget 105.9; v36 open-area top speed 106.3 (fewer falls; best);
+v35 decel 10 105.2; v32 104.1; v30b 103.4; v34 102.0; v38 corner 101.9; v33 98.1; v37 97.1; v39 keep-plan + Blast-first
+96.7 (falls -46%, points -8). None clears the noise; v37/v38 also ran beside offline sims (biased low).
+STOPPED 08:18 by the operator: v36r (--open-top retest) after 7 of 20 rounds, not judged; nothing is running.
+NEW TOOL (ml_agent/tools/sim_bench/README.md, log 2026-10-16 04:40): offline closed-loop benchmark (the real controller vs
+its own engine port from recorded states, virtual clock, deterministic, reproduces recorded falls). Lesson: screen a change
+on normal legs, far legs AND edge/fall legs (keep-plan looked neutral on normal legs and lost in game).
+What the night established (log 2026-10-16 04:40-07:53): trips to new gem groups are 40% of a round (cap 13.5 makes them
+12% faster offline, but faster plans raised A2-led falls in v26); EVERY in-game fall is A2-led (the A2 fallback drives when
+no search finds a useful plan before the 2 s deadline, ~15 s a round); replacing A2 by the last checked plan (v39) halves
+falls but drives slower than A2, so the open problem is a fallback that is both safe and fast; under raised gems the
+deadline starves the Blast families and the planner spends the meter on non-pickup Blasts (meter management needed).
+- JOURNAL BUG fixed 10-15 (runtime_stem): before 11:19 the journals of pools launched together mix two rounds (scores fine).
+
+**Read first, 2026-10-15 05:05 MDT (overnight loop summary; physics planner track):** the current controller is the physics
+planner in `nav/marble_dynamics/reliability_eval.py` (`physics_plan` branch) over full collision maps; the learned navigator A2
+(`models/nav/real_maps_20261010_A2/nav_latest.pth`) is only its fallback and proposal source. Dated detail: the 2026-10-14/15
+entries at the end of `docs/HANDOFF_NAV_TRAINING_LOG.md`.
+- Reference configuration "v16" (30-round mean 98.8 on start manifests 0/1/2 = 95.3 / 97.5 / 103.5, 8 games): the v7 flag set
+  `--fallback-cooldown 2 --search-budget-s 2 --pickup-landing-continuation 40 --component-crossing --ballistic-landing
+  --use-horizon 48 --use-margin-s 1` plus the standing flags (`--horizon 24 --reuse-plan --resource-acquisition
+  --recharge-continuation --landing-search --proposal-samples 20 --global-goals --geometry-route --physics-frame-ms 16
+  --query-cache --clearance-cache`), with these code defaults (all 10-14/15): climb crossings OFF (`--climb-crossings` = on),
+  Blast families first + inline landing projection on detours (`--detour-blast-ratio 1.5`), Blast opportunity cost
+  (`--blast-value-u 10`, `--blast-floor-u 0`), exact 2x faster forecast (query_cache / contact_order), route-length braking
+  law with a 6 u/s pickup floor (`--waypoint-brake-law` = old, `--pickup-min-speed`), end-speed penalty +0.12
+  (`--end-velocity-weight`). Launch: scratchpad launch_pool.sh form = log entry 2026-10-14 20:12 (repo root, output must not exist).
+- Earlier references: v12b 96.9 / 92.6 (v12 code at full load; v12's 101.2 was load-inflated), v3 94.5 / 93.1 / 99.6, v7 95.4 / 78.5.
+  Rejected tonight: v13 (narrow crossing lookup), v14 (Blast floor 5 u), v17 (end-speed credit -0.3). Noise on identical
+  code: per-round |diff| mean 11, max 43; a ten-map single-start mean is +-4. JUDGE ONLY ON STARTS 0+1+2 AT 8 GAMES.
+- Open (daylight): (1) falls rose with the speed law (Cube s0 10-11, Cragmire/Vortex 4): edge safety at speed; (2) the
+  terminal stability gate rejects 3 of 4 plans that end > 9 u/s ('no_supported_continuation', bouncing/airborne at the 1.5 s
+  horizon) = the remaining speed cap (mean 6.3 u/s, human 11.4): v18 (`--landing-continuation 16`) was the first test and
+  LOST (Sprawl s1 79 vs 139: landed jump plans win and strand the marble), so the gate needs a smarter relaxation;
+  (3) the engine model reaches 13 u/s in 1 s at 0.85 throttle, so speed is available once the gate lets it through.
+- v19 = v16 + `--safe-fallback`: 92.8 / 88.0 (20-round 90.4 vs v16 96.4), falls halved but Treasure s1 33 (brakes at the
+  box edge and sticks): REJECTED. At hand-off (05:40) NO pool is running, code = v16 defaults, 0 games; the daylight list is
+  in the log entry 2026-10-15 05:40 (edge-aware speed cap, stability gate vs speed, Treasure box skip).
+- Watch a round at 1x: `python -m nav.marble_dynamics.replay_watch --journal <pool>/<map>/<seed>/physics_plan/1 --port 9085`
+  (bit-exact journal replay with the free camera, no planner pauses). A live `--watch` run freezes at every search.
+- TRAPS: never add/edit files under nav/marble_dynamics while a pool runs (children hash sources at start AND at each round);
+  after killing a pool, kill orphan marbleblast games (parent gone) and check `netstat -ano | findstr :906 :907` for stale
+  listeners (they hijack the next worker on that port); use PowerShell Get-CimInstance, not wmic, under Git Bash.
+- Best real full-round score per map: `docs/BEST_REAL_SCORES_2026-10-14.csv` and the operator's Google Sheet (memory
+  best-scores-google-sheet): update both whenever a map sets a new best (Vortex 105, Concentric 90, Cragmire 113 set 10-14/15).
+- Student distillation to a fast navigator (`fast_nav.py`) is parked by operator decision (10-14 morning).
+
+
 **Read first, 2026-10-05 12:05 MDT:**
 [HANDOFF_SUPERSPEED_2026-10-05.md](HANDOFF_SUPERSPEED_2026-10-05.md) has the current
 two trainers, process ownership, latest score regression, finite fast-state

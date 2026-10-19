@@ -144,7 +144,7 @@ def ordinary_recovery(engine,dynamics,actor_action,replies=40,budget_s=.2,landin
                 if np.isfinite(start) and np.isfinite(finish):task_progress=start-finish
                 item=next((i for i in dynamics.get('items',[])
                     if np.linalg.norm(np.asarray(i['position'])-task_goal[:3])<.1),None)
-                if item is not None:task_pickup=possible_pickup(rollout['states'],item)
+                if item is not None:task_pickup=possible_pickup(rollout['states'],item,rollout.get('native_states'))
                 if task_pickup is None and (task_progress is None or task_progress<=.3):reason='no_useful_task_progress'
                 check_budget(engine)
             info=dict(label='recovery_'+label,rejected=reason,terminal_support=supported,

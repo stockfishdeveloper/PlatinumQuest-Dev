@@ -540,6 +540,7 @@ function MLAgent::update(%gen) {
     //   "OOBCLICK"                     the legal quick respawn a human gets by clicking while OOB
     //   "MARK x y z"                   show the navigator's waypoint as a pad (cosmetic)
     //   "GEMRESET"                     drill maps: respawn the gem group if no gem is up
+    //   "GEMSET x y z [x y z ...]"     show exactly the hunt gems at these positions (viewing clips)
     //   "CONTACT 1|0"                  append the engine's contact telemetry to each observation
     if (getWord(%actionStr, 0) $= "DYNAMICSLIVE") {
         %on = (getWord(%actionStr, 1) + 0) == 1;
@@ -866,6 +867,38 @@ function MLAgent::update(%gen) {
         // (kotmjump_p0) would stay empty after its first pickup. Does nothing while a gem is up.
         if ($Hunt::CurrentGemCount <= 0)
             spawnHuntGemGroup();
+        $AIBridge::LastAction = "";
+        %actionStr = "";
+    } else if (getWord(%actionStr, 0) $= "GEMSET") {
+        // "GEMSET x y z [x y z ...]" (2026-10-16, stuck-spot videos): hide every hunt gem, then show the gem placed
+        // nearest each given position (within 0.3 u), as a recorded round had them up. No new group is triggered.
+        hideGems();
+        makeGemGroup(MissionGroup, true);
+        makeGemGroup(MissionCleanup);
+        %n = getWordCount(%actionStr);
+        %found = 0;
+        for (%w = 1; %w + 2 < %n; %w += 3) {
+            %p = getWord(%actionStr, %w) SPC getWord(%actionStr, %w + 1) SPC getWord(%actionStr, %w + 2);
+            %best = -1;
+            %bestD = 0.3;
+            for (%i = 0; %i < $GemsCount; %i ++) {
+                %d = VectorDist(%p, $Gems[%i].getPosition());
+                if (%d < %bestD) {
+                    %bestD = %d;
+                    %best = $Gems[%i];
+                }
+            }
+            if (isObject(%best) && spawnGem(%best))
+                %found ++;
+        }
+        commandToAll('UpdateItems');
+        if (isObject(SpawnedSet)) {
+            commandToAll('HuntGemSpawn', SpawnedSet.getCount());
+            for (%i = 0; %i < SpawnedSet.getCount(); %i ++)
+                SpawnedSet.getObject(%i).setSync("gemSpawnSync");
+        }
+        commandToAll('RadarBuildSearch');
+        AIBridge::sendState("DEBUG|gemset=" @ %found @ "|asked=" @ mFloor((%n - 1) / 3));
         $AIBridge::LastAction = "";
         %actionStr = "";
     } else if (getWord(%actionStr, 0) $= "CONTACT") {

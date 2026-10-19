@@ -84,17 +84,21 @@ class NativeContactOrder:
         # Conservative rotated-box cull. The engine also uses an oriented SAT
         # cull; rare rotated/nonuniform cases remain explicitly uncalibrated.
         actual_lo=center-half;actual_hi=center+half
-        seen=set();ranks={}
+        # Same decisions as the per-hull loop (2026-10-15 speed-up): the two
+        # box tests are evaluated for every hull at once; the visiting order
+        # and the first-seen polygon ranks are unchanged.
+        hull_lo=obj['hull_lo'];hull_hi=obj['hull_hi']
+        culled=((hull_hi<query_lo).any(axis=1)|(hull_lo>query_hi).any(axis=1)|(hull_hi<actual_lo).any(axis=1)|(hull_lo>actual_hi).any(axis=1))
+        seen=set();ranks={};bins=obj['bins'];indices=obj['indices'];hull_polygons=obj['hull_polygons']
         for x in range(starts[0],ends[0]):
             for y in range(starts[1],ends[1]):
-                bin=obj['bins'][x*16+y]
-                for hid in obj['indices'][bin.binStart:bin.binStart+bin.binCount]:
+                bin=bins[x*16+y]
+                for hid in indices[bin.binStart:bin.binStart+bin.binCount]:
                     hid=int(hid)
                     if hid in seen:continue
                     seen.add(hid)
-                    if np.any(obj['hull_hi'][hid]<query_lo) or np.any(obj['hull_lo'][hid]>query_hi):continue
-                    if np.any(obj['hull_hi'][hid]<actual_lo) or np.any(obj['hull_lo'][hid]>actual_hi):continue
-                    for pid in obj['hull_polygons'][hid]:
+                    if culled[hid]:continue
+                    for pid in hull_polygons[hid]:
                         if pid not in ranks:ranks[pid]=len(ranks)
         return ranks
 

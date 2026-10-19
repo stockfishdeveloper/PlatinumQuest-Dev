@@ -691,7 +691,12 @@ def filter_corrections(advice,dataset,output,dll,query_s=1.,maps=None,wall_s=120
     torch.set_num_threads(1)
     for name in data_manifest['maps']:
         journal=next((Path(old_protocol['rollouts'])/name).glob('*/fast_navigator/*/decisions.jsonl.gz'))
-        with gzip.open(journal,'rt') as stream:rows={r['decision']:r for r in map(json.loads,stream)}
+        rows={}
+        with gzip.open(journal,'rt',encoding='utf-8',errors='replace') as stream:
+            for line in stream:
+                try:r=json.loads(line)
+                except ValueError:continue   # interleaved/empty evaluator journal line; collect_advice counted it
+                rows[r['decision']]=r
         mesh,terrain=advice_context(name,dll,cache_dir)
         route=RoutePlanner(terrain)
         engine=GeneralPhysics(mesh);engine.bridge_physics_ms=16
@@ -747,6 +752,41 @@ def advice_state_key(x,q):
     return hashlib.sha256(value.tobytes()).hexdigest()
 
 
+LANDING_CHECK_REPLIES=48      # chosen label must survive 3 s more of ordinary route following
+PICKUP_LANDING_REPLIES=40     # a candidate that collects the gem but is airborne at the horizon is continued to landing
+
+
+def landing_check(engine,route,dynamics,gem,rollout,info,bounds,replies,query_s):
+    """Continue a chosen label with ordinary route following and judge the landing.
+
+    A label is kept only if the continued forecast stays unambiguous, stays inside
+    the mission volume, ends supported and settled, and still makes route progress
+    (or already collects the gem). This is a conservative finite test, not proof.
+    """
+    from nav.marble_dynamics.viability import resume_forecast
+    from nav.marble_dynamics.search import SequenceProposal,terminal_support
+    from nav.marble_dynamics.bridge import predict_replies
+    from nav.marble_dynamics.planning_budget import PlanningBudgetExceeded
+    start=rollout['states'][0]['position'];engine.planning_deadline=time.perf_counter()+query_s
+    try:continuation=predict_replies(engine,resume_forecast(dynamics,rollout),SequenceProposal(route,gem,replies),stop_on_ambiguity=True)
+    except PlanningBudgetExceeded:return dict(valid=False,rejected='landing_deadline',replies=replies)
+    except ValueError as exc:return dict(valid=False,rejected='unsupported_landing:'+str(exc)[:60],replies=replies)
+    finally:engine.planning_deadline=None
+    states=continuation['states'];supported,stable,normal_speed=terminal_support(engine.mesh,states[-4:])
+    outside=bool(bounds) and any(fully_outside_inbounds(s,bounds) for s in states)
+    a=route.distance(start);b=route.distance(states[-1]['position'])
+    progress=float(a-b) if math.isfinite(a) and math.isfinite(b) else None
+    reason=None
+    if continuation['failure']:reason='prediction_failure'
+    elif continuation['ambiguous_intervals']:reason='contact_ambiguity'
+    elif outside:reason='leaves_mission_inbounds'
+    elif not stable:reason='no_supported_landing'
+    elif info.get('possible_pickup_interval') is None and not (progress is not None and progress>.3):reason='no_progress_after_landing'
+    return dict(valid=reason is None,rejected=reason,replies=replies,progress_u=progress,
+        end_position=states[-1]['position'],end_speed_u_per_s=float(np.linalg.norm(states[-1]['velocity'])),
+        terminal_supported=supported,terminal_stable=stable)
+
+
 def collect_advice(rollouts,dataset,output,dll,max_per_map=96,query_s=1.,maps=None,wall_s=1200,cache_dir=None,candidate_limit=None,exclude_states=None):
     """Static analytical advice on CURRENT encountered states, not native outcomes."""
     from nav.terrain import TerrainGrid,TerrainMap
@@ -755,7 +795,7 @@ def collect_advice(rollouts,dataset,output,dll,max_per_map=96,query_s=1.,maps=No
     from nav.collision.experimental_sweep import CachedCompiledSweepMap
     from nav.marble_dynamics.physics import GeneralPhysics
     from nav.marble_dynamics.bridge import predict_replies
-    from nav.marble_dynamics.search import SequenceProposal,assess,useful_candidate
+    from nav.marble_dynamics.search import SequenceProposal,LandingContinuation,assess,useful_candidate
     from nav.marble_dynamics.planning_budget import PlanningBudgetExceeded
     output.mkdir(parents=True,exist_ok=False)
     ensure_case_journal(output)
@@ -785,7 +825,9 @@ def collect_advice(rollouts,dataset,output,dll,max_per_map=96,query_s=1.,maps=No
     protected=protected_hashes();started=time.perf_counter();records={};case_count=0
     atomic_json(output/'protocol.json',dict(schema='analytical_navigation_advice_v1',rollouts=str(rollouts),dataset=str(dataset),max_per_map=max_per_map,query_wall_s=query_s,total_wall_s=wall_s,seed=101315,candidate_limit=candidate_limit,cache_dir=str(cache_dir) if cache_dir else None,exclude_states=str(exclude_states) if exclude_states else None,sources=sources,protected=protected,
         scope='Current native states; new analytically checked controls are imitation targets, not native pickup/fall outcomes. Normal radius/ordinary gravity only; hidden-world state remains incomplete. No future state enters inputs.',
-        activation_contract='Actual activation must beat completed unambiguous same-horizon no-activation feedback controls with identical jump/steering/braking profile. No comparator => no activation label.'))
+        activation_contract='Actual activation must beat completed unambiguous same-horizon no-activation feedback controls with identical jump/steering/braking profile. No comparator => no activation label.',
+        pickup_landing_replies=PICKUP_LANDING_REPLIES,landing_check_replies=LANDING_CHECK_REPLIES,stuck_states_first=True,
+        landing_contract='A collecting candidate airborne at the horizon is continued to its landing; the chosen label must then survive LANDING_CHECK_REPLIES of ordinary route following (in bounds, supported, settled, progress or pickup) or the next useful candidate is tried.'))
     torch.set_num_threads(1);rng=np.random.RandomState(101315)
     queried_keys={}
     for name in names:
@@ -793,10 +835,19 @@ def collect_advice(rollouts,dataset,output,dll,max_per_map=96,query_s=1.,maps=No
         report=next(r for r in selected if r['map']==name)
         path=rollouts/name/str(report['seed'])/'fast_navigator'/str(report['round'])/'decisions.jsonl.gz'
         sources[str(path)]=sha(path)
-        with gzip.open(path,'rt') as stream:rows=[json.loads(line) for line in stream]
+        rows=[];undecodable=0
+        with gzip.open(path,'rt',encoding='utf-8',errors='replace') as stream:
+            for line in stream:
+                # Evaluator journals occasionally hold an interleaved or empty
+                # line; skip and count it rather than losing the whole map.
+                try:rows.append(json.loads(line))
+                except ValueError:undecodable+=1
         mesh,terrain=advice_context(name,dll,cache_dir)
         route=RoutePlanner(terrain);engine=GeneralPhysics(mesh);engine.bridge_physics_ms=16
         g=geometry(mesh);unique={};excluded=Counter()
+        if undecodable:excluded['undecodable_journal_lines']=undecodable
+        try:bounds=mission_inbounds(json.loads((ML/'collision_maps'/(name+'.json')).read_text()))
+        except ValueError:bounds=None;excluded['no_single_inbounds_volume']+=1
         for row in rows:
             state=row['before']['native']['state'];choice=row['choice'];goal=choice.get('actor_goal_context');base=choice.get('base_actor_action')
             if base is None or goal is None or state['mode'] or state['oob']:continue
@@ -821,10 +872,14 @@ def collect_advice(rollouts,dataset,output,dll,max_per_map=96,query_s=1.,maps=No
         rng.shuffle(pool)
         # Alternate action-disagreement/power states and ordinary coverage;
         # no map-specific launch, landing or maneuver classifier.
-        priority=[r for r in pool if r['choice']['base_actor_action'][4]!=r['action'][4] or int(r['raw_observation'][38])>0]
+        # Stuck states first: where the student is nearly stationary the teacher's
+        # answer matters most (stalls cost whole rounds); then alternate as before.
+        stuck=[r for r in pool if math.hypot(*r['before']['native']['state']['velocity'][:2])<1.]
+        stuck_ids={r['decision'] for r in stuck}
+        priority=[r for r in pool if r['decision'] not in stuck_ids and (r['choice']['base_actor_action'][4]!=r['action'][4] or int(r['raw_observation'][38])>0)]
         priority_ids={r['decision'] for r in priority}
-        ordinary=[r for r in pool if r['decision'] not in priority_ids]
-        chosen_rows=[]
+        ordinary=[r for r in pool if r['decision'] not in priority_ids and r['decision'] not in stuck_ids]
+        chosen_rows=stuck[:max(1,max_per_map//3)]
         while len(chosen_rows)<max_per_map and (priority or ordinary):
             if priority:chosen_rows.append(priority.pop())
             if ordinary and len(chosen_rows)<max_per_map:chosen_rows.append(ordinary.pop())
@@ -834,7 +889,8 @@ def collect_advice(rollouts,dataset,output,dll,max_per_map=96,query_s=1.,maps=No
             d=row['before'];goal=row['choice']['actor_goal_context'];gem=goal['destination']
             route.reset();route.navigate(d['native']['state']['position'],gem);start_distance=route.distance(d['native']['state']['position'])
             held=int(d['native']['state']['held']);steps=96 if d['native']['state']['effects'][5][0] else 24
-            specs=[('jump_now',dict(jump=0)),('route',{}),('direct',dict(direct=True)),('jump_2',dict(jump=2)),('jump_5',dict(jump=5))]
+            # Plain route following first so an exact cost tie favors rolling over a jump.
+            specs=[('route',{}),('jump_now',dict(jump=0)),('direct',dict(direct=True)),('jump_2',dict(jump=2)),('jump_5',dict(jump=5))]
             if held:specs=[('use_now',dict(use=0)),('use_jump_now',dict(use=0,jump=0))]+specs
             if d.get('blast',{}).get('value',0)>=d.get('blast',{}).get('required',.2) or d.get('blast',{}).get('special'):
                 specs=[('blast_jump_now',dict(blast=0,jump=0)),('blast_now',dict(blast=0))]+specs
@@ -848,6 +904,12 @@ def collect_advice(rollouts,dataset,output,dll,max_per_map=96,query_s=1.,maps=No
                     horizon=max(steps,96 if held==5 else 48) if 'use' in spec else steps
                     prediction=predict_replies(engine,d,SequenceProposal(route,gem,horizon,**spec),stop_on_ambiguity=True)
                     info=assess(engine,route,d,gem,prediction,label)
+                    if info['rejected']=='no_supported_continuation' and info['possible_pickup_interval'] is not None:
+                        # Collects the gem but is still airborne: continue to landing (search.py does the same).
+                        landed=predict_replies(engine,d,LandingContinuation(prediction['proposed'],route,gem,PICKUP_LANDING_REPLIES),stop_on_ambiguity=True)
+                        landed_info=assess(engine,route,d,gem,landed,label+'_landing')
+                        if landed_info['rejected'] is None:
+                            landed_info['pickup_landing_replies']=PICKUP_LANDING_REPLIES;info,prediction=landed_info,landed
                     activation='use' in spec or 'blast' in spec
                     if activation and info['rejected'] is None:
                         baseline_spec={k:v for k,v in spec.items() if k not in ('use','blast')}
@@ -864,8 +926,15 @@ def collect_advice(rollouts,dataset,output,dll,max_per_map=96,query_s=1.,maps=No
             except PlanningBudgetExceeded:deadline=True
             except ValueError as exc:error=str(exc);excluded['unsupported_prediction']+=1
             finally:engine.planning_deadline=None
-            choice=useful_candidate(pairs,route,start_distance)
-            case=dict(map=name,decision=row['decision'],source_journal=str(path),rollout_seed=report['seed'],rollout_round=report['round'],source_sha256=sources[str(path)],completed_candidates=len(pairs),deadline=deadline,error=error,wall_s=time.perf_counter()-t,accepted=choice is not None,candidates=[info for info,_ in pairs])
+            choice=useful_candidate(pairs,route,start_distance);landing_checks=0
+            while choice is not None:
+                info,prediction=choice
+                check=landing_check(engine,route,d,gem,prediction,info,bounds,LANDING_CHECK_REPLIES,query_s)
+                info['landing_check']=check;landing_checks+=1
+                if check['valid']:break
+                info['rejected']='landing_check:'+str(check['rejected']);excluded['landing_check:'+str(check['rejected']).split(':')[0]]+=1
+                choice=useful_candidate(pairs,route,start_distance)
+            case=dict(map=name,decision=row['decision'],source_journal=str(path),rollout_seed=report['seed'],rollout_round=report['round'],source_sha256=sources[str(path)],completed_candidates=len(pairs),deadline=deadline,error=error,wall_s=time.perf_counter()-t,accepted=choice is not None,landing_checks=landing_checks,candidates=[info for info,_ in pairs])
             if choice:
                 info,prediction=choice;action=prediction['proposed'][0]
                 # This pool's fast live wrapper supplied the default 'gem'
@@ -1257,11 +1326,16 @@ def ablation_batch_indices(data,extra,names,update,rng):
     return name,ix,ax
 
 
-def fit_failure_ablation(dataset,advice,initial,output,wall_s=1200,max_updates=30000,resume=False):
-    """One explicit loss ratio, convergence stop; safety exhaustion is incomplete."""
+def fit_failure_ablation(dataset,advice,initial,output,wall_s=1200,max_updates=30000,resume=False,sealed=True):
+    """One explicit loss ratio, convergence stop; safety exhaustion is incomplete.
+
+    sealed=False (fit-convergence command) accepts any merged first-reply
+    correction corpus instead of the original 7261-label failure gate.
+    """
     output.mkdir(parents=True,exist_ok=resume);manifest=json.loads((dataset/'manifest.json').read_text())
     gated=json.loads((advice/'manifest.json').read_text())
-    if not gated.get('student_forecast_failure_gate') or gated['source_labels']!=7261:raise ValueError('Requires sealed failure-gated corpus')
+    if sealed and (not gated.get('student_forecast_failure_gate') or gated['source_labels']!=7261):raise ValueError('Requires sealed failure-gated corpus')
+    if not sealed and not gated.get('first_reply_causal_corrections'):raise ValueError('Requires a merged first-reply correction corpus')
     torch.set_num_threads(4);torch.manual_seed(101313);rng=np.random.RandomState(101313)
     data=load_data(dataset,manifest);extra=load_advice(advice,manifest,True)
     saved=torch.load(str(initial),map_location='cpu',weights_only=False)
@@ -1455,6 +1529,7 @@ def main():
     ablation.add_argument('--output',type=Path,required=True);ablation.add_argument('--wall-s',type=float,default=1200)
     ablation.add_argument('--safety-max-updates',type=int,default=30000)
     ablation.add_argument('--resume',action='store_true',help='Continue the same safety-limited fit with restored optimizer/sampler; no new recipe')
+    ablation.add_argument('--unsealed',action='store_true',help='Accept any merged first-reply correction corpus (landing-checked teacher labels) instead of the original 7261-label failure gate')
     gate_audit=sub.add_parser('audit-student-failures');gate_audit.add_argument('--folder',type=Path,required=True)
     gate_audit.add_argument('--dataset',type=Path,required=True);gate_audit.add_argument('--sweep-dll',type=Path,required=True)
     gate_audit.add_argument('--cache-dir',type=Path,required=True)
@@ -1467,7 +1542,7 @@ def main():
     elif a.command=='audit-advice':result=audit_advice(a.folder.resolve(),a.dataset.resolve(),a.sweep_dll.resolve())
     elif a.command=='filter-corrections':result=filter_corrections(a.advice.resolve(),a.dataset.resolve(),a.output.resolve(),a.sweep_dll.resolve(),a.query_s)
     elif a.command=='gate-student-failures':result=gate_failed_student(a.advice.resolve(),a.dataset.resolve(),a.output.resolve(),a.sweep_dll.resolve(),a.cache_dir.resolve(),a.workers)
-    elif a.command=='fit-failure-ablation':result=fit_failure_ablation(a.dataset.resolve(),a.advice.resolve(),a.initial.resolve(),a.output.resolve(),a.wall_s,a.safety_max_updates,a.resume)
+    elif a.command=='fit-failure-ablation':result=fit_failure_ablation(a.dataset.resolve(),a.advice.resolve(),a.initial.resolve(),a.output.resolve(),a.wall_s,a.safety_max_updates,a.resume,sealed=not a.unsealed)
     elif a.command=='audit-student-failures':result=audit_student_failure_gate(a.folder.resolve(),a.dataset.resolve(),a.sweep_dll.resolve(),a.cache_dir.resolve())
     else:result=mask_checkpoint(a.checkpoint.resolve(),a.output.resolve())
     print(json.dumps({k:v for k,v in result.items() if k not in ('sources','protected','source_hashes','cases')}),flush=True)

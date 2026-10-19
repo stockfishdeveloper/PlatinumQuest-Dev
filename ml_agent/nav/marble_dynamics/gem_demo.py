@@ -25,22 +25,38 @@ from nav.routing import RoutePlanner
 from nav.terrain import TerrainGrid,TerrainMap
 
 
+TARGET_SPEED_CAP=11.     # u/s top target speed. v26 (13.5) tied v23 on 30 rounds (103.9 vs 103.8) with falls 51 vs 32: +20 Sprawl,
+                         # +13 Fractured, +9 Bowl but -19 Cube, -17 Concentric (edge maps); kept at 11 (2026-10-15)
+BRAKE_DECEL=7.           # u/s^2 assumed for the stopping-distance law
+THROTTLE_GAIN=4.         # v23 (2026-10-15): u/s^2 of commanded acceleration per unit of stick (throttle = |accel| / gain);
+THROTTLE_CAP=1.          # pre-v23 12 / 0.85 faded the stick from 5 u/s below the target speed, so every proposal crept
+                         # toward it (8-9 u/s peaks on open ground with an 11 u/s target); offline (72 v22d s2 states) gain 4 /
+                         # cap 1 raised the chosen plans' peak speed on all 6 maps and progress per horizon by 3-19%
+
+
 class Proposal:
-    def __init__(self,goal,offset=0.,jump_at=-1,steps=24,coast=False,brake=False,use_at=-1):
+    def __init__(self,goal,offset=0.,jump_at=-1,steps=24,coast=False,brake=False,use_at=-1,speed_distance=None,min_speed=0.,top=None):
+        self.top=top   # top target speed for this call (None = TARGET_SPEED_CAP); --open-top
         self.goal=np.asarray(goal,float);self.offset=offset;self.jump_at=jump_at;self.steps=steps;self.coast=coast;self.brake=brake;self.use_at=use_at
+        # speed_distance: distance the stopping law should use instead of the
+        # distance to the aim point (the remaining route length when the aim
+        # point is only the next waypoint); min_speed: floor on the target speed
+        # (a gem needs no stop: the human collects at full speed).
+        self.speed_distance=speed_distance;self.min_speed=min_speed
 
     def __call__(self,state,index):
         p=np.asarray(state['position']);v=np.asarray(state['velocity'])
         if self.brake and np.linalg.norm(v[:2])<=.1:
             return reply(NOOP_ACTION)
         delta=self.goal[:2]-p[:2];distance=np.linalg.norm(delta)
-        target_speed=min(11.,math.sqrt(max(0.,2*7.*(distance-.25))))
+        stop_distance=distance if self.speed_distance is None else max(float(self.speed_distance),float(distance))
+        target_speed=min(TARGET_SPEED_CAP if self.top is None else float(self.top),max(float(self.min_speed),math.sqrt(max(0.,2*BRAKE_DECEL*(stop_distance-.25)))))
         desired=delta/max(distance,1e-9)*target_speed
         accel=(desired-v[:2])*2.
         if index<6 and self.offset:
             c,s=math.cos(self.offset),math.sin(self.offset);accel=np.array([c*accel[0]-s*accel[1],s*accel[0]+c*accel[1]])
         magnitude=np.linalg.norm(accel)
-        throttle=min(.85,magnitude/12.) if magnitude>.05 and not self.coast else 0.
+        throttle=min(THROTTLE_CAP,magnitude/THROTTLE_GAIN) if magnitude>.05 and not self.coast else 0.
         joystick=action_to_joystick(float(accel[0]),float(accel[1]),throttle,index==self.jump_at,
                                     int(self.brake),float(v[0]),float(v[1]))
         return reply(joystick,int(index==self.use_at),math.atan2(delta[0],delta[1]))
@@ -52,7 +68,39 @@ def support(mesh,state):
     return bool(hit and hit['normal'][2]>.4)
 
 
-def possible_pickup(states,item):
+PICKUP_TICK_TEST=True     # 2026-10-16: test pickups per 16 ms physics tick when the forecast carries its tick states
+                          # (v40 bundle 102.0 vs 104.6 in game, not adopted 10:45; off until tested alone)
+
+
+def tick_pickup(native,item,last=None):
+    """The game's own item test (Marble::clientStateUpdated): once per 16 ms tick, the box swept by the marble in that
+    tick, expanded by radius + 0.2 u, against the item's world box. `native` = the forecast's tick states (4 per reply).
+    Returns the reply interval (1-based, capped at `last`) of the first hit, or None."""
+    bounds=np.asarray(item['bounds']);lo,hi=bounds[:3],bounds[3:]
+    positions=getattr(native,'positions',None)
+    if positions is not None:
+        # compiled forecast (nav/native NativeRows): the same comparisons over all ticks at once
+        if len(positions)<2:return None
+        p,q=positions[:-1],positions[1:];r=(native.radii[1:]+.2)[:,None]
+        hits=np.flatnonzero(np.all(np.maximum(p,q)+r>=lo,axis=1)&np.all(np.minimum(p,q)-r<=hi,axis=1))
+        if not len(hits):return None
+        i=int(hits[0]);return i//4+1 if last is None else min(i//4+1,last)
+    for i,(a,b) in enumerate(zip(native,native[1:])):
+        p,q=np.asarray(a['position']),np.asarray(b['position']);r=b['radius']+.2
+        if np.all(np.maximum(p,q)+r>=lo) and np.all(np.minimum(p,q)-r<=hi):
+            return i//4+1 if last is None else min(i//4+1,last)
+    return None
+
+
+def possible_pickup(states,item,native=None):
+    # 2026-10-16: with the forecast's tick states the test is the game's own (tick_pickup). The box of a whole 64 ms
+    # reply is four ticks long and at speed it reaches gems the marble never touches: on 11 real rounds the reply box
+    # gave 35 false passes and 27 chosen plans whose next-reply pickup never came (a Super Speed kick on Cube Isle flew
+    # 0.7 u under a gem it counted as collected, then 45 u away from the group); the tick test matched all 864 real
+    # pickups with no false pass. Without consistent tick states (64 ms physics) the reply box below stays.
+    if (PICKUP_TICK_TEST and native is not None and len(native)>=len(states)
+            and np.allclose(native[-1]['position'],states[-1]['position'])):
+        return tick_pickup(native,item,len(states)-1)
     bounds=np.asarray(item['bounds']);lo,hi=bounds[:3],bounds[3:]
     for i,(a,b) in enumerate(zip(states,states[1:])):
         # Native item query uses a swept AABB expanded by radius + 0.2u.
@@ -62,13 +110,55 @@ def possible_pickup(states,item):
     return None
 
 
-def candidate_cost(route,states,gem,routed,item):
+THROUGH_EVAL_REPLIES=24   # v22: post-pickup progress toward the next gem is read at this reply (the planner horizon)
+PICKUP_TIME_WEIGHT=4.     # 2026-10-17 v51 tried 8 (with the jump cost): 118.0 vs 120.0, not adopted. u of cost per second of pickup delay (was 4: one second = 4 u of position, i.e. a 4 u/s
+                          # marble; it moves 6-11 u/s, so 'end nearer / slower' outweighed 'collect sooner' in tight clusters)
+NEXT_PICKUP_U_PER_S=0.    # 2026-10-17 v57 (operator: tight clusters quicker): a plan that also collects the tour's next gem by
+                          # THROUGH_EVAL_REPLIES scores full progress to it plus this many u per second of that pickup before
+                          # the reply (0 = off). Before, a plan reaching the next gem early and rolling past it scored worse
+                          # than one arriving at the reply: no credit for the second pickup.
+END_VELOCITY_WEIGHT=.12   # u per u/s of end speed (penalty). v17 tried -0.3 (credit) on 2026-10-15: KOTM/Cube lost and falls rose; kept at the pre-v17 value. Note: speed carried past the horizon is future
+                          # progress (credit), not a hazard; the physics gates (support, stability, falls) keep the
+                          # safety. Pre-v17 the term was +0.12 (a penalty) and the planner preferred plans that end
+                          # slow: 'accelerate_then_brake' won 423 of 2877 KOTM decisions on v16.
+
+
+def candidate_cost(route,states,gem,routed,item,after=None,native=None,detail=None,next_item=None):
+    """`native`: the forecast's 16 ms tick states (pickup test); `detail`: a dict that receives 'post_u', the
+    post-pickup progress term (u farther from the next gem than the collected one, read at THROUGH_EVAL_REPLIES)."""
     end=states[-1]
     distances=[float(np.linalg.norm(np.asarray(s['position'])-gem[:3])) for s in states]
-    cost=(route.distance(end['position']) if routed else distances[-1])+.12*np.linalg.norm(end['velocity'])
+    if after is not None and item is not None:
+        # v22 (2026-10-15) through-gem: after a predicted pickup the rest of the
+        # forecast is scored by its progress toward the NEXT gem of the tour
+        # (after = (route to it, its position, walk distance gem -> it)). The old
+        # terms measured the distance back to the collected gem, which charged
+        # ~1.2 u for every unit driven past it, so every plan stopped at the gem
+        # (v21 journals: 5.6 u/s at the pickup, 3.1 u/s a second later).
+        # The progress is read at a common time (THROUGH_EVAL_REPLIES) so that a
+        # longer forecast (landing continuation, ballistic projection, 48-reply
+        # powerup forecast) earns nothing for its extra flight time.
+        pickup=possible_pickup(states,item,native)
+        if pickup is not None:
+            nroute,ngem,leg=after;j=min(len(states)-1,THROUGH_EVAL_REPLIES)
+            here=np.asarray(gem[:3],dtype=float);post=0.;speed=float(np.linalg.norm(end['velocity']))
+            if pickup<=j:
+                s=states[j];p=np.asarray(s['position'],dtype=float);d=float(nroute.distance(p))
+                if math.isfinite(d):post=(d+.20*float(np.linalg.norm(p-ngem)))-(leg+.20*float(np.linalg.norm(here-ngem)))
+                else:post=1.2*(float(np.linalg.norm(p-ngem))-float(np.linalg.norm(here-ngem)))
+                speed=float(np.linalg.norm(s['velocity']))
+                if next_item is not None and NEXT_PICKUP_U_PER_S:
+                    second=possible_pickup(states,next_item,native)
+                    if second is not None and second<=j:
+                        post=-(leg+.20*float(np.linalg.norm(here-ngem)))-(j-max(second,pickup))*.064*NEXT_PICKUP_U_PER_S
+                        if detail is not None:detail['next_pickup']=second
+                if detail is not None:detail['post_u']=post
+            cost=post+END_VELOCITY_WEIGHT*speed-100.+pickup*.064*PICKUP_TIME_WEIGHT
+            return float(cost),min(distances),pickup
+    cost=(route.distance(end['position']) if routed else distances[-1])+END_VELOCITY_WEIGHT*np.linalg.norm(end['velocity'])
     if routed:cost+=.20*distances[-1]
-    pickup=possible_pickup(states,item) if item else next((i for i,d in enumerate(distances) if d<.55),None)
-    if pickup is not None:cost-=100.;cost+=pickup*.064*4.
+    pickup=possible_pickup(states,item,native) if item else next((i for i,d in enumerate(distances) if d<.55),None)
+    if pickup is not None:cost-=100.;cost+=pickup*.064*PICKUP_TIME_WEIGHT
     return float(cost),min(distances),pickup
 
 

@@ -9647,3 +9647,2629 @@ Prepared the selected-only independent failure-gate replay audit in existing fas
 
 
 2026-10-13T23:37:20.139446+00:00 - Selected-only audit preparation (read-only). parent_screen predates offline helper maintenance, so current hashes differ forfast_nav.py andtest_scaling_loop.py. parent_historical_inference_compatibility_preflight.json compares archived/current named definitions plus all non-definition top-level AST nodes: inference-compatible, unchanged globals/imports/inference classes/functions; only fit_failure_ablation/CLI main changed, added offline ablation_batch_indices/audit_student_failure_gate, and sampler contract test. A first whitelist expected only the resume helper and returnedfalse; preserve that receipt in parent_historical_inference_compatibility_initial_check.json and explicitly include the separately logged gate-audit helper. This is not an identical-source claim or a relaxed model/geometry/bridge check. After final pools, verify historical ZIP once and replay selected parent outputs, record code history compatibility honestly; do not rerun unchanged old archives/corpus. No live inference/source edits during confirmation.
+
+### 2026-10-13 21:05 MDT - Operator loop handed to a new agent: planner-first plan (teacher before student)
+* Operator reviewed the learned preserve-base navigator at 1x on Sprawl (new evaluator `--watch` flag: visible window,
+  -aifreecam, SPEED 1, RENDEREVERY 1, replies paced to 64 ms; `record.game(watch=...)`). Verdict: it drives around walls
+  to reach gems but never jumps/blasts over them and never uses powerups; it stalls often. The planner (physics_plan
+  branch) on the same Sprawl start_0 scored 88/0 falls (watch run, `watch_planner_sprawl_20261013`) vs the student's 9.
+* Diagnosis of why the planner walks around walls: candidates ending airborne at the 24-reply horizon are rejected as
+  `no_supported_continuation`; cost is walking-route distance at the forecast end; the fixed candidate order puts use and
+  blast families last and 211 of 283 searches in that round hit the 1 s deadline before reaching them.
+* Changes (behind flags, defaults unchanged): `--landing-continuation N` continues an airborne candidate with ordinary
+  route following (search.LandingContinuation) and scores the landing with the unchanged gates;
+  `--interleave-candidates` round-robins candidate families (drive, jump, blast, use, steer, learned) in search().
+  Unit tests: test_search 14/14 pass.
+* A/B running now on start_0 (manifest start_0.json), all ten maps, planner branch only, 4 games each, ports 9060/9070:
+  `planner_ab_baseline_start0_20261013` (flags off) vs `planner_ab_landing_start0_20261013` (landing 40 + interleave).
+* Agreed plan with the operator (no hacks, no map rules): 1) let airborne candidates land and be scored, 2) score by
+  progress from the landing, 3) stop starving blast/powerup candidates, 4) verify planner points and uses rise on the
+  ten maps, 5) recollect student labels from the better teacher with a landing-checked filter, stall-state-first
+  sampling, convergence fit with use/Blast positives weighted up, 6) later PPO on points only.
+* Previous agent's last results (recorded here because it ran out of tokens before writing them): failure-gated
+  convergence ablation on three genuine starts 27.7/27.5/38.4 vs parent 30.8/44.7/36.3 (A2 27.8/33.2/35.4); not selected.
+  Note: a run's source hash check fails if any nav/marble_dynamics source is edited while a batch is active.
+
+### 2026-10-13 22:30 MDT - Planner A/B 1 on start_0 (ten maps, physics_plan only, 4 games each)
+* baseline (`planner_ab_baseline_start0_20261013`, wall 1134 s): KOTM 123, Sprawl 89, Cube 49, Bowl 39, Duplex 57, Fractured 52,
+  Cragmire 18, Vortex 29, Treasure 107, Concentric 17; ten-map mean 58.0; falls 148 over the nine paired maps.
+* landing 40 + interleave (`planner_ab_landing_start0_20261013`): KOTM 106, Sprawl 32, Cube 49, Bowl INVALID (600 s round wall
+  limit; use 1500 s), Duplex 109, Fractured 91, Cragmire 90, Vortex 17, Treasure 26, Concentric 24; nine paired maps 60.4 vs 60.1;
+  falls 106 vs 148; fallback decisions lower on most maps (Cragmire 3084 -> 1393). Hard maps up a lot, flat maps down a lot.
+* Fallback anatomy (baseline Sprawl): 1458 A2 fallback decisions, 1428 of them `search_cooldown` (64 decisions after each of
+  26 failed searches) and 30 `planning_time_budget`. The cooldown, not the search, hands ~90 s of a 300 s round to A2.
+* Lesson: a pool with an invalid round never sets `complete`; wait on the per-map job logs instead (cost one idle hour).
+* A/B 2 launched 22:29: `planner_ab_cooldown8_start0_20261013` (baseline flags, --fallback-cooldown 8, wall limit 1500) and
+  `planner_ab_cooldown8_budget2_start0_20261013` (same plus --search-budget-s 2). Next: landing-only and interleave-only pools.
+
+### 2026-10-13 22:58 MDT - Planner A/B 2: fallback cooldown 8 (start_0, ten maps)
+* `planner_ab_cooldown8_start0_20261013` (baseline flags, --fallback-cooldown 8, --round-wall-limit-s 1500): KOTM 120, Sprawl 81,
+  Cube 49, Bowl 67, Duplex 109, Fractured 73, Cragmire 77, Vortex 79, Treasure 93, Concentric 15. Ten-map mean **76.3 vs baseline
+  58.0**; falls 70 vs 148; wall 1562 s vs 1134 s. Fallback decisions roughly a third of baseline on every map (e.g. Vortex 3511 -> 993).
+* Interpretation: the 64-decision cooldown after a failed search (about 4 s of A2 control each time) was the largest single
+  loss; in lockstep the extra searches only cost wall time. Not a KOTM-specific change; KOTM flat (123 -> 120).
+* `planner_ab_cooldown8_budget2_start0_20261013` (same + --search-budget-s 2) still running. Next pools: cooldown 8 + landing
+  continuation only, and cooldown 8 + interleave only, to separate the two confounded changes of A/B 1.
+
+### 2026-10-13 23:10 MDT - Planner A/B 2b: cooldown 8 + search budget 2 s (start_0, ten maps)
+* `planner_ab_cooldown8_budget2_start0_20261013`: KOTM 123, Sprawl 108, Cube 48, Bowl 83, Duplex 115, Fractured 100, Cragmire 67,
+  Vortex 86, Treasure 144, Concentric 16. Ten-map mean **89.0** (baseline 58.0, cooldown 8 alone 76.3); falls 37 (148 / 70);
+  wall 2373 s for ten rounds with 4 workers. Deadline hits still 52-254 per map, so budget 4 s is the next test.
+* Concentric (15-17 in every variant) and Cube (48-49) are unmoved by search economics; they need a separate diagnosis.
+* Running now: `planner_ab_cd8_landing_start0_20261013` (cooldown 8 + landing continuation 40, no interleave) and
+  `planner_ab_cd8_interleave_start0_20261013` (cooldown 8 + interleave only), both budget 1 s, to deconfound A/B 1.
+
+### 2026-10-13 23:15 MDT - Concentric diagnosis (budget-2 round, 16 points)
+* All 16 points by decision 1162 (74 s). For the remaining 166 s one gem remained at (-5.6, -0.1, 6.6), about 4.3 u above the
+  marble, which circled beneath it at z 2.2-3.5. Route waypoint == destination (no walking route), observed_gem_count 1,
+  stalled_s 120, 8 rescues, 870 rescue requests blocked by the game. A2 fallback excursions out to x=37 and back.
+* General remedy (not a map rule): when the only remaining goal has no walking route, spend the search budget on a longer
+  horizon jump / powerup / landing search instead of route candidates. Backlog; not implemented tonight.
+* Cube diagnosis (budget-2 round, 48 points, 9 falls): all nine falls occurred within two decisions of an `A2_fallback` label;
+  83 searches failed inside the budget (`planning_time_budget`), 626 fallback decisions were cooldown. No points in the final
+  60 s. Levers: shorter cooldown still (2), and a physically checked safe action instead of A2 when a search finds nothing.
+* Queue after the running pools: `cd8 + budget 4`, then `cooldown 2 + budget 2`; then confirm the best configuration on
+  start_1 and start_2 before touching the student.
+
+### 2026-10-13 23:28 MDT - Planner A/B 3a: cooldown 8 + landing continuation only (start_0)
+* `planner_ab_cd8_landing_start0_20261013`: KOTM 119, Sprawl 93, Cube 54, Bowl 56, Duplex 62, Fractured 8, Cragmire 82, Vortex 5,
+  Treasure 48, Concentric 24. Mean **55.1 vs 76.3** for cooldown 8 alone; falls 137 vs 70 (Vortex 78). The landing continuation
+  as implemented is harmful (accepted airborne candidates that then fall, and budget consumed by 40-reply tails). Dropped.
+* Interleave-only pool running (first rounds: Cube 56, KOTM 122/0 falls). Launched `planner_ab_cd8_budget4_start0_20261013`
+  (cooldown 8, budget 4 s) on the freed slots.
+
+### 2026-10-13 23:40 MDT - Planner A/B 3b: cooldown 8 + interleave only (start_0)
+* `planner_ab_cd8_interleave_start0_20261013`: KOTM 122, Sprawl 102, Cube 56, Bowl 69, Duplex 118, Fractured 73, Cragmire 13,
+  Vortex 83, Treasure 129, Concentric 15. Mean **78.0 vs 76.3** (cooldown 8 alone), falls 70 vs 70. Neutral overall; Treasure +36,
+  Cragmire -64 (26 falls). Not adopted for now; the search budget is the clean lever (cd8+budget2 = 89.0).
+* Running: `planner_ab_cd8_budget4_start0_20261013` (4 s budget) and `planner_ab_cd2_b2_start0_20261013` (cooldown 2, budget 2).
+  A confounded cd2+b2+interleave launch was stopped after 20 s and removed.
+
+### 2026-10-14 00:15 MDT - Concentric root cause: pickup candidates rejected for being airborne (operator: "jump + blast")
+* Offline replay of stuck Concentric states (budget-2 round, decisions 1500/2250/2400) through search(): blast meter 1.0 and a
+  Super Speed held throughout; `blast_3_jump_0` forecasts the gem pickup at reply 9 (cost -93) but is rejected
+  `no_supported_continuation` because the marble is still airborne (z 4.4) at the 24-reply horizon. `route` then wins at cost
+  0.91 (3D term only) by sitting under the gem; 489 jumps into the platform underside, 0 blasts, 0 uses in 166 s.
+* Fix to implement once the running pools close: a candidate with a predicted pickup is not rejected for an airborne horizon;
+  continue it with route following until it lands and judge the landing (pickup-only landing continuation, new flag).
+  The blanket landing continuation (all airborne candidates) is what hurt in A/B 3a; this targets only collecting candidates.
+
+### 2026-10-14 00:45 MDT - start_0 planner sweep closed; pickup fix implemented; confirmation starts launched
+* start_0 ten-map means: baseline 58.0 | cooldown 8 76.3 | cd8+budget 2 89.0 | cd8+budget 4 111.5 on its 6 valid maps (Bowl,
+  Cragmire, Vortex, Concentric exceeded the 1500 s wall limit; same 6 maps under cd8+b2 = 106.3) | cooldown 2 + budget 2 99.8 on
+  9 valid maps (Concentric exceeded 1500 s; same 9 under cd8+b2 = 97.1), falls 25. Landing continuation (all airborne) harmful;
+  interleave neutral.
+* Pickup fix: `--pickup-landing-continuation N` (search.py: only a candidate whose forecast already collects the gem but is airborne
+  at the horizon is continued and scored at its landing). Offline replay of the stuck Concentric states now chooses
+  `blast_3_jump_0_landing` (pickup at reply 9, lands z 2.19). test_search 14/14 pass.
+* Candidate teacher configuration: cooldown 2, budget 2 s, pickup landing 40, wall limit 1800. Launched: Concentric-only native
+  check on start_0 (`planner_fix_concentric_start0_20261014`), and ten-map pools on start_1 (`planner_cd2b2pl_start1_20261014`,
+  seed 12091843) and start_2 (`planner_cd2b2pl_start2_20261014`, seed 2683147), 3 workers each. Reference on those starts:
+  parent student 44.7 / 36.3, geometry-A2 33.2 / 35.4.
+
+### 2026-10-14 01:05 MDT - Pickup fix confirmed in the game: Concentric 51 (from 15-17)
+* `planner_fix_concentric_start0_20261014` (cooldown 2, budget 2, pickup landing 40): Concentric 51 points, 0 falls, 10 group
+  completions (3 before), stalled_s 88. Every earlier variant on this start scored 15-17 with 3 groups. The remaining stall time
+  is the next Concentric target, not the unreachable gem.
+* Confirmation pools on start_1 and start_2 running with the same configuration (first rounds: KOTM 120/117, Cube 84 on start_2).
+
+### 2026-10-14 01:12 MDT - Planner powerup use is near zero; no-preserve test launched
+* Command counts over ten start_0 rounds: baseline jump 9794 / use 11 / blast 55; cooldown 2 + budget 2 jump 2493 / use 9 / blast 53
+  (the jump drop is A2's jump spam disappearing with the fallback). About one powerup use and five blasts per round; a human fires
+  ~20 a round. Causes: `--preserve-resources` ranks fewer consumptions above route cost unless a pickup is predicted, and the
+  24-reply horizon cannot show a Super Speed / Helicopter benefit.
+* Launched `planner_nopreserve_start0_20261014`: candidate configuration WITHOUT --preserve-resources, start_0, 2 workers (idle slots),
+  to measure points and uses against cd2_b2 (99.8 on 9 maps).
+
+### 2026-10-14 01:55 MDT - Teacher configuration CONFIRMED on three genuine starts
+* Planner (cooldown 2, budget 2 s, pickup landing 40, wall 1800): start_0 99.8 (9 valid; Concentric invalid in that older pool),
+  start_1 83.6 (`planner_cd2b2pl_start1_20261014`, wall 4130 s), start_2 91.8 (`planner_cd2b2pl_start2_20261014`, wall 4166 s).
+  Parent student on the same starts 30.8 / 44.7 / 36.3; geometry-A2 27.8 / 33.2 / 35.4. Falls 25 / 74 / 68.
+  Per map (start1/start2): KOTM 120/117, Sprawl 119/126, Cube 89/89, Bowl 60/70, Duplex 94/50, Fractured 8/106, Cragmire 51/104,
+  Vortex 92/89, Treasure 141/105, Concentric 62/62.
+* Fractured start_1 scored 8 for planner, student AND A2: a layout that traps every controller identically; diagnose.
+* These three pools are the new teacher rounds for student distillation. Student iteration follows once the no-preserve test
+  (`planner_nopreserve_start0_20261014`, 5/10 at 01:51) closes and source can be edited.
+* Fractured start_1 diagnosis: 8 points by decision 187 (first group); the second group spawned on the island at x -33..-42,
+  y -31..-38 while the marble was on the island at x -2..-22. Route waypoint == destination (no walking route across the gap),
+  811 searches with no accepted candidate, 1290 fallback decisions, 54 falls (A2 into the gap), blast meter full and unused.
+  Jump candidates that would cross are airborne at the 24-reply horizon and rejected. Planned general fix: when the goal has no
+  walking route (`routed` false from route.navigate), continue airborne candidates to landing (`--unroutable-landing-continuation N`),
+  scored with the unchanged gates. Not the blanket continuation that failed in A/B 3a.
+* Fractured start_1 offline replay (decisions 357/450/2253): closest approach 25 u from the gem; route.distance finite (30 u) with
+  routed=False, and ALL 28 search candidates (route, direct, throttles, jumps, steering, blasts) end `no_supported_continuation`;
+  `landing_replies 40` changes nothing (56 rejections). So the walking route believes the gap is crossable and every candidate
+  drives off the edge. Needs a route/terrain check of that crossing (phantom walkable cells or a bridge the candidates miss)
+  plus a real gap-jump candidate (approach speed + jump at the edge + landing on far-island support). Deferred; logged as the
+  top remaining planner weakness (human gap jumps 12-15 per round).
+
+### 2026-10-14 02:00 MDT - Why the planner hoards powerups: use candidates judged over 1.5 s
+* Offline replay, Bowl start_0 decision 189 (holding Super Speed, goal 80 u away, speed 18): at horizon 24 every use candidate is
+  rejected `no_supported_continuation` (terminal_support needs |v|<18 and settled contact) despite 48 u progress vs 22 u for the
+  best accepted move. At horizon 48 `use_3_jump_2` is accepted with cost 5.6 and 76 u progress vs 71 for the best non-use.
+* No-preserve test (first 5 maps): blasts 18-26 per round (from 5-12), uses still 0-7, points about level (Bowl 79, Cube 59,
+  Duplex 96, KOTM 115, Sprawl 133 vs 83/56/118/124/131).
+* Planned flag: `--use-horizon N` (powerup-use candidates forecast over N replies, Helicopter keeps 96); test on start_0.
+
+### 2026-10-14 02:27 MDT - No-preserve test neutral; planner use-horizon flag added
+* `planner_nopreserve_start0_20261014` (candidate config without --preserve-resources): 97.4 vs 99.8 on nine paired maps;
+  blasts ~3x (18-26/round) but uses still 0-7/round; Cragmire 109 (76), Treasure 102 (129), Duplex 96 (118). Default kept.
+* Added `--use-horizon N` (search.py: use candidates forecast over at least N replies when holding types 1-4). Test next.
+
+### 2026-10-14 02:40 MDT - Student iteration 1 collection and planner use-horizon test launched
+* fast_nav.collect_advice changes: per-candidate pickup landing (PICKUP_LANDING_REPLIES 40), chosen-label landing check
+  (LANDING_CHECK_REPLIES 48: in bounds, supported, settled, progress >0.3 u or pickup; next useful candidate otherwise), stuck
+  states (<1 u/s) sampled first (up to a third), `route` listed before `jump_now` so cost ties favor rolling. protocol.json records
+  these. `fit-failure-ablation --unsealed` accepts a merged correction corpus. Smoke on Cube: 7/12 accepted, 3 landing-check
+  rejections (contact ambiguity); 217 tests pass.
+* Collection running (scratchpad driver collect_student_iter1.py): parent student states from parent_screen /
+  parent_confirmation_1 / parent_confirmation_2, 600 attempts per map per pool, 8 offline workers, query 2 s ->
+  `dynamics_reports/student_iter1_20261014/{collect_*,training_corrections}`.
+* Planner test `planner_usehorizon48_start0_20261014` (candidate config + --use-horizon 48), 4 games, start_0.
+
+### 2026-10-14 02:56 MDT - Collection pool 1 done; pool 2 stopped by a corrupt journal line
+* `student_iter1_20261014/collect_parent_screen` complete (10 maps, e.g. Cube 136, Fractured 93, Duplex 91 corrections).
+* `collect_parent_confirmation_1` failed on Sprawl: decisions.jsonl.gz has 3 undecodable lines of 4671 (two decisions interleaved
+  mid-write: `..."bounds": [-45.42{"decision": 721,...`, plus one empty line). The same one-to-three bad lines appear in several
+  planner journals (baseline pools had 1 each). Evaluator journal writing race, to fix later; collect_advice must skip undecodable
+  lines (counted as `undecodable_journal_lines`). Edit deferred until `planner_usehorizon48_start0_20261014` closes (it hashes
+  fast_nav.py). Driver needed a `__main__` guard for Windows spawn (first launch died with BrokenProcessPool).
+
+### 2026-10-14 03:18 MDT - Planner use-horizon 48 neutral
+* `planner_usehorizon48_start0_20261014`: 92.1 vs 94.9 (cd2b2 + Concentric fix) on ten maps; uses 0-10 per round (KOTM 10),
+  blasts 3-15. Cube 97 (56), Fractured 108 (91) up; Treasure 93 (129), Bowl 63 (83), Duplex 91 (118) down. Default unchanged.
+  Uses stay low mainly because the planner seldom HOLDS a powerup (held==0 for most decisions on most maps): powerup pickups are
+  only sought after a gem search fails (--resource-acquisition). Making powerup pickups part of ordinary goal selection is the
+  next lever for powerup use.
+* fast_nav.collect_advice now skips undecodable journal lines (counted). Collection resumes for parent_confirmation_1/2.
+
+### 2026-10-14 04:22 MDT - Student iteration 1: 3,322 landing-checked corrections merged; convergence fit running
+* `student_iter1_20261014/training_corrections`: 3,322 distinct corrections from the parent student's states on three genuine
+  starts (per map 150-462; Vortex lowest at 150). Labels: jump 850, use 510, Blast 618 (the original 25,972-example teacher set
+  had 1 use positive). All corrections passed the per-candidate pickup landing, the 48-reply landing check and the matched
+  first-reply A2 advantage filter.
+* Fit: `fit-failure-ablation --unsealed` (preserve 0.1 / correction 1.0, plateau stop, 40k safety cap, wall 2400 s) from the
+  preserve-base parent 596b -> `student_iter1_20261014/fit`. Training objective 0.476 -> 0.415 by update 1500 (~3 s/100 updates).
+* `planner_final_start0_20261014` (clean final-configuration reference, start_0) running, 6/10 at 04:20.
+
+### 2026-10-14 04:33 MDT - Clean final-configuration planner reference on start_0: 83.3
+* `planner_final_start0_20261014` (cooldown 2, budget 2, pickup landing 40, wall 1800; all ten maps in one batch): KOTM 112,
+  Sprawl 130, Cube 85, Bowl 83, Duplex 118, Fractured 33 (27 falls, the island gap again), Cragmire 60, Vortex 89, Treasure 67,
+  Concentric 56. Mean 83.3, falls 38, wall 3025 s. Three genuine starts for the teacher: 83.3 / 83.6 / 91.8 (mean ~86), versus
+  the parent student 30.8 / 44.7 / 36.3 and geometry-A2 27.8 / 33.2 / 35.4. Single rounds still swing 30-60 points on a map
+  (Treasure 67 here vs 129 earlier on the same start), so per-map comparisons need several rounds.
+
+### 2026-10-14 04:40 MDT - Student iteration 1 fit hit the 40k cap still improving; evaluation launched
+* `student_iter1_20261014/fit`: 40,000 updates in 982 s, best training objective 0.1179 at the last update (stop: safety limit,
+  not plateau); sealed Dev imitation loss 0.407 (reported only). Checkpoint copied to `student_iter1_20261014/candidate_40k.pth`.
+* Evaluating candidate_40k on start_0 (`eval40k_start0`) and start_1 (`eval40k_start1`), --fast-only, 4 games each; start_2 next.
+  References: parent 30.8/44.7/36.3, A2 27.8/33.2/35.4, planner 83.3/83.6/91.8.
+* Fit resumed (--resume, cap 80,000) in parallel for a second candidate.
+
+### 2026-10-14 04:52 MDT - Student iteration 1 (candidate_40k) does NOT beat the parent
+* start_0: student 33.9 (falls 213) vs parent 30.8 (223), A2 27.8, planner 83.3. start_1: student 33.3 (falls 209) vs parent 44.7
+  (183), A2 33.2, planner 83.6. Per map the student gains Duplex (37 vs 1 on start_0), Bowl (22 vs 8), Cragmire (36 vs 16 on
+  start_1) and loses KOTM (104/83 vs 127/139, 12-15 falls), Concentric (17 vs 38), Bowl on start_1 (2 vs 20). Vortex: 106-114
+  falls per round for the student (parent ~65).
+* Reading: labels are now physically sound (landing-checked, 510 use / 618 Blast / 850 jump positives) but the student generalizes
+  them into falls on terrain it has not seen labeled (covariate shift again); a single 3,322-label pass from three starts is not
+  enough data for a 32-wide full-map residual to absorb jump/blast behaviour safely. The teacher (planner) is at ~86 on the
+  same starts; the student at ~34 is still roughly A2.
+* start_2 evaluation of candidate_40k running (8 games); resumed fit (cap 80k) at update 56k, objective 0.077, still improving.
+* candidate_40k start_2: 29.3 (falls 208) vs parent 36.3. Three-start mean 32.2 vs parent 37.3: iteration 1 not selected.
+* Resumed fit converged at update 64,000 (objective 0.0678, plateau rule). `candidate_64k.pth` evaluating on starts 0/1/2
+  (`eval64k_start{0,1,2}`, 8 games, sequential).
+
+### 2026-10-14 05:05 MDT - candidate_64k worse than candidate_40k; student iteration 1 closed as a negative result
+* candidate_64k start_0: 26.8 (falls 176); KOTM 36 (parent 127), Cube 7, Sprawl 17. Longer fitting of the same 3,322 corrections
+  (objective 0.118 -> 0.068) erodes the A2 base behaviour without adding safe execution of the new jump/use/Blast labels.
+* Conclusion for the morning: the planner is at ~86 on three genuine starts (from ~58-71 before tonight); every student
+  distilled from it tonight sits at 27-34, i.e. A2 level. Distillation, not the teacher, is the bottleneck. Options to discuss:
+  (1) deploy the planner as the controller for lockstep scoring now; (2) many DAgger loops with far more labels and a larger
+  student; (3) PPO fine-tuning from A2 with the full-map encoder and native points, using the planner only as a safety veto.
+* candidate_64k three starts: see summary below; all runs closed by 05:10, no games or workers left running; dashboard 33732 untouched.
+* candidate_64k: 26.8 / 21.1 / 24.2 (falls 176/211/166); candidate_40k: 33.9 / 33.3 / 29.3. Parent 30.8 / 44.7 / 36.3. Neither selected.
+* 05:10: launched planner REPEAT rounds on start_1 and start_2 (`planner_cd2b2pl_start1_r2_20261014`, `planner_cd2b2pl_start2_r2_20261014`,
+  4 games each) to measure the teacher's round-to-round variance on identical starts before the morning.
+
+### 2026-10-14 06:08 MDT - Planner repeat rounds: ten-map mean stable, single maps noisy
+* start_1 round 1 / round 2: 83.6 / 85.6; start_2: 91.8 / 92.2 (`planner_cd2b2pl_start{1,2}_r2_20261014`). Median |r1-r2| per map
+  10 points, mean 17, extremes Cragmire 104 vs 33 and Duplex 94 vs 50. Fractured start_1 = 8 in both rounds (island gap).
+* Teacher final-configuration estimate over five ten-map pools on three genuine starts: 83.3, 83.6, 85.6, 91.8, 92.2 -> ~87.
+* All runs closed 06:08; no games or workers running; dashboard 33732 untouched; nothing promoted; no commit made.
+
+### 2026-10-14 06:50 MDT - Operator: keep improving the planner. Component crossing implemented
+* Fractured start_1 analysis: the gem group sits on the other large walking component (3235 nodes); the marble's component
+  (3409 nodes) and it are 3.0-3.2 u apart at their closest cells ((27,13)->(24,13) rise 1.0; (31,20)->(30,23) rise 0). The
+  straight line to the gem crosses a 14 u hole, so direct aim (route.navigate returns the gem with routed=False, dist_at falls
+  back to straight-line+5) drives the marble off the edge. The target gem itself is in a 12-node sliver 1 u from the big
+  component, so crossings must be chained.
+* New `nav/marble_dynamics/crossings.py` (Crossings): components from the walking graph; per component pair the closest jumpable
+  (launch, land) cells (gap <= 8 u, rise <= 1 u); Dijkstra over gap-weighted component edges; `stage()` returns the launch
+  cell as goal while > 2.5 u away ('approach'), then the landing cell ('cross'). `pick()` substitutes the goal when
+  `engine.crossings` is set (`--component-crossing`); search() continues airborne candidates to landing while
+  `engine.crossing_phase` is true. Offline: from the stuck state the goal becomes (31,20,2) with a 126 u routable path.
+* Native check running: `planner_crossing_fractured_start1_20261014` (1 game). Baseline on this layout: 8 points, every controller.
+
+### 2026-10-14 07:58 MDT - Component crossing: staged run-up and inside landing goal
+* First native attempt (killed at decision 616 to save time): the approach to the launch cell worked (marble reached (37,18) ->
+  (31,20)), but at the gap every search timed out and A2 fallback drove off the edge at 12 u/s; the respawn happened to land on the
+  far island. Offline: jump candidates from the launch cell fail because the marble arrives moving along the edge, not across it.
+* Fixes: `Crossings._staging` = walkable cell ~5 u behind the launch cell along the crossing direction (approach goal);
+  'cross' phase only within 6.5 u of the launch cell AND velocity within ~53 deg of the crossing direction (or < 2 u/s);
+  landing goal moved 2.5 u inside the far component (`land_goal`) because an edge-cell goal pulled the marble back off the
+  island after landing; crossing-phase search uses only the jump family with jump times (0,2,4,6,8,10,12) and the landing
+  continuation; staged goal applied before plan reuse in `_search`; brake instead of A2 when no crossing candidate exists.
+* Offline from the staging point at 0/3/5/7/9 u/s: accepted candidates land at (29.1,24.8,2.2) on the far island every time
+  (blast_7_jump_3 from standstill, jump_8/jump_10 with run-up). Native re-check launched (`planner_crossing_fractured_start1_20261014`).
+* 08:10 second native attempt: the crossing candidate `blast_7_jump_0_landing` was accepted at the staging point, but three
+  decisions later the marble was on sloped edge cells that form a tiny walking component; the crossing was recomputed with a
+  staging point behind the marble, the plan no longer matched, A2 drove off (respawn landed on the far island again).
+  Fix: `Crossings.active` keeps the current crossing while the marble is within 7.5 u of its launch cell on the launch side;
+  offline the plan is retained at every decision of the run-up. Third native attempt launched.
+
+### 2026-10-14 08:08 MDT - Gap crossing CONFIRMED in the game (Fractured start_1, attempt 3)
+* Decision 446 at the staging point (33.9,14.4): `blast_7_jump_0_landing` accepted; jump sent, blast fired about 7 replies later;
+  height 3.3 -> 6.6, flight over the gap (y 15 -> 22), landing on the far island at (28.2,23.6) -> (27.8,24.3,2.3); 0 falls;
+  the marble then drove toward the gem group. The plan stayed retained through the run-up (active crossing). Round still running.
+* Launched ten-map pools with `--component-crossing` on start_0 (`planner_cross_start0_20261014`, 4 games) and start_2
+  (`planner_cross_start2_20261014`, 3 games); start_1 follows. References (same config without crossing): 83.3 / 83.6+85.6 / 91.8+92.2.
+* Operator note 08:12: every Fractured gap is crossable with jump + blast; wide gaps need enough blast meter. TODO at the next
+  source window: MAX_GAP_U 8 -> 14, MAX_RISE_U 1 -> 2 in crossings.py (physics forecast with the current charge decides;
+  brake fallback at the staging point waits for recharge).
+* Fractured start_1 with crossing, full round: **37 points, 2 falls, 4 group completions** (every controller scored 8 with 1 group
+  on this layout before; the same planner without crossing 8/8 in two rounds). 27 crossing-brake decisions, 137 fallback
+  decisions, stalled 61 s. Wall ~20 min for one round (plan reuse works again after the staging fix).
+
+### 2026-10-14 08:45 MDT - Crossing pools partially invalidated by adding a new source file
+* `planner_cross_start0/2_20261014`: rounds launched after `nav/marble_dynamics/ballistic.py` was created failed with
+  "Parallel child inputs differ from parent declaration" (Concentric, Treasure on start_0; Concentric, Cragmire, Treasure, Vortex
+  on start_2). Completed with crossing: start_0 KOTM 112, Sprawl 70, Cube 75, Bowl 75, Duplex 60, Fractured 45 (ref 33);
+  start_2 KOTM 118, Sprawl 121, Cube 89, Bowl 60, Fractured 45 (ref 106/114). Lesson: a batch hashes the whole module
+  directory; no edits AND no new files while it runs.
+* Ballistic landing projection (operator-approved) implemented in `ballistic.py` (coarse parabola raycast filter, then exact
+  no-input chunks until settled, cap 64/96 replies). Offline on KOTM Super Jump states: 40-230 ms per candidate; four
+  previously rejected Super Jump candidates accepted with settled landings (best +9 u progress); overshooting jumps score worse
+  than rolling. Hook `--ballistic-landing` into search() pending the source window.
+
+### 2026-10-14 08:58 MDT - Ballistic landing + opportunistic powerups wired in; start_0 A/B launched
+* search.py: airborne-rejected candidates are coarse-filtered (parabola raycast) and the best 4 by coarse landing route distance
+  are exactly projected with no input (`--ballistic-landing`); engine.mission_bounds per map. pick(): `--opportunistic-powerups U`
+  (holding nothing, a visible powerup with walking detour <= U on the way to the gem becomes the goal, pickup credited by item
+  bounds). crossings.py MAX_GAP_U 14, MAX_RISE_U 2. Offline: KOTM Super Jump state -> 4 ballistic candidates accepted in a 1.55 s
+  search (22 coarse-filtered, 4 exact); Sprawl state -> opportunistic Super Speed goal 19 u ahead. test_search 14/14.
+* Pools on start_0 (4 games each): `planner_ballistic_start0_20261014` (crossing + ballistic) and
+  `planner_ballistic_powerups_start0_20261014` (+ opportunistic powerups 3 u). Reference without these: 83.3.
+* Crossing pools final (valid maps only): start_0 KOTM 112, Sprawl 70, Cube 75, Bowl 75, Duplex 60, Fractured 45, Cragmire 72,
+  Vortex 93 (8 maps, mean 75.2; reference same maps 85.6); start_2 KOTM 118, Sprawl 121, Cube 89, Bowl 60, Duplex 32, Fractured 45
+  (6 maps). Mixed on this single round; Fractured start_0 45 vs 33, start_2 45 vs 106/114 (crossing may have been chosen where
+  the walking route was better). Needs the full three-start comparison once the ballistic pools close.
+
+### 2026-10-14 09:50 MDT - Ballistic A/B on start_0: fewer falls, fewer points; horizon bias diagnosed
+* A (`planner_ballistic_start0_20261014`, crossing + ballistic): 72.1 vs ref 83.3; falls 14 vs 38. B (+ opportunistic powerups 3 u,
+  8 maps done): 79.1 vs 88.8 on the same maps; falls 8. Gains: Fractured 37/50 (ref 33, 27 falls), Cragmire 63/78 (60),
+  Treasure 81 (67). Losses: Sprawl 72/98 (130), Duplex 66/65 (118), Bowl 53/81 (83). Ballistic label chosen 90-791 times/round.
+* Cause: a ballistic candidate is scored at the end of a 64+ reply forecast against 24-reply rolling candidates: more time means
+  more route progress, and its settled end state also gets the lower 0.12*|v| term, so jumps win on flat ground where rolling
+  is faster. Fix: charge the extra flight time at a nominal rolling speed (cost += extra_replies*0.064*8 u/s) so a jump wins
+  only when it is genuinely faster. Powerup uses still 1-7 per round even with pickups (pool B).
+* Pool B final (crossing + ballistic + opportunistic powerups 3 u): 76.2, falls 8 (ref 83.3, falls 38); Concentric 53, Treasure 76.
+* 09:53: ballistic time charge added (search.py: cost += extra_replies*0.064*8 u/s unless the candidate collects the gem).
+  Relaunched on start_0: `planner_ballistic2_start0_20261014` (A') and `planner_ballistic2_powerups_start0_20261014` (B').
+
+### 2026-10-14 10:50 MDT - Time-charged ballistic (A'): 77.2 / 12 falls; the remaining deficit is the crossing on Sprawl and Duplex
+* A' (`planner_ballistic2_start0_20261014`, crossing + ballistic + time charge): KOTM 118, Sprawl 70, Cube 94, Bowl 75, Duplex 40,
+  Fractured 56, Cragmire 79, Vortex 89, Treasure 87, Concentric 64 = 77.2, falls 12 (ref 83.3 / 38). Seven maps >= reference.
+* Sprawl (70 vs 130) and Duplex (40 vs 118) were equally low in the crossing-only pool (70 / 60), so the loss is the component
+  crossing, not the ballistic projection: those maps' walking components are split by walls/steps rather than holes, and the
+  staged launch-cell goals detour the marble away from gems the ordinary search reaches directly.
+* Fix: stage a crossing only when the straight line from the marble to the gem passes over a hole (no floor within +-6 u at some
+  sample); otherwise leave the goal alone. Edit pending pool B' (2 rounds left).
+* B' final (A' + opportunistic powerups 3 u): 74.0, falls 11; Treasure 58, Concentric 48 below A'. Powerup pickups do not add
+  points yet (uses still 1-7/round): flag stays off for now.
+* crossings.py: `line_has_hole()` (raycast floor samples along the straight line to the goal, +-6 u); a crossing is staged only
+  when the line crosses a drop. Crossings now takes the mesh.
+* 10:58 Offline: Sprawl 267/270 sampled other-component goals have no hole on the line -> no staging; Fractured still stages.
+  Launched candidate v3 (crossing with hole test + ballistic with time charge, no opportunistic powerups):
+  `planner_v3_start0_20261014` and `planner_v3_start1_20261014` (4 games each). References: start_0 83.3, start_1 83.6/85.6.
+
+### 2026-10-14 11:50 MDT - Candidate v3 beats the reference on two genuine starts
+* v3 = cooldown 2, budget 2 s, pickup landing 40, component crossing WITH hole test, ballistic landing projection WITH time
+  charge (8 u/s), no opportunistic powerups. start_0 (`planner_v3_start0_20261014`): KOTM 115, Sprawl 132, Cube 65 (10 falls),
+  Bowl 75, Duplex 110, Fractured 73, Cragmire 94, Vortex 86, Treasure 126, Concentric 69 = **94.5, falls 23** (ref 83.3 / 38).
+  start_1 (`planner_v3_start1_20261014`): 121, 123, 103, 60, 103, 81, 89, 95, 95, 61 = **93.1, falls 9** (ref 83.6 / 85.6, falls
+  74 / 110). Fractured 73 / 81 vs 33 / 8. Wall ~2900 s per ten rounds with 4 games.
+* Cube start_0 65 with 10 falls is the one regression (ref 85/4; start_1 103/1): inspect falls there.
+* start_2 confirmation launched (`planner_v3_start2_20261014`, 8 games); references 91.8 / 92.2.
+* Cube start_0 (v3 65/10 falls vs ref 85/4): every fall, in both rounds, occurs during A2 fallback right after a
+  `planning_time_budget` search failure; 7 of v3's 10 falls are at one spot (x 48-53, y -35..-41) revisited after respawn.
+  Planned general fix `--safe-fallback`: before using A2, sample the free roll along the current velocity for ~1 s with floor
+  raycasts; if the floor ends, brake instead ('edge_brake'). Edit after the start_2 pool.
+
+### 2026-10-14 12:17 MDT - v3 confirmed on start_2: three-start mean 95.7 (from ~86.6), falls halved
+* `planner_v3_start2_20261014`: KOTM 119, Sprawl 136, Cube 102, Bowl 74, Duplex 90, Fractured 79, Cragmire 102, Vortex 99,
+  Treasure 134, Concentric 61 = **99.6, falls 17** (ref 91.8 / 92.2, falls 68 / 27). Three starts: 94.5 / 93.1 / 99.6 vs
+  83.3 / 84.6 / 92.0. v3 is the new candidate teacher configuration:
+  --fallback-cooldown 2 --search-budget-s 2 --pickup-landing-continuation 40 --component-crossing --ballistic-landing
+  (plus the existing --horizon 24 --reuse-plan --resource-acquisition --preserve-resources --recharge-continuation
+  --landing-search --proposal-samples 20 --global-goals --geometry-route, 16 ms physics).
+* 12:22 `--safe-fallback` implemented (reliability_eval.edge_ahead: free roll along velocity sampled every 0.1 s for 1 s, floor
+  raycast 4 u deep; brake instead of A2 when the floor ends). Cube v3 round: fires on all 9 decisions before every fall, also on
+  143/268 harmless fallback decisions and 38% of all decisions (island map). Launched v4 = v3 + safe-fallback on start_0 and
+  start_1 (`planner_v4_start0/1_20261014`, 4 games each); v3 references 94.5 / 93.1.
+
+### 2026-10-14 13:18 MDT - v4 (safe fallback) not adopted
+* v4 = v3 + --safe-fallback: start_0 83.9 (falls 6) vs v3 94.5 (23); start_1 94.0 (14) vs 93.1 (9). Vortex start_0 36 (v3 86) with
+  194 edge brakes; Bowl 64 (75), Treasure 100 (126). Edge brake fires on ~38% of decisions on island maps and costs more
+  time than the falls it prevents. Flag stays off; v3 remains the candidate teacher.
+* v3 powerup usage over ten rounds: use commands 13 / 12 / 13 (starts 0/1/2), blasts 86 / 68 / 100, holding a powerup 19% / 53% /
+  26% of decisions. Launched on start_0: `planner_v3_usehorizon_start0_20261014` (v3 + --use-horizon 48) and
+  `planner_v3_nopreserve_start0_20261014` (v3 without --preserve-resources), 4 games each; v3 start_0 = 94.5.
+
+### 2026-10-14 14:10 MDT - Use-horizon 48 and no-preserve on v3: both slightly below, uses unchanged
+* v3 + --use-horizon 48 (`planner_v3_usehorizon_start0_20261014`): 89.9, falls 16, uses 17, blasts 149. v3 without
+  --preserve-resources (`planner_v3_nopreserve_start0_20261014`): 91.6, falls 17, uses 17, blasts 159. v3: 94.5 / 23 / 13 / 86.
+  Neither adopted. Use counts per map are nearly identical across variants, so use candidates lose for a structural reason.
+  Suspect: terminal_support's "stable" gate (|v| < 18 u/s) rejects every Super Speed outcome while the boost lasts.
+* Offline replays (v3 + use-horizon 48 + ballistic): Super Jump use candidates ARE accepted and chosen with far goals
+  (Treasure dec 966 `direct_use_7_jump_-1_ballistic` +54 u; Cube dec 1430 +56 u) but the searches take 1.9-2.6 s, so in the
+  game the 2 s deadline cuts before the late-listed use candidates get their projections. Super Speed (held 2): all use
+  candidates rejected `contact_ambiguity` at Treasure dec 3185 (engine uncertainty at 20+ u/s): a physics-model limit, parked.
+* Added `--ballistic-reserve-s S` (search.py stops forecasting new candidates S seconds before the deadline so the projections
+  run). Next pool: v3 + --interleave-candidates + --ballistic-reserve-s 0.5 + --use-horizon 48.
+* 14:16 Launched on start_0: v5a = v3 + --ballistic-reserve-s 0.5 + --interleave-candidates + --use-horizon 48
+  (`planner_v5a_start0_20261014`) and v5b = v3 + --ballistic-reserve-s 0.5 only (`planner_v5b_start0_20261014`); v3 = 94.5.
+
+### 2026-10-14 15:00 MDT - Ballistic budget reserve not adopted; testing a 3 s budget on v3
+* v5a (v3 + reserve 0.5 s + interleave + use-horizon 48): 86.9, falls 12, uses 22, blasts 110. v5b (v3 + reserve 0.5 s): 79.0,
+  falls 18, uses 18. v3: 94.5 / 23 / 13 / 86. Reserving budget for projections starves the ordinary candidates (Treasure 75 vs
+  126, Concentric 42-55 vs 69). Flags stay off. Search time is the binding constraint; launched v3 + --search-budget-s 3
+  (`planner_v3_budget3_start0_20261014`, 8 games, wall limit 2400).
+* 15:05 Super Speed replays on Treasure (3 states, use_0/use_3, 48 replies): no ambiguity, speeds peak 29-37 u/s and settle to
+  2-8 by reply 48. Why uses never win: with --preserve-resources a use candidate ranks below ANY non-use candidate with progress
+  unless it predicts a pickup; without it (nopreserve test) use candidates had only 24 replies, at which a Super Speed is still
+  ~30 u/s and fails the settled gate (then the ballistic block coasts it 64 replies with no input and charges ~33 u). Plan v6:
+  --use-horizon 48 + no --preserve-resources + a time charge on use candidates for their extra 24 replies (edit after the
+  budget-3 pool).
+
+### 2026-10-14 15:36 MDT - Budget 3 s not adopted; powerup-use edits (operator: focus on powerup usage)
+* v3 + --search-budget-s 3 (`planner_v3_budget3_start0_20261014`): 91.7, falls 11 (v3 94.5 / 23); Sprawl 140, Fractured 79 up,
+  Treasure 107, Concentric 58 down. Budget stays 2 s.
+* search.py: use candidates forecast beyond the ordinary horizon get the same time charge as ballistic flights (extra replies *
+  0.064 * 8 u/s, not when they collect); `--use-first` moves use candidates right after route/direct when holding a powerup.
+  v6 = v3 + --use-horizon 48 + --use-first without --preserve-resources. Launching on start_0 and start_1.
+* 15:33 v6 launched (`planner_v6_start0/1_20261014`, 4 games each). Offline (Treasure, Super Speed held, goals 68-119 u): specs
+  order route, direct, use_0, direct_use_0, use_3 ...; at goal 119 u `direct_use_3_jump_-1` wins (+78.5 u progress, 12.3 u time
+  charge); at 68/79 u rolling wins. test_search 14/14.
+
+### 2026-10-14 16:25 MDT - v6 (powerup focus): uses tripled, points down
+* v6 = v3 + --use-horizon 48 + --use-first, no --preserve-resources. start_0 88.1 (falls 15, uses 38, blasts 177) vs v3 94.5
+  (23 / 13 / 86); start_1 81.6 (14 / 36 / 179) vs 93.1 (9 / 12 / 68). KOTM uses 13 and 12 per round with points level
+  (113/112 vs 115/121); losses on Cube (49/79 vs 65/103), Cragmire (78/69 vs 94/89), Treasure start_1 (74 vs 95), Fractured start_1
+  (63 vs 81). Next: inspect what the extra uses did (wasted Super Jumps / Speeds that cost time) before changing the ranking.
+* Operator asked for a Google Sheet of the best real full-round score per map; data compiled in
+  docs/BEST_REAL_SCORES_2026-10-14.csv (KOTM 175 on 2026-10-06; others from the planner pools of 10-13/14).
+
+### 2026-10-14 16:40 MDT - v6 use audit; v7 (use margin) launched
+* Audit of every powerup use in v3 and v6 (both starts, scratchpad use_audit.py; "good" = a gem within 3 s and no fall first):
+  Super Jump v3 2/3 good, v6 24/30; Super Speed v3 15/21, v6 19/38; Helicopter v3 1/1, v6 1/6; falls caused by a use: v3 1, v6 0.
+  The v6 point loss came from wasted Super Speed / Helicopter uses that won on a small cost edge and from --use-first eating
+  search budget from the ordinary candidates, not from falls.
+* search.py apply_use_margin(): a use candidate must beat the best non-use candidate by engine.use_margin_u (rejected
+  'use_margin' otherwise) unless it alone predicts a pickup. reliability_eval --use-margin-s (seconds at the 8 u/s nominal rate).
+* v7 = v3 + --use-horizon 48 + --use-margin-s 1, no --use-first, no --preserve-resources. Pools planner_v7_start0/1_20261014
+  (ports 9060/9070, 4 workers each, wall limit 2400). Launch form that works: from the repo root,
+  PYTHONPATH=ml_agent python -m nav.marble_dynamics.reliability_eval ... (output folder must not pre-exist).
+
+### 2026-10-14 17:36 MDT - v7 result: start_0 95.4 (record Treasure 163), start_1 78.5 (Treasure 32 trap)
+* v7 per map (start_0 / start_1): KOTM 113/110, Sprawl 133/105, Cube 75/111 (record), Bowl 63/50, Duplex 108/94, Fractured 77/62,
+  Cragmire 69/64, Vortex 86/97, Treasure 163 (record, 0 falls)/32, Concentric 67/60. Means 95.4 / 78.5, falls 17 / 7
+  (v3 94.5 / 93.1, falls 23 / 9; v6 88.1 / 81.6). Uses: Super Jump 7+12 (13 good), Super Speed 12+20 (13 good, 19 nothing),
+  Helicopter 1. The margin cut Helicopter waste but Super Speed is still wasted ~60% of the time.
+* Treasure start_1: 192 s of 240 stuck near (97,26,3)->(92,25,9); v3 lost 66 s at the same spot. Cragmire start_1: 72 s stuck
+  near (-29,9,9). Both windows are dominated by search_cooldown / planning_time_budget (searches finding nothing in 2 s).
+  Diagnosis in progress before the next change.
+
+### 2026-10-14 18:05 MDT - Treasure trap diagnosed (climb onto a box); v8 "climb crossings" launched
+* Treasure start_1 lost 192 s under a 4 u box (gem at z 8.5, floor z 4; the nearest cells are an overhang). Causes, all general:
+  (1) crossings.py labelled the floor and the box top as one component (weak connectivity: the one-way drop edge joins them),
+  so no crossing was staged and the planner drove under the gem; (2) the Blast meter was spent at 0.2-0.45 for small gains
+  (12 blasts in the window, recharge 25 s), never reaching the charge a climb needs; (3) no candidate family lands on a ledge.
+  Physics (probe from the journal state, engine port): jump + full Blast fired 1-2 replies after the jump reaches 9.8 u in free
+  flight; measured real rises in the journals: 6-7 u at meter 1.0, <=3.3 u at 0.5-0.6 (except slopes).
+* v8 edits (no new flags; under --component-crossing): crossings.py uses STRONG components (directed reachability); MAX_RISE_U
+  6.5 with CLIMB_RISE_U 1.5 (a climb needs no hole); climb landings must be interior cells of the upper level >=1 u away in
+  plan (never the overhang cell); needed_meter(rise) = (rise-1)/5.5 clipped; new phase 'charge' (meter below the need: hold at
+  the run-up point, blast candidates not forecast = engine.blast_reserved, also during 'approach' of a climb); fallback brake
+  also in 'charge'. search.py: in cross phase blast candidates come FIRST (deadline), direct aim only, blast = jump+2 for every
+  jump time plus half-throttle variants; apply_crossing_landing(): a Blast/use candidate must end on the far side (component +
+  height within 1.5 u), any candidate ending under the ledge within 3 u of the landing is rejected ('under_the_ledge'); the
+  staged goal is a cell so a 'pickup' of it is no exemption. reliability_eval passes the Blast meter to stage() and sets
+  engine.crossing. Offline integration test from the Treasure pit: meter 0.2 -> 'charge', 0.7/1.0 -> 'cross' and the chosen
+  candidate lands on the box top (direct_blast_10_jump_8 / direct_blast_4_jump_2). Component counts barely change on the
+  other 9 maps (weak vs strong: KOTM 4/6, Sprawl 26/53, Cragmire 267/311, others equal).
+* Pools planner_v8_start0/1_20261014 launched 18:03 (same flags as v7). Compare with v7 95.4 / 78.5 and v3 94.5 / 93.1.
+
+### 2026-10-14 18:59 MDT - v8 result (74.2 / 80.4): climb fixed Treasure start_1 (32 -> 88) but staging misfired elsewhere; v9 launched
+* v8 per map (s0 / s1): KOTM 120/117, Sprawl 133/116, Cube 57/70, Bowl 63/50, Duplex 91/90, Fractured 85/70, Cragmire 62/67,
+  Vortex 73/97, Treasure 26/88, Concentric 32/39. Means 74.2 / 80.4, falls 8 / 4 (v7 95.4 / 78.5, falls 17 / 7).
+* Two defects (timelines, scratchpad timeline.py / phase_audit.py): (1) strong components also split one-way walkable areas
+  (up a ramp whose only way back is a drop), so climbs were staged and 'charge' braking (25 s waits, Concentric 38-40% of some
+  20 s bins) happened where v7 just drove; (2) under the box edge no walkable cell lies within the 3-cell lookup, so stage() gave
+  up and the planner pressed against the wall under the gem (Treasure s0: goal (91,27,9) for 160 s, 26 points).
+* v9 edits (crossings.py, reliability_eval.py): stage(route=...) first asks the directed goal field: a goal with a finite path
+  distance from a node at the marble's height (node_near, dz 1.5, radius 6 cells) is never staged; component_at widens its
+  lookup (3, 6, 12 cells); climb launches need headroom (upward raycast from the launch to the ledge top + 1 u, else the next
+  pair); a crossing whose cross phase only produces brakes for 32 decisions is dropped for 470 decisions (crossings.braked()
+  from the fallback; failed crossings excluded from first_hop). Offline: pit -> box still stages (approach), the under-overhang
+  sliver no longer yields an impossible climb, Concentric samples and the Treasure (61,15,6) ramp gem are 'reachable' -> no
+  staging. Pools planner_v9_start0/1_20261014 launched 18:57.
+
+### 2026-10-14 19:50 MDT - v9 result: 89.3 / 82.6 (v8 74.2 / 80.4; v7 95.4 / 78.5; v3 94.5 / 93.1)
+* v9 per map (s0 / s1): KOTM 118/113, Sprawl 133/128, Cube 51/55, Bowl 61/60, Duplex 101/103, Fractured 73/70, Cragmire 94/84,
+  Vortex 86/95, Treasure 143/67, Concentric 33/51; falls 15 / 12. Cragmire, Duplex, Sprawl recovered to v3 level; Treasure s0
+  back to 143; still losing on Concentric (33/51 vs v7 67/60) and Cube (51/55 vs 75/111) where 'jump_9_landing' / 'jump_5_landing'
+  dominate the chosen labels (not in v7's top labels) with 12-16% of decisions below 0.5 u/s. Hypothesis: in a cross phase a plain
+  jump that flies through the staged landing cell gets pickup credit for it even when it lands back below (the under_the_ledge
+  rejection needs the end within 3 u of the landing), so the marble jumps at the wall repeatedly. Replay diagnostic running.
+* 19:48 Replay of stage() over the v9 journals (scratchpad stage_replay.py): the 'charge' phase held 24-29% of the decisions on
+  Concentric / Cube / Treasure (field_inf: the walk graph has no path, so every such gem became a climb) while needed_meter
+  made the planner wait for Blast before rises a running jump clears alone; in 'charge' the staging point was "collected" like a
+  gem (428 pickup claims, 5 realised), so the marble circled it. In cross phase plain jumps through the landing cell also claimed
+  pickups (68 claims, 3 realised).
+* v10 edits: needed_meter = (rise-2.5)/4.5 (no charge below a 2.5 u rise; JUMP_RISE_U 2.5, BLAST_RISE_U 4.5); pick() skips a gem
+  in 'charge' when other gems exist (logged as 'charge_skipped'/'blast_charging'), so the meter charges while other gems are
+  collected; apply_crossing_landing rejects a not-landed candidate that claims a pickup of the landing cell
+  ('phantom_landing_pickup'). Pools planner_v10_start0/1_20261014 launched.
+
+### 2026-10-14 20:02 MDT - OPERATOR STOP: v10 pools killed after KOTM (113 / 115); session handed off
+* Operator asked to stop the loop. planner_v10_start0/1_20261014 were killed at 20:02 with only KOTM finished (113 / 115 vs v9
+  118 / 113); the two folders hold partial journals only. No games running (0 marbleblast instances). Code state = v10 edits
+  in search.py, crossings.py, reliability_eval.py (uncommitted, together with the 10-13/14 work).
+* Scoreboard, ten-map means on starts 0 / 1 (falls): v3 94.5 / 93.1 (23 / 9); v6 88.1 / 81.6; v7 95.4 / 78.5 (17 / 7);
+  v8 74.2 / 80.4 (8 / 4); v9 89.3 / 82.6 (15 / 12); v10 unfinished. v3 remains the reference teacher configuration; v7's use
+  margin is a keep (uses no longer cost points on start_0); the climb-crossing code (v8-v10) is unproven: it fixed the Treasure
+  box (32 -> 88 / 67) but Concentric and Cube lost 20-50 points in v9 to the 'charge' phase, which v10 addresses (untested).
+* NEXT: (1) finish the v10 pair (same command as v7/v9, see 16:40 entry for the launch form) and compare with v3/v7; if Concentric
+  and Cube recover to v7 levels while Treasure keeps the climb, adopt; otherwise consider making --component-crossing's climb
+  part opt-in (a 'climbs' flag) so the gap crossings (Fractured) stay. (2) Super Speed: half the uses still lead nowhere;
+  candidates: require predicted progress gain over the best non-use of >= 1 s AND a straight run ahead (no turn within the kick).
+  (3) Cragmire's 60-70 s detours (gem on a lower ledge, route 62 u) are the next biggest single loss.
+* Best real full-round scores per map are in docs/BEST_REAL_SCORES_2026-10-14.csv (Treasure 163 and Cube 111 set today); the
+  operator wants them in a Google Sheet (Drive connector added but its tools never loaded in this session; needs a new session).
+
+### 2026-10-14 20:12 MDT - New session: best-scores Google Sheet created; v10 pools relaunched
+* Google Sheet "PlatinumQuest ML - Best Real Scores per Map" created from docs/BEST_REAL_SCORES_2026-10-14.csv (Drive id
+  1SHzKnKrVSN8Rwn5wfaEk0vqek_-H9C-XNB4IeQ_tkIA). Standing operator rule (memory best-scores-google-sheet): update the CSV and
+  the sheet whenever a map sets a new best real full round or a map joins the pool.
+* v10 relaunched into fresh folders planner_v10_start0/1_20261014_r2 (ports 9060/9070, 4 workers each, wall limit 2400; the
+  killed 20:02 folders planner_v10_start0/1_20261014 are kept as partial KOTM-only journals). Flags = v7 (v3 + --use-horizon 48
+  --use-margin-s 1, no --preserve-resources) on the v10 code. Full launch command (repo root):
+  PYTHONPATH=ml_agent python -m nav.marble_dynamics.reliability_eval --maps <10 maps> --seeds 7347019 --random-starts
+  --start-seed-manifest ml_agent/dynamics_reports/fast_nav_scaling_20261013/start_manifests/start_N.json --only-branch physics_plan
+  --full-round --round-wall-limit-s 2400 --workers 4 --port 90N0 --horizon 24 --commit 4 --reuse-plan --geometry-route
+  --resource-acquisition --recharge-continuation --landing-search --proposal-samples 20 --query-cache --clearance-cache
+  --global-goals --physics-frame-ms 16 --fallback-cooldown 2 --search-budget-s 2 --pickup-landing-continuation 40
+  --component-crossing --ballistic-landing --use-horizon 48 --use-margin-s 1 --cache-dir <pq_checks/fast_nav_static_cache_20261013>
+  --sweep-dll <pq_checks/compiled_sweep_20261012/sweep_kernel.dll> --output <new folder>. Judge against v3 94.5 / 93.1 and v7 95.4 / 78.5.
+
+### 2026-10-14 21:05 MDT - v10 result: 83.2 / 78.7 (NOT adopted); climb crossings have now lost three pools in a row
+* v10 per map (s0 / s1): KOTM 116/121, Sprawl 125/117, Cube 59/77, Bowl 63/56, Duplex 94/98, Fractured 73/70, Cragmire 74/78,
+  Vortex 86/90, Treasure 113/44, Concentric 29/36. Means 83.2 / 78.7, falls 10 / 12, uses 211 / 224 (dict counts over 10 maps).
+  Pools planner_v10_start0/1_20261014_r2 (the 20:02 killed folders hold KOTM only: 113 / 115).
+* Scoreboard, ten-map means s0 / s1: v3 94.5 / 93.1; v7 95.4 / 78.5; v8 74.2 / 80.4; v9 89.3 / 82.6; v10 83.2 / 78.7.
+* Against the adoption test (Concentric and Cube back to v7 levels while Treasure keeps the climb): FAILED on all three.
+  Concentric 29/36 (v7 67/60, v9 33/51): the charge skip did not help. Cube 59/77 (v7 75/111). Treasure s1 44 (v8 88, v9 67):
+  the climb fix regressed, s0 113 (v9 143, v7 163). crossing_brake_fallback per round (decisions braked by the crossing
+  fallback): v10 Cube 129/211, Duplex 79/171, Concentric 99/168, Treasure 36/111 vs v7 0/0, 9/15, 6/15, 0/0; Fractured (the gap
+  map) 174/34 vs v7 105/139 with the same 73/70 points, so brake count alone does not explain the losses; the staged climbs
+  themselves (goal choice + charge/approach phases) do. No per-map best was beaten (sheet unchanged).
+* Open (needs the operator's OK before any edit): (a) make climbs opt-in (keep the v7 gap crossings; 'climb' part behind a flag
+  defaulting off) and re-run v7 on start_2 to confirm v7 as the new reference; (b) or give up climbs entirely and address the
+  Treasure box (32 on v7 s1) by the gem-skip route only (skip a gem whose walk graph has no path, pick the next); (c) Super
+  Speed waste rule from the 20:02 NEXT list. Sheets: operator's best-score sheet now has History + line chart (memory
+  best-scores-google-sheet); the Sheets connector was added 20:30 but needs a new session.
+
+### 2026-10-14 22:10 MDT - Operator: edit code without asking; climbs made opt-in (v11); Sprawl watch runs
+* Operator revoked the "no code edits without approval" rule (memory feedback-code-edits-allowed) and asked for Sprawl at 1x.
+  Watch run 1 (2 s budget) was killed by the operator: the game freezes for up to the search budget at every full search
+  (lockstep). Relaunched with --search-budget-s 0.5 (`watch_planner_sprawl_b05_20261014`). TODO: a replay viewer that plays
+  a pool journal back at 1x without searching.
+* v11 edit: crossings.Crossings(climbs=False) is the default = v7 behaviour (weak components, gap crossings only, no climb
+  pairs, needed_meter 0 so no 'charge' phase); `--climb-crossings` turns the v8-v10 climbs back on. search.py: the extended
+  jump times, Blast-first families, 'phantom_landing_pickup' and 'under_the_ledge' rejections apply only to climb crossings.
+  Kept from v9 (generic): reachable() goal-field check, widened component_at, braked() crossing drop. Offline: test_search
+  14/14; Treasure box / Concentric samples stage nothing with climbs off; Fractured keeps 269 gap crossings (275 with climbs).
+* Pools planner_v11_start0/1_20261014 (v7 flags on the v11 code) queued to launch when the watch round ends (8-game cap).
+  Expected: back to v7 levels (95.4 / 78.5) with v9's reachable-check and braked() retained; Treasure s1 trap (32) returns.
+
+### 2026-10-14 22:15 MDT - Operator: "use Blast + jump over walls instead of driving around" -> v12 (detour-first Blast, Blast value)
+* Operator watched Sprawl (0.5 s budget) and saw no Blast hops; walls cost long detours. Diagnosis on the v10 Sprawl s0 journal
+  (scratchpad wall_probe.py): 24% of decisions were detours (walk route >= 1.5x the straight line; ratios up to 5x); the Blast
+  meter was >= 0.95 at only 9 of 276 sampled detour decisions and >= 0.5 at 100 (the planner spends it on 1-2 u gains).
+  Offline at decision 204 (route 76 u vs 37 u straight) with a FULL meter and no deadline the search chooses
+  direct_blast_7_jump_3_ballistic: it lands over the wall with 45 u of progress vs 13 u for 'route'. Under the live 2 s budget
+  it is never found: the Blast families are forecast last (search took 2.7 s) and the ballistic landing projection runs
+  after all families and is skipped once the deadline has hit.
+* v12 edits (search.py, general, physics decides): (1) detour_ratio() = walk route / straight line; when >= 1.5 (engine.
+  detour_blast_ratio, flag --detour-blast-ratio) and the meter >= 0.5, the Blast families are forecast FIRST and their
+  ballistic landings are projected right after them (project_airborne(), also used at the end as before); (2) apply_blast_value():
+  a candidate that fires the Blast is charged meter * 10 u (engine.blast_value_u, flag --blast-value-u, 0 = old behaviour) so
+  the meter is kept for hops; 25 u killed the 204 hop (cost margin there is 12.9 u after the flight-time penalty), 10 u keeps
+  it and rejects the small-gain Blasts. Probe with the 2 s deadline: dec 204 meter 1.0 -> hop chosen (67.9 vs 70.8); dec 735
+  (ratio 1.6) hops land with 21-27 u progress but lose on flight time; dec 239 meter 0.6 loses by 3 u. test_search 15/15.
+* v11 pools killed at 22:12 (KOTM not finished; folders *_killed / planner_v11_start1_20261014 locked by OneDrive, ignore).
+  v12 = v11 code + the two Blast changes, v7 flags, pools planner_v12_start0/1_20261014 (4 workers each). Judge against v7
+  95.4 / 78.5 and v3 94.5 / 93.1; look at Blast counts and Sprawl/Cragmire/Duplex (wall maps). If v12 is below v7, run v11
+  alone to separate the climb-off change from the Blast changes.
+* 22:20 v12 start_1 lost 7 of 10 jobs: KOTM and Duplex (worker port 9070) timed out waiting for the game socket (70 s), and
+  Fractured/Cragmire/Vortex/Treasure/Concentric failed with "Parallel child inputs differ from parent declaration" because a
+  NEW file (replay_watch.py) was added to nav/marble_dynamics while the pools ran: the children hash every source in the
+  package against the parent's declaration. TRAP: never add or edit files under nav/marble_dynamics while a pool is running
+  (edits already failed the batch; new files do too). File moved to the scratchpad; start_0 and the 3 running start_1 jobs are
+  unaffected. The 7 maps rerun as planner_v12_start1_rest_20261014 (3 workers, port 9090) once the start_1 pool's games exit.
+
+### 2026-10-14 22:55 MDT - v12 start_0: 98.6 (best start_0 so far; v7 95.4, v3 94.5), falls 11
+* v12 s0 per map: KOTM 110, Sprawl 133, Cube 82, Bowl 81, Duplex 93, Fractured 73, Cragmire 85, Vortex 93, Treasure 160,
+  Concentric 76 (v7: 113/133/75/63/108/77/69/86/163/67). Blast hops are live: Sprawl s0 fired the Blast 22 times with
+  *_ballistic Blast plans chosen for ~400 decisions, 0 falls, same 133 points as v7.
+* Duplex s0 93 (v7 108): crossing_brake fallbacks 105 vs 9 in v7 (s1 66). Climbs are off, but v9's widened component_at
+  lookup (3 -> 6 -> 12 cells) gives a component to positions under walls / at edges that v7 left unstaged, so more gap
+  crossings are staged and braked at. Planned v13: the widening follows the climbs flag (v7 lookup when climbs are off).
+  Edit waits until the start_1 rest pool is done (source-hash guard).
+* 23:05 Replay viewer works: nav/marble_dynamics/replay_watch.py (kept in the scratchpad until the rest pool ends, then moved into
+  the package) replays a pool journal's recorded controls into a fresh -aifreecam game on the same map / native seed / random
+  start, paced 64 ms per decision (--speed N for faster). Lockstep physics is deterministic: the v12 KOTM s0 round replayed
+  bit-exact (drift 0.00 u, 110 points = recorded) once the OOBCLICK after a fall is driven by the RECORDED outcome (the live
+  'fell' flag reads False at that step). This is the way to watch a round at 1x with no planner pauses:
+  PYTHONPATH=ml_agent python -m nav.marble_dynamics.replay_watch --journal <pool>/<map>/<seed>/physics_plan/1 --port 9085
+
+### 2026-10-14 23:10 MDT - v12 RESULT: 98.6 / 101.2 (best on both starts; v3 94.5 / 93.1, v7 95.4 / 78.5), falls 11 / 11
+* v12 per map (s0 / s1): KOTM 110/116, Sprawl 133/116, Cube 82/104, Bowl 81/60, Duplex 93/94, Fractured 73/70, Cragmire
+  85/97, Vortex 93/105, Treasure 160/160, Concentric 76/90. start_1 from planner_v12_start1_20261014 (Sprawl/Cube/Bowl) +
+  planner_v12_start1_rest_20261014 (the other 7). NEW BESTS: Vortex 105 (was 100), Concentric 90 (was 80); CSV updated.
+* Reading: the Treasure s1 box trap (v7 32, climbs v8-v10 44-88) is gone WITHOUT climb code: detour-first Blast + a kept meter
+  hops the box (160 / 160). Cragmire s1 97 (v7 64) and Concentric s1 90 (v7 60) likewise. Only Duplex s0 lost (93 vs 108):
+  crossing brakes 105 vs 9 (see 22:55). v12 = new reference configuration (flags unchanged from v7; behaviour is in code
+  defaults: Crossings(climbs=False), blast_value_u 10, detour_blast_ratio 1.5).
+* v13 = v12 + component_at widening only with climbs (v7 lookup for gap crossings). Pools planner_v13_start0/1_20261014 next.
+* 23:10 Sheet recreated with the two new bests (Drive id 11XdSKHYn4Su73rsDSLSyaruM6dd8TjKGDh8XhPtN73o; Drive-only connector,
+  so each update is a new file with the old one renamed OLD until the Sheets connector loads). v13 pools launched 23:08
+  (start_0 4 workers port 9060, start_1 3 workers port 9070, staggered 20 s; a game slot stays free for replay_watch).
+* 23:20 v13 pools DESTROYED by my cleanup (relaunched as *_r2). Chain: the v11 kill at 22:12 missed one start_1 child
+  (pid 34296, started 22:00; `wmic` prints nothing from Git Bash, so the kill-by-command-line found no processes); it kept
+  LISTENING on 127.0.0.1:9070 and stole the game connections of every later worker on 9070 (v12 KOTM/Duplex s1 timeouts, v13
+  KOTM s1). My PowerShell fix compared a CIM CreationDate it failed to convert ($null -lt date = True) and killed ALL
+  reliability_eval processes. TRAPS: (1) after killing a pool, verify with `netstat -ano | findstr 906 907` that no listener
+  remains on the worker ports; (2) use Get-Process StartTime or [Management.ManagementDateTimeConverter]::ToDateTime for CIM
+  dates, never an unconverted compare; (3) `wmic` is silent under Git Bash: use PowerShell Get-CimInstance.
+* 23:25 pid 34296 cannot be terminated (1 thread, 388 handles, taskkill "no running instance"; still LISTENING on 9070 until a
+  reboot). Port 9070 is unusable this session: v13 relaunched as planner_v13_start0_20261014_r2 (port 9060, 4 workers) and
+  planner_v13_start1_20261014_r2 (port 9080, 3 workers), staggered 25 s. Expected finish ~00:25 MDT.
+
+### 2026-10-14 23:30 MDT - Operator: run the loop all night (code changes approved); morning check-in
+* Overnight plan (each iteration ~55 min with 4+4 workers): judge v13 (lookup fix) vs v12; then in order of expected gain:
+  (1) Super Speed waste (half the uses lead nowhere): require predicted progress gain >= 1 s over the best non-use AND a
+  straight run ahead; (2) Duplex/Bowl stalls: brake-tail / search_cooldown windows; (3) Blast value / detour ratio sweep
+  (value 6 vs 10 vs 15; ratio 1.3 vs 1.5) if hops look under/over-used in the journals; (4) start_2 confirmation of the best
+  config. Keep: never two changes in one pool unless the first is already judged; revert anything that loses on both starts.
+
+### 2026-10-15 00:00 MDT - v13 start_0: 95.9, falls 17 (v12 98.6 / 11): the lookup change fixed Duplex s0 (109) but lost elsewhere
+* v13 s0 per map vs v12: KOTM 117/110, Sprawl 133/133, Cube 75/82 (falls 7 vs 5), Bowl 63/81, Duplex 109/93, Fractured 73/73,
+  Cragmire 91/85, Vortex 86/93, Treasure 147/160, Concentric 65/76. start_1 so far: KOTM 112, Sprawl 116, Cube 103 (falls 6),
+  Bowl 62, Duplex 79 (falls 3, crossing brakes 84), Fractured 70. Falls are the signal: the narrow lookup leaves edge/wall
+  positions without a component, so no crossing is staged and the marble is driven at the edge (Cube, Duplex s1).
+
+### 2026-10-15 00:12 MDT - v13 REJECTED (Treasure s1 114 vs 160; s0 95.9 vs 98.6, falls 17 vs 11); v14 = v12 + Blast floor 5 u
+* v13 lookup change reverted (crossings.component_at back to the v12 widening for all crossings). Duplex s0's 105 crossing
+  brakes stay an open item; the narrow lookup trades them for falls at edges.
+* v14: apply_blast_value charge = meter * 10 u + 5 u floor per fire (engine.blast_floor_u, flag --blast-floor-u, 0 = v12).
+  Basis: v12 start_0 Blast audit (141 fires): low-meter fires (< 0.5) gain a median 2.5 u in the 3 s after firing vs 13 u
+  before; full-meter fires carry the big hops. test_search 16/16. Pools planner_v14_start0/1_20261015 (4 workers each;
+  start_1 launches when the last v13 s1 rounds exit; ports 9060 / 9070). Judge vs v12 98.6 / 101.2.
+* 00:15 v13 Cragmire s1 (and likely Concentric s1) failed 'Full-round source changed during declared batch': running children re-hash the sources at round start too, so the 00:03 edit killed them. v13 is rejected regardless. TRAP widened in memory: edit only when NO pool is running.
+
+### 2026-10-15 01:00 MDT - v14 start_1: 95.3 / falls 16 (v12 101.2 / 11): Blast floor REJECTED; load confound found
+* v14 s1 per map vs v12: KOTM 112/116, Sprawl 128/116, Cube 100/104, Bowl 60/60, Duplex 102/94, Fractured 70/70,
+  Cragmire 113 (NEW BEST, was 109)/97, Vortex 100/105, Treasure 101/160, Concentric 67/90; s0 so far KOTM 116, Sprawl 133,
+  Cube 75, Bowl 63, Duplex 109, Fractured 73, Cragmire 90, Vortex 93, Concentric 50 (v12 76). The floor kills the partial-meter
+  Blasts that Treasure (box) and Concentric need; v13 lost the same two maps.
+* CONFOUND: the search budget is 2 s of WALL CLOCK, so planning quality depends on machine load. v12's start_1 numbers came
+  from the 3-worker "rest" pool that ran partly alone (3-7 games) while every other pool ran at 7-8 games; its Treasure 160 /
+  Concentric 90 / Cragmire 97 / Vortex 105 may be load-inflated. v13 s1 (7 games) and v14 s1 (8 games) both scored Treasure
+  101-114, Concentric 67-79. Rule from now on: judge only pools run at the same load (8 games, 4+4 workers, both starts
+  launched together); re-establish the v12 reference under that load (v12b) before the next change.
+* Next: revert the floor default to 0 (flag kept), rerun v12 code on both starts at 4+4 as planner_v12b_*; the v12 vs v12b gap
+  is the run-to-run noise estimate for all later judgements.
+* 01:05 v14 final: s0 91.7 / falls 15 (Treasure s0 115 vs 160, Concentric 50 vs 76), s1 95.3 / 16. REJECTED; floor default back
+  to 0 (flag --blast-floor-u kept). v12b reference pools launched 00:53 (planner_v12b_start0/1_20261015, 4+4 workers, ports
+  9060/9070, 8 games): same code as v12. Sheet recreated with Cragmire 113 and a 10-15 History row.
+
+### 2026-10-15 01:50 MDT - v12b (same code as v12, 8 games): 96.9 / 92.6, falls 15 / 14 -> the fair v12 reference; noise measured
+* v12b per map (s0 / s1): KOTM 115/110, Sprawl 133/120, Cube 94/79, Bowl 63/64, Duplex 109/94, Fractured 86/62, Cragmire
+  90/96, Vortex 88/104, Treasure 117/117, Concentric 74/80. v12 vs v12b on identical code: per-round |diff| mean 11, max 43
+  (Treasure s1 160 vs 117); ten-map means differ by 1.7 (s0) and 8.6 (s1, the load-inflated rest pool). Duplex s0 93 -> 109
+  and Bowl s0 81 -> 63 on the same code: those "effects" in v13/v14 were noise. Treasure s1 160 was a lucky round, not a
+  solved trap (117 / 114 / 101 in the three full-load reruns).
+* Consequence: a ten-map single-start comparison resolves ~+-4 points; v13 (95.9 / 90.4) and v14 (91.7 / 95.3) are both
+  within noise of v12b except v14 s0 (-5). From now on every candidate runs starts 0, 1 AND 2 (30 rounds) and is judged on
+  the 30-round mean against the reference run the same way; the reference gets start_2 under full load in the next batch.
+* Profile (5 unbudgeted Duplex searches, 18.4 s): physics.step 64%, of which contacts/sweep 23%, query_cache.query_aabb
+  21% (2.8 s pure Python overhead), ground/geometry_route segment checks 11%, contact_order.reorder 11%, state clone 6%.
+  Two thirds of live searches hit the 2 s deadline (Duplex: 263 of 390), so a faster forecast = more candidates judged.
+  v15 = v12 + exact speed-ups (query_aabb scalar path, vectorised hull cull in contact_order.ranks); outputs verified
+  bit-identical on 8 searches (dump_base vs dump_opt) before launch.
+
+### 2026-10-15 02:30 MDT - v15 (2x faster forecast) start_0: 91.0 / falls 15 (v12b 96.9 / 15); start_1 running ahead of v12b
+* v15 s0 per map vs v12b: KOTM 111/115, Sprawl 133/133, Cube 77/94, Bowl 83/63, Duplex 110/109, Fractured 73/86, Cragmire
+  83/90, Vortex 86/88, Treasure 103/117, Concentric 51/74. s1 so far (9 maps): +39 over v12b's same 9 (Sprawl 137, Cube 101,
+  Duplex 103). Deadline hits per search fell from 93% to 84% (KOTM): twice the speed is not enough to finish a search.
+* Mixed by start = within noise. The extra candidates reached late in the list are Blast/use/navigator families; if they are
+  judged over-optimistically, a faster search can hurt (Concentric 51, Treasure 103). Start_2 decides: chain_s2.sh runs v15
+  on start_2 (8 workers) then reverts the speed-up and runs v12 on start_2 (8 workers), both at 8 games.
+* 02:40 v15 s1: 96.5 / falls 8 (v12b 92.6 / 14); 20-round means v15 93.8 vs v12b 94.8 = a wash; start_2 chain running (v15 s2 launched 02:25, 8 workers).
+
+### 2026-10-15 03:00 MDT - v15 start_2 95.1 / falls 9 (30-round mean 94.2); SPEED CAP FOUND -> v16 (route-length braking law)
+* v15 s2 per map: KOTM 116, Sprawl 136, Cube 103, Bowl 74, Duplex 92, Fractured 79, Cragmire 74, Vortex 100, Treasure 120,
+  Concentric 57. v15 30-round mean 94.2 vs v12b 20-round 94.8: the speed-up neither helps nor hurts scores (kept: it is
+  exact and halves search time). The v12 start_2 rerun was cancelled in favour of the finding below.
+* Where the points go (v12b + v15 journals, 154k decisions): stuck (<0.5 u/s) only 1-2%, actor fallback 5%, crossing brakes
+  0.4%; the marble is DRIVING 93% of the time, at a mean horizontal speed of 4.3-7.4 u/s, pickups at 4.2-6.0 u/s (human
+  11.4; roll limit 15). Cause (gem_demo.Proposal): target_speed = min(11, sqrt(2*7*(distance-0.25))) where distance is to the
+  AIM POINT, which for route following is the next waypoint a few units ahead -> every route candidate brakes for every
+  waypoint (5-6 u/s cap) and brakes to a stop at the gem.
+* v16: SequenceProposal passes the remaining route length as the stopping distance (search.ROUTE_SPEED_LAW) and a 6 u/s
+  floor toward a gem (PICKUP_MIN_SPEED; a gem needs no stop); braking candidates keep the stop. Flags --waypoint-brake-law
+  (old) / --pickup-min-speed. Offline on 20 journal decisions under the 2 s budget: chosen-plan end speed 2.85 -> 3.60 u/s,
+  progress per 1.5 s horizon 9.65 -> 11.84 u, accepted candidates 15.8 -> 19.4 (faster plans stay within the physics gates).
+  test_search 16/16. Pools planner_v16_start0/1_20261015 launched 02:58 (4+4). Reference: v15 (same code minus the law):
+  91.0 / 96.5 / 95.1.
+* 03:10 v16 KOTM 115 / 118 (v15 111 / 117) but mean speed unchanged (6.6 u/s, pickups 6.0): the chosen labels moved to 'accelerate_then_brake' (423 of 2877 decisions, was 0): candidate_cost adds +0.12 u per u/s of END speed, so with faster proposals the planner picks the ones that brake at the end. v17 candidate prepared: end-speed term -0.3 (credit) instead of +0.12.
+
+### 2026-10-15 03:50 MDT - v16 (route-length braking law + 6 u/s pickup floor): 95.3 / 97.5, 20-round 96.4 (v12b 94.8, v15 93.8); falls 28 / 14
+* v16 per map (s0 / s1): KOTM 115/118, Sprawl 133/139, Cube 80/83 (falls 11!), Bowl 83/70, Duplex 109/111, Fractured 69/70,
+  Cragmire 67/106, Vortex 93/104, Treasure 147/91, Concentric 57/83. Best 20-round mean so far (+1.6 over v12b, inside the
+  +-3 noise), but s0 falls doubled (Cube 11, Cragmire 4, Vortex 4). Mean speed moved little: 5.94 -> 6.32 u/s, pickups
+  5.01 -> 5.56 (all maps, s0): the END-speed penalty in candidate_cost (+0.12 u per u/s) made the planner pick plans that
+  brake at the horizon ('accelerate_then_brake' 423 of 2877 KOTM decisions, was 0).
+* v17 = v16 + END_VELOCITY_WEIGHT -0.3 (credit: speed carried past the horizon is future progress; the physics gates keep the
+  safety). Flag --end-velocity-weight (+0.12 = old). Pools planner_v17_start0/1_20261015 (4+4). Watch falls: if they rise
+  further with the credit, v18 = v17 + the edge-ahead safe fallback (--safe-fallback, v4) or a smaller credit.
+
+### 2026-10-15 04:10 MDT - v17 (end-speed credit -0.3) KILLED after 3 maps: KOTM 108/109, Cube 63/102 (falls 8/7), Sprawl s0 109 (always 133)
+* The credit did not raise the real speed (KOTM 6.4 u/s, pickups 6.2) and cost points: rejected, reverted to +0.12 (v16).
+  The remaining cap is below the cost function: Proposal's throttle = min(0.85, |accel|/12) with accel = 2*(desired - v)
+  decays as the speed error shrinks, and fast candidates fail the support/stability gates on slopes; both are the next
+  things to look at in daylight (offline: forecast a full-throttle straight run and see where the speed settles).
+* v16 on start_2 (8 workers) launched for the 30-round number; then the morning summary.
+* 04:15 WHY THE PLANNER IS SLOW (offline, v16 code, 14 KOTM/Sprawl decisions, no deadline): the engine model accelerates a
+  straight 0.85-throttle run from 6 to 10.5 u/s in 0.5 s and 13.4 in 1 s (speed is available), but of the candidates that END
+  >= 9 u/s, 52 are rejected and 16 accepted; 47 of the 52 fail 'no_supported_continuation' = the terminal stability gate
+  (4 supported states, normal speed < 2 u/s): at speed on an uneven floor the marble is bouncing or briefly airborne at the
+  horizon, so the fast plans are thrown away and the chosen plans end at 0.5-8 u/s. The fastest ACCEPTED ones are mostly the
+  learned navigator's. Fix to test: --landing-continuation 16 (exists since 10-13: an airborne/bouncing candidate is
+  continued with route following and judged at its landing instead of rejected) = v18, flag only, after v16 start_2.
+* 04:20 v16 s2 Sprawl job timed out at start (a v17 child I killed late was still listening on 9061; killed at 04:05): Sprawl s2 reruns alone after the pool (planner_v16sprawl_start2).
+* 04:45 v16 s2 (8 maps, Sprawl/Treasure pending rerun): 792 pts / 16 falls vs v15's 695 / 9 on the same maps (KOTM 124, Cube 108, Bowl 80, Duplex 110, Fractured 91, Cragmire 98, Vortex 102, Concentric 79). Treasure s2's 'Unexpected mission: Vortex' = an orphan v17 Vortex game (parent killed) reconnecting to port 9061; killed. TRAP added to memory.
+
+### 2026-10-15 05:00 MDT - v16 start_2: 103.5 / falls 16 -> v16 30-round mean 98.8 (v15 94.2, v12b/v12 ~95): NEW REFERENCE
+* v16 s2 per map: KOTM 124, Sprawl 136, Cube 108, Bowl 80, Duplex 110, Fractured 91, Cragmire 98, Vortex 102, Treasure 107,
+  Concentric 79 (Sprawl/Treasure from planner_v16rerun_start2_20261015 after the port hijack). The route-length braking law
+  is the first change tonight that clears the noise band (+4.6 on 30 rounds, ~2 sigma). Falls are up (s0 28, s2 16 vs 15 / 9):
+  the next safety work is the edge cases at speed (Cube s0 10-11 falls on v16/v18).
+* v18 (v16 + --landing-continuation 16) running: KOTM 121/121 (0 falls), Cube 85/82, Sprawl s0 120.
+
+### 2026-10-15 05:15 MDT - v18 (--landing-continuation 16) KILLED: Sprawl s1 79 (v16 139), s0 120 (133); KOTM 121/121, Cube 85/82
+* Judging bouncing/airborne candidates at their landing lets optimistic continuations win on Sprawl (the planner commits to
+  flights that do not pay off). Rejected; the flag stays off. All pools stopped 05:15; code = v16 defaults; no games running.
+* 05:20 v19 = v16 + --safe-fallback (existing v4 flag: when a search finds nothing, brake instead of handing the marble to
+  the actor if the free roll leaves the floor within 1 s) launched on starts 0/1 (4+4) to attack the falls that came with
+  the speed law. Judge in the morning against v16 95.3 / 97.5 (and run start_2 if promising).
+* 05:34 v19 (v16 + --safe-fallback) start_0: 92.8 / falls 14 (v16 95.3 / 28): falls halved, points -2.5 (Treasure 123 vs 147, the rest level). s1 so far: KOTM 122, Sprawl 118, Cube 111, Bowl 70, Duplex 104, Fractured 70, Cragmire 79, Vortex 101, Concentric 72; Treasure pending. If s1 holds, run start_2 for the 30-round judgement.
+
+### 2026-10-15 05:40 MDT - v19 (v16 + --safe-fallback) REJECTED: 92.8 / 88.0 (20-round 90.4 vs v16 96.4); falls 14 / 12 (v16 28 / 14)
+* v19 s1 per map vs v16: KOTM 122/118, Sprawl 118/139, Cube 111/83, Bowl 70/70, Duplex 104/111, Fractured 70/70, Cragmire
+  79/106, Vortex 101/104, Treasure 33/91 (the box: braking at the edge instead of the actor's wander = stuck), Concentric
+  72/83. The brake-at-the-edge fallback trades 6 points for half the falls; not worth it as is. A start_2 run was launched
+  by mistake and killed at 05:40 (folder *_killed). State at hand-off: NO pools running, code = v16 defaults, 0 games.
+* Overnight scoreboard (30-round means where available): v16 98.8 (reference) > v12b/v12 ~95 > v15 94.2; rejected: v13,
+  v14, v17, v18, v19. Daylight list: (1) falls at speed (Cube s0 10-11): an edge-aware speed cap in the proposal (slow only
+  when the route's next 1 s crosses an edge), not a global brake; (2) the terminal stability gate vs speed (3/4 of plans
+  ending > 9 u/s rejected): accept bounce normal speeds up to ~4 u/s or re-check support 8 replies later instead of
+  continuing the plan (v18 showed plain continuation strands the marble); (3) Treasure box trap (s1 33-91 depending on
+  luck): a dedicated 'unreachable gem' skip when the walk graph has no path and no hop candidate is accepted for N searches.
+
+### 2026-10-15 08:20 MDT - Operator: "it sat under a gem platform holding a Super Jump" -> replay divergence + the real stall problem -> v20
+* What the operator watched: a replay_watch run of the v16 s1 Sprawl journal that DIVERGED at decision 510 (0.05 u), fell at
+  701 and then fed the recorded controls to a marble in the wrong place for 4 minutes (points 14 vs 139; it picked up a
+  Super Jump the recorded round never held). The first replay of the same journal was exact to decision 1000+; lockstep
+  replay is deterministic only most of the time. replay_watch needs a resync (REPLAYRESTORE with the live world's items
+  and the recorded pose: pose = position+velocity+angular velocity, 9 words) - TODO, patch after the pools.
+* Real data (30 v16 rounds): only two 3 s windows ever held a Super Jump with a gem >= 2 u above (both 80 u away). The real
+  loss is different: no-progress windows below elevated gems while holding NOTHING with a Super Jump item within 25 u:
+  Cragmire s0 72 s, Sprawl s0 28 s, Treasure s0 163 s (metric over-counts but the order is right). choose_resource (the
+  conditional-inventory hypotheses) only runs when the search finds NO plan at all, and a 0.5 u-progress plan always exists.
+* v20 (reliability_eval.ContinuousController): per-goal route-progress tracker; after --stall-rule-s 5 s without >= 1 u of
+  progress toward the current gem, the next search first runs choose_resource for that gem (does a held powerup make it
+  reachable from here? then fetch that item) and otherwise drops the gem for --stall-skip-s 20 s. No map facts; the
+  physics forecast and the walk route decide. Smoke pool planner_v20smoke_start1 (Treasure/Sprawl/Cragmire, 3 workers).
+* 08:35 v20 smoke (start_1, 3 games): Treasure 113 (stall never fired: the goal flips between neighbouring platform gems every
+  ~1.7 s, longest same-goal stall 4.9 s), Sprawl 152 (NEW BEST, was 140; no stall trigger, so v16 behaviour at low load),
+  Cragmire 74 (4 stalls -> 4 skips, no fetch). v20b: the stall timer and the skip apply to the CLUSTER of gems within 6 u
+  (--stall-cluster-u). replay_watch resync applied (REPLAYRESTORE with the recorded pose, --resync-u 0.5 default).
+  Second smoke planner_v20bsmoke_start1 (same 3 maps).
+* 08:50 v20b smoke (start_1, 3 games): Cragmire 121 (NEW BEST, was 113; no stall fired), Treasure 91 (4 stalls -> 4 skips, 0
+  fetches), Sprawl 125 (4 stalls -> 4 skips). Offline, choose_resource at Treasure under-ledge decisions takes 9-18 s with no
+  deadline (3 hypothesis searches + item searches) and does find a Super Jump fetch plan when the marble is BESIDE the box
+  (decision 1019: 2 pickup candidates with a hypothetical Super Jump, fetch 7.3 u away); directly under the overhang no
+  hypothesis predicts a pickup (ceiling). Inside the 2 s deadline it never finishes -> v20c: the stall-triggered fetch search
+  gets its own --stall-budget-s 6 s (once per stall). Full pools planner_v20c_start0/1_20261015 (4+4) launched 08:51; judge
+  vs v16 95.3 / 97.5 (then start_2 vs 103.5).
+* 09:30 Best-scores sheet: the canonical file (1kiEg...) is now edited IN PLACE through an Apps Script web app the operator
+  deployed (ml_agent/tools/best_scores_sheet_appsscript.gs + update_best_scores_sheet.py, URL in memory best-scores-google-sheet).
+  Pushed: Sprawl 152, Cragmire 121, Vortex 105, Concentric 90 + History rows 10-06/13/14/15; read back verified.
+
+### 2026-10-15 09:55 MDT - THE SUPER JUMP BUG, found and fixed (v21): a plan that collects the gem was discarded for being airborne at the horizon
+* Proof on the v16 s1 Sprawl round with a Super Jump given to the recorded state: decision 2180 (gem 6.3 u up, 11.6 u away)
+  'direct_use_0_jump_-1' predicts the PICKUP at reply 34 (cost -72.6) and was rejected 'no_supported_continuation'; its
+  40-reply landing continuation was also still airborne; the ballistic projection never ran on it because project_airborne
+  projects only the 4 best coarse landings by route distance (a 10 u jump loses that ranking). The planner chose 'steering'
+  (cost +15). At 2237 (4.4 u up, 2.8 u away) the pickup plan existed but the use family was never reached under the 2 s
+  deadline. This is the "sits under the platform holding a Super Jump" behaviour the operator saw (replays/rounds).
+* v21 (search.py): (1) a candidate whose forecast collects the gem and whose landing continuation is still airborne is
+  handed to the ballistic projection ('<label>_landing' in airborne); (2) project_airborne ALWAYS projects the candidates
+  that collect the gem (ahead of the ranked 4); (3) holding a Super Jump/Helicopter below a raised gem (dz >= 1.5 u,
+  engine.use_first_rise_u) the use plans are judged FIRST and their landings projected inline (same hook as detour-first).
+  Offline under the live 2 s budget: decisions 2180 / 2210 / 2237 now choose the Super Jump pickup plan (-78.7 / -82.1 /
+  -86.1); 2150 (28 u away) drives closer first. test_search 16/16.
+* Also in: v20d stall rule (only for gems >= 1.5 u above; Super Jump/Helicopter hypotheses only, horizon 48, no fetch when
+  the plain search already predicts the pickup; 6 s budget). v20c pools killed (KOTM 116/115, Cube 71/106, Sprawl 116/116,
+  Bowl 74 s1). Pools planner_v21_start0/1_20261015 (4+4) launched 09:55; judge vs v16 95.3 / 97.5 and on falls/uses.
+
+### 2026-10-15 11:00 MDT - New session picks up the loop; v21 = 98.8 / 98.9 on starts 0/1 (v16 95.3 / 97.5); JOURNAL COLLISION BUG found
+* v21 per map (s0 / s1): KOTM 114/119, Sprawl 133/114, Cube 81/109, Bowl 85 (NEW BEST, was 83)/76, Duplex 109/97, Fractured
+  75/70, Cragmire 93/94, Vortex 93/90, Treasure 142/144, Concentric 63/76. Falls 10 / 20 (Vortex s1 8). 20-round mean 98.85 vs
+  v16 96.4. Pools finished 10:02 (they were launched ~09:17, not 09:55). v21 start_2 (8 workers, port 9060) launched 10:40 for the
+  30-round judgement against v16 98.8. Best-scores CSV + sheet already carried Bowl 85; sheet re-pushed and read back 10:42.
+* BUG (journals only; scores are unaffected): parallel children run with --output <pool>/_jobs/<map>.<seed>.<kind> and name their
+  runtime files RUNTIME/<output.name>_<map>_<seed>_<kind>_<round>.jsonl / .decisions.jsonl. Every pool uses --seeds 7347019, so
+  two pools launched together (start_0 + start_1, the 4+4 pattern) wrote the SAME runtime native/decision files for the same map:
+  both opened with 'w', both wrote at their own offsets, each archived the mixed file. Proof: v21 s0 Bowl's decisions.jsonl.gz
+  starts at s1's spawn [68,147.5] with identical ticks/positions to s1's journal, while s0's report.json start_layout is
+  [152,-44.5]; 31 unparseable lines each. Consequences: (1) report.json / actual_points are computed live and are correct;
+  (2) every journal of a concurrently run pool pair is a mix of the two rounds (the "1-3 bad lines per file" seen 10-14 were
+  this); (3) the 08:20 "replay diverged at decision 510" on the v16 s1 Sprawl journal was very likely this mix, not engine
+  nondeterminism; (4) journal-based audits of paired pools (speed, Super Jump windows, stall windows) double-counted one round.
+  Pools run alone (all start_2 runs at 8 workers) have clean journals. Fix (applied with v22, after the s2 pool): runtime_stem()
+  prefixes the pool folder name.
+
+### 2026-10-15 11:20 MDT - v21 start_2 94.6 -> v21 30-round 97.4 (v16 98.8): a wash; ALL falls follow actor streaks -> v22 launched
+* v21 s2 per map: KOTM 123, Sprawl 117, Cube 108, Bowl 78, Duplex 91, Fractured 91, Cragmire 65 (11 falls), Vortex 109 (NEW BEST,
+  was 105; CSV + sheet updated 11:20), Treasure 104, Concentric 60. v16 s2: 124/136/108/80/110/91/98/102/107/79. 30-round means:
+  v21 97.4 (98.8 / 98.9 / 94.6) vs v16 98.8 (95.3 / 97.5 / 103.5): within noise; v21's code stays as the base (its Super Jump and
+  stall fixes are principled), both are the reference level (~98).
+* Clean-journal audits (s2 pools run alone; scratchpad leg_audit.py / streak_audit.py / why_fail.py / robust_probe.py):
+  - Speed: KOTM s2 98 pickups, 1.84 s per pickup, 5.6 u/s at the pickup and 3.8 u/s minimum in the next second;
+    'accelerate_then_brake' chosen 13% of decisions. candidate_cost scores a pickup plan by its END distance from the collected
+    gem (+~1.2 u per unit driven past it) and the proposals steer back to the gem after passing it: every plan stops at the gem.
+  - Falls: EVERY fall in the clean s2 journals (v21 19/19, v16 16/16) comes within 30 decisions after a streak of >= 9
+    consecutive A2-fallback decisions. Two mechanisms: (a) Cube: a plan collects a gem 0.7 u from the edge at reply 22 of 24 at
+    8 u/s; the terminal gate only checks support AT the horizon, the marble leaves the edge ~0.3 s later (that plan was robust in
+    2/9 perturbed starts; 8 decisions later no candidate at all avoids the fall, A2 drives it off). (b) Cragmire (11 falls): the
+    target gem is 4 u BELOW the platform; route candidates drop into the pit, safe ones make no progress, pick() finds nothing
+    'useful', the fallback chain times out ('planning_time_budget') and A2 wanders off the edge; the stall rule did not fire
+    because v20d limited it to gems ABOVE the marble.
+* v22 (four parts, each with an off flag; offline-checked on recorded s2 states; test_search 14/14):
+  1. through-gem (--no-through-gem): after a predicted pickup the forecast is scored by its walk-distance progress toward the
+     tour's NEXT gem, read at reply 24 so longer forecasts earn nothing extra; 'through', 'direct_through', 'through_0.7'
+     proposals (gem within 18 u, next gem known) brake only for what follows the gem and switch to the next gem once their path
+     passes within 0.6 u of it. Offline (2 s budget, 30 approach states, 4 maps): speed at pickup 5.1-5.8 -> 5.8-6.5 u/s,
+     post-pickup progress ~0 -> +0.5..+2.9 u, through plans chosen in 6 of 30.
+  2. braking backup (--no-braking-backup): the 4 best useful candidates are checked in cost order: brake (anti-velocity, full
+     stick) for 20 replies from the plan's end; a fall (airborne with no floor within 15 u below) rejects it
+     ('no_braking_backup'). In ordinary states the first one passes (38 of 40 sampled states unchanged); if all 4 fail (or nothing
+     makes progress while moving >= 2 u/s) 'stop_0/4/8' (full braking from reply 0/4/8) are forecast and checked. At the Cube
+     decisions 1760/1768 the planner now chooses stop_8 / stop_4 instead of the doomed edge-gem plan. (Stops as ordinary
+     candidates were tried offline first: they won 9 of 60 ordinary states on end speed alone, so they are fallback-only.)
+  3. safe hold (--no-safe-hold): when no useful plan exists anywhere, the best gate-checked plan for the current target that
+     has a braking backup is executed (and revalidated like a retained plan) instead of the unchecked A2 action; gap crossings
+     keep their brake fallback.
+  4. stall rule for every gem (--stall-raised-only = old): the 5 s no-progress timer runs for gems below/level too; only raised
+     gems try the powerup fetch, the others are skipped for 20 s.
+  Also: runtime_stem() fix (journals now <pool>__<job>... in RUNTIME; verified unique for the v22 pair).
+* Pools planner_v22_start0/1_20261015 launched 11:19 (4+4, ports 9060/9070). Judge on 30 rounds vs v16 98.8 / v21 97.4.
+
+### 2026-10-15 11:32 MDT - v22 KILLED at 11:30 (Cube s0 edge-gem loop); v22b = backup as a preference + unbacked safe hold + fall skip
+* v22 KOTM 121 / 124 (v21 114 / 119; through-gem works where edges do not interfere). But Cube s0 had 7 points after 62 s:
+  the target gem [-13.7,-72.2,326.3] sits near the top-face edge on a slope where NO plan passes the braking backup; v22
+  REJECTED those plans, so pick() found nothing useful, the safe hold found nothing with a backup ('safe_hold_none' 88), and the
+  unchecked A2 fallback drove off the edge 11 times (approach, stop_N, A2, fall, respawn, repeat); the stall timer never fired
+  because every fall resets it (invalidate). v21 on the same start took the best plan there: 81 points, 1 fall.
+  Folders renamed planner_v22_start0/1_20261015_killed (KOTM results valid). Kill note: my PowerShell kill matched the pool name
+  in my own watcher shells' command lines too (harmless); match python/marbleblast names only.
+* v22b changes: (1) a useful plan without a braking backup is charged BACKUP_PENALTY_U = 150 u instead of being rejected (any
+  plan with a backup wins, incl. stop_N; with none, v21's choice remains); (2) safe_hold_choice falls back to the best
+  gate-checked plan without a backup before ever using A2; (3) two falls while pursuing the same gem (self.current) within 60 s
+  skip it and its 6 u cluster for --stall-skip-s (fall_goal_skipped counter). Offline: ordinary states unchanged (KOTM 10/10,
+  Cube 9/10 = the one real backup failure, Duplex 8/10 incl. one deadline-order change); Cube 1760/1768 -> stop_8 / stop_4.
+* Pools planner_v22b_start0/1_20261015 launched 11:32 (4+4, ports 9060/9070).
+
+### 2026-10-15 11:53 MDT - v22b KILLED after 4 maps (safe hold parks the marble); v22c = safe hold only when the actor's forecast is unsafe
+* v22b (s0 / s1): KOTM 122 / 123 (v21 114 / 119), Cube 65 (3 falls) / 111 (= the Cube record; v21 81 / 109), Sprawl 110 / 138
+  (v21 133 / 114). KOTM journals (clean): pickup speed 5.6 -> 6.8 u/s, min speed in the next second 3.8 -> 4.4,
+  'accelerate_then_brake' 13% -> 4% of decisions: through-gem works live.
+* The s0 losses are PARKING: Sprawl s0 18 s and Cube s0 15 s in safe hold at < 0.5 u/s (s1: ~0). Cube s0: a new group spawned
+  ~100 u away; 14.6 u short of the gem no plan made progress, the hold parked the marble, the harness's 8 s no-progress rescue
+  respawned it at the start, it drove back and parked again (65 s without a pickup). The hold must only replace the actor
+  when the actor would leave the floor.
+* v22c: actor_forecast_unsafe() reads the search's frozen_navigator candidates for the current target: forecast and none
+  gate-valid with a braking backup -> safe hold; otherwise (valid, or cut by the deadline) the actor drives as in v21
+  (counter safe_hold_actor_safe). Folders planner_v22b_start0/1_20261015_killed. Pools planner_v22c_start0/1_20261015 11:53.
+
+### 2026-10-15 12:04 MDT - v22c KILLED at 12:03 (stops in open terrain); v22d = stop_N only after backup failures
+* v22c mid-round (s0 / s1): KOTM 107 / 111 at 15.7 s left, Cube 52 at 97 s left / 84 at 71 s left (on pace ~80 / ~115; the
+  actor-safe rule deferred 4-22 times per round as intended), Sprawl 64 at 148 s / 34 at 212 s, Bowl 23 / 4.
+* Bowl s1: stop_N chosen 102 times while driving at 8-17 u/s in open terrain. Offline at decision 721 the unbudgeted search
+  finds frozen_navigator_ballistic with a valid backup; live, the 2 s deadline left no useful candidate (Bowl's curved surface:
+  23 of 32 candidates 'no_supported_continuation'), and v22c generated stops whenever nothing was useful while moving.
+* v22d: check_backups forecasts stop_N only after useful plans failed their backups; with nothing useful the controller's
+  actor/safe-hold rule decides (v21 behaviour when the actor's forecast is safe). Cube s2 decision 1768 still -> stop_4.
+  Folders planner_v22c_start0/1_20261015_killed. Pools planner_v22d_start0/1_20261015 launched 12:04 (4+4).
+
+### 2026-10-15 12:55 MDT - v22d: 103.5 / 103.9 on starts 0/1 (v21 98.8 / 98.9, v16 95.3 / 97.5); Treasure 174 + Bowl 89 NEW BESTS
+* v22d per map (s0 / s1) vs v21: KOTM 123/116 (114/119), Sprawl 133/137 (133/114), Cube 102/111 (81/109), Bowl 89/78
+  (85/76), Duplex 112/105 (109/97), Fractured 73/79 (75/70), Cragmire 87/101 (93/94), Vortex 88/104 (93/90), Treasure
+  174/128 (142/144), Concentric 54/80 (63/76). Falls 11 / 12 (v21 10 / 20). 20-round mean 103.7 vs 98.85 (+4.85, both starts
+  +4.7 / +5.0). NEW BESTS: Treasure 174 (was 163, 0 falls), Bowl 89 (was 85); CSV + sheet updated.
+* start_2 (8 workers, port 9060) launched 12:53 for the 30-round judgement (v21 s2 94.6, v16 s2 103.5).
+* Operator 12:47: progress updates every ~10 min, not per map (memory feedback-update-cadence; heartbeat.sh BEAT_S=600).
+
+### 2026-10-15 13:30 MDT - v22d ADOPTED (30-round 101.9: best so far, falls -40%); v23 = v22d + firmer proposal throttle
+* v22d start_2: KOTM 123, Sprawl 124, Cube 110, Bowl 80, Duplex 92, Fractured 92, Cragmire 95 (1 fall; v21 65/11 falls),
+  Vortex 100, Treasure 100, Concentric 66 = 98.2 (v21 94.6, v16 103.5). 30-round means: v22d 101.9 (103.5 / 103.9 / 98.2),
+  v16 98.8, v21 97.4. Falls 32 vs 51 (v21) / 58 (v16). v22d = the new reference.
+* Rejected without a pool: flight-time charge at max(8 u/s, speed) for projected flights (offline 70/72 states unchanged,
+  jump share unchanged on all 6 maps) -> reverted.
+* v22d audits: falls 32/32 still follow A2 streaks (18 'A2-led' with >= 10 actor decisions in the 20 before leaving the
+  floor, 14 plan-led); the actor's forecast ('frozen_navigator', LAST in the search order) is usually cut by the deadline, so
+  the safe-hold rule sees 'unknown' and lets the actor drive (candidate next: forecast it late when the decision needs it).
+  The terminal stability gate is NOT the speed cap (fast rolling candidates mostly accepted). After straight-ahead pickups
+  (next gem < 30 deg, >= 4 u; 409 cases) the speed stays flat at ~7 u/s: no candidate accelerates.
+* Cause: Proposal throttle = min(0.85, |2*(desired-v)|/12): full stick only 5 u/s below the target, 0.5 at 8 u/s, 0.33 at
+  9 u/s -> every proposal creeps (offline: v_max 8-9 u/s with an 11 u/s target; 'through' 4.8 -> 8.5 u/s in 1.5 s).
+* v23: gem_demo.THROTTLE_GAIN 12 -> 4, THROTTLE_CAP 0.85 -> 1.0 (flags --throttle-gain / --throttle-cap restore). Offline 72
+  v22d s2 states (2 s budget): choice changes in 27; chosen-plan peak speed KOTM 8.1->8.5, Sprawl 9.1->9.7, Cube 8.7->9.4,
+  Duplex 8.8->11.6, Treasure 7.8->9.2, Cragmire 8.0->8.8; non-pickup progress per horizon +3..+19%; pickup timing mixed.
+  Pools planner_v23_start0/1_20261015 launched 13:30 (4+4). Judge vs v22d 103.5 / 103.9.
+
+### 2026-10-15 14:20 MDT - v23 (firmer throttle): 109.5 / 101.2 on starts 0/1 (v22d 103.5 / 103.9); 4 NEW BESTS; start_2 running
+* v23 per map (s0 / s1) vs v22d: KOTM 126/127 (123/116), Sprawl 128/115 (133/137), Cube 116/92 (102/111), Bowl 95/82 (89/78),
+  Duplex 131/92 (112/105), Fractured 73/76 (73/79), Cragmire 108/120 (87/101), Vortex 93/98 (88/104), Treasure 146/118
+  (174/128), Concentric 79/92 (54/80). Falls 9 / 11 (v22d 11 / 12). 20-round 105.4 vs 103.7 (+1.7, s0 +6.0, s1 -2.7).
+* NEW BESTS (CSV + sheet): Duplex 131 (was 118), Cube 116 (was 111), Bowl 95 (was 89), Concentric 92 (was 90).
+* v23 start_2 (8 workers) launched 14:18 for the 30-round judgement against v22d 101.9 (s2 98.2).
+
+### 2026-10-15 14:48 MDT - v23 ADOPTED (30-round 103.8 vs v22d 101.9, falls 32 = 32); v24 = v23 + late actor forecast
+* v23 start_2: KOTM 131, Sprawl 107, Cube 116 (= best), Bowl 86, Duplex 109, Fractured 99, Cragmire 93, Vortex 90, Treasure 98,
+  Concentric 78 = 100.7 (v22d 98.2). 30-round: v23 103.8 (109.5 / 101.2 / 100.7) vs v22d 101.9; falls 32 vs 32.
+* Per map over 3 starts v23 - v22d: Duplex +15, Concentric +16, Cragmire +11, KOTM +8, Bowl +5, Cube +4, Fractured +2,
+  Vortex -4, Treasure -13 (174 outlier), Sprawl -15 (every start: -5/-22/-17). Sprawl under v23: faster (pickup 5.7-6.2 vs
+  5.4-5.6 u/s) but fewer pickups (78-102 vs 95-105) and more safe holds (6/23/35 vs 5/7/16): the firm stick gets stuck more in
+  the walled streets. Follow-up idea: soft-law route/direct variants as extra candidates.
+* v24: actor_forecast_unsafe() forecasts the actor's proposal LATE (fresh NavigatorProposal from the stored constructor
+  inputs, deadline lifted) when the safe-hold decision needs it and the search's deadline cut it; flag --no-late-actor-check.
+  Pools planner_v24_start0/1_20261015 launched 14:48 (4+4). Judge vs v23 109.5 / 101.2 and on falls (v23 9 / 11).
+
+### 2026-10-15 15:35 MDT - v24 REJECTED (late actor check parks the marble); soft variants dropped offline; v25 launched
+* v24 (7 maps each, killed 15:31; folders planner_v24_start0/1_20261015_killed) vs v23: KOTM 135/127 (126/127), Sprawl 97/140
+  (128/115), Cube 84 (9 falls)/97 (116/92), Bowl 99 (NEW BEST, was 95; CSV + sheet)/80, Duplex 131/117 (131/92), Fractured
+  86/79 (73/76), Cragmire 55/85 (108/120): about -5 a map. Cragmire: safe hold PARKED 43 s / 37 s (v23 4 s); the late
+  forecast judged the actor unsafe on any rejection/missing backup ('sh_actor_safe' 88 -> 3). Reverted.
+* v24 Cube s0 falls: 3 came from pickup plans chosen WITH the +150 backup penalty: pick() ranks options across gems by
+  (pickup, value/time) and ignored the penalty, so a neighbour gem's doomed pickup beat the target's backed-up stop_4.
+* Soft-law route/direct variants (pre-v23 stick next to the firm one, for Sprawl): offline 42/42 identical choices on
+  Sprawl/Treasure/KOTM (never chosen) -> not run, reverted. The v23 Sprawl loss is not the route/direct stick law.
+* v25 = v23 + (1) pick() ranks backed-up options first across gems; (2) NARROW late actor check: when the deadline cut the
+  actor's proposal, it is forecast now and counts as unsafe only if it falls into the void (airborne with no floor within
+  15 u at its end or after braking); offline on v23 fallback/hold states: unsafe Sprawl 0/25, Cragmire 4/25, Cube 17/25,
+  Vortex 19/25. Flag --no-late-actor-check. Pools planner_v25_start0/1_20261015 launched 15:33 (4+4).
+
+### 2026-10-15 16:25 MDT - v25 REJECTED (97.3 / 103.0 vs v23 109.5 / 101.2, falls 32 vs 20); v26 = v23 + gem-rank fix + speed cap 13.5
+* v25 per map (s0 / s1) vs v23: KOTM 130/131 (126/127), Sprawl 140/128 (128/115), Cube 72 (8 falls)/125 (NEW BEST; was
+  116)/(116/92), Bowl 95/80, Duplex 118/105 (131/92), Fractured 88/86 (73/76), Cragmire 81/90 (108/120), Vortex 89/106
+  (93/98), Treasure 100/101 (146/118), Concentric 60/78 (79/92). The narrow late actor check still multiplied safe holds on
+  Cragmire (449-709 vs 112-178 decisions, pickups -20) and did not reduce falls. Late actor forecasts are dropped for good.
+* v26 = v23 + pick() backed-up-first ranking across gems (kept from v25) + gem_demo.TARGET_SPEED_CAP 11 -> 13.5 (flag
+  --speed-cap 11 restores). Offline on v23 s2 states (2 s budget): progress per horizon KOTM +8%, Bowl +21%, Sprawl +9%,
+  Cube +9%; pickups sooner on KOTM/Bowl, later on Cube; choice changes 16/48. Pools planner_v26_start0/1_20261015 16:25.
+
+### 2026-10-15 17:16 MDT - v26 (speed cap 13.5): 100.9 / 103.2 (v23 109.5 / 101.2); Bowl 103 NEW BEST; edge law tried offline, dropped
+* v26 per map (s0 / s1) vs v23: KOTM 125/128 (126/127), Sprawl 140/126 (128/115), Cube 42 (10 falls)/123 (116/92), Bowl 103
+  (NEW BEST, was 99)/86 (95/82), Duplex 89/111 (131/92), Fractured 91/90 (73/76), Cragmire 103/101 (108/120), Vortex 97/104
+  (93/98), Treasure 157/95 (146/118), Concentric 62/68 (79/92). 20-round 102.1 vs 105.4; without Cube s0 (-74) about level.
+* Cube s0 (gems ~1 u from the top-face edge): early falls repeat across versions (v23/v24/v25 identical at decisions 214, 354,
+  452, 507; v26 199/329/397/460): it is the firm stick on this layout. Offline before v26's falls the planner often already
+  chose backed-up stop_4/stop_8 plans 16-24 decisions ahead and nothing works 8 decisions ahead: replanning at 11-12 u/s near
+  the edge, not a missing cap.
+* Heading-aware edge speed law (proposal target speed <= sqrt(2*10*(floor run ahead - 0.75)), walk grid, crossings exempt):
+  offline almost no choice changes (ordinary 59/72 same, end speeds equal; pre-fall Cube states identical or 'none') -> not run.
+* v26 start_2 (8 workers) launched 17:16 to settle the speed cap on 30 rounds (v23 s2 100.7).
+
+### 2026-10-15 17:45 MDT - v26 30-round 103.9 = v23 103.8 but falls 51 vs 32; v27 = v26 + fast-brake fallback
+* v26 start_2: KOTM 129, Sprawl 144, Cube 102 (6 falls), Bowl 100, Duplex 107, Fractured 107, Cragmire 93, Vortex 104 (8 falls),
+  Treasure 121, Concentric 68 = 107.5 (v23 100.7). 30-round: v26 103.9 (100.9 / 103.2 / 107.5) vs v23 103.8; falls 51 vs 32.
+  Per map (3-start means) v26 - v23: Sprawl +20, Fractured +13, Bowl +9, Vortex +8, Treasure +4, KOTM -1, Duplex -8, Cragmire
+  -8, Concentric -17, Cube -19: the higher cap pays on open maps and costs on edge maps, mostly through falls.
+* Mechanism of a typical v26 fall (Cube s0 397): a safe accelerate_then_brake plan (prediction error 0.0000) runs out at 9 u/s;
+  the next search finds no useful plan; stop_N exist only after backup FAILURES, so the actor takes over and re-accelerates
+  9 -> 10.7 u/s into the edge.
+* v27 = v26 + fast-brake fallback (reliability_eval.fast_edge_ahead): with no plan, at >= 6 u/s, when the walk-grid floor
+  along the velocity ends (drop > 3 u or none) within v^2/20 + 1 u, brake instead of the actor (flag --no-fast-brake). Offline on
+  v26 s0 actor decisions: fires Cube 55 (55 within 40 decisions of a fall), Fractured 12 (12), Cragmire 19 (19), Vortex 29
+  (12), KOTM 6 (0), Duplex 5 (0), Sprawl 1, Bowl/Treasure/Concentric 0. Pools planner_v27_start0/1_20261015 launched 17:43.
+
+### 2026-10-15 18:35 MDT - v27 (v26 + fast brake) 103.9 / 102.6: falls unchanged (27 vs 28) -> reverted; v23 stays; v28 = tour turn penalty 12
+* v27 per map (s0 / s1): KOTM 117/128, Sprawl 145/125, Cube 56 (8 falls)/87, Bowl 103/86, Duplex 130/111, Fractured 91/87,
+  Cragmire 88/108, Vortex 93/104, Treasure 149/106, Concentric 67/84. 20-round: v27 103.3, v26 102.1, v23 105.4; falls 27 / 28 / 20.
+  The fast brake fired 42 times on Cube s0 but only above 6 u/s: below it the actor re-accelerates toward the same edge gem
+  (brake / actor alternation, 8 falls). Holding the brake longer = v24-style parking. Not adopted.
+* Code reverted to v23 + the backed-up-first gem ranking (speed cap 11, no fast brake). The cross-gem ranking fix has not been
+  evaluated alone (it rode in v25/v26/v27); it is principled and rare, kept.
+* v28 = that + PLANNER_TOUR_TURN_U 12 (planner-only tour turn penalty per full reversal; nav.gems default 6 untouched for the
+  learned-navigator tools). Basis: v22d pickups needing a > 90 deg turn (30%) lose the most speed (1.6-2.5 u/s a second later vs
+  4.0 straight on). Pools planner_v28_start0/1_20261015 launched 18:33. Judge vs v23 109.5 / 101.2.
+
+### 2026-10-15 19:22 MDT - v28 (tour turn penalty 12) REJECTED: 109.0 / 98.4 vs v23 109.5 / 101.2; falls 26 vs 20
+* v28 per map (s0 / s1): KOTM 135/128, Sprawl 135/91, Cube 88/101, Bowl 97/86, Duplex 101/94, Fractured 91/70, Cragmire 109/87,
+  Vortex 93/111, Treasure 158/135, Concentric 83/81. Gains Treasure/KOTM/Vortex, losses Cragmire/Duplex/Sprawl/Cube. Reverted
+  (PLANNER_TOUR_TURN_U = 6 = nav.gems default). Code = v23 + backed-up-first gem ranking.
+* Day summary (operator loop, 10-15): reference 98.8 (v16) -> 103.8 (v23) on 30 rounds; v22d (through-gem + braking-backup
+  preference + safe hold only for an unsafe actor + stall for all gems + fall skip) +3.1, v23 (firm proposal stick) +1.9.
+  Rejected: v22 (backup veto), v22b/c (parking holds), v24/v25 (late actor forecasts: parking), v26 (speed cap 13.5: tie, more
+  falls), v27 (fast brake: falls unchanged), v28 (tour turn penalty), offline-only: flight-time charge, soft-stick variants,
+  heading-aware edge speed law. Bests set today: Treasure 174, Duplex 131, Cube 125, Bowl 103, Concentric 92, Vortex 109.
+
+### 2026-10-15 19:40 MDT - v29 = v23 + safe hold only when the actor's forecast falls into the void (VOID_ONLY_UNSAFE)
+* v23 time budget (30 clean rounds, 7408 s): stuck below raised gems (>= 3 s within 8 u of a gem >= 1.5 u above, no pickup)
+  238 s = 3.2% (Sprawl ~32 s a round, Treasure ~19, Concentric ~15, Cube ~8, Cragmire ~4); actor fallback 345 s = 4.7%.
+* Sprawl s2 stuck periods: the walk route's waypoint is the gem itself 4-5 u overhead (line_clear), no plan progresses, and the
+  v22c safe-hold rule calls the actor unsafe when none of its forecast variants is valid with a backup (it bounces off the
+  platform): the marble PARKS (69 / 53 / 91 safe-hold decisions per period) until the stall rule skips the gem, then returns.
+* v29: actor_forecast_unsafe() with VOID_ONLY_UNSAFE: unsafe only if every actor variant ends in a fall into the void (airborne,
+  no floor within 15 u) or its braking backup does; flag --any-failure-unsafe = v22c..v28 rule. Offline on v23 s2 safe-hold
+  decisions: unsafe Sprawl 15 -> 0 of 16, Treasure 15 -> 0, Concentric 8 -> 5 of 10, Cragmire 13 -> 1 of 16, Cube 4 -> 0 of 5.
+  Risk: Cragmire falls (v21 s2 had 11 under the unchecked actor). Pools planner_v29_start0/1_20261015 launched 19:40.
+
+### 2026-10-15 20:15 MDT - v29 REJECTED (94.8 / 102.7, falls 37 vs 20); v23 reference rerun (v23r) to measure noise
+* v29 per map (s0 / s1): KOTM 125/131, Sprawl 140/120, Cube 73 (8 falls)/105, Bowl 69/88, Duplex 108/105, Fractured 82/79,
+  Cragmire 84/112, Vortex 92/96, Treasure 119/119, Concentric 56/72. The safe holds prevent falls on Cragmire/Concentric/Cube;
+  removing them costs more than the parking under Sprawl/Treasure platforms. Reverted (v22c rule restored).
+* Two-start (s0+s1) means today: v16 96.4, v21 98.8, v22d 103.7, v23 105.3, v24 100.9, v25 100.2, v26 102.1, v27 103.2, v28
+  103.7, v29 98.8. v23's s0 (109.5) is its luckiest start (s1 101.2, s2 100.7): every candidate looks worse on s0 and better on
+  s1, so two-start comparisons against v23 are biased against candidates. v23r = current code (v23 + backed-up-first gem
+  ranking) on s0/s1 (launched 20:14) measures identical-code noise and gives a fair same-day baseline.
+
+### 2026-10-15 21:05 MDT - Operator: continue all night. v23r (identical code) 106.5 / 105.4 -> fair two-start baseline 105.7; v30 launched
+* v23r per map (s0 / s1): KOTM 134/127, Sprawl 133/145, Cube 107/105, Bowl 93/86, Duplex 131/103, Fractured 80/79, Cragmire
+  67/92, Vortex 101/102, Treasure 168/134, Concentric 51/81. Identical code vs v23: per-round |diff| mean 12.5, max 41
+  (Cragmire s0 108 vs 67); ten-map mean -3.0 (s0) / +4.2 (s1). Pooled v23 two-start baseline 105.7 (s0 ~108, s1 ~103.3):
+  every candidate since v23 (98.8-103.7) is below it; today's decisions stand. New rule: judge candidates' starts 0/1 against
+  the pooled v23+v23r baseline (and run start_2 before adopting).
+* v30 = v23 + one longer search when nothing useful was found: only the current target, 48 replies (3.1 s), its own 1.5 s
+  budget (STUCK_SEARCH_REPLIES / STUCK_SEARCH_BUDGET_S; flag --no-stuck-search). The old --recovery-horizon retry re-searched
+  every gem with the spent 2 s deadline (and lengthens resource/recharge searches), so it stays 0. Targets: below raised gems
+  (~32 s a Sprawl round, ~19 Treasure, ~15 Concentric), actor fallback (4.7% of time). Counters stuck_searches/stuck_found.
+  Pools planner_v30_start0/1_20261015 launched 21:05 (4+4).
+
+### 2026-10-15 21:20 MDT - v30 KILLED after 11 min (it disabled every safe hold); v30b relaunched
+* v30 counters at ~60 s: stuck_searches 14-51 per round, found 7-30% (Bowl 12/42, Cube 7/51, Sprawl 1/14 and 2/27), but
+  safe_holds 0 everywhere: the longer search (index 0 of its own pick) replaced engine.safe_hold with its candidates, whose actor
+  forecast was usually cut by its 1.5 s budget -> 'actor safe' -> never a hold (= v29's lost protection). Folders *_killed.
+* v30b: when the longer search finds nothing, engine.safe_hold is restored to the ordinary search's candidates. Pools
+  planner_v30b_start0/1_20261015 launched 21:20 (4+4). Judge vs the pooled v23 baseline 108 / 103.3 (two-start 105.7).
+
+### 2026-10-15 22:10 MDT - v30b (longer search when stuck) REJECTED: 105.6 / 101.2 (two-start 103.4 vs pooled v23 105.7); v31 = 3 s budget
+* v30b per map (s0 / s1): KOTM 135/135, Sprawl 120/145, Cube 113/119, Bowl 93/82, Duplex 108/101, Fractured 80/70, Cragmire 95/91,
+  Vortex 93/90 (9 falls s1), Treasure 139/103, Concentric 80/76. KOTM's gain is noise (0-2 stuck searches a round); Treasure lost
+  on both starts (-18 / -23 vs pooled), Duplex s0 -23. The 3 s plans found something in 10-45% of stuck states but did not pay.
+  Code reverted to v23 + backed-up-first gem ranking.
+* v31 = that code with --search-budget-s 3 (one launch flag; pools ~1.5x longer). Tests whether more search time buys points
+  (2/3 of searches hit the 2 s deadline). Pools planner_v31_start0/1_20261015 launched 22:08.
+
+### 2026-10-15 23:05 MDT - v31 (3 s search budget) = tie: 106.5 / 105.2 (two-start 105.9 vs pooled v23 105.7); falls 16 vs ~22
+* v31 per map (s0 / s1): KOTM 124/125, Sprawl 140/96, Cube 99/123, Bowl 97/88, Duplex 124/111, Fractured 73/79, Cragmire 89/102,
+  Vortex 104/102, Treasure 155/138, Concentric 60/88. 1.5x the search time buys no points (as the 2x forecast speed-up on 10-15
+  02:30 did not): search time is not the bottleneck, the candidate menu is. Budget stays 2 s.
+* Next: v32 = fast variants (top target speed 13.5) of route / through as EXTRA candidates (v26 raised the cap for all
+  proposals: +20 Sprawl, +13 Fractured but falls 51 vs 32); the scorer and braking backup pick speed only where it pays.
+* v32 launched 23:15: route_fast (after route/direct) and through_fast (before through) with top speed 13.5 (FAST_TOP; flag
+  --no-fast-variants). Offline on v31 s1 states (2 s budget): chosen in 15 of 72 (Bowl 5, Sprawl 4, Cube 3, Concentric 2, KOTM 1,
+  Fractured 0); end speed Sprawl 8.1 -> 8.9, Bowl 7.8 -> 8.3, Cube 5.9 -> 6.6. Pools planner_v32_start0/1_20261015 (4+4).
+
+### 2026-10-16 00:00 MDT - v32 (fast route/through variants): 99.3 / 108.9 (two-start 104.1 vs pooled v23 105.7); start_2 launched
+* v32 per map (s0 / s1): KOTM 134/127, Sprawl 134/151, Cube 63 (6 falls)/125 (= record), Bowl 103 (= record)/88, Duplex 79/111,
+  Fractured 91/87, Cragmire 83/111, Vortex 103/101, Treasure 144/117, Concentric 59/71. s1 108.9 = best s1 of any version;
+  s0 sunk by the two bimodal layouts (Cube s0 42-116 and Duplex s0 79-131 across versions). Inconclusive -> start_2 (8 workers,
+  launched 00:00) for 30 rounds; needs > ~103.2 on s2 to beat v23's 103.8 (v26 s2 was 107.5).
+* 00:27 v32 start_2: KOTM 135, Sprawl 145, Cube 113, Bowl 90, Duplex 112, Fractured 99, Cragmire 98, Vortex 96 (10 falls), Treasure
+  110, Concentric 65 = 106.3 (v23 s2 100.7). 30-round: v32 104.8 (99.3 / 108.9 / 106.3), falls 43; v23 103.8 (falls 32); v23 incl.
+  the v23r rerun (50 rounds) 104.7. A tie with more falls (Sprawl +20 a round on every start, Concentric -12): not adopted,
+  reverted (code = v23 + backed-up-first gem ranking).
+* 00:30 v33 = v23 code + --stall-skip-s 45 (a stalled gem and its 6 u cluster are dropped for 45 s instead of 20 s; targets the
+  repeated returns to raised gems seen on Sprawl / Duplex / Treasure). Pools planner_v33_start0/1_20261015 (4+4).
+
+### 2026-10-16 01:20 MDT - v33 (stall skip 45 s) REJECTED: 102.8 / 93.3 (two-start 98.1 vs pooled v23 105.7); v34 = skip 10 s
+* v33 per map (s0 / s1): KOTM 126/127, Sprawl 140/85, Cube 88 (9 falls)/111, Bowl 97/86, Duplex 131/108, Fractured 73/70, Cragmire
+  78 (7 falls)/80, Vortex 95/105, Treasure 160/80, Concentric 40/81. Hunt spawns the next group only after the whole current group
+  is collected: skipping a stuck gem longer mostly delays the next group. The prepared escalating-skip patch is dropped.
+* v34 = v23 code + --stall-skip-s 10 (retry a stalled gem sooner). Pools planner_v34_start0/1_20261015 launched 01:20.
+
+### 2026-10-16 02:10 MDT - v34 (stall skip 10 s) REJECTED: 102.7 / 101.3 (two-start 102.0 vs 105.7); v35 = stopping law decel 10
+* v34 per map (s0 / s1): KOTM 133/130, Sprawl 133/102, Cube 88 (9 falls)/121, Bowl 97/88, Duplex 118/111, Fractured 73/80,
+  Cragmire 92/70, Vortex 88/102, Treasure 147/129, Concentric 58/80. Skip 10 / 20 / 45 s: 102.0 / 105.7 / 98.1 -> keep 20.
+* v35 = v23 code + new flag --brake-decel (default 7 = unchanged) launched with 10: the proposals' stopping law
+  target = sqrt(2*decel*distance) assumed 7 u/s^2 (the marble brakes ~14): later braking, faster approaches to gems and
+  waypoints; the physics gates and braking backup still veto unsafe plans. Pools planner_v35_start0/1_20261015 at 02:10.
+
+### 2026-10-16 03:00 MDT - v35 (stopping-law decel 10) = tie: 105.9 / 104.5 (two-start 105.2 vs 105.7); v36 = open-area top speed
+* v35 per map (s0 / s1): KOTM 135/125, Sprawl 133/152 (= record), Cube 110/105, Bowl 93/86, Duplex 121/103, Fractured 88/84,
+  Cragmire 86/106, Vortex 93/104, Treasure 147/97, Concentric 53/83. Not adopted (flag --brake-decel stays, default 7).
+* Pattern across tonight: Sprawl gains whenever the marble may go faster (v26 +20, v32 +20, v35 +12 a round) while drop maps lose
+  through falls. v36: the proposals' top target speed rises with the walk grid's distance to the nearest DROP (edge_dist; walls
+  are not drops): 11 u/s within 4 u, linear to 13.5 at >= 8 u (flag --no-open-top).
+* Vortex falls (v23 family, 24 inspected): 18 actor-led, recurring at the same spots across runs ((5, 28) five times, (-35, -1),
+  (16, 15-21)). Needs a better 'no useful plan' behaviour (morning note), not another fallback threshold.
+* 03:05 v36 launched (pools planner_v36_start0/1_20261015). Share of v23 s2 time at the full open cap / partial: Bowl 95/2%,
+  Fractured 26/37%, Treasure 20/26%, Cube 10/24%, Duplex 9/24%, Sprawl 8/15% (its ledges and stairs count as drops), KOTM 0/8%,
+  Cragmire 0/4%, Vortex 0/8%, Concentric 0/7%.
+
+### 2026-10-16 03:50 MDT - v36 (open-area top speed): 110.1 / 102.5 (two-start 106.3 vs 105.7), falls 17 vs ~22; start_2 launched
+* v36 per map (s0 / s1): KOTM 139 (best planner KOTM round)/125, Sprawl 132/133, Cube 104/93, Bowl 93/90, Duplex 107/103, Fractured
+  91/87, Cragmire 104/106, Vortex 89/98, Treasure 174 (= record)/107, Concentric 68/83. Small positive on points and falls ->
+  start_2 (8 workers, launched 03:50) for the 30-round verdict (v23 103.8, 50-round v23 estimate 104.7; v23 s2 100.7).
+* 04:15 v36 start_2: KOTM 118, Sprawl 123, Cube 100, Bowl 102, Duplex 101, Fractured 99, Cragmire 76, Vortex 100, Treasure 116,
+  Concentric 52 = 98.7. 30-round v36 103.8 (110.1 / 102.5 / 98.7), falls 27 (0.90 a round) = v23 103.8 (falls 32); v23+v23r 50
+  rounds 104.7 (1.12 falls a round). A tie on points: not adopted, reverted.
+* v37 = v23 code + --stall-raised-only (the v22d 'stall rule for every gem' part tested on its own). Pools
+  planner_v37_start0/1_20261015 launched 04:16.
+
+### 2026-10-16 04:40 MDT - Where the round's time goes (v23, 50 rounds) and an offline closed-loop benchmark
+* Pickup-to-pickup legs (scratchpad leg_time.py / leg_time2.py / far_route.py; rounds are 240 s on average, map lengths
+  differ): normal legs (< 8 s) 116.6 s a round (48.5%, mean 1.7 s, 7.7 u straight, path 1.34x straight, 6.4 u/s); 'far'
+  legs (> 8 s, >= 20 u) 97.5 s a round (40%: the next gem group spawns >= spawnBlock = 30 u from the LAST collected gem,
+  huntGems.cs getCenterGems, so these trips are mandatory; mean 86 u straight / 110 u walk route in 14.6 s = 7.5 u/s along
+  the route, 7.9 u/s path speed; Bowl 152 u, Cragmire 3.5 u/s route speed); stuck legs (> 8 s to a gem < 20 u away) 12.8 s;
+  legs with a fall 13.7 s. Far-leg speed bands: 30% of the time at 10-12 u/s, 43% below 8 u/s (ramps, ledge climbs,
+  powerup flights). Travel speed is the largest lever: route/11 would save ~4.7 s a far leg = ~30 s a round.
+* New tool (scratchpad sim_bench.py + sim_batch.sh + sim_compare.py): the real ContinuousController plays from recorded
+  journal states (the decision after a pickup) against the planner's own 16 ms engine port, one 64 ms reply at a time
+  (predict_replies + resume), gems collected by the native item query, falls = outside the InBounds volume, no new group.
+  The 2 s search deadline runs on a virtual clock (0.85 ms per physics step, calibrated under pool load), so episodes are
+  deterministic and need no game. Fidelity on v23 far legs: sim 8.3 s vs recorded 9.0 s mean to two pickups, median
+  |diff| 0.7 s. Modified planner modules can be loaded from a file (--module search=path), so candidates are screened
+  without touching nav/marble_dynamics while pools run. Runs at idle priority (note: from 04:35 five sims shared the CPU
+  with the v37 pools, at normal priority until 04:37 and idle after; idle priority does not stop hyperthread sharing, so
+  keep <= 3 sims beside a pool).
+* The turn after a pickup (v23, 50 rounds, legs of 2-20 u, scratchpad turn_audit.py): angle between the velocity at the
+  pickup and the line to the next pickup: 0-30 deg 38% of pickups (next leg 5.6 u in 1.05 s), 30-60 23% (6.4 u, 1.51 s),
+  60-90 18% (7.6 u, 1.94 s), 90-120 11% (6.9 u, 2.59 s), 120-150 7% (7.2 u, 2.54 s), 150-180 4% (7.4 u, 3.29 s; slowest
+  1.5 u/s in the second after the pickup). The extra time of turned legs over straight ones is ~27 s a round (~11%):
+  the marble arrives straight at each gem and reverses afterwards. First offline try: 'through_steer' proposals
+  (through proposals with the aim rotated +-0.5 rad for 8 replies, so the approach curves toward the next gem).
+* Offline result 1 (far legs, 23 paired episodes on 5 maps): a direction-aware end value (distance-equivalent time to
+  reach 11 u/s along the route from the end velocity, replacing the 0.12 end-speed penalty) = no gain (11.0 vs 11.0 s;
+  Sprawl worse in 6 of 8, Bowl +5 s, Cube -1.5 s): it rewards plans that have not yet reached a corner (aligned with the
+  waypoint before it) over plans already turning. Dropped.
+* 05:00 Offline normal legs (38 paired episodes, 5 maps, 3 pickups): curved through approaches (tsteer) time ratio 0.995,
+  corner-speed through proposals (brake to cap * cos^2(turn/2) at the gem) 0.985: both nearly neutral. The reversal
+  inefficiency is elsewhere: after a KOTM pickup (v23 s2 decision 129, flat ground) 30 of 38 candidates were rejected as
+  'no_supported_continuation' although they end ON the floor: a 0.2 u bounce off a tile seam at the horizon fails the
+  terminal gate (support raycast r + 0.1 u, bounce speed < 2 u/s), so the choice falls to whichever plan happens to end
+  touching the floor (often a jump plan: airborne through the reversal at 5 u/s^2 of air control vs ~14 on the ground).
+  Relaxed gate 'hover' (floor within r + 0.6 u, bounce speed < 4 u/s; the braking backup still checks falls): 16 of 37
+  rejected there, the 2 s search picks steering_0.5 (pickup at reply 24) instead of direct_jump_5_landing. Offline
+  screens of 'hover' on normal and far legs launched 05:03.
+* Terminal gate rejection rates (unbudgeted searches at 8 sampled v23 s2 states per map; scratchpad gate_rate.py): share of
+  candidates rejected 'no_supported_continuation' strict / hover: Sprawl 51% / 28%, Vortex 50% / 40%, Cube 41% / 34%, KOTM
+  55% / 54% (KOTM's rejections are mostly plans still airborne after a late jump or Blast, legitimately unsettled).
+* Offline normal legs, paired with base (3 pickups, 15 s cap): corner-speed through proposals 61 pairs, time ratio 0.957,
+  better 15 / worse 5 (Cube 0.80, Cragmire 0.86; Bowl 1.06, Sprawl 1.05); hover gate 41 pairs 0.984, better 6 / worse 6
+  (KOTM 1.085: neutral, not pursued); curved through approaches 49 pairs 0.988 (neutral); no plain jump proposals 19 pairs
+  1.028 (worse: the jumps are useful).
+
+### 2026-10-16 05:10 MDT - v37 (stall rule for raised gems only) REJECTED: 98.3 / 95.8 (two-start 97.1 vs pooled v23 105.7); v38 launched
+* v37 per map (s0 / s1): KOTM 129/125, Sprawl 134/115, Cube 74 (6 falls)/115, Bowl 99/84, Duplex 131/103, Fractured 71/73,
+  Cragmire 89/90, Vortex 86 (7 falls)/95 (9 falls), Treasure 154/80, Concentric 16/78. The losses are the stuck rounds the
+  v22d rule fixed (Concentric s0 16, Treasure s1 80): the stall timer for every gem stays. Caveat: offline sims shared the
+  CPU with these pools from 04:35 (5 at first, idle priority from 04:37); the drop is far larger than that could explain.
+* v38 = v23 code + corner-speed through proposals, enabled by the new launch flag --corner-proposals (code default OFF while
+  under test, so the offline benchmark's base runs stay pre-v38; bake in on adoption): two more through proposals that
+  brake to cap * cos^2(turn/2) at the gem (turn = marble->gem vs gem->next waypoint, >= 30 deg, floor 1.5 u/s), then follow
+  the next gem's route (search.corner_speed / SequenceProposal arrive=). Offline: 61 paired normal legs, time ratio 0.957,
+  better 15 / worse 5. Pools planner_v38_start0/1_20261015 launched 05:10 (4+4); <= 4 idle-priority sims beside them.
+* Adoption rule for sim-validated changes (05:10): a 2-4% leg-time gain is ~2 points, invisible in 20-30 in-game rounds
+  (+-3.5). Such a change is adopted when the offline paired benchmark shows it faster with no more falls AND its 30-round
+  in-game mean is not below the reference by more than 1 point; larger claims still need the 30-round in-game win.
+* 05:15 Stuck below raised gems, found: v37 Concentric s0 spent 69 s within 4 u (horizontally) of a gem 4.4 u above the
+  floor (walk route ends on the floor under it), Blast meter full for the last 30 s. Unbudgeted, the search finds
+  blast_7_jump_3_landing (pickup at reply 13); with the 2 s deadline only 24 of 53 candidates are judged and the Blast
+  families (last in the order) are never reached: 'throttle_0.4' every time. The detour rule (Blast first) needs the
+  route to be 1.5x the straight distance, never true right under a gem. Offline variants: 'blastfirst' (Blast families
+  first when the gem is >= 1.5 u above and <= 8 u away horizontally, meter >= 0.5) solves 2 of 3 sampled stuck decisions
+  within 2 s; 'blastfirst2' (also the climb families: jump every 2 replies, Blast 2 after, direct + half throttle) all 3.
+  Stuck-leg sims (29 legs, 6 maps, pickups 1, cap 30 s): base / blastfirst / blastfirst2 running.
+* Deadline starvation in general (scratchpad budget_audit.py, 20 random v23 s2 states per map, 2 s virtual budget vs
+  unbudgeted search): Sprawl same choice 10/20, no pickup plan missed, mean cost gap 2.2 u; Treasure 14/20, one jump pickup
+  missed, gap 6.4 u. Starvation is not general (as v31's 3 s budget tie said); it bites in specific states such as the
+  Blast-only pickups under raised gems.
+* Stuck-leg re-simulations (legs selected because their recorded first pickup took > 8 s) mostly resolve far faster in
+  the sim than in the recording (selection on bad luck: re-running from the same state is rarely as unlucky), so they
+  measure the variants weakly; the state-level audit (does a 2 s search at each recorded stuck state find a pickup plan,
+  base vs variant: scratchpad escape_audit.py) is the sharper test.
+* v36's code is recoverable from planner_v36_start0_20261015/source_snapshot.zip (extracted to the scratchpad as
+  v36_search.py / v36_gem_demo.py) for an offline far-leg check (--module gem_demo=... --module search=...).
+* 05:27 Escape audit (2 s virtual-budget search at recorded states inside no-pickup stretches > 8 s, target < 20 u away):
+  states where a pickup plan is found, base -> blastfirst2: Concentric (v37 s0) 1 -> 17 of 30 (16 gained, 0 lost);
+  Sprawl (v23 s0) 11 -> 11 of 26; Treasure (v37 s1) 5 -> 5 of 27. It cures the 'Blast-only gem overhead' stuck pattern
+  and leaves the others untouched (Sprawl / Treasure stuck states need something else).
+* 05:33 Speed vs falls. Offline far legs: speed cap 13.5 (v26's change) 0.853 time ratio on 19 pairs (better 11 / worse 1),
+  falls 2 -> 1, fallback decisions 124 -> 67: the sim sees only the gain. In game v26 tied on points with falls 51 vs 32.
+  Every in-game fall in v23 (32 of 32) and v26 (49 of 51) is A2-led (the A2 fallback drove >= 6 of the last 12 decisions);
+  the A2 decisions are 'planning_time_budget' (3977) and the 2-decision 'search_cooldown' after each (7824): 'no useful
+  plan for any gem before the 2 s deadline' (the resource search then raises on the spent deadline). ~15 s a round of A2
+  driving. Offline fall legs (46 recorded legs that fell before the next pickup): base vs cap135 vs fallback cooldown 0
+  (search again on the very next decision instead of 2 more A2 decisions) running.
+* 05:42 The sim reproduces falls: 14 of 16 recorded fall legs fall again in the base re-simulation (the A2 fallback drives
+  off: falls are model-predictable, not model error). Cube s2 decision 1322 traced: a 'stop_4' plan collects an edge gem
+  as the marble starts down the cube's side; the pickup invalidates the plan; every following 2 s search finds nothing
+  useful (no_supported_continuation) and A2 accelerates off the edge (25 A2 decisions, fall at 1.6 s).
+  At recorded budget-fallback states (Cube / Vortex, 15 each): a useful plan exists only unbudgeted in 7 / 9, none at all
+  in 8 / 6 (almost all candidates 'no_supported_continuation').
+* Candidate 'keep' (re_keep.py, reliability_eval variant): after a pickup the remainder of the checked plan (it ended
+  supported, with a braking backup, when chosen) is kept; when the next searches find nothing useful it is revalidated
+  and executed instead of the A2 fallback. Cube decision 1307 (15 decisions before that pickup): base falls at 2.6 s,
+  keep collects the next gem at 2.3 s with 0 fallback decisions. Fall-leg batch (lead-in 15 decisions) running.
+* 05:45 Far legs (2 pickups after a group spawn, 30 pairs, 6 maps): speed cap 13.5 time ratio 0.884, better 19 / worse 4
+  (Cube 0.78, Duplex 0.78, KOTM 0.91, Sprawl 0.91, Bowl 0.98); v36 open-area top speed 0.982 (23 pairs; Sprawl worse:
+  its ledges count as drops). The 11 u/s cap costs ~12% of the far-trip time (40% of a round); in game the faster plans
+  raised A2-led falls (v26). Fallback cooldown 0 (search again at once instead of 2 A2 decisions) does not stop the
+  Cube falls offline (13 -> 14 of 15): every search there fails.
+* keep2 (re_keep2.py): like keep, and also when any search finds nothing useful the remainder of the last accepted plan
+  is revalidated and executed instead of A2. Fall-leg batches (lead-in 15): base / keep / keep2 / cap135 / cap135+keep2.
+* 05:46 Fall legs re-simulated from 15 decisions BEFORE the pickup that preceded the recorded fall (so the controller has
+  the running plan at the pickup): base falls in 3 of 12 Cube legs and 0 of 12 Vortex legs (the lead-in diverges from the
+  recording); keep 1 of 12 / 0 of 12, keep2 1 of 12 (Cube). Time to the next pickup counting a fall as 25 s: Cube 9.5 ->
+  5.4 s; but on legs both finish, keep/keep2 are ~0.6 s slower (the kept plan is often a braking plan where A2 would
+  have driven on). Normal-leg cost of keep2 being measured (sim17).
+* 05:51 Edge-gem episodes (Cube: start 15 decisions before each pickup of a gem within 3 u of a drop, 2 pickups, 21
+  pairs): keep (only after a pickup) falls 2 -> 2, time ratio 0.995; keep2 (any failed search) falls 2 -> 1, better 3 /
+  worse 0, ratio 0.982, mean with falls 5.6 -> 4.2 s. Normal legs: keep2 identical to base on 12 pairs (it acts only
+  when a search fails), blastfirst2 identical on 3. Plan: v39 = Blast first below raised gems + keep2 (+ corner
+  proposals if v38 is non-inferior).
+* 05:56 Recorded A2-fallback states (Vortex s0, 15): a useful plan within the 2 s virtual budget 2, only unbudgeted 6 (almost
+  all '*_ballistic': the airborne candidates' landing projection runs after every candidate is forecast, so at the deadline
+  it never runs), none at all 7 (787 of ~880 candidates 'no_supported_continuation'). An always-on 0.5 s reserve for the
+  projections lost on 10-14 (v5a/v5b: it starves the ordinary candidates); a projection pass only when the search ended
+  with nothing useful (instead of A2) is the untested variant. keep2 covers part of these states.
+
+### 2026-10-16 06:02 MDT - v38 (corner proposals) not adopted: 102.2 / 101.6 (two-start 101.9 vs 105.7); v39 launched with NO sims beside it
+* v38 per map (s0 / s1): KOTM 134/133, Sprawl 117/127, Cube 104 (6 falls)/117, Bowl 93/88, Duplex 131/99, Fractured 86/70,
+  Cragmire 90/102, Vortex 93 (7 falls)/99 (8 falls), Treasure 109/105 (v23 168/134; offline Treasure was also corner's worst
+  map, ratio 1.19), Concentric 65/76. Below the non-inferiority line (104.7): --corner-proposals stays OFF.
+* CONFOUND: v37 and v38 ran with 4-8 idle-priority sims beside them (CPU load up to 73%); the pools' 2 s search budget is
+  wall clock, so both were judged at a heavier load than the v23 baseline. Their losses (97.1, 101.9) are partly that.
+  From v39 on no sims run beside a pool (sims only while pools are idle, or at most 1).
+* v39 = v23 code + --raised-blast-first (Blast climb families first below a gem >= 1.5 u above and <= 8 u away with the
+  meter >= 0.5) + --keep-plan (keep2: when a search finds nothing useful, the remainder of the last accepted plan, or of
+  the plan running at a pickup, is revalidated and executed instead of the A2 fallback). Both flag-gated (default off;
+  apply_blastfirst2.py / apply_keep2.py). Offline: escape audit Concentric 1 -> 17 of 30 stuck states with a pickup plan;
+  edge gems (Cube, 30 pairs) falls 3 -> 2, better 4 / worse 0; normal legs unchanged (25 / 17 pairs). Pools
+  planner_v39_start0/1_20261015 launched 06:02 (4+4).
+* 06:22 v39 so far: KOTM 123/133, Cube 89 (6 falls)/101 (1 fall). keep-plan engages often (Bowl ~50, Cube 49-82, Sprawl
+  17-83 decisions a round) but the 6 Cube s0 falls are still A2-led: the kept plan carries the marble for a few decisions
+  while the searches keep failing, then it runs out or fails revalidation and A2 takes over for 15-49 decisions until it
+  drives off (e.g. decisions 300-305 continue_plan, 306-329 A2, fall). Long no-plan stretches on the cube need a safe
+  behaviour after the kept plan (a checked stop, not A2), next to test offline.
+* Cube s0 (v39) no-plan stretches start with the marble nearly stopped on the cube top 2-3 u from an edge gem (gem 0.9 u
+  below the marble, e.g. marble (-4.4,-70.3,327.2), gem (-6.5,-72.3,326.3)): every candidate that reaches the gem leaves
+  the floor afterwards and fails the gates, so nothing is 'useful'; A2 then rolls over the lip. Open question for the
+  operator: is 'collect the edge gem, then fall and respawn' ever worth it (respawn delay and position)? The planner
+  currently never plans a fall.
+* 06:33 v39 partial (4 maps each): s0 110.8 / s1 107.8 vs v23 on the same maps 116.8 / 115.8. Bowl 83/80 (v23 93-95 /
+  82-86): continue_plan replaced A2 on 217-225 decisions a round there and the mean speed fell 8.8 -> 8.3-8.4 u/s. On an
+  open map A2 is a decent driver; the kept (stale) plan is slower. If keep-plan is retried it should only act near a drop
+  (walk-grid edge distance), never in open terrain.
+* 06:48 v39 after 6 maps each: 102.7 / 100.8 vs v23 113.0 / 107.5 on the same maps -> failing. Concentric s0 stuck again
+  under (-5.6,-0.1,6.6) (281 decisions since the last pickup): the Blast meter never got past 0.50 because a non-pickup
+  'blast_7_jump_0' plan spent it at decision 1274; Blast-first needs >= 0.5. The offline escape audit used v37's states,
+  where the meter was full: meter management (do not spend the Blast while a raised gem waits) is the missing piece.
+* Next (after v39): v40 = v23 + --speed-cap 13.5 + keep-plan restricted to near drops (keep3: walk-grid distance to the
+  nearest drop < 5 u, apply_keep3.py on top of the keep2 code), without Blast-first: the far-trip speed gain (offline
+  -12%) with the guard aimed at the A2-led falls that sank v26.
+
+### 2026-10-16 07:02 MDT - v39 REJECTED: 97.6 / 95.8 (two-start 96.7 vs 105.7), falls 15 vs 24; clean v23 rerun (v23r2) launched
+* v39 per map (s0 / s1): KOTM 123/133, Sprawl 148/117, Cube 89 (6 falls)/101, Bowl 83/80, Duplex 100/104, Fractured 73/70,
+  Cragmire 77/81, Vortex 93/104, Treasure 129/100, Concentric 61/68. Run with no sims beside it. keep-plan (keep2) cut the
+  falls by a third but cost points nearly everywhere (Bowl: stale kept plans instead of a decent A2 in open terrain, mean
+  speed 8.8 -> 8.3 u/s); Blast-first rarely fired (the meter was spent on non-pickup Blasts). The offline normal-leg
+  test missed keep2's cost: within-group legs rarely reach the fallback, open-terrain travel does.
+* Every candidate since 03:50 (v37 97.1, v38 101.9, v39 96.7) is far below the v23 baseline measured at 10-15 20:14-21:05.
+  Before reading more into them: v23r2 = the current code with every new flag off (= v23 behaviour) on s0/s1, launched
+  07:01 (pools planner_v23r2_start0/1_20261015). If it also lands near 97-100, conditions changed (machine/OneDrive load)
+  and the night's comparisons need that baseline instead.
+* Lesson (offline screening): keep2 was screened on within-group legs (identical to base on 25 pairs) and edge gems, not
+  on far legs; Bowl's round is 61% far legs and the in-game cost sat there. Screen every candidate on all three sets
+  (normal legs, far legs, edge-gem / fall legs) before a pool; tools/sim_bench/README.md updated accordingly.
+* 07:26 v23r2 (identical v23 behaviour) after 4 maps each: s0 KOTM 126, Sprawl 140, Cube 78 (5 falls), Bowl 93; s1 KOTM 131,
+  Sprawl 118, Cube 117, Bowl 80 -> 109.3 / 111.5 vs the 10-15 evening v23 runs' 116.8 / 115.8 on the same maps. Sprawl s1
+  118 and Bowl s1 80 equal v39's 117 / 80: the v39 deficits on those maps were not keep-plan.
+
+### 2026-10-16 07:53 MDT - Clean baseline rerun v23r2: 104.4 / 100.4 (two-start 102.4); the night's verdicts re-read
+* v23r2 per map (s0 / s1): KOTM 126/131, Sprawl 140/118, Cube 78 (5 falls)/117, Bowl 93/80, Duplex 116 (3 falls)/102,
+  Fractured 86/78, Cragmire 92/99, Vortex 93/98 (9 falls), Treasure 149/100, Concentric 71/81; falls 28.
+* Identical v23 code, three runs (two-start means): v23 105.4, v23r 106.0, v23r2 102.4 -> baseline 104.6 (60 rounds), and
+  a single 20-round run can land 3.6 points from another. Note: compare.py's 'a+b' columns overwrite per map (they showed
+  one run, not a pooled mean); the pooled numbers in this log were computed separately.
+* Against 104.6: v31 (3 s budget) 105.9 (+1.3), v36 (open-area top speed) 106.3 (+1.7, fewer falls), v35 105.2 (+0.6),
+  v32 104.1, v38 corner 101.9 (-2.7, beside sims), v37 97.1 (-7.5, beside sims), v39 96.7 (-7.9, clean; falls -46%).
+  Nothing beats the reference by more than the noise; keep-plan (v39) is clearly negative; v36 is the best candidate.
+* 07:54 v36r = v36's open-area top speed again, now flag-gated (--open-top; apply_opentop.py re-adds the 10-16 03:05 code:
+  gem_demo.Proposal top=, search.open_top / OPEN_TOP 0 by default) on s0/s1 (planner_v36r_start0/1_20261015), no sims.
+  If it beats the same-day baseline (v23r2 102.4; three-run 104.6) again it is the adoption candidate (with v36's 30 rounds
+  that is 50 rounds). Code state: every overnight feature is flag-gated and OFF by default (corner, raised-blast-first,
+  keep-plan, open-top), so the default planner is still v23.
+
+### 2026-10-16 08:18 MDT - Operator: stop the loop, show Cube Isle at 1x
+* v36r (--open-top retest) stopped by the operator after 7 of 20 rounds (partial, not judged: KOTM 127/130, Cube 75 (5
+  falls)/87); all pool processes and games killed, no stale listeners. Folders planner_v36r_start0/1_20261015 are partial.
+* Viewing: replay_watch of planner_v23r2_start0_20261015/CubeIsle_Hunt (current default planner, 78 pts, falls at ~12, 20,
+  83, 90, 97 s after the countdown: the edge-gem falls) on port 9085 with the free camera. The clean alternative is
+  planner_v23r2_start1_20261015/CubeIsle_Hunt (117 pts, no falls).
+
+### 2026-10-16 08:35 MDT - Replay viewer desync (operator watching Cube Isle at 1x)
+* replay_watch (journal replay into a fresh game) is exact for the first 600-940 decisions of a Cube round, then a 0.05-0.08 u
+  difference appears (decisions 612 / 625 / 626 in three replays of the same journal: the replay itself is not repeatable)
+  and grows. The old REPLAYRESTORE resync added 4 idle decisions per snap and refused once a gem differed. New: --snap-u
+  (TELEPORT to the recorded state one decision ahead, default 0.2 u) keeps the marble on the recorded path, but gem pickups
+  and the next gem spawns still diverge (visible replay 60 points vs recorded 117).
+* Two identical headless replays (--headless: no window, no SPEED 1 / RENDEREVERY 1) diverged at decision 1 (marble 0.6 u
+  higher in the spawn drop) and scored 5: the game's start-up timing depends on the speed / render settings, and later
+  divergences are at contacts. The physics engine is exact step by step (journal one-step errors p99 0.000 u); what is
+  not reproducible is the run as a whole (timing outside the lockstep step).
+* Faithful 1x viewing therefore needs a recording of the real run (frames captured from the game window during a planner
+  round, assembled to a 1x video with cv2), not a re-simulation. replay_watch.py gained --snap-u, --headless, --stop-at.
+
+### 2026-10-16 08:52 MDT - Round recorder (operator: "build the round recorder then demo it"); points-only rule
+* Operator rule (memory feedback-points-only-ignore-falls): a model is judged ONLY by the round's points; falls are never a
+  cost or a gate in themselves. *.out added to .gitignore (operator); 271 already-tracked .out files left tracked.
+* New: nav/marble_dynamics/round_video.py (WindowRecorder: finds the game window by pid, grabs its client area with PIL
+  after every 64 ms decision, writes an MP4 at 15.625 fps with cv2) and reliability_eval --record-video PATH (implies
+  --watch, no real-time pacing; one frame per decision, also after OOBCLICK). It films the REAL round, so it is exact; the
+  search pauses leave no trace.
+* Demo: CubeIsle_Hunt, start manifest 1, current default planner: 120 points, 0 falls; video
+  C:/Users/doug/Videos/PlatinumQuest/cube_isle_20261016_0838.mp4 (3343 frames, 214 s, 1280x720, 408 MB, 0 missed frames);
+  round folder dynamics_reports/video_cube_20261016_0838. ~10 min wall per round. Command: the launch_pool.sh flag set with
+  --workers 1 --maps <map> --record-video <file.mp4> --output <new dir>.
+
+### 2026-10-16 09:40 MDT - Super Speed use in the recorded Cube round (operator); per-tick pickup test; v40 powerup changes
+Operator, after watching the recorded round (video_cube_20261016_0838, 120 points): a Super Speed spent on one gem carried
+the marble away from the rest of the gems and it had to come all the way back; another time a completely safe Super Speed
+was held and not used. Findings (recorded journal + searches re-run at the recorded states):
+* 1:35 (decision 1478): 6 gems within 11 u, target 3.7 u away on a 1.5 u step. Plan direct_use_3_jump_2 "collected" it at
+  reply 4; the kick passed 0.7 u under/beside the gem, flew 45 u north and the next gem came 7.9 s later. Cause: the
+  planner's pickup test (gem_demo.possible_pickup) swept the marble's box over a whole 64 ms reply; the game tests once per
+  16 ms tick (Marble::clientStateUpdated: the tick's swept box + radius + 0.2 u vs the item's world box). On 11 real rounds
+  (native 16 ms traces) the tick test matched all 864 real pickups with no false pass; the reply box gave 35 false passes,
+  and 27 chosen plans whose next-reply pickup never came (some cost 10-15 s). Super Speed audit of 70 v23 rounds: 153 uses,
+  76 reached a gem within 3 s; of 76 uses whose plan predicted a pickup, 16 missed it (3.5 s to the next gem vs 1.2 s).
+  A use that alone predicts a pickup is exempt from the use margin, so a false pickup won whatever the kick did after.
+* 1:23 (decision 1293): last gem of the group 6.5 u away; the 2 s search was cut before the jump plans that reach it
+  (direct_jump_9_ballistic, pickup at reply 31) were judged, so the Super Speed plan (pickup at 10) was the only pickup and
+  kept. It took the gem at 18 u/s; the next group spawned 88 u behind; 11 u the wrong way + 1 s of safe_hold braking.
+* 2:14-2:19 (decisions 2097-2165, the missed use): a 78 u straight trip to the next group with Super Speed held. Only 5
+  searches (17 decisions apart), every one cut at 2 s: the 17 rolling plans take ~1.6 s, the use plans come after them and
+  their landing projection runs only at the end of the search (skipped at the deadline). Unbudgeted, the same states fire
+  the Super Speed (a kick off the ledge landing by the group, pickup at reply 46-64). It fired only at 2165 (28 u left).
+* Also: 0:46 (decision 720) a Super Speed picked up in the same reply as a Helicopter use fired at once (the held use
+  press; the forecast models no new pickup). Rare; not changed. The A2 fallback never presses use (0 of 2254 decisions
+  holding Super Speed); the "A2" uses in the audit are planner presses that fire after a fallback took over.
+* next-group trips (13 pools): with Super Speed held at the start 50-140 u trips were 1.5-2.6 s faster (16-24 trips per
+  band; 30-50 u and 70-90 u no gain); trips right after a last gem taken by a kick 6.3 u/s vs 6.4 for all (no clear harm).
+Changes (v40, code defaults; module switches for the sim):
+* gem_demo.PICKUP_TICK_TEST (True): possible_pickup(states, item, native) uses the forecast's 16 ms tick states
+  (tick_pickup; the reply index of the first hit); the reply box stays only without consistent tick states.
+  candidate_cost(..., native=, detail=) passes them; search.assess and viability (task_pickup) pass rollout['native_states'].
+* search.USE_AWAY_U (8 u): apply_use_away rejects a use candidate that collects but is more than 8 u farther from the tour's
+  next gem than the collected gem at THROUGH_EVAL_REPLIES (info through_post_u; 'use_away').
+* search.SS_RESERVE_LAST_U (20 u) / SS_RESERVE_TIME_MS (6000): no Super Speed plans for the last gem of a group closer than
+  20 u (route) unless < 6 s remain: the next group spawns >= 30 u away (spawnBlock) only after it, so a long trip follows.
+* search.SS_EARLY_U (20 u): holding Super Speed on a leg >= 20 u, use_0_jump_-1 / direct_use_0_jump_-1 go right after
+  route/direct and their airborne landings are projected inline (the detour-first hook).
+* Re-run at the three moments (2 s budget): 1478 no use (the kicks either miss: no pickup, use_margin; or collect at reply 6
+  and end 30-45 u away: use_away) -> stop_0; 1293 direct_jump_9_ballistic (Super Speed kept); 2097 use_0_jump_-1 (fires
+  at the start of the 78 u trip), 2114/2131 the ballistic kick.
+* tools/sim_bench: the sim world now collects gems with tick_pickup (the game's rule). Before 09:40 the sim's world used the
+  reply box, so every offline result of 10-16 rewarded plans that skim gems at speed (base and variants alike). New
+  --held N selects legs that start holding powerup N.
+* 09:50 fix: SS_EARLY's inline landing projection first projected every airborne candidate so far, so route/direct got
+  projections they normally never reach before the deadline; on Cube sim leg 2289 'direct_ballistic' (a roll off a ledge
+  to the lower level) won and the leg took 10.0 s vs 7.2 s. Now only the two Super Speed plans' landings are projected
+  there. The 2 s searches at 2097/2114/2131 still fire the Super Speed (use_0_jump_-1, then the ballistic kicks).
+* Offline screen (sim world with the tick test; v23 start_0/1/2 legs; paired vs base = the old behaviour: PICKUP_TICK_TEST
+  False, USE_AWAY_U 0, SS_RESERVE_LAST_U 0, SS_EARLY_U inf; time ratio < 1 = faster; falls unchanged in every set):
+  normal legs 80 pairs: tick-only 0.976 (better 6 / worse 2), v40 0.976 (6 / 2); far legs 74: 0.991 (4 / 0), 0.984 (5 / 0);
+  edge-gem legs 52: 0.984 (2 / 0), 0.979 (3 / 0); legs starting with Super Speed held 56: 0.993 (4 / 1), 0.973 (8 / 2).
+  The sim cannot show the last-gem reserve's benefit (no new group ever spawns there), only its cost (none measured).
+* 09:53 v40 = the current code (all four default ON, every overnight flag OFF) on s0/s1, 4+4 workers, no sims beside it
+  (pools planner_v40_start0/1_20261016). Judge vs the three-run v23 baseline 104.6 (two-start) on points only.
+
+### 2026-10-16 10:45 MDT - v40 NOT adopted: 103.7 / 100.2 (two-start 102.0 vs 104.6); switches back off; stuck-spot videos
+* v40 per map (s0 / s1): KOTM 131/131, Sprawl 124/103, Cube 63 (6 falls)/96, Bowl 97/88, Duplex 131/101, Fractured 91/79,
+  Cragmire 93/90, Vortex 99/104 (6 falls), Treasure 135/122, Concentric 73/88. Among the four runs of each map-start
+  (three identical v23 runs + v40) it ranked first or tied first on 7 of 20, last on 5 (both Sprawl, Cube s0, Treasure s0,
+  Cragmire s1); the low ones are long stalls (Cube s0 stuck 18 s at (22, 26) then respawned 100 u away; Sprawl s1 27 s
+  and 37 s under ledge gems at (-25..-29, 17, 6.5-7)) of the kind the v23 runs also had. In game the tick test did what it
+  should: 0 planned next-reply pickups missed in 6 audited rounds (v23: ~2.2 a round); Super Speed uses 40 in 20 rounds
+  (v23 ~42 per 20), last-gem uses 1 (v23 ~6 per 20). The tick test costs 0.29 ms per forecast (a forecast ~18 ms).
+* By the adoption rule (in-game not below the reference by > 1 point) v40 is not adopted: PICKUP_TICK_TEST False,
+  USE_AWAY_U 0, SS_RESERVE_LAST_U 0, SS_EARLY_U inf are the code defaults again (= v23 behaviour). Next candidate: the tick
+  test alone.
+* Operator (10:45): "show me what these traps are ... the marble can get out of any place in the map ... make a video of
+  the marble getting stuck ... find at least 5". Scan (scratchpad stuck_scan.py; >= 10 s without a pickup inside 9 u)
+  of v40 + v23 + v23r + v23r2 (90 rounds): 53 episodes. Recurring: Concentric centre gem (-5.6, -0.1, 6.6) 3.8 u above
+  the marble (7 episodes, 11-20 s); Sprawl ledge gems (-29, 17, 7) / (-25, 17, 6.5) 4-5 u up (6 episodes); Cragmire ledge
+  gems 3-5 u up (several) and the high platform at (7, 6, 14.7) above its gems; Cube raised gem (33.3, 42, 329.5) and the
+  approach to that group from (22, 26); Treasure / Vortex / Duplex stretches with safe_hold or 'direct' far from the gem.
+* New: GEMSET bridge word (mlAgent.cs; shows exactly the hunt gems at the given positions, no new group triggered) and
+  ml_agent/tools/stuck_clips.py (puts the game in the recorded state: TELEPORT + GEMSET + GIVEPOW + VIEWYAW toward the
+  target gem, replays the recorded actions with 0.2 u snaps, films the window with an overlay of round time, planner
+  choice and target gem distance / height). Clips: C:/Users/doug/Videos/PlatinumQuest/stuck_spots_20261016.
+
+### 2026-10-16 14:06 MDT - Compiled planner forecasts (operator: "extend the horizon ... completely performant and accurate"); stuck-spot cause
+* nav/native/marble_sim.cpp (+ controllers.inc, marble_sim.py, forecast.py; build nav/native/build.ps1 -> %TEMP%/pq_checks/
+  marble_sim/marble_sim.dll): C++ port of GeneralPhysics.step (contacts, DIF contact order, swept sphere), the 64 ms bridge
+  (translated / quantize, Blast and inventory script steps), the routing (cell_of, level_at, line_clear with ground
+  clearance, path_waypoint, RoutePlanner navigate / distance) and the controllers (Proposal, SequenceProposal incl. through,
+  BrakeContinuation tail, LandingContinuation, NoInput, fixed lists). Every expression keeps the Python order; NumPy's
+  reductions reproduced as measured (1-D dot sequential; (N,3)@(3,) fma(a2,b2,fma(a0,b0,a1*b1)) for N >= 2; float32 sdot
+  summed in double); NumPy 2 promotion (a Python float meeting the float32 grid origin computes in float32, a NumPy float64
+  in float64; round() of a NumPy float = rint(x*1e6)/1e6, of a Python float the correctly rounded decimal).
+* Checks: tools/native_check.py 23,071 recorded 16 ms steps on all 10 maps bit-identical to the Python step (both match
+  the game to p99 4e-10 u); tools/native_controller_check.py every helper and 1,500 route-following decisions per map
+  identical; tools/native_search_check.py the planner's full search on 48 recorded decisions, all 10 maps: 1,620 of 1,620
+  candidates identical (verdict, cost, pickup, every predicted state), every choice the same. bridge.predict_replies uses it
+  when engine.native_sim is set (nav.native.attach(engine)); the A2 navigator proposal still runs per reply in Python.
+* Speed (idle machine): a physics step 2 us inside a whole compiled forecast (96 replies in 0.7-0.85 ms); full searches
+  10.1x faster on average (3-30x; typically 0.1-0.3 s vs 1-4 s, Bowl 7.6 s -> 0.26 s). Of the rest, the A2 proposal is ~40%.
+* Horizon probe at the 9 filmed stuck spots (tools/horizon_probe.py; unbudgeted search at 3 states each, horizons 24 / 48 /
+  96 replies): no candidate collects the target at any horizon; searches take 0.1-0.7 s even at 96. Random shooting
+  (tools/shooting_probe.py, 3000 random 96-reply sequences per state, 6 spots): 0 of 3000 reach the gem at 5 spots, 1 at
+  Duplex; blast meters 0.06-0.44 (charge 25 s).
+* Cause of the traps (route map): Sprawl (-29,15,6), Cube (33.3,42,329.5), Duplex: the walk field is inf on the marble's
+  floor level (no walkable connection to the gem's ledge, 2-4 u up); path_waypoint then returns the gem itself (routed
+  False) and every proposal drives straight into the ledge wall until the stall rescue. Concentric centre: the gem floats
+  4.6 u above the floor and the walk grid snaps it to the floor cell under it (field 2.4 u), so the planner believes it is
+  2 u from a gem it cannot jump to (jump apex ~1.4 u; meter empty).
+
+### 2026-10-16 15:20 MDT - v41 (compiled forecast in game): 107.0 / 102.9 (two-start 105.0 vs 104.6); 16 s decisions fixed; fallback controllers compiled; v42 launched
+* Operator (14:20): "focus on getting the speedup into the game and making sure it works and getting the kinks worked out".
+* v41 = the reference planner on the compiled forecast (reliability_eval NATIVE_FORECAST True), 14:23, 4+4 workers. Per map
+  s0/s1: KOTM 126/133, Sprawl 149/132, Cube 72/107, Bowl 105/70, Duplex 118/111, Fractured 91/81, Cragmire 94/88, Vortex
+  99/98, Treasure 144/144, Concentric 72/65. Two-start 105.0 vs 104.6 (v23 family). Bowl s0 105 = new best (CSV + sheet,
+  History rows 10-15 and 10-16). No tracebacks, no unsupported contexts in 20 rounds.
+* Budget stops (A2 'planning_time_budget'): 220 in 20 rounds vs 1,293 in v23r2; median decision 13-41 ms (v23r2 43-96 ms).
+* Kink: 24 decisions on Bowl took 4.8-16.4 s (s0 736-741 about 14 s each, s1 3700-3709 about 16 s each). Cause:
+  resources.choose_resource ran Python route work with no deadline check: one backward goal field per powerup item (Bowl
+  has 90 items, 60 of them Super Speeds; 30 ms per field) plus Python ground-clearance sweeps inside line_clear (120-220 us
+  per segment). With Python forecasts the main search used the 2 s first and the resource search stopped at its first
+  forecast; with compiled forecasts the main search ends in ~0.3 s and the resource search ran unbounded.
+* Fixes (each checked for exactness):
+  - resources.choose_resource: check_budget before each hypothesis and item; walk_distances() orders the items from two
+    forward Dijkstras from the marble instead of one field per item (6,642 item distances on 5 maps bit-identical, order
+    identical in 136/136 states; Bowl 4.3 s -> 36 ms per decision). Duck-typed routes (tests) keep the per-item loop.
+  - static_cache.GoalFieldMemo: the walking terrain's goal_field memoized by snapped source node (16 fields, read-only).
+  - ground_cache.MemoGroundClearance.native_segment + NativeSim.bind_clearance (reliability_eval main): clearance misses use
+    the compiled predicate (80,000 random segments on 4 maps, 0 differences; 4 us vs 120-220 us); the walking terrain is
+    registered at setup instead of inside the first decision that needs it (0.9 s on Bowl).
+  - nav/native ABI 6: settle.SettleProposal and recharge.RechargeProposal (brake toward the gem for N replies, then the
+    sequence at index - N), phased_search.AimProposal (aim offset) and landing.LandingContinuation (tail kind 3) run
+    compiled. tools/native_fallback_check.py: 798 of 798 candidates identical on 5 maps (33x faster);
+    tools/native_search_check.py: 646 of 646.
+* Offline replay of the stuck stretches through the real controller (scratchpad slow_repro.py, open loop on recorded
+  states): Bowl s1 3696-3712 now 0.2 s decisions after one 1.55 s resource search that finds a plan (recorded: 16 s budget
+  stops); Cube s0 1276-1294 searches complete in 1.3-1.5 s (recorded: 2 s budget stops).
+* Still per reply in Python: the A2 NavigatorProposal (3.7 ms per reply: obs build 1.5 ms + torch 1.8 ms; ~0.1 s of a
+  normal search, 0.65-0.95 s of a stuck-state decision).
+* Unit tests: 5 failures in test_recharge / test_planning_budget / test_landing_endpoint predate today (their fake routes
+  lack distance / terrain, which SequenceProposal's route speed law reads).
+* v42 = v41 + these fixes, launched 15:10 (start_0 port 9060, start_1 port 9070, 4+4 workers).
+
+### 2026-10-16 15:35 MDT - v42 (v41 + bounded resource search + compiled fallback controllers): 107.3 / 94.4 (two-start 100.9); decisions bounded
+* Per map s0/s1: KOTM 126/133, Sprawl 140/132, Cube 72/128, Bowl 103/68, Duplex 118/113, Fractured 91/81, Cragmire
+  77/92, Vortex 108/98, Treasure 174/34, Concentric 64/65. Cube s1 128 = new best (CSV + sheet); Treasure s0 174 ties it.
+* Decision times: max 2.5 s (v41 16.4 s); 5 decisions > 2.2 s (v41 36, v23r2 467); budget stops 174 (v41 220, v23r2
+  1,293); A2 decisions 590 (v23r2 3,842); falls 9 (v41 12, v23r2 28); safe holds 2,789 (Treasure s1 alone 913).
+* Treasure s1 34 (v41 144): v41 and v42 identical to decision 712 (t 45.6), beside the raised gem (93, 27, 8) 4-5 u
+  above the floor. Both searches hit the 2 s budget (pick() over 8 gems, one A2 navigator rollout per gem at ~0.1 s =
+  0.77 of 1.67 s offline on an idle machine, 2.1 s under pool load) and the completed candidate sets differed (v41 jump_0,
+  v42 blast_3_jump_0_ballistic). v42 later parked under the same gem from t 133 to the end (913 safe holds, 4 no-progress
+  respawns). Without that round v42 s1 is ~105.4.
+* Bowl s1 (v41 70, v42 68; Python runs 80-88): both compiled runs identical to t 160; then the approach to gem
+  (24, -136, -11) from the floor 3 u below it, the stall skip to a gem 82 u away and back, and the harness's 8 s
+  no-progress rescue at t 201 (the per-target best distance is not reset when the target returns) respawns the marble
+  260 u away. The compiled planner is deterministic away from the budget, so a start with a bad spot repeats it; the
+  Python runs varied with wall-clock budget stops. Same stuck-spot family as the 14:06 entry (parked by the operator).
+* Conclusion: the compiled planner works in game; what still makes searches budget-bound is the A2 navigator rollout
+  (Python per reply: observation 1.5 ms + torch 1.8 ms). Next: compile the navigator rollout so multi-gem searches end
+  well inside 2 s (removes the wall-clock dependence that split Treasure s1).
+* tools/sim_bench: --native (compiled forecasts; virtual clock NATIVE_STEP_US 100 per physics step, measured 61-138 by map).
+
+### 2026-10-16 15:39 MDT - v43 launched: the A2 proposal for the target gem only (pick)
+* Where the time still goes (open loop through the real controller, compiled forecasts, 400 decisions each on Treasure,
+  Sprawl, Vortex, Cragmire): the A2 NavigatorProposal is 22-33 % of all planning time and 40-53 % of the decisions above
+  0.3-1 s. v42 still had 683 decisions that ran into the 2 s deadline (427 budget stops, 255 plans chosen at the deadline;
+  Cragmire 254). In those, pick() found no useful plan for the target and searched every visible gem, each with its own
+  A2 rollout (Cragmire 1088-1125: 7 gems, A2 0.6-0.8 of 1.0-1.2 s offline, 1.7-2.0 s in game).
+* The A2 proposal won for a non-target gem in 1.0 % of fresh searches (120 of 11,690 in v41 + v42; for the target gem
+  12.4 %). reliability_eval.LEARNED_OTHER_GEMS False: pick() passes learned=False to search() for the other gems (the
+  target keeps it; search() defaults unchanged). Offline: Cragmire 1088-1125 0.42-0.66 s, Treasure s1 712 1.00 s (was
+  1.67 s). Still near 2 s: the resource search's held-powerup hypotheses (each with an 80-reply A2 rollout, ~0.2 s).
+* A full C++ port of the A2 rollout was scoped and set aside for now: the V10 observation includes the Super Speed
+  two-gem floor solver, the landing predictor, edge rays and level runs (~1,600 lines with nav/model.py), and the network
+  cannot be reproduced bit-for-bit outside torch.
+
+### 2026-10-16 15:55 MDT - v43 ADOPTED: 109.9 / 105.8 (two-start 107.9; v42 100.9, v41 105.0, v23 family 104.6); v44 (3 s budget) launched
+* Per map s0/s1: KOTM 127/133, Sprawl 141/152, Cube 93/128, Bowl 103/70, Duplex 118/113, Fractured 91/78, Cragmire 83/92,
+  Vortex 105/103, Treasure 174/120, Concentric 64/69. Versus v42 on the same rounds: +140 in total; no round lower by more
+  than 3 (Vortex s0, Fractured s1); gains Treasure s1 +86 (the v42 collapse did not repeat), Cube s0 +21, Sprawl s1 +20,
+  Cragmire s0 +6, Vortex s1 +5, Concentric s1 +4. Highest two-start mean of any planner pool so far.
+* Budget stops 168 (v42 174), falls 13, safe holds 1,432 (v42 2,789), max decision 2.6 s; decisions that ran to the 2 s
+  limit 0.42 % (v42 0.51 % on the same rounds). No new map bests (Sprawl 152, Cube 128 and Treasure 174 tied).
+* LEARNED_OTHER_GEMS False stays the code default.
+* Operator (15:47): "are we able to extend search budget to 3 seconds maybe? That will raise scores" -> v44 = v43 +
+  --search-budget-s 3 (appended launch flag; the job inputs record search_budget_s 3.0), 15:53, 4+4 workers. Expected
+  effect small (only ~0.4 % of decisions reach 2 s); next planned: longer plans (horizon 48 / 96 replies).
+
+### 2026-10-16 16:10 MDT - v44 (3 s search budget) NOT adopted: 99.8 / 103.8 (two-start 101.8 vs v43 107.9); v45 (horizon 48) launched
+* Per map s0/s1: KOTM 127/133, Sprawl 140/152, Cube 89/124, Bowl 103/70, Duplex 100/113, Fractured 73/78, Cragmire 83/78,
+  Vortex 99/110, Treasure 120/111, Concentric 64/69. Versus v43 on the same rounds: -121 in total; higher only on Vortex
+  s1 (+7, 110 = new Vortex best; CSV + sheet). The engine holds the game during long decisions (planner sessions send
+  DYNAMICSWAIT 600000; the engine's free-run fallback is 5 s by default), so the 3 s decisions cost no game time.
+* Every split from v43 is at a hard spot where v43 hit the 2 s limit and handed over (A2 fallback, safe hold, crossing
+  brake at the deadline) while v44 used the extra second to pick a plan, often right at the 3 s limit: Duplex s0 dec 51
+  (steering_0.5), Fractured s0 644 (direct_blast_3_jump_0_ballistic), Cube s0 1545 (direct), Cube s1 2400 (route),
+  Vortex s0 4399 (direct_recharge_200_blast_11_jump_5). In hard spots the late picks were worse than the handover; more
+  search time does not raise points with the current plan scoring.
+* v45 = v43 + --horizon 48 (plans 3 s instead of 1.5 s; 2 s budget), 16:09, 4+4 workers.
+
+### 2026-10-16 16:25 MDT - v45 ADOPTED (horizon 48 = 3 s plans): 108.2 / 111.1 (two-start 109.7 vs v43 107.9); v46 (horizon 96) launched
+* Per map s0/s1: KOTM 138/132, Sprawl 140/145, Cube 111/128, Bowl 83/94, Duplex 131/105, Fractured 73/76, Cragmire
+  98/100, Vortex 91/103, Treasure 145/156, Concentric 72/72. Versus v43: +36 in total with large swings both ways
+  (Treasure s1 +36, Bowl s1 +24 (past the stall spot every compiled run hit), Cube s0 +18, Cragmire s0 +15, Duplex s0 +13;
+  Treasure s0 -29, Bowl s0 -20, Fractured s0 -18, Vortex s0 -14). Falls 9 (v43 13), budget stops 153 (168), decisions that
+  ran to the 2 s limit 0.42 % (0.46 %): the longer plans cost no search time.
+* The pool launcher's base is now --horizon 48 (scratchpad launch_v40.sh). v46 = v45 with --horizon 96 (6 s plans), 16:24.
+
+### 2026-10-16 16:45 MDT - v46 (horizon 96 = 6 s plans) NOT adopted: 98.2 / 97.6 (two-start 97.9 vs v45 109.7)
+* Per map s0/s1: KOTM 130/134, Sprawl 133/137, Cube 64/91, Bowl 84/84, Duplex 141/117, Fractured 80/87, Cragmire 82/70,
+  Vortex 57/68, Treasure 148/124, Concentric 63/64. Versus v45: -235 in total; better only on Duplex (s0 141 = new Duplex
+  best; CSV + sheet), Fractured, Bowl s0, KOTM s1, Treasure s0. Rounds take longer (up to 520 s wall vs ~300 s).
+* Why: safe holds 4,313 (v45 1,294), budget stops 315 (153), A2 cooldown decisions 662 (328); every Cube fall was under the
+  A2 fallback. A 6 s plan must pass the end-of-plan checks (stable support, braking backup, no unresolved contact) at its
+  6 s end although only 4 replies are executed before the next search; far fewer 6 s plans pass, so the planner parks or
+  hands over far more often.
+* Sweeps today (two-start): horizon 24 / 48 / 96 = 107.9 (v43) / 109.7 (v45) / 97.9 (v46); search budget 2 s / 3 s =
+  107.9 (v43) / 101.8 (v44). Reference stays v45 (horizon 48, 2 s budget).
+
+### 2026-10-16 18:47 MDT - Operator: "it hits the wall and only then jumps / blasts" (seen in the v45 Treasure s1 replay); v47 launched; loop restarted
+* Operator watched v45 Treasure s1 at 1x (replay_watch, exact: 0.00 u drift all round), then: the marble reaches the place
+  where it needs to jump (+ Blast), keeps going until it hits the wall, and only then climbs. Then: "fix it and then start
+  training" (= the planner pool loop, as on the night of 10-15/16).
+* Wall-then-climb moments (scratchpad wall_then_jump.py, looser limits): 32 in v45's 20 rounds, ~73 s from wall to pickup.
+* Cause 1 (Treasure s1 decisions ~610-663): plan reuse. retained_candidate keeps the running plan WITHOUT searching while
+  its remainder stays valid, has >= 8 replies and makes > 0.3 u progress; with 48-reply plans an A2 hop approach that
+  collects nothing ('frozen_navigator_ballistic', minimum gem distance 3.4 u) ran ~2 s until the wall broke it; the first
+  fresh search (664) found blast_7_jump_3. An unbudgeted search at 642 already chose blast_7_jump_0_landing (pickup in
+  22 replies). Fix: reliability_eval.RESEARCH_PROGRESS_PLANS True: a kept plan without a pickup no longer skips the search;
+  a searched plan with a pickup replaces it, otherwise the kept plan stays (counts research_found_pickup /
+  research_kept_plan). Offline replay of 610-670: jump + Blast pickup plans chosen from decision 636 (recorded wall 659).
+* Cause 2 (Sprawl s1 4003, Vortex s1 1663, Cragmire s1 3312): the standard families jump at 0/2/5/9 replies and Blast at
+  most at 11, so a few metres back no plan climbs (no pickup plan at all) and 'direct' drives into the wall. Fix:
+  search.LATE_JUMPS True: toward a gem >= 1 u up and <= 14 u away, jumps at 6-24 replies alone and with a Blast 2 / 4 / 6
+  replies after (route and direct aim). Offline: Sprawl 1.0 s before the wall the planner now picks
+  direct_blast_8_jump_6 (pickup in 24 replies; before: no pickup plan, recorded pickup 35).
+* v47 = v45 + both fixes, 18:47, 4+4 workers (horizon 48 base). Loop queue after it: the 16 ms pickup test alone
+  (PICKUP_TICK_TEST), horizon 64, Blast kept for raised gems; each kept only if two-start >= reference - 1.
+
+### 2026-10-16 19:33 MDT - v47 ADOPTED: 118.3 / 119.1 (two-start 118.7 vs v45 109.7, +9.0 a round); v48 (keep the Blast for raised gems) launched
+* Per map s0/s1: KOTM 137/137, Sprawl 157/151, Cube 113/124, Bowl 105/100, Duplex 131/120, Fractured 88/87, Cragmire
+  104/113, Vortex 93/104, Treasure 173/156, Concentric 82/99. Versus v45: +181 over 20 rounds; no round lower by more than 4
+  (Cube s1 -4); Bowl s1 100 (the 1.5 s-plan compiled runs scored 68-70 there). New bests: Sprawl 157, Concentric 99 (CSV +
+  sheet); Bowl 105 tied. Falls 7 (v45 9), budget stops 126, A2 decisions 404 (497), safe holds 1,101 (1,356). Rounds take
+  ~2.5x the wall time (every approach decision searches; the game waits).
+* The operator's Treasure s1 spot was NOT faster in v47: the ledge gem (90.9, 27, 9.4) took 19.1 s (v45 10.0 s). A kept
+  no-pickup 'direct_blast_11_jump_5' approach fired the Blast 23 u from the ledge; at the ledge (4.5 u up) the meter was
+  empty and the marble bounced under it ~8 s until it recharged.
+* v48 = v47 + search.KEEP_BLAST (scratchpad apply_keep_blast.py): while the target gem is >= 1.5 u up (above plain jump
+  reach) and <= 40 u away, a plan that fires the Blast without collecting the gem ranks after every plan that keeps it
+  (useful_candidate keep_blast from pick()). Offline at v47 Treasure s1 626-640: jump_5 / direct instead of
+  direct_blast_11_jump_5. Launched 19:33, 4+4 workers.
+
+### 2026-10-16 20:16 MDT - v48 (keep the Blast for raised gems) NOT adopted: 111.6 vs v47 118.7; v49 (16 ms pickup test alone) launched
+* v48 per map s0/s1: KOTM 137/137, Sprawl 151/150, Cube 113/118, Bowl 105/100, Duplex 131/120, Fractured 84/87, Cragmire
+  65/95, Vortex 98/108, Treasure 172/92, Concentric 83/85. Versus v47: -143 over 20 rounds; higher only on Vortex (+5, +4)
+  and Concentric s0 (+1). Treasure s1 (the operator's round) 92 vs 156, Cragmire s0 65 vs 104. Holding the Blast back below
+  raised gems slows the marble far more often than the occasional early Blast costs. KEEP_BLAST False (code kept).
+* v49 = v47 + gem_demo.PICKUP_TICK_TEST True (the game's per-16 ms-tick item test for the planner's pickups; part of the
+  v40 bundle on 10-16 morning, never tested alone). 20:16, 4+4 workers.
+
+### 2026-10-16 21:01 MDT - v49 ADOPTED (16 ms pickup test): two-start ~120.0 vs v47 118.7; v50 (search every 3rd decision) launched
+* v49 per map s0/s1: KOTM 140/139, Sprawl 157/150, Cube 111/121, Bowl 113/100, Duplex 131/115, Fractured 86/87, Cragmire
+  85/113, Vortex 93/111, Treasure 174/167, Concentric 109/97. Versus v47: +25 over 20 rounds. New bests: Bowl 113,
+  Concentric 109, Vortex 111 (CSV + sheet); Sprawl 157 and Treasure 174 tied. gem_demo.PICKUP_TICK_TEST True stays.
+* Operator (20:40) on the pools' length ("back to being slow despite being in c++?"): v47 searches 1,375 times a round vs
+  231 in v45 (every approach decision re-searches), rounds 914 s vs 288 s of wall time; each search is still ~10x the
+  Python speed and the game waits, so play is unaffected. Operator: "queue that up" (search every 2nd / 3rd decision), then
+  "after testing v50, stop training and wait for me to guide".
+* v50 = v49 + reliability_eval.RESEARCH_EVERY 3 (with a kept no-pickup plan, one full search every 3rd decision;
+  scratchpad apply_research_every.py). 21:01, 4+4 workers. After v50: report and STOP the loop (operator).
+
+### 2026-10-16 21:28 MDT - v50 (search every 3rd decision) NOT adopted: 115.6 / 113.9 (two-start 114.8 vs v49 120.0); LOOP STOPPED (operator)
+* v50 per map s0/s1: KOTM 139/139, Sprawl 157/142, Cube 110/127, Bowl 93/100, Duplex 131/120, Fractured 80/79, Cragmire
+  108/115, Vortex 96/102, Treasure 160/118, Concentric 82/97. Versus v49: -104 over 20 rounds (Treasure s1 -49, Concentric
+  s0 -27, Bowl s0 -20; Cragmire s0 +23). Searches 645 a round (v49 1,389), wall 520 s a round (v49 937 s): about half the
+  time for ~5 points a round. RESEARCH_EVERY back to 1 (code kept).
+* Final state = v49 (two-start 120.0: 119.9 / 120.0): compiled forecasts (nav/native ABI 6), horizon 48, 2 s budget, A2
+  proposal for the target gem only, kept no-pickup plans re-searched every decision, late jump / Blast timings near raised
+  gems, the game's 16 ms pickup test. Today's chain: v23 family 104.6 -> v41 105.0 (compiled) -> v43 107.9 -> v45 109.7 ->
+  v47 118.7 -> v49 120.0. Rejected today: v44 (3 s budget) 101.8, v46 (horizon 96) 97.9, v48 (keep the Blast) 111.6, v50
+  (search every 3rd) 114.8.
+* Operator (20:44): "after the testing v50, stop training and wait for me to guide". No pool running; no games running.
+
+### 2026-10-17 00:33 MDT - Operator's night goals; v51 (cluster fixes) launched; loop restarted
+* Operator: "tonight ... collecting small clumps of gems quicker ... it's jumping too much and stumbling around when
+  collecting tight clusters ... minimize number of jumps ... also traversing between spawns faster ... slightly increasing
+  the value of picking up nearby powerups ... let it go a little bit further out of its way to get one".
+* Baseline v49 (scratchpad leg_stats.py; leg = pickup to next pickup): cluster legs (gems <= 12 u apart) 1,358, 1.32 s per
+  leg for 5.0 u, 0.53 jump presses per leg, 5.9 u/s, path/straight 1.20, pickup speed median 6.0 u/s (= PICKUP_MIN_SPEED);
+  travel legs (> 30 u) 189, 11.0 s for 75.5 u, 9.0 u/s; powerup pickups 3.1 a round. Clusters ~90 s and travel ~100 s of
+  every round.
+* Jumps in clusters: 721 presses, 73 % with the gem < 0.5 u above the marble; sources A2 navigator plan 191, jump_N plans
+  ~360, Blast plans ~60. Offline (scratchpad jump_cost_ab.py, 30 recorded flat-cluster jump choices): a 1 u jump charge flips
+  5 of 27; in most the forecast collects sooner with the jump (moving away from the gem, a jump turns faster).
+* Cost scale: one second of pickup delay = 4 u of position ('post' / end distance), i.e. an assumed 4 u/s marble; it moves
+  6-11 u/s, so ending nearer / slower outweighed collecting sooner (KOTM s1 2796: frozen_navigator, pickup 23 at 6.5 u/s,
+  beat through, pickup 22 at 10.7 u/s).
+* v51 = v49 + search.JUMP_COST_U 1.0 (per jump press unless the gem is >= 1 u up; not in crossings) + gem_demo.PICKUP_TIME_WEIGHT
+  8 (was 4). Pools planner_v51_start0/1_20261017 (folders now carry the date), 00:33, 4+4 workers. Queue: --open-top (travel
+  speed), --opportunistic-powerups 8 (powerup detours); each kept only if two-start >= reference - 1 (v49 120.0).
+
+### 2026-10-17 01:15 MDT - v51 NOT adopted: two-start ~118.0 vs v49 120.0; v52 (open-area top speed) launched
+* v51 per map s0/s1: KOTM 132/136, Sprawl 148/150, Cube 98/128, Bowl 113/88, Duplex 131/120, Fractured 88/98, Cragmire
+  98/114, Vortex 109/98, Treasure 165/157, Concentric 92/96. Versus v49: -40 over 20 rounds.
+* Behaviour (leg_stats): jump presses per cluster leg 0.53 -> 0.41 (-23 %), but cluster legs still 1.32 s (5.0 u), speed
+  6.0 u/s; travel legs 11.2 s (9.2 u/s); powerup pickups 3.8 a round. Fewer jumps alone did not make clusters faster; the
+  cluster time sits in the approach (stop-and-turn at the 6 u/s pickup floor), not in the jumps.
+* JUMP_COST_U 0 and PICKUP_TIME_WEIGHT 4 again (code kept). v52 = v49 + --open-top (13.5 u/s target far from drops;
+  v36 tied in the Python era), 01:15, 4+4 workers.
+
+### 2026-10-17 01:55 MDT - v52 (--open-top) stopped after 6 rounds (+6 vs v49, slow path); v53 (powerup detours) launched
+* v52 rounds: KOTM 137/141, Cube 119/130 (130 = new Cube best, from a stopped pool: recorded below), Duplex 116/120;
+  +6 vs v49 on those 6. Rounds took ~2x the wall time: with OPEN_TOP set, nav/native forecast._controller returns None for
+  every SequenceProposal (open_top is not in the compiled controller), so the main candidate family ran per reply in
+  Python. Also only 2 % of Sprawl's walkable cells are >= 8 u from a drop (5 % at 4-8 u): the rule mostly matters on open
+  maps (Bowl). Stopped (all v52 processes and games killed, no listeners left); a compiled port is drafted (scratchpad
+  apply_open_top_native.py, ABI 7) but parked; a plain --speed-cap 13 test (compiled) is queued instead.
+* My offline searches (exit_mod.py / exit_detail.py) ran at normal priority during v52's first ~20 min: v52's early
+  rounds were judged under extra CPU load. No offline work beside pools from here on.
+* Cluster diagnosis (v49 journals, exit_ab / exit_detail): the next cluster gem takes 0.84 s when the marble leaves a
+  gem heading within 30 deg of it, 1.64 s at 60-90 deg, ~2.1 s beyond 90 deg (37 % of cluster legs >= 60 deg off). 29 %
+  of the time the gem taken next is not the tour's planned next, but 72 % of those switches follow the marble's actual
+  heading (sensible). Reading the post-pickup progress 12 replies after the pickup instead of at reply 24 did not improve
+  exits offline (81 -> 88 deg); curved through plans (through + steering offset) did a little (24 -> 29 % within 30 deg).
+* v53 = v49 + --opportunistic-powerups 8 (holding nothing: a visible powerup within 25 u whose extra walk on the way to
+  the current gem is <= 8 u becomes the goal). 01:55, 4+4 workers.
+
+### 2026-10-17 02:40 MDT - v53 (powerup detours 8 u) NOT adopted: -25 over 20 vs v49 (~118.7); v54 (--speed-cap 13) launched
+* v53 per map s0/s1: KOTM 130/133, Sprawl 144/153, Cube 122/127, Bowl 113/90, Duplex 123/120, Fractured 81/70, Cragmire
+  103/109, Vortex 98/108, Treasure 170/156, Concentric 113/111 (113 = new Concentric best; CSV + sheet).
+* Behaviour: powerup pickups 12.1 a round (v49 3.1), travel legs 10.65 s at 9.5 u/s (v49 11.0 s, 9.0 u/s), cluster legs
+  1.35 s (1.32). The operator asked for a slight increase; 8 u quadrupled the pickups and cost ~1.25 points a round
+  (Concentric +18 over its two rounds; KOTM -16, Fractured -22). A 4 u detour is queued.
+* v54 = v49 + --speed-cap 13 (top target speed 11 -> 13 everywhere; compiled). 02:40, 4+4 workers. Queue: v55 curved
+  through plans (apply_tsteer.py), v56 --pickup-min-speed 8, v57 --opportunistic-powerups 4.
+
+### 2026-10-17 03:27 MDT - v54 (--speed-cap 13) NOT adopted: -73 over 20 vs v49 (one trapped round); v55 (curved through plans) launched
+* v54 per map s0/s1: KOTM 137/140, Sprawl 148/178, Cube 131/117, Bowl 113/102, Duplex 132/111, Fractured 86/86, Cragmire
+  103/117, Vortex 81/111, Treasure 184/61, Concentric 81/107. New bests: Sprawl 178, Treasure 184, Cube 131 (CSV + sheet).
+* Treasure s1 61 (v49 167): the raised ledge gems (91-95, 25-27, 8-9), 5-6 u above the floor (the operator's 10-16 spot),
+  never climbed from t 57 to 197: jump / Blast attempts fail, the 8 s rescue respawns the marble 5 times at (41.8, 60.2)
+  and safe holds park it there 20+ s each time. The same trap gave v42 s1 34. Without that round v54 = +33 over 19 (8 wins,
+  9 losses, median 0): a 13 u/s cap everywhere is roughly neutral, with more overshoot inside clusters.
+* Next for travel: a higher cap only on long legs (route distance to the target > ~20 u), which needs the Proposal 'top'
+  in the compiled controller (drafted in apply_open_top_native.py; to adapt). The Treasure s1 ledge trap is the largest
+  single variance source in the pools (34 / 61 / 92 / 120 / 156-167 across versions).
+* v55 = v49 + search.THROUGH_STEER (curved through plans: steering offset +-0.5 / +-1.0 for 6 or 12 replies, then
+  through the gem toward the next one; scratchpad apply_tsteer.py). 03:27, 4+4 workers.
+
+### 2026-10-17 04:14 MDT - v55 (curved through plans) NOT adopted: 113.7 / 116.5 (two-start 115.1 vs v49 120.0); v56 (travel top speed) launched
+* v55 per map s0/s1: KOTM 141/137, Sprawl 155/139, Cube 95/128, Bowl 105/102, Duplex 109/121, Fractured 91/70, Cragmire
+  93/108, Vortex 85/111, Treasure 165/144, Concentric 98/105. Versus v49: -97 over 20 rounds (12 losses, 7 wins, 1 tie).
+* Behaviour (leg_stats): cluster legs 1.37 s (v49 1.32), jumps 0.55 per cluster leg (0.53), 5.8 u/s; travel legs 11.5 s
+  at 8.9 u/s; powerup pickups 2.9 a round. Eight more candidates per search: rounds ~1,100-1,670 s of wall time (v49 ~940),
+  safe holds 1,533 (1,206). search.THROUGH_STEER False again (code kept).
+* Near misses are not the cluster stumble (scratchpad miss_stats.py, v49): a chosen plan that forecasts the gem within one
+  reply collects it 99.8 % of the time (0.2 miss episodes a round), so the 16 ms pickup test holds in play.
+* v56 = v49 + search.TRAVEL_TOP 13.5: on long legs the top target speed ramps from the 11 u/s cap at 12 u from the target
+  gem (route length; straight for direct proposals) to 13.5 u/s at 20 u; clusters keep 11 and the stopping law. Needed the
+  proposal top in the compiled controller: nav/native ABI 7 (search.leg_top / open_top in controllers.inc, 13 constants,
+  terrain edge_dist via ms_terrain_set_edge, so --open-top no longer falls back to the per-reply path either; scratchpad
+  apply_top_native.py). Identity checks after the rebuild: native_controller_check 249/249 sequence actions per map
+  (KOTM, Sprawl, Bowl) with the tops off and with TRAVEL_TOP / OPEN_TOP 13.5; native_search_check with TRAVEL_TOP 13.5
+  473/473 candidates (12 searches on 4 maps); native_fallback_check 206/206. 04:14, 4+4 workers (ports 9060 / 9070).
+* Queue: v57 next-gem pickup credit (scratchpad apply_next_credit.py: a plan that also collects the tour's next gem by
+  reply 24 scores full progress plus 4 u per second of that pickup before reply 24; before, reaching the next gem early
+  and rolling past it scored worse than arriving at reply 24), v58 --opportunistic-powerups 4, v59 search.JUMP_COST_U 1
+  alone (v51 bundled it with PICKUP_TIME_WEIGHT 8).
+
+### 2026-10-17 04:58 MDT - v56 ADOPTED (travel top speed 13.5 on long legs): 121.3 / 120.4 (two-start 120.9 vs v49 120.0); v57 (next-gem pickup credit) launched
+* v56 per map s0/s1: KOTM 136/136, Sprawl 157/145, Cube 122/128, Bowl 113/110, Duplex 143/111, Fractured 82/87, Cragmire
+  98/103, Vortex 106/101, Treasure 188/168, Concentric 68/115. Versus v49: +18 over 20 rounds (9 wins, 8 losses, 3 ties).
+  New bests (CSV + sheet): Duplex 143, Concentric 115, Treasure 188.
+* Behaviour (leg_stats): travel legs 10.63 s at 9.6 u/s (v49 11.0 s at 9.0; 194 travel legs vs 189), cluster legs 1.33 s
+  (1.32, unchanged as designed), jumps 0.54 per cluster leg, powerup pickups 3.3 a round. v54's cap 13 everywhere had
+  the same travel gain (10.63 s at 9.5 u/s) but slower clusters (1.42 s per leg).
+* Concentric s0 68 (v49 109): 47 s on the two raised centre gems (-5.6, -0.1, 6.6) / (-7.9, -0.2, 5.6) (z ~4 u above the
+  floor) and two cross-map trips with the target switching (30 s, 21 s). The centre gems cost 10-17 s stretches in v49,
+  v53 and v54 too (scratchpad gaps.py): a standing weak spot, like the Treasure s1 ledge.
+* search.TRAVEL_TOP 13.5 stays (code default). Reference now v56 = 120.9.
+* v57 = v56 + gem_demo.NEXT_PICKUP_U_PER_S 4 (scratchpad apply_next_credit.py; search.assess passes the tour's next gem
+  item to candidate_cost). Offline (scratchpad credit_probe.py, 30 close-approach cluster searches, compiled forecasts):
+  84 of 1,102 candidates credited, the choice changes in 7 of 30; chosen plans that also collect the next gem 14 of 30
+  (off: 11), at reply 18.1 (off: 21.7), target pickup unchanged (5.9). native_search_check 324/324 with it on.
+  04:58, 4+4 workers. Queue: v58 --opportunistic-powerups 4, v59 search.JUMP_COST_U 1 alone.
+
+### 2026-10-17 05:38 MDT - v57 (next-gem pickup credit) NOT adopted: 115.8 / 120.6 (two-start 118.2 vs v56 120.9); v58 (powerup detours 4 u) launched
+* v57 per map s0/s1: KOTM 136/136, Sprawl 157/159, Cube 113/137, Bowl 113/110, Duplex 115/130, Fractured 89/70, Cragmire
+  100/76, Vortex 109/105, Treasure 158/168, Concentric 68/115. Versus v56: -53 over 20 rounds. New best: Cube 137 (s1;
+  CSV + sheet).
+* Behaviour: cluster legs 1.35 s (v56 1.33), jumps 0.52 per cluster leg, travel legs 10.53 s at 9.8 u/s, powerups 3.2 a
+  round. The forecast gain (second gem at reply 18 instead of 22 in the chosen plans) did not show in play: every
+  decision re-plans, and after the target pickup the next search starts over toward the new target.
+* Determinism: 8 of the 20 v57 rounds score exactly what v56's did (KOTM s0/s1, Sprawl s0, Bowl s0/s1, Treasure s1,
+  Concentric s0/s1; Concentric s0 is decision-for-decision the same 68-point round). A pool round is a deterministic
+  replay until one decision differs; after that the round diverges. So a change that rarely alters a choice is judged on
+  the few rounds it alters, and identical rounds are not independent evidence (v56's Concentric s0 68 is one sample).
+* NEXT_PICKUP_U_PER_S 0 again (code kept). Slow decision: Sprawl s1 ~decision 840 (v55 / v56 / v57 3.55-3.80 s), the
+  resource fallback (goal_kind 'resource', one gem left, 45 items) overruns the 2 s budget; the game waits in pools, so
+  scores are unaffected; to fix before live play.
+* v58 = v56 + --opportunistic-powerups 4 (holding nothing: a visible powerup within 25 u whose extra walk on the way to
+  the current gem is <= 4 u becomes the goal). v53 (8 u) data (scratchpad powerup_stats.py): 26.9 s a round spent on
+  powerup goals; picked per round Super Speed 5.75, Super Jump 4.3, Helicopter 2.0 (v49: 1.55 / 1.35 / 0.25), all used
+  within 2-4 s of the pickup. 05:38, 4+4 workers. Queue: v59 search.JUMP_COST_U 1 alone.
+
+### 2026-10-17 06:21 MDT - v58 ADOPTED (powerup detours up to 4 u): 123.5 / 119.7 (two-start 121.6 vs v56 120.9); v59 (jump cost alone) launched
+* v58 per map s0/s1: KOTM 137/136, Sprawl 157/153, Cube 131/127, Bowl 115/106, Duplex 127/120, Fractured 73/105, Cragmire
+  112/73, Vortex 93/105, Treasure 187/167, Concentric 103/105. Versus v56: +15 over 20 rounds (Concentric s0 +35 against
+  v56's 68; Cragmire s1 -30). New best: Bowl 115 (s0; CSV + sheet).
+* Behaviour: powerup pickups 8.9 a round (v56 3.3; v53's 8 u detours 12.1), 17.7 s a round with a powerup as the goal
+  (v53 26.9 s); picked per round Super Speed 4.5, Super Jump 3.15, Helicopter 1.25, used within 1-6 s. Travel legs 10.44 s
+  at 9.8 u/s (v56 10.63 s), cluster legs 1.32 s (1.33), jumps 0.53 per cluster leg.
+* --opportunistic-powerups default is now 4 in reliability_eval.py (no flag needed; checked: the v59 children carry no
+  flag and take the default). Reference now v58 = 121.6.
+* Raised-gem stalls are the main score variance now (scratchpad gaps.py): Cragmire s1 loses 25-47 s stretches on the
+  centre tower gems (0..+-1, +-2..6, z 13-14; the marble drops into the pit, z -5.8, and climbs back) in v56 / v57 / v58
+  (v56 82 gems, v58 57), Concentric s0 on the raised centre gems, Treasure s1 on the ledge.
+* Offline (scratchpad cluster_shoot.py, 12 cluster states from v56, 800 random no-jump stick sequences each through the
+  compiled forecast at 0.7-0.9 ms per 48-reply forecast): the best random sequence reaches the target 0-3 replies sooner
+  than the planner's plan in 5 states, equal in 4, later in 3 (Bowl: planner direct_jump_8 at 25, random no-jump 22). The
+  proposal families are near the best single-gem approach, and jump-free plans are about as fast.
+* v59 = v58 + search.JUMP_COST_U 1.0 alone (cost per jump press unless the gem is >= 1 u up; v51 bundled it with
+  PICKUP_TIME_WEIGHT 8: jumps -23 % in clusters, cluster time unchanged, 118.0). 06:21, 4+4 workers.
+
+### 2026-10-17 07:05 MDT - v59 (jump cost 1 u alone) NOT adopted: 119.9 / 117.4 (two-start 118.7 vs v58 121.6); v60 (pickup minimum speed 8) launched
+* v59 per map s0/s1: KOTM 134/137, Sprawl 166/167, Cube 122/92, Bowl 123/110, Duplex 151/130, Fractured 82/96, Cragmire
+  79/96, Vortex 109/101, Treasure 155/140, Concentric 78/105. Versus v58: -59 over 20 rounds. New bests: Duplex 151,
+  Bowl 123 (s0; CSV + sheet).
+* Behaviour: jumps per cluster leg 0.40 (v58 0.53, -25 %), per travel leg 3.52 (4.23); cluster legs 1.40 s (1.32, +6 %),
+  travel legs 10.41 s at 9.8 u/s, powerups 8.6 a round. With v51 this settles the operator's "jumping too much": the
+  planner's cluster jumps are mostly the faster option (the exact forecast says so, and charging them makes clusters
+  slower and costs ~3 points a round). JUMP_COST_U 0 again (code kept).
+* Cube s1 92 (v58 127): 56 s at t 66-122 on the floor at x 62 under the platform with gems at (65-72, -10..-28, z 332),
+  6 u up (jumps there are not charged: gem >= 1 u up), plus two opportunistic powerup goals on the same platform (the walk
+  graph routes up there, the planner cannot climb it). The raised-gem trap again.
+* v60 = v58 + pickup minimum speed 8 u/s (was 6): reliability_eval's --pickup-min-speed default (it overwrites
+  search.PICKUP_MIN_SPEED at startup) and the module constant (scratchpad apply_v60.py). 07:05, 4+4 workers.
+
+### 2026-10-17 07:47 MDT - v60 (pickup minimum speed 8) NOT adopted: 121.9 / 116.5 (two-start 119.2 vs v58 121.6); v61 (tour turn penalty 11) launched
+* v60 per map s0/s1: KOTM 134/125, Sprawl 157/151, Cube 131/123, Bowl 119/102, Duplex 118/120, Fractured 91/91, Cragmire
+  85/92, Vortex 93/95, Treasure 174/155, Concentric 117/111. Versus v58: -48 over 20 rounds. New best: Concentric 117 (s0;
+  CSV + sheet).
+* Behaviour: travel legs 9.71 s at 10.2 u/s (v58 10.44 s, -7 %: the arrival at the end of a long trip no longer brakes to
+  6 u/s), cluster legs 1.39 s (1.32) with path/straight 1.26 (1.20): more overshoot inside clusters. Lead for later: the
+  higher pickup speed only for the first gem after a long trip (the C++ seq_call would need the leg length).
+* Pickup minimum speed back to 6 (apply_v60.py off).
+* v61 = v58 + reliability_eval.PLANNER_TOUR_TURN_U 11 (was 6): the tour's turn charge TURN_U * sin(phi/2) * min(1, v/8)
+  gave ~2.7 u for a 75 deg turn and ~4.1 u for 130 deg at 6 u/s; measured cluster legs cost ~4.8 u / ~7.6 u extra at
+  those angles (0.84 s within 30 deg, 1.64 s at 60-90, ~2.1 s beyond 90). v28 tried 12 in the Python era (not kept).
+  07:47, 4+4 workers.
+
+### 2026-10-17 08:31 MDT - v61 (tour turn penalty 11) NOT adopted: 121.2 / 116.7 (two-start 119.0 vs v58 121.6); v62 (fast pickup after long trips) launched
+* v61 per map s0/s1: KOTM 137/133, Sprawl 156/156, Cube 131/137, Bowl 115/100, Duplex 143/111, Fractured 73/95, Cragmire
+  99/73, Vortex 78/110, Treasure 161/155, Concentric 119/97. Versus v58: -53 over 20 rounds. New best: Concentric 119 (s0;
+  CSV + sheet); Cube 137 tied.
+* Behaviour: cluster legs 1.34 s (v58 1.32), travel legs 10.85 s, powerups 9.4 a round. Ordering the cluster by the
+  measured turn cost did not make clusters faster. PLANNER_TOUR_TURN_U 6 again (apply_v61.py off).
+* v62 = v58 + search.ARRIVAL_MIN_SPEED 8 / ARRIVAL_FAR_U 20: pick() records each target's starting route distance
+  (engine.leg_start, when it first becomes the target outside a crossing); when it started >= 20 u away every
+  SequenceProposal for it keeps 8 u/s at the pickup (SequenceProposal.min_speed), clusters keep 6. Compiled: nav/native
+  ABI 8 (per-plan minimum, Q_HAS_MIN 40 / Q_MIN 41, Q_SIZE 42; scratchpad apply_v62.py). Identity checks after the
+  rebuild: native_controller_check 249/249 sequence actions on each of 5 maps (30 % of the random plans carry min_speed
+  8), native_search_check 448/448 with the fast arrival on every searched gem (scratchpad check_v62.py) and 203/203 off,
+  native_fallback_check 224/224. 08:31, 4+4 workers.
+
+### 2026-10-17 09:12 MDT - v62 (fast pickup after long trips) NOT adopted: 123.1 / 113.8 (two-start 118.5 vs v58 121.6); v63 (raised-platform stall skip) launched
+* v62 per map s0/s1: KOTM 136/133, Sprawl 155/152, Cube 133/132, Bowl 123/102, Duplex 134/110, Fractured 82/87, Cragmire
+  110/82, Vortex 110/114, Treasure 170/114, Concentric 78/112. Versus v58: -63 over 20 rounds (Treasure s1 -53; Bowl 123
+  ties the best).
+* Measured after launching (scratchpad pickup_speed.py): the marble already reaches the first gem after a long leg at
+  7.9 u/s in v58 (8.1 in v60) and leaves the last cluster gem at 6.2 u/s (6.7 in v60), so v60's 7 % faster travel legs
+  were mostly round-to-round variation, and v62 targeted a speed that was already there. search.ARRIVAL_MIN_SPEED 0 again;
+  the compiled per-plan minimum (ABI 8) stays.
+* v63 = v58 + reliability_eval.STALL_PLATFORM_U 15 (scratchpad apply_v63.py): when a raised gem stalls (5 s without
+  route progress, no powerup that helps), gems within 15 u horizontally and within 1 u of its height (the stalled gem
+  >= 1.5 u above the marble) are skipped with it for 20 s, and switching between them keeps the stall timer running.
+  Before, only gems within 6 u (3D) were skipped: v59 Cube s1 stalled 6 times in 56 s on one platform whose gems spread
+  over ~18 u. 09:12, 4+4 workers.
+
+### 2026-10-17 09:54 MDT - v63 ADOPTED (raised-platform stall skip): 124.0 / 124.2 (two-start 124.1 vs v58 121.6); v64 (3 s stall timer for raised gems) launched
+* v63 per map s0/s1: KOTM 137/136, Sprawl 157/153, Cube 119/127, Bowl 115/106, Duplex 137/120, Fractured 83/104, Cragmire
+  109/126, Vortex 93/110, Treasure 187/167, Concentric 103/93. Versus v58: +50 over 20 rounds; 12 rounds score exactly
+  what v58's did (the rule acts only after a raised-gem stall). New best: Cragmire 126 (s1; CSV + sheet; was 121 on 10-15).
+* Cragmire s1 126 (v58 73): one stall at the centre tower (26 s from t 14), the platform skip sent the marble elsewhere,
+  98 gems (v58: two stalls, a powerup fetch for the tower, then another 47 s there, 57 gems).
+* reliability_eval.STALL_PLATFORM_U 15 stays (code default). Reference now v63 = 124.1.
+* v64 = v63 + reliability_eval.STALL_RAISED_S 3: a gem >= --stall-rise-u (1.5 u) above the marble stalls after 3 s
+  without >= 1 u of route progress (others keep --stall-rule-s 5). 09:54, 4+4 workers.
+
+### 2026-10-17 10:36 MDT - v64 (3 s stall timer for raised gems) NOT adopted: 124.2 / 120.8 (two-start 122.5 vs v63 124.1); v65 (no powerup fetch after a stall) launched
+* v64 per map s0/s1: KOTM 137/136, Sprawl 161/164, Cube 130/127, Bowl 121/90, Duplex 124/110, Fractured 82/104, Cragmire
+  115/111, Vortex 93/104, Treasure 187/168, Concentric 92/94. Versus v63: -32 over 20 rounds (-1.6 a round, past the
+  -1 allowance). STALL_RAISED_S 0 again (code kept).
+* Stall fetches (scratchpad, report counts of the 178 rounds v56-v64): 117 rounds had a stall, 15 a stall-triggered
+  powerup fetch; per map the fetch rounds scored below the stall-only rounds (Cragmire 82.3 (3) vs 99.5 (15), Bowl 95.0
+  (2) vs 111.1 (8), Duplex 112.0 (3) vs 120.4 (5), Sprawl 155.7 (6) vs 156.7 (10), Fractured 89 (1) vs 87.5 (17)).
+  Correlational (a fetch follows a harder stall), so tested in a pool.
+* v65 = v63 + reliability_eval.STALL_FETCH False (a stall skips the gem / platform without asking the inventory
+  hypotheses for a powerup to fetch; scratchpad apply_v65.py). 10:36, 4+4 workers.
+
+### 2026-10-17 11:18 MDT - v65 (no powerup fetch after a stall) NOT adopted: 124.2 / 118.2 (two-start 121.2 vs v63 124.1); v66 (platform reach 25 u) launched
+* v65 per map s0/s1: KOTM 137/136, Sprawl 157/141, Cube 131/127, Bowl 115/106, Duplex 137/120, Fractured 73/104, Cragmire
+  109/83, Vortex 93/105, Treasure 187/167, Concentric 103/93. Versus v63: -58 over 20 rounds; 15 rounds equal v63's
+  (the change acts only at a stall). Cragmire s1 83 (v63 126) although v63's round fetched nothing: switching the fetch
+  search off still changes the round after the first stall. STALL_FETCH True again (code kept).
+* Stall counts (report.json): v58 25 stalls / 23 skips / 2 fetches over 20 rounds, v63 27 / 26 / 1; most on Fractured
+  s0 (5-7 a round), Vortex s0 (4), Concentric s0 (3), Cragmire s0 (1-3). Each costs >= 5 s.
+* v66 = v63 + reliability_eval.STALL_PLATFORM_U 25 (was 15). 11:18, 4+4 workers.
+
+### 2026-10-17 12:00 MDT - v66 ADOPTED (platform reach 25 u): 125.6 / 122.8 (two-start 124.2 vs v63 124.1); operator: 100 % effort on clusters
+* v66 per map s0/s1: KOTM 137/136, Sprawl 157/153, Cube 124/127, Bowl 115/106, Duplex 143/120, Fractured 77/105, Cragmire
+  112/110, Vortex 101/105, Treasure 187/167, Concentric 103/99. Versus v63: +2 over 20 rounds (a tie; kept by the
+  >= reference - 1 rule). reliability_eval.STALL_PLATFORM_U 25 stays. Reference now v66 = 124.2.
+* The slow Sprawl s1 decision (3.6-4.5 s in v55-v66) is the stall's powerup-fetch search, which has its own 6 s budget
+  (--stall-budget-s); offline (scratchpad slow_resource.py) choose_resource takes 4.7 s unbudgeted and stops 0.13 s
+  after a 0.5 s deadline. Harmless in pools (the game waits); set --stall-budget-s 2 before live play.
+* Operator 11:55: "after the current experiment put 100 % effort into getting clusters as optimized as possible ...
+  don't stop working on clusters until there's material improvement in clusters, at which point stop and wait for my
+  direction." No pools while the cluster planner is built; offline screening with tools/sim_bench (closed loop, compiled
+  forecasts, --pflag=--horizon=48 as in game; its FLAGS still say --horizon 24).
+* First cluster variant (scratchpad apply_twolevel.py / simv/search_tl8.py): in a cluster (the tour's next gem within
+  12 u walking of the target) the 8 best pickup plans are re-ranked by pickup reply + a follow-up forecast to the next
+  gem from the state at the pickup (5 compiled controllers, earliest game-tick pickup). Smoke: 3 Cube episodes, 9 full
+  searches, 7 in a cluster, 6 re-ranked, 3 changed choice. Batch sim_tl1 (both v63 starts, 30 cluster starts a map,
+  --pickups 3 --far-max 12) running at 12:00.
+
+### 2026-10-17 13:10 MDT - Cluster mode (operator: 100 % on clusters): offline -9.5 % per 3 cluster gems; v67 launched
+* Method: tools/sim_bench closed loop (compiled forecasts, --pflag=--horizon=48, v63 journals both starts, 30 cluster
+  starts a map with the next pickup <= 12 u, --pickups 3; scratchpad sim_* dirs). The sim reproduces play: base 4.07 s
+  per 3 gems vs 4.01 s recorded in game.
+* Tried and NOT material (paired ratio vs base): two-level re-ranking of the 8 best plans by pickup + follow-up to the
+  next gem 0.978; + lead plans 0.980; + curved through plans 0.977; + corner plans 0.977; 16 plans 0.984; tour turn
+  penalty 11 / 18 / 30 0.988 / 1.005 / 0.984 (4 gems); BRAKE_DECEL 10 / 13 1.008 / 1.038; cap 13 0.999; travel ramp from
+  6 u 1.004; pickup minimum 8 1.054; committing the follow-up through the pickup 0.996; Bezier curve plans (pursuit)
+  rarely collect the gem.
+* Diagnosis (human demo 2026-09-14, 6 KOTM games): on identical gem-to-gem legs the human takes 1.28 s vs 1.50-1.58 s
+  (63 shared legs); both push at ~14.2 u/s^2 (|a| p50 = p90 = 14.2, lateral p90 14.0); the human makes fewer >90 deg
+  turns at pickups (12 % vs 27 %) and carries 9.9 vs 8.0 u/s through gentle ones. Path plots (scratchpad
+  kotm_human_vs_planner_paths.png): the human drives wide fast arcs through gem spots, the planner tight slow hooks.
+  Only 7 % of the planner's reversals had a gentler next gem at that moment, but driving every first/second pair through
+  the physics (scratchpad cluster_order.py) found a better first gem in 22 of 44 moments (20 % sooner for two gems).
+* Adopted into the code (default on, cluster only):
+  - search.apply_two_level (CLUSTER_TWO_LEVEL 8, CLUSTER_LEG_U 12): in a cluster the 8 best pickup plans (plus every
+    racing-line plan) are re-ranked by pickup reply + the earliest follow-up pickup of the tour's next gem (5 compiled
+    controllers from the state at the pickup, 32 replies); a line plan that collects the next gem in its own forecast is
+    scored by that.
+  - nav/marble_dynamics/racing_line.py (new; search.CLUSTER_LINES): a C1 Hermite line from the marble through the next
+    2 / 3 gems (waypoints within 0.45 u of the gems, tangents free), timed by a friction-circle speed profile (|a| <= 14,
+    forward <= 10, <= 13 u/s; walk-grid cells off the floor or < 1 u from a drop penalised), optimised by CEM (160 x 6,
+    ~10 ms); TrackLine follows it IN TIME (a_cmd = a_ref + 8 (p_ref - p) + 5 (v_ref - v)). On the KOTM s0 moment at
+    decision 92 the line predicted both gems at 1.91 s, the exact forecast gave 1.92 s (marble within 0.45 u of the line);
+    the planner took 2.18 s.
+  - reliability_eval.order_choice (ORDER_CANDIDATES 3): in a cluster pick() also searches the 2 nearest other gems as
+    the first target (light search: 9 basic plans + the lines, 3 re-ranked) and takes the lowest pickup + follow-up +
+    straight run to the next gem left; an alternative needs 2 replies of margin and stays the target 3 s.
+* Offline result (265 paired 3-gem episodes): 3.71 s vs 4.10 s per 3 gems (-9.5 %; each gem -9 to -10 %), ratio 0.912,
+  better 105 / worse 41, falls 2 -> 1. Per map ratio: Concentric 0.852, Treasure 0.863, Cube 0.880, Fractured 0.896, KOTM
+  0.912 (15 better, 0 worse), Cragmire 0.925, Vortex 0.946, Sprawl 0.948, Duplex 0.951, Bowl 1.000. Order alone 0.929,
+  lines alone 0.953. The repo code reproduces the tested copies exactly (18 of 18 episodes); native_search_check 361/361.
+* v67 = v66 + cluster mode (above). 13:10, 4+4 workers. Judge: points vs v66 124.2 and cluster leg seconds (leg_stats).
+
+### 2026-10-17 15:21 MDT - v67 (cluster mode) in game: 124.1 / 122.9 (two-start 123.5 vs v66 124.2, kept: tie); v68 (lean, time-guarded cluster mode) launched
+* v67 per map s0/s1: KOTM 153/144, Sprawl 148/178, Cube 129/128, Bowl 115/106, Duplex 134/141, Fractured 91/90, Cragmire
+  114/106, Vortex 92/104, Treasure 168/139, Concentric 97/93. Versus v66: +57 over the first 12 rounds (KOTM +24, Sprawl
+  s1 +25 = ties the 178 best, Duplex s1 +21), -71 over the last 8 (Treasure -47, Concentric -12, Vortex -10). Kept by the
+  >= reference - 1 rule (code = v67).
+* In-game cluster legs (consecutive pickups <= 12 u apart), v67 vs v66: KOTM 1.39 vs 1.57 s (-11 %; the human 1.33 s on
+  similar 9-10 u legs), Cube -6 %, Sprawl -5 %, Fractured -4 %, Vortex -4 %, Duplex +2 %, Bowl +3 % (few legs), Cragmire
+  +6 %, Concentric +9 %, Treasure +13 %. Reversals at pickups (> 90 deg) 24 % -> 19 % on the first 5 maps.
+* Cause of the losses: wall clock. The cluster work (two-level follow-ups: 5 forecasts per re-ranked plan; order choice:
+  up to 3 searches per full search; duplicate target search when nothing collects) ate the 2 s budget on gem-dense maps:
+  Treasure fresh decisions > 1.8 s 6 -> 105 (p90 0.71 -> 1.10 s); overall budget stops 166 -> 226, A2 fallbacks 556 -> 751,
+  safe holds 932 -> 1,322, decisions > 2.2 s 22 -> 41. tools/sim_bench's virtual clock charges only physics steps (not
+  Python work such as CEM lines or result packaging), so the offline screen did not see it. Profile (scratchpad
+  profile_pick.py, real clock): each compiled forecast still costs ~5 ms of Python (predict_native + unpack + tolist,
+  ~40 % of a search).
+* v68 = v67 lean + time guards (scratchpad apply_lean.py + guards): follow-ups 3 controllers x 28 replies (was 5 x 32),
+  re-ranking of 6 plans (was 8) and only with >= 0.6 s of the budget left (search.CLUSTER_MIN_LEFT_S), order choice once per
+  target (first full search after a target change) and alternatives only with >= 1.0 s left (ORDER_MIN_LEFT_S), no
+  duplicate target search. Offline (264 episodes): -8.1 % per 3 cluster gems (v67's code -9.5 %); real-clock profile of
+  6 slow Treasure decisions 7.1 -> 6.1 s. 15:21, 4+4 workers.
+
+### 2026-10-17 16:07 MDT - v68 (lean cluster mode) NOT adopted: 121.3 / 121.6 (two-start 121.5 vs v67 123.5); v69 launched
+* v68 per map s0/s1: KOTM 150/151, Sprawl 176/178, Cube 125/112, Bowl 115/106, Duplex 131/115, Fractured 73/70, Cragmire
+  109/111, Vortex 81/97, Treasure 168/162, Concentric 85/114. Versus v67: -41 over 20 rounds (Fractured -38, Duplex s1
+  -26; Sprawl s0 +28, Treasure s1 +23, Concentric s1 +21). No new bests (Sprawl s1 178 ties).
+* In-game cluster legs vs v66 (scratchpad leg_stats.py): v68 KOTM -13 %, Cube -13 %, Sprawl -13 %, Concentric -19 %,
+  Treasure -6 %, Duplex +1 %, but Fractured +19 %, Vortex +13 %, Cragmire +28 % (v67: KOTM -11 %, Cube -6 %, Sprawl -6 %,
+  Concentric +8 %, Treasure +13 %). The lean compute helps the gem-dense flat maps; the island maps lost. Likely cause:
+  the lean "no duplicate search" returned the tour target's progress plan straight from the order choice, which skips the
+  rest of pick() (crossing phase, powerup detours) when nothing collects a gem; Fractured 'route' plans 4.7 % -> 9.6 % of
+  decisions, powerup goals 180 -> 393.
+* Not a lever (checked again on v67 journals): about 24 % of flat cluster legs press jump and those legs are slower, but
+  v59 already showed that charging jumps makes clusters slower (the exact forecast prefers them).
+* v69 = v67's cluster mode (code regenerated from the tested copies, scratchpad build_v69.py) plus
+  - search.CLUSTER_EXTRA_S 0.8 and reliability_eval.ORDER_EXTRA_S 0.8: the two-level follow-ups and the order choice's
+    alternative searches may run up to 0.8 s past the 2 s search deadline (the target's own search keeps its full budget,
+    the way the stall search has its own 6 s); pools wait for the planner, so this costs pool wall time, not game time;
+  - racing_line.TrackLine brakes to a stop after the line's last gem (STOP_DECEL 9) instead of holding the end point, so
+    fewer line plans are rejected for an unsupported end (offline line diag: rejections ~50 % -> 37 %).
+  Offline vs v67's code (154 paired 3-gem episodes so far): ratio 0.977, better 16 / worse 5. Identity check
+  (native_search_check, 6 searches): 294/294 candidates identical. 16:07, 4+4 workers. Judge: points vs v67 123.5 and
+  cluster leg seconds on every map (especially Treasure, Concentric, Cragmire, where v67 lost to the budget).
+
+### 2026-10-17 17:12 MDT - v69 kept (tie): 121.5 / 125.8 (two-start 123.65 vs v67 123.5); cluster turn diagnosis; v70 (corner plans) launched
+* v69 per map s0/s1: KOTM 152/148, Sprawl 166/178, Cube 129/130, Bowl 115/106, Duplex 131/128, Fractured 73/97, Cragmire
+  73/107, Vortex 99/103, Treasure 168/155, Concentric 109/106. Versus v67: +3 over 20 rounds (Sprawl s0 +18, Treasure s1
+  +16, Concentric +12/+13; Cragmire s0 -41: two safe-hold traps of 67 s and 52 s below the rocks, not clusters). No new
+  bests (Sprawl s1 178 ties). Kept by the >= reference - 1 rule; code = v69 (repo since 16:06).
+* Cluster turn diagnosis (scratchpad turn_legs.py; flat cluster legs, consecutive pickups <= 12 u apart, |dz| <= 0.5):
+  about half the legs start with the marble's velocity >= 45 deg off the direction to the next gem, and those legs take
+  about twice as long: v67 all maps 51 % aligned (< 45 deg) 0.75 s, 28 % at 45-90 deg 1.29 s, 20 % > 90 deg 1.62 s
+  (v69: 52 % 0.77 s, 26 % 1.34 s, 22 % 1.70 s). The racing lines fix it where they apply: KOTM aligned legs 26 % (v66) ->
+  47 % (v67), lines drive 36 % of KOTM cluster decisions but 1-9 % elsewhere.
+* Why lines and the cluster re-ranking rarely apply off KOTM (scratchpad gate_diag.py, in-cluster searches = marble <= 12 u
+  from the target): the walk-route gates, not the heights. On Sprawl half of them fail through_context (no walk route
+  between the gems), THROUGH_REACH_U (route to the gem > 18 u although it is <= 12 u away) or CLUSTER_LEG_U (route between
+  the gems > 12 u). (An earlier height count sampled mostly travel searches: the marble ~50 u from the cluster.)
+* Offline vs v69 (tools/sim_bench, 3 cluster gems, ~265 paired episodes each; ratio < 1 = faster):
+  corner-speed through plans (search.CORNER_PROPOSALS) 0.995; curved through plans (THROUGH_STEER) 0.989; both 0.987;
+  route gates CLUSTER_LEG_U 16 / THROUGH_REACH_U 24 0.991; a next gem <= 12 u in a straight line counts as a cluster leg
+  (+ jump follow-ups) 0.992; lines over slopes (racing_line SurfaceAllowed: walk cells joined by <= 0.6 u steps, scipy
+  connected components, 5-46 ms once per map) 1.001, with a slope term in the speed profile 1.005; follow-up candidates
+  pre-ranked by a point-mass reach time 1.011. Each piece is worth ~1 % at most.
+  Trap found and fixed: a variant that loads reliability_eval before its search copy binds the repo's search (module-level
+  import), so it silently tests the repo code; load search first.
+* Physics headroom probe (scratchpad cem_bound.py / cem_prefix.py): cross-entropy over open-loop stick controls, or over a
+  0.8 s opening followed by the through controller, in the compiled forecast (~2 ms per 45-reply open-loop forecast). Not
+  yet a bound: unconstrained openings run off edges and the search did not beat the planner on 4 KOTM states (2.43-2.50 s
+  vs 2.11-2.62 s for two gems).
+* v70 = v69 + corner-speed through plans by default (reliability_eval.CORNER_DEFAULT; 2 plans per cluster search, only for
+  turns > 30 deg; scratchpad build_v70.py corner). Identity check 258/258 with the plans on. 17:12, 4+4 workers. Mainly a
+  low-risk check: the offline gain is small.
+
+### 2026-10-17 18:33 MDT - v70 (corner plans) ADOPTED: 130.2 / 130.1 (two-start 130.15 vs v69 123.65, best ever); whole-group yardstick; v71 launched
+* v70 per map s0/s1: KOTM 158/147, Sprawl 165/173, Cube 131/134, Bowl 123/106, Duplex 143/136, Fractured 82/104,
+  Cragmire 124/112, Vortex 99/104, Treasure 168/168, Concentric 109/117. Versus v69: +130 over 20 rounds (Cragmire s0 +51:
+  v69's round had two 50-60 s safe-hold traps; Treasure s1 +13, Duplex +12/+8, Concentric s1 +11). Without Cragmire s0
+  still +4.2 a round. Bowl s0 123 ties the best; no new per-map best. CURRENT REFERENCE v70 = 130.15 (code: corner plans on
+  by default, reliability_eval.CORNER_DEFAULT).
+* Yardstick problem found: the sim's 3-pickup episodes and the in-game "cluster legs <= 12 u" both miss the cost of a
+  greedy order that leaves a far gem of the group for last (that leg is long, so it is excluded, or falls outside the 3
+  pickups). Gem groups are 4-9 gems (KOTM 4, Concentric 4, Bowl 5, Vortex 6, Cragmire/Duplex/Fractured/Sprawl 7, Cube 8,
+  Treasure 9). In game, the whole-group time per intra-group leg (scratchpad group_time.py: first to last pickup of each
+  group) was v63 1.508 s, v66 1.449, v67 1.460, v68 1.478, v69 1.450: KOTM -10 % and Sprawl -10 % vs v66, Duplex +10 %
+  and Vortex +11 %, overall flat.
+* tools/sim_bench --whole-group (new): an episode runs until every gem visible at its start is collected (the rest of the
+  group). Re-scored vs v69 (115-150 paired episodes each; better / worse by > 0.3 s): cluster mode off 22 / 54 (it does
+  help), order choice off 14 / 26, racing lines off 5 / 13, two-level re-ranking off 27 / 27 (neutral; its earlier
+  "-18 %" was a few trap episodes), corner plans 7 / 4, order choice with a whole-group tail 21 / 14.
+* Traps dominate the whole-group time where they occur: v69 sim KOTM 2 of 30 episodes (26 s and 30 s for 2-3 gems, about
+  a third of KOTM's group time), Cube 1 of 22, Sprawl 1 of 30. The KOTM one: the last gem of the group on a 1.3 u ledge
+  (a plain jump reaches ~1.4 u); 20+ s of jumps and progress plans, small moves keep resetting the 5 s stall timer. A
+  near-stall rule (within 5 u for 3.5 / 5 / 7 s without a pickup = stalled) changed nothing offline: the stuck gem is the
+  group's last, so skipping it has nothing else to go to. Needs a better climb, not a skip (not built).
+* Physics bound (scratchpad cem_prefix.py / cem3.py: cross-entropy over a 0.8 s open-loop opening + the through
+  controller in the compiled forecast, ~2 ms per forecast): the 2-gem version found "25 % faster" mostly by choosing a
+  different, closer gem pair (a greedy objective); over 3 gems with the planner's own follow-ups it found solutions in 43
+  of 96 states, 5 % faster than v69 there (Fractured 0.69, Cube 0.83, Treasure 0.91; KOTM / Sprawl / Duplex / Vortex /
+  Cragmire >= 1.0). The planner is near what its plan families can do; the remaining room is in specific spots.
+* v71 = v70 + reliability_eval.ORDER_TAIL_TOUR (scratchpad build_v71t.py): for each first-target candidate X the second gem
+  is the tour's best next after X (not the gem nearest X) and the tail is the tour cost of the rest of the group (not the
+  straight run to the nearest gem left). No extra forecasts. 18:33, 4+4 workers.
+
+### 2026-10-17 18:40 MDT - tools/sim_bench fix: the simulated world now collects powerups (offline "traps" were an artifact)
+* The sim's world removed gems on the game's tick test but never powerups, and never changed the held powerup. Since v58
+  (powerup detours up to 4 u, holding nothing) the planner could target a powerup 1 u away and chase it for the rest of an
+  episode. The KOTM whole-group episode at decision 696 (v69 code): 26.0 s for 3 gems before, 4.4 s after the fix; the
+  "raised-gem trap" there was this (the last gem was 5 u away on the same level, the planner had pickup plans at 1.2 s).
+  Earlier offline numbers since v58 include such episodes on both sides of each comparison (e.g. "two-level off -18 %
+  whole-group" came from a few of them); in-game results are unaffected.
+* Fix: an empty-handed marble whose tick box touches a powerup takes it (state held + inventory held_type set, the item
+  removed, its observation slot cleared). Also new: --whole-group (episode = rest of the gem group).
+* In game the detours themselves are worth a look (v70, 20 rounds): 375 powerup-goal stretches, 134 ended with the
+  powerup held; 372 s in all, 136 s on stretches that never got it (~7 s a round); Fractured 0 of 42, Cragmire 14 of 61.
+
+### 2026-10-17 19:40 MDT - v71 (whole-group order tail) NOT adopted: -49 over 19 valid rounds (~127.7 vs v70 130.15); new bests Cube 138, Duplex 153, Concentric 124; v72 launched
+* v71 per map s0/s1: KOTM 155/147, Sprawl 157/149, Cube 131/138, Bowl 117/invalid, Duplex 153/141, Fractured 91/87,
+  Cragmire 93/95, Vortex 102/111, Treasure 179/160, Concentric 118/124. Bowl s1 hit the 2,400 s round wall limit
+  ("Invalid full-round result: round_wall_limit"); with v70's 106 there the two-start is ~127.7. Versus v70 on the same 19
+  rounds: -49 (Cragmire -31/-17, Sprawl s1 -24, Fractured s1 -17; Treasure s0 +11, Duplex s0 +10). New per-map bests
+  (CSV + sheet): Cube 138 (s1), Duplex 153 (s0), Concentric 124 (s1); Vortex s1 111 ties. Code back to v70.
+* In-game whole-group time per intra-group leg (group_time.py): v66 1.449, v69 1.450, v70 1.448, v71 1.391 s.
+* Wall time grows with the cluster work: mean pool round 916 s (v66), 1,103 (v67), 1,295 (v69), 1,466 (v70); Bowl rounds
+  1,603-1,648 s (v66) -> 2,359-2,386 s (v70/v71). The scratchpad launcher's --round-wall-limit-s is now 3,600 (was 2,400).
+  Lockstep pools do not lose game time to this, live play would.
+* tools/sim_bench also applies RE.CORNER_DEFAULT now (main() sets search.CORNER_PROPOSALS from it; the sim's setup did
+  not, so 'v70' copies ran without corner plans before 18:55).
+* Clean fixed-sim whole-group comparison (scratchpad sim_wgq, 280 paired episodes each; better / worse by > 0.3 s):
+  v70 vs v69 17 / 11 (-4 s total); v71 vs v70 32 / 28 (-26 s, mostly Cragmire); powerup-detour hysteresis vs v70 0 / 5
+  (+37 s: kept detours turned into safe holds; dropped). On top of v71: curved through plans 3 / 3, route gates (CLUSTER_LEG_U 16, THROUGH_REACH_U 24) 2 / 4,
+  re-ranking off 1 / 6 (it helps), order candidates 4: 0 / 1, jump-connected cluster legs 34 / 28 (-16 s).
+* Cragmire's points swing most (73-126 across versions): 18-27 s stretches without a pickup in every version, the
+  marble ranging 40-50 u over the rocks between levels with safe holds, powerup goals, blast plans and A2 fallbacks. A
+  reach problem on hard terrain, not routing inside clusters.
+* v72 = v70 + jump-connected cluster legs (scratchpad build_v72.py; search.THROUGH_STRAIGHT: a next gem <= 12 u away in a
+  straight line is a cluster leg even when the walk route is longer or missing; FOLLOW_JUMPS (2, 5): direct jump
+  follow-ups toward a raised next gem). Identity check 199/199. 19:40, 4+4 workers.
+
+### 2026-10-17 20:34 MDT - v72 (jump-connected cluster legs) NOT adopted: -74 over 20 vs v70; operator: move on from clusters to anything that raises scores
+* v72 per map s0/s1: KOTM 158/147, Sprawl 168/178, Cube 131/137, Bowl 117/100, Duplex 142/127, Fractured 80/70, Cragmire
+  98/104, Vortex 109/111, Treasure 173/187, Concentric 94/98. Versus v70: -74 (Fractured s1 -34, Cragmire s0 -26, Concentric
+  -15/-19; Treasure s1 +19, Vortex s0 +10). Code back to v70.
+* 19:55 operator: clusters judged near their plateau for this planner (offline each remaining idea ~1 %, below what a
+  20-round pool resolves); move on to anything that raises scores.
+* Where round time goes (v70, scratchpad travel_stats.py): within gem groups 46 %, travel to the next group 51 % (Fractured
+  65 %, Duplex 58 %, Vortex 57 %, Sprawl 55 %, Bowl 54 %, KOTM 29 %). Travel legs: 58 u straight in 7.8 s = 7.5 u/s door to
+  door, 9.4 u/s along the path (path 1.26x straight; Fractured 1.83x, Cragmire 1.51x), 18 % of the time below 5 u/s, only
+  12 % above 12 u/s; 2-7 jump presses a leg. Powerups: ~8 collected a round (Super Speed 81, Super Jump 56, Helicopter 25
+  in 20 rounds), nearly all used; KOTM only 4 Super Speeds in 2 rounds (the human fires ~20 a round there).
+* Stalls: the monitor's stalled_s (25-31 s a round) counts route-distance stagnation, detours included; stretches >= 3 s
+  without getting closer in a straight line are ~7 s a round (half below gems >= 2 u up: Concentric centre (Blast meter
+  spent on 1-2 u climbs 3-10 s before a 4.5 u climb, 25 s to refill), Cragmire rocks, Treasure boxes). The harness's quick
+  respawn after 8 s without progress is what got the v70 Cragmire marble to high ground (19, 12, 17).
+* Tried offline, not adopted: (1) position-aware island crossings (scratchpad simv/crossings_pa*.py: the hop's gap chosen
+  by walk-to-launch + 3 x gap + landing-to-goal instead of the pair's narrowest gap anywhere; travel episodes = sim
+  --far-min 30 --pickups 1): shorter trips on Fractured but falls in 1-4 of 7-17 trips at gap limits 5-9 u (v70 none);
+  Fractured's narrowest gaps are <= 4 u for 201 of 350 island pairs (median 3.1 u). (2) Group Blast reserve (plans for
+  other gems that fire the Blast pay 20 u while a gem >= 3 u up is visible): identical in 103 whole-group episodes; when a
+  big climb is visible the planner already targets it, the meter was spent before its group appeared.
+
+### 2026-10-17 21:46 MDT - Super Speed redirect kicks (the operator's KOTM technique) offline; v73 launched
+* Why: v70 on KOTM holds a Super Speed for 68 % of the round (3893 of 5754 decisions) and fires 2-3 a round; the human
+  fires ~20, each a post-pickup turn of 77-151 deg to ~17 u/s. KOTM has 8 Super Speed items.
+* search.py v73 (scratchpad simv/search_redirect4.py, build_v73.py): RedirectKick plans when holding a Super Speed, the
+  next gem 5-12 u on and the turn at the gem (approach vs line to the next gem) >= 65 deg: the through plan, the use sent
+  one reply before the pickup, no stick input until the kick fires, the aim solved so velocity + kick lies on the line to
+  the next gem. Three aims: solved for 25 u/s plus 6 deg of extra turn, for 21 u/s, and for 17.9 u/s (25 x 5/7: slip
+  gives back 2/7 of the kick, so the final rolling heading is v + 17.9 a). Kick plans take the next-gem pickup from their
+  own forecast (never a plain follow-up from the first pickup), and their two-level total pays 4 replies (the Super
+  Speed's later value) plus 2 v / 14 u/s^2 for velocity at the next gem pointing away from the gem after it.
+* Offline findings: the instant aim (dv 25) undershoots the turn by ~5 deg one reply after the kick and ~9 deg three
+  replies after (left and right turns alike) and took the next gem in 3-4 of 28 test states; the corrected aims in 15-17
+  of 27. Without the exit term a kick sent Duplex's marble at 17 u/s away from its group's last gem (+1.6 s). Kick labels
+  had no 'use' in them, so the use margin never applied to them.
+* Sim (--held 2 --whole-group, 122 paired episodes vs v70): first version (5 aim offsets x 2 leads, no exit term, no
+  margin) +4 % (Duplex +29 %, falls 1 -> 3); v73 -1 % overall (21 better / 10 worse, falls 1 -> 1): KOTM -9 % (12 / 1),
+  Concentric -2 %, Sprawl -2 %, Duplex +5 % (1 / 4), Bowl / Cube / Treasure / Vortex even. Margins 0 and 8 replies:
+  about the same as 4.
+* v73 = v70 + the redirect kick plans, launched 21:46, 4+4 workers (planner_v73_start{0,1}_20261017).
+
+### 2026-10-17 22:32 MDT - v73 (Super Speed redirect kicks) NOT adopted: 125.8 / 125.4 (two-start 125.6 vs v70 130.15); v74 launched
+* v73 per map s0/s1: KOTM 155/151, Sprawl 165/178, Cube 131/129, Bowl 117/106, Duplex 141/120, Fractured 100/104,
+  Cragmire 92/106, Vortex 100/109, Treasure 174/155, Concentric 83/96. Versus v70: -91 over 20 rounds (Concentric -26/-21,
+  Cragmire -32, Duplex s1 -16, Treasure s1 -13; Fractured s0 +18). Code back to v70 (search.py = scratchpad v69dry).
+* The kicks worked as forecast in game (KOTM: the next gem arrived when the two-level total said, the kick fired at the
+  pickup; Super Speed uses 9 / 6 a round vs 3 / 2, Super Speed held 47-56 % of the round vs 66-69 %), but KOTM's
+  whole-group time stayed 1.41 s per intra-group leg (v70 1.41) and its points +1. The maps that lost planned 0-1 kicks
+  a round: their rounds diverged at the first search where kick plans were built and took time.
+* POOL DETERMINISM: rounds repeat exactly for a given code version and map (Bowl 115 / 106 in v66-v69, Cube s0 131 in
+  v70-v73, KOTM s1 147 in v70-v72); any change that alters one decision sends the round down another path, so per-round
+  swings of 10-16 points are divergence, not the change itself. A rarely triggered rule leaves most maps identical to
+  the reference, which makes its pool cleaner to read.
+* Powerup rule found: a DIFFERENT powerup replaces the held one (powerups.cs: only the same type is refused); the compiled
+  forecast never models pickups (held changes only on use). In v73 KOTM s0 the Super Speed was lost to a Super Jump 4
+  times. Unintended uses after a swap: 1 in 40 rounds (rare).
+* Fallback diagnosis (v70): 15 of 17 falls follow A2 fallback. A2 time a round: Vortex 8.8 s, Cube 7.3 s, Cragmire 5.5 s
+  (+ 17 s of safe holds), others <= 2 s. At A2 states every candidate fails 'no_supported_continuation'; on Cube the
+  forecasts and the game agree (a slope where even full braking slides off the edge); on Vortex a real 1.7 u gap: route
+  plans with a jump at reply 3 or 4 clear it, the standard jump times (0, 2, 5, 9) all fall. Other jump times would
+  rescue only 8 of 99 A2 states (scratchpad check), so not built.
+* Powerup detours (v70): ~18 s a round targeting powerups; by height above the marble: < 0.5 u 60 % got it, 0.5-1.5 u
+  75 %, 1.5-3 u 60 %, >= 3 u 21 % (19 detours; Vortex ~10 s a round, a powerup on a raised platform 4.6 u up: 6 s of
+  jumps and Blasts, climbing and falling back; Cragmire ~5 s, 0 of 8). Success does not depend on the start distance.
+* v74 = v70 + reliability_eval.DETOUR_MAX_RISE_U 3 (no opportunistic detour to a powerup 3 u or more above the marble;
+  scratchpad build_v74.py), 22:32, 4+4 workers.
+
+### 2026-10-17 23:25 MDT - v74 (no powerup detours 3+ u up) NOT adopted: 130.0 / 119.4 (two-start 124.7 vs v70 130.15); reference doubt; endgame rule (operator request) next
+* v74 per map s0/s1: KOTM 158/147, Sprawl 161/156, Cube 131/137, Bowl 119/110, Duplex 141/120, Fractured 100/104,
+  Cragmire 110/59, Vortex 98/101, Treasure 176/146, Concentric 106/114. Versus v70: -109 over 20 rounds (4 wins, 12
+  losses, 4 ties). Cragmire s1 59 (v70 112): 52 s (decisions 216-1031) in a pit at z -5.8 below gems at z 13-14, holding a
+  Super Speed it had swapped for its Super Jump; the run had diverged from v70's before the first rule trigger.
+* Reference doubt (winner's curse): every version since v70 scored below it (v71 127.7, v72 126.5, v73 125.6, v74 124.7).
+  Maps that neither v73 nor v74 changes touch still moved: Duplex s1 136 -> 120 / 120, Fractured s0 82 -> 100 / 100,
+  Sprawl s1 173 -> 178 / 156, Treasure s1 168 -> 155 / 146. Searches that hit the 2 s wall-clock deadline (Duplex: 15
+  decisions > 2.2 s a round) make rounds depend on machine load, and v70 was adopted because its run was high. Next after
+  the endgame pool: a plain v70 control run on a quiet machine.
+* Operator 22:50: "prioritize getting the highest value gem in the final seconds of the round ... put it in anyway unless
+  it lowers scores by more than noise". Built (scratchpad build_endgame.py): reliability_eval.endgame_order. In the last
+  ENDGAME_S 15 s the target becomes the first gem of the order (up to 4 gems; walk distance / 9 u/s + 0.5 s a gem) that
+  collects the most points before the end, but only when that order reaches a HIGHER-VALUE gem than any order from the
+  planner's own target can (or the planner's target cannot be reached in time); equal-value orders stay the planner's
+  (a first version reordered equal-value gems on its rough estimate: Duplex sim episode +2.6 s for the same points).
+  While it holds, the cluster order choice and powerup detours are skipped. tools/sim_bench --endgame S (new): one episode
+  per recorded round from the first decision with S seconds left, run to the end of the clock, score = points.
+
+### 2026-10-18 00:20 MDT - Endgame rule (operator request) tuned offline; v75 = v70 + endgame rule launched
+* tools/sim_bench --endgame 15: one episode per recorded round (pools v66-v73, both starts: 159 round endings), from the
+  first decision with 15 s left to the end of the clock; score = points (no new gem group spawns in the sim). Versus v70's
+  planner on the same states (scratchpad eg_compare.py):
+  - same-estimate switching to the order with the most points (walk distance / 9 u/s + 0.5 s a gem): +9 (10 more, 6
+    fewer); restricted to walkable targets, no crossing: +6 (11 / 3); with a 2-point minimum gain: -5 (1 / 2); 3-point
+    gain and 80 % of the time left: -6 (1 / 3). The losses (5-8 points each) came from the rough estimate: on Cragmire
+    rocks it gave the planner's own path 2 points where that path took 8; on Fractured the target swapped between islands
+    (36 fallback decisions); on Cube a target change mid-crossing ended in a fall.
+  - ROBUST rule (v75): switch only when the planner's own order cannot reach a gem of that value even timed
+    optimistically (12 u/s of walk distance + 0.3 s a gem) while the switched order reaches it timed pessimistically
+    (7.5 u/s + 0.7 s) and collects 1+ more points; only when walking reaches the planner's target, never in a crossing:
+    +5 (4 more, 0 fewer). It acts when time is short (a 5-point gem 20 u to one side, the target 20 u to the other:
+    it switches at 4-5 s left, not at 6 s or 3.5 s).
+* v75 = v70 + this rule (reliability_eval.ENDGAME_*, endgame_order, walk_distance; scratchpad build_endgame.py /
+  build_v75.py; the v74 detour rule is not in it), 00:20, 4+4 workers. The rule changes few decisions, so v75 is also a
+  near-control run of v70 on a quiet machine (the reference doubt above).
+
+### 2026-10-18 01:06 MDT - v75 (v70 + endgame rule) ADOPTED as the new reference: 129.9 / 122.8 (two-start 126.35); v70's 130.15 not reproducible; Treasure best 196
+* v75 per map s0/s1: KOTM 158/147, Sprawl 165/178, Cube 130/137, Bowl 117/106, Duplex 141/120, Fractured 100/104,
+  Cragmire 105/106, Vortex 100/102, Treasure 196/132, Concentric 87/96. New TreasureBox best 196 (s0; was 188): CSV and
+  the canonical sheet updated (update_best_scores_sheet.py now seeds the 10-17 history row).
+* REFERENCE RESET: on every map that neither v73's kicks nor v74's detour rule nor v75's endgame rule touches, the three
+  quiet-machine runs replay each other exactly (Duplex 141/120, Fractured 100/104, Sprawl 165/178, Bowl 117/106) and all
+  differ from the v70 run (143/136, 82/104, 165/173, 123/106). The v70 pool ran while offline sims loaded the machine
+  (the 2 s search budget is wall clock), so its 130.15 is a different-conditions draw, adopted because it was high. The
+  honest level of this code is ~126: v75 126.35 is the reference from here (rule unchanged: keep a candidate at >= 125.35),
+  and NO heavy offline work runs while a pool runs.
+* Against v75: v73 (Super Speed redirect kicks) -15 over 20 rounds (4 wins, 5 losses, 11 exact ties), v74 (detour rule)
+  -33 (7 / 6 / 7; Cragmire s1's 52 s pit trap). Neither shows a gain; both stay out.
+* Endgame rule (operator request): kept (v75 is the reference). Its own effect is below pool resolution (offline +5 points
+  over 159 round endings).
+
+### 2026-10-18 01:42 MDT - Offline screens (travel top speed, jump cost, drop penalty) not used; v76 = v75 + order tail (v71 re-test) launched
+* Travel screen (sim --pickups 1 --far-min 30, stopped early to free the machine): TRAVEL_TOP 15 / 14.5 -11 % / -9 % on all
+  episodes but only through 2 falls fewer in the base; on episodes both finish, geo-mean 1.006 / 1.009 (no faster).
+  JUMP_COST_U 3 on travel: 1.041 (slower). Not used.
+* Drop penalty (scratchpad simv/gem_demo_drop.py: a pickup plan ending > DROP_FREE_U below the tour's next gem pays
+  DROP_U_PER_U per u). Why: chosen pickup plans that end > 3 u below the next gem (v73-v75, scratchpad drop_stats.py) cost
+  Vortex 5.4 s vs 2.3 s to the second pickup after, Treasure 2.4 vs 1.4, Cragmire mean 5.6 vs 1.9 (v75 Cragmire s0 decision
+  108: a Super Speed after the pickup threw the marble 12 u down off its rock; the post-pickup term is read at reply 24, in
+  the air near the next gem, so the fall is never charged; 30 s to climb back). Whole-group sim (210 episodes, 7 maps):
+  free drop 2 u: 4 better / 7 worse (Cragmire's fall-and-climb group 32.8 s -> 6.0 s, but a Treasure group 11.5 -> 34.2 s:
+  dropping off a box and jumping back up is cheap there); free 4 u: 2 / 4; free 6 u: 0 / 3 (Cragmire case lost). A height
+  rule cannot tell a cheap drop from a costly one; needs a climb-back cost from the terrain. Not used.
+* Gem-less stretches >= 20 s (v66-v74): 21 s a round on average (Cragmire 62 s, Fractured 36, Vortex 35, Bowl 33: Bowl's
+  and Fractured's are mostly long trips; Cragmire's are wandering 20-35 u under raised gems, so a small-area stuck trigger
+  for the quick respawn would not catch them). The harness's 8 s no-progress respawn tracks progress per target, so target
+  switching and moving about reset it.
+* v76 = v75 + reliability_eval.ORDER_TAIL_TOUR (v71's whole-group order tail; build_v71t.py on the v75 file). v71 scored
+  127.7 against v70's loaded-machine 130.15; against the quiet v75 (126.35) it would have passed. 01:42, 4+4 workers.
+
+### 2026-10-18 02:36 MDT - v76 (order tail on v75) tie: 130.3 / 122.1 (two-start 126.20 vs v75 126.35); v77 = v75 + walk-distance order tail launched
+* v76 per map s0/s1: KOTM 155/147, Sprawl 166/173, Cube 131/138, Bowl 117/106, Duplex 153/130, Fractured 82/70, Cragmire
+  117/101, Vortex 105/103, Treasure 179/133, Concentric 98/120. Versus v75: -3 over 20 rounds (11 wins, 6 losses, 3 ties):
+  Concentric +11/+24, Duplex +12/+10, Cragmire +12/-5, Vortex +5/+1, but Fractured -18/-34 (v71, the same change on the
+  loaded machine: Fractured -9/-17 vs v75, Duplex +12/+21). KOTM and Cube replay v71's rounds exactly.
+* The order tail times the rest of the group with straight lines; on Fractured's islands those hide the hops. v77 =
+  v75 + the tail with walk-grid distances (reliability_eval.order_walk_distance; a leg with no walk path = 1.6 x straight
+  + 8 u; scratchpad build_walktail.py). Offline whole-group (4 maps, partial, 106 episodes vs no tail): straight tail
+  -8 % (21 faster / 12 slower), walk tail -8 % (21 / 13); Fractured -4 % / -3 % (the sim's group episodes do not show the
+  in-game Fractured loss). 02:36, 4+4 workers.
+* Also checked: resource fetches (stuck below a gem: fetch a climbing powerup) are rare (31 in 60 rounds, ~6-9 s each); a
+  distance cap would change little. Concentric's worst stretch (20 s) is two such fetches 25-28 u away.
+
+### 2026-10-18 03:23 MDT - v77 (walk-distance order tail) NOT adopted: 126.3 / 119.7 (two-start 123.0 vs v75 126.35); v78 = v75 + v72's jump-connected cluster legs launched
+* v77 per map s0/s1: KOTM 155/147, Sprawl 157/166, Cube 131/134, Bowl 117/106, Duplex 143/120, Fractured 86/84, Cragmire
+  95/106, Vortex 86/98, Treasure 190/124, Concentric 103/112. Versus v75: -67 over 20 rounds (4 wins, 11 losses, 5 ties).
+  Fractured recovered part of v76's loss (86/84 vs 82/70; v75 100/104) but Duplex lost v76's gain (143/120 vs 153/130) and
+  Vortex / Sprawl / Treasure s1 dropped. The order tail is out in both forms (v76 tie, v77 worse); code back to v75.
+* Duplex s1 scores exactly 120 in every quiet v75-code run: its two longest gem-less stretches are trips to the next group
+  (124 u in 25.6 s, 100 u in 22.7 s, ~5 u/s), one with ~9 s at a step to the upper level where the crossing logic has no
+  checked candidate and brakes (crossing_brake / stop_8 / jump_6 at (34.6, 12.6, 132.1)). Not built tonight.
+* v78 = v75 + search.THROUGH_STRAIGHT and FOLLOW_JUMPS (v72: a next gem within CLUSTER_LEG_U in a straight line is a
+  cluster leg even when the walk route is longer or missing; jump follow-ups toward a raised next gem; build_v72.py on the
+  v70 search.py). v72 scored 126.5 on the loaded machine (rejected against 130.15), i.e. above the honest baseline. 03:23.
+
+### 2026-10-18 04:07 MDT - v78 (v75 + v72's jump-connected cluster legs) NOT adopted: 124.0 / 125.9 (two-start 124.95 vs v75 126.35); noise model of the quiet runs
+* v78 per map s0/s1: KOTM 158/147, Sprawl 168/178, Cube 131/137, Bowl 117/100, Duplex 133/127, Fractured 80/87, Cragmire
+  90/111, Vortex 96/103, Treasure 174/168, Concentric 93/101. Versus v75: -28 over 20 rounds (8 wins, 7 losses, 5 ties).
+* Noise model from the six quiet runs of v75-like code (v73-v78): run means 125.6, 124.7, 126.35, 126.2, 123.0, 124.95
+  (mean 125.1). Per-map spread: KOTM, Cube, Bowl s0 within 1-3 points; Cragmire s1 18, Fractured 9-13, Treasure s1 11,
+  Concentric 9-10, Sprawl s1 8. The standard deviation of a 20-round mean is ~1.8 points, so a change needs ~+3.5 to stand
+  out; v75's own draw is lucky on Fractured (100/104 replayed by every run that leaves Fractured untouched, while every run
+  that touches it lands at 70-91) and unlucky on Concentric s0 / Treasure s1. Tonight's candidates (v76 order tail, v77 walk
+  tail, v78 jump-connected legs) are all within that noise of the family mean.
+
+### 2026-10-18 05:04 MDT - v79 (v75 + extra jump times when no plan passes) NOT adopted: 126.1 / 123.1 (two-start 124.6 vs v75 126.35); lip-jump screen
+* v79 per map s0/s1: KOTM 158/147, Sprawl 165/166, Cube 131/137, Bowl 117/106, Duplex 141/120, Fractured 100/105,
+  Cragmire 92/114, Vortex 97/98, Treasure 173/128, Concentric 87/110. Versus v75: -35 (4 wins, 6 losses, 10 exact ties);
+  the largest loss is Treasure s0 (v75's 196 is the outlier record). Offline (sim --fall-legs, 59 legs on 7 maps): falls
+  36 -> 34, 7 legs faster / 3 slower. Within the noise of the v75 family (seven quiet runs: 123.0-126.35, mean 125.1).
+* Next offline: jump-at-the-edge plans (scratchpad build_lipjump.py, simv/search_lip_only.py): when the route or direct
+  plan's forecast rolls off an edge and falls, add route / direct jumps 0-3 replies before its last supported reply.
+* Lip-jump screen (sim --pickups 1 --far-min 25, pools v75/v76/v78/v79, 150 trips on Fractured / Vortex / Duplex /
+  Sprawl / Cube): 20 faster / 9 slower, geo-mean 0.992, falls 5 -> 5 (Vortex 7 / 1 and falls 4 -> 3; Fractured 6 / 5 and
+  one new fall). v80 = v75 + search.LIP_JUMPS (jump plans 0-3 replies before a falling route / direct plan's last supported
+  reply; scratchpad build_lipjump.py, simv/search_lip_only.py), 05:27, 4+4 workers.
+
+### 2026-10-18 06:11 MDT - v80 (jump-at-the-edge plans) NOT adopted: 127.8 / 117.7 (two-start 122.75); v81 = v75 + extra jump times + detour height rule launched
+* v80 per map s0/s1: KOTM 150/146, Sprawl 146/166, Cube 125/137, Bowl 119/108, Duplex 142/129, Fractured 79/105, Cragmire
+  109/105, Vortex 109/104, Treasure 179/80, Concentric 120/97. Versus v75: -72 (10 wins, 9 losses, 1 tie): Concentric s0
+  +33, Vortex +9/+2, Duplex s1 +9, but Treasure s1 80 (-52), Sprawl -19/-12, Fractured s0 -21, KOTM -8. The offline trip
+  gain (20 faster / 9 slower) did not carry over; the extra edge jumps fire on KOTM and Sprawl too.
+* v81 = v75 + search.EXTRA_JUMP_TIMES (v79) + reliability_eval.DETOUR_MAX_RISE_U 3 (v74): both rarely trigger and were
+  neutral alone (v79 124.6, v74 124.7, within the v75 family's noise); bundled to see whether their small effects add up.
+  06:11, 4+4 workers.
+
+### 2026-10-18 06:55 MDT - v81 (v75 + extra jump times + detour height rule) ADOPTED: 128.5 / 125.0 (two-start 126.75 vs v75 126.35); v82 = v81 + order tail launched
+* v81 per map s0/s1: KOTM 158/147, Sprawl 161/177, Cube 131/137, Bowl 119/110, Duplex 141/140, Fractured 100/96, Cragmire
+  109/113, Vortex 95/105, Treasure 173/111, Concentric 98/114. Versus v75: +8 over 20 rounds (9 wins, 6 losses, 5 ties);
+  falls 17 -> 11. Duplex s1 +20, Concentric +11/+18, Cragmire +4/+7; Treasure -23/-21 (s0's 196 is v75's outlier record,
+  s1 is the most volatile round of all: 80-168 across tonight's runs). CURRENT REFERENCE v81 = 126.75 (within ~1 noise
+  SD of the v75 family mean 125.1, but the rarely triggered rules each tested neutral-to-positive and falls dropped).
+* v82 = v81 + reliability_eval.ORDER_TAIL_TOUR (v71/v76's whole-group order tail, straight-line version: v76 had 11 wins /
+  6 losses vs v75). 06:56, 4+4 workers.
+
+### 2026-10-18 07:39 MDT - v82 (v81 + order tail) NOT adopted: 127.1 / 124.9 (two-start 126.00 vs v81 126.75); Cragmire best 128; v83 = v81 control launched
+* v82 per map s0/s1: KOTM 155/147, Sprawl 166/164, Cube 128/138, Bowl 119/110, Duplex 153/123, Fractured 91/87, Cragmire
+  96/128, Vortex 93/104, Treasure 179/155, Concentric 91/93. Versus v81: -15 (6 wins, 11 losses, 3 ties). Inside the tie
+  margin (>= 125.75) but not adopted: four runs of the order tail (v71, v76, v77, v82) all lost Fractured (every one
+  70-91 there) and net out negative. New Cragmire best 128 (v82 s1; was 126): CSV and sheet updated.
+* v83 = v81 unchanged (control): a second quiet sample of the reference code; rounds that differ from v81's measure the
+  run-to-run timing noise of identical code. 07:39, 4+4 workers.
+
+### 2026-10-18 08:10 MDT - Pools STOPPED (operator: "can you stop training"); v83 control partial
+* Stopped the v83 pools (10 reliability_eval processes, 8 games); no leftover listeners on 906x/907x; the dashboard is still
+  running. No learning-based training was running.
+* v83 (v81 unchanged) partial, 12 of 20 rounds: 11 identical to v81; Sprawl s1 164 vs 177 with identical code (6 searches
+  over 2.2 s in that round): timing noise exists even on a quiet machine when searches run into the 2 s limit.
+* Code in the repo: v81 (CURRENT REFERENCE 126.75). Untested lead in the scratchpad: simv/crossings_nohole.py
+  (CROSS_REQUIRE_HOLE False: stage a non-climb hop whenever the goal is on another walking component with a jumpable chain;
+  every long Fractured trip of v81 had a 1-3 u first hop, none was staged, the actor drove 2-5 x the straight distance).
+
+### 2026-10-18 09:40 MDT - Blast efficiency (operator 08:25: "only using blasts when they are necessary ... cut down blast usage without dropping scores"); v84 launched
+* In-game Blast use (v81/v82, 40 rounds, a fire = the meter emptying; scratchpad blast_stats.py / blast_value.py): 737
+  fires, ~18 a round (Vortex 28, Sprawl 27, Cragmire 25, Concentric 23, Treasure 23, Bowl 20, Cube 16, Duplex 15,
+  Fractured 11, KOTM 5). By situation, straight-line progress toward the target 3 s before vs 3 s after the fire: trips
+  (target > 20 u) 209 fires, 12.5 -> 25.8 u (valuable); raised targets (>= 1.5 u up) 186, 7.0 -> 7.6; powerup detours 75,
+  10.6 -> 2.3 (wasted); clusters (target <= 20 u, not raised) 257, of which 247 came from plans collecting the target
+  (203 within 2 s) and 142 aimed at gems BELOW the marble.
+* Why: (1) a Blast plan collecting the gem at the same reply as a plan without one won on the post-pickup terms
+  (offline: Cragmire 837 both at reply 6, Cube 2388 both at 48); (2) the cluster re-ranking rewrote costs as two-gem time
+  and DROPPED the Blast's meter charge (Sprawl v81 s1 decision 2008: the Blast plan took the gem 9 replies sooner but the
+  two gems in 52 replies vs 51 without it, costs -136.7 vs -136.9 with the 4.6 u charge lost).
+* Offline whole-group sim (192 episodes, 8 maps; sim_bench now counts Blast fires): a flat per-fire charge 5 / 10 / 25 u:
+  fires -4 % / -5 % / -16 % (4 maps), group time +2.9 % / +3.0 % / +4.6 % (cuts useful Blasts). Pickup-gain rule (a
+  Blast plan must collect its target >= 4 replies before the best plan without a Blast that also collects it, else
+  rejected 'blast_no_gain'): fires -8 %, time +0.7 %; + the meter charge kept in the re-ranking: -9 %, +0.7 %.
+* v84 = v81 + search.apply_blast_gain (BLAST_PICKUP_GAIN 4; toward a powerup a Blast plan must collect it) + the Blast
+  charge kept in apply_two_level (scratchpad build_blastgain.py + simv/search_blastgain3.py). 09:40, 4+4 workers. Judge:
+  in-game fires per round (blast_stats.py) and points vs v81 126.75.
+
+### 2026-10-18 10:27 MDT - v84 ADOPTED: 128.40 vs v81 126.75 (+33 over 20 rounds, 9 wins / 8 losses / 3 ties, falls 11 = 11); Blasts 19.1 -> 17.2 a round
+* Per map s0/s1, v81 -> v84: KOTM 158/147 -> 147/145, Sprawl 161/177 -> 166/191 (map record), Cube 131/137 -> 122/137,
+  Bowl 119/110 -> 115/110, Duplex 141/140 -> 143/120, Fractured 100/96 -> 100/97, Cragmire 109/113 -> 95/125, Vortex
+  95/105 -> 109/111, Treasure 173/111 -> 170/159, Concentric 98/114 -> 107/99. CURRENT REFERENCE v84 = 128.40.
+* Blast fires (blast_stats.py, a fire = the meter emptying): v81 381 (19.1 a round) -> v84 344 (17.2), -10 %. By the
+  plan that chose the fire (scratchpad blast_kinds.py): pickup plans toward a level gem 6.7 -> 5.2 a round, toward a gem
+  below 2.5 -> 2.3, raised 2.1 -> 2.4; plans without a pickup (trips) 4.7 -> 5.2. Concentric 46 -> 46, Cragmire 49 -> 44,
+  Treasure 45 -> 41, Vortex 57 -> 54, Sprawl 53 -> 42, Cube 31 -> 20, KOTM 9 -> 3.
+* Gaps found: (1) a Blast plan still airborne at the 48-reply horizon gets a landing / ballistic continuation and a
+  pickup inside it earns the -100 credit, while rolling plans are judged over 48 replies only; when no rolling plan
+  collects inside its own forecast the v84 gain rule has nothing to compare against (journals: Blast pickups at replies
+  57-105 on 45-80 u trips). (2) the kept remainder of a Blast plan ('remaining_previous_plan') fires its Blast without
+  the meter charge and counted as a plan without a Blast.
+* v85 (scratchpad build_v85.py -> simv/search_v85.py, on v84): fair_plain_pickup extends the 3 best rolling plans along
+  the route (LandingContinuation) to the Blast plan's pickup + BLAST_PICKUP_GAIN replies (up to 0.3 s past the deadline)
+  and the gain rule compares against that; Blast plans are identified by the forecast's Blast events, not the label.
+* Per-Blast counterfactual sim (scratchpad blast_cf.py + build_probe.py -> simv/search_probe.py, cf_batch.sh,
+  cf_analyze.py): from 4 decisions before each recorded fire, plays to the next 2 pickups as is / with every Blast plan
+  rejected inside the same search / v85; the probe records the chosen Blast plan's pickup and the best rolling plan.
+  Sims must pass --pflag=--horizon=48 (pools plan over 48 replies; sim_bench's FLAGS default is 24). First case, KOTM
+  s0 fire 250: every rolling plan failed the landing gate and the Blast saved 0.96 s (a necessary Blast).
+* 10:27 running: replays of all v84 fires (3 variants) + whole-group v84 vs v85 (24 starts per map, horizon 48).
+
+### 2026-10-18 11:24 MDT - Per-Blast replay study of every v84 fire; v85 NOT adopted; work STOPPED (operator 10:55: "after the current experiments go ahead and stop and wait for my direction")
+* Replays (scratchpad cf_batch.sh -> cf_v84/, 299 fire episodes per variant, horizon 48; cf_analyze.py, cf_features.py):
+  184 fires where the replay's own run Blasts within 1 s of the start. Worth = time to the same pickups with every
+  Blast plan rejected minus as is (2 pickups; a fall = 5 s): mean +2.32 s, median +1.63 s; 21 % save < 0.1 s. The no-Blast
+  run also loses later Blasts of the episode, so this overstates a little.
+* By what the planner knew: no valid rolling plan +3.09 s mean (46); rolling valid but no pickup +2.18 (128); rolling
+  also collects +0.58 (10); trips (no pickup in the plan) +2.62 (58). Gem raised 1.5-3 u +3.60 (32). Blast pickup
+  forecast <= 16 replies +4.53, 17-32 +2.19, 33-48 +1.76, > 48 (past the rolling plans' horizon) +0.58 mean / +0.13
+  median, 48 % worthless (23 fires, ~12 % of all). Cost gap to the best rolling plan < 2 u: -0.09 (6 fires). Meter,
+  mid-air vs from the ground: no separation.
+* Worthless cases: the Blast plan's forecast pickup past 3 s while rolling got there 0-8 replies later (Duplex 2410
+  52 vs 53, Bowl 2975 62 vs 60), or the Blast committed to a far target while the no-Blast run took a nearer gem first
+  (Cube 1089: 2.75 s vs 0.90 s; Cube 80, Sprawl 368, Bowl 209 lost 2-5 s).
+* v85 (fair horizon + Blast plans by forecast events): replays Blasts 288 -> 282 (-2 %), time -0.13 s total; whole-group
+  sim (237 episodes, sim_v85/) Blasts 110 -> 106 (-4 %), time +0.5 % (Bowl +2.8 %). The extension rarely triggers
+  (gain bar 4 replies; reach checked only past the 48-reply horizon). NOT adopted; repo search.py stays v84.
+* Conclusion: v84 removed the clearly wasted Blasts (-10 %, 128.40 vs 126.75); the rest pay off on average (about
+  2.3 s each in the replays). Candidate next steps (not started): a stricter fair comparison for pickups past 3 s
+  (~12 % of Blasts, ~1 point a round at stake if cut blindly); a Blast-off pool to measure the total Blast value in points.
+
+### 2026-10-18 12:45 MDT - Bowl "afraid to leave the ground" (operator 12:20): forecasts refused at creases; v86 launched
+* Operator, watching Bowl at 1x: the marble slows so it nearly always touches the ground; use more speed.
+* Causes found: (1) every rolling family steers toward a target speed (11 u/s; 13.5 on legs > 12-20 u), brakes from 8-9 u
+  before a gem to arrive at 6 u/s, and pushes back whenever a slope speeds the marble past the target (Bowl v84: above
+  11 u/s 45 % of the time; at 9.5+ u/s losing speed in 39 % of replies). (2) The physics forecast flags an 'ambiguous
+  contact' (two contacts the game's rounding could resolve either way) and the plan is rejected: on Bowl 26 % of all
+  candidates in the probed searches (Cube 32 %, Cragmire 16 %, Sprawl 10 %), in a Bowl trip nearly all of them; the old
+  learned model then drives (frozen_navigator: Bowl 27 % of decisions, KOTM 24 %, Sprawl/Cube 7 %).
+* Instrumented scratch library (scratchpad native_amb/, set_amb_tolerance + get_amb_stats; the repo library untouched):
+  Bowl ambiguity events = support ties 216 + grazing order 156, Cube grazing 129, nearly all with the competing normals
+  20-45 deg apart (creases, not seams), so an angle tolerance does nothing. Forecast vs game over 15,000 recorded decisions
+  (amb_truth.py): exact to < 1e-6 u, and the marble never passed an ambiguous contact (the refusals keep it away), so the
+  game's resolution at those contacts is untested.
+* Fast families alone (simv/search_fast.py: tops 16/20 u/s, no braking below the speed carried toward the aim point,
+  >= 9 u/s at the gem): whole-group sim -0.5 %, Bowl unchanged (never chosen; refused like the rest).
+* Accept forecasts through ambiguous contacts (simv/bridge_amb.py: bridge.predict_replies runs through them, kept as
+  'ambiguous_accepted'): whole-group sim (240 groups, horizon 48) -2.1 % group time (39 faster / 19 slower); with the fast
+  families -3.0 % (38 / 23), falls 8 -> 6: Treasure -16.5 %, Cube -10.7 %, Bowl -5.2 %, Sprawl -4.7 %, Cragmire +5.1 %,
+  Vortex +3.9 %. (The sim world is the forecast, so only the game can say whether the game resolves those contacts alike.)
+* v86 = v84 + fast families + ambiguity accepted (scratchpad build_v86.py; v84 copies in scratchpad v84dry/ for restore),
+  pools planner_v86_start0/1_20261017 launched 12:45 (4+4). Judge: points vs v84 128.40; then amb_truth.py on the v86
+  journals for forecast-vs-game accuracy through accepted ambiguous contacts.
+* Also today: unloaded planner speed (sim_bench --real-clock): KOTM 1.03x real time, Sprawl 2.1x, Bowl 2.2x (pools under
+  8-game load 1.1x / 4.7x / 5.2x); per-search ~0.4 s; profile: forecasts ~65 % of a search-heavy Bowl episode, the frozen
+  navigator's per-reply model ~12 %. Operator 12:15: search speed-up postponed. sim_bench gained --slice A:B.
+
+### 2026-10-18 13:34 MDT - v86 ADOPTED: 134.25 vs v84 128.40 (+117 over 20 rounds, 13 wins / 4 losses / 3 ties; falls 7 vs 11)
+* Per map s0/s1, v84 -> v86: KOTM 147/145 -> 150/143, Sprawl 166/191 -> 179/179, Cube 122/137 -> 131/139 (map record),
+  Bowl 115/110 -> 123/108 (ties the record), Duplex 143/120 -> 153/120 (ties the record), Fractured 100/97 -> 91/115 (map
+  record), Cragmire 95/125 -> 112/126, Vortex 109/111 -> 109/111, Treasure 170/159 -> 188/168, Concentric 107/99 -> 122/118.
+  CURRENT REFERENCE v86 = 134.25 (repo search.py = simv/search_fast.py, bridge.py = simv/bridge_amb.py; v84 copies in
+  scratchpad v84dry/).
+* The offline sim predicted -3.0 % group time; the pool gained 4.6 % in points. The game evidently resolves the accepted
+  'ambiguous' contacts like the forecast often enough (to measure: scratchpad amb_truth.py on the v86 journals).
+* 13:35 ExampleMission (outside the pool; collision map built with scratchpad em_prepare.py: 1,764 triangles, validation
+  as clean as the pool maps): v86 rounds ~70 / ~79 points (old learned model 10-09: 10-66, mean ~25; human ~142).
+  Operator 13:52: drop ExampleMission, keep improving on the 10-map pool.
+
+### 2026-10-18 14:20 MDT - Why the fast plans never win; scoring screens on v86 (none adopted); KOTM per-gem gap
+* v86 pool journals: the fast families were chosen 0 times on every map (v86's gain is the accepted ambiguity); the
+  frozen navigator's share is its own candidate plan winning on cost (KOTM 24 %), not a fallback (A2 / safe_hold < 6 %).
+* scratchpad fast_why.py (sim, v86 code): fast plans mostly pass every gate (Bowl: 286 valid with a pickup, 262 valid
+  progress, 176 'no_supported_continuation') and lose narrowly on cost: e.g. a fast plan collecting 3 replies sooner
+  (22 vs 25) costs -92.7 vs -93.4 (end-speed penalty 0.12 u per u/s + the post-pickup position); exact ties with
+  'direct' go to the earlier family.
+* Whole-group sims vs v86 (240 groups, sim_score/): END_VELOCITY_WEIGHT 0: -0.3 % (20 / 28; Sprawl +10 %);
+  PICKUP_TIME_WEIGHT 6: +0.2 % (16 / 12); both: -1.7 % (26 / 25; Treasure / Vortex -9 %, Sprawl +4 %). Mean speed
+  6.3 -> 6.4 u/s: rescoring does not make the planner faster. Not pooled.
+* KOTM (the one map where the learned navigator still wins: 166.5 avg vs v86 146.5): learned 131 gems a round, 1.37 s and
+  11.8 u per gem at 8.6 u/s; v86 115 gems, 1.55 s and 12.5 u per gem at 8.0 u/s; points per gem equal (1.27-1.28).
+* Queued screens: navigator bonus (search_navbonus.py: the frozen navigator's plan wins unless another is better by
+  1 / 2 / 4 u; sim_nb/) and speed settings (PICKUP_MIN_SPEED 8, TARGET_SPEED_CAP 12.5, both; sim_speed/).
+* sim batches: at most 22 processes (51 at once exhausted RAM + page file at 13:55: MemoryError / paging file too small).
+
+### 2026-10-18 19:50 MDT - v87 (v86 + cruise cap 12.5) REJECTED: 125.00 vs v86 134.25 (-185 over 20 rounds, 8 wins / 11 losses, falls 12 vs 7)
+* Speed screens on v86 (whole-group sim, 240 groups; sim_speed/): pickup arrival floor 8 u/s +1.9 % (KOTM +2.0 %); cruise
+  cap 12.5 -1.4 % (50 / 46; Sprawl -8 %, Cragmire -9 %, Concentric +8 %); both -0.7 % (68 / 100). Pooled the cap as v87:
+  the sim's small gain became a large in-game loss (Concentric s0 83 vs 122, Treasure s1 128 vs 168, Cragmire -18 / -18).
+  Same verdict as v26 (13.5, 10-15). Records set anyway: Bowl 125 (s0), Vortex 116 (s1); Treasure s0 196 tied the record.
+  Repo restored to v86 (scratchpad v86dry/, checksums verified).
+* KOTM leg study (v86 vs the learned navigator's goal175 trace): paths equally efficient (1.14 x straight); arrival speed
+  6.7 vs 8.2 u/s on 6-12 u legs (1.48 vs 1.32 s per leg); planner legs slightly longer (10.9 vs 10.4 u). KOTM pickups by
+  family: racing lines 38 % at 6.3 u/s, frozen navigator 24 % at 7.5, jumps 14 % at 5.2, through plans 3 % at 10.6.
+* Forecast vs game on v86 journals (amb_truth.py, 10 maps, start 0): the executed replies never passed an ambiguous contact
+  (the accepted plans are re-planned before reaching it); 99.8-100 % of decisions within 1e-6 u.
+* 19:51 running: gate_bind.py (which gates remove or penalise plans that would have won) and the Fractured crossing lead
+  (crossings.CROSS_REQUIRE_HOLE False) whole-group screen.
+
+### 2026-10-18 20:10 MDT - Gate study on v86 (which gates remove plans that would have won); Fractured crossing lead rejected
+* scratchpad gate_bind.py (sim, v86 code, 6 whole-group episodes per map, 2,761 searches): 'no_supported_continuation'
+  removes ~11 candidates per search; 2,352 of them (0.9 per search) had a lower cost than the chosen plan (median 11.9 u;
+  Vortex 1,375 in 268 searches, Cube 324, Concentric 242, Cragmire 187, Treasure 115). The braking-backup penalty (+150 u)
+  hit 386 otherwise-cheaper plans (median 29 u; Vortex 152, Cube 144, Cragmire 82). 'use_margin' 54, 'blast_no_gain' 2.
+* gate_bind2/3.py split of the cheaper 'no_supported_continuation' plans: Vortex / Cube mostly fast + falling (heading off
+  the map: the gate is right, the horizon cost cannot see the fall); Cragmire airborne + falling; Concentric / Treasure /
+  Cube many airborne, not falling: of those, 'not in the top projections (over limit)' Concentric 34, Cube 24, Treasure 42
+  (a floor-like coarse landing, never given the exact landing projection: ballistic_exact_limit 4); projected and lost
+  fairly Treasure 41, Cube 17, Concentric 12; coarse landing not on a floor / no landing within the cap: mostly Concentric.
+* Fractured crossing lead (crossings.CROSS_REQUIRE_HOLE False; simv/crossings_nohole.py): whole-group sim +10.9 % group time
+  (16 / 51): Fractured +56.7 %, Treasure +27 %, Duplex +15 %, Cragmire +14 % (hops staged everywhere). REJECTED, not pooled.
+* 20:02 / 20:08 running: exact landing projections per search 8 / 12 (search_bel.py, sim_bel/) and braking-backup penalty
+  30 / 60 u (sim_bbp/), both on v86.
+
+### 2026-10-18 21:00 MDT - Work stopped by the operator (20:35); 1x viewer mouse camera fixed (client/scripts/ai/watch/freeCam.cs)
+* 20:35 operator "stop training now": Super Speed use-margin screen stopped (use plans on KOTM are rejected by the terminal
+  gate, not the margin: of 280 use plans in 26 searches holding a Super Speed, 249 'no_supported_continuation', 23
+  'use_margin'; lead for later). Nothing running; repo = v86 (reference 134.25).
+* Operator: in the 1x viewer the camera turned only with the arrow keys. Test (scratchpad camtest.ps1: focus the game,
+  inject relative mouse moves with SendInput, screenshots; a temporary in-script diagnostic written to a file): mouse x
+  already reached yaw() (25 / 25 events, view yaw 0 -> 4.2 rad), but mouse y did nothing (pitch needed free look; the
+  operator's mouse sensitivity pref is 0.2 vs the 0.5 default). freeCam.cs now: mouse y tilts the view while the agent
+  plays at 1x (pitch does not affect the agent); MLWatchCam::holdMouse keeps the pointer hidden and locked to the window
+  (lockMouse + canvas cursor off, as normal play) unless the pause menu is open or the round is over. Verified: the view
+  turns ~90 deg in 0.6 s of mouse movement. .dso deleted.
+
+### 2026-10-18 22:50 MDT - 1x viewer mouse camera: works through remote desktop (operator confirmed); resuming the loop
+* The 20:55 fix (pointer lock) did not help: the operator watches through Chrome Remote Desktop, which sends ABSOLUTE
+  pointer positions; the engine's mouse look takes only RELATIVE raw input while the mouse is locked (winWindow.cc WM_INPUT;
+  an absolute move becomes a pointer-position event). freeCam.cs MLWatchCam::holdMouse now leaves the mouse unlocked with
+  the canvas cursor on but hidden (GuiCanvas::processMouseMoveEvent tracks the pointer only while it is on) and turns the
+  view by the pointer's left/right motion every 16 ms (up/down locked at the operator's request; jumps > 250 px ignored);
+  re-arms if a GUI change re-locks the mouse. Tested with injected ABSOLUTE input (view yaw 0 -> 4.08 rad); operator
+  confirmed it works. Works with the PC's own mouse the same way (pointer positions).
+* 22:52 operator: "work all night and try to improve it like you were before" (reference v86 = 134.25).
+
+### 2026-10-18 23:01 MDT - v88 launched: v86 + safe holds searched past every decision (SAFE_HOLD_RESEARCH)
+* Super Speed (scratchpad ss_gate.py, searches holding a Super Speed): KOTM 268 of its use plans fail the terminal gate as
+  fast + falling (the kick launches the marble off the hill), use_margin 63; Cube 229 fast + falling, 416 use_margin;
+  Concentric 67 / 57. The use margin is not binding (screen with 0.5 s / 0: +0.1 % over 191 groups, 3 changed). The plans
+  are bad: after the kick they steer at the normal cruise speed. Candidate prepared: kick-and-brake families
+  (simv/search_ssbrake.py, SS_BRAKE_AFTER 6 / 10 / 14), to screen after v88.
+* Safe holds (v86 journals): Vortex 15.2 s a round, Cragmire 7.5, others 0-2.6; Vortex runs are mostly the full 2.6 s with
+  the gem 5-7 u away at 6-8 u/s. A kept safe hold was returned without a search until it ended (reliability_eval
+  _search: memory.label == 'safe_hold'). v88 searches past it every decision like a kept progress plan (it yields only to
+  a plan that collects a gem). Whole-group sim vs v86: -1.2 % (5 better / 1 worse; Sprawl -8.7 %, Vortex -3.6 %).
+  Deployed with scratchpad build_v88.py (reliability_eval <- simv/re_shresearch.py); pools planner_v88_start0/1 at 23:01.
+* Vortex long trips (v86): paths 1.3-1.9 x the straight line (the map's layout), half-throttle plans common, one 21 s trip
+  staging a crossing: no clear fix yet.
+
+### 2026-10-18 23:50 MDT - v88 (safe holds searched every decision) NOT adopted: 132.65 vs v86 134.25 (-32 / 20, 4 wins / 10 losses / 6 ties)
+* Per map s0/s1, v86 -> v88: KOTM 150/143 -> 150/143, Sprawl 179/179 -> 166/178, Cube 131/139 -> 131/137, Bowl 123/108 ->
+  123/110, Duplex 153/120 -> 153/126, Fractured 91/115 -> 91/113, Cragmire 112/126 -> 109/121, Vortex 109/111 -> 103/117
+  (map record 117), Treasure 188/168 -> 196 (= record)/154, Concentric 122/118 -> 121/111. Falls 12 vs 7. Six rounds
+  identical (no safe hold reached), the rest diverged. More searches during holds (Cragmire s1 91 decisions > 2.2 s vs 56)
+  also load the shared machine. Repo restored to v86 (checksums verified).
+* 23:51 running: Super Speed kick-and-brake families screen (simv/search_ssbrake.py, sim_ssb/).
+
+### 2026-10-19 00:47 MDT - v86 control rerun (v86b, identical code): 132.85 vs the first run's 134.25 (-28 / 20, 12 rounds identical)
+* Per map s0/s1, v86 -> v86b: Cube 131/139 -> 131/143 (map record 143), Concentric 122/118 -> 111/111, Cragmire 112/126 ->
+  132 (map record)/97, Treasure 188/168 -> 196 (= record)/156, Sprawl s1 179 -> 178; the other 12 rounds identical. The
+  differences come from searches that hit the 2 s wall-clock deadline (timing), and once a decision differs the round
+  diverges completely (Cragmire s1 -29 with the same code).
+* Consequence: identical code moves the 20-round mean by ~1.4 points between runs. v88's -32 vs v86 is the same size
+  (v88 132.65 vs v86b 132.85). Reference for v86 code from now on = the two runs pooled: 133.55 over 40 rounds. Candidates
+  get more rounds: start_2 (third layout set) run side by side with v86 at 4 + 4 workers (equal load).
+* 00:48 running: racing-line settings screen (rl2_pick60 / rl2_vcap15 / rl2_amax16, sim_rl2/); next: v86 vs v88 on start_2.
+
+### 2026-10-19 01:34 MDT - v86 on start_2 (8 workers, third layout set): 125.1 (1,251 over 10 rounds); racing-line screen
+* v86 start_2: KOTM 147, Sprawl 168, Cube 128, Bowl 114, Duplex 142, Fractured 104, Cragmire 100 (4 falls), Vortex 103,
+  Treasure 144, Concentric 101. Reference for start_2 comparisons (8 workers, one start).
+* Racing-line settings (whole-group sim vs v86, 240 groups): PICK_R .6 0.0 % (16 / 19), V_CAP 15 -0.7 % (6 / 4; KOTM -1.2 %),
+  A_MAX 16 -0.2 % (19 / 21). Super Speed kick-and-brake families -0.4 % (4 / 1; Concentric -4.5 %, KOTM unchanged).
+* v90 = v86 + Super Speed kick-and-brake + safe holds searched + racing-line V_CAP 15 (three small offline positives together;
+  scratchpad build_v90.py): offline screen 01:34, then pools on starts 0 / 1 / 2 vs v86 pooled.
+* tools: scratchpad pool_compare3.py (starts 0-2, "a+b" pools runs), pool_monitor_s.sh (STARTS / TOTAL).
+
+### 2026-10-19 01:45 MDT - v90 launched (v86 + Super Speed kick-and-brake + safe holds searched + racing-line V_CAP 15)
+* Whole-group sim vs v86 (240 groups): -2.2 % (15 better / 5 worse): Sprawl -8.7 %, Duplex -7.9 %, Vortex -4.5 %, Concentric
+  -4.3 %, KOTM -1.2 %, the rest about flat. Deployed with scratchpad build_v90.py (search <- simv/search_ssbrake.py,
+  reliability_eval <- simv/re_shresearch.py, racing_line <- simv/rl2_vcap15.py; v86 restore copies in scratchpad v86dry/).
+  Pools planner_v90_start0/1_20261017 at 01:45 (4 + 4); then start_2 (8 workers). Judge vs v86 pooled (s0/s1 133.55 over
+  2 runs, s2 125.1).
+
+### 2026-10-19 03:05 MDT - v90 NOT adopted: 129.27 vs v86 pooled 130.73 over 30 map-starts (-1.47 a round; 9 wins / 11 losses / 10 ties)
+* Per map s0/s1/s2, v86 pooled -> v90: KOTM 150/143/147 -> 143/144/148, Sprawl 179/178/168 -> 174/184/176, Cube 131/141/128 ->
+  131/146 (map record)/134, Bowl 123/108/114 -> 123/110/114, Duplex 153/120/142 -> same, Fractured 91/115/104 -> 91/96/105,
+  Cragmire 122/111/100 -> 106/124/100, Vortex 109/111/103 -> 109/111/102, Treasure 192/162/144 -> 188/159/126, Concentric
+  116/114/101 -> 116/103/100. Falls 23 vs 16. Repo restored to v86 (search 3628ef8320a5, reliability_eval e60d5e9dcce6,
+  racing_line 8747cd84f158, bridge 2fe63877fe5b). Cube 146 stays the map record (labelled not adopted).
+* Where a v86 round's time goes (scratchpad time_split.py / slow_split.py / pickup_turns.py, s0/s1 journals): below 5 u/s
+  horizontal ~25-90 s a round per map; the largest part is the 1 s after each pickup (Sprawl 56 s, Treasure 51 s, Cragmire
+  40 s, Cube 35 s a round). 1,974 pickups: 6.6 u/s at the pickup, 0.61 s below 5 u/s in the next 1.5 s, and that holds even
+  when the next target is straight ahead (0-45 deg: 43 % of pickups, 0.54 s slow, min speed 3.2 u/s). Under-high-gem time
+  (target >= 4.5 u up, within 10 u): Cragmire 27 s a round, Cube 6 s, Treasure 4 s, others ~0.
+* 03:13 fast Super Jump fetch under very high gems (scratchpad simv/re_highfetch.py: gem >= 4.5 u up, no Super Jump /
+  Helicopter held -> stall after 1.5 s, not 5 s), whole-group sim vs v86 on the six maps with high gems: +2.9 % time
+  (3 better / 8 worse; Bowl +11.9 %, Cragmire +4.1 %, Sprawl -8.4 %, Vortex -4.4 %). Rejected, not pooled.
+
+### 2026-10-19 03:20 MDT - v91 candidate: choose a group's LAST gem by the expected trip to the next group
+* The game (server/scripts/huntGems.cs) spawns the next group only when every gem of the current one is collected, around
+  a centre gem drawn about uniformly from the spawn points at least spawnBlock (MissionInfo; default 2 x radiusFromGem)
+  from the CURRENT group's centre; the marble's position plays no part. So which gem of a group is collected last sets
+  the start of the trip to the next group (v86: a trip takes 7.6 s on average, 15 a round).
+* v86 journals (scratchpad lastgem_value.py, straight lines, best open path from the spawn through the group vs the best
+  path + expected trip): the best last gem shortens path + trip by KOTM 4.6 u a group, Bowl 8.3, Cube 3.7, Vortex 3.5,
+  Duplex 2.5, Cragmire 2.3, Sprawl 1.8, Concentric 1.5, Treasure 1.1, Fractured 1.0 (about 2-3 % of a round; KOTM ~10 %).
+* Change: nav/gems.plan_tour(end_costs=...) (optional, default None: every other caller unchanged); the planner's tour
+  adds LASTGEM_W x (expected trip from the order's last gem - the best one's) when the tour sees every gem left in the
+  group and more than 20 s remain (scratchpad simv/re_lastgem.py W .8, re_lastgem15.py W 1.5; build_lastgem.py).
+* tools/sim_bench/sim_bench.py now records each episode's end position and starting gems; scratchpad cmp_lastgem.py adds
+  the expected trip (at the map's v86 trip speed) to each cleared group's time. Screen: v86 base rerun + W .8 + W 1.5.
+* 03:40 screen (whole-group sims, 240 episodes; the v86 base rerun reproduces sim_amb exactly): group time + expected trip
+  at each map's marginal trip speed (scratchpad trip_slope.py, t = a + d / v over 1,480 pool trips: Bowl 15.9 u/s, Cube 14.8,
+  Treasure 11.6, Sprawl 10.7, Duplex 9.9, Vortex 9.8, KOTM 8.5, Cragmire 6.6, Fractured 6.2, Concentric 6.1). W .8: 0.0 %
+  (25 better / 9 worse; Bowl -2.0 %, Cube -1.8 %, KOTM -1.8 %, Concentric +4.9 %); W 1.5: -0.4 % (33 / 14; Duplex -2.3 %,
+  Bowl -2.1 %, Concentric +4.6 %). The last gem moves in only 0-45 % of episodes: a far-off best last gem usually costs
+  more path than the trip it saves. The Concentric loss is one episode (10.4 s -> 26.6 s): the new first target led into
+  a 3 s stall and the last gem was across the map (the walk distance under-rated it). Not pooled alone.
+* v92 candidates screened next (scratchpad build_alltour.py): the tour over EVERY gem of the group (observed_gems, up to
+  8, every order scored at once in numpy: same cost terms as nav.gems.plan_tour, checked identical on 400 random cases;
+  3 ms for 8 gems) instead of the 5 nearest the observation carries (v86 journals, scratchpad order_gap.py: groups of 6-9
+  gems are collected along paths 4-10 % over the shortest order, 4-5 gem groups 1-3 %); also with the last-gem term, and
+  the last-gem term with an end-aware cluster order choice (order_choice charges each first target the best end left).
+* Where the time goes, more (v86 s0/s1 journals; scratchpad trip_phases.py / leg_bound.py): a trip's launch (until >= 8 u/s
+  within 45 deg of the first gem) takes 0.9-2.1 s (Fractured 3.4); at the spawn the marble moves at ~6 u/s about 90 deg
+  away from the new group, so ~1 s is near the physical minimum. Intra-group legs take 1.26 (KOTM) to 2.2 (Vortex,
+  Cragmire, Bowl) x a point-mass bound (13 u/s^2 in any direction, no speed cap, no terrain).
+* KOTM, planner vs the learned navigator's 175 run (logs/nav/goal175/parity_20261006_0453_learned_e, nav_points_20261005_
+  parity_31155, 8 rounds 156-175): learned 124-139 pickups a round, median gap 1.28 s, trips 1.51 s, intra legs 1.27 s,
+  8.6 u/s, 11.4 u of path per gem; planner (v86) 112-117 pickups, median gap 1.41-1.54 s, trips 1.88 s, intra legs 1.45 s,
+  8.0 u/s, 12.5 u per gem. Same speed at the pickup (~7-8 u/s). The planner's learned proposal (35 % of KOTM choices in the
+  sim) comes from real_maps_20261010_A2; the KOTM-trained model has the same observation version (NAV_OBS_V10).
+
+### 2026-10-19 04:02 MDT - Full-group tour / last-gem variants screened: all about even offline (not pooled)
+* Whole-group sims vs the v86 base rerun (240 episodes each; group time + expected next trip): full-group tour alone
+  (simv/re_alltour.py) +0.1 % (6 better / 12 worse); full-group tour + last gem W .8 (re_alltour_lg8.py) -0.3 % (34 / 18);
+  last gem W .8 + end-aware cluster choice (re_lastgem_oc.py) -0.1 % (27 / 12; it removes the Concentric 26.6 s episode:
+  Concentric -0.6 % vs +4.9 % without). Early partial results looked better (-0.7 to -0.9 %); the slow Cragmire slices that
+  finished last took it back. The 5-nearest tour is not what costs path on the big groups.
+* 04:02 running: learned-actor checkpoint screen (scratchpad run_par_sims.sh, sim_par/): the planner's learned proposal
+  from the KOTM-trained nav_points_20261005_parity_31155 (par) or the ten-map real_maps_20261011_pp/check5_038960 (pp5)
+  instead of real_maps_20261010_A2; plus full-group tour + last gem + end-aware cluster choice (atoc).
+* 04:12 learned-actor checkpoint screen (whole-group sims vs the v86 base rerun): the KOTM-trained nav_points_20261005_
+  parity_31155 as the planner's learned proposal +0.1 % (38 better / 47 worse) and KOTM itself +4.5 % (0 / 15: the model
+  that drove the 175 round makes the planner slower there); ten-map real_maps_20261011_pp/check5_038960 +3.1 % over 101
+  episodes (Cragmire, Vortex, KOTM, Fractured slower; stopped early). real_maps_20261010_A2 stays. (Rechecked from the
+  10-18 sim_nb files: the navigator bonus 1 / 2 / 4 u = -1.9 % / -1.0 % / +0.7 % group time but 16/27, 21/44, 24/73
+  better/worse episodes: a few large wins, mostly small losses; not pursued.)
+* Queued: 3x search budget (6 s of the sim's virtual clock) headroom screen: is the search or the objective the limit?
+* 04:23 full-group tour + last gem W .8 + end-aware cluster choice (simv/re_alltour_lg8_oc.py): -0.6 % (39 better / 20
+  worse, falls 6 -> 4; Concentric +8.6 %, Cube -4 %, Fractured -5 %, Cragmire -4 %); the best ratio of tonight's screens.
+
+### 2026-10-19 04:25 MDT - The trip to the next group starts facing the wrong way; v92 candidate: aim the last gem at it
+* From a group's last pickup (v86 + v86b, starts 0-2; scratchpad next_dir.py): the medoid of the spawn points the game
+  may draw the next centre from (>= spawnBlock from the current group's centroid) lies within 60 deg of the direction to
+  the next group's first pickup on 76-92 % of trips (median 21-38 deg; Cragmire 92 %, Bowl / Vortex 89 %); the marble's
+  velocity at that pickup only on 15-38 % (median 76-129 deg; Bowl 129). So the next trip's direction is predictable and
+  the marble usually leaves the last gem the wrong way (0.9-2.1 s launch per trip, ~15 trips a round).
+* Candidate (scratchpad build_nextaim.py -> simv/re_nextaim.py): when the target is the group's last gem and > 12 s
+  remain, the tour's next gem is a virtual one at that medoid, so the through-gem scoring and the corner-speed plans
+  leave the pickup moving toward it (the learned actor's next-gem input sees it too).
+* Screen: tools/sim_bench now records the end velocity; scratchpad cmp_nextaim.py scores each cleared group as group time
+  + a pursuit estimate (13 u/s^2 toward 13 u/s at the nearest gem of the group that actually spawned next in the
+  recorded round; the game's spawn does not depend on the marble). v86 base rerun (b86v) + aim (na).
+* KOTM (12 spawn points in a 24 x 24 u square, spawnBlock 30): no point is ever >= 30 u from the group's centre, so the game
+  takes the furthest of its 10 random draws: the far side of the hill. The far point lies within 60 deg of the next
+  group's first pickup on 98 % of KOTM trips (median 19 deg); the marble's velocity on 31 % (median 71 deg). (The learned
+  navigator's KOTM trips take 1.51 s vs the planner's 1.88 s; it may have learned where the next group appears.)
+* 04:23 screen running (scratchpad run_na_sims.sh, sim_na/): b86v (v86 base rerun with end velocity), na (aim only), atna
+  (full-group tour + last gem + end-aware cluster choice + aim; simv/re_atoc_na.py).
+
+### 2026-10-19 04:52 MDT - v92 launched: full-group tour + last gem by expected trip + end-aware cluster choice + aim at the next group
+* Screen (whole-group sims vs the v86 base rerun b86v, 240 episodes; scored as group time + pursuit to the nearest gem of
+  the group that actually spawned next): aim only (re_nextaim.py) -0.4 % (33 better / 17 worse; group time -1.2 %: with
+  a virtual next gem the last pickup is a through pickup, not a stop); all four (re_atoc_na.py) -0.7 % (56 / 42; -1.0 %,
+  60 / 28 with the expected-trip score; falls 6 -> 4): Bowl -3.2 %, Fractured -4.8 %, Cube -3.1 %, Treasure -1.9 %,
+  Cragmire -1.4 %; KOTM +7.1 % (3 / 8), Concentric +5.8 % (one long episode).
+* KOTM is the fallback case of the spawn rule (no point >= spawnBlock: the furthest of 10 random draws) and its next group
+  often has a gem near the marble: v92 (simv/re_atoc_na2.py) turns the last-gem term and the aim off when no spawn point
+  qualifies (checked: KOTM then plays as v86, 0 better / 0 worse). Expected offline about -1.0 to -1.3 %.
+* Deployed with scratchpad build_vx.py re_atoc_na2.py (reliability_eval f4eea03756f2; nav/gems.py plan_tour(end_costs=...)
+  added 03:15, default off for every other caller). Pools planner_v92_start0/1_20261017 at 04:52 (4 + 4), then start_2.
+  Judge vs v86 pooled (30 map-starts, 130.73). Restore = scratchpad v86dry/reliability_eval.py (e60d5e9dcce6).
+* 05:10 exact spawn model (scratchpad spawn_mc.py: Monte Carlo of getCenterGems + spawnGemGroupSet, single player: 10
+  draws, the valid ones >= spawnBlock from the current centre gem, else the furthest draw; the group = centre + the points
+  within radiusFromGem by weight). Expected distance from a group's last gem to the NEAREST gem of the next group, v86
+  journals (s0-s2), actual last gem vs the best: KOTM 12.1 -> 4.8 u (the next KOTM group often re-spawns beside the
+  current one), Bowl 181.7 -> 163.7, Cube 65.2 -> 60.1, Vortex 71.3 -> 65.9, Concentric 32.4 -> 28.6, Sprawl 74.6 -> 71.0;
+  net of the extra in-group path (W = trip u per path u, 1 / .6): KOTM 3.9 / 1.7 u a group, Bowl 7.5 / 2.7, Vortex 3.2 /
+  1.5, Cube 2.9 / 1.3, Concentric 1.5 / .6, Sprawl 1.5 / .5.
+* v93 candidate (scratchpad build_mcspawn.py -> simv/re_mcspawn.py, on v92): the last-gem end costs and the virtual next
+  gem from that model (the gem just collected excluded, as the game does; the aim = the spawn point with the least
+  expected distance). On for KOTM too. 10-17 ms per group. Screen queued after the v92 pools (run_mc_sims.sh).
+
+### 2026-10-19 05:40 MDT - v92 NOT adopted: 128.60 vs v86 pooled 133.55 on starts 0 / 1 (-4.95 a round; 5 wins / 11 losses / 4 ties); start_2 skipped
+* Per map s0/s1, v86 pooled -> v92: KOTM 150/143 -> 150/143 (terms off there, identical), Cube 131/141 -> 131/144, Bowl
+  123/108 -> 123/118, Cragmire 122/111 -> 115/130, Treasure 192/162 -> 179/171, Sprawl 179/178 -> 166/178, Fractured
+  91/115 -> 92/88, Duplex 153/120 -> 126/111, Vortex 109/111 -> 101/100, Concentric 116/114 -> 103/103 (the loss the sim
+  showed: straight-line expected trips mislead behind Concentric's ring walls). Decision latency unchanged (mean 0.19-0.32 s).
+  Repo restored to v86 (search 3628ef8320a5, reliability_eval e60d5e9dcce6, racing_line 8747cd84f158, bridge
+  2fe63877fe5b); nav/gems.plan_tour(end_costs=None) stays (unused by v86).
+* Noise (v86 vs v86b, identical code): 8 of 20 map-starts differ, SD 13.9 among them (8.9 over all); candidates vs v86
+  per map-start SD 5.4-6.4 (v88, v90). Offline gains of 1-2 % have not carried into pools tonight (v90 -2.2 % offline ->
+  -1.5 in game, v92 ~-1 % -> -5.0); only offline effects of ~3 %+ are worth a pool.
+* Next: v93 minimal on v86 (no full-group tour): last-gem end costs + end-aware cluster choice + aim, all from the Monte
+  Carlo of the game's spawn (expected distance to the next group's NEAREST gem; KOTM included).
+* 05:55 v93 minimal on v86 (simv/re_mcmin.py: last-gem end costs + end-aware cluster choice + aim, all from the spawn Monte
+  Carlo; W .8 / W 1.0 = re_mcmin10.py), whole-group sims + pursuit score vs b86v: -0.7 % (46 / 31) / -0.2 % (48 / 32);
+  KOTM +4.4 % (2 better / 8 worse) and Concentric +4.5 % in both. Not pooled.
+* The Monte Carlo itself is calibrated (scratchpad spawn_calib.py, v86 journals): expected distance from the last pickup
+  to the next group's nearest gem, model vs actual: KOTM 12.3 vs 12.6 u (correlation .86), Cube 65.1 vs 61.8 (.55), Bowl
+  181.2 vs 180.0 (.36); gems that actually spawned are sampled 2x as often as an average spawn point.
+* tools/sim_bench --next-group (new): with --whole-group, when the group is cleared the group that spawned next in the
+  recorded round appears (nearest 5 in the observation's gem slots; the observation is rebased) and the episode ends at
+  its first pickup ('trip_done'; t_spawn / t_trip in the output). The trip is then simulated, not estimated. 05:56 screen:
+  v86 (ngb) vs v93 minimal (ngmc) vs aim only (ngaim, LASTGEM_W 0), scratchpad run_ng_sims.sh, sim_ng/.
+* 06:28 next-group episodes (sim_bench --next-group, cap 60 s; scratchpad cmp_ng.py), 115 of 240 paired episodes so far:
+  v93 minimal vs v86 total +1.9 % (34 better / 37 worse; group -1.0 %, trip -3.6 % where both reached the trip): Treasure
+  -6.9 %, Bowl -4.4 % (13 episodes), but KOTM +6.0 % (group 4.28 -> 4.51 s AND trip 1.97 -> 2.11 s, 2 / 6) and Cragmire
+  +18.5 % (two episodes that never reached the next group / fell later). With the trip actually simulated the end-of-group
+  ideas still do not add up, and KOTM loses every time (its best waiting point is usually beside the current group, so the
+  virtual next gem pulls the marble around near it). Not pooled.
+
+### 2026-10-19 06:40 MDT - End-of-group line closed (no robust gain); v86 control on start_2 launched
+* Next-group episodes (sim_bench --next-group), all 24 KOTM episodes: v93 minimal +2.9 % (7 / 10; group 3.61 -> 3.74 s,
+  trip 2.07 -> 2.10 s: ending at the gem with the least expected distance does not shorten KOTM's real trips); aim only
+  (LASTGEM_W 0) -0.4 % (6 / 7, neutral). Over 195 episodes v93 +0.7 % (61 / 63; Treasure -6.2 %, Bowl -2.3 %); aim only
+  +1.1 % over 80 (stopped early). Tonight's end-of-group variants (last gem by straight-line or Monte Carlo trips, aim at
+  the medoid / best waiting point, full-group tour) all net out near zero offline and v92 lost in game: closed.
+* 06:39 v86 control on start_2 (planner_v86c_start2_20261017, 8 workers): a second v86 run of the third layout set (the
+  start_2 reference had one run), for a firmer 30-map-start reference.
+* Lead (never tested): search.terminal_support calls a plan's end "stable" only if its last 4 states are < 18 u/s (besides
+  floor support and normal speed < 2). Bowl's slopes carry the marble past 18 (vmax 28), so a plan still rolling fast at
+  reply 48 is rejected 'no_supported_continuation' and the planner prefers plans that end slow (the operator's "afraid of
+  speed" on Bowl). On 10-14 the same limit was suspected of blocking Super Speed plans but was never relaxed. Variants
+  simv/search_ts28.py (28 u/s) and search_ts99.py (no speed limit); the floor / bounce tests and the braking backup stay.
+  Screen queued after the v86c pool: next-group episodes vs ngb (scratchpad run_ts_sims.sh, sim_ts/).
+
+### 2026-10-19 07:06 MDT - v86 control on start_2: 122.9 vs the first run's 125.1 (identical code, -2.2 a round over 10)
+* planner_v86c_start2_20261017: KOTM 147, Fractured 104, Cube 128, Duplex 142, Bowl 114 identical; Cragmire 102 (100),
+  Vortex 107 (103), Concentric 93 (101), Sprawl 159 (168), Treasure 133 (144). Reference from now on = v86 pooled over two
+  runs of every start (s0 136.7, s1 130.4, s2 124.0).
+* 07:06 running: terminal speed limit screen (simv/search_ts28.py / search_ts99.py, next-group episodes vs ngb).
+* 07:18 terminal speed limit (18 -> 28 u/s / none): identical to v86 on 94 of 96 next-group episodes (every map but Bowl,
+  where 2 episodes ran 0.2 s faster). Plans almost never END above 18 u/s: the proposals' own targets (TARGET_SPEED_CAP 11,
+  TRAVEL_TOP 13.5, the fast families' 16 / 20 lose on cost) keep them below. Bowl's caution lives in the speed targets and
+  the scoring, not in this gate. Dead lead.
+* 07:20 lead: gem_demo.THROUGH_EVAL_REPLIES = 24 (post-pickup progress toward the next gem read at reply 24, "the planner
+  horizon" when v22 set it); the horizon has been 48 since v45 and the value was never revisited, so pickups after 1.5 s
+  get no through credit and plans are judged 1.5 s out. Screen: 36 / 48 (--set gem_demo.THROUGH_EVAL_REPLIES), next-group
+  episodes vs ngb (scratchpad run_tev_sims.sh, sim_tev/). The 18 u/s screen was stopped (answer clear).
+* 08:03 THROUGH_EVAL_REPLIES 36 / 48 (next-group episodes, ~214 where both reached the next group; scratchpad
+  cmp_ng_robust.py): -0.7 % (54 better / 47 worse) / -1.0 % (55 / 62), median ratio 1.000; KOTM +3.0 % (0 / 4) / +4.0 %
+  (0 / 7). Early partial results (-4.6 %, 14 / 3 on three maps) did not hold. Neutral: not pooled; 24 stays.
+
+### 2026-10-19 08:05 MDT - Night summary (22:52 -> 08:05; operator: "work all night and try to improve it")
+* Reference unchanged: v86, pooled over two runs of each start = 130.37 (s0 136.7, s1 130.4, s2 124.0). Repo = v86
+  (search 3628ef8320a5, reliability_eval e60d5e9dcce6, racing_line 8747cd84f158, bridge 2fe63877fe5b, gem_demo
+  1192a987f862); nav/gems.plan_tour has an unused end_costs option.
+* Pools: v88 (safe holds searched every decision) -1.6, v86b control (identical code: -1.4 / round on 20, 12 rounds
+  identical), v90 (three small offline positives) -1.47 over 30, v92 (full-group tour + last gem + aim) -4.95 over 20,
+  v86c control on start_2 (-2.2 over 10). Records tonight (in the CSV / sheet): Cube 146 (v90), Cragmire 132 (v86b),
+  Vortex 117 (v88, 23:50).
+* Offline rejected: Super Speed kick-and-brake, racing-line settings, fast Super Jump fetch, last-gem choice (straight
+  line and exact spawn model), full-group tour, aim at the next group, KOTM-trained / check5 learned proposals, the 18 u/s
+  end gate (never binds), THROUGH_EVAL_REPLIES 36 / 48.
+* Found: the next group's direction is predictable (spawn rule; calibrated Monte Carlo) but using it nets ~0; noise of
+  identical code ~2 points a start; offline 1-2 % effects do not carry into pools. New tools: sim_bench --next-group
+  (the recorded next group appears; trips simulated), cmp_ng_robust.py, spawn_mc.py / spawn_calib.py, time_split.py.
+
+### 2026-10-19 08:45 MDT - Work STOPPED (operator: "stop training"); end-speed screen partial
+* END_VELOCITY_WEIGHT 0 (next-group episodes, 196 where both reached the next group): -1.9 % (60 better / 43 worse), median
+  ratio 1.000; credit -0.1: +0.6 % (41 / 47). Stopped at 21 of 30 jobs; not pooled. Nothing running (no sims, pools or
+  games); repo = v86 (search 3628ef8320a5, reliability_eval e60d5e9dcce6, racing_line 8747cd84f158, bridge 2fe63877fe5b,
+  gem_demo 1192a987f862). Reference v86 pooled 130.37.
+* Facts for the next steps: v86-family decision latency in pools (231,582 decisions): median 0.028 s, mean 0.257 s, p90
+  0.72 s, p99 1.97 s; 65 % within 64 ms (KOTM 91 %, others 56-74 %). Machine: i7-13700KF (24 threads), 32 GB, RTX 3070
+  8 GB (torch CUDA available). ~1,000 recorded planner rounds in the 10-16 / 10-17 pool folders.

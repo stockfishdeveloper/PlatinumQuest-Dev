@@ -47,10 +47,15 @@ def translated(action,hold=0,pow_yaw=0.):
     return move,[dict(kind='camera_yaw',value=yaw)],hold,pow_yaw
 
 
-def predict_replies(engine,dynamics,actions,dt_ms=64,stop_on_ambiguity=False):
+def _predict_replies_strict(engine,dynamics,actions,dt_ms=64,stop_on_ambiguity=False):
     if dt_ms!=64:raise ValueError('Only verified local 64 ms lockstep is supported')
     physics_ms=getattr(engine,'bridge_physics_ms',64)
     if physics_ms==16:
+        sim=getattr(engine,'native_sim',None)
+        if sim is not None:
+            # 2026-10-16: compiled physics (nav/native), the same results as predict_small_step
+            from nav.native.forecast import predict_native
+            return predict_native(sim,engine,dynamics,actions,stop_on_ambiguity)
         from nav.marble_dynamics.bridge_small_step import predict_small_step
         return predict_small_step(engine,dynamics,actions,stop_on_ambiguity)
     if physics_ms!=64:raise ValueError('Only native-verified16ms or64ms physics frames are supported')
@@ -126,3 +131,13 @@ if __name__=='__main__':
     from pathlib import Path
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('folder',type=Path);p.add_argument('--output',type=Path,required=True)
     a=p.parse_args();validate(a.folder,a.output)
+
+
+ACCEPT_AMBIGUITY=True     # 2026-10-18 test: forecasts run through ambiguous contacts and are judged like any other forecast
+
+
+def predict_replies(engine,dynamics,actions,dt_ms=64,stop_on_ambiguity=False):
+    if not ACCEPT_AMBIGUITY:return _predict_replies_strict(engine,dynamics,actions,dt_ms,stop_on_ambiguity)
+    r=_predict_replies_strict(engine,dynamics,actions,dt_ms,False)
+    if r.get('ambiguous_intervals'):r['ambiguous_accepted']=r['ambiguous_intervals'];r['ambiguous_intervals']=[]
+    return r

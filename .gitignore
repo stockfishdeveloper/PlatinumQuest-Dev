@@ -140,6 +140,8 @@ ml_agent/logs/nav/real_run_*.json
 *.txt
 # 2026-10-11 (operator): no .log files in git (all were logs: training, datasets, game crash uploads)
 *.log
+# 2026-10-16 (operator): no .out files in git (pool launch output, monitor and probe stdout)
+*.out
 # 2026-10-11 (operator): no temp files and no run STOP markers in git (the STOP files stay on disk: they keep runs stopped)
 *.tmp
 STOP
