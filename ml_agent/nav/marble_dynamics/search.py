@@ -289,8 +289,11 @@ def assess(engine,route,dynamics,gem,rollout,label,target_item=None,routed=True,
     if not math.isfinite(cost):reason='nonfinite_goal_cost'
     if reason is None and _stop_checked and getattr(engine,'terminal_stop_replies',0) and np.linalg.norm(end['velocity'])>=1.:
         reason='stopping_speed_above_limit'
-    resources=sum(int(a['held']>0 and b['held']==0) for a,b in zip(states,states[1:]))
-    resources+=sum(len(c.get('script_events',[])) for c in rollout.get('controls',[]))
+    held=getattr(states,'held',None)   # 2026-10-19: packed compiled forecasts (nav/native/forecast.py) need no state dicts here
+    if held is not None:resources=int(((held[:-1]>0)&(held[1:]==0)).sum())
+    else:resources=sum(int(a['held']>0 and b['held']==0) for a,b in zip(states,states[1:]))
+    sec=getattr(rollout.get('controls'),'script_event_count',None)
+    resources+=sec if sec is not None else sum(len(c.get('script_events',[])) for c in rollout.get('controls',[]))
     info=dict(label=label,cost=cost,rejected=reason,minimum_gem_distance_u=close,resources_consumed=resources,
                 goal_item_id=item.get('id') if item else None,
                 end_position=end['position'],terminal_support=supported,stable_continuation=stable,
@@ -326,6 +329,8 @@ def assess(engine,route,dynamics,gem,rollout,label,target_item=None,routed=True,
 
 def blasts_fired(rollout):
     """Blast impulses in a forecast (script events of the regular Blast)."""
+    n=getattr((rollout or {}).get('controls'),'script_event_count',None)   # compiled forecasts: every script event is a Blast impulse
+    if n is not None:return n
     return sum(1 for c in (rollout or {}).get('controls',[]) for e in c.get('script_events',[]) if e.get('kind')=='blast_impulse')
 
 
@@ -461,6 +466,7 @@ def useful_candidate(pairs,route,start_distance,preserve_resources=False,keep_bl
 
 
 def search(engine,route,dynamics,raw,gem,navigator,horizon=40,warm=None,brake_replies=0,target_item=None,learned=True):
+    engine._speculated=None
     gem=np.asarray(gem[:3]);route.navigate(dynamics['native']['state']['position'],gem)
     held=int(dynamics['native']['state']['held'])
     # Holding an unused Helicopter must not lengthen every rolling proposal or
@@ -563,6 +569,7 @@ def search(engine,route,dynamics,raw,gem,navigator,horizon=40,warm=None,brake_re
     next_goal=snap_to_walkable(route.terrain,*nxt[:3])[0] if nxt else None
     # learned=False (reliability_eval.pick, 2026-10-16 v43): no learned proposal for this gem (it runs per reply in Python)
     navigator_spec=('frozen_navigator',NavigatorProposal(navigator,raw,route,gem,next_goal,use_steps)) if learned and navigator is not None else None
+    if navigator_spec is not None:navigator_spec[1].native=getattr(engine,'native_sim',None)   # 2026-10-19: compiled routing (exact)
     # Under a short wall budget, checking this last can starve the competent
     # learned proposal entirely. Ordering changes no physical acceptance gate.
     if getattr(engine,'use_first',False) and 1<=held<=5:
@@ -626,6 +633,39 @@ def search(engine,route,dynamics,raw,gem,navigator,horizon=40,warm=None,brake_re
     exhausted=False
     ballistic=bool(getattr(engine,'ballistic_landing',False)) and not getattr(engine,'_light_search',False);airborne=[]
     reserve=float(getattr(engine,'ballistic_reserve_s',0.) or 0.);deadline=getattr(engine,'planning_deadline',None)
+    pool=getattr(engine,'parallel',None)
+    if pool is not None and len(specs)>=2:
+        # 2026-10-19 (operator: speed up the search with more cores, toward real time): the candidates are forecast and
+        # scored by worker processes (nav/marble_dynamics/parallel_search.py) and merged here in the serial order; with
+        # no deadline the result is exactly the serial loop's. A candidate whose result misses the deadline is left out.
+        results=pool.evaluate(engine,route,dynamics,gem,specs,target_item,steps,landing_replies,ballistic,brake_replies,deadline=deadline)
+        engine._speculated={}
+        for (label,proposal),r in zip(specs,results):
+            if r is None:
+                exhausted=True;continue
+            if r['kind']=='unsupported':pairs.append(r['pair']);continue
+            for part in ('main','landing'):
+                if r.get('proj_'+part) is not None:engine._speculated[id(r[part][0])]=(r[part][0],r['proj_'+part])
+            pairs.append(r['main'])
+            if r['air_main']:airborne.append((label,)+tuple(r['main']))
+            if r['landing'] is not None:
+                pairs.append(r['landing'])
+                if r['air_landing']:airborne.append((label+'_landing',)+tuple(r['landing']))
+            try:
+                if detour_first is not None and label==detour_first and ballistic and airborne:
+                    project_airborne(engine,route,dynamics,gem,target_item,airborne,pairs);airborne=[]
+                if ss_early is not None and label==ss_early and ballistic and airborne:
+                    mine=[x for x in airborne if x[0].replace('_landing','') in ss_names];ids={id(x) for x in mine}
+                    if mine:
+                        project_airborne(engine,route,dynamics,gem,target_item,mine,pairs)
+                        airborne=[x for x in airborne if id(x) not in ids]
+            except PlanningBudgetExceeded:
+                if not getattr(engine,'use_completed_candidates_on_timeout',False):raise
+                exhausted=True
+            if r['brake'] is not None:pairs.append(r['brake'])
+        if exhausted:
+            for info,_ in pairs:info['search_stopped_at_deadline']=True
+        specs=[]
     for label,proposal in specs:
         if ballistic and reserve and deadline and time.perf_counter()>deadline-reserve:
             # Keep part of the budget for the landing projections of the
@@ -844,15 +884,41 @@ def actor_forecast_unsafe(engine,dynamics,pairs,gem):
     return True
 
 
+def project_exact(engine,route,dynamics,gem,target_item,label,rollout):
+    """project_airborne's exact projection of one airborne candidate: ('ok', checked, landed), ('reason', reason) or
+    ('unsupported', message). Shared with the parallel search workers, which run it ahead for every candidate whose
+    coarse landing is floor-like (nav/marble_dynamics/parallel_search.py); project_airborne then reads those."""
+    from nav.marble_dynamics.ballistic import project_landing,MAX_FLIGHT_REPLIES,HELICOPTER_FLIGHT_REPLIES
+    cap=HELICOPTER_FLIGHT_REPLIES if rollout['states'][-1]['effects'][5][0] else MAX_FLIGHT_REPLIES
+    try:landed,reason=project_landing(engine,dynamics,rollout,cap)
+    except ValueError as exc:return ('unsupported','unsupported:'+str(exc)[:40])
+    if reason is not None:return ('reason',reason)
+    checked=assess(engine,route,dynamics,gem,landed,label+'_ballistic',target_item)
+    # A longer forecast covers more ground by itself. Charge the extra
+    # flight time at a nominal rolling speed so a jump only wins when
+    # it is genuinely faster than rolling for the same time.
+    extra=max(0,len(landed['states'])-len(rollout['states']))
+    penalty=extra*.064*float(getattr(engine,'ballistic_time_rate',8.) or 8.)
+    if checked['possible_pickup_interval'] is None:checked['cost']+=penalty
+    checked['time_penalty_u']=penalty
+    checked.update(proposal_replies=len(rollout['proposed']),ballistic_replies=len(landed['proposed'])-len(rollout['proposed']),
+                   evaluated_replies=len(landed['controls']),requested_replies=landed['requested_replies'],
+                   stopped_on_ambiguity=landed['stopped_on_ambiguity'],forecast_s=(len(landed['states'])-1)*.064)
+    return ('ok',checked,landed)
+
+
 def project_airborne(engine,route,dynamics,gem,target_item,airborne,pairs):
     """Operator-approved ballistic landing projection: finish airborne candidates
     with NO input. Coarse parabola filter for all of them, exact engine projection
     only for the few with the best coarse landing. Appends the landed candidates
     to `pairs`; raises PlanningBudgetExceeded at the deadline."""
-    from nav.marble_dynamics.ballistic import coarse_landing,project_landing,MAX_FLIGHT_REPLIES,HELICOPTER_FLIGHT_REPLIES
+    from nav.marble_dynamics.ballistic import coarse_landing
     bounds=getattr(engine,'mission_bounds',None);ranked=[];collecting=[]
+    ahead=getattr(engine,'_speculated',None) or {}   # 2026-10-19: worker results (the same values, computed in parallel)
     for label,info,rollout in airborne:
-        coarse=coarse_landing(engine.mesh,rollout['states'][-1],bounds);info['ballistic_coarse']=coarse
+        pre=ahead.get(id(info));pre=pre[1] if pre is not None and pre[0] is info else None
+        coarse=pre['coarse'] if pre is not None else coarse_landing(engine.mesh,rollout['states'][-1],bounds)
+        info['ballistic_coarse']=coarse
         if not (coarse['hit'] and coarse['floor_like']):continue
         # v21: a candidate whose forecast already collects the gem is projected
         # whatever its landing distance; the others compete for the few exact slots.
@@ -860,22 +926,10 @@ def project_airborne(engine,route,dynamics,gem,target_item,airborne,pairs):
         else:ranked.append((route.distance(coarse['point']),label,info,rollout))
     ranked.sort(key=lambda item:item[0]);collecting.sort(key=lambda item:item[0])
     for _,label,info,rollout in collecting+ranked[:int(getattr(engine,'ballistic_exact_limit',4) or 4)]:
-        cap=HELICOPTER_FLIGHT_REPLIES if rollout['states'][-1]['effects'][5][0] else MAX_FLIGHT_REPLIES
-        try:landed,reason=project_landing(engine,dynamics,rollout,cap)
-        except ValueError as exc:info['ballistic']='unsupported:'+str(exc)[:40];continue
-        if reason is not None:info['ballistic']=reason;continue
-        checked=assess(engine,route,dynamics,gem,landed,label+'_ballistic',target_item)
-        # A longer forecast covers more ground by itself. Charge the extra
-        # flight time at a nominal rolling speed so a jump only wins when
-        # it is genuinely faster than rolling for the same time.
-        extra=max(0,len(landed['states'])-len(rollout['states']))
-        penalty=extra*.064*float(getattr(engine,'ballistic_time_rate',8.) or 8.)
-        if checked['possible_pickup_interval'] is None:checked['cost']+=penalty
-        checked['time_penalty_u']=penalty
-        checked.update(proposal_replies=len(rollout['proposed']),ballistic_replies=len(landed['proposed'])-len(rollout['proposed']),
-                       evaluated_replies=len(landed['controls']),requested_replies=landed['requested_replies'],
-                       stopped_on_ambiguity=landed['stopped_on_ambiguity'],forecast_s=(len(landed['states'])-1)*.064)
-        pairs.append((checked,landed))
+        pre=ahead.get(id(info));pre=pre[1] if pre is not None and pre[0] is info else None
+        result=pre['exact'] if pre is not None and pre.get('exact') is not None else project_exact(engine,route,dynamics,gem,target_item,label,rollout)
+        if result[0]!='ok':info['ballistic']=result[1];continue
+        pairs.append((result[1],result[2]))
 
 
 KEEP_BLAST=False          # 2026-10-16 v48: keep the Blast for a raised gem (useful_candidate keep_blast, set by pick()); NOT adopted 20:15 (111.6 vs 118.7)
@@ -944,7 +998,8 @@ def apply_blast_value(pairs,meter,value_u,floor_u=0.):
     if charge<=0:return
     for info,rollout in pairs:
         if rollout is None or 'blast' not in info['label']:continue
-        fired=any(c.get('script_events') for c in rollout.get('controls',[]))
+        n=getattr(rollout.get('controls'),'script_event_count',None)
+        fired=(n>0) if n is not None else any(c.get('script_events') for c in rollout.get('controls',[]))
         if not fired:continue
         # floor_u: a fixed charge per fire (v14, 2026-10-15). In the v12 journals
         # low-meter fires (< 0.5) gained a median 2.5 u in the 3 s after the fire

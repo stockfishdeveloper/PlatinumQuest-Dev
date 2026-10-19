@@ -6,4 +6,6 @@ def attach(engine, dll=None):
     """Give a GeneralPhysics engine the compiled forecast (bridge.predict_replies then uses it); returns the sim."""
     from nav.native.marble_sim import NativeSim
     engine.native_sim = NativeSim(engine, dll)
+    from nav.native.route_native import register
+    register(engine.native_sim)          # 2026-10-19: RoutePlanner.distance on its registered terrains runs in C++ (exact)
     return engine.native_sim

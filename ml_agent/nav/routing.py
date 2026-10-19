@@ -7,6 +7,8 @@ from nav.terrain import DROP_EDGE, STEP_UP, LEVEL_MERGE
 LOOKAHEAD_U = 12.0
 WAYPOINT_HOLD_U = 2.5
 GEM_SNAP_U = 1.5
+NATIVE_DISTANCE = None   # 2026-10-19: set by nav.native.attach (planner processes): RoutePlanner.distance in C++
+NATIVE_NAVIGATE = None   # ... and RoutePlanner.navigate (nav/native/route_native.py; exact, None = the Python method)
 
 
 def goal_key(goal):
@@ -127,6 +129,10 @@ class RoutePlanner:
         self.waypoint = None
 
     def navigate(self, pos, gem):
+        if NATIVE_NAVIGATE is not None:
+            r = NATIVE_NAVIGATE(self, pos, gem)
+            if r is not None:
+                return r
         key = goal_key(gem)
         if key != self.key:
             self.field = self.terrain.goal_field(gem[0], gem[1], z=gem[2])
@@ -146,4 +152,8 @@ class RoutePlanner:
     def distance(self, pos):
         if self.field is None or self.key is None:
             return math.inf
+        if NATIVE_DISTANCE is not None:          # the planner's compiled dist_at (nav/native/route_native.py, exact)
+            d = NATIVE_DISTANCE(self, pos)
+            if d is not None:
+                return d
         return self.terrain.dist_at(self.field, pos[0], pos[1], self.key[:2], z=pos[2])

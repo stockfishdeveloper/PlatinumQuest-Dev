@@ -127,7 +127,9 @@ def candidate_cost(route,states,gem,routed,item,after=None,native=None,detail=No
     """`native`: the forecast's 16 ms tick states (pickup test); `detail`: a dict that receives 'post_u', the
     post-pickup progress term (u farther from the next gem than the collected one, read at THROUGH_EVAL_REPLIES)."""
     end=states[-1]
-    distances=[float(np.linalg.norm(np.asarray(s['position'])-gem[:3])) for s in states]
+    pos=getattr(states,'positions',None)   # 2026-10-19: compiled forecasts keep positions packed (nav/native/forecast.ReplyStates)
+    if pos is not None:distances=[float(np.linalg.norm(p-gem[:3])) for p in pos]
+    else:distances=[float(np.linalg.norm(np.asarray(s['position'])-gem[:3])) for s in states]
     if after is not None and item is not None:
         # v22 (2026-10-15) through-gem: after a predicted pickup the rest of the
         # forecast is scored by its progress toward the NEXT gem of the tour

@@ -51,6 +51,8 @@ ap.add_argument('--only-decision', type=int, default=0)   # extra planner launch
 ap.add_argument('--normal-priority', action='store_true')
 ap.add_argument('--held', type=int, default=-1)   # only starts where the marble holds this powerup (2 = Super Speed)
 ap.add_argument('--module', action='append', default=[])
+ap.add_argument('--search-workers', type=int, default=0)   # 2026-10-19: candidates evaluated by this many worker processes
+                                                          # (nav/marble_dynamics/parallel_search.py; use with --real-clock)
 ap.add_argument('--native', action='store_true')   # compiled forecasts (nav/native; the game's planner since 2026-10-16 v41)
 ap.add_argument('--native-step-us', type=float, default=0.)   # virtual clock per physics step with --native (0 = NATIVE_STEP_US)
 o = ap.parse_args()
@@ -258,6 +260,9 @@ def episode(a, terrain, engine, rec, nxt=None):
     d = copy.deepcopy(rec['before']); raw0 = np.asarray(rec['raw_observation'], dtype=np.float32); p0 = raw0[:3].copy()
     t_base = 0; points_base = 0.; picks_base = 0; t_spawn = None   # --next-group: the observation is rebased when the next group appears
     ctrl = RE.ContinuousController(terrain, engine, a.checkpoint, a, 'physics_plan')
+    if getattr(engine, 'parallel', None) is not None:
+        engine.parallel.bind(dict(terrain=terrain, geometry=a.geometry_terrain, mesh=engine.mesh, sim=engine.native_sim,
+                                  model=ctrl.nav.model, crossings=engine.crossings, contact_order=getattr(engine, 'contact_order', None)))
     raw = raw0.copy(); msg = Msg(raw, d)
     picks = []; points = 0.; removed = []; pw_removed = []; labels = Counter(); why = 'cap'; t = 0; cap = int(o.cap_s / .064)
     target = sum(1 for it in d.get('items', []) if it.get('gem')) if o.whole_group else o.pickups
@@ -476,6 +481,10 @@ def main():
         key, val = kv.split('=', 1); mod, attr = key.split('.')
         module = {'gem_demo': GD, 'search': S, 'reliability_eval': RE}[mod]
         setattr(module, attr, type(getattr(module, attr))(val) if not isinstance(getattr(module, attr), bool) else val in ('1', 'True', 'true'))
+    if o.search_workers:
+        from nav.marble_dynamics.parallel_search import ParallelEvaluator, worker_init
+        overrides = [tuple(sp.split('=', 1)) for sp in ap2.parse_known_args()[0].module]
+        engine.parallel = ParallelEvaluator(o.search_workers, worker_init(a, o.map, overrides))
     if o.align:
         S.candidate_cost = aligned_cost
     cand = []

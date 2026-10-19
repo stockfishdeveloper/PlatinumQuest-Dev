@@ -16,7 +16,7 @@ from nav.marble_dynamics.bridge import translated
 from nav.marble_dynamics.inventory import check as check_inventory
 from nav.marble_dynamics.blast import event as blast_event, advance as advance_blast
 from nav.marble_dynamics.planning_budget import check as check_budget
-from nav.native.marble_sim import S_SIZE, ERRORS, _ptr
+from nav.native.marble_sim import S_SIZE, ERRORS, PARAM_KEYS, _ptr
 
 
 class NativeRows:
@@ -145,6 +145,185 @@ def _predict_per_reply(sim, engine, dynamics, actions, stop_on_ambiguity=False):
                 requested_replies=count, stopped_on_ambiguity=stopped, physics_frame_ms=16, decision_ms=64,
                 assumptions='Measured local16ms physics/64ms decisions (compiled nav/native/marble_sim.cpp), static geometry, '
                             'ordinary movement/jump and native powers1-5, observed regular/item-charged Blast.')
+
+
+# ------------------------------------------------------------------------------- reply results built on demand (10-19)
+LAZY_ROLLOUTS = True   # 2026-10-19 (operator: speed up the search toward real time): predict_native returns its states,
+                       # controls and events as sequences built on first use from the packed C++ output (same values as the
+                       # eager lists before). A search reads only a few states of most candidates (the last one, the tail,
+                       # one mid-plan state, the positions); building all 48 state dicts per candidate was ~12 % of a
+                       # search, and the packed form pickles ~30x faster for the parallel search's workers.
+
+
+class _LazySeq:
+    """Read-only list built on demand; slices and concatenations give plain lists."""
+    __slots__ = ()
+
+    def _all(self):
+        raise NotImplementedError
+
+    def __len__(self):
+        return self._n
+
+    def __getitem__(self, i):
+        if isinstance(i, slice):
+            return [self[k] for k in range(*i.indices(self._n))]
+        if i < 0:
+            i += self._n
+        if not 0 <= i < self._n:
+            raise IndexError('rollout sequence index out of range')
+        return self._item(i)
+
+    def _item(self, i):
+        return self._all()[i]
+
+    def __iter__(self):
+        for i in range(self._n):
+            yield self._item(i)
+
+    def __add__(self, other):
+        return list(self) + list(other)
+
+    def __radd__(self, other):
+        return list(other) + list(self)
+
+    def __eq__(self, other):
+        try:
+            return list(self) == list(other)
+        except TypeError:
+            return NotImplemented
+
+    def __ne__(self, other):
+        eq = self.__eq__(other)
+        return eq if eq is NotImplemented else not eq
+
+    __hash__ = None
+
+    def __repr__(self):
+        return repr(list(self))
+
+
+class ReplyStates(_LazySeq):
+    """The reply-boundary states of a compiled forecast. State i (i >= 1) is what predict_native built eagerly before:
+    state 0's keys, the packed fields of reply i's last tick row (marble_sim.NativeSim.unpack), next_yaw and
+    best_contact_normal from the last reply row that set them (else state 0's), and the Blast meter of reply i - 1."""
+    __slots__ = ('native', 'idx', 'state0', 'blast', 'ny_last', 'bcn_last', '_n', '_cache')
+
+    def __init__(self, native, idx, state0, blast):
+        self.native = native; self.idx = idx; self.state0 = state0; self.blast = blast; self._n = len(idx); self._cache = {}
+        rows = native.rows; ar = np.arange(self._n)
+        ny = np.where(rows[idx, 64] != 0, ar, -1); ny[0] = -1
+        bc = np.where(rows[idx, 42] != 0, ar, -1); bc[0] = -1
+        self.ny_last = np.maximum.accumulate(ny); self.bcn_last = np.maximum.accumulate(bc)
+
+    def __getstate__(self):
+        return (self.native, self.idx, self.state0, self.blast, self.ny_last, self.bcn_last, self._n)
+
+    def __setstate__(self, st):
+        self.native, self.idx, self.state0, self.blast, self.ny_last, self.bcn_last, self._n = st; self._cache = {}
+
+    @property
+    def positions(self):
+        """(n, 3) float64 positions of the states (the same values as state['position'])."""
+        return self.native.rows[self.idx, 0:3]
+
+    @property
+    def held(self):
+        """Held powerup of each state (the same values as state['held'])."""
+        return self.native.rows[self.idx, 17].astype(np.int64)
+
+    def _item(self, i):
+        s = self._cache.get(i)
+        if s is not None:
+            return s
+        if i == 0:
+            return self.state0
+        rows = self.native.rows; x = rows[self.idx[i]].tolist(); s0 = self.state0
+        s = dict(s0)
+        s['position'] = x[0:3]; s['velocity'] = x[3:6]; s['spin'] = x[6:9]
+        s['radius'] = x[9]; s['yaw'] = x[10]
+        j = int(self.ny_last[i])
+        if j >= 1:
+            s['next_yaw'] = float(rows[self.idx[j], 11])
+        s['held'] = int(x[17])
+        s['effects'] = [[bool(x[19]), int(x[25])], [bool(x[20]), int(x[26])], [bool(x[21]), int(x[27])],
+                        [bool(x[22]), int(x[28])], [bool(x[23]), int(x[29])], [bool(x[24]), int(x[30])]]
+        s['effect_end_clock_ms'] = [int(x[31]), int(x[32]), int(x[33]), int(x[34]), int(x[35]), int(x[36])]
+        s['clock_ms'] = int(x[38])
+        s['camera_offset'] = x[65:68]
+        j = int(self.bcn_last[i])
+        if j >= 1:
+            s['best_contact_normal'] = rows[self.idx[j], 39:42].tolist()
+        prm = dict(s0['parameters'])
+        for k, key in enumerate(PARAM_KEYS):
+            if key in prm:
+                prm[key] = x[43 + k]
+        s['parameters'] = prm
+        if self.blast is not None:
+            b = dict(s0['blast_context']); b['value'] = float(self.blast[i - 1, 0]); b['special'] = bool(self.blast[i - 1, 1])
+            s['blast_context'] = b
+        self._cache[i] = s
+        return s
+
+
+class _ControlsBuilder:
+    """Builds a compiled forecast's per-reply macro controls, per-tick controls and events together (as predict_native
+    did eagerly: the per-tick controls are the macros' subframe objects)."""
+    __slots__ = ('table', 'pend_move', 'n_done', 'fail_reply', '_built')
+
+    def __init__(self, table, pend_move, n_done, fail_reply):
+        self.table = table; self.pend_move = pend_move; self.n_done = n_done; self.fail_reply = fail_reply; self._built = None
+
+    def __getstate__(self):
+        return (self.table, self.pend_move, self.n_done, self.fail_reply)
+
+    def __setstate__(self, st):
+        self.table, self.pend_move, self.n_done, self.fail_reply = st; self._built = None
+
+    def build(self):
+        if self._built is not None:
+            return self._built
+        controls = []; events = []; native_controls = []; table = self.table.tolist()
+        for i in range(len(table)):
+            R = table[i]; done = int(R[31])
+            move0 = copy.deepcopy(self.pend_move) if i == 0 else _move_dict(table[i - 1][15:21])
+            move1 = _move_dict(R[15:21])
+            camera = [dict(kind='camera_yaw', value=float(R[21]))]
+            impulse = None
+            if R[22] == 1:
+                impulse = dict(kind='blast_impulse', impulse=R[23:26], delta_velocity=R[26:29], meter_before=R[29], special=bool(R[30]))
+            frames = []
+            for k in range(done):
+                control = dict(move=dict(move0 if k == 0 else move1), events=camera if k == 0 else [])
+                if k == 0 and impulse is not None:
+                    control['script_events'] = [impulse]
+                frames.append(control); native_controls.append(control)
+            if i == self.fail_reply:
+                break
+            macro = dict(move=dict(frames[0]['move']), events=[dict(e) for e in frames[0]['events']], subframes=frames)
+            if impulse is not None:
+                macro['script_events'] = [impulse]
+            controls.append(macro)
+            events.append([dict(kind='ambiguous_contact', subframe=k) for k in range(done) if R[32 + k]])
+        self._built = (controls, events, native_controls)
+        return self._built
+
+
+class _BuiltSeq(_LazySeq):
+    __slots__ = ('builder', 'part', '_n', 'script_event_count')
+
+    def __init__(self, builder, part, n, script_event_count=None):
+        self.builder = builder; self.part = part; self._n = n
+        self.script_event_count = script_event_count   # macro controls: replies with a Blast impulse (their script events)
+
+    def __getstate__(self):
+        return (self.builder, self.part, self._n, self.script_event_count)
+
+    def __setstate__(self, st):
+        self.builder, self.part, self._n, self.script_event_count = st
+
+    def _all(self):
+        return self.builder.build()[self.part]
 
 
 # ---------------------------------------------------------------------------------------------- whole forecast in C++
@@ -316,6 +495,30 @@ def predict_native(sim, engine, dynamics, actions, stop_on_ambiguity=False):
     if budget:
         raise PlanningBudgetExceeded('Declared planning wall-time budget exceeded')
     attempted = done_replies + (1 if fail_reply >= 0 else 0)
+    if LAZY_ROLLOUTS:
+        tab = replies[:attempted]
+        proposed = []
+        for a in tab[:, 0:9].tolist():
+            a[4] = int(a[4]); a[6] = int(a[6]); a[8] = int(a[8])
+            proposed.append(a)
+        n_done = fail_reply if fail_reply >= 0 else attempted
+        done = tab[:, 31].astype(np.int64)
+        idx = np.concatenate([[0], np.cumsum(done[:n_done])]).astype(np.int64)
+        state0 = clone_state(state)
+        native_rows = NativeRows(rows[:nrows], state0)
+        states = ReplyStates(native_rows, idx, state0, tab[:n_done, 36:38].copy() if blast0 is not None else None)
+        builder = _ControlsBuilder(tab.copy(), pend_move, n_done, fail_reply)
+        ambiguous = [i for i in range(n_done) if bool((tab[i, 32:32 + int(done[i])] != 0).any())]
+        failure = None
+        if fail_reply >= 0:
+            failure = dict(step=fail_reply, reason=ERRORS_EXTRA.get(fail_code) or ERRORS.get(fail_code, 'native sim error %d' % fail_code))
+        return dict(states=states, controls=_BuiltSeq(builder, 0, n_done, int((tab[:n_done, 22] == 1).sum())),
+                    events=_BuiltSeq(builder, 1, n_done), proposed=proposed,
+                    failure=failure, native_states=native_rows, native_controls=_BuiltSeq(builder, 2, int(done.sum())),
+                    time_s=[i * .064 for i in range(n_done + 1)], ambiguous_intervals=ambiguous,
+                    requested_replies=count, stopped_on_ambiguity=bool(stopped), physics_frame_ms=16, decision_ms=64,
+                    assumptions='Measured local16ms physics/64ms decisions (compiled forecast nav/native), static geometry, '
+                                'ordinary movement/jump and native powers1-5, observed regular/item-charged Blast.')
     states = [clone_state(state)]; controls = []; events = []; native_controls = []
     table = replies[:attempted].tolist()   # one conversion; row access on Python lists is fast
     proposed = []

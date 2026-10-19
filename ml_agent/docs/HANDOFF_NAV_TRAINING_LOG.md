@@ -12273,3 +12273,54 @@ Changes (v40, code defaults; module switches for the sim):
 * Facts for the next steps: v86-family decision latency in pools (231,582 decisions): median 0.028 s, mean 0.257 s, p90
   0.72 s, p99 1.97 s; 65 % within 64 ms (KOTM 91 %, others 56-74 %). Machine: i7-13700KF (24 threads), 32 GB, RTX 3070
   8 GB (torch CUDA available). ~1,000 recorded planner rounds in the 10-16 / 10-17 pool folders.
+
+### 2026-10-19 12:00 MDT - Search speed-up toward real-time play: done, exact, PAUSED for the operator's direction
+* Operator (after the 08:45 stop): "you are approved to speed up search using whatever levers you need. make sure that
+  this search speedup moves us closer to being able to play in realtime ... do not start regular training or
+  experiments again"; then "you are allowed to use more cores to speed up the search". No pools, games or training ran.
+* Rule kept throughout: the planner's decisions stay BIT-IDENTICAL to v86 (no behavior change, so traces judge it, not
+  pools). Verified: Cragmire 3 episodes (decisions 93 / 513 / 630 of the v84 pools, 1,875 decisions) identical to the
+  original planner's trace at every stage; the 9 other maps x 4 episodes, every speed-up OFF vs ON with 8 workers:
+  4,481 of 4,481 decisions identical. Compiled ports bit-tested: observation queries 0 of 9,000 random states differ
+  (5 maps), routing 0 of 8,000 calls, the learned act 0 of 1,632 replies, lazy rollouts 0 of 1,960 forecasts.
+  Tools + the reference trace: ml_agent/tools/sim_bench/exactness/ (README).
+* Where the time went (profile 10-19): ~90 % Python around the compiled forecasts; the slowest single candidate was the
+  learned model's rollout (48 replies x 2.8 ms = 133 ms: model 1.33 ms, observation 0.79 ms, routing 0.39 ms a reply).
+* Changes (planner process only; training and live play untouched):
+  - nav/marble_dynamics/parallel_search.py (new): worker processes forecast and score the search's candidates; results
+    merged in the serial order. Objects travel by name, big arrays once per worker by content key. Airborne candidates'
+    coarse landings are computed ahead (SPECULATE_PROJECTIONS 'coarse'; 'full', the exact projection too, is exact but
+    slower: the parent unpickles fully built landed rollouts). tools/sim_bench --search-workers N.
+  - nav/native/forecast.py LAZY_ROLLOUTS: compiled forecasts return packed arrays; states, controls and events are built
+    on first use. search.py reads held / Blast counts from the packed arrays.
+  - Learned proposal: fast_policy.py (model.act minus training-only work, 1.33 -> 0.34 ms), nav/native/obs_native.cpp +
+    obs_terrain.py (observation terrain queries in C++: crop 270 -> 50-90 us, edge rays 430-530 -> 25-29 us, gap
+    130-245 -> 8 us, floor 29 -> 1.5 us), route_native.py (compiled line_clear / path_waypoint: navigate ~950 -> 30 us).
+    One learned rollout 133 -> ~25 ms.
+  - nav/routing.py NATIVE_DISTANCE / NATIVE_NAVIGATE (set by nav.native.attach): RoutePlanner.distance / navigate in C++
+    when the input types are covered, else Python.
+  - nav/native/build.ps1 also builds obs_native.dll (%TEMP%/pq_checks/marble_sim); rebuild after editing
+    obs_native.cpp; without the DLL the NumPy path runs (exact, slower).
+* Bug found by the cross-map check and fixed: Windows multiprocessing pipes hold 8 KB; the parent sending a >8 KB
+  candidate to a busy worker while that worker sent its result deadlocked the pool (King of the Marble). Now one-way
+  pipes and a sender thread per worker; the parent's main thread only reads.
+* Speed, the same 3 Cragmire episodes (scratchpad phase_times.py = tools/sim_bench/exactness/phase_times.py; sum of
+  decision times): original planner 602 s; 8 workers 145 s (4.1x); 16 workers 148 s (no further gain: the parent's
+  serial work is the limit now). Episode wall: original 734 s, exact fast paths alone (serial) 296 s (2.5x).
+  Decision latency, original -> 8 workers: mean 321 -> 78 ms, median 16 -> 11 ms, p90 914 -> 188 ms, p99 2.17 ->
+  0.59 s, max 3.58 -> 0.81 s; within 64 ms 53 -> 56 %, within 128 ms 53 -> 74 %, within 256 ms 57 -> 95 %.
+  Decisions with a search (47 %): median 561 -> 136 ms, p90 1.17 -> 0.26 s, p99 2.28 -> 0.64 s.
+  Split (8 workers): candidate evaluation 51 % of decision time, landing projections 22 %, order-choice alternatives
+  26 % (part of search), braking backups 3 %.
+* Pools: even serial, searches are ~2.5x faster, so fewer hit the 2 s wall budget and pool play can differ from v86 for
+  that reason alone. Re-baseline the reference (v86 pooled 130.37) before comparing new pool results. The worker pool is
+  not wired into reliability_eval (8-game pools already use the cores; single-game and real-time runs are where it pays).
+* Real-time audit (what the planner reads that a real game would not give): no future spawn is read. To settle before
+  real-time play: the exact powerup respawn timers (raw obs 46-60, "seconds to respawn") reach the learned model's
+  observation (nav/obs.py vec[VEC_POW+25]) and the planner's item logic; can_quick_respawn is the server's flag
+  (reliability_eval.py:1102); REPLAYWORLD feeds only gating, audit and timing. The exact marble state (DYNAMICS) is
+  the player's own state but exists only in the lockstep probe exe.
+* Next levers (not started; operator's call): (1) lazy concatenation of rollouts + a cheaper resume_forecast (landing
+  projections and braking backups ~2x; exact); (2) the order-choice alternatives searched concurrently (exact); (3)
+  latency-compensated planning: plan from the predicted state while the committed plan runs, plus a real-time
+  emulation in sim_bench (behavior change: sims and pools); (4) a non-lockstep live mode (DYNAMICS outside lockstep).

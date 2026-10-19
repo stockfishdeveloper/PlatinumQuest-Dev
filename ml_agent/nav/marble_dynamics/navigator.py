@@ -10,6 +10,12 @@ from nav.obs import ObsBuilder, NAV_OBS_VERSION, fill_use_state, ss_aim
 from nav.joystick import action_to_joystick
 from nav.protocol import RAW_GEMS, RAW_POW_ITEMS, RAW_SPIN, RAW_POW_HELD,RAW_POW_BLAST,RAW_POW_SPECIAL
 from nav.marble_dynamics.bridge import reply
+from nav.marble_dynamics.fast_policy import deterministic_act
+from nav.native.obs_terrain import native_queries
+from nav.native.route_native import navigate as native_navigate
+
+FAST_ACT = True     # 2026-10-19 (search speed-up toward real time): fast_policy.deterministic_act (bit-identical to model.act)
+FAST_OBS = True     # the observation's terrain queries in C++ (nav/native/obs_terrain.py, bit-identical; NumPy fallback)
 
 
 def project_observation(raw, initial_position, state, index):
@@ -38,7 +44,7 @@ def project_observation(raw, initial_position, state, index):
 
 class FrozenNavigator:
     def __init__(self,terrain,checkpoint=None,model=None):
-        self.terrain=terrain;self.builder=ObsBuilder(terrain)
+        self.terrain=terrain;self.builder=ObsBuilder(native_queries(terrain) if FAST_OBS else terrain)
         if model is None:
             torch.set_num_threads(1)
             ck=torch.load(str(checkpoint),map_location='cpu')
@@ -51,15 +57,18 @@ class FrozenNavigator:
 
     def clone(self):
         other=copy.copy(self);other.h=self.h.clone();other.sent=list(self.sent)
-        other.builder=ObsBuilder(self.terrain);other.builder.airborne=self.builder.airborne
+        other.builder=ObsBuilder(self.builder.terrain);other.builder.airborne=self.builder.airborne
         return other
 
     def act(self,raw,waypoint,gem,next_goal=None):
         crop,vec,_=self.builder.build(raw,waypoint,next_goal,gem_goal=gem)
         fill_use_state(vec,*self.sent,self.pending is not None,self.aim,(self.decision-self.fire)*.064)
         with torch.inference_mode():
-            out=self.model.act(torch.from_numpy(crop).unsqueeze(0),torch.from_numpy(vec).unsqueeze(0),self.h,deterministic=True)
-        self.h=out['h_next'];a=out['action_game'][0].tolist()
+            if FAST_ACT:
+                a,self.h=deterministic_act(self.model,crop,vec,self.h)
+            else:
+                out=self.model.act(torch.from_numpy(crop).unsqueeze(0),torch.from_numpy(vec).unsqueeze(0),self.h,deterministic=True)
+                self.h=out['h_next'];a=out['action_game'][0].tolist()
         v=raw[3:6];js=action_to_joystick(*a[:5],float(v[0]),float(v[1]))
         held=int(raw[RAW_POW_HELD]);use=a[5]>.5
         aim=ss_aim(vec) if held==2 else None
@@ -87,11 +96,13 @@ class NavigatorProposal:
         # With a supplied reply, the real actor has already advanced at this
         # observation. Reuse that reply, then advance only this clone in futures.
         self.first_action=list(first_action) if first_action is not None else None
+        self.native=None   # the engine's compiled simulator: the route is followed with its routing (route_native, exact)
 
     def __call__(self,state,index):
         raw=project_observation(self.raw,self.initial_position,state,index)
         if self.previous is not None:self.navigator.outcome(self.previous,raw)
-        waypoint,_=self.route.navigate(state['position'],self.gem)
+        waypoint,_=(native_navigate(self.native,self.route,state['position'],self.gem) if self.native is not None
+                    else self.route.navigate(state['position'],self.gem))
         action=(list(self.first_action) if index==0 and self.first_action is not None
             else self.navigator.act(raw,waypoint,self.gem,self.next_goal))
         self.previous=raw
