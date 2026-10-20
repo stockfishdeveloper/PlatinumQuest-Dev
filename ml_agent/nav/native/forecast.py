@@ -327,7 +327,7 @@ class _BuiltSeq(_LazySeq):
 
 
 # ---------------------------------------------------------------------------------------------- whole forecast in C++
-Q_SIZE = 42; R_SIZE = 38
+Q_SIZE = 49; R_SIZE = 38
 ERRORS_EXTRA = {7: 'Blast context unavailable in this snapshot', 8: 'Triple Blast, Fireball or cannon actuation is not verified',
                 10: 'Positive native mass required for Blast', 11: 'Positive Blast charge time required',
                 12: 'Timed Mega activation/expiry requires a verified script-event model',
@@ -357,6 +357,8 @@ def seq_array(spec):
         q[33] = 1; q[34:37] = spec.previous[:3]
     if getattr(spec, 'min_speed', None) is not None:   # ABI 8 (v62)
         q[40] = 1; q[41] = spec.min_speed
+    if getattr(spec, 'box', None) is not None:         # ABI 9: the through gem's pickup box (search.THROUGH_BOX)
+        q[42] = 1; q[43:49] = np.asarray(spec.box, dtype=float)[:6]
     return q
 
 

@@ -348,6 +348,7 @@ struct SeqSpec {                       // search.SequenceProposal
     bool through; Route next_route; P3 ngem; double leg; bool has_arrive; double arrive;
     bool passed = false; bool has_prev = false; V3 prev{0, 0, 0};
     bool has_min = false; double min_speed = 0;   // ABI 8: search.SequenceProposal.min_speed (v62)
+    bool has_box = false; double box[6] = {0, 0, 0, 0, 0, 0};   // ABI 9: the gem's pickup box (search.THROUGH_BOX)
 };
 
 // search.open_top: state['position'] plain floats (weak cell_of), the level nearest z - radius (float32 compare)
@@ -374,7 +375,12 @@ Action seq_call(Terrain& t, const Consts& C, SeqSpec& S, V3 p, V3 v, int index, 
     if (S.through) {
         if (index == 0) { S.passed = false; S.has_prev = false; }
         V3 g{S.gem.x, S.gem.y, S.gem.z};
-        if (!S.passed && S.has_prev) {
+        if (!S.passed && S.has_box) {
+            // ABI 9: the game's pickup test on this step (the item box against the swept marble box + radius + 0.2 u)
+            V3 a = S.has_prev ? S.prev : p; double r = radius + .2;
+            S.passed = pymax(a.x, p.x) + r >= S.box[0] && pymax(a.y, p.y) + r >= S.box[1] && pymax(a.z, p.z) + r >= S.box[2]
+                    && pymin(a.x, p.x) - r <= S.box[3] && pymin(a.y, p.y) - r <= S.box[4] && pymin(a.z, p.z) - r <= S.box[5];
+        } else if (!S.passed && S.has_prev) {
             V3 a = S.prev, ab = sub(p, a);
             double tt = clip01(dot(sub(g, a), ab) / pymax(dot(ab, ab), 1e-12));
             S.passed = norm(sub(add(a, mul(ab, tt)), g)) < C.through_switch;

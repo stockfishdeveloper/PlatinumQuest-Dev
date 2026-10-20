@@ -25,6 +25,11 @@ THROUGH_REACH_U=18.      # u: through proposals are added only when the gem is t
 OPEN_TOP=0.              # --open-top (v36, under test): top target speed far from drops (0 = off; 13.5 with the flag) ...
 OPEN_NEAR_U=4.           # ... 11 u/s within this walk-grid distance of a drop ...
 OPEN_FAR_U=8.            # ... rising linearly to OPEN_TOP at this distance
+THROUGH_BOX=False        # 2026-10-19 (operator: keep momentum through gems): through plans switch to the next gem when the
+                         # marble enters the gem's pickup box (the game's test), not within THROUGH_SWITCH_U of its centre
+WALL_BOUNCE=False        # 2026-10-19 (operator: use wall hits): bank-shot plans off a wall toward the next gem (wall_bounce.py);
+                         # on 21:25 with reliability_eval.WALL_TOUR (sim 120 starts x 10 maps -0.07 s a group, 6 better /
+                         # 2 worse); ROLLED BACK 21:47 (operator) after weak live rounds; on the todo list (ml_agent/TODO.md)
 CORNER_PROPOSALS=False   # v38 (--corner-proposals, under test): through proposals that reach the gem at the turn's speed
 USE_AWAY_U=0.            # 2026-10-16: a use that collects but ends this much farther from the next gem is rejected (0 = off; v40: 8)
 SS_RESERVE_LAST_U=0.     # 2026-10-16: no Super Speed plans for the last gem of a group closer than this (0 = off; v40: 20) ...
@@ -137,13 +142,19 @@ class SequenceProposal:
         self.through=through;self.next_route=copy.copy(through[0]) if through is not None else None
         self.passed=False;self.previous=None
         self.min_speed=None   # v62: pickup minimum speed for this plan (None = PICKUP_MIN_SPEED)
+        self.box=None         # THROUGH_BOX: the gem's pickup box [lo xyz, hi xyz] (None = the THROUGH_SWITCH_U centre test)
         self.fast=fast        # fast family: top target speed; never brakes below the speed carried toward the aim point
 
     def __call__(self,state,index):
         if self.through is not None:
             p=np.asarray(state['position'],dtype=float)
             if index==0:self.passed=False;self.previous=None
-            if not self.passed and self.previous is not None:
+            if not self.passed and self.box is not None:
+                # the game's pickup test on this step (the compiled port does the same: controllers.inc, ABI 9)
+                a=self.previous if self.previous is not None else p;r=float(state['radius'])+.2;b=self.box
+                self.passed=bool(max(a[0],p[0])+r>=b[0] and max(a[1],p[1])+r>=b[1] and max(a[2],p[2])+r>=b[2]
+                                 and min(a[0],p[0])-r<=b[3] and min(a[1],p[1])-r<=b[4] and min(a[2],p[2])-r<=b[5])
+            elif not self.passed and self.previous is not None:
                 # closest approach of the last step's path to the gem
                 a=self.previous;ab=p-a;t=float(np.clip(((self.gem[:3]-a)@ab)/max(float(ab@ab),1e-12),0.,1.))
                 self.passed=float(np.linalg.norm(a+t*ab-self.gem[:3]))<THROUGH_SWITCH_U
@@ -374,9 +385,13 @@ def line_specs(engine,route,dynamics,gem,through,steps):
 def follow_time(engine,nroute,dynamics,ngem,nitem):
     """Earliest game-tick pickup (replies) of the next gem from `dynamics` over a few compiled controllers, or None."""
     best=None;n=CLUSTER_FOLLOW_REPLIES
+    bounces=()
+    if WALL_BOUNCE:   # 2026-10-19: a pickup that leaves the marble heading away from the next gem can bank off a wall to it
+        from nav.marble_dynamics.wall_bounce import bounce_specs
+        bounces=tuple(spec for _,spec in bounce_specs(engine,nroute,dynamics,ngem,None,n))
     for spec in (SequenceProposal(nroute,ngem,n),SequenceProposal(nroute,ngem,n,direct=True),
                  SequenceProposal(nroute,ngem,n,offset=-.5,turn_after=12),SequenceProposal(nroute,ngem,n,offset=.5,turn_after=12),
-                 SequenceProposal(nroute,ngem,n,scale=.7)):
+                 SequenceProposal(nroute,ngem,n,scale=.7))+bounces:
         try:roll=predict_replies(engine,dynamics,spec)
         except ValueError:continue
         if roll['failure']:continue
@@ -406,7 +421,7 @@ def apply_two_level(engine,route,dynamics,gem,pairs,target_item):
     allc=sorted([(info,roll) for info,roll in pairs if info['rejected'] is None and roll is not None
                   and info.get('possible_pickup_interval') is not None],key=lambda p:p[0]['cost'])
     nre=3 if getattr(engine,'_light_search',False) else CLUSTER_TWO_LEVEL
-    cands=allc[:nre]+[p for p in allc[nre:] if p[0]['label'].startswith('line')]
+    cands=allc[:nre]+[p for p in allc[nre:] if p[0]['label'].startswith(('line','bounce'))]
     TL_STATS['line_pickup']+=sum(1 for p in allc if p[0]['label'].startswith('line'))
     if len(cands)<2:return
     from nav.marble_dynamics.viability import resume_forecast
@@ -417,7 +432,7 @@ def apply_two_level(engine,route,dynamics,gem,pairs,target_item):
         for info,roll in cands:
             k=int(info['possible_pickup_interval'])
             if k>len(roll['proposed']):continue
-            if info['label'].startswith('line'):
+            if info['label'].startswith(('line','bounce')):   # these plans drive to the next gem themselves
                 kb=_gem_demo.possible_pickup(roll['states'],nitem,roll.get('native_states'))
                 if kb is not None:
                     results.append((info,max(k,kb),0));continue
@@ -505,6 +520,10 @@ def search(engine,route,dynamics,raw,gem,navigator,horizon=40,warm=None,brake_re
         specs+=[('fast_'+str(int(top)),SequenceProposal(route,gem,steps,fast=top)),
                 ('direct_fast_'+str(int(top)),SequenceProposal(route,gem,steps,direct=True,fast=top))]
     for scale in (.4,.7):specs.append(('throttle_'+str(scale),SequenceProposal(route,gem,steps,scale=scale)))
+    if WALL_BOUNCE and not getattr(engine,'crossing_phase',False):
+        # 2026-10-19 (operator: use wall hits): moving fast away from the target, bank off a wall toward it (wall_bounce.py)
+        from nav.marble_dynamics.wall_bounce import bounce_specs,STEPS as BOUNCE_STEPS
+        specs+=bounce_specs(engine,route,dynamics,gem,through,max(steps,BOUNCE_STEPS))
     # Climb crossings (opt-in) try more jump times and Blast-first families; gap
     # crossings keep the v7 families.
     climbing=bool(getattr(engine,'crossing_phase',False) and (getattr(engine,'crossing',None) or {}).get('climb'))
@@ -620,6 +639,10 @@ def search(engine,route,dynamics,raw,gem,navigator,horizon=40,warm=None,brake_re
     if navigator_spec is None:pass
     elif getattr(engine,'navigator_first',False):specs.insert(0,navigator_spec)
     else:specs.append(navigator_spec)
+    if THROUGH_BOX and gem_item is not None and gem_item.get('bounds') is not None:
+        box=[float(x) for x in gem_item['bounds']]
+        for _label,_spec in specs:
+            if isinstance(_spec,SequenceProposal) and _spec.through is not None:_spec.box=box
     if ARRIVAL_MIN_SPEED and getattr(engine,'arrival_fast',None)==goal_key(gem):
         # v62: the end of a long trip (pick() records each target's starting distance): keep speed at the pickup
         for _label,_spec in specs:

@@ -12406,3 +12406,66 @@ Changes (v40, code defaults; module switches for the sim):
 * Round 3 (17:36-17:41): 181 points, 0 falls, 0 respawns, holds 301 / 11.3 s, longest 0.18 s, 315.6 s of wall clock.
   Above every v86 pool Sprawl round (168-179); the best real Sprawl round stays 191 (v84 pool, 10-18), so the
   best-scores sheet is unchanged.
+
+### 2026-10-19 18:45 MDT - Wall bounces: implemented, tested offline, no gain (operator: "the marble never seems to use walls to hit against to turn back on itself ... can we utilize wall hits?"; then "go ahead and implement and test wall hits. see if you can get some points out of it")
+* Why it never did: every candidate steers at the gem or along a walking route (routes keep clear of walls) and the
+  through plans turn toward the next gem right after a pickup, so no plan aims at a wall. Nothing rejects bounces: the
+  forecast is the game's contact code (exact), the cost is time, uncertain contacts are accepted since v86.
+* Engine wall contact (marble.cc; MarbleData maxDotSlide 0.5, bounceRestitution 0.5): a hit steeper than ~30 degrees
+  keeps the along-wall velocity and returns half the normal part; a shallower hit slides along the wall at full speed.
+* Code (flag-gated, default OFF): nav/marble_dynamics/wall_bounce.py + search.WALL_BOUNCE. Families: (1) moving
+  >= 4 u/s with the target >= 90 degrees off the velocity: full speed into a wall point W chosen by the
+  restitution-adjusted bank-shot rule toward the target (walls from a fan of horizontal rays in the collision mesh,
+  checked for a clear line in and a clear rebound line), aim shifts 0 / +-0.75 u, plus 'straight ahead' when a wall is
+  ahead; (2) the next gem behind the target along the approach: full speed through the target into a wall behind it,
+  banked toward the next gem (11 and 14 u/s); after the rebound the ordinary route plan. Cluster ranking: bounce plans use
+  their own forecast's second pickup, and follow_time tries bounce plans from a pickup state.
+* Opportunity (scratchpad wb_opportunity.py, 3 v86 rounds per map): pickups at >= 6 u/s followed by a turn back
+  within 2 s: 12-42 per round, 0.9-1.5 s per turn; with a wall within 4 u ahead at the pickup: Sprawl 35, TreasureBox
+  30, Duplex 22, Cragmire 19, Fractured 14, Cube 7, Concentric 6, Vortex 2, Bowl 0, KOTM 0 (per 3 rounds).
+* Offline A/B (sim_bench --whole-group --native, 12 starts x 10 maps from the v86 start0-2 rounds; base = flag off):
+  family (1) + follow-ups: 0.00 s mean, 0 better / 1 worse (Sprawl +1.7 s), bounce chosen in 71 of 12,153 decisions;
+  with family (2) too: 0.00 s mean, 2 better / 1 worse, 77 of 12,134 decisions. Diagnostics at recorded turn-backs
+  (scratchpad wb_diag*.py): the bounce plans pass the gates but the best ordinary plan collects the target as soon or
+  sooner; with a wall close ahead the ordinary plans hit it anyway (momentum) while steering toward the target.
+  Verdict: no gain at the planner's speeds (pickups 6-11 u/s, cap 11); kept off. Ideas not tried: faster approaches
+  that rely on a wall to stop (above the 11 u/s cap), wall slides (shallow hits keep full speed) for corners.
+
+### 2026-10-19 21:25 MDT - Wall hits, second pass: momentum through gems (operator: "i promise you the plans are faster with wallhits ... collecting a row of 3 gems on cragmire, maintaining speed, rebounding off the wall, then quickly getting a row of 2 other gems ... using walls to maintain your momentum through the gems")
+* Recorded row ends (scratchpad wb_cases.py / wb_rowends.py, Cragmire v86 rounds): the marble often hits the wall after
+  a fast pickup, then FIGHTS the rebound (moving forward again within 1 s) or brakes first and turns in 1.0-1.7 s.
+* Bugs found by tracing (wb_trace.py, Cragmire start1 decision 2153): (1) the through-style pass test (closest
+  approach < THROUGH_SWITCH_U 0.6 u of the gem centre) is far inside the game's pickup reach (gem box half-size
+  0.3 x 0.25 x 0.25, centre 0.2 u above the item position, + marble radius + 0.2 u), so after collecting a gem
+  ~1 u off-centre the plan keeps chasing its centre and circles it; the ordinary through plans do the same. (2) After a
+  rebound the walking-route plan loops around a step (the next gem one level down) instead of rolling straight at it.
+* Fixes in wall_bounce.py: the via gem passes on the game's own box test; after the rebound straight at the target
+  (direct; a route variant kept). Decision 2153: bounce plan B pickup at reply 21 vs 23 for the best ordinary plan.
+* Wall-aware tour (reliability_eval.WALL_TOUR + wall_turn_cost, nav/gems.plan_tour turn_fn): a reversal at a gem with a
+  wall within 3.5 u behind it (arrival direction) costs the turn left after the rebound (normal part reversed at 0.5)
+  plus WALL_TURN_K x the wall distance, never more than the plain turn. With K = 2 it never changed an order; K = 0
+  changes the (target, next) choice in 2.6 % of Cragmire decisions.
+* Exact pickup-box switch for the ordinary through plans (search.THROUGH_BOX, compiled controller ABI 9:
+  controllers.inc / marble_sim.cpp Q_HAS_BOX / Q_BOX, forecast.seq_array, marble_sim.py ABI check; DLL rebuilt with
+  nav/native/build.ps1): exact when off (base 120 / 120 sim episodes identical to the pre-change run).
+* Sim A/B (sim_bench --whole-group --native, 120 starts x 10 maps, vs base): bounce plans (fixed) -0.05 s a group
+  (4 better / 2 worse); + wall tour K 0.5 -0.06 s (5 / 2); + wall tour K 0: -0.07 s (6 better / 2 worse; Sprawl
+  -0.35, Cragmire -0.22, TreasureBox -0.07, no extra falls); THROUGH_SWITCH_U 0.9 +0.03 (mixed); exact box switch
+  alone +0.10 (9 / 11: TreasureBox -0.22, Vortex -0.20, Cragmire +0.82); box + bounces + tour +0.01.
+* ADOPTED as code defaults 21:25: search.WALL_BOUNCE True, reliability_eval.WALL_TOUR True, WALL_TURN_K 0;
+  THROUGH_BOX stays False. No 30-round pool yet (the adoption rule's in-game check); first live real-time Cragmire round
+  started 21:23.
+* Live real-time rounds with the walls on: Cragmire 94 (2 falls, 4 stuck respawns, 572 safe holds), TreasureBox 126
+  (2 respawns) then 165 (1 respawn). Pools: TreasureBox 174-196. Not yet compared with walls off live.
+
+### 2026-10-19 21:38 MDT - Pre-spin in the countdown (operator: "impart spin to the marble during ready set go to pre load some spin so the marble gets a little headstart")
+* The planner sent no input during Ready/Set (pools: 'countdown_neutral'; realtime.py: NOOP). The marble sits in Start
+  mode (marble.cc mMode 2: held in place, the stick's torque still applies), so the spin was free speed left unused.
+* reliability_eval.ContinuousController.prespin (PRESPIN True): full stick toward the tour's first gem along its route
+  during the countdown (label 'countdown_prespin'); used by the pools' full-round loop and by realtime.py (the planner
+  thread is idle until GO). First live round (TreasureBox 21:38): spin 78.8 rad/s at GO.
+* .gitignore: *.err (operator); 359 .err files were already tracked before the rule and stay tracked until removed
+  from the index.
+* TreasureBox live with pre-spin + walls: 157 points (2 stuck respawns).
+* 21:47 (operator): wall rebounds ROLLED BACK (search.WALL_BOUNCE False, reliability_eval.WALL_TOUR False; code kept) and
+  put with Mega Marble usage on a new todo list, ml_agent/TODO.md. Pre-spin stays on.

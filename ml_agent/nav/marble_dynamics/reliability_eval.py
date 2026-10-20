@@ -33,6 +33,7 @@ from nav.marble_dynamics.evaluate import errors
 from nav.marble_dynamics.events import external_changes
 from nav.marble_dynamics.navigator import FrozenNavigator
 from nav.marble_dynamics.search import search,assess,PlanMemory,retained_candidate,useful_candidate,safe_hold_choice,actor_forecast_unsafe
+import nav.marble_dynamics.gem_demo as _gem_demo
 from nav.marble_dynamics.resources import choose_resource,item_goal
 from nav.marble_dynamics.geometry_route import walking_terrain
 from nav.marble_dynamics.recharge import choose_recharge
@@ -148,13 +149,52 @@ def endgame_order(dist,position,gems,time_left_s,current):
     return gems[order[0]],(gems[order[1]] if len(order)>1 else None)
 
 
-def tour(terrain,fields,raw,current):
+PRESPIN=True       # 2026-10-19 (operator): spin the marble up on its pad during Ready/Set toward the first gem (prespin)
+WALL_TOUR=False    # (rolled back 2026-10-19 21:47 with search.WALL_BOUNCE, operator; see ml_agent/TODO.md)
+                   # 2026-10-19 (operator: "using walls to maintain your momentum through the gems"): the tour charges a
+                   # reversal at a gem with a wall close behind it only for the turn left after the rebound (wall_turn_cost)
+WALL_TURN_U=3.5    # u: walls this close behind the gem along the arrival direction
+WALL_TURN_E=.5     # MarbleData bounceRestitution: the part of the velocity into the wall that comes back
+WALL_TURN_K=0.     # u of tour cost per u of wall distance (the trip in and out at speed; a full reversal costs
+                   # PLANNER_TOUR_TURN_U = 6 u, braking from 6 u/s alone takes ~0.9 s). Sim 10-19: 0 -0.07 s a group,
+                   # 0.5 -0.06 s, the plain wall trip (2 x distance) never changed an order
+
+
+def wall_turn_cost(mesh,cache,a,dx,dy,ex,ey,tu):
+    """Tour cost of the turn at gem `a` (arrival direction (dx, dy), leaving toward (ex, ey)) when a wall within
+    WALL_TURN_U behind the gem turns the marble: the turn left between the rebound direction (the normal part of the
+    velocity reversed at WALL_TURN_E) and the way out, plus WALL_TURN_K x the wall's distance (the trip in and out);
+    None when no wall is there."""
+    na=math.hypot(dx,dy);nb=math.hypot(ex,ey)
+    if na<1e-6 or nb<1e-6:return None
+    d=(dx/na,dy/na);key=(goal_key(a),round(math.degrees(math.atan2(d[1],d[0]))/5.))
+    if key not in cache:
+        z=float(a[2])-.25
+        hit=mesh.raycast(np.array([a[0],a[1],z]),np.array([a[0]+WALL_TURN_U*d[0],a[1]+WALL_TURN_U*d[1],z]),cull_backfaces=True)
+        if hit is None or abs(float(hit['normal'][2]))>.35:cache[key]=None
+        else:
+            n=np.asarray(hit['normal'][:2],dtype=float);n=n/max(float(np.linalg.norm(n)),1e-9)
+            vn=d[0]*n[0]+d[1]*n[1]
+            if vn>-.5:cache[key]=None                      # a glancing hit slides along the wall (maxDotSlide 0.5)
+            else:
+                r=np.array(d)-(1.+WALL_TURN_E)*vn*n;cache[key]=(r/max(float(np.linalg.norm(r)),1e-9),float(hit['t'])*WALL_TURN_U)
+    w=cache[key]
+    if w is None:return None
+    r,L=w;c=max(-1.,min(1.,(r[0]*ex+r[1]*ey)/nb))
+    return tu*math.sin(math.acos(c)/2.)+WALL_TURN_K*L
+
+
+def tour(terrain,fields,raw,current,mesh=None):
     gems=visible_gems(raw)
     def distance(a,g):
         key=goal_key(g)
         if key not in fields:fields[key]=terrain.goal_field(g[0],g[1],jumps=False,z=g[2])
         return terrain.dist_at(fields[key],a[0],a[1],g[:2],z=a[2])
-    gem,nxt=plan_tour(gems,current,raw[:3],raw[3:5],dist=distance,turn_u=PLANNER_TOUR_TURN_U)
+    turn_fn=None
+    if WALL_TOUR and mesh is not None:
+        cache=fields.setdefault('_wall_turns',{})
+        turn_fn=lambda a,dx,dy,ex,ey,tu:wall_turn_cost(mesh,cache,a,dx,dy,ex,ey,tu)
+    gem,nxt=plan_tour(gems,current,raw[:3],raw[3:5],dist=distance,turn_u=PLANNER_TOUR_TURN_U,turn_fn=turn_fn)
     return gem,nxt,gems
 
 
@@ -642,6 +682,25 @@ class ContinuousController:
     def uses_physics(self):
         return self.kind in ('physics_plan','physics_plan_reference')
 
+    def prespin(self,msg):
+        """The Ready/Set countdown (2026-10-19, operator: "impart spin to the marble during ready set go to pre load some
+        spin so the marble gets a little headstart"). The marble sits on its pad in Start mode: the engine holds it in
+        place but applies the stick's torque (marble.cc, mMode 2), so a held stick spins it up and GO turns the spin into
+        speed. Full stick toward the first gem of the tour along its route, so the marble leaves the pad already rolling
+        that way; the planner takes over at GO with the spin in its state. (action, choice); neutral without a live state."""
+        neutral=(reply(NOOP_ACTION),dict(label='countdown_neutral'))
+        state=((msg.dynamics if isinstance(msg.dynamics,dict) else {}).get('native') or {}).get('state')
+        if not PRESPIN or not isinstance(state,dict):return neutral
+        target,_,_=tour(self.terrain,self.fields,msg.obs,None,mesh=self.engine.mesh)
+        if target is None:return neutral
+        pos=np.asarray(state['position'],dtype=float)
+        goal=np.asarray(copy.copy(self.route).navigate(pos,np.asarray(target[:3],dtype=float))[0],dtype=float)
+        if float(np.linalg.norm(goal[:2]-pos[:2]))<.05:return neutral
+        top=_gem_demo.TARGET_SPEED_CAP
+        action=_gem_demo.Proposal(goal,0.,speed_distance=1e3,min_speed=top,top=top)(state,0)
+        action[8]=0
+        return action,dict(label='countdown_prespin',goal=[float(v) for v in goal[:3]])
+
     def invalidate(self,reason,reset_actor=False):
         self.memory.clear();self.current=None;self.resource=None;self.commit_left=0
         self.task_goal=None;self.stall=None;self.stall_pending=False
@@ -837,7 +896,7 @@ class ContinuousController:
         preserve_actor_task=(self.kind=='physics_plan' and getattr(self.args,'actor_task_during_recovery',False))
         context=dynamics.get('game_context',{})
         self.observed_respawns=context['respawns'] if context.get('available') else None
-        target,nxt,gems=tour(self.terrain,self.fields,raw,self.current)
+        target,nxt,gems=tour(self.terrain,self.fields,raw,self.current,mesh=self.engine.mesh)
         oc=getattr(self,'order_commit',None)
         if oc is not None:
             alive=[g for g in visible_gems(raw) if np.linalg.norm(np.asarray(g[:3])-np.asarray(oc[0][:3]))<.1]
@@ -1196,7 +1255,7 @@ def full_round_branch(env,proc,name,seed,kind,args,terrain,engine,checkpoint_has
             remaining=max(1,int(env.time_left_s()/.064))
             t0=time.perf_counter()
             if countdown:
-                action=reply(NOOP_ACTION);choice=dict(label='countdown_neutral')
+                action,choice=controller.prespin(env.msg)   # 2026-10-19: spin up on the pad toward the first gem
                 controller.last_prediction=None;controller.last_action=None
             else:action,choice=controller.action(env.msg,remaining)
             elapsed=time.perf_counter()-t0;latencies.append(elapsed)

@@ -250,6 +250,8 @@ def fam(label):
         return 'corner'
     if label.startswith('route_corner'):
         return 'rcorner'
+    if label.startswith('bounce'):
+        return 'bounce'   # 2026-10-19 wall-bounce plans (nav/marble_dynamics/wall_bounce.py)
     for k in ('through', 'blast', 'jump', 'use', 'steering', 'throttle', 'direct', 'route', 'frozen', 'crossing', 'landing', 'recharge'):
         if k in label:
             return k

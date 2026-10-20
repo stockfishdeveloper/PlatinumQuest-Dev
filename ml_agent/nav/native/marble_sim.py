@@ -33,7 +33,7 @@ class NativeSim:
         self.lib = ctypes.CDLL(str(dll or DEFAULT_DLL))
         L = self.lib
         L.ms_abi.restype = ctypes.c_int
-        if L.ms_abi() != 8:
+        if L.ms_abi() != 9:
             raise ValueError('Incompatible marble_sim ABI')
         L.ms_state_size.restype = ctypes.c_int
         if L.ms_state_size() != S_SIZE:

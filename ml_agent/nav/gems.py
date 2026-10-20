@@ -50,7 +50,7 @@ TOUR_SWITCH = 0.90             # plan_tour keeps the current target unless anoth
 
 
 def plan_tour(gems, current, pos, vel, dist=None, momentum_k=None, turn_u=None, switch=None,
-              first_turn_costs=None, order_credits=None, end_costs=None):
+              first_turn_costs=None, order_credits=None, end_costs=None, turn_fn=None):
     """WHOLE-SPAWN order (2026-09-26, HANDOFF 28.50; evaluation-only via NAV_TOUR in nav/real_run.py).
     choose() ranks gems one at a time; this scores every order of the visible gems (at most 5! = 120):
     leg distances + the momentum cost of the first turn (as in choose) + turn_u * sin(phi / 2) for the turn
@@ -109,7 +109,14 @@ def plan_tour(gems, current, pos, vel, dist=None, momentum_k=None, turn_u=None, 
             a, b = order[i - 1], order[i]
             c += dist((a[0], a[1], a[2]), b) + climb(a[2], b[2])
             ex, ey = b[0] - a[0], b[1] - a[1]
-            c += tu * turn(dx, dy, ex, ey)
+            t = tu * turn(dx, dy, ex, ey)
+            if turn_fn is not None and t > 0.:
+                # 2026-10-19 (operator: walls keep the momentum through gems): a wall behind the gem may turn the marble
+                # for less (reliability_eval.wall_turn_cost); never more than the plain turn
+                w = turn_fn(a, dx, dy, ex, ey, tu)
+                if w is not None:
+                    t = min(t, w)
+            c += t
             dx, dy = ex, ey
         if order_credits and len(order) >= 3:
             c -= order_credits.get((order[0], order[1], order[2]), 0.0)

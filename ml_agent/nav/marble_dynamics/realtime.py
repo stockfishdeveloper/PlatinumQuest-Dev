@@ -549,7 +549,10 @@ def play_round(env, world, journal_folder):
             countdown = duration > 0 and env.time_left_s() >= duration
             if not countdown and not playing:
                 playing = True
-                log('%s: GO at tick %d' % (world.name, tick))
+                st = ((msg.dynamics if isinstance(msg.dynamics, dict) else {}).get('native') or {}).get('state') or {}
+                spin = float(np.linalg.norm(st.get('spin', [0., 0., 0.]))) if st else 0.
+                log('%s: GO at tick %d (speed %.2f u/s, spin %.1f rad/s from the pre-spin)' % (
+                    world.name, tick, float(np.linalg.norm(np.asarray(msg.obs[3:5], dtype=float))), spin))
             held_s = 0.
             if playing:
                 planner.see(tick, msg, outcome)
@@ -559,7 +562,9 @@ def play_round(env, world, journal_folder):
                     if held_s > STALL_REPORT_S:
                         log('  held the game %.2f s at tick %d' % (held_s, tick))
             else:
-                action = reply(NOOP_ACTION)
+                # Ready/Set: spin the marble up on its pad toward the first gem (ContinuousController.prespin; the planner
+                # thread is idle until GO, so this thread may use the planner's route and collision code here)
+                action, _ = controller.prespin(msg)
             # (1x pacing: the game runs each frame on its own slot of wall clock; without REALTIMESTEP every reply waits
             # for its 64 ms slot in PacedEnv._send)
             msg, outcome = env.step(action[:6], repeat=1, use_pow=int(action[6]), pow_yaw=action[7] if action[6] else None,
