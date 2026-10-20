@@ -47,6 +47,18 @@ def translated(action,hold=0,pow_yaw=0.):
     return move,[dict(kind='camera_yaw',value=yaw)],hold,pow_yaw
 
 
+def observe_proposal_ticks(proposal, states):
+    """Deliver completed native sweeps to an item-aware feedback proposal."""
+    for _ in range(4):
+        hook = getattr(proposal, 'observe_ticks', None)
+        if hook is not None:
+            hook(states)
+            return
+        proposal = getattr(proposal, 'after', getattr(proposal, 'follow', None))
+        if proposal is None:
+            return
+
+
 def _predict_replies_strict(engine,dynamics,actions,dt_ms=64,stop_on_ambiguity=False):
     if dt_ms!=64:raise ValueError('Only verified local 64 ms lockstep is supported')
     physics_ms=getattr(engine,'bridge_physics_ms',64)

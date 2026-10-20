@@ -665,7 +665,7 @@ class ContinuousController:
         self.progress_route=RoutePlanner(self.route.terrain)
         self.actor_task_route=(RoutePlanner(self.route.terrain) if kind=='physics_plan'
             and getattr(args,'actor_task_during_recovery',False) else None)
-        self.commit_left=0;self.cooldown=0;self.last_prediction=None;self.last_action=None
+        self.commit_left=0;self.cooldown=0;self.last_prediction=None;self.last_action=None;self.last_rollout=None
         self.counts=Counter();self.fallback_reasons=Counter();self.planning_times=[]
         self.observed_respawns=None
         # v20 (2026-10-15) stall rule: route progress toward the current gem is
@@ -701,12 +701,16 @@ class ContinuousController:
         action[8]=0
         return action,dict(label='countdown_prespin',goal=[float(v) for v in goal[:3]])
 
-    def invalidate(self,reason,reset_actor=False):
-        self.memory.clear();self.current=None;self.resource=None;self.commit_left=0
-        self.task_goal=None;self.stall=None;self.stall_pending=False
-        self.last_prediction=None;self.last_action=None;self.cooldown=0;self.route.reset()
+    def invalidate(self,reason,reset_actor=False,preserve_task=False):
+        self.memory.clear();self.commit_left=0
+        if not preserve_task:
+            self.current=None;self.resource=None;self.task_goal=None
+            self.stall=None;self.stall_pending=False;self.cooldown=0;self.observed_respawns=None
+        # A checked real-time continuation rebases the action forecast. It is
+        # not a respawn: retain goal/progress history so stalled tasks can still
+        # trigger normal resource searches, goal skipping and legal recovery.
+        self.last_prediction=None;self.last_action=None;self.last_rollout=None;self.route.reset()
         if getattr(self,'actor_task_route',None) is not None:self.actor_task_route.reset()
-        self.observed_respawns=None
         self.counts['cancel:'+reason]+=1
         if reset_actor:
             if getattr(self,'kind',None)=='fast_navigator':
@@ -891,6 +895,7 @@ class ContinuousController:
         return chosen,target
 
     def action(self,msg,remaining):
+        self.last_rollout=None
         raw=msg.obs;dynamics=msg.dynamics;state=dynamics['native']['state']
         began_physical_recovery=self.memory.physical_recovery
         preserve_actor_task=(self.kind=='physics_plan' and getattr(self.args,'actor_task_during_recovery',False))
@@ -1055,7 +1060,7 @@ class ContinuousController:
         if chosen:
             info,forecast=chosen;action=forecast['proposed'][0]
             if info.get('search_stopped_at_deadline'):self.counts['completed_candidate_after_deadline']+=1
-            self.last_prediction=forecast['states'][1];self.counts['planner_decisions']+=1
+            self.last_prediction=forecast['states'][1];self.last_rollout=forecast;self.counts['planner_decisions']+=1
         else:
             action=actor_action;self.last_prediction=None
             if self.uses_physics and getattr(self.engine,'last_crossing_phase',None) in ('cross','charge'):
@@ -1356,6 +1361,8 @@ def main():
     p.add_argument('--distinct-from-pools',nargs='+',type=Path,default=[],help='Reject opening layouts repeated from these already completed randomized confirmation pools')
     p.add_argument('--start-seed-manifest',type=Path,help='Predeclared per-map native seeds and opening hashes selected by layout-only preflight')
     p.add_argument('--horizon',type=int,default=40);p.add_argument('--commit',type=int,default=4);p.add_argument('--port',type=int,default=9054)
+    p.add_argument('--through-pickup-ticks',action='store_true',help='Experimental through-gem switch after actual native tick pickup sweeps')
+    p.add_argument('--refine-candidates',type=int,default=0,help='Experimental bounded control perturbations only when ordinary search has no useful checked plan; 0 disables')
     p.add_argument('--physics-frame-ms',type=int,choices=[16,64],default=64,help='Native-verified physics cadence with unchanged64ms policy decisions;16ms experimental,64ms existing default')
     p.add_argument('--search-budget-s',type=float,default=0,help='Optional bound per planning iteration; stop before sending any partial candidate on expiry;0 leaves existing search unbounded')
     p.add_argument('--checked-recovery',action='store_true',help='Full rounds only: complete physical stopping backups before unchecked actor fallback')
@@ -1414,6 +1421,7 @@ def main():
     p.add_argument('--waypoint-brake-law',action='store_true',help='Planner: restore the pre-v16 stopping law (brake for the next waypoint and to a stop at the gem); default = brake on the remaining route length with a %.0f u/s floor'%6.)
     p.add_argument('--brake-decel',type=float,default=7.,help='Planner proposals: deceleration (u/s^2) assumed by the stopping law target_speed = sqrt(2*decel*distance)')
     p.add_argument('--speed-cap',type=float,default=11.,help='Planner proposals: top target speed (u/s); 13.5 = v26 (tied v23, more falls)')
+    p.add_argument('--legacy-fast-proposals',action='store_true',help='Diagnostic control: reproduce the previous compiled fast candidates as normal-speed duplicates')
     p.add_argument('--throttle-gain',type=float,default=4.,help='Planner proposals: commanded acceleration (u/s^2) per unit of stick; 12 = pre-v23')
     p.add_argument('--throttle-cap',type=float,default=1.,help='Planner proposals: stick ceiling; 0.85 = pre-v23')
     p.add_argument('--no-safe-hold',action='store_true',help='Planner: pre-v22 fallback (the unchecked actor drives whenever no useful plan is found)')
@@ -1451,6 +1459,7 @@ def main():
     if any(h<4 or h>=a.horizon for h in a.short_horizons):p.error('Short horizons must be at least4 and below the primary horizon')
     if a.terminal_stop_replies and a.terminal_stop_replies<4:p.error('Terminal stopping check must be disabled or at least4 replies')
     if a.search_budget_s<0 or not math.isfinite(a.search_budget_s):p.error('Search budget must be finite and nonnegative')
+    if not 0<=a.refine_candidates<=12:p.error('Refinement count must be between 0 and 12')
     if a.full_round and a.fixture_data:p.error('Full rounds use natural native starts, never archived restores')
     if a.random_starts and not a.full_round:p.error('Randomized opening requires full rounds')
     if a.distinct_from_pools and not a.random_starts:p.error('Distinct-opening checks require --random-starts')
@@ -1474,6 +1483,8 @@ def main():
     # Capture imported actor/bridge/recovery modules as well as dynamics code.
     sources.update({str(p):sha(p) for p in (ML/'nav').glob('*.py')})
     for path in (ML.parent/'Marble Blast Platinum/platinum/client/scripts/ai/mlAgent.cs',
+                 ML.parent/'Marble Blast Platinum/platinum/client/scripts/physics.cs',
+                 ML.parent/'Marble Blast Platinum/platinum/server/scripts/game.cs',
                  ML.parent/'Marble Blast Platinum/platinum/client/scripts/ai/trainingReplay.cs',
                  ML.parent/'Marble Blast Platinum/platinum/server/scripts/modes/hunt.cs',
                  ML.parent/'Marble Blast Platinum/platinum/server/scripts/huntGems.cs',
@@ -1503,6 +1514,7 @@ def main():
             if Path(source).suffix.lower() in ('.py','.cs','.inc','.cpp','.ps1')])
     atomic_json(a.output/'prepared.json',dict(maps=a.maps,seeds=a.seeds,random_starts=a.random_starts,start_seed_manifest=str(a.start_seed_manifest) if a.start_seed_manifest else None,distinct_from_pools=list(map(str,a.distinct_from_pools)),parallel_workers=a.workers,cache_dir=str(a.cache_dir) if a.cache_dir else None,only_branch=a.only_branch,decisions=a.decisions,horizon=a.horizon,commit=a.commit,reuse_plan=a.reuse_plan,brake_continuation=a.brake_continuation,recovery_horizon=a.recovery_horizon,geometry_route=a.geometry_route,resource_acquisition=a.resource_acquisition,preserve_resources=a.preserve_resources,recharge_continuation=a.recharge_continuation,landing_search=a.landing_search,proposal_seed=a.proposal_seed,proposal_samples=a.proposal_samples,regular_blast_prediction=True,regular_blast_proposals=True,
                 checkpoint=str(a.checkpoint),checkpoint_sha256=fingerprint,source_hashes=sources,fixture_data=str(a.fixture_data) if a.fixture_data else None,special_blast_prediction=True,
+                through_pickup_ticks=a.through_pickup_ticks,refine_candidates=a.refine_candidates,refine_failure_only=True,legacy_fast_proposals=a.legacy_fast_proposals,
                 query_cache=a.query_cache,clearance_cache=a.clearance_cache,global_goals=a.global_goals,
                 sweep_dll=str(a.sweep_dll) if a.sweep_dll else None,
                 short_horizons=a.short_horizons,
@@ -1567,7 +1579,10 @@ def main():
         import nav.marble_dynamics.search as _search
         _search.ROUTE_SPEED_LAW=not getattr(a,'waypoint_brake_law',False)
         _search.PICKUP_MIN_SPEED=float(getattr(a,'pickup_min_speed',6.))
+        _search.FAST_PROPOSALS=not getattr(a,'legacy_fast_proposals',False)
         _search.THROUGH_GEM=not getattr(a,'no_through_gem',False)
+        _search.THROUGH_BOX=bool(getattr(a,'through_pickup_ticks',False))
+        _search.REFINE_CANDIDATES=int(getattr(a,'refine_candidates',0))
         _search.OPEN_TOP=13.5 if getattr(a,'open_top',False) else 0.
         _search.RAISED_BLAST_FIRST=bool(getattr(a,'raised_blast_first',False))
         _search.CORNER_PROPOSALS=CORNER_DEFAULT or bool(getattr(a,'corner_proposals',False))

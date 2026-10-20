@@ -1265,6 +1265,9 @@ function GameConnection::respawnPlayer(%this, %respawnPos) {
 		_delete = true;
 	})) {
 		%this.player.setPowerUp(0, true);
+		// Read-only planner telemetry: oldPowerupData is cleared below, while
+		// the scheduled callback still owns this saved inventory value.
+		%this.player.mlRestorePowerupData = %this.player.oldPowerupData;
 		%this.player.powerupRespawn = %this.player.schedule($powerupDelay, "setPowerUp", %this.player.oldPowerupData, true, %this.player.oldPowerupObj);
 	} else {
 		%this.player.setPowerUp(0, true);

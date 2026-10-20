@@ -349,6 +349,7 @@ struct SeqSpec {                       // search.SequenceProposal
     bool passed = false; bool has_prev = false; V3 prev{0, 0, 0};
     bool has_min = false; double min_speed = 0;   // ABI 8: search.SequenceProposal.min_speed (v62)
     bool has_box = false; double box[6] = {0, 0, 0, 0, 0, 0};   // ABI 9: the gem's pickup box (search.THROUGH_BOX)
+    double fast = 0., fast_min_speed = 0.;   // ABI 10: preserve Python fast-family speed semantics
 };
 
 // search.open_top: state['position'] plain floats (weak cell_of), the level nearest z - radius (float32 compare)
@@ -376,10 +377,8 @@ Action seq_call(Terrain& t, const Consts& C, SeqSpec& S, V3 p, V3 v, int index, 
         if (index == 0) { S.passed = false; S.has_prev = false; }
         V3 g{S.gem.x, S.gem.y, S.gem.z};
         if (!S.passed && S.has_box) {
-            // ABI 9: the game's pickup test on this step (the item box against the swept marble box + radius + 0.2 u)
-            V3 a = S.has_prev ? S.prev : p; double r = radius + .2;
-            S.passed = pymax(a.x, p.x) + r >= S.box[0] && pymax(a.y, p.y) + r >= S.box[1] && pymax(a.z, p.z) + r >= S.box[2]
-                    && pymin(a.x, p.x) - r <= S.box[3] && pymin(a.y, p.y) - r <= S.box[4] && pymin(a.z, p.z) - r <= S.box[5];
+            // ms_forecast updates this after each actual 16 ms physics sweep.
+            // A 64 ms chord or initial overlap is not a native pickup event.
         } else if (!S.passed && S.has_prev) {
             V3 a = S.prev, ab = sub(p, a);
             double tt = clip01(dot(sub(g, a), ab) / pymax(dot(ab, ab), 1e-12));
@@ -413,7 +412,14 @@ Action seq_call(Terrain& t, const Consts& C, SeqSpec& S, V3 p, V3 v, int index, 
         else sd = base + S.leg;
         has_sd = true;
     }
-    double top = 0.; const bool has_top = leg_top(t, C, p, radius, target_distance, top);
+    double top = 0.; bool has_top;
+    if (S.fast != 0.) {
+        const double dx = goal.x - p.x, dy = goal.y - p.y;
+        const double n = norm2(dx, dy);
+        const double along = n > 1e-6 ? (v.x * dx + v.y * dy) / n : 0.;
+        min_speed = pymax(S.fast_min_speed, pymin(along, S.fast));
+        top = S.fast; has_top = true;
+    } else has_top = leg_top(t, C, p, radius, target_distance, top);
     Action a = proposal(C, goal, index < S.turn_after ? S.offset : 0., S.jump - index, S.use - index, braking, has_sd, sd, min_speed, p, v,
                         has_top, top);
     for (int q = 0; q < 4; q++) a.a[q] = round6(a.a[q] * S.scale, (a.npmask >> q) & 1u);

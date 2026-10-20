@@ -10,7 +10,7 @@ charges in the three remaining frames. Main evaluator integration is separate.
 import copy
 from nav.marble_dynamics.state_copy import clone as clone_state
 
-from nav.marble_dynamics.bridge import translated
+from nav.marble_dynamics.bridge import translated,observe_proposal_ticks
 from nav.marble_dynamics.inventory import check as check_inventory
 from nav.marble_dynamics.rollout import apply_control
 from nav.marble_dynamics.blast import event as blast_event,advance as advance_blast
@@ -47,6 +47,7 @@ def predict_small_step(engine,dynamics,actions,stop_on_ambiguity=False):
                     stopped=True;break
         except ValueError as exc:
             failure=dict(step=i,reason=str(exc));break
+        observe_proposal_ticks(actions,native_states[-len(frames)-1:])
         macro=dict(move=copy.deepcopy(frames[0]['move']),events=copy.deepcopy(frames[0]['events']),subframes=frames)
         script_events=[ev for frame in frames for ev in frame.get('script_events',[])]
         if script_events:macro['script_events']=script_events

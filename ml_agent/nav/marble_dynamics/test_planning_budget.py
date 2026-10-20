@@ -14,6 +14,17 @@ from nav.marble_dynamics.search import search
 
 
 class PlanningBudgetRegressions(unittest.TestCase):
+    def setUp(self):
+        # These tests isolate the primary search's deadline. Optional secondary
+        # searches and braking backups have separate contracts and budgets.
+        for name,value in [('EXTRA_JUMP_TIMES',()),('BRAKING_BACKUP',False)]:
+            patched=patch('nav.marble_dynamics.search.'+name,value)
+            patched.start();self.addCleanup(patched.stop)
+
+    def route(self):
+        route=Mock();route.distance.return_value=10.
+        return route
+
     def test_learned_first_order_preserves_checks_and_legacy_order(self):
         dynamics=json.loads((Path(__file__).with_name('fixtures')/'live_bridge.json').read_text())['cases'][0]['dynamics']
         future=dict(states=[{},{}],controls=[{}],proposed=[[0]*9],requested_replies=1,
@@ -26,7 +37,7 @@ class PlanningBudgetRegressions(unittest.TestCase):
                  patch('nav.marble_dynamics.search.blast_available',return_value=False), \
                  patch('nav.marble_dynamics.search.predict_replies',side_effect=[future,PlanningBudgetExceeded('deadline')]), \
                  patch('nav.marble_dynamics.search.assess',return_value=dict(label=label,cost=1.,rejected=rejected)) as assess:
-                chosen,pairs=search(engine,Mock(),dynamics,np.zeros(61,np.float32),[1,2,3],Mock())
+                chosen,pairs=search(engine,self.route(),dynamics,np.zeros(61,np.float32),[1,2,3],Mock())
             self.assertEqual(assess.call_args.args[5],label)
             self.assertEqual(len(pairs),1)
             self.assertIsNone(chosen) if rejected else self.assertEqual(chosen[0]['label'],label)
@@ -38,7 +49,7 @@ class PlanningBudgetRegressions(unittest.TestCase):
                         stopped_on_ambiguity=False)
             assessment=dict(label='route',cost=1.,rejected=rejected)
             engine=SimpleNamespace(use_completed_candidates_on_timeout=enabled)
-            navigator=Mock();route=Mock()
+            navigator=Mock();route=self.route()
             with self.subTest(enabled=enabled,rejected=rejected), \
                  patch('nav.marble_dynamics.search.visible_gems',return_value=[]), \
                  patch('nav.marble_dynamics.search.blast_available',return_value=False), \
@@ -63,7 +74,7 @@ class PlanningBudgetRegressions(unittest.TestCase):
         with patch('nav.marble_dynamics.search.visible_gems',return_value=[]), \
              patch('nav.marble_dynamics.search.blast_available',return_value=False), \
              patch('nav.marble_dynamics.search.predict_replies',side_effect=PlanningBudgetExceeded('deadline')):
-            chosen,pairs=search(engine,Mock(),dynamics,np.zeros(61,np.float32),[1,2,3],Mock())
+            chosen,pairs=search(engine,self.route(),dynamics,np.zeros(61,np.float32),[1,2,3],Mock())
         self.assertIsNone(chosen);self.assertEqual(pairs,[])
 
     def test_expired_deadline_never_steps_physics_or_consumes_action_callback(self):

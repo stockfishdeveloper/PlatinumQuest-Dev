@@ -105,6 +105,17 @@ class RecoveryContracts(unittest.TestCase):
 
 
 class ContinuationRegressions(unittest.TestCase):
+    def test_pickup_truncation_does_not_reuse_longer_forecast_bridge(self):
+        c=fixture('landing_bridge.json')
+        engine=GeneralPhysics(CollisionMap(ML/'collision_maps'/(c['map']+'.npz')))
+        prefix=predict_replies(engine,c['dynamics'],c['actions'][:3])
+        expected=resume_forecast(c['dynamics'],prefix)
+        # two-level gem scoring slices states/controls/proposed but carries
+        # other metadata from the original longer forecast.
+        prefix['bridge_resume']=dict(reply_count=48,pending_move={'invalid':True},
+            bridge_action=[99]*9,pow_yaw_hold=999,pow_yaw=999.)
+        self.assertEqual(resume_forecast(c['dynamics'],prefix),expected)
+
     def test_enabled_assessment_refuses_the_supported_but_unstoppable_lip(self):
         from types import SimpleNamespace
         from nav.marble_dynamics.search import assess

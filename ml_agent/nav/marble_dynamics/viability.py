@@ -7,6 +7,7 @@ import copy
 import time
 
 import numpy as np
+from nav.marble_dynamics.state_copy import clone
 
 from nav.marble_dynamics.bridge import predict_replies,translated
 from nav.marble_dynamics.gem_demo import Proposal
@@ -21,32 +22,113 @@ def resume_forecast(dynamics,rollout):
     count=len(rollout['controls'])
     if count!=len(rollout['proposed']) or len(rollout['states'])!=count+1:
         raise ValueError('Incomplete forecast bridge state')
-    result=copy.deepcopy(dynamics)
-    pending=list(dynamics['bridge_action']);move=copy.deepcopy(dynamics['native']['pending_move'])
-    hold=int(dynamics['pow_yaw_hold']);aim=float(dynamics['pow_yaw'])
-    for action in rollout['proposed']:
-        move,_,hold,aim=translated(pending,hold,aim)
-        pending=list(action)
-    state=copy.deepcopy(rollout['states'][-1])
+    result=clone(dynamics)
+    bridge=rollout.get('bridge_resume')
+    if bridge is not None and bridge.get('reply_count') == count:
+        pending=list(bridge['bridge_action']);move=clone(bridge['pending_move'])
+        hold=bridge['pow_yaw_hold'];aim=bridge['pow_yaw']
+    else:
+        pending=list(dynamics['bridge_action']);move=clone(dynamics['native']['pending_move'])
+        hold=int(dynamics['pow_yaw_hold']);aim=float(dynamics['pow_yaw'])
+        for action in rollout['proposed']:
+            move,_,hold,aim=translated(pending,hold,aim)
+            pending=list(action)
+    state=clone(rollout['states'][-1])
     result['native']['state']=state
     result['native']['frame_clock_ms']=int(dynamics['native']['frame_clock_ms'])+64*count
     result['native']['pending_move']=move
     result['bridge_action']=pending;result['pow_yaw_hold']=hold;result['pow_yaw']=aim
     for source,key in [('blast_context','blast'),('inventory_context','inventory')]:
-        if source in state:result[key]=copy.deepcopy(state[source])
+        if source in state:result[key]=clone(state[source])
     return result
+
+
+class _Slice:
+    """A bounded view used while joining lazy forecasts; never unpacks states."""
+    def __init__(self, values, start=0):
+        self.values=values;self.start=start
+
+    def __len__(self):return max(0,len(self.values)-self.start)
+
+    def __getitem__(self,index):
+        if isinstance(index,slice):return [self[i] for i in range(*index.indices(len(self)))]
+        if index<0:index+=len(self)
+        if not 0<=index<len(self):raise IndexError(index)
+        return self.values[index+self.start]
+
+    def column(self,name,key):
+        value=getattr(self.values,name,None)
+        return value[self.start:] if value is not None else np.asarray([row[key] for row in self])
+
+
+class JoinedSequence:
+    """Read-only joined forecast, preserving packed-column access for scoring.
+
+    Landing projections used to unpack every prior state on each appended chunk.
+    Access now builds only the few states actually used by the continuation and
+    terminal checks. Iteration and ordinary slices retain list-like semantics.
+    """
+    def __init__(self,left,right,right_start=0):
+        self.parts=list(left.parts) if isinstance(left,JoinedSequence) else [_Slice(left)]
+        self.parts.append(_Slice(right,right_start))
+        self.ends=np.cumsum([len(p) for p in self.parts]).tolist()
+
+    def __len__(self):return self.ends[-1] if self.ends else 0
+
+    def __getitem__(self,index):
+        if isinstance(index,slice):return [self[i] for i in range(*index.indices(len(self)))]
+        if index<0:index+=len(self)
+        if not 0<=index<len(self):raise IndexError(index)
+        from bisect import bisect_right
+        k=bisect_right(self.ends,index)
+        return self.parts[k][index-(self.ends[k-1] if k else 0)]
+
+    def __iter__(self):
+        for part in self.parts:
+            yield from part
+
+    def __add__(self,other):return JoinedSequence(self,other)
+    def __radd__(self,other):return JoinedSequence(other,self)
+
+    @property
+    def positions(self):return np.concatenate([p.column('positions','position') for p in self.parts if len(p)])
+    @property
+    def held(self):return np.concatenate([p.column('held','held') for p in self.parts])
+    @property
+    def radii(self):return np.concatenate([p.column('radii','radius') for p in self.parts])
+    @property
+    def script_event_count(self):
+        total=0
+        for p in self.parts:
+            count=getattr(p.values,'script_event_count',None) if p.start==0 else None
+            total+=count if count is not None else sum(bool(c.get('script_events')) for c in p)
+        return total
 
 
 def concatenate(prefix,continuation):
     if prefix.get('physics_frame_ms',64)!=continuation.get('physics_frame_ms',64):
         raise ValueError('Cannot join different physics frame cadences')
     result=dict(prefix)
-    result['states']=prefix['states']+continuation['states'][1:]
-    for key in ['controls','events','proposed']:result[key]=prefix[key]+continuation[key]
+    result['states']=(prefix['states']+continuation['states'][1:]
+        if isinstance(prefix['states'],list) and isinstance(continuation['states'],list)
+        else JoinedSequence(prefix['states'],continuation['states'],1))
+    for key in ['controls','events']:
+        result[key]=(prefix[key]+continuation[key] if isinstance(prefix[key],list) and isinstance(continuation[key],list)
+                     else JoinedSequence(prefix[key],continuation[key]))
+    result['proposed']=prefix['proposed']+continuation['proposed']
     if 'native_states' in prefix:
+        # NativeRows already joins packed arrays cheaply. Preserve its original
+        # prefix template for metadata as well as the numeric tick rows.
         result['native_states']=prefix['native_states']+continuation['native_states'][1:]
-        result['native_controls']=prefix['native_controls']+continuation['native_controls']
+        result['native_controls']=(prefix['native_controls']+continuation['native_controls']
+            if isinstance(prefix['native_controls'],list) and isinstance(continuation['native_controls'],list)
+            else JoinedSequence(prefix['native_controls'],continuation['native_controls']))
+    result.pop('bridge_resume',None)
     offset=len(prefix['controls'])
+    if continuation.get('bridge_resume') is not None:
+        bridge=continuation['bridge_resume']
+        if bridge.get('reply_count') == len(continuation['controls']):
+            result['bridge_resume']=dict(bridge,reply_count=offset+len(continuation['controls']))
     result['failure']=dict(continuation['failure'],step=offset+continuation['failure']['step']) if continuation['failure'] else None
     result['ambiguous_intervals']=prefix['ambiguous_intervals']+[offset+i for i in continuation['ambiguous_intervals']]
     result['time_s']=[i*.064 for i in range(len(result['states']))]

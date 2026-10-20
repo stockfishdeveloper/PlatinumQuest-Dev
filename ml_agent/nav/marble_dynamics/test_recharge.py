@@ -23,7 +23,9 @@ class RechargeRegressions(unittest.TestCase):
     def test_wait_brakes_and_charges_real_meter_before_delayed_blast(self):
         case=self.case;dynamics=copy.deepcopy(case['dynamics']);before=copy.deepcopy(dynamics)
         context=dynamics['blast'];wait=math.ceil((1-context['value'])*context['charge_ms']/64)+2
-        position=dynamics['native']['state']['position'];route=SimpleNamespace(navigate=lambda p,g:(g,False))
+        position=dynamics['native']['state']['position']
+        route=SimpleNamespace(terrain=None,navigate=lambda p,g:(g,False),
+            distance=lambda p:math.dist(p,position))
         forecast=predict_replies(self.engine,dynamics,RechargeProposal(route,position,wait,40,3,0))
         self.assertEqual(dynamics,before);self.assertIsNone(forecast['failure'])
         # First six waiting frames match independent native outcomes before

@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 from types import SimpleNamespace
 import unittest
+from unittest.mock import patch
 
 import numpy as np
 from nav.collision.mesh import CollisionMap
@@ -17,6 +18,12 @@ from nav.marble_dynamics.search import assess, PlanMemory
 
 
 class NativeLandingEndpoint(unittest.TestCase):
+    # This native fixture predates the faster v23 throttle and through-gem
+    # speed law. Recreate its measured inputs, not today's proposal defaults.
+    @patch.multiple('nav.marble_dynamics.gem_demo', TARGET_SPEED_CAP=11.,
+        BRAKE_DECEL=7., THROTTLE_GAIN=12., THROTTLE_CAP=.85)
+    @patch.multiple('nav.marble_dynamics.search', PICKUP_MIN_SPEED=0.,
+        ROUTE_SPEED_LAW=False, OPEN_TOP=0.)
     def test_completed_native_landing_uses_checked_destination(self):
         path=Path(__file__).with_name('fixtures')/'settled_landing_endpoint.json'
         self.assertEqual(hashlib.sha256(path.read_bytes()).hexdigest(),
@@ -29,7 +36,7 @@ class NativeLandingEndpoint(unittest.TestCase):
         engine=GeneralPhysics(CollisionMap(ML/'collision_maps'/(c['map']+'.npz')))
         engine.bridge_physics_ms=16
         goal=c['gem'][:3]
-        route=SimpleNamespace(distance=lambda p:float(np.linalg.norm(np.asarray(p)-goal)))
+        route=SimpleNamespace(terrain=None,distance=lambda p:float(np.linalg.norm(np.asarray(p)-goal)))
         count=c['chosen']['possible_pickup_interval']
         prefix=predict_replies(engine,c['dynamics'],AimProposal(route,goal,
             recorded['requested_replies'],**recorded['specification']))

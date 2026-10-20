@@ -25,6 +25,8 @@ THROUGH_REACH_U=18.      # u: through proposals are added only when the gem is t
 OPEN_TOP=0.              # --open-top (v36, under test): top target speed far from drops (0 = off; 13.5 with the flag) ...
 OPEN_NEAR_U=4.           # ... 11 u/s within this walk-grid distance of a drop ...
 OPEN_FAR_U=8.            # ... rising linearly to OPEN_TOP at this distance
+REFINE_CANDIDATES=0      # opt-in bounded legal-control perturbations, scored by the existing physics gates
+REFINE_FAILURE_ONLY=True # preserve useful ordinary plans; explore when their forecast fails or makes no progress
 THROUGH_BOX=False        # 2026-10-19 (operator: keep momentum through gems): through plans switch to the next gem when the
                          # marble enters the gem's pickup box (the game's test), not within THROUGH_SWITCH_U of its centre
 WALL_BOUNCE=False        # 2026-10-19 (operator: use wall hits): bank-shot plans off a wall toward the next gem (wall_bounce.py);
@@ -128,6 +130,7 @@ def open_top(terrain,state):
 FAST_TOPS=(16.,20.)       # 2026-10-18 (operator: "can we get it to use more speed?"): top target speeds of the fast families
                           # (route and direct aims each; () = off)
 FAST_MIN_SPEED=9.         # ... their floor on the target speed at the gem (the other families: PICKUP_MIN_SPEED)
+FAST_PROPOSALS=True       # False reproduces the old compiled normal-speed duplicates for matched diagnostic controls
 
 
 class SequenceProposal:
@@ -145,15 +148,18 @@ class SequenceProposal:
         self.box=None         # THROUGH_BOX: the gem's pickup box [lo xyz, hi xyz] (None = the THROUGH_SWITCH_U centre test)
         self.fast=fast        # fast family: top target speed; never brakes below the speed carried toward the aim point
 
+    def observe_ticks(self, states):
+        if self.box is not None and not self.passed:
+            self.passed = _gem_demo.tick_pickup(states, {'bounds': self.box}) is not None
+
     def __call__(self,state,index):
         if self.through is not None:
             p=np.asarray(state['position'],dtype=float)
             if index==0:self.passed=False;self.previous=None
             if not self.passed and self.box is not None:
-                # the game's pickup test on this step (the compiled port does the same: controllers.inc, ABI 9)
-                a=self.previous if self.previous is not None else p;r=float(state['radius'])+.2;b=self.box
-                self.passed=bool(max(a[0],p[0])+r>=b[0] and max(a[1],p[1])+r>=b[1] and max(a[2],p[2])+r>=b[2]
-                                 and min(a[0],p[0])-r<=b[3] and min(a[1],p[1])-r<=b[4] and min(a[2],p[2])-r<=b[5])
+                # Only completed native tick sweeps may mark this collected.
+                # The enclosing forecast calls observe_ticks after physics.
+                pass
             elif not self.passed and self.previous is not None:
                 # closest approach of the last step's path to the gem
                 a=self.previous;ab=p-a;t=float(np.clip(((self.gem[:3]-a)@ab)/max(float(ab@ab),1e-12),0.,1.))
@@ -517,8 +523,9 @@ def search(engine,route,dynamics,raw,gem,navigator,horizon=40,warm=None,brake_re
                 specs+=[('through_corner',SequenceProposal(route,gem,steps,through=through,arrive=arrive)),
                         ('direct_through_corner',SequenceProposal(route,gem,steps,direct=True,through=through,arrive=arrive))]
     for top in FAST_TOPS:
-        specs+=[('fast_'+str(int(top)),SequenceProposal(route,gem,steps,fast=top)),
-                ('direct_fast_'+str(int(top)),SequenceProposal(route,gem,steps,direct=True,fast=top))]
+        fast=top if FAST_PROPOSALS else None
+        specs+=[('fast_'+str(int(top)),SequenceProposal(route,gem,steps,fast=fast)),
+                ('direct_fast_'+str(int(top)),SequenceProposal(route,gem,steps,direct=True,fast=fast))]
     for scale in (.4,.7):specs.append(('throttle_'+str(scale),SequenceProposal(route,gem,steps,scale=scale)))
     if WALL_BOUNCE and not getattr(engine,'crossing_phase',False):
         # 2026-10-19 (operator: use wall hits): moving fast away from the target, bank off a wall toward it (wall_bounce.py)
@@ -788,6 +795,9 @@ def search(engine,route,dynamics,raw,gem,navigator,horizon=40,warm=None,brake_re
     if warm and not exhausted:
         rollout=predict_replies(engine,dynamics,warm,stop_on_ambiguity=True)
         pairs.append((assess(engine,route,dynamics,gem,rollout,'remaining_previous_plan',target_item),rollout))
+    if REFINE_CANDIDATES and not getattr(engine,'_two_level_active',False):
+        from nav.marble_dynamics.phased_search import refine
+        pairs += refine(engine,route,dynamics,gem,pairs,target_item,REFINE_CANDIDATES,REFINE_FAILURE_ONLY)
     apply_crossing_landing(pairs,engine)
     apply_blast_gain(pairs,target_item)
     apply_blast_value(pairs,blast_meter_value(dynamics),float(getattr(engine,'blast_value_u',10.) if getattr(engine,'blast_value_u',None) is not None else 10.),float(getattr(engine,'blast_floor_u',0.) if getattr(engine,'blast_floor_u',None) is not None else 0.))

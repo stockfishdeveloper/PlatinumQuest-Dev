@@ -121,10 +121,29 @@ function MLAgent::liveDynamicsBlast() {
         @ ",\"cannon\":" @ (isCannonActive() ? "true" : "false") @ "}";
 }
 
+function MLAgent::livePhysicsProfile(%mega) {
+    if ($MLAgent::ProfileRevision[%mega] $= $Physics::ProfileRevision && $MLAgent::PhysicsProfile[%mega] !$= "")
+        return $MLAgent::PhysicsProfile[%mega];
+    %fields = "maxRollVelocity angularAcceleration brakingAcceleration staticFriction kineticFriction bounceKineticFriction gravity maxDotSlide bounceRestitution airAcceleration jumpImpulse minBounceVel mass";
+    %keys = "max_roll_velocity angular_acceleration braking_acceleration static_friction kinetic_friction bounce_kinetic_friction gravity max_dot_slide bounce_restitution air_acceleration jump_impulse min_bounce_velocity mass";
+    %json = "{";
+    for (%i = 0; %i < getWordCount(%fields); %i++) {
+        %field = getWord(%fields, %i);
+        %value = (%mega ? $Physics::MegaValue[%field] : $Physics::NormalValue[%field]);
+        if (%value $= "") return "null";
+        if (%i) %json = %json @ ",";
+        %json = %json @ "\"" @ getWord(%keys, %i) @ "\":" @ (%value + 0);
+    }
+    $MLAgent::ProfileRevision[%mega] = $Physics::ProfileRevision;
+    $MLAgent::PhysicsProfile[%mega] = %json @ "}";
+    return $MLAgent::PhysicsProfile[%mega];
+}
+
 function MLAgent::liveDynamicsInventory() {
     // The engine's held ID excludes script-only Mega. Read the same inventory
     // and schedule as AIObserver, without changing game state or normal obs.
     %player = -1; %held = 0; %mega = $Client::MegaMarble; %left = 0; %timer = false; %normalRadius = 0;
+    %megaRadius = 0; %duration = 10000; %restoreType = 0; %restoreLeft = -1;
     if (isObject(ClientGroup) && ClientGroup.getCount() > 0)
         %player = ClientGroup.getObject(0).player;
     if (isObject(%player)) {
@@ -134,7 +153,18 @@ function MLAgent::liveDynamicsInventory() {
         if (%timer) %left = getEventTimeLeft(%player.megaSchedule);
         if (isObject(%player.client)) {
             %choice = %player.client.getMarbleChoice(); %db = getField(%choice, 0);
-            if (isObject(%db)) %normalRadius = (getField(%choice, 2) ? %db.scale : %db.getCollisionRadius());
+            if (isObject(%db)) {
+                %normalRadius = (getField(%choice, 2) ? %db.scale : %db.getCollisionRadius());
+                %megaRadius = (getField(%choice, 2) ? %db.megaScale : 0);
+            }
+        }
+        if (isObject(%player.powerUpObj) && %player.powerUpObj.timeout > 0)
+            %duration = %player.powerUpObj.timeout;
+        if ($MPPref::Server::CompetitiveMode && mp() && !$Game::isMode["coop"] && $Game::isMode["hunt"])
+            %duration = 5000;
+        if (isEventPending(%player.powerupRespawn) && isObject(%player.mlRestorePowerupData)) {
+            %restoreLeft = getEventTimeLeft(%player.powerupRespawn);
+            %restoreType = AIObserver::powerupType(%player.mlRestorePowerupData);
         }
     } else if (isObject($MP::MyMarble)) {
         %held = ($MP::FastPowerups ? $MP::MyMarble._powerUpId : $MP::MyMarble.powerUpId) + 0;
@@ -144,7 +174,12 @@ function MLAgent::liveDynamicsInventory() {
     return "{\"held_type\":" @ %held @ ",\"mega_active\":" @ (%mega ? "true" : "false")
         @ ",\"mega_timer_known\":" @ (%timer ? "true" : "false") @ ",\"mega_left_ms\":" @ %left
         @ ",\"normal_radius\":" @ (%normalRadius + 0)
-        @ ",\"permanent_mega\":" @ (MissionInfo.mega ? "true" : "false") @ "}";
+        @ ",\"permanent_mega\":" @ (MissionInfo.mega ? "true" : "false")
+        @ ",\"mega_radius\":" @ (%megaRadius + 0) @ ",\"mega_duration_ms\":" @ (%duration + 0)
+        @ ",\"use_latched\":" @ ($MLAgent::PowUseSent ? "true" : "false")
+        @ ",\"restore_type\":" @ %restoreType @ ",\"restore_left_ms\":" @ %restoreLeft
+        @ ",\"normal_parameters\":" @ MLAgent::livePhysicsProfile(false)
+        @ ",\"mega_parameters\":" @ MLAgent::livePhysicsProfile(true) @ "}";
 }
 
 function MLAgent::start() {

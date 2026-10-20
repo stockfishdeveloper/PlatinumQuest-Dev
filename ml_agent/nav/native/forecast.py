@@ -12,7 +12,7 @@ import ctypes
 import numpy as np
 
 from nav.marble_dynamics.state_copy import clone as clone_state
-from nav.marble_dynamics.bridge import translated
+from nav.marble_dynamics.bridge import translated,observe_proposal_ticks
 from nav.marble_dynamics.inventory import check as check_inventory
 from nav.marble_dynamics.blast import event as blast_event, advance as advance_blast
 from nav.marble_dynamics.planning_budget import check as check_budget
@@ -127,6 +127,7 @@ def _predict_per_reply(sim, engine, dynamics, actions, stop_on_ambiguity=False):
         script_events = [ev for frame in frames for ev in frame.get('script_events', [])]
         if script_events:
             macro['script_events'] = script_events
+        observe_proposal_ticks(actions,NativeRows(rows[nrows-done-1:nrows],state))
         state = sim.unpack(rows[nrows - 1], state)
         if blast is not None:
             state['blast_context'] = blast
@@ -327,7 +328,7 @@ class _BuiltSeq(_LazySeq):
 
 
 # ---------------------------------------------------------------------------------------------- whole forecast in C++
-Q_SIZE = 49; R_SIZE = 38
+Q_SIZE = 51; R_SIZE = 38
 ERRORS_EXTRA = {7: 'Blast context unavailable in this snapshot', 8: 'Triple Blast, Fireball or cannon actuation is not verified',
                 10: 'Positive native mass required for Blast', 11: 'Positive Blast charge time required',
                 12: 'Timed Mega activation/expiry requires a verified script-event model',
@@ -336,7 +337,7 @@ ERRORS_EXTRA = {7: 'Blast context unavailable in this snapshot', 8: 'Triple Blas
 
 
 def seq_array(spec):
-    """search.SequenceProposal -> the 40-value layout of marble_sim.cpp (route / through state included; the brake
+    """search.SequenceProposal -> the 51-value layout of marble_sim.cpp (route / through state included; the brake
     prefix and aim offset of the Settle / Recharge / Aim wrappers are set by _controller)."""
     q = np.zeros(Q_SIZE)
     q[0:3] = spec.route.key
@@ -359,6 +360,10 @@ def seq_array(spec):
         q[40] = 1; q[41] = spec.min_speed
     if getattr(spec, 'box', None) is not None:         # ABI 9: the through gem's pickup box (search.THROUGH_BOX)
         q[42] = 1; q[43:49] = np.asarray(spec.box, dtype=float)[:6]
+    # ABI 10: fast families were previously silently serialized as ordinary plans.
+    from nav.marble_dynamics.search import FAST_MIN_SPEED
+    q[49] = float(spec.fast or 0.)
+    q[50] = float(FAST_MIN_SPEED)
     return q
 
 
@@ -514,11 +519,17 @@ def predict_native(sim, engine, dynamics, actions, stop_on_ambiguity=False):
         failure = None
         if fail_reply >= 0:
             failure = dict(step=fail_reply, reason=ERRORS_EXTRA.get(fail_code) or ERRORS.get(fail_code, 'native sim error %d' % fail_code))
+        bridge_resume = None
+        if failure is None and not stopped and n_done == count:
+            bridge_resume = dict(reply_count=n_done, pending_move=_move_dict(tab[n_done-1, 15:21]) if n_done else clone_state(pend_move),
+                bridge_action=list(proposed[-1]) if n_done else list(dynamics['bridge_action']),
+                pow_yaw_hold=int(status[7]), pow_yaw=float(bridge_out[0]))
         return dict(states=states, controls=_BuiltSeq(builder, 0, n_done, int((tab[:n_done, 22] == 1).sum())),
                     events=_BuiltSeq(builder, 1, n_done), proposed=proposed,
                     failure=failure, native_states=native_rows, native_controls=_BuiltSeq(builder, 2, int(done.sum())),
                     time_s=[i * .064 for i in range(n_done + 1)], ambiguous_intervals=ambiguous,
                     requested_replies=count, stopped_on_ambiguity=bool(stopped), physics_frame_ms=16, decision_ms=64,
+                    bridge_resume=bridge_resume,
                     assumptions='Measured local16ms physics/64ms decisions (compiled forecast nav/native), static geometry, '
                                 'ordinary movement/jump and native powers1-5, observed regular/item-charged Blast.')
     states = [clone_state(state)]; controls = []; events = []; native_controls = []

@@ -30,6 +30,7 @@ from multiprocessing.connection import wait as _wait
 import numpy as np
 
 BIG_ARRAY = 64 * 1024                 # bytes: arrays at least this big go through the per-worker cache
+WORKER_DEADLINES = True               # discard expired queued work; never execute a partial candidate
 SLOW_PROPOSALS = ('NavigatorProposal', 'TrackLine', 'LineProposal')   # dispatched first (per-reply Python controllers)
 ENGINE_SKIP = {'mesh', 'native_sim', 'contact_order', 'crossings', 'polygons', 'polygon_ids', 'native_step_hook', 'step',
                'parallel', 'safe_hold', 'order_stats', 'order_pick', 'planning_deadline', '_speculated'}
@@ -293,10 +294,21 @@ def _worker_main(cmd, res, init):
                     if sid != ctx_id:
                         raise RuntimeError('candidate for an unknown search context')
                     t_c = time.perf_counter()
+                    expires = ctx.get('expires_wall')
+                    remaining = None if expires is None else expires-time.time()
+                    if remaining is not None and remaining <= 0:
+                        res.send_bytes(pickle.dumps(('res', sid, idx, None)))
+                        continue
+                    engine.planning_deadline = None if remaining is None else t_c+remaining
                     label, proposal = ref_loads(data, refs, arrays)
-                    r = evaluate_candidate(engine, ctx['route'], ctx['dynamics'], ctx['gem'], label, proposal, ctx['target_item'],
-                                           ctx['steps'], ctx['landing_replies'], ctx['ballistic'], ctx['brake_replies'])
-                    r['_t'] = time.perf_counter() - t_c   # worker seconds (timing statistics only)
+                    from nav.marble_dynamics.planning_budget import PlanningBudgetExceeded
+                    try:
+                        r = evaluate_candidate(engine, ctx['route'], ctx['dynamics'], ctx['gem'], label, proposal, ctx['target_item'],
+                                               ctx['steps'], ctx['landing_replies'], ctx['ballistic'], ctx['brake_replies'])
+                    except PlanningBudgetExceeded:
+                        r = None
+                    if r is not None:
+                        r['_t'] = time.perf_counter() - t_c
                     res.send_bytes(pickle.dumps(('res', sid, idx, r), protocol=pickle.HIGHEST_PROTOCOL))
                 except Exception:
                     res.send_bytes(pickle.dumps(('err', sid, idx, traceback.format_exc())))
@@ -341,6 +353,7 @@ class ParallelEvaluator:
     def __init__(self, n, init, timeout_s=600.):
         ctx = mp.get_context('spawn')
         self.workers = []; self.conns = []; self.senders = []; self.sent = []; self.pids = []
+        self._closed = False
         # Spawned children re-run the parent's __main__ script unless it is hidden (tools/sim_bench parses argv and
         # swaps the clock at import): workers need only this module.
         main = sys.modules.get('__main__'); saved = (getattr(main, '__spec__', None), getattr(main, '__file__', None))
@@ -356,19 +369,26 @@ class ParallelEvaluator:
                 p.start(); cmd_r.close(); res_w.close()
                 sender = _Sender(cmd_w); sender.start()
                 self.workers.append(p); self.conns.append(res_r); self.senders.append(sender); self.sent.append(set())
+        except BaseException:
+            self.close()
+            raise
         finally:
             if main is not None:
                 main.__spec__ = saved[0]
                 if saved[1] is not None:
                     main.__file__ = saved[1]
         t0 = time.perf_counter()
-        for c in self.conns:
-            if not c.poll(max(1., timeout_s - (time.perf_counter() - t0))):
-                raise RuntimeError('parallel search worker did not start')
-            msg = pickle.loads(c.recv_bytes())
-            if msg[0] != 'ready':
-                raise RuntimeError('parallel search worker failed:\n' + str(msg[1]))
-            self.pids.append(msg[1])
+        try:
+            for c in self.conns:
+                if not c.poll(max(0., timeout_s - (time.perf_counter() - t0))):
+                    raise RuntimeError('parallel search worker did not start')
+                msg = pickle.loads(c.recv_bytes())
+                if msg[0] != 'ready':
+                    raise RuntimeError('parallel search worker failed:\n' + str(msg[1]))
+                self.pids.append(msg[1])
+        except BaseException:
+            self.close()
+            raise
         self.search_id = 0; self.refs = {}
         self.stats = dict(searches=0, candidates=0, wall_s=0., work_s=0., longest_s=0., dispatch_s=0.)
 
@@ -377,25 +397,54 @@ class ParallelEvaluator:
         self.refs = {id(v): k for k, v in refs.items() if v is not None}
 
     def close(self):
+        if self._closed:
+            return
+        self._closed = True
         for s_ in self.senders:
             try:
                 s_.send(pickle.dumps(('stop',))); s_.q.put(None)
             except Exception:
                 pass
+        # Busy workers can be blocked writing an old result. Drain those pipes
+        # while the stop commands reach them; waiting on each worker in turn
+        # without reading its pipe used to cost up to eight separate 5 s waits.
+        deadline = time.perf_counter() + 3.
+        readable = list(self.conns)
+        while any(p.is_alive() for p in self.workers) and time.perf_counter() < deadline:
+            if not readable:
+                break
+            for c in _wait(readable, min(.05, max(0., deadline-time.perf_counter()))):
+                try:
+                    c.recv_bytes()
+                except (EOFError, OSError):
+                    readable.remove(c)
         for p in self.workers:
-            p.join(timeout=5)
             if p.is_alive():
                 p.terminate()
+        for p in self.workers:
+            p.join(timeout=1.)
+        for c in self.conns:
+            c.close()
+        for s_ in self.senders:
+            s_.conn.close()
+            s_.q.put(None)
+            s_.join(timeout=.2)
 
     def evaluate(self, engine, route, dynamics, gem, specs, target_item, steps, landing_replies, ballistic, brake_replies,
                  deadline=None):
         """Results of evaluate_candidate for every (label, proposal) in specs, in order; None for a candidate whose
         result did not arrive before `deadline` (time.perf_counter() value; None = wait for all)."""
+        if self._closed:
+            raise RuntimeError('parallel search worker pool is closed')
         t0 = time.perf_counter(); self.search_id += 1; sid = self.search_id
         keys = _Keys()
         state = {k: v for k, v in engine.__dict__.items() if k not in ENGINE_SKIP and not callable(v)}
         ctx = dict(engine=state, route=route, dynamics=dynamics, gem=gem, target_item=target_item, steps=steps,
                    landing_replies=landing_replies, ballistic=ballistic, brake_replies=brake_replies)
+        # Convert to a shared clock before queuing. A relative duration starting
+        # when a worker finally reads the context would keep obsolete work alive.
+        ctx['expires_wall'] = (time.time()+max(0., deadline-time.perf_counter())
+                               if deadline is not None and WORKER_DEADLINES else None)
         ctx_bytes = ref_dumps(ctx, self.refs, keys); t_pickled = None
         cand_bytes = [ref_dumps(sp, self.refs, keys) for sp in specs]
         for i, s_ in enumerate(self.senders):

@@ -12469,3 +12469,48 @@ Changes (v40, code defaults; module switches for the sim):
 * TreasureBox live with pre-spin + walls: 157 points (2 stuck respawns).
 * 21:47 (operator): wall rebounds ROLLED BACK (search.WALL_BOUNCE False, reliability_eval.WALL_TOUR False; code kept) and
   put with Mega Marble usage on a new todo list, ml_agent/TODO.md. Pre-spin stays on.
+
+
+## 2026-10-19 22:45 MDT ? real-time planner correctness and baseline
+
+Autonomous work continues under the operator's overnight authorization. New handoff: `HANDOFF_REALTIME_PLANNER_2026-10-19.md`. Fresh ten-map native baseline123.7 equal-map points (1fall,11acceptedrescues); matched three-map real-time baseline159/95/188 with nofalls and2rescues, measured holds retained. Integrated tick-ordered item look-ahead (including replacing a held powerup), scheduled inventory-restoration telemetry/model, bounded one-map worker lifetime, worker deadline cleanup and accurate rescue accounting. Faster forecast resume/join passes the1875-decision reference exactly after finding/fixing truncation cache invalidation; regression tests retained. Fresh Mega mechanics/profile corpus150/155 strict replay windows, five small Bowl contact discrepancies; Mega planner use still disabled. Production checked continuation is also still disabled pending live comparison. A matched live_core measurement is running; dashboard33732 untouched, no training launched. Full commands/results/failures in the new handoff and `dynamics_reports/realtime_planner_20261019`.
+
+
+## 2026-10-19 23:27 MDT - native planner experiments screened; real-time guard validation next
+
+Fresh ten-map through-pickup experiment:121.4 versus123.7 points,3versus1falls,8versus11acceptedrescues. Failure-only12-candidate sequence refinement:92.333 versus102.667 points on Bowl/Cragmire/Vortex,2versus1falls,4versus6rescues. Both remain disabled; journals, source snapshots and negative results retained. Every actual starting layout matches baseline and both source-integrity audits pass. Matched earlier three-map real-time core comparison:147.0 versus147.333 mean points, planning holds19.78versus31.71seconds (37.6percent less), one additional fall; no claim of a scoring win. Integrated guards for optional checked continuation and simultaneous-pickup ambiguity after the scoring pools stopped; full dynamics tests and a quiet live comparison follow. Dashboard33732 untouched; no learned-model training. Detailed per-map table and evidence: HANDOFF_REALTIME_PLANNER_2026-10-19.md and dynamics_reports/realtime_planner_20261019/native_experiment_comparison.json.
+
+## 2026-10-20 morning — corrected continuation measured; reporting fix
+
+Corrected checked continuation completed Sprawl/Cragmire/TreasureBox:164/115/168 points,0falls,0/1/1 acceptedrescues,8.85held seconds total. Core:148/100/193,1fall,0/2/0 acceptedrescues,19.78held seconds. All actual opening dictionaries match exactly and source hashes unchanged. Mean149versus147 is only a development result; TreasureBox regression requires confirmation. Quiet control repeat is running, then a different-start pair before selection. No training; dashboard33732 untouched.
+
+Found/fixed benchmark-only counter collision: BenchEnv reused HuntEnv.rescue_accepted acknowledgment and added1, yielding2 for the last accepted request rather than a total. Per-round core/later summaries are correct; prior outer summaries retained and corrected audit written. Original baseline only proves2 Cragmire attempts, not cumulative accepted acknowledgments. Native scoring pools unaffected. Harness now has a distinct counter, agreement assertion and verified source/binary archives; all18 runtime tests passed. Full details in HANDOFF_REALTIME_PLANNER_2026-10-19.md and rescue_accounting_audit.json.
+
+## 2026-10-20 07:33 MDT — quiet repeat overturns initial continuation points gain
+
+Quiet core scores162/110/205 (mean159) versus checked164/115/168 (mean149), with identical full openings on all three maps. Checked reduces waits15.90 to8.85s and falls3to0, but loses37 TreasureBox points; remains disabled. Corrected acceptedrescues are1 total for quietcore versus2 for checked. Fixed benchmark-only fidelity mismatch: it inherited5ms Python switch interval while menu server uses1ms. Existing comparisons remain matched at5ms; fresh-start core/checked pair now measures1ms and records that setting. Source archives include sweep DLL; benchmark requires native real-time pacing. Runtime tests18passed. See main real-time handoff and live_core_quiet_comparison.json. No training.
+
+## 2026-10-20 morning — real-time planner validation phase complete
+
+Kept the verified core fixes; checked continuation, through-pickup control, generic refinement, walls and Mega proposals remain disabled. Fresh-start1ms pair: core164/120/163 versus checked175/118/168 points (means149 versus153.667),1fall each, acceptedrescues2versus4, total recorded waits16.80versus12.83seconds. Earlier quiet development repeat favored core159versus149. Mixed evidence does not justify promotion. Fresh TreasureBox captures share gems/RNG but differ by0.165605u height and1.28u/s vertical velocity; report as layout-matched only. Fix neutral/countdown phase alignment and record GO state before another promotion test. Sprawl/Cragmire positions, velocities and spins match; source hashes/runtime settings match across both arms.
+
+Final240/240 dynamics tests passed. All owned games/search workers stopped; dashboard33732 untouched, no training. Archived30 staging files and24 execution logs; removed20 temporary Python source copies after hash verification. Initial recursive cleanup was blocked by automatic review; narrower individual verified deletions succeeded. No active source/results removed. Defaults, commands, every bugfix, per-map tables and unresolved gates are in HANDOFF_REALTIME_PLANNER_2026-10-19.md. Machine-readable decision: dynamics_reports/realtime_planner_20261019/completion.json; paired report: live_start1_comparison.json.
+
+
+## 2026-10-20 morning - movement-speed bug reproduced and repaired
+
+User authorized autonomous iteration to increase movement speed and points, especially Bowl. Found native sequence serialization/C++ silently omitted SequenceProposal.fast and FAST_MIN_SPEED: compiled fast16/20 candidates were ordinary-speed duplicates. Exact Bowl replay: compiled normal/fast both13.316u/s; intended Python fast20 averages17.394u/s. Archived pre-change sources and binary. Ported existing semantics, bumped native ABI9 to10, added regression/trajectory validation and a diagnostic legacy duplicate-control flag. All96 full fast forecasts across Bowl/Sprawl/Cube match Python exactly, randomized controls pass, and241/241 dynamics tests pass. No reward or ordinary speed cap changed. Running paired full native rounds on three maps/two random openings per map (six games at once); initial physical starts match, fixed fast plans are being selected. No scoring conclusion yet. Dashboard33732 untouched, no training. Details/evidence: HANDOFF_PLANNER_SPEED_2026-10-20.md and dynamics_reports/speed_planner_20261020.
+
+
+## 2026-10-20 - native speed fix passes full ten-map comparison
+
+All40 native rounds complete, ten maps/two actual distinct openings per map/two controllers. Fixed native fast controls improve equal-map points124.7 to129.6 (+3.93%); Bowl90.5 to124.5 (+37.57%), mean speed+7.50%, long-approach speed+10.94%. Mixed tighter-map results retained: falls5 to7, acceptedrescues15 to10. All20 starting layout/motion pairs match;231 live source/input hashes and6source archives pass.241tests and96fast forecast comparisons had already passed. Quiet real-time Bowl confirmation now running sequentially; no training, dashboard33732 untouched. Full table, negative cases and audit: HANDOFF_PLANNER_SPEED_2026-10-20.md and dynamics_reports/speed_planner_20261020/native_comparison.json.
+
+
+## 2026-10-20 - Planner speed phase complete
+
+Fixed the compiled controller dropping SequenceProposal.fast and FAST_MIN_SPEED; native ABI10 now preserves Python fast behavior. Default fix remains enabled, with --legacy-fast-proposals retained for matched controls. No learned-model training occurred.
+
+Forty full native rounds across ten maps/two distinct starts: equal-map points124.7 to129.6 (+3.93%); falls5 to7, accepted rescues15 to10. Four quiet real-time Bowl rounds confirm mean points114.5 to126.5 (+10.48%) and speed11.0513 to12.2868u/s (+11.18%), with zero falls/rescues. Initial and GO states match within each pair; the two opening gem layouts differ. Runtime essentially unchanged.241 unit tests and96 full fast forecast parity checks passed.
+
+Detailed results, mixed-map regressions, Cube handoff/fallback risk and rare contact errors: HANDOFF_PLANNER_SPEED_2026-10-20.md. Evidence: dynamics_reports/speed_planner_20261020/{completion,native_audit,live_audit,native_comparison,live_comparison}.json and verified execution_logs.zip. Removed80 temporary raw journal copies (3,714,404,775 bytes) only after verifying retained compressed archives. No throwaway Python scripts added. All evaluation games/workers stopped; dashboard33732 remains untouched. Requested speed-and-points goal achieved; next useful work is safer continuation after pickups/target changes on tighter maps.

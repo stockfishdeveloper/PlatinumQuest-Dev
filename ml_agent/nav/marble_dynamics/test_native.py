@@ -112,7 +112,12 @@ class NativeRegressions(unittest.TestCase):
 
     def test_native_hull_bounds_enclose_source_points(self):
         sources={}
-        for path in (ML/'collision_maps').glob('*.json'):
+        collection=json.loads((ML/'collision_maps/collection.json').read_text())
+        self.assertEqual(len(collection['maps']),10)
+        # Keep this measured hull inventory scoped to the ten admitted maps;
+        # optional example/probe exports are not part of this regression.
+        for entry in collection['maps']:
+            path=ML/'collision_maps'/(entry['map']+'.json')
             for source in json.loads(path.read_text()).get('source_inventory',[]):
                 if source['path'].lower().endswith('.dif'):sources[source['path']]=source
         self.assertEqual(len(sources),21)

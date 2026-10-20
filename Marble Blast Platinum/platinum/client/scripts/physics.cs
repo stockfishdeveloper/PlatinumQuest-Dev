@@ -101,6 +101,11 @@ function Physics::getProperty(%field) {
 /// @arg value The value of the attribute for regular marbles.
 /// @arg megaValue The value of the attribute for mega marbles.
 function Physics::setProperty(%field, %value, %megaValue) {
+	// Read-only planner telemetry: retain both evaluated profiles after every
+	// layer override. These values do not change which profile the game applies.
+	$Physics::NormalValue[%field] = %value;
+	$Physics::MegaValue[%field] = %megaValue;
+	$Physics::ProfileRevision++;
 	%attribute = MarbleAttributeInfoArray.getFieldValue(%field);
 	%type = %attribute.type;
 	devecho("Set " @ %type @ " physics property \"" @ %field @ "\" to " @ %value @ " (mega: " @ %megaValue @ ")");

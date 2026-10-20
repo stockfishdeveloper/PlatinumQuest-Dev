@@ -666,7 +666,7 @@ int step(Map& m, State& s, const Move& move, int dt_ms, std::vector<Event>& even
 }  // namespace
 
 // ------------------------------------------------------------------ C API
-DLL int ms_abi() { return 9; }
+DLL int ms_abi() { return 10; }
 DLL int ms_state_size() { return S_SIZE; }
 
 DLL void* ms_create(int ntri, const double* tri, const double* source, const double* planes, const uint8_t* boundary,
@@ -836,7 +836,7 @@ enum { Q_KEY = 0, Q_HAS_WP = 3, Q_WP = 4, Q_GEM = 7, Q_OFFSET = 10, Q_SCALE = 11
        // ABI 5 (6 adds tail kind 3, landing.LandingContinuation): settle.SettleProposal / recharge.RechargeProposal (brake toward the gem for Q_BRAKE_PREFIX replies, then the
        // sequence at index - prefix) and phased_search.AimProposal (a use's aim minus Q_AIM)
        Q_BRAKE_PREFIX = 37, Q_HAS_AIM = 38, Q_AIM = 39, Q_HAS_MIN = 40, Q_MIN = 41,   // ABI 8: per-plan pickup minimum
-       Q_HAS_BOX = 42, Q_BOX = 43, Q_SIZE = 49 };   // ABI 9: the through gem's pickup box
+       Q_HAS_BOX = 42, Q_BOX = 43, Q_FAST = 49, Q_FAST_MIN = 50, Q_SIZE = 51 };   // ABI 10: fast-family speed and floor
 enum { R_ACTION = 0, R_MOVE0 = 9, R_MOVE1 = 15, R_CAMERA = 21, R_IMPULSE = 22, R_PUSH = 23, R_DV = 26, R_METER = 29, R_SPECIAL = 30,
        R_DONE = 31, R_AMB = 32, R_BLAST_VALUE = 36, R_BLAST_SPECIAL = 37, R_SIZE = 38 };
 
@@ -852,6 +852,7 @@ void load_seq(SeqSpec& S, const double* seq, const float* field, const float* ne
     S.prev = V3{seq[Q_PREV], seq[Q_PREV + 1], seq[Q_PREV + 2]};
     S.has_min = seq[Q_HAS_MIN] != 0; S.min_speed = seq[Q_MIN];
     S.has_box = seq[Q_HAS_BOX] != 0; for (int k = 0; k < 6; k++) S.box[k] = seq[Q_BOX + k];
+    S.fast = seq[Q_FAST]; S.fast_min_speed = seq[Q_FAST_MIN];
 }
 void save_seq(const SeqSpec& S, double* seq) {
     seq[Q_HAS_WP] = S.route.has_wp; seq[Q_WP] = S.route.wp.x; seq[Q_WP + 1] = S.route.wp.y; seq[Q_WP + 2] = S.route.wp.z;
@@ -939,8 +940,14 @@ DLL int ms_forecast(void* h, void* th, const double* state_in, const double* bri
             }
             Move mvv{mv[0], mv[1], mv[2], mv[3] != 0, mv[4] != 0, mv[5] != 0};
             ev.clear();
+            V3 pickup_start = s.p;
             int sc = step(*m, s, mvv, 16, ev);
             if (sc) { fail_code = sc; break; }
+            if (tail_kind == 1 && S.through && S.has_box && !S.passed) {
+                V3 a = pickup_start, p = s.p; double r = s.radius + .2;
+                S.passed = pymax(a.x,p.x)+r >= S.box[0] && pymax(a.y,p.y)+r >= S.box[1] && pymax(a.z,p.z)+r >= S.box[2]
+                        && pymin(a.x,p.x)-r <= S.box[3] && pymin(a.y,p.y)-r <= S.box[4] && pymin(a.z,p.z)-r <= S.box[5];
+            }
             steps++;
             int ac = blast_advance(b, k == 0 && fired == 1, 16);
             if (ac) { fail_code = -ac; break; }

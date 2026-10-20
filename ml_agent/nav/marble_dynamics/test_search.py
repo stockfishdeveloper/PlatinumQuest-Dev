@@ -17,6 +17,54 @@ from nav.routing import RoutePlanner
 from nav.protocol import RAW_DIM,RAW_GEMS
 
 
+class FastControllerSerialization(unittest.TestCase):
+    def test_fast_speed_and_floor_survive_native_serialization(self):
+        from types import SimpleNamespace
+        from unittest.mock import patch
+        from nav.native.forecast import seq_array
+        route=SimpleNamespace(key=(10.,0.,0.),waypoint=None)
+        with patch('nav.marble_dynamics.search.FAST_MIN_SPEED',7.5):
+            fast=seq_array(SequenceProposal(route,np.asarray([10.,0.,0.]),48,fast=20.))
+            ordinary=seq_array(SequenceProposal(route,np.asarray([10.,0.,0.]),48))
+        self.assertEqual(len(fast),51)
+        self.assertEqual(tuple(fast[49:51]),(20.,7.5))
+        self.assertEqual(ordinary[49],0.)
+        np.testing.assert_array_equal(fast[:49],ordinary[:49])
+
+
+class TickPickupRegressions(unittest.TestCase):
+    def proposal(self):
+        from types import SimpleNamespace
+        terrain=SimpleNamespace()
+        route=SimpleNamespace(terrain=terrain,navigate=lambda p,g:(g,False),distance=lambda p:2.)
+        result=SequenceProposal(route,np.asarray([0.,0.,0.]),8,through=(route,np.asarray([2.,0.,0.]),2.))
+        result.box=[-.05,-.05,-.05,.05,.05,.05]
+        return result
+
+    def test_macro_chord_must_not_count_a_pickup_between_native_ticks(self):
+        p=self.proposal()
+        ticks=[dict(position=point,radius=.1) for point in ([-1,0,0],[-1,1,0],[0,1,0],[1,1,0],[1,0,0])]
+        p.observe_ticks(ticks)
+        self.assertFalse(p.passed)
+        p.observe_ticks([dict(position=[-1,0,0],radius=.1),dict(position=[1,0,0],radius=.1)])
+        self.assertTrue(p.passed)
+
+    def test_initial_overlap_waits_for_an_actual_native_tick(self):
+        from unittest.mock import patch
+        p=self.proposal();state=dict(position=[0.,0.,0.],velocity=[0.,0.,0.],radius=.1)
+        with patch('nav.marble_dynamics.search.leg_top',return_value=None):
+            p(state,0)
+        self.assertFalse(p.passed)
+        p.observe_ticks([state,state]);self.assertTrue(p.passed)
+
+    def test_larger_radius_reaches_items_the_normal_marble_misses(self):
+        p=self.proposal()
+        ticks=[dict(position=[.7,0,0],radius=.19)]*2
+        p.observe_ticks(ticks);self.assertFalse(p.passed)
+        p.observe_ticks([dict(position=[.7,0,0],radius=.6666)]*2)
+        self.assertTrue(p.passed)
+
+
 class SearchRegressions(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -119,8 +167,10 @@ class SearchRegressions(unittest.TestCase):
                       bridge_action=reply([0,0,0,0,0,yaw]),pow_yaw_hold=0,pow_yaw=0.)
         engine=GeneralPhysics(CollisionMap(ML/'collision_maps/KingOfTheMarble_Hunt.npz'))
         actions=[reply([0,0,0,0,0,yaw]) for _ in range(8)]
-        complete=predict_replies(engine,dynamics,actions)
-        early=predict_replies(engine,dynamics,actions,stop_on_ambiguity=True)
+        from unittest.mock import patch
+        with patch('nav.marble_dynamics.bridge.ACCEPT_AMBIGUITY',False):
+            complete=predict_replies(engine,dynamics,actions)
+            early=predict_replies(engine,dynamics,actions,stop_on_ambiguity=True)
         self.assertTrue(early['stopped_on_ambiguity'])
         self.assertEqual(early['requested_replies'],8)
         self.assertEqual(len(early['controls']),complete['ambiguous_intervals'][0]+1)

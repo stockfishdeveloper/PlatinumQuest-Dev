@@ -206,10 +206,34 @@ class ContinuousEvents(unittest.TestCase):
         controller.commit_left=4;controller.cooldown=32
         controller.last_prediction={'position':[1,2,3]};controller.last_action=[1]*9
         controller.route=Mock();controller.terrain=object()
+        controller.kind='frozen_navigator';controller.engine=SimpleNamespace(mesh=None)
+        controller.args=SimpleNamespace();controller.fields={};controller.decision_index=0
+        controller.task_goal=None;controller.order_commit=None
+        controller.stall=None;controller.stall_pending=False;controller.skipped={}
         controller.nav=Mock();controller.nav.model=object()
         from collections import Counter
         controller.counts=Counter()
         return controller
+
+    def test_checked_rebase_preserves_stall_history_and_recovery_goal(self):
+        controller=self.controller()
+        controller.task_goal=[1,2,3];controller.stall={'goal':(1,2,3),'since':100}
+        controller.stall_pending=True;controller.observed_respawns=7
+        for _ in range(10):
+            controller.invalidate('realtime_checked_rebase',preserve_task=True)
+        self.assertEqual(controller.current,[1,2,3])
+        self.assertEqual(controller.task_goal,[1,2,3])
+        self.assertEqual(controller.resource,{'id':42})
+        self.assertEqual(controller.stall,{'goal':(1,2,3),'since':100})
+        self.assertTrue(controller.stall_pending)
+        self.assertEqual(controller.observed_respawns,7)
+        self.assertEqual(controller.cooldown,32)
+        self.assertFalse(controller.memory.actions)
+        self.assertIsNone(controller.last_prediction)
+        controller.invalidate('real_respawn')
+        self.assertIsNone(controller.task_goal)
+        self.assertIsNone(controller.stall)
+        self.assertIsNone(controller.resource)
 
     def test_no_live_gem_returns_complete_neutral_bridge_reply(self):
         controller=self.controller();controller.kind='frozen_navigator';controller.fields={}
@@ -287,6 +311,7 @@ class GeometryComponent(unittest.TestCase):
         action=[.2,0,0,0,0,0,0,0,0];controller.nav.act.return_value=action
         msg=SimpleNamespace(obs=np.zeros(RAW_DIM),dynamics={'native':{'state':{'mode':0,'oob':False,'position':[0,0,0]}},
             'items':[{'id':41,'gem':True,'position':[7.,8.,9.]}]})
+        msg.obs[31]=100000.  # ordinary play; this test does not exercise endgame target selection
         with patch('nav.marble_dynamics.reliability_eval.tour',return_value=(goal,None,[goal])),patch('nav.marble_dynamics.reliability_eval.observed_gems',return_value=[goal]):
             sent,info=controller.action(msg,100)
         controller._search.assert_not_called()
@@ -305,12 +330,13 @@ class CheckedRecoveryController(unittest.TestCase):
         controller.args=SimpleNamespace(global_goals=False,checked_recovery=True,checked_recovery_replies=40,
             checked_recovery_budget_s=.2,search_budget_s=1.,fallback_cooldown=64)
         controller.cooldown=0;controller.fallback_reasons={};controller.planning_times=[]
-        controller.engine=SimpleNamespace(planning_deadline=None)
+        controller.engine=SimpleNamespace(planning_deadline=None,mesh=None)
         target=(7.,8.,9.,2.,12.);controller._search=Mock(return_value=(None,target))
         controller.route.navigate.return_value=([3.,4.,5.],False)
         controller.nav.act.return_value=[.2,0,0,0,0,0,0,0,0]
         msg=SimpleNamespace(obs=np.zeros(RAW_DIM),dynamics={'native':{'state':{'mode':0,'oob':False,'position':[0,0,0]}},
             'items':[{'id':41,'gem':True,'position':[7.,8.,9.]}]})
+        msg.obs[31]=100000.
         from collections import Counter
         controller.fallback_reasons=Counter()
         return controller,msg,target

@@ -135,6 +135,7 @@ def setup(a, name):
     GD.THROTTLE_GAIN = float(getattr(a, 'throttle_gain', 4.)); GD.THROTTLE_CAP = float(getattr(a, 'throttle_cap', 1.))
     GD.BRAKE_DECEL = float(getattr(a, 'brake_decel', 7.)); GD.TARGET_SPEED_CAP = float(getattr(a, 'speed_cap', 11.))
     S.ROUTE_SPEED_LAW = not getattr(a, 'waypoint_brake_law', False); S.PICKUP_MIN_SPEED = float(getattr(a, 'pickup_min_speed', 6.))
+    S.FAST_PROPOSALS = not getattr(a, 'legacy_fast_proposals', False)
     S.THROUGH_GEM = not getattr(a, 'no_through_gem', False); S.BRAKING_BACKUP = not getattr(a, 'no_braking_backup', False)
     # as reliability_eval.main() (v70: corner plans on by default via RE.CORNER_DEFAULT; before 18:55 10-17 the sim left them off)
     S.CORNER_PROPOSALS = bool(getattr(RE, 'CORNER_DEFAULT', False)) or bool(getattr(a, 'corner_proposals', False))

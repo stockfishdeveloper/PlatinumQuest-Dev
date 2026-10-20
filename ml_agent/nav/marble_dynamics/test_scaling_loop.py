@@ -132,7 +132,7 @@ class ScalingContracts(unittest.TestCase):
             np.testing.assert_array_equal(restored.query_aabb([below,0,0],[-1000.,.1,.1]),mesh.query_aabb([below,0,0],[-1000.,.1,.1]))
 
     def test_walking_cache_loads_filtered_graph_without_rebuilding(self):
-        base=SimpleNamespace(static_cache_key='terrain_A')
+        base=SimpleNamespace(static_cache_key='terrain_A',goal_field=Mock())
         graph=csr_matrix(([1.25,2.5],[1,0],[0,1,2]),shape=(2,2))
         class Clearance:
             def __init__(self,mesh):self.radius=.189750001;self.point_cache={}

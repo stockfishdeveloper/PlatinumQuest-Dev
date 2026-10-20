@@ -29,7 +29,9 @@ def same(a, b):
 
 
 def main():
-    p = argparse.ArgumentParser(); p.add_argument('maps', nargs='+'); p.add_argument('--n', type=int, default=3000); a = p.parse_args()
+    p = argparse.ArgumentParser(); p.add_argument('maps', nargs='+'); p.add_argument('--n', type=int, default=3000); p.add_argument('--through-pool',type=Path)
+    p.add_argument('--fast-pool',type=Path,help='Check actual fast forecasts against Python on recorded native states')
+    a = p.parse_args()
     rng = np.random.default_rng(7)
     sim0 = None
     # scalar helpers (map independent)
@@ -98,6 +100,7 @@ def main():
                                       jump=int(rng.choice([-1, 0, 2])), use=int(rng.choice([-1, 0, 3])), blast=int(rng.choice([-1, 0])),
                                       direct=bool(rng.random() < .3), brake_after=int(rng.choice([12, 0])) if rng.random() < .3 else None)
             spec.min_speed = 8. if rng.random() < .3 else None   # ABI 8 per-plan pickup minimum
+            spec.fast = (None, 16., 20.)[int(rng.integers(0, 3))]
             state = dict(position=[sx, sy, sz], velocity=[float(v) for v in rng.uniform(-12, 12, 3)], radius=.18975)
             for index in range(3):
                 from nav.native.forecast import seq_array
@@ -122,7 +125,77 @@ def main():
             ok = (out[0] == mv['x'] and out[1] == mv['y'] and bool(out[3]) == mv['jump'] and bool(out[4]) == mv['use']
                   and cy.value == cam[0]['value'] and hh.value == h2 and aa.value == a2)
             tally('translated', ok)
+        if a.through_pool:
+            check_through(a.through_pool,name,walk,engine,sim,tally)
+        if a.fast_pool:
+            check_fast(a.fast_pool,name,walk,engine,sim,tally)
         print(name, ' '.join('%s %d/%d' % (k, v[1], v[0]) for k, v in res.items()), flush=True)
+        if any(n!=ok for n,ok in res.values()):raise SystemExit('Native/Python controller mismatch')
+
+
+
+def check_through(pool,name,terrain,engine,sim,tally):
+    import gzip,json,copy
+    from nav.native.forecast import predict_native,_predict_per_reply
+    journals=sorted((pool/name).rglob('decisions.jsonl.gz'))
+    if not journals:raise ValueError('No recorded states for '+name)
+    with gzip.open(journals[0],'rt',encoding='utf-8') as f:rows=[json.loads(line) for line in f]
+    checked=0
+    for row in rows[::83]:
+        dynamics=row['before'];state=dynamics['native']['state']
+        gems=[i for i in dynamics['items'] if i['gem']]
+        if state['mode']!=0 or state['oob'] or len(gems)<2:continue
+        gems.sort(key=lambda item:np.linalg.norm(np.asarray(item['position'])-state['position']))
+        item,nitem=gems[:2];gem=np.asarray(item['position'],dtype=float);ngem=np.asarray(nitem['position'],dtype=float)
+        def proposal():
+            route=RoutePlanner(terrain);route.navigate(state['position'],gem)
+            nr=RoutePlanner(terrain);nr.navigate(gem,ngem)
+            spec=S.SequenceProposal(route,gem,48,through=(nr,ngem,float(nr.distance(gem))))
+            spec.box=list(item['bounds']);return spec
+        engine.bridge_physics_ms=16;engine.native_sim=sim
+        a=predict_native(sim,engine,dynamics,proposal(),False)
+        b=_predict_per_reply(sim,engine,dynamics,proposal(),False)
+        ok=(a['proposed']==b['proposed'] and a['failure']==b['failure']
+            and all(x[k]==y[k] for x,y in zip(a['states'],b['states']) for k in ('position','velocity','spin','radius')))
+        tally('through_tick_forecast',ok)
+        if not ok:print('through difference',name,row['decision'],flush=True)
+        checked+=1
+        if checked>=16:break
+    if checked<4:raise ValueError('Not enough playable through-gem cases')
+
+
+def check_fast(pool,name,terrain,engine,sim,tally):
+    import gzip,json
+    from nav.native.forecast import predict_native,_predict_per_reply
+    journals=sorted((pool/name).rglob('decisions.jsonl.gz'))
+    if not journals:raise ValueError('No recorded states for '+name)
+    with gzip.open(journals[0],'rt',encoding='utf-8') as f:rows=[json.loads(line) for line in f]
+    checked=0;different=0
+    for row in rows[::173]:
+        dynamics=row['before'];state=dynamics['native']['state']
+        gems=[i for i in dynamics['items'] if i['gem']]
+        if state['mode']!=0 or state['oob'] or not gems:continue
+        goal=row.get('choice',{}).get('goal_context',{}).get('destination') or gems[0]['position']
+        gem=np.asarray(goal,dtype=float)
+        def proposal(fast,direct):
+            route=RoutePlanner(terrain);route.navigate(state['position'],gem)
+            return S.SequenceProposal(route,gem,48,direct=direct,fast=fast)
+        engine.bridge_physics_ms=16;engine.native_sim=sim
+        for direct in (False,True):
+            normal=predict_native(sim,engine,dynamics,proposal(None,direct),False)
+            for top in (16.,20.):
+                a=predict_native(sim,engine,dynamics,proposal(top,direct),False)
+                b=_predict_per_reply(sim,engine,dynamics,proposal(top,direct),False)
+                ok=(a['proposed']==b['proposed'] and a['failure']==b['failure']
+                    and len(a['states'])==len(b['states'])
+                    and all(x[k]==y[k] for x,y in zip(a['states'],b['states']) for k in ('position','velocity','spin','radius')))
+                tally('fast_forecast',ok)
+                if not ok:print('fast difference',name,row['decision'],top,direct,flush=True)
+                different+=int(a['proposed']!=normal['proposed'])
+        checked+=1
+        if checked>=8:break
+    if checked<4:raise ValueError('Not enough playable fast cases')
+    tally('fast_changes_controls',different>0)
 
 
 def consts_now():

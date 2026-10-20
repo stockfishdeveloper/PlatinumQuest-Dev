@@ -46,7 +46,9 @@ SEARCH_WORKERS = 8        # candidate-evaluation worker processes per map (paral
 PORT = 8888               # the bridge's default port: a game started from the menu connects here
 DECISION_S = .064
 STALL_REPORT_S = .25      # a hold longer than this is printed
-PLAN_FAIL_LIMIT_S = 30.   # no committed reply for this long = the planner thread is stuck: stop the round
+PLAN_FAIL_LIMIT_S = 4.    # fail before the bridge's 5 s live lockstep timeout releases unchecked motion
+CHECKED_TAIL = False      # opt-in until paired native real-time checks pass
+CHECKED_RESERVE = 8       # at most 512 ms of already checked continuation
 ML = Path(__file__).resolve().parents[2]
 OUTPUT = ML / 'dynamics_reports' / 'realtime'
 # the v86 pool planner (scratchpad launch_pool.sh flag set + --horizon 48, dynamics_reports/planner_v86_*/prepared.json)
@@ -126,7 +128,10 @@ class World:
         GD.TARGET_SPEED_CAP = float(getattr(a, 'speed_cap', 11.))
         S.ROUTE_SPEED_LAW = not getattr(a, 'waypoint_brake_law', False)
         S.PICKUP_MIN_SPEED = float(getattr(a, 'pickup_min_speed', 6.))
+        S.FAST_PROPOSALS = not getattr(a, 'legacy_fast_proposals', False)
         S.THROUGH_GEM = not getattr(a, 'no_through_gem', False)
+        S.THROUGH_BOX = bool(getattr(a, 'through_pickup_ticks', False))
+        S.REFINE_CANDIDATES = int(getattr(a, 'refine_candidates', 0))
         S.OPEN_TOP = 13.5 if getattr(a, 'open_top', False) else 0.
         S.RAISED_BLAST_FIRST = bool(getattr(a, 'raised_blast_first', False))
         S.CORNER_PROPOSALS = RE.CORNER_DEFAULT or bool(getattr(a, 'corner_proposals', False))
@@ -169,6 +174,26 @@ class World:
     def close(self):
         if self.engine.parallel is not None:
             self.engine.parallel.close()
+            self.engine.parallel = None
+
+
+class WorldManager:
+    """One active map and worker pool. Static geometry caches remain on disk."""
+    def __init__(self, factory=World):
+        self.factory = factory
+        self.world = None
+
+    def get(self, name):
+        if self.world is not None and self.world.name == name:
+            return self.world
+        self.close()                    # free old workers BEFORE starting another eight
+        self.world = self.factory(name)
+        return self.world
+
+    def close(self):
+        if self.world is not None:
+            old, self.world = self.world, None
+            old.close()
 
 
 # ----------------------------------------------------------------------------------------------- predicted observation
@@ -184,9 +209,8 @@ def predict(engine, actual, replies):
     (Msg, {k: gem points collected in the k-th interval}). Exact compiled forecast of the bridge and physics; items the
     forecast collects (the game's per-tick test) are gone; nothing new appears. Raises ValueError when the forecast
     cannot continue (out of bounds, a mode the compiled simulator does not model)."""
-    from nav.marble_dynamics.bridge import predict_replies
+    from nav.marble_dynamics.script_forecast import forecast_items
     from nav.marble_dynamics.viability import resume_forecast
-    from nav.marble_dynamics.gem_demo import possible_pickup
     from nav.protocol import (RAW_POS, RAW_VEL, RAW_SPIN, RAW_GEMS, RAW_TIME_LEFT, RAW_TIME_REMAINING, RAW_SCORE,
                               RAW_GEMS_REMAINING, RAW_POW_HELD, RAW_POW_BLAST, RAW_POW_SPECIAL, RAW_POW_ITEMS)
     from nav.obs import POW_RESPAWN_S
@@ -194,33 +218,18 @@ def predict(engine, actual, replies):
     dynamics = actual.dynamics
     saved = getattr(engine, 'planning_deadline', None); engine.planning_deadline = None
     try:
-        forecast = predict_replies(engine, dynamics, [list(r) for r in replies], stop_on_ambiguity=False)
+        forecast = forecast_items(engine, dynamics, [list(r) for r in replies])
     finally:
         engine.planning_deadline = saved
     if forecast['failure'] or len(forecast['controls']) != n:
         raise ValueError('forecast of the committed replies stopped: ' + str(forecast['failure']))
     predicted = resume_forecast(dynamics, forecast)
     state = predicted['native']['state']
-    states, native = forecast['states'], forecast.get('native_states')
-    held0 = int(dynamics['native']['state']['held'])
-    items = []; picked = Counter(); picked_items = []; grabbed = None
-    for item in dynamics.get('items', []):
-        k = possible_pickup(states, item, native)
-        if k is not None and item['gem']:
-            picked[k - 1] += float(item['value']); picked_items.append(item)
-            continue
-        if k is not None and 1 <= int(item['powerup']) <= 5 and held0 == 0 and int(state['held']) == 0 and (grabbed is None or k < grabbed[0]):
-            # a powerup the committed moves run into: picked up by the game's script (the forecast's physics does not
-            # model pickups), held from then on; one at a time
-            grabbed = (k, item)
-        items.append(item)
-    if grabbed is not None:
-        items.remove(grabbed[1]); picked_items.append(grabbed[1])
-        state['held'] = int(grabbed[1]['powerup'])
-        inventory = predicted.get('inventory')
-        if isinstance(inventory, dict) and 'held_type' in inventory:
-            inventory = dict(inventory, held_type=int(grabbed[1]['powerup'])); predicted['inventory'] = inventory
-            state['inventory_context'] = copy.deepcopy(inventory)
+    items = forecast['items']; picked = Counter()
+    picked_events = forecast['item_events']
+    for event in picked_events:
+        if event['item']['gem']:
+            picked[event['interval']] += float(event['item']['value'])
     predicted['items'] = items
     raw = np.array(actual.obs, dtype=np.float32, copy=True)
     p = np.asarray(state['position'], dtype=float); p0 = np.asarray(dynamics['native']['state']['position'], dtype=float)
@@ -251,9 +260,11 @@ def predict(engine, actual, replies):
             slot[1:4] += (p0 - p).astype(np.float32)
             if slot[4] > 0:
                 slot[4] = max(0., float(slot[4]) - n * DECISION_S)
-            for item in picked_items:
+            for event in picked_events:
+                item = event['item']
                 if not item['gem'] and np.linalg.norm(np.asarray(item['position'], dtype=float) - (p + slot[1:4])) < .1:
-                    slot[4] = POW_RESPAWN_S
+                    elapsed = n * DECISION_S - (event['tick'] * .016 if event['tick'] is not None else (event['interval']+1) * DECISION_S)
+                    slot[4] = max(0., POW_RESPAWN_S - elapsed)
     raw[RAW_POW_ITEMS] = pw.ravel()
     return Msg(raw, predicted, int(actual.tick) + n), dict(picked)
 
@@ -270,12 +281,14 @@ class AheadPlanner(threading.Thread):
         self.latest = None            # (decision, Msg, outcome of the step into it)
         self.committed = {}           # decision -> reply
         self.sent = {}                # decision -> reply actually sent (the forecast's inputs)
+        self.checked = {}             # decision -> (reply, expected state, preceding bridge reply)
+        self.generation = 0           # an in-flight result cannot survive a restart or checked fallback
         self.next = None              # next decision to plan; None until the round's first playable decision
         self.reset = False
         self.running = True
         self.error = None
         self.prev = None              # the observation the planner saw at the previous decision
-        self.tail = []; self.tail_from = None   # the last plan's replies after the decision it was chosen for
+        self.tail = []; self.tail_from = None   # legacy fallback retained while checked-tail is experimental
         self.stats = Counter(); self.leads = []; self.latencies = []; self.labels = Counter()
         # The stuck check's route distance, computed HERE for each new real observation. Route queries reach the
         # compiled simulator (line_clear -> ground clearance -> marble_sim.segment), which one thread at a time may use:
@@ -298,6 +311,7 @@ class AheadPlanner(threading.Thread):
         from the real observation at `decision`."""
         with self.cv:
             self.committed = {d: r for d, r in self.committed.items() if d < decision}
+            self.checked.clear(); self.generation += 1
             self.next = decision; self.reset = True
             self.cv.notify_all()
 
@@ -306,8 +320,12 @@ class AheadPlanner(threading.Thread):
         t0 = time.perf_counter()
         with self.cv:
             while decision not in self.committed:
+                if not self.running:
+                    raise RuntimeError('planner stopped before committing a reply')
                 if self.error is not None:
                     raise RuntimeError('planner thread failed:\n' + self.error)
+                if CHECKED_TAIL and self._checked_reply(decision):
+                    break
                 if time.perf_counter() - t0 > PLAN_FAIL_LIMIT_S:
                     raise RuntimeError('no reply for decision %d after %.0f s' % (decision, PLAN_FAIL_LIMIT_S))
                 self.cv.wait(.05)
@@ -317,6 +335,65 @@ class AheadPlanner(threading.Thread):
                 del self.sent[d]
         held = time.perf_counter() - t0
         return r, held
+
+    def _checked_reply(self, decision):
+        """Game thread: numeric comparison only, never touches the native simulator.
+
+        Publish a previously checked continuation only if the actual state and
+        preceding sent reply still agree. Invalidate any concurrent calculation
+        for this decision; it must resume from the action actually sent.
+        """
+        entry = self.checked.get(decision)
+        if entry is None or self.latest is None or self.latest[0] != decision:
+            return False
+        action, expected, previous, bridge = entry
+        dynamics = self.latest[1].dynamics
+        actual = dynamics['native']['state']
+        from nav.marble_dynamics.reliability_eval import pending_reply_matches
+        if (not np.all(np.isfinite(dynamics['bridge_action'])) or not np.all(np.isfinite(previous))
+                or actual['oob'] or actual['mode'] != 0 or not pending_reply_matches(dynamics['bridge_action'], previous)
+                or (previous[6] and abs(float(dynamics['bridge_action'][7])-float(previous[7])) > 2e-5)):
+            self.checked.clear(); self.stats['checked_tail_mismatch'] += 1
+            return False
+        move = dynamics['native'].get('pending_move')
+        if (move is None or move.keys() != bridge['pending_move'].keys()
+                or any(not np.isfinite(float(move[k])) or not np.isfinite(float(v)) or abs(float(move[k])-float(v)) > 2e-5
+                       for k,v in bridge['pending_move'].items())
+                or dynamics.get('pow_yaw_hold') != bridge['pow_yaw_hold']
+                or (bridge['pow_yaw_hold'] and not np.isclose(dynamics.get('pow_yaw', float('nan')),
+                                                             bridge['pow_yaw'], atol=2e-5, rtol=0))):
+            self.checked.clear(); self.stats['checked_tail_mismatch'] += 1
+            return False
+        for key, tolerance in (('position', .001), ('velocity', .01), ('spin', .1), ('radius', 1e-6), ('gravity_direction', 1e-7), ('yaw', 1e-6)):
+            av, ev = np.asarray(actual[key]), np.asarray(expected[key])
+            if not np.all(np.isfinite(av)) or not np.all(np.isfinite(ev)) or np.max(np.abs(av-ev)) > tolerance:
+                self.checked.clear(); self.stats['checked_tail_mismatch'] += 1
+                return False
+        same_parameters = (actual['parameters'].keys() == expected['parameters'].keys() and all(
+            np.allclose(actual['parameters'][k], expected['parameters'][k], atol=1e-6, rtol=1e-7)
+            for k in actual['parameters']))
+        if (actual['held'] != expected['held'] or actual['effects'] != expected['effects'] or not same_parameters):
+            self.checked.clear(); self.stats['checked_tail_mismatch'] += 1
+            return False
+        for key in ('inventory', 'blast'):
+            exp = expected.get(key + '_context')
+            obs = dynamics.get(key)
+            if (exp is None) != (obs is None):
+                self.checked.clear(); self.stats['checked_tail_mismatch'] += 1
+                return False
+            if exp is not None and obs is not None:
+                fields = ('held_type', 'mega_active', 'permanent_mega') if key == 'inventory' else tuple(set(exp) | set(obs))
+                if (any(k not in exp or k not in obs or not np.isfinite(float(exp[k]))
+                        or not np.isfinite(float(obs[k])) or abs(float(exp[k])-float(obs[k])) > 2e-5 for k in fields)
+                        or (key == 'inventory' and (exp.get('restore_type', 0) or obs.get('restore_type', 0)))):
+                    self.checked.clear(); self.stats['checked_tail_mismatch'] += 1
+                    return False
+        self.committed[decision] = list(action)
+        self.next = decision+1
+        self.generation += 1; self.reset = 'checked_continuation'
+        self.stats['checked_tail_replies'] += 1
+        self.cv.notify_all()
+        return True
 
     def progress_for(self):
         """(goal key, route distance) from the newest real observation the planner thread has measured."""
@@ -343,7 +420,7 @@ class AheadPlanner(threading.Thread):
         if self.is_alive() and threading.current_thread() is not self:
             self.join(30.)
             if self.is_alive():
-                log('WARNING: the planner thread did not stop within 30 s')
+                raise RuntimeError('planner thread did not stop; refusing to reuse its simulator')
 
     # planner thread ---------------------------------------------------------------------------------------------
     def run(self):
@@ -383,11 +460,14 @@ class AheadPlanner(threading.Thread):
                 if not self.running:
                     return
                 if self.reset:
+                    checked_rebase = self.reset == 'checked_continuation'
                     self.reset = False
                     self.prev = None; self.tail = []; self.tail_from = None
-                    self.controller.invalidate('realtime_restart', reset_actor=True)
-                    self.stats['restarts'] += 1
+                    self.controller.invalidate('realtime_checked_rebase' if checked_rebase else 'realtime_restart',
+                                               reset_actor=True, preserve_task=checked_rebase)
+                    self.stats['checked_rebases' if checked_rebase else 'restarts'] += 1
                 v = self.next; a, actual, outcome = self.latest
+                generation = self.generation
                 if v < a:                                # the game passed this decision while we were busy
                     self.stats['skipped_late'] += a - v
                     self.next = v = a
@@ -415,9 +495,14 @@ class AheadPlanner(threading.Thread):
             action, info = self.controller.action(msg, remaining)
             label = info.get('label', '?')
             if label == 'neutral' and v > a:
-                # No gem left in the forecast: the committed moves clear the group and the next group is unknown until
-                # the game shows it. Keep driving the last plan (its moves past the pickup passed the same physics
-                # checks), else hold the last input; the real observation brings the new gems.
+                if CHECKED_TAIL:
+                    # Wait for the real next group. Only a state-matched checked
+                    # continuation may carry the marble through this boundary.
+                    self.stats['waiting_for_new_gems'] += 1
+                    with self.cv:
+                        while self.running and self.latest[0] == a and not self.reset:
+                            self.cv.wait(.05)
+                    continue
                 k = v - self.tail_from if self.tail_from is not None else -1
                 if 0 <= k < len(self.tail):
                     action = list(self.tail[k]); label = 'plan_past_group'
@@ -429,8 +514,20 @@ class AheadPlanner(threading.Thread):
                 self.tail = [list(r) for r in self.controller.memory.remaining[1:]]; self.tail_from = v + 1
             self.prev = msg
             with self.cv:
-                if self.next != v:                       # restarted meanwhile: this reply belongs to the old world
+                if self.next != v or self.generation != generation:
                     continue
+                self.checked = {d: r for d, r in self.checked.items() if a <= d < v}
+                forecast = getattr(self.controller, 'last_rollout', None)
+                if CHECKED_TAIL and forecast is not None and list(action) == list(forecast['proposed'][0]):
+                    from nav.marble_dynamics.bridge import translated
+                    pending = msg.dynamics['bridge_action']
+                    hold, aim = msg.dynamics['pow_yaw_hold'], msg.dynamics['pow_yaw']
+                    for k in range(1, min(CHECKED_RESERVE+1, len(forecast['controls']))):
+                        move, _, hold, aim = translated(pending, hold, aim)
+                        pending = forecast['proposed'][k-1]
+                        bridge = dict(pending_move=move, pow_yaw_hold=hold, pow_yaw=aim)
+                        self.checked[v+k] = (list(forecast['proposed'][k]), copy.deepcopy(forecast['states'][k]),
+                                             list(pending), bridge)
                 self.committed[v] = action; self.next = v + 1
                 self.leads.append(v - a); self.latencies.append(time.perf_counter() - t0); self.labels[label] += 1
                 self.cv.notify_all()
@@ -610,9 +707,10 @@ def play_round(env, world, journal_folder):
                 # 8 s without progress: the legal quick respawn (as in the pools), then plan again
                 context = env.msg.dynamics.get('game_context', {})
                 if not (context.get('available') and context.get('can_quick_respawn') is False):
-                    monitor.rescue_attempts += 1; rescues += 1
+                    monitor.rescue_attempts += 1
                     accepted = env.quick_rescue()
                     if accepted:
+                        rescues += 1
                         monitor.rescued(simulation_time(env), float('inf'))
                     else:
                         monitor.last_progress = simulation_time(env)
@@ -628,12 +726,15 @@ def play_round(env, world, journal_folder):
     leads = np.asarray(planner.leads) if planner.leads else np.zeros(1)
     lat = np.asarray(planner.latencies) if planner.latencies else np.zeros(1)
     summary = dict(map=world.name, stop=stop, points=points, score=env.last_round_score, falls=falls, rescues=rescues,
+                   rescue_attempts=monitor.rescue_attempts, accepted_rescues=rescues,
                    decisions=decisions, skipped=backlog, wall_s=round(time.perf_counter() - started, 1), holds=len(holds),
                    held_s=round(float(sum(holds)), 2), max_hold_s=round(max(holds, default=0.), 2),
                    mean_lead=round(float(leads.mean()), 2), p50_plan_s=round(float(np.median(lat)), 3),
                    p99_plan_s=round(float(np.percentile(lat, 99)), 3), planner=dict(planner.stats),
                    labels=dict(planner.labels.most_common(8)), counts=dict(controller.counts.most_common(12)))
     log('ROUND ' + json.dumps(summary))
+    from nav.collision.mesh import atomic_json
+    atomic_json(journal_folder / ('%s_%s.summary.json' % (world.name, stamp)), summary)
     return summary
 
 
@@ -669,7 +770,7 @@ def serve(port=PORT):
                 self.clock = now
             HuntEnv._send(self, line)
 
-    worlds = {}
+    worlds = WorldManager()
     env = PacedEnv(port=port, speed=1, log=log)
     log('waiting for a Hunt round on port %d (start the game, then Play > Hunt > a map)' % port)
     env.connect()
@@ -680,23 +781,20 @@ def serve(port=PORT):
             if not name:
                 env.request_info(); name = env.info.get('mission')
             setup_round(env)
-            if name not in worlds:
-                log('%s: loading the planner (the game holds meanwhile)' % name)
-                try:
-                    worlds[name] = World(name)
-                except Exception:
-                    log('%s: cannot plan this map:\n%s' % (name, traceback.format_exc()))
-                    raise
+            try:
+                world = worlds.get(name)
+            except Exception:
+                log('%s: cannot plan this map:\n%s' % (name, traceback.format_exc()))
+                raise
             if not wait_context(env):
                 log('no live marble state; waiting for the next round')
             else:
-                play_round(env, worlds[name], OUTPUT / time.strftime('%Y%m%d'))
+                play_round(env, world, OUTPUT / time.strftime('%Y%m%d'))
             env.wait_new_round()
     except KeyboardInterrupt:
         pass
     finally:
-        for w in worlds.values():
-            w.close()
+        worlds.close()
         env.close()
 
 
