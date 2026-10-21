@@ -148,7 +148,24 @@ if __name__=='__main__':
 ACCEPT_AMBIGUITY=True     # 2026-10-18 test: forecasts run through ambiguous contacts and are judged like any other forecast
 
 
+def mega_relevant(engine,dynamics,actions=None):
+    """2026-10-20 Mega proposals (flag --mega-proposals -> engine.mega_enabled): an active Mega, or a held one that
+    these actions fire (a proposal with use>=0, or a reply list with a use). Other plans keep the exact compiled path."""
+    if not getattr(engine,'mega_enabled',False):return False
+    inv=dynamics.get('inventory') or {}
+    if inv.get('permanent_mega'):return False
+    if inv.get('mega_active'):return True
+    if inv.get('held_type')!=6 or actions is None:return False
+    if callable(actions):return int(getattr(actions,'use',-1))>=0
+    return any(bool(row[6]) for row in actions if len(row)>6)
+
+
 def predict_replies(engine,dynamics,actions,dt_ms=64,stop_on_ambiguity=False):
+    if dt_ms==64 and mega_relevant(engine,dynamics,actions):
+        # The compiled forecast refuses Mega transitions (inventory_check); the Python per-tick forecast models the
+        # measured script events (growth +16 ms, impulse +32 ms, expiry, shrink) on the same compiled physics step.
+        from nav.marble_dynamics.script_forecast import predict_events
+        return predict_events(engine,dynamics,actions,model_mega=True)
     if not ACCEPT_AMBIGUITY:return _predict_replies_strict(engine,dynamics,actions,dt_ms,stop_on_ambiguity)
     r=_predict_replies_strict(engine,dynamics,actions,dt_ms,False)
     if r.get('ambiguous_intervals'):r['ambiguous_accepted']=r['ambiguous_intervals'];r['ambiguous_intervals']=[]

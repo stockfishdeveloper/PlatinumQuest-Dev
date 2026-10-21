@@ -126,6 +126,9 @@ def main():
     p.add_argument('--lead', type=int, default=5)
     p.add_argument('--checked-tail', action='store_true', help='Experimental state-matched checked plan continuation')
     p.add_argument('--legacy-fast-proposals', action='store_true', help='Matched control for the repaired native fast-controller bug')
+    p.add_argument('--recheck-risky-plans', action='store_true', help='Recheck and reconsider retained plans with unsafe stopping backups')
+    p.add_argument('--pickup-stop', action='store_true', help='Collect-then-brake candidates for rejected edge-gem plans')
+    p.add_argument('--mega-proposals', action='store_true', help='Propose using a held Mega Marble (script-event forecasts)')
     p.add_argument('--trace', action='store_true', help='Full before-observation trace; adds measured I/O overhead')
     p.add_argument('--mega-probe', action='store_true', help='Unscored granted-Mega mechanics trials, not scored rounds')
     p.add_argument('--restore-probe', action='store_true', help='Unscored saved-powerup respawn timing measurement')
@@ -146,6 +149,12 @@ def main():
     rt.SEARCH_WORKERS = a.search_workers
     if a.legacy_fast_proposals:
         rt.FLAGS = rt.FLAGS + ['--legacy-fast-proposals']
+    if a.recheck_risky_plans:
+        rt.FLAGS = rt.FLAGS + ['--recheck-risky-plans']
+    if a.mega_proposals:
+        rt.FLAGS = rt.FLAGS + ['--mega-proposals']
+    if a.pickup_stop:
+        rt.FLAGS = rt.FLAGS + ['--pickup-stop']
     # AheadPlanner's default is bound at import; make the benchmark override explicit.
     rt.AheadPlanner.__init__.__defaults__ = (a.lead,)
     sources = freeze_sources(a.output)

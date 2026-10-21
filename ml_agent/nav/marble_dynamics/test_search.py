@@ -17,6 +17,47 @@ from nav.routing import RoutePlanner
 from nav.protocol import RAW_DIM,RAW_GEMS
 
 
+class RetainedBackupRisk(unittest.TestCase):
+    def test_failed_backup_remains_penalized_and_unknown_cannot_clear_it(self):
+        from types import SimpleNamespace
+        from unittest.mock import patch
+        for verdict in [(False,dict(supported=False)),(True,dict(skipped='unresumable')),
+                        (True,dict(ambiguous=True))]:
+            memory=PlanMemory()
+            memory.accept(dict(proposed=[[0.]*9 for _ in range(12)]),'route',[10.,0.,0.],
+                          dict(no_braking_backup=True))
+            route=SimpleNamespace(navigate=lambda p,g:None,distance=lambda p:10.-p[0])
+            dyn=dict(native=dict(state=dict(position=[0.,0.,0.])))
+            forecast=dict(states=[dict(position=[8.,0.,0.])])
+            with self.subTest(verdict=verdict), \
+                    patch('nav.marble_dynamics.search.predict_replies',return_value=forecast), \
+                    patch('nav.marble_dynamics.search.assess',return_value=dict(cost=-100.,rejected=None,possible_pickup_interval=5)), \
+                    patch('nav.marble_dynamics.search.braking_backup',return_value=verdict):
+                info,_=retained_candidate(SimpleNamespace(recheck_risky_plans=True),route,dyn,
+                                           np.asarray([10.,0.,0.]),memory)
+            self.assertEqual(info['cost'],50.)
+            self.assertTrue(memory.backup_risk)
+            self.assertTrue(info['retained_backup_rechecked'])
+            self.assertEqual(memory.executed,0)
+
+    def test_safe_recheck_clears_risk_and_ordinary_plans_skip_extra_work(self):
+        from types import SimpleNamespace
+        from unittest.mock import patch
+        from nav.marble_dynamics.search import recheck_retained_backup
+        memory=PlanMemory();memory.backup_risk=True;info=dict(cost=-10.)
+        with patch('nav.marble_dynamics.search.braking_backup',return_value=(True,dict(supported=True))) as check:
+            recheck_retained_backup(SimpleNamespace(recheck_risky_plans=True),{},[0,0,0],memory,info,{})
+            self.assertFalse(memory.backup_risk)
+            self.assertEqual(info['cost'],-10.)
+            recheck_retained_backup(SimpleNamespace(recheck_risky_plans=True),{},[0,0,0],memory,{}, {})
+            check.assert_called_once()
+        memory.backup_risk=True
+        with patch('nav.marble_dynamics.search.braking_backup') as check:
+            recheck_retained_backup(SimpleNamespace(recheck_risky_plans=False),{},[0,0,0],memory,{}, {})
+            check.assert_not_called()
+        memory.clear();self.assertFalse(memory.backup_risk)
+
+
 class FastControllerSerialization(unittest.TestCase):
     def test_fast_speed_and_floor_survive_native_serialization(self):
         from types import SimpleNamespace
@@ -290,3 +331,30 @@ def test_apply_blast_value_floor():
     pairs=[(fired,dict(controls=[{'script_events':[1]}]))]
     apply_blast_value(pairs,0.2,10.,5.)
     assert abs(fired['cost']-57.)<1e-9 and abs(fired['blast_charge_u']-7.)<1e-9
+
+
+class MegaProposals(unittest.TestCase):
+    def test_forecast_routes_through_script_events_only_for_a_relevant_mega(self):
+        from types import SimpleNamespace
+        from unittest.mock import patch
+        from nav.marble_dynamics import bridge
+        calls=[]
+        with patch('nav.marble_dynamics.script_forecast.predict_events',side_effect=lambda *a,**k:calls.append(k) or 'events'),                 patch('nav.marble_dynamics.bridge._predict_replies_strict',return_value=dict(ambiguous_intervals=[])) as strict:
+            on=SimpleNamespace(mega_enabled=True);off=SimpleNamespace(mega_enabled=False)
+            held=dict(inventory=dict(held_type=6,mega_active=False,permanent_mega=False))
+            class _P:
+                steps=24
+                def __init__(self,use):self.use=use
+                def __call__(self,state,i):return [0]*9
+            use=_P(3);nouse=_P(-1)
+            self.assertEqual(bridge.predict_replies(on,held,use),'events')
+            self.assertEqual(bridge.predict_replies(on,held,[[0]*9,[0,0,0,0,0,0,1,0,0]]),'events')
+            self.assertIsInstance(bridge.predict_replies(on,held,nouse),dict)   # a held Mega, not fired: compiled path
+            self.assertIsInstance(bridge.predict_replies(on,held,[[0]*9]),dict)
+            self.assertTrue(calls[-1]['model_mega'])
+            self.assertEqual(bridge.predict_replies(on,dict(inventory=dict(held_type=0,mega_active=True,permanent_mega=False)),[]),'events')
+            for dyn in (dict(inventory=dict(held_type=2,mega_active=False,permanent_mega=False)),
+                        dict(inventory=dict(held_type=6,mega_active=False,permanent_mega=True)),{}):
+                self.assertIsInstance(bridge.predict_replies(on,dyn,[]),dict)
+            self.assertIsInstance(bridge.predict_replies(off,held,use),dict)
+            self.assertEqual(len(calls),3);self.assertEqual(strict.call_count,6)

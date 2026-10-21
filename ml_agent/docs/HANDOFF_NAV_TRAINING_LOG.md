@@ -12514,3 +12514,227 @@ Fixed the compiled controller dropping SequenceProposal.fast and FAST_MIN_SPEED;
 Forty full native rounds across ten maps/two distinct starts: equal-map points124.7 to129.6 (+3.93%); falls5 to7, accepted rescues15 to10. Four quiet real-time Bowl rounds confirm mean points114.5 to126.5 (+10.48%) and speed11.0513 to12.2868u/s (+11.18%), with zero falls/rescues. Initial and GO states match within each pair; the two opening gem layouts differ. Runtime essentially unchanged.241 unit tests and96 full fast forecast parity checks passed.
 
 Detailed results, mixed-map regressions, Cube handoff/fallback risk and rare contact errors: HANDOFF_PLANNER_SPEED_2026-10-20.md. Evidence: dynamics_reports/speed_planner_20261020/{completion,native_audit,live_audit,native_comparison,live_comparison}.json and verified execution_logs.zip. Removed80 temporary raw journal copies (3,714,404,775 bytes) only after verifying retained compressed archives. No throwaway Python scripts added. All evaluation games/workers stopped; dashboard33732 remains untouched. Requested speed-and-points goal achieved; next useful work is safer continuation after pickups/target changes on tighter maps.
+
+
+## 2026-10-20 - Plan-transition safety investigation started
+
+User authorized next safety phase after fast-controller success. Two Cube fall traces show unsupported braking endpoints then A2 fallback around a pickup. Longer backup alone did not fix a reproduced simulator fall; existing checked recovery completed both pickups without falling. Eight ordinary Bowl simulator starts unchanged. Native screen now running: baseline versus checked-recovery plus existing actor-task/cooldown fixes; Cube/Bowl, seeds7347019/12091843, two workers per arm, ports9090/9094, full rounds. No source/default changes or training. Detailed handoff: HANDOFF_PLAN_TRANSITIONS_2026-10-20.md; evidence: dynamics_reports/handoff_safety_20261020. Historical losing keep-plan/edge-brake recipes reviewed, not blindly enabled. Dashboard33732 protected.
+
+
+## 2026-10-20 - Recovery screen rejected; risk metadata fix under native evaluation
+
+Eight native rounds complete: Cube baseline126/133 points,1/1falls; checked recovery113/137,2/1falls. Bowl129/120 points and speed exactly unchanged,0falls/rescues both. Recovery remains off; native_recovery_audit.json passed. More precise trace: initial unsafe backup was correctly flagged, but PlanMemory/retained_candidate lost that flag and150 cost penalty on reuse; pickup shortcut then retained the risky approach. Earlier floor-ray explanation was a hypothesis, not the cause in these cases.
+
+Added opt-in --recheck-risky-plans across maintained search/controller/runtime/benchmark tools: preserve known risk, recheck before reuse, keep penalty for failed/unknown backup, allow safe-progress replacement and other gems, retain validated nominal prefix on re-search deadline. No blanket slowdown or new Python script.245 tests passed. Offline Cube fall becomes two pickups without fall; all8ordinary Bowl trajectories/outcomes identical. Native final-source matched flag-off/on screen launched with4workers per arm (8games), Cube/Bowl x2seeds, ports9100..9107. Sources frozen during screen. No adoption/training yet; detailed handoff updated.
+
+
+## 2026-10-20 11:50 MDT - risk-recheck screen: first eight pairs collected; Bowl best 133 recorded
+
+Collected the four finished pools (risk_baseline/candidate on Cube+Bowl, risk_transfer_* on Cragmire+Duplex; all audits
+passed, nothing was running at 10:46). Flag --recheck-risky-plans off vs on, points (falls):
+Cube 126(1)/131(0), 137(1)/146(1); Bowl 125(0)/129(0), 120(0)/120(0); Cragmire 109(0)/114(1), 126(2)/135(2);
+Duplex 143(0)/130(0), 119(1)/103(1). Totals 1005 vs 1008: a wash. Duplex seed 12091843 with the flag on shows churn:
+151 fallback decisions and 30 risky re-searches (55 and 0 without the flag). Remaining six maps launched 11:55 as
+risk_remaining_baseline/candidate (4+4 workers, ports 9100-9107, same frozen source; first launch from ml_agent failed
+because parallel children run from the repo root and need PYTHONPATH=ml_agent).
+Best scores: the quiet real-time Bowl round of the speed phase (live_fast_start0, seed 7347019) scored 133 with 0 falls,
+above the recorded 125: CSV and the canonical sheet updated (History rows for 10-18 and 10-19 seeded in the updater).
+
+## 2026-10-20 12:15 MDT - --recheck-risky-plans ten-map screen: REJECTED as default (129.50 -> 128.05)
+
+All 20 matched pairs done (risk_* pools, same frozen source, 4+4 workers, all layout/integrity audits pass;
+risk_tenmap_comparison.json). Equal-map mean 129.50 off vs 128.05 on, falls 7 vs 8, totals 2590 vs 2561.
+Per map (off/on, two starts): Bowl 125/129 120/120; Concentric 91/83 98/98; Cragmire 109/114(+1 fall) 126/135;
+Cube 126/131(fall avoided) 137/146; Duplex 143/130 119/103; Fractured 91/82 100/105; KOTM 139/139 148/144;
+Sprawl 168/168 183/183; Treasure 188/188 168/168; Vortex 93/93(+1 fall) 118/102.
+Journal check: both Duplex pairs and Cube 12091843 diverge from wall-clock search timing BEFORE the flag fires (first
+recheck decisions 2451 / 3089 / 3264 vs divergence at 138 / 2284 / 2207), so those are noise, not the flag. Where the flag
+acts outside Cube it loses: the Cragmire 7347019 fall at decision 376 follows the recheck at 308 penalising a slow
+(5 u/s) steering plan the baseline rode safely to a pickup; the candidate swapped it for a progress-only plan, hit an
+A2 fallback at 15 u/s and fell. Every non-Cube round with a 'risky_plan_replaced' event lost points (Concentric -8,
+Fractured -9, Duplex -13, Vortex -16, KOTM -4). The risk-metadata retention itself (the root cause the other agent
+found) looks right; the eager replacement is the harmful part. Next: restrict risky treatment and replacement to
+pickup plans, re-screen ten maps at equal load.
+
+## 2026-10-20 12:50 MDT - refined --recheck-risky-plans (pickup plans only): 129.35 -> 128.70, falls 8 -> 6; stays OFF
+
+Refinement (reliability_eval._search, 12:20): a retained plan is 'risky' only if it is a pickup plan with a failed or
+unchecked backup, and only a backed pickup plan may replace it; progress-only plans keep the ordinary cadence. Tests
+updated (246 pass, risk2_tests_20261020.log). Ten-map equal-load screen risk2_baseline/candidate (8 games, audits pass,
+risk2_tenmap_comparison.json): off/on per start: Bowl 129/129 120/120; Concentric 91/91 98/98; Cragmire 109/109
+135/135; Cube 126/131 133/146 (falls 2 -> 1); Duplex 133/130 111/103; Fractured 91/76 100/105; KOTM 139/139 148/144;
+Sprawl 168/168 183/183; Treasure 188/188 168/168; Vortex 99/109 118/102. Totals 2587 vs 2574.
+Verdict: Cube gains in all four Cube pairs across both screens (+5, +9, +5, +13) and falls drop, but Fractured/Vortex/
+Duplex lose more than that; points-only rule -> default stays off, flag kept for Cube-type edge-gem maps. Baseline
+rounds without budget pressure reproduced the previous screen exactly (Bowl, Concentric, Sprawl, Treasure, KOTM).
+Next: real-time Cube confirmation of the current defaults (realtime_bench, quiet machine), then Mega Marble.
+
+## 2026-10-20 13:00 MDT - real-time Cube confirmation of the current defaults
+
+tools/realtime_bench.py, quiet machine, sequential, same gem layouts as the pool starts (opening item lists identical):
+seed 7347019: 111 points, 4 falls, 1 accepted rescue, 142 holds (5.36 s, max 0.13 s), p99 plan 0.19 s;
+seed 12091843: 138 points, 1 fall, 0 rescues, 88 holds (3.34 s, max 0.26 s).
+Pool rounds on the same layouts: 126 (1 fall) and 133 (1 fall). Live mean 124.5 vs pool 129.5: in range. Round 1's
+extra falls at decisions 296 and 341 (first 20 s) are new; its fourth fall (1352) is the pool's fall (1365).
+The real-time journal records only tick/action/held/gem_delta/fell, so plan labels for those falls are unknown:
+adding the chosen plan label to each journal row (realtime.py) for future diagnosis.
+Evidence: dynamics_reports/handoff_safety_20261020/live_cube_start0, live_cube_start1.
+
+## 2026-10-20 13:15 MDT - Mega Marble use proposals built behind --mega-proposals; no use ever wins offline
+
+Built (default off): search.py gives a held Mega (inventory held_type 6; native 'held' is 0 for it) the same use
+families as powerups 1-5; bridge.mega_relevant routes a plan that fires it, or any plan while a Mega is active, through
+script_forecast.predict_events(model_mega=True) (measured growth +16 ms, +6 u/s hop +32 ms, 10 s expiry, shrink); every
+other plan keeps the exact compiled forecast. Flag plumbed through reliability_eval (prepared.json records it),
+realtime.py, tools/realtime_bench.py and tools/sim_bench (which now also matches --held 6 via held_type). Unit test
+test_search.MegaProposals; full suite 247 pass (mega2_tests_20261020.log).
+Facts from the pools' inventory telemetry: Mega profile is slower (max roll 12 vs 15 u/s, angular accel 60 vs 75,
+braking 25 vs 30, max_dot_slide 0.3 vs 0.5), radius 0.667 vs 0.190. The planner holds an unused Mega ~900 decisions a
+round on Sprawl/Concentric (both seeds), 130-340 on KOTM/Cragmire/Vortex/Bowl, 0 on Cube/Duplex/Fractured.
+Offline (sim_bench, risk2_baseline Sprawl seed 7347019, 8 held-Mega whole-group starts, mega_offline/): the use plans
+forecast correctly (radius 0.667 at the horizon, pickups predicted, cost about -94) but 9 of 10 per search fail
+'no_supported_continuation' because the big marble is still bouncing (vz +-1.7..3 u/s) 1.5 s after the activation hop,
+and the passing one loses on cost. No use plan was selected in any start; with the narrowed routing 7 of 8 starts are
+bit-identical to base (start 2589 differs only through search timing: 11.1 -> 4.4 s, no use). Concentric seed 7347019
+holds no Mega, so it gave no starts. Per-episode CPU with every forecast through the Python event model was ~10x
+(20 s vs 2 s); narrowed routing removes that for non-use plans. Verdict: nothing to screen natively; the flag stays
+off and the todo entry says what a Mega-specific candidate would have to look like.
+
+## 2026-10-20 13:20 MDT - labelled real-time Cube rerun: 131 points, 2 falls
+
+Same seed/layout as the 111-point round: 131 points, 2 falls, 0 rescues, 77 holds (2.91 s). The 111 was a bad draw
+(real-time rounds vary with wall-clock search timing like the pools do); live Cube now reads 111/131/138 vs pool
+126/133. Journal rows carry the chosen plan label (live_cube_start0_labels). Paused here awaiting direction.
+
+## 2026-10-20 14:20 MDT - A2 falls: mechanism found, --pickup-stop built (operator: "go after the A2 falls")
+
+All 15 falls in the fresh baseline pools follow a fallback run of 17-31 decisions (1.1-2.0 s; reasons ~1/3
+no_checked_candidate, ~2/3 search_cooldown), 10 of 15 right after a retained plan, approach speeds 5-17 u/s.
+Reproduced the Cube 7347019 fall offline (sim_bench --fall-legs --lead 24 --only-decision 1322, pool
+speed_planner_20261020/fast_screen: pickup 1.3 s, fall 2.4 s, 37 fallback decisions) and instrumented the search:
+* at 15.8 u/s, 20 u from a gem that sits on a down-ramp ~3 u from the drop, EVERY candidate (79-90 per search, all
+  families, both frozen_navigator variants) is rejected 'no_supported_continuation': they collect the gem at reply
+  19-29 at 6-10 u/s, keep driving at it, and are over the edge at the 48-reply horizon. The safe hold has nothing to
+  hold (it draws from the same rejected pairs), so the unchecked actor drives for 1-2 s and goes over.
+* a full brake from the same state stops in 28 replies, supported: safe options exist, the search just never
+  forecasts one. BrakeContinuation (prefix, then the braking law) was only wired to --brake-continuation (default 0).
+* 'collect, then brake' (prefix through the pickup reply, brake after; also 5 and 10 replies earlier) still slides
+  over: the braking law aims to stop AT the gem (decel 7 assumed, ~9 available) and the ramp adds gravity.
+Built behind --pickup-stop (search.py; reliability_eval/realtime/realtime_bench/sim_bench plumbed):
+  (1) per rejected pickup plan (max 4 per search) the three brake-start variants label_stop_<j>;
+  (2) last resort when no candidate passes: 'stop_now' (brake law with goal = own position = full brake) and
+      'stop_short' (goal 3 u before the gem), ordinary gates, cost ~+13 (progress, no pickup).
+Offline on the reproduced leg: both pickups at 6.1 s, no fall, fallback decisions 37 -> 9 (stop_now chosen, then a
+slow approach). Suite 247 pass. Screening: offline fall legs + ordinary legs on Cube/Vortex/Duplex/Cragmire
+(pickup_stop_offline/), then a ten-map native pair at equal load.
+
+## 2026-10-20 15:00 MDT - --pickup-stop v1 native ten-map: 128.25 -> 129.80, falls 7 -> 3, but it over-stops
+
+pstop_baseline/candidate (8 games, audits pass, pstop_tenmap_comparison.json), off/on per start:
+Bowl 129/129 120/118; Concentric 91/101 98/107; Cragmire 109/93(+1 fall) 126/96; Cube 126/140 137/146(fall avoided);
+Duplex 133/143 94/122(fall avoided); Fractured 91/94 100/103; KOTM 139/148 148/144; Sprawl 168/179 183/185;
+Treasure 188/179 168/155; Vortex 99/103 118/111(fall avoided). Totals 2565 vs 2596, falls 7 -> 3, fallback
+decisions down on most rounds (Duplex 12091843: 170 -> 12).
+Journal check: the stop plans win far too often (Cragmire 12091843: stop_now 176 decisions + ~370 label_stop_j; Cube
+12091843: ~390 label_stop_j) because a collect-then-brake variant carries the same -100 pickup credit as a full plan
+and a lower end-velocity cost, so it beats VALID full-speed pickup plans; and after a stop_now the next search can
+fail again, so the marble parks (Cragmire 12091843: 86 points flat for the last 64 s, 27 safe holds, 4 stuck rescues).
+v2: stop variants only when no full pickup plan passed the gates; at most PICKUP_STOP_STREAK consecutive stop
+decisions, then the ordinary actor fallback resumes until a real plan is chosen.
+
+## 2026-10-20 15:00 MDT - --pickup-stop v3 (last-resort stops only) under native screen
+
+v2 (variants deferred until no full pickup plan passed + a stop-streak cap) still fell on the Cube leg: the per-plan
+variants (up to 12 per-reply forecasts) blew the search budget so the search raised before the stop candidate; and a
+rolling-decision streak cap handed the marble back to the actor at 4 u/s. v3: the per-plan 'prefix, then brake'
+variants are removed (none ever passed; they beat valid plans elsewhere; budget), the last-resort stop_now/stop_short
+candidates stay, and the streak cap counts only decisions AT REST (PICKUP_STOP_STREAK 24 = 1.5 s parked), after which
+the ordinary actor fallback resumes until a real plan is chosen. Cube leg: both pickups at 5.5 s, 0 fallback decisions.
+Offline 60 ordinary legs on six maps: points 160 -> 158, time 210 -> 213 s, falls 1 -> 0 (the stop costs ~1 s where
+it fires outside a fall situation). Native pstop3_baseline/candidate launched 15:01 (8 games, ports 9100-9107).
+
+## 2026-10-20 15:40 MDT - --pickup-stop v3 native ten-map: 128.10 -> 128.25 (wash), falls 8 -> 3
+
+pstop3_baseline/candidate (audits pass, pstop3_tenmap_comparison.json), off/on per start (stop decisions, parked
+streak exhaustions): Bowl 125/125 120/120; Concentric 91/91 98/98; Cragmire 109/97 (53, 0) 135(2 falls)/117(0 falls)
+(119, 35); Cube 122(2)/133(1) (16) 133(1)/137(0) (61, 2); Duplex 133/132 94(1)/135(0) (69, 15); Fractured 91/91
+100/93 (16); KOTM 139/139 148/148; Sprawl 168/168 183/183; Treasure 188/188 168/168; Vortex 99(1)/101(1) (19)
+118(1)/101(1) (21). 14 of 20 rounds bit-identical (the stop never fired). Falls avoided: Duplex +41, Cube +11/+4,
+Cragmire 12091843 (2 falls avoided yet -18: 119 stops, 35 parked streaks, i.e. the stopped marble's next searches
+still find nothing and it waits 1.5 s before the actor gets it back). Next: gate the stop on an actual edge ahead
+(edge_ahead free roll) so it fires only where the actor would fall.
+
+## 2026-10-20 15:45 MDT - --pickup-stop v4: stop only with an edge ahead; native screen running
+
+edge_ahead(mesh, state, 1.5 s) (moved from reliability_eval to search.py; the --safe-fallback edge_brake still uses it)
+is True at the start of all 23 fall fallback runs in the fresh baselines (speeds 2-17 u/s) and at only 87 of v3's
+379 stop decisions (Cragmire 23 of 172, Duplex 5 of 69, Cube 16 of 77, Vortex 34 of 40). v4 gates the last-resort
+stop on it; streak cap at rest kept. Cube leg: both gems at 4.9 s, 3 fallback decisions. pstop4_baseline/candidate
+launched 15:39 (8 games).
+
+## 2026-10-20 16:20 MDT - --pickup-stop v4 native ten-map: 127.90 -> 125.55, falls 10 -> 5; Cragmire again
+
+pstop4_baseline/candidate (audits pass, pstop4_tenmap_comparison.json): off/on per start (stops): Bowl 125/129 120/120;
+Concentric 91/91 98/98; Cragmire 109/65 (220) 118(3 falls)/87(0) (75); Cube 122(2)/134(1) 133/141 (46);
+Duplex 143/143 103(2)/114(0); Fractured 91/91 100/96(+1 fall); KOTM 139/139 148/148; Sprawl 168/168 183/183;
+Treasure 188/188 168/168; Vortex 93/99 118/109 (47). Across the three screens the stop removes the Cube/Duplex edge
+falls every time (+10..+41 per round) and loses 12-44 per Cragmire round every time: there edge_ahead (floor ray depth
+4 u) is true on ordinary drops to lower floors, the all-rejected state is common, and the actor's driving is productive;
+the candidate stop-goes (220 stops, never 24 at rest). Baseline arm is stable across screens: 128.25 / 128.10 / 127.90.
+
+## 2026-10-20 16:20 MDT - --pickup-stop v5: deep edge ray + release of held stop plans; native screen running
+
+v4 journal audit: of 295 Cragmire stop decisions only 163 had edge_ahead true at decision time: a held stop plan
+(a progress plan) survives the failed re-searches that follow, so it outlives its reason. v5: (1) the gate's floor ray
+is 30 u deep (a drop onto a lower floor is not a fall; all 23 recorded fall starts still test true within 8
+decisions; Cragmire's v4 stops 163 -> 108 of 295); (2) a held stop_now/stop_short is released as soon as the edge
+test is false (counter pickup_stop_released). Cube leg: both gems at 5.1 s. pstop5_baseline/candidate launched
+16:22 (8 games).
+
+## 2026-10-20 17:00 MDT - --pickup-stop v5 native ten-map: 128.25 -> 128.30 (wash), falls 8 -> 5
+
+pstop5_baseline/candidate (audits pass, pstop5_tenmap_comparison.json): off/on per start (stops): Bowl 129/125 120/120;
+Concentric 91/91 98/98; Cragmire 109/100(+1 fall) (9) 134(2)/97(2) (49); Cube 122(2)/140(0) (2) 133(1)/144(0) (19);
+Duplex 133/143 94(1)/114(0) (4); Fractured 91/91 100/96(+1 fall) (4); KOTM 139/139 148/148; Sprawl 168/168 183/183;
+Treasure 188/188 168/168; Vortex 99(1)/107(0) (30) 118(1)/106(1) (47). Totals 2565 vs 2566.
+Cragmire 12091843 candidate loses its 37 points in the first 1000 decisions (22 vs 45): the first stops fire at 245-257
+at 1.0-4.8 u/s next to a ledge (deep void ahead within 2.5 u), the marble parks, and 3 stuck rescues follow (8 s each);
+the baseline's actor just drove along the ledge. Falls still happen later in both arms there. Four screens so far:
+v1 +1.55 / falls 7->3, v3 +0.15 / 8->3, v4 -2.35 / 10->5, v5 +0.05 / 8->5. Cube and Duplex edge falls are removed
+every time (+10..+41 a round); Cragmire low-speed ledge stops cost 10-40 a round. Next: a speed floor on the gate
+(a marble under 6 u/s stops within 2 u on its own; the recorded fall starts under 6 u/s are the two Cragmire ledge
+cases and Duplex 3043, which v3-v5 did not prevent anyway).
+
+## 2026-10-20 17:00 MDT - --pickup-stop v6 (gate needs >= 6 u/s) under native screen
+
+PICKUP_STOP_MIN_SPEED 6: the stop fires only at speed (a slower marble stops within ~2 u on its own, and v5's Cragmire
+losses came from parking at 1-5 u/s beside a ledge). Cube leg: both gems at 7.2 s, no fall (the stop is not renewed
+once the marble is under 6 u/s, so the actor drives the slow approach). pstop6_baseline/candidate launched 16:58.
+
+## 2026-10-20 17:35 MDT - --pickup-stop v6 native: 128.45 -> 129.25 but falls 7 -> 9; flag set back to v5; PAUSED
+
+pstop6 (audits pass, pstop6_tenmap_comparison.json): with the 6 u/s floor the stop fired 0 times on Cube 12091843 and
+Duplex 12091843 and both fell as in the baseline; Cragmire 7347019 still -18 (9 stops) and 12091843 +8 (3 falls).
+PICKUP_STOP_MIN_SPEED back to 0 (= v5). Five equal-load ten-map screens of --pickup-stop against a stable baseline
+(128.25 / 128.10 / 127.90 / 128.25 / 128.45):
+  v1 inline brake variants + last-resort stops    129.80 (+1.55)  falls 7 -> 3
+  v3 last-resort stops + at-rest streak cap        128.25 (+0.15)  falls 8 -> 3
+  v4 + edge_ahead gate (4 u ray)                   125.55 (-2.35)  falls 10 -> 5
+  v5 + 30 u ray, release held stop plans           128.30 (+0.05)  falls 8 -> 5      <- what the flag does now
+  v6 + 6 u/s speed floor                           129.25 (+0.80)  falls 7 -> 9
+Mechanism (proved offline and in every screen): fast approach to an edge gem -> every candidate collects and then
+runs over the edge within the horizon -> all rejected -> unchecked actor for 1-2 s -> fall. A stop candidate removes
+these falls every time (Cube/Duplex +10..+41 a round). Cost: on Cragmire the all-rejected state is common beside
+ledges where the actor drives fine; a stop there parks the marble (stuck rescues) and costs 10-40 a round. Net points
+are a wash within noise; falls roughly halve. Default stays OFF pending the operator's call (points-only rule);
+turning it on = passing --pickup-stop (pools, realtime_bench) or setting the default in reliability_eval.
+Code: search.py (stop_now/stop_short last resort, edge_ahead moved here, PICKUP_STOP_* constants), reliability_eval
+(--pickup-stop, streak cap at rest, release of held stop plans), realtime.py/realtime_bench/sim_bench plumbing. 247
+tests pass. No pools or games running.
+
+### 2026-10-20 22:13 MDT - Live real-time Duplex viewing (operator: "play duplex at 1x speed for me with the best version")
+* Current defaults (corrected fast controllers, pre-spin; walls / THROUGH_BOX / Mega / recheck / checked tail off) plus
+  --pickup-stop for this viewing only (the Duplex edge-fall fix; defaults unchanged): launched as
+  `python -c "import nav.marble_dynamics.realtime as RT; RT.FLAGS = RT.FLAGS + ['--pickup-stop']; RT.serve()"`.
+* Round 1: 145 points, 0 falls, 0 accepted rescues, 80 holds / 3.85 s (longest 0.45 s), 250.8 s wall for the 240 s
+  round (Duplex pools 118.5-124, best real 153). Stopped by the operator during round 2.

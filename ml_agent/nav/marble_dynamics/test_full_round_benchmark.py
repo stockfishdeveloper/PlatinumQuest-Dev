@@ -198,6 +198,64 @@ class FullRoundStartup(unittest.TestCase):
 
 
 class ContinuousEvents(unittest.TestCase):
+    def test_risky_research_deadline_keeps_the_revalidated_prefix(self):
+        from nav.marble_dynamics.planning_budget import PlanningBudgetExceeded
+        controller=self.controller();controller.resource=None
+        controller.engine.recheck_risky_plans=True
+        controller.args=SimpleNamespace(reuse_plan=True,horizon=48,brake_continuation=0,
+            recovery_horizon=0,preserve_resources=False)
+        target=[1.,2.,3.,1.,-1.]
+        retained=(dict(label='risky',possible_pickup_interval=5,no_braking_backup=True),
+                  dict(proposed=[[0.]*9]*8))
+        with patch('nav.marble_dynamics.reliability_eval.landing_complete',return_value=False), \
+                patch('nav.marble_dynamics.reliability_eval.retained_candidate',return_value=retained), \
+                patch('nav.marble_dynamics.reliability_eval.pick',side_effect=PlanningBudgetExceeded):
+            chosen,goal=controller._search(dict(native=dict(state=dict(position=[0,0,0]))),
+                                           None,target,[target],100)
+        self.assertIs(chosen,retained)
+        self.assertEqual(goal,target)
+        self.assertEqual(controller.counts['risky_plan_research_deadline'],1)
+
+    def test_risky_retained_pickup_is_replaced_only_by_a_backed_pickup(self):
+        # 2026-10-20: safe progress never replaces a held pickup plan (first version did; ten-map screen lost points)
+        target=[1.,2.,3.,1.,-1.]
+        forecast=dict(proposed=[[0.]*9]*8)
+        cases=[(False,None,'old_pickup',0),(True,None,'old_pickup',0),(True,5,'backed_pickup',1)]
+        for risky,replacement_pickup,expected,replaced in cases:
+            controller=self.controller();controller.resource=None
+            controller.engine.recheck_risky_plans=True
+            controller.args=SimpleNamespace(reuse_plan=True,horizon=48,brake_continuation=0,
+                recovery_horizon=0,preserve_resources=False,resource_acquisition=False,
+                recharge_continuation=False,landing_search=False)
+            retained=(dict(label='old_pickup',possible_pickup_interval=5,no_braking_backup=risky),forecast)
+            label='backed_pickup' if replacement_pickup else 'safe_progress'
+            replacement=(dict(label=label,possible_pickup_interval=replacement_pickup),forecast)
+            with patch('nav.marble_dynamics.reliability_eval.landing_complete',return_value=False),                     patch('nav.marble_dynamics.reliability_eval.retained_candidate',return_value=retained),                     patch('nav.marble_dynamics.reliability_eval.pick',return_value=(replacement,[],target)) as search:
+                chosen,_=controller._search(dict(native=dict(state=dict(position=[0,0,0]))),
+                                            None,target,[target],100)
+            with self.subTest(risky=risky,replacement=label):
+                self.assertEqual(chosen[0]['label'],expected)
+                self.assertEqual(search.call_count,int(risky))
+                self.assertEqual(controller.counts['risky_plan_replaced'],replaced)
+                self.assertEqual(controller.counts['research_found_pickup'],replaced)
+
+    def test_risky_progress_plan_keeps_ordinary_research_cadence(self):
+        target=[1.,2.,3.,1.,-1.]
+        forecast=dict(proposed=[[0.]*9]*8)
+        controller=self.controller();controller.resource=None
+        controller.engine.recheck_risky_plans=True
+        controller.args=SimpleNamespace(reuse_plan=True,horizon=48,brake_continuation=0,
+            recovery_horizon=0,preserve_resources=False,resource_acquisition=False,
+            recharge_continuation=False,landing_search=False)
+        retained=(dict(label='risky_progress',possible_pickup_interval=None,no_braking_backup=True),forecast)
+        replacement=(dict(label='safe_progress',possible_pickup_interval=None),forecast)
+        with patch('nav.marble_dynamics.reliability_eval.landing_complete',return_value=False),                 patch('nav.marble_dynamics.reliability_eval.retained_candidate',return_value=retained),                 patch('nav.marble_dynamics.reliability_eval.pick',return_value=(replacement,[],target)):
+            chosen,_=controller._search(dict(native=dict(state=dict(position=[0,0,0]))),
+                                        None,target,[target],100)
+        self.assertEqual(chosen[0]['label'],'risky_progress')
+        self.assertEqual(controller.counts['risky_plan_researches'],0)
+        self.assertEqual(controller.counts['risky_plan_replaced'],0)
+
     def controller(self):
         controller=ContinuousController.__new__(ContinuousController)
         controller.memory=PlanMemory()

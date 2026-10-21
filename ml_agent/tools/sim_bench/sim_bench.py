@@ -142,6 +142,9 @@ def setup(a, name):
     engine.detour_blast_ratio = float(getattr(a, 'detour_blast_ratio', 1.5) or 0.) or math.inf
     engine.use_margin_u = float(getattr(a, 'use_margin_s', 0.) or 0.) * float(getattr(engine, 'ballistic_time_rate', 8.) or 8.)
     engine.interleave_candidates = getattr(a, 'interleave_candidates', False)
+    engine.recheck_risky_plans = getattr(a, 'recheck_risky_plans', False)
+    engine.mega_enabled = getattr(a, 'mega_proposals', False)   # 2026-10-20 Mega use proposals
+    engine.pickup_stop = getattr(a, 'pickup_stop', False)
     a.geometry_terrain = cached_walking(terrain, mesh, a.sweep_dll, a.cache_dir, memo=a.clearance_cache)
     engine.ballistic_landing = getattr(a, 'ballistic_landing', False); engine.ballistic_reserve_s = getattr(a, 'ballistic_reserve_s', 0.)
     engine.opportunistic_powerups = getattr(a, 'opportunistic_powerups', 0.)
@@ -494,7 +497,9 @@ def main():
     for pool in o.pool:
         cand += [(pool,) + c for c in starts(pool, o.map) if c[2] is not None and o.far_min <= c[2] < o.far_max]
     if o.held >= 0:
-        cand = [c for c in cand if int(c[1]['before']['native']['state'].get('held', 0)) == o.held]
+        # 2026-10-20: a held Mega is inventory held_type 6 (the native 'held' stays 0 for it)
+        cand = [c for c in cand if int(c[1]['before']['native']['state'].get('held', 0)) == o.held
+                or int((c[1]['before'].get('inventory') or {}).get('held_type', -1)) == o.held]
     step = max(1, len(cand) // o.per_map); chosen = cand[o.offset % step::step][:o.per_map]
     if o.only_decision:
         chosen = [c for c in cand if c[1]['decision'] == o.only_decision][:1]

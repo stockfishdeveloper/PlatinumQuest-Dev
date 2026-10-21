@@ -139,6 +139,9 @@ class World:
         engine.detour_blast_ratio = float(getattr(a, 'detour_blast_ratio', 1.5) or 0.) or math.inf
         engine.use_margin_u = float(getattr(a, 'use_margin_s', 0.) or 0.) * float(getattr(engine, 'ballistic_time_rate', 8.) or 8.)
         engine.interleave_candidates = getattr(a, 'interleave_candidates', False)
+        engine.recheck_risky_plans = getattr(a, 'recheck_risky_plans', False)
+        engine.mega_enabled = getattr(a, 'mega_proposals', False)
+        engine.pickup_stop = getattr(a, 'pickup_stop', False)
         a.geometry_terrain = cached_walking(terrain, mesh, a.sweep_dll, a.cache_dir, memo=a.clearance_cache)
         engine.native_sim.bind_clearance(a.geometry_terrain)
         engine.ballistic_landing = getattr(a, 'ballistic_landing', False)
@@ -290,6 +293,7 @@ class AheadPlanner(threading.Thread):
         self.prev = None              # the observation the planner saw at the previous decision
         self.tail = []; self.tail_from = None   # legacy fallback retained while checked-tail is experimental
         self.stats = Counter(); self.leads = []; self.latencies = []; self.labels = Counter()
+        self.chosen = {}; self.last_label = '?'   # 2026-10-20: plan label per committed decision, journaled by play_round
         # The stuck check's route distance, computed HERE for each new real observation. Route queries reach the
         # compiled simulator (line_clear -> ground clearance -> marble_sim.segment), which one thread at a time may use:
         # the game thread's own route query during a forecast on this thread corrupted the heap (10-19 13:24 and 17:24,
@@ -331,6 +335,9 @@ class AheadPlanner(threading.Thread):
                 self.cv.wait(.05)
             r = self.committed.pop(decision)
             self.sent[decision] = r
+            self.last_label = self.chosen.pop(decision, '?')
+            for d in [d for d in self.chosen if d < decision - 4 * self.lead - 8]:
+                del self.chosen[d]
             for d in [d for d in self.sent if d < decision - 4 * self.lead - 8]:
                 del self.sent[d]
         held = time.perf_counter() - t0
@@ -528,7 +535,7 @@ class AheadPlanner(threading.Thread):
                         bridge = dict(pending_move=move, pow_yaw_hold=hold, pow_yaw=aim)
                         self.checked[v+k] = (list(forecast['proposed'][k]), copy.deepcopy(forecast['states'][k]),
                                              list(pending), bridge)
-                self.committed[v] = action; self.next = v + 1
+                self.committed[v] = action; self.chosen[v] = label; self.next = v + 1
                 self.leads.append(v - a); self.latencies.append(time.perf_counter() - t0); self.labels[label] += 1
                 self.cv.notify_all()
 
@@ -681,7 +688,8 @@ def play_round(env, world, journal_folder):
                     float(np.mean(lead)), dict(planner.stats)))
             journal.write(json.dumps(dict(tick=tick, action=list(map(float, action)), held_s=round(held_s, 4),
                                           gem_delta=outcome['gem_delta'], fell=outcome['fell'],
-                                          time_left_s=env.time_left_s())) + '\n')
+                                          time_left_s=env.time_left_s(),
+                                          label=planner.last_label if playing else 'countdown')) + '\n')
             if outcome['round_ended'] or outcome['reconnected']:
                 stop = 'round_end' if outcome['round_ended'] else 'reconnected'
                 break

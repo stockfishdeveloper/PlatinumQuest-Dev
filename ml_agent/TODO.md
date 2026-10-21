@@ -48,6 +48,25 @@ Remaining before enabling:
 
 Possible gain: a bigger marble collects gems from ~0.5 u further away and rolls over small gaps. Risks: narrow ledges.
 
+2026-10-20 13:15 follow-up (flag `--mega-proposals`, default off; pools, real-time runner, realtime_bench and sim_bench
+all take it):
+- Built: a held Mega gets the same use families as powerups 1-5 (search.py), and any plan that fires it, or runs while
+  it is active, is forecast with the measured script-event model (bridge.mega_relevant -> script_forecast.predict_events:
+  growth +16 ms, +6 u/s hop +32 ms, 10 s expiry, shrink). Plans that do not fire it keep the exact compiled forecast.
+  Unit test: test_search.MegaProposals.
+- Measured facts from the pools' inventory telemetry: the Mega profile is SLOWER (max roll 12 vs 15 u/s, angular accel
+  60 vs 75, braking 25 vs 30, max_dot_slide 0.3 vs 0.5); radius 0.667 vs 0.190. The planner holds a Mega unused for
+  ~900 decisions (~58 s) a round on Sprawl and Concentric, 130-340 on KOTM/Cragmire/Vortex/Bowl, 0 on Cube/Duplex/Fractured.
+- Offline (sim_bench, 8 Sprawl held-Mega whole-group starts): the use plans forecast fine (radius grows, pickups
+  predicted, cost about -94) but mostly fail the stability gate because the big marble is still bouncing 1.5 s after
+  the activation hop, and the one that passes loses on cost to the ordinary plan. No use plan was ever selected.
+- Cost: the Python per-tick event forecast is ~10x slower than the compiled one (20 s vs 2 s CPU per episode when
+  every forecast went through it); with the narrowed routing only use plans pay it.
+- Next (if picked up again): decide what a Mega is FOR. On these maps the physics say reach/gap tolerance, not speed;
+  a use only pays on a leg with a gap the small marble cannot roll over or a dense cluster where +0.48 u reach saves a
+  turn. That needs a Mega-specific candidate (use + straight line through a cluster) judged by the whole-group sim, not
+  the generic use families. Also the inventory slot: holding a Mega blocks every other powerup for the rest of the round.
+
 ## 3. Real-time continuation and benchmark startup
 
 Status2026-10-20: core event-order, delayed inventory restoration, exact forecast resume and bounded worker ownership fixes retained. Optional checked continuation remains off. Quiet same-layout repeat scored149 versus159 mean points; fresh-layout screen scored153.667 versus149 but doubled accepted rescues2to4 and had a TreasureBox startup-state mismatch. Full dynamics suite240passed. See `docs/HANDOFF_REALTIME_PLANNER_2026-10-19.md` and its per-map evidence.
@@ -55,3 +74,20 @@ Status2026-10-20: core event-order, delayed inventory restoration, exact forecas
 Before another promotion test, synchronize the benchmark's neutral/countdown startup and record/compare the native state at GO. Gem RNG equality alone does not guarantee the same physical state or pre-spin; asynchronous capture differed by one observation on TreasureBox. The benchmark now matches menu-play's1ms Python switch interval, requires native real-time pacing, archives source/binaries and checks independent rescue counts.
 
 If revisiting checked continuation, first explain the TreasureBox points loss and extra Cragmire rescues. Keep it opt-in until a reproducible multi-map benefit survives confirmation. No training or repeated recipe search is running.
+
+## 4. A2 fallback falls (2026-10-20 afternoon)
+
+Status: mechanism found and a mitigation built behind `--pickup-stop` (default off). See the 14:20-17:35 log entries.
+- Cause: fast approach to an edge gem -> every candidate collects it and runs over the edge within the 48-reply horizon
+  -> all rejected -> unchecked actor drives 1-2 s -> fall. A full brake from the same state is safe but was never a
+  candidate (BrakeContinuation existed only behind --brake-continuation 0).
+- Flag: stop_now / stop_short last-resort candidates when nothing passes and the free roll leaves the floor (30 u ray,
+  1.5 s); parked-streak cap (24 decisions at rest); held stop plans released when the edge test clears.
+- Five ten-map screens: points a wash (+1.55 / +0.15 / -2.35 / +0.05 / +0.80 vs a stable 128 baseline), falls 7-10 ->
+  3-5 except with a speed floor (7 -> 9). Cube and Duplex edge falls removed every time (+10..+41 a round); Cragmire
+  loses 10-40 a round because the all-rejected state is common beside ledges the actor handles, and a stopped marble
+  there gets stuck (8 s rescues).
+- Next ideas: (a) when a stop plan is held and the next search still fails at rest, prefer a jump/route candidate over
+  the actor (Cragmire's ledges are gaps); (b) a Cragmire-free assessment is not allowed (no map hacks), so the fix must
+  be in why the planner rejects everything beside those ledges in the first place (likely the same 'collect then over
+  the edge' pattern at low speed, where a slow approach plan should exist).

@@ -32,7 +32,7 @@ from nav.marble_dynamics.bridge import predict_replies,reply
 from nav.marble_dynamics.evaluate import errors
 from nav.marble_dynamics.events import external_changes
 from nav.marble_dynamics.navigator import FrozenNavigator
-from nav.marble_dynamics.search import search,assess,PlanMemory,retained_candidate,useful_candidate,safe_hold_choice,actor_forecast_unsafe
+from nav.marble_dynamics.search import search,assess,PlanMemory,retained_candidate,useful_candidate,safe_hold_choice,actor_forecast_unsafe,backup_risk,recheck_retained_backup
 import nav.marble_dynamics.gem_demo as _gem_demo
 from nav.marble_dynamics.resources import choose_resource,item_goal
 from nav.marble_dynamics.geometry_route import walking_terrain
@@ -49,22 +49,7 @@ from nav.marble_dynamics.viability import ordinary_recovery
 from nav.source_archive import snapshot_sources
 
 
-def edge_ahead(mesh,state,horizon_s=1.0,step_s=0.1,depth=4.0):
-    """True when the free roll along the current velocity reaches a point with no floor below.
-
-    A conservative floor-continuity sample, used only to decide whether the
-    unchecked actor fallback is safe; it never chooses a route.
-    """
-    p=np.asarray(state['position'],dtype=float);v=np.asarray(state['velocity'],dtype=float)
-    speed=float(np.linalg.norm(v[:2]))
-    if speed<1.:return False
-    r=float(state['radius']);t=step_s
-    while t<=horizon_s+1e-9:
-        q=p+v*t
-        hit=mesh.raycast(np.array([q[0],q[1],p[2]+r+.5]),np.array([q[0],q[1],p[2]-depth]),cull_backfaces=True)
-        if hit is None:return True
-        t+=step_s
-    return False
+from nav.marble_dynamics.search import edge_ahead   # 2026-10-20: moved to search.py (the --pickup-stop gate uses it)
 
 
 PLANNER_TOUR_TURN_U=6.   # u charged per full reversal at a gem in the planner's tour (= nav.gems default). v28 tried 12 on
@@ -377,7 +362,7 @@ def pick(engine,route,dynamics,raw,gems,current,nav,horizon,memory,brake_replies
                 backed=int(not info.get('no_braking_backup') and not info.get('braking_backup_unchecked'))
                 rank=(backed,int(pickup is not None),float(gem[3])/max((pickup or horizon)*.064,.064),progress)
                 options.append((rank,chosen,gem))
-                if index==0:break
+                if index==0 and (backed or not getattr(engine,'recheck_risky_plans',False)):break
     if not options:
         if recovery_horizon>horizon:
             chosen,extra,current=pick(engine,route,dynamics,raw,gems,current,nav,recovery_horizon,memory,brake_replies,target_item=target_item,preserve_resources=preserve_resources)
@@ -793,6 +778,7 @@ class ContinuousController:
                 info=assess(engine,route,snapshot,np.asarray(target[:3]),forecast,memory.label,self.resource,
                             _stop_checked=memory.stopping_verified)
                 if not info['rejected']:
+                    recheck_retained_backup(engine,snapshot,target,memory,info,forecast)
                     self.counts['locked_revalidations']+=1;return (info,forecast),target
             memory.clear();self.commit_left=0
         if self.resource is not None:
@@ -850,14 +836,26 @@ class ContinuousController:
         held=None
         if a.reuse_plan:
             retained=retained_candidate(engine,route,snapshot,np.asarray((staged if staged is not None else target)[:3]),memory,target_item=self.resource)
+            from nav.marble_dynamics.search import PICKUP_STOP_EDGE_S,PICKUP_STOP_EDGE_DEPTH_U
+            if (retained and memory.label in ('stop_now','stop_short') and getattr(engine,'pickup_stop',False)
+                    and not edge_ahead(engine.mesh,snapshot['native']['state'],horizon_s=PICKUP_STOP_EDGE_S,depth=PICKUP_STOP_EDGE_DEPTH_U)):
+                # v5 (2026-10-20): a held stop plan outlives its reason when the following searches fail (v4 Cragmire:
+                # 295 stop decisions, only 163 with an edge ahead). No edge ahead now: drop it, the ordinary flow decides.
+                retained=None;memory.clear();self.counts['pickup_stop_released']+=1
             if retained:
-                if (not RESEARCH_PROGRESS_PLANS or retained[0].get('possible_pickup_interval') is not None
+                # 2026-10-20 12:20: only a PICKUP plan with a failed/unchecked backup is 'risky' here. The ten-map screen of
+                # the first version (any risky plan re-searched and replaceable by safe progress) lost 129.50 -> 128.05:
+                # Cragmire 7347019 dropped a slow steering plan the control rode to a pickup and fell in the A2 run after.
+                risky=(getattr(engine,'recheck_risky_plans',False) and backup_risk(retained[0])
+                    and retained[0].get('possible_pickup_interval') is not None)
+                if risky:self.counts['risky_plan_researches']+=1
+                if not risky and (not RESEARCH_PROGRESS_PLANS or retained[0].get('possible_pickup_interval') is not None
                         or memory.label=='safe_hold'):
                     self.counts['remaining_plan_revalidations']+=1;return retained,target
                 held=retained
                 # v50: between re-searches the kept plan simply runs (one search every RESEARCH_EVERY decisions)
                 self.research_wait=getattr(self,'research_wait',0)+1
-                if self.research_wait<RESEARCH_EVERY:
+                if not risky and self.research_wait<RESEARCH_EVERY:
                     self.counts['remaining_plan_revalidations']+=1;self.counts['research_waited']+=1
                     return retained,target
         self.research_wait=0
@@ -867,17 +865,30 @@ class ContinuousController:
         self.counts['full_searches']+=1
         kept_target=target
         engine.order_pick=None
-        chosen,pairs,target=pick(engine,route,snapshot,raw,gems,target,self.nav,a.horizon,memory,
-            a.brake_continuation,a.recovery_horizon,self.resource,a.preserve_resources)
+        try:
+            chosen,pairs,target=pick(engine,route,snapshot,raw,gems,target,self.nav,a.horizon,memory,
+                a.brake_continuation,a.recovery_horizon,self.resource,a.preserve_resources)
+        except PlanningBudgetExceeded:
+            if held is None or not getattr(engine,'recheck_risky_plans',False) or not backup_risk(held[0]):raise
+            # A search for an alternative must not replace the freshly checked
+            # nominal prefix with an unchecked actor solely because time ran out.
+            self.counts['risky_plan_research_deadline']+=1
+            route.navigate(state['position'],np.asarray((staged if staged is not None else kept_target)[:3]))
+            return held,kept_target
         op=getattr(engine,'order_pick',None)
         if op is not None and np.linalg.norm(np.asarray(op[0][:3])-np.asarray(kept_target[:3]))>.1:
             self.order_commit=(op[0],op[1],self.decision_index+int(ORDER_COMMIT_S/.064));self.counts['order_switch']+=1
-        if held is not None and not (chosen and chosen[0].get('possible_pickup_interval') is not None):
+        safer_replacement=(held is not None and chosen is not None
+            and getattr(engine,'recheck_risky_plans',False) and backup_risk(held[0])
+            and not backup_risk(chosen[0]) and chosen[0].get('possible_pickup_interval') is not None)
+        if safer_replacement:self.counts['risky_plan_replaced']+=1
+        if held is not None and not (chosen and (chosen[0].get('possible_pickup_interval') is not None or safer_replacement)):
             # v47: nothing new collects a gem, so the running plan stays (no switching between plans that only get closer)
             self.counts['remaining_plan_revalidations']+=1;self.counts['research_kept_plan']+=1
             route.navigate(snapshot['native']['state']['position'],np.asarray((staged if staged is not None else kept_target)[:3]))
             return held,kept_target
-        if held is not None:self.counts['research_found_pickup']+=1
+        if held is not None and chosen and chosen[0].get('possible_pickup_interval') is not None:
+            self.counts['research_found_pickup']+=1
         if not chosen and a.resource_acquisition and self.resource is None:
             chosen,item,resource_target,_,_=choose_resource(engine,route,snapshot,raw,target,self.nav,
                 max(a.horizon,a.recovery_horizon),a.brake_continuation,a.preserve_resources)
@@ -1059,6 +1070,17 @@ class ContinuousController:
             else:self.counts['recovery_without_checked_backup']+=1
         if chosen:
             info,forecast=chosen;action=forecast['proposed'][0]
+            if getattr(self.args,'pickup_stop',False):
+                # 2026-10-20 --pickup-stop v2: a run of stop plans must not park the marble (v1 Cragmire: 64 s at rest)
+                from nav.marble_dynamics.search import PICKUP_STOP_STREAK
+                stopping=info.get('pickup_stop_from') is not None or info.get('label') in ('stop_now','stop_short')
+                # count only decisions AT REST (the cap exists to stop parking, not braking: at 24 rolling decisions
+                # the Cube leg was handed back to the actor at 4 u/s and fell again)
+                at_rest=float(np.linalg.norm(np.asarray(state['velocity'][:2],dtype=float)))<1.
+                self.stop_streak=(getattr(self,'stop_streak',0)+1) if (stopping and at_rest) else (getattr(self,'stop_streak',0) if stopping else 0)
+                if stopping:self.counts['pickup_stop_decisions']+=1
+                self.engine.pickup_stop_allowed=self.stop_streak<PICKUP_STOP_STREAK
+                if not self.engine.pickup_stop_allowed:self.counts['pickup_stop_streak_exhausted']+=1
             if info.get('search_stopped_at_deadline'):self.counts['completed_candidate_after_deadline']+=1
             self.last_prediction=forecast['states'][1];self.last_rollout=forecast;self.counts['planner_decisions']+=1
         else:
@@ -1366,6 +1388,9 @@ def main():
     p.add_argument('--physics-frame-ms',type=int,choices=[16,64],default=64,help='Native-verified physics cadence with unchanged64ms policy decisions;16ms experimental,64ms existing default')
     p.add_argument('--search-budget-s',type=float,default=0,help='Optional bound per planning iteration; stop before sending any partial candidate on expiry;0 leaves existing search unbounded')
     p.add_argument('--checked-recovery',action='store_true',help='Full rounds only: complete physical stopping backups before unchecked actor fallback')
+    p.add_argument('--recheck-risky-plans',action='store_true',help='Recheck known failed/unchecked backups on retained plans and search for safer alternatives')
+    p.add_argument('--pickup-stop',action='store_true',help='2026-10-20: re-forecast a rejected pickup plan as collect-then-brake (edge gems)')
+    p.add_argument('--mega-proposals',action='store_true',help='2026-10-20: propose using a held Mega Marble; its forecasts use the measured script-event model')
     p.add_argument('--checked-recovery-replies',type=int,default=40)
     p.add_argument('--checked-recovery-budget-s',type=float,default=.2)
     p.add_argument('--actor-task-during-recovery',action='store_true',help='Opt-in: actor retains observed task and independent route during physical stopping backup')
@@ -1522,6 +1547,7 @@ def main():
                 terminal_stop_scope=a.terminal_stop_scope,
                 physics_frame_ms=a.physics_frame_ms,decision_ms=64,
                 search_budget_s=a.search_budget_s,
+                recheck_risky_plans=a.recheck_risky_plans,mega_proposals=a.mega_proposals,pickup_stop=a.pickup_stop,
                 checked_recovery=a.checked_recovery,checked_recovery_replies=a.checked_recovery_replies,
                 checked_recovery_budget_s=a.checked_recovery_budget_s,recovery_reference=a.recovery_reference,
                 actor_task_during_recovery=a.actor_task_during_recovery,
@@ -1590,6 +1616,9 @@ def main():
         engine.detour_blast_ratio=float(getattr(a,'detour_blast_ratio',1.5) or 0.) or math.inf
         engine.use_margin_u=float(getattr(a,'use_margin_s',0.) or 0.)*float(getattr(engine,'ballistic_time_rate',8.) or 8.)
         engine.interleave_candidates=getattr(a,'interleave_candidates',False)
+        engine.recheck_risky_plans=getattr(a,'recheck_risky_plans',False)
+        engine.mega_enabled=getattr(a,'mega_proposals',False)
+        engine.pickup_stop=getattr(a,'pickup_stop',False)
         if a.geometry_route:
             a.geometry_terrain=cached_walking(terrain,mesh,a.sweep_dll,a.cache_dir,memo=a.clearance_cache) if a.cache_dir else walking_terrain(terrain,engine.mesh)
             if a.clearance_cache and not a.cache_dir:a.geometry_terrain.ground_clearance=MemoGroundClearance(a.geometry_terrain.ground_clearance)

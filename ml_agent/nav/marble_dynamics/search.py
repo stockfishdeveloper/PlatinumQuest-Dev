@@ -43,6 +43,14 @@ BRAKING_BACKUP=True      # v22 (2026-10-15): the chosen plan must leave a brakin
 SAFE_HOLD=True           # v22: with no useful plan, execute the best gate-checked plan instead of the unchecked actor
 BACKUP_REPLIES=20        # replies of full braking after the plan's end (1.28 s)
 BACKUP_CHECKS=4          # at most this many of the best useful candidates are checked per search
+PICKUP_STOP_SHORT_U=3.   # last-resort 'stop_short' goal this far before the gem
+PICKUP_STOP_STREAK=24    # consecutive stop decisions AT REST (1.5 s parked) before the ordinary actor fallback resumes
+PICKUP_STOP_EDGE_S=1.5   # stop only when the free roll leaves the floor within this many seconds (edge_ahead)
+PICKUP_STOP_MIN_SPEED=0. # v6 tried 6 u/s: Cragmire parking gone but the Cube/Duplex falls came back (falls 7 -> 9, 17:31); 0 = v5
+                         # (3 stuck rescues, -37). Recorded fall starts under 6 u/s: two Cragmire ledge cases and Duplex 3043,
+                         # none of which v3-v5 prevented.
+PICKUP_STOP_EDGE_DEPTH_U=30.  # v5: 'leaves the floor' = no floor within 30 u below (a drop to a lower floor is not a fall;
+                              # all 23 recorded fall starts still test true, Cragmire's v4 stops drop from 163 to 108 of 295)
 BACKUP_PENALTY_U=150.    # cost added to a useful plan without a braking backup (above the -100 pickup credit)
 FALL_FLOOR_U=15.         # u: airborne after the braking backup with no floor this far below = a fall
 STOP_SPEED=2.            # u/s: when no useful plan exists, 'stop_N' (full braking from reply N) is tried above this speed
@@ -569,7 +577,11 @@ def search(engine,route,dynamics,raw,gem,navigator,horizon=40,warm=None,brake_re
     last_gem=bool(gem_item is not None and gem_item.get('gem') and not any(
         np.linalg.norm(np.asarray(g[:3])-gem)>.1 for g in visible_gems(raw)))
     keep_ss=(held==2 and last_gem and reach<SS_RESERVE_LAST_U and float(raw[RAW_TIME_LEFT])>SS_RESERVE_TIME_MS)
-    if 1<=held<=5 and not keep_ss:
+    # 2026-10-20: a held Mega (inventory held_type 6; the native 'held' is 0 for it) gets the same use families when
+    # --mega-proposals is on; its forecasts run through the script-event model (bridge.mega_relevant).
+    mega_held=bool(getattr(engine,'mega_enabled',False) and (dynamics.get('inventory') or {}).get('held_type')==6
+                   and not (dynamics.get('inventory') or {}).get('permanent_mega'))
+    if (1<=held<=5 and not keep_ss) or mega_held:
         for use,jump in ((0,-1),(3,-1),(7,-1),(3,2),(7,5)):
             specs.append(('use_'+str(use)+'_jump_'+str(jump),SequenceProposal(route,gem,use_steps,use=use,jump=jump)))
             specs.append(('direct_use_'+str(use)+'_jump_'+str(jump),SequenceProposal(route,gem,use_steps,use=use,jump=jump,direct=True)))
@@ -773,6 +785,40 @@ def search(engine,route,dynamics,raw,gem,navigator,horizon=40,warm=None,brake_re
             if not getattr(engine,'use_completed_candidates_on_timeout',False):raise
             exhausted=True
             for info,_ in pairs:info['search_stopped_at_deadline']=True
+    if (getattr(engine,'pickup_stop',False) and getattr(engine,'pickup_stop_allowed',True)
+            and not any(p[0]['rejected'] is None for p in pairs)
+            and float(np.linalg.norm(np.asarray(dynamics['native']['state']['velocity'][:2],dtype=float)))>=PICKUP_STOP_MIN_SPEED
+            and edge_ahead(engine.mesh,dynamics['native']['state'],horizon_s=PICKUP_STOP_EDGE_S,depth=PICKUP_STOP_EDGE_DEPTH_U)):
+        # v4 gate (15:45): the free roll along the current velocity leaves the floor within PICKUP_STOP_EDGE_S. True at
+        # the start of all 23 fall fallback runs in the fresh baselines (speeds 2-17 u/s), but at only 87 of v3's 379
+        # stop decisions: the other 292 (Cragmire 149 of 172) stopped where nothing was about to fall and the marble
+        # waited for the actor instead of exploring (Cragmire -30 in v3).
+        # 2026-10-20 --pickup-stop, last resort when every candidate fails the gates (Cube 7347019 at 1322: a 15.8 u/s
+        # approach to a gem on a down-ramp 3 u from the edge; every family collects it at reply ~29 and is over the
+        # edge at the horizon; the unchecked actor then drove off). Stop NOW (full brake: goal = own position) or
+        # stop PICKUP_STOP_SHORT_U short of the gem; the next search plans a slow approach. Progress plans under the
+        # ordinary gates, never a forced A2 handoff. v1 also re-forecast rejected pickup plans as 'prefix through the
+        # pickup, then brake' (3 brake starts each): none passed here (the brake law stops AT the gem, the ramp adds
+        # gravity), they beat valid full-speed plans elsewhere (~400 stop decisions a round, Cragmire -30) and their
+        # per-reply forecasts broke the search budget. Removed 15:20.
+        saved_dl=getattr(engine,'planning_deadline',None)
+        if saved_dl is not None:engine.planning_deadline=max(saved_dl,time.perf_counter())+EXTRA_JUMP_S
+        try:
+            p0=np.asarray(dynamics['native']['state']['position'],dtype=float);to_gem=gem[:3]-p0;d=float(np.linalg.norm(to_gem[:2]))
+            goals=[('stop_now',p0)]
+            if d>PICKUP_STOP_SHORT_U+.5:goals.append(('stop_short',p0+to_gem*((d-PICKUP_STOP_SHORT_U)/d)))
+            for label,goal in goals:
+                try:rollout=predict_replies(engine,dynamics,Proposal(np.asarray(goal[:3],dtype=float),steps=steps,brake=True),stop_on_ambiguity=True)
+                except ValueError as exc:
+                    pairs.append((dict(label=label,rejected='unsupported_proposal',failure=str(exc),cost=math.inf),None));continue
+                info=assess(engine,route,dynamics,gem,rollout,label,target_item)
+                info.update(evaluated_replies=len(rollout['controls']),requested_replies=rollout['requested_replies'],
+                            stopped_on_ambiguity=rollout['stopped_on_ambiguity'],pickup_stop_goal=list(map(float,goal[:3])))
+                pairs.append((info,rollout))
+        except PlanningBudgetExceeded:
+            if not getattr(engine,'use_completed_candidates_on_timeout',False):raise
+            for info,_ in pairs:info['search_stopped_at_deadline']=True
+        finally:engine.planning_deadline=saved_dl
     if EXTRA_JUMP_TIMES and not any(p[0]['rejected'] is None for p in pairs):
         # v79: nothing passed the gates (the controller would hand the marble to the actor next): other jump times,
         # route and direct aims (v70 A2 states: every candidate 'no_supported_continuation'; Vortex's 1.7 u gap is
@@ -1132,6 +1178,46 @@ def apply_use_margin(pairs,margin):
             info['rejected']='use_margin';info['use_margin_shortfall_u']=info['cost']-(best-margin)
 
 
+def edge_ahead(mesh,state,horizon_s=1.0,step_s=0.1,depth=4.0):
+    """True when the free roll along the current velocity reaches a point with no floor below.
+
+    A conservative floor-continuity sample, used only to decide whether the
+    unchecked actor fallback is safe; it never chooses a route.
+    """
+    p=np.asarray(state['position'],dtype=float);v=np.asarray(state['velocity'],dtype=float)
+    speed=float(np.linalg.norm(v[:2]))
+    if speed<1.:return False
+    r=float(state['radius']);t=step_s
+    while t<=horizon_s+1e-9:
+        q=p+v*t
+        hit=mesh.raycast(np.array([q[0],q[1],p[2]+r+.5]),np.array([q[0],q[1],p[2]-depth]),cull_backfaces=True)
+        if hit is None:return True
+        t+=step_s
+    return False
+
+
+
+def backup_risk(info):
+    """A nominally supported plan can still lack a checked stopping backup."""
+    return bool(info.get('no_braking_backup') or info.get('braking_backup_unchecked'))
+
+
+def recheck_retained_backup(engine,dynamics,gem,memory,info,forecast):
+    """Do not silently upgrade a known risky plan when reusing its schedule.
+
+    Recheck only previously failed/unchecked backups. Unknown continuations
+    retain the warning; a new successful check can clear it. The action schedule
+    and queued discrete inputs remain unchanged.
+    """
+    if not getattr(engine,'recheck_risky_plans',False) or not memory.backup_risk:return
+    ok,detail=braking_backup(engine,dynamics,forecast,gem)
+    info['braking_backup']=detail;info['retained_backup_rechecked']=True
+    if not ok or detail.get('skipped') or detail.get('ambiguous'):
+        info['no_braking_backup' if not ok else 'braking_backup_unchecked']=True
+        info['cost']+=BACKUP_PENALTY_U
+    memory.backup_risk=backup_risk(info)
+
+
 def retained_candidate(engine,route,dynamics,gem,memory,minimum_replies=8,target_item=None):
     """Revalidate a useful remaining plan before spending a full search budget.
 
@@ -1147,6 +1233,7 @@ def retained_candidate(engine,route,dynamics,gem,memory,minimum_replies=8,target
     info=assess(engine,route,dynamics,np.asarray(gem[:3]),forecast,memory.label,target_item,
                 _stop_checked=memory.stopping_verified)
     if info['rejected']:return None
+    recheck_retained_backup(engine,dynamics,gem,memory,info,forecast)
     progress=start-route.distance(forecast['states'][-1]['position'])
     # a safe hold (v22) makes no progress by definition; it stays while it stays safe
     if info['possible_pickup_interval'] is None and progress<=.3 and memory.label!='safe_hold':return None
@@ -1169,6 +1256,7 @@ class PlanMemory:
         self.stopping_verified=False
         self.physical_recovery=False
         self.last_landing_rejection=None
+        self.backup_risk=False
 
     def accept(self,rollout,label,gem,info=None):
         self.clear()
@@ -1176,6 +1264,7 @@ class PlanMemory:
         events=[i for i,a in enumerate(self.actions[:13]) if a[4] or a[6] or a[8]]
         self.lock_until=min(len(self.actions),events[0]+3) if events else 0
         self.stopping_verified=bool(info and info.get('terminal_stop_check',{}).get('valid'))
+        self.backup_risk=bool(info and backup_risk(info))
         if info and info.get('landing_goal') is not None:
             self.landing_goal=list(info['landing_goal']);self.landing_after_reply=info['landing_after_reply']
             self.goal_item_id=info.get('goal_item_id');self.landing_triangle_id=info.get('landing_triangle_id')
