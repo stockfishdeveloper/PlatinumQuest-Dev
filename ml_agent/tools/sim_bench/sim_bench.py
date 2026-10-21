@@ -49,6 +49,7 @@ ap.add_argument('--lead', type=int, default=0)
 ap.add_argument('--edge-gems', type=float, default=0.)   # >0: starts lead decisions before pickups of gems within this walk-grid distance of a drop   # start this many decisions before the selected leg start (through its pickup)
 ap.add_argument('--only-decision', type=int, default=0)   # extra planner launch flags, e.g. --pflag=--fallback-cooldown=0  # only legs whose recorded first pickup took > 8 s for a gem < 20 u away
 ap.add_argument('--normal-priority', action='store_true')
+ap.add_argument('--rise-min', type=float, default=None)   # 2026-10-20: only starts whose first pickup is this much higher than the start
 ap.add_argument('--held', type=int, default=-1)   # only starts where the marble holds this powerup (2 = Super Speed)
 ap.add_argument('--module', action='append', default=[])
 ap.add_argument('--search-workers', type=int, default=0)   # 2026-10-19: candidates evaluated by this many worker processes
@@ -145,6 +146,9 @@ def setup(a, name):
     engine.recheck_risky_plans = getattr(a, 'recheck_risky_plans', False)
     engine.mega_enabled = getattr(a, 'mega_proposals', False)   # 2026-10-20 Mega use proposals
     engine.pickup_stop = getattr(a, 'pickup_stop', False)
+    engine.edge_hits = getattr(a, 'edge_hits', False)
+    engine.wall_rebounds = getattr(a, 'wall_rebounds', True)
+    engine.pad_hops = getattr(a, 'pad_hops', True)
     a.geometry_terrain = cached_walking(terrain, mesh, a.sweep_dll, a.cache_dir, memo=a.clearance_cache)
     engine.ballistic_landing = getattr(a, 'ballistic_landing', False); engine.ballistic_reserve_s = getattr(a, 'ballistic_reserve_s', 0.)
     engine.opportunistic_powerups = getattr(a, 'opportunistic_powerups', 0.)
@@ -254,6 +258,8 @@ def fam(label):
         return 'corner'
     if label.startswith('route_corner'):
         return 'rcorner'
+    if label.startswith('edge_hit'):
+        return 'edge'     # 2026-10-20 edge-hit plans (nav/marble_dynamics/edge_hits.py)
     if label.startswith('bounce'):
         return 'bounce'   # 2026-10-19 wall-bounce plans (nav/marble_dynamics/wall_bounce.py)
     for k in ('through', 'blast', 'jump', 'use', 'steering', 'throttle', 'direct', 'route', 'frozen', 'crossing', 'landing', 'recharge'):
@@ -457,6 +463,8 @@ def starts(pool, name):
             out.append((dl, (fell_at - i + 1) * .064, float(np.linalg.norm((q - np.asarray(st['position']))[:2]))))
             continue
         far = None if nxt is None else float(np.linalg.norm((nxt - np.asarray(st['position']))[:2]))
+        if o.rise_min is not None and (nxt is None or float(nxt[2]-st['position'][2]) < o.rise_min):
+            continue
         if o.next_group:
             prevg = None; found = None
             for k2 in range(i, min(len(R), i + 3000)):

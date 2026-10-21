@@ -127,6 +127,7 @@ def main():
     p.add_argument('--checked-tail', action='store_true', help='Experimental state-matched checked plan continuation')
     p.add_argument('--legacy-fast-proposals', action='store_true', help='Matched control for the repaired native fast-controller bug')
     p.add_argument('--recheck-risky-plans', action='store_true', help='Recheck and reconsider retained plans with unsafe stopping backups')
+    p.add_argument('--no-edge-hits', action='store_true', help='Matched control: the planner without the edge-hit family (on by default since 2026-10-21)')
     p.add_argument('--pickup-stop', action='store_true', help='Collect-then-brake candidates for rejected edge-gem plans')
     p.add_argument('--mega-proposals', action='store_true', help='Propose using a held Mega Marble (script-event forecasts)')
     p.add_argument('--trace', action='store_true', help='Full before-observation trace; adds measured I/O overhead')
@@ -155,6 +156,8 @@ def main():
         rt.FLAGS = rt.FLAGS + ['--mega-proposals']
     if a.pickup_stop:
         rt.FLAGS = rt.FLAGS + ['--pickup-stop']
+    if a.no_edge_hits:
+        rt.FLAGS = rt.FLAGS + ['--no-edge-hits']
     # AheadPlanner's default is bound at import; make the benchmark override explicit.
     rt.AheadPlanner.__init__.__defaults__ = (a.lead,)
     sources = freeze_sources(a.output)

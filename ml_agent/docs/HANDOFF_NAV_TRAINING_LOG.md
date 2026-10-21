@@ -12738,3 +12738,325 @@ tests pass. No pools or games running.
   `python -c "import nav.marble_dynamics.realtime as RT; RT.FLAGS = RT.FLAGS + ['--pickup-stop']; RT.serve()"`.
 * Round 1: 145 points, 0 falls, 0 accepted rescues, 80 holds / 3.85 s (longest 0.45 s), 250.8 s wall for the 240 s
   round (Duplex pools 118.5-124, best real 153). Stopped by the operator during round 2.
+
+## 2026-10-20 evening - edge hits (operator request): physics validated on 118 natural hits; --edge-hits family built
+
+Mechanism (marble.cc velocityCancel): the bounce reflects the velocity along the contact normal with the restitution
+and adds a spin-friction kick along the contact tangent; on a ledge LIP the normal is tilted, so part of the forward
+or downward speed comes back upward and most forward speed is kept. The compiled simulator carries the same terms.
+Step 1, validation without new game time: mined the 20 pstop6_baseline rounds' per-tick records for upward kicks
+(dvz > 2 u/s, no jump) on true edge/vertex contacts (contact normal matching no face normal at the contact point):
+118 events (lip, normal z >= 0.8: 68, kept 94 percent of horizontal speed; corner 29; wall-edge 21; strongest kicks
++33 u/s). Replayed each from 10 / 24 / 40 decisions earlier with the recorded inputs (sim_bench engine, compiled
+forecast): kick magnitude exact (within 0.05 u/s) in 114 / 111 / 111 of 118; the misses are earlier chained
+divergences (TreasureBox 13376 at 1.5 s, 6821 at 2.6 s). Residual median position error 0.125 u is a one-tick
+labelling offset in the comparison script, not physics. Verdict: trustworthy enough to plan on. Scratch scripts
+edge_mine2.py / edge_replay.py (scratchpad), events in edge_events.json.
+Step 2, built behind --edge-hits (pools, realtime.py, realtime_bench, sim_bench): nav/marble_dynamics/edge_hits.py
+extracts exposed floor lips from the collision mesh once per map (floor polygon edges no other floor continues:
+Cube 1036, Sprawl 1340, Duplex 3158; 10-50 ms), picks up to 4 lip points on the way to a target >= 1 u higher
+(2-18 u ahead, <= 6 u off the line, -4..+2.5 u in height, lip not along the approach), and search() adds
+'edge_hit_<k>_jump_<j>' proposals: direct aim at the lip point with jump at -1/0/3/6/9, through-context on to the
+gem; ordinary gates. Tests: test_edge_hits (5), suite 252 pass. sim_bench gained --rise-min (raised-leg starts).
+Offline raised-leg screen (first pickup >= 1.5 u above the start, 6 maps, base vs --edge-hits) running.
+
+## 2026-10-20 evening - edge hits v2 (lips above, timed jumps): offline no gain; native screen running
+
+v1 offered lips below the marble and fired on far targets barely higher (Sprawl: gem 85 u away, 1.6 u up): plain jumps,
+never chosen. v2 (edge_hits.py): only lips 0.4-2.2 u above the marble, the target must be a real climb (within 35 u
+or grade >= 5 percent), jump reply computed from lip distance / current speed / rise time (+-1 neighbour), labels
+'edge_hit_<k>_jump_<j>', bench bucket 'edge'. Probe on Sprawl 1931: the edge-hit plans gain 2.5-4.0 u of height
+(a plain jump apex is 1.4 u) and land supported on the ledge, but a Blast pickup plan (-133) beats their progress-only
+cost (34-49): correct ranking when a Blast is available. Lips 1.8 u up are out of jump reach (apex 1.41 u) so no
+proposal is made there. Offline raised-leg screen (39 legs, 6 maps, first pickup >= 1.5 u above the start): points
+104 / 104, time 330.2 / 334.1 s, falls 1 / 0, planning CPU 487 / 449 s; the family was chosen 3 times in 2 legs
+(Fractured 1378 +0.3 s; Vortex 378 base fell, edge capped at 20 s with 0 points). 37 of 39 legs identical.
+The Blast-saving value only shows across a round: native edge_baseline/candidate launched (8 games).
+
+## 2026-10-20 23:45 MDT - --edge-hits native ten-map: 128.45 -> 129.55, falls 7 -> 5, Blasts 276 -> 273; OFF by default
+
+edge_baseline/candidate (audits pass, edge_tenmap_comparison.json), off/on per start (edge-plan decisions):
+Bowl 125/125 120/120; Concentric 91/91 98/118 (22); Cragmire 109/123(+1 fall) (37) 134(2)/126(1) (19); Cube 126/131 (2)
+133/133; Duplex 143/136 (10) 94(1)/109(0) (2); Fractured 91/91 (2) 100/87 (8); KOTM 139/139 148/148; Sprawl 168/161 (34)
+183/185; Treasure 188/188 168/168; Vortex 93/101 (3) 118/111 (43). 9 of 20 rounds bit-identical. Edge plans ran 26
+times in 11 rounds; 7 of those runs produced a real in-game edge bounce (kicks 4-21 u/s: Vortex 2968 +21.1, Sprawl
+2762 +10.9), the rest reached the ledge without needing the bounce; mean height gained in 1.5 s 2.1 u.
+Verdict: the physics works in the real game, the family costs nothing (planning CPU unchanged), but on these ten maps
+the gain is within noise (+1.1) and Blast use does not fall: a Blast plan that reaches the gem within the horizon
+outranks a climb that only makes progress, and ledge climbs where no Blast is available are rare. Default stays off.
+TODO.md item 5 lists where it would pay (new maps with ledges; a resource-aware comparison of 'climb now with Blast'
+vs 'edge hit now, Blast later').
+
+## 2026-10-21 00:15 MDT - edge hits: ceiling measured, v3/v4 built, wall-hit climbs (v5 prototype) are the lever
+
+Operator directive (10-20 23:50): make edge hits work and raise points; no giving up.
+Ceiling on these maps: across the 20 edge_baseline rounds the marble is stalled below a 0.4-2.5 u step (slow, A2 or
+stop within 8 u of a higher target) for 303 decisions = 19 s in 93 episodes, and fires 36 Blasts at steps: step climbs
+are worth 1-2 points a round at most, which is where the first screen landed (+1.1).
+v3: edge candidates get the landing extension (40 percent were rejected unsettled at the horizon) and timed-jump variants
+on the route/direct lines. v4: the lip-aimed plan routes to the (0.25 u snapped) lip point so the compiled controller
+runs it, with a through box over the lip so clearing it still switches the plan to the gem. Climb-leg probe (5 maps,
+30 legs): candidates 562 -> 1695 -> 1660, valid 339 -> 959 -> 964, edge wins 10 -> 15 -> 14, median losing gap
+11.1 -> 3.7 -> 2.5 u; leg times unchanged. Native edge4 pair running.
+v5 prototype (scratchpad module overrides, sources frozen during the pool): lips up to 2.6 u with the jump timed to meet
+the wall near the apex; the wall contact's spin-friction kick (bounce_kinetic_friction x contact friction x 5 x normal
+speed / 2r, capped by the slip) carries the marble over. Probe on lips 1.8-2.6 u: 2610 candidates, 1374 valid, 310 end
+ON the ledge (3.5-4.2 u gained; a jump apex is 1.41 u), edge wins 79 of 673 searches, Sprawl 370 leg 17.5 -> 15.6 s.
+That is the class of climb that costs a Blast or a detour today. Next: apply v5 to the sources after the pool ends,
+full suite, native pair.
+
+## 2026-10-21 00:50 MDT - --edge-hits v4 native ten-map: 127.60 -> 130.15 (+2.55), falls 8 -> 4; v5 (wall hits) applied
+
+edge4_baseline/candidate (audits pass, edge4_tenmap_comparison.json), off/on per start (edge-plan decisions):
+Bowl 133/133 120/120; Concentric 91/79 (131) 98/101 (145); Cragmire 109/120 (172) 118(3)/124(0) (108);
+Cube 133(1)/138(0) (37) 137/137; Duplex 123/131 (23) 94(1)/114(0) (12); Fractured 91/91 (50) 100/96(+1) (14);
+KOTM 139/139 148/148; Sprawl 168/179 (109) 183/166 (35); Treasure 188/205 (66) 168/168; Vortex 93/109 (50)
+118/105 (20). Totals 2552 -> 2603, Blasts 275 -> 275. Edge plans ran 972 decisions (v2: 182): the landing extension,
+timed route/direct jumps and the compiled lip route made the family competitive. First real points gain.
+v5 applied to the sources (edit_edge_v5.py): lips up to 2.6 u with the jump timed to meet the wall at the apex (the
+spin-friction kick carries the marble over: probe 310 of 2610 such plans ended on the ledge, 3.5-4.2 u gained), the
+edge block evaluated after the learned navigator, edge candidates out of the ballistic projection pool (they use the
+landing extension). Offline 48 ordinary climb legs: 41 identical, Sprawl 370 17.7 -> 15.6 s, Concentric 1166
+8.8 -> 6.8 s; two legs fell through the bench's virtual search budget trimming the candidate tail (search 36: 20 vs
+24 candidates, navigator cut), a bench artifact (compiled forecasts cost 1-2 ms, a lip route 3-4 ms on the real clock).
+
+## 2026-10-21 01:40 MDT - --edge-hits v5 native: 128.45 -> 128.65 (wash), falls 7 -> 9; v6 adds the climb gate
+
+edge5_baseline/candidate (audits pass, edge5_tenmap_comparison.json), off/on per start (edge decisions): Bowl 125/123 (80)
+120/120; Concentric 91/86(+1 fall) (293) 98/120 (201); Cragmire 109/104 (137) 134(2)/87(0) (209); Cube 126/131 (57)
+133/142 (55); Duplex 143/153 (75) 94/114 (83); Fractured 91/91 (50) 100/96(+1) (14); KOTM 139/139 148/148; Sprawl
+168/181 (295) 183/164 (170); Treasure 188/205 (66) 168/168 (92); Vortex 93/96(+1) (31) 118/105(+1) (64). Edge plans
+2272 decisions (v4: 972). Blasts 276 -> 271.
+Why v5 lost v4's gain: with lips to 2.6 u the timed jumps rarely reach the lip, but the landing extension makes such a
+jump a valid progress plan and it wins on 1-3 u cost margins; Cragmire 12091843: 11 edge runs, 9 gained 0.1-1.3 u
+toward 1.7-2.6 u lips and scored 0 in the next 10 s. Same pattern in Sprawl 12091843 and Bowl 7347019 (lips on the
+bowl's slope edges). v6: search.edge_climb rejects ('edge_no_climb') any edge-hit candidate (and its landing extension)
+whose forecast never brings the marble centre within 0.35 u of the lip height; ordinary plans untouched; test
+ClimbGate. edge6 pair launched 01:37. If v6 does not beat v4's +2.55, the fallback is v4's lip range (1.7 u) with the
+climb gate.
+
+## 2026-10-21 02:20 MDT - --edge-hits v6 native: 129.05 -> 132.00 (+2.95), falls 11 -> 8; v7 lip rule
+
+edge6_baseline/candidate (audits pass, edge6_tenmap_comparison.json), off/on per start (edge decisions): Bowl 129/123 (80)
+120/120; Concentric 91/84(+1 fall) (200) 98/120 (201); Cragmire 109/124(+1) (194) 118(3)/126(1) (160); Cube 126/131 (57)
+137/142 (55); Duplex 143/143 108(2)/115(1) (83); Fractured 91/91 (50) 100/96(+1) (14); KOTM 139/139 148/148; Sprawl
+168/181 (295) 183/178 (117); Treasure 188/197 (29) 168/168 (92); Vortex 99(3)/109(0) (47) 118/105 (21). Totals
+2581 -> 2640 (+59), Blasts 273 -> 282. Best version: the climb gate keeps the wall-hit climbs and drops the wasted jumps.
+Versions so far (equal-map, off -> on): v2 +1.1, v4 +2.55, v5 +0.2, v6 +2.95.
+Remaining waste: Bowl 7347019 spent 80 edge decisions (-6) although the Bowl has no ledges: the lip extractor took the
+seams between flat and steeper floor polygons (normal z under 0.75) for lips. v7: a lip's other side must be a wall
+(|normal z| < 0.35) or nothing; a seam with a slope or another floor is not a lip (test updated).
+
+## 2026-10-21 02:25 MDT - edge hits v7: real-lip extraction (outward drop probe); native pair running
+
+Vertex matching alone called about half of all polygon-boundary edges lips (seams between differently tessellated
+polygons): an outward probe (floor 0.4 u beyond the edge within 0.5 u of its height?) found floor beyond 317 of
+Bowl's 635, 560 of Cube's 931, 417 of Sprawl's 1328, 1121 of Cragmire's 2156. v7 lips(): the other side must be a
+wall (|nz| < 0.35) or absent AND the mesh raycast 0.4 u outward must find no floor within 0.5 u below the edge.
+Lips now: Bowl 318, Cube 371, Sprawl 911, Concentric 475, Cragmire 1035, Vortex 1076, Duplex 1485, Treasure 1400,
+Fractured 903, KOTM 174 (extraction 0.04-0.37 s once per map). Tests 9 pass. edge7 pair launched 02:24.
+
+## 2026-10-21 03:10 MDT - --edge-hits v7 native: 128.45 -> 130.30 (+1.85); three positive pairs in a row
+
+edge7_baseline/candidate (audits pass, edge7_tenmap_comparison.json), off/on per start (edge decisions): Bowl 125/125
+120/120 (0: the seam lips are gone); Concentric 91/81(+1 fall) (210) 98/110 (293); Cragmire 109/111(+1) (66) 134(2)/124(1)
+(22); Cube 126(1)/122(3) (4) 133/142 (34); Duplex 143/143 94/111 (86); Fractured 91/82 (11) 100/93 (24); KOTM 139/139
+148/148; Sprawl 168/179 (117) 183/185 (197); Treasure 188/197 (29) 168/180 (101); Vortex 93(1)/109(0) (47)
+118/105(+1) (164). Totals 2569 -> 2606, falls 7 -> 10, Blasts 276 -> 286.
+Tally of the ten-map native pairs (equal-map, off -> on): v2 +1.10, v4 +2.55, v5 +0.20, v6 +2.95, v7 +1.85.
+v4/v6/v7 agree within the screen noise (+-1.5): a repeatable gain of about +2.5 equal-map points (2 percent).
+Consistent losers: Concentric 7347019 (-12 / -7 / -10 in v4/v6/v7), Fractured (-9 / -7 in v7). Confirmation pair on
+fresh seeds 31337 / 8675309 launched 03:08 (edge7s_*).
+
+## 2026-10-21 03:55 MDT - edge hits v7 on fresh seeds: 127.35 -> 128.70 (+1.35), falls 9 -> 7, Blasts 290 -> 278
+
+edge7s_baseline/candidate, seeds 31337 / 8675309 (audits pass, edge7s_tenmap_comparison.json), off/on (edge decisions):
+Bowl 129/129 122/122; Concentric 117/117 (117) 106/105 (161); Cragmire 121/101(+1 fall) (63) 119/113 (97); Cube
+143/140 (91) 135/136 (118); Duplex 103(2)/138(0) (163) 113/128 (82); Fractured 88/97 (102) 84(2)/89(1) (53); KOTM
+149/149 144/144; Sprawl 184/169 (105) 159/158 (115); Treasure 163/153 (127) 151/170 (112); Vortex 108(3)/108(1) (90)
+109/108 (71). Totals 2547 -> 2574. Four of the last five native pairs positive (v4 +2.55, v6 +2.95, v7 +1.85, v7 fresh
+seeds +1.35; v5 +0.20 was the unguarded wall-hit version). Consistent winners Duplex and TreasureBox; Cragmire and
+Sprawl lose on some starts. v8 applied: an edge plan judged over its landing extension that does not collect pays the
+extra-horizon time penalty like a powerup forecast (Fractured's late-jump '_landing' wins). edge8 pair launching.
+
+## 2026-10-21 04:40 MDT - v8 (time penalty on edge landing plans) hurt: 128.15 -> 128.75, falls 8 -> 14; reverted; v9 retry guard
+
+edge8 pair (audits pass, edge8_tenmap_comparison.json): charging the extra-horizon time to non-collecting edge landing
+plans removed most edge decisions (Duplex 12091843 0, Cube 0-4, Vortex 3) and with them the climbs that need the
+extension to land; Fractured 12091843 -21, Cube 7347019 4 falls. Reverted. v9 = v7 + retry guard: a lip attempted
+within the last 48 decisions while the marble is still below it is not offered again (search.EDGE_RETRY_DECISIONS;
+the controller records info['edge_lip'] per chosen edge plan in engine.edge_recent and publishes decision_index;
+counter edge_hit_decisions). TreasureBox 31337 (fresh seeds): seven attempts in 40 decisions at one spot scored 0-1
+vs 10-14. edge9 pair launching.
+
+## 2026-10-21 05:30 MDT - --edge-hits v9 native: 128.25 -> 130.40 (+2.15); EDGE HITS ON BY DEFAULT
+
+edge9_baseline/candidate (audits pass, edge9_tenmap_comparison.json), off/on per start (edge decisions): Bowl 125/131
+120/120; Concentric 91/81(+1 fall) (210) 98/110 (293); Cragmire 109/111(+1) (66) 134/126 (100); Cube 122(2)/123(1)
+(110) 133/142 (34); Duplex 143/143 94/103 (80); Fractured 91/86(+1) (9) 100/105 (9); KOTM 139/139 148/148; Sprawl
+168/179 (117) 183/185 (197); Treasure 188/197 (29) 168/180 (101); Vortex 93/93(+1) (105) 118/106(+3) (112).
+Totals 2565 -> 2608, falls 8 -> 14, Blasts 276 -> 277.
+Ten-map native pairs, equal-map off -> on: v2 +1.10, v4 +2.55, v5 +0.20, v6 +2.95, v7 +1.85, v7 fresh seeds +1.35,
+v8 +0.60 (reverted), v9 +2.15. Six of the seven pairs since v4 positive, mean about +2 (1.6 percent); losers are the
+same starts each time (Concentric 7347019, Cragmire 12091843, Vortex 12091843) and path divergence after an early
+edge run explains most of each. Falls vary 4-14 against baselines of 7-11 (no trend; points-only rule).
+Baked ON (operator: bake settings into defaults): reliability_eval --edge-hits default True, --no-edge-hits = matched
+control; realtime_bench --no-edge-hits; realtime.py and sim_bench read the same argument (sim_bench Sprawl 370 leg:
+default 15.6 s, control 17.7 s). 256 tests pass. What the family is now (nav/marble_dynamics/edge_hits.py + search.py):
+exposed lips from the collision mesh (floor polygon edges whose other side is a wall or nothing AND with a real drop
+0.4 u beyond, once per map), up to 2 lips 0.4-2.6 u above the marble on the way to a target that needs a climb, jump
+timed from distance/speed/rise (wall-hit apex timing above 1.4 u), lip-aimed (own route, through box) plus route and
+direct lines, landing extension, climb gate (must reach the lip), evaluated after the navigator, retry guard (48
+decisions). Flag history and evidence: edge*_tenmap_comparison.json, edge_hits_offline/, scratchpad probes in the log.
+
+### 2026-10-21 08:07 MDT - Live real-time Concentric viewing (operator: "play concentric at 1x speed")
+* Current defaults (edge hits on, corrected fast controllers, pre-spin; walls / pickup-stop / Mega off), plain
+  `python -m nav.marble_dynamics.realtime` + marbleblast_realtime.exe -autotrain Concentric_Hunt -aifreecam.
+* Round 1: 120 points, 0 falls, 0 accepted rescues, 10 holds / 0.43 s (longest 0.07 s), 247.5 s wall for the 240 s
+  round (Concentric v9 pools 95.5 mean, best real 124). Stopped by the operator during round 2.
+
+## 2026-10-21 08:50 MDT - human demo recording on Concentric: camera fixes
+
+Operator recording a wall-hit demo (record_demos.py --terrain Concentric_Hunt + marbleblast_mbx.exe -autotrain
+Concentric_Hunt, normal camera, no -aifreecam). Two camera problems fixed in the game scripts (.dso removed):
+1. "can't move camera left to right": an -autotrain game pins the render view at yaw 0 from the first frame
+   (mlAgent.cs viewYawWatch, 2026-09-26), so the mouse turned the steering while the picture stayed put.
+   MLAgent::enableRecording now releases the pin ($MLAgent::ViewYawOn=false, clearViewYaw); disableRecording restores it.
+2. "the camera switches like 180 degrees a few times a round" in every demo: no script writes the camera yaw in
+   recording mode (executeAction is skipped; Concentric_Hunt has no CameraTrigger), so the snaps are single huge mouse
+   yaw events (pointer warps: remote desktop / cursor re-centring). default.bind.cs input_yaw drops any event over
+   0.35 rad while $MLAgent::RecordMode is set ($MLAgent::YawWarpsDropped counts them). Normal play is untouched.
+
+## 2026-10-21 09:30 MDT - wall rebounds v12c: the wall must rise above the marble
+
+Operator directive 09:05: wall hits are useful (height, momentum, a faster next spawn); MAKE them work and raise
+points; falls do not matter. Demo analysis (round 9, 99 points, 34 wall hits): run in at ~12 u/s, reverse off the wall
+at ~65 percent speed with a +5 u/s vertical kick, 19 of 34 rebounds within 30 degrees of the next gem; the climbs
+(rows 29072 / 27452 / 32323) run AWAY from a 1.8 u ledge into the wall on the low level, jump a marble-length before
+contact and fly back onto the ledge.
+* v12 (edge_hits.wall_candidates + search 'edge_hit_wall%d_rebound_%g' WallHitProposals, distance-triggered jump
+  0.6/1.0/1.5 u before the wall, end-z climb gate): candidates fire at the demo climbs; Concentric probe 2162
+  candidates, 155 valid, 0 wins (rebounds landed on the ring 46 u the wrong way).
+* v12b: route-saving test (the estimated landing q + r*5 u must cut the route distance by 8 u): 415 candidates,
+  6 valid, 1 win in 61 searches. Offline A/B (30 legs, control = WALL_MAX 0 copy): points 81 -> 76, time 219.3 -> 217.7.
+* Probe leg 1166 showed the remaining failure: the chosen "wall" was the edge face of the marble's OWN level (face
+  top z 4.0, marble z 4.2), so the plan jumped off the edge, peaked and came back down on the same level
+  (edge_no_climb).
+* v12c (09:20): the wall face's top must be at least 0.5 u above the marble centre (a face that starts at the marble's
+  floor is fine: that is the demo's wall); the wall point is aimed at the marble's own height. All three demo walls
+  are still found (2.5-5.7 u ahead). Concentric 8-leg probe: 232 candidates, 6 valid (zgain 1.6-2.0 u vs need
+  1.4-1.8), 1 win (edge_hit_wall0_rebound_0.6_landing cost 73.1 vs route 88.4); rejections 136
+  no_supported_continuation, 90 edge_no_climb.
+* 09:31: ten-map native pair launched, seeds 7347019/12091843: wall1_baseline = wall rebounds ON (the new default),
+  wall1_candidate = --no-wall-rebounds (control). Finish ~10:20.
+* 10:06 wall1 pair done (equal load, 4+4 workers): wall rebounds ON 2607 points / 130.35 equal-map mean, OFF 2612 /
+  130.60; falls 8 vs 6, Blasts 267 vs 260. A tie: only 11 wall plans were taken in 20 rounds (179 decisions), mean
+  height gain 3.1 u, 0 falls after them, 3.2 points in the following 10 s (Cragmire 7347019 +10 with two wall climbs
+  of 3.9 and 6.0 u; Fractured/Vortex/Sprawl differences started before any wall plan: wall-clock budget noise).
+  Diagnosis from the Concentric probe: the 8 u route-saving test left only climbs (a same-level reversal saves a few
+  units at most), and 60 of 232 rebounds peaked high enough but landed off the ledge (one fixed 16 u/s approach).
+* v13 (10:25): WALL_MIN_SAVING_U 8 -> 0 (landing must not lengthen the route), approach speeds 11 and 16 u/s, and a
+  no-jump variant (trigger 0, the plain momentum-keeping reversal): 12 specs per decision at most (2 walls).
+  Probes running on Concentric (climb legs + general), Sprawl, Cragmire (10 legs each); then a ten-map pair.
+* v13 probes (10 legs each): valid rebounds rose (Sprawl 139 of 220, Cragmire 86 of 292, Concentric climb 67 of 2462)
+  but wins stayed at 0-1: the valid ones sat in near-gem searches where a pickup plan wins by 50 cost units, and in
+  the far-gem searches the climb gate rejected the reversal (edge_no_climb 1014 on Concentric: the gate demanded the
+  rebound END at the target's height, which a far target reaches later along the route).
+* v14 (10:40): the wall gate now only forbids ending below the LOWER of the target height and the start height (no
+  level lost). Concentric climb probe: 941 valid of 2595, 29 wall wins in 190 searches, margin median 8.9; Cragmire
+  150 valid, 2 wins in 23; Sprawl 139 valid, 0 wins in 17. The remaining rejections are rebounds still unsupported
+  after the 40-reply landing extension (720 raw / 659 landing: off the edge or against a steep face).
+* 10:16 wall2 ten-map pair launched (v14 walls on = wall2_baseline, --no-wall-rebounds = wall2_candidate). Finish ~10:55.
+* 10:53 wall2 pair done (v14, equal load): wall rebounds ON 2625 points / 131.25 equal-map mean, OFF 2570 / 128.50
+  (+2.75); falls 3 vs 7; Blasts 265 vs 256. 63 wall plans in 20 rounds (was 11), mean height gain 4.0 u, 0 falls in
+  the 10 s after a wall plan, 4.0 points in those 10 s. Big rounds: Concentric 7347019 124 vs 73, Cragmire 12091843
+  126 vs 113, Duplex 12091843 111 vs 95; against: Cragmire 7347019 105 vs 116, Fractured 82/101 vs 90/105, Cube 131 vs
+  137. Caution: the OFF arm (128.50) is below wall1's OFF arm (130.60), so part of the gap is wall-clock noise.
+* 10:55 wall3 pair launched on fresh seeds 4420117 / 9083321 (same arms) to confirm. Finish ~11:35.
+* 11:33 wall3 pair (fresh seeds 4420117 / 9083321, v14): wall rebounds ON 2477 / 123.85, OFF 2534 / 126.70 (-2.85);
+  falls 12 vs 11; Blasts 265 vs 280. 69 wall plans / 20 rounds, 5.1 points in the 10 s after a plan, 2 falls after.
+  Against: Concentric -14 / -22, Fractured -12 / -13, Sprawl -16, Duplex -7 / -8; for: Cragmire +26, Cube +11 / +5.
+  Two pairs net zero (+2.75, -2.85): the rebounds themselves score, so the loss sits elsewhere (long streaks: Concentric
+  4420117 7 plans over 229 decisions, Sprawl 4420117 120 decisions; analysing the streaks next).
+* 11:36 streak analysis of wall3's ON arm: 70 wall plans, only 14 reached the wall (min distance < 1.5 u); 55 were
+  abandoned on the approach. Cause: WALL_NEAR_U 2.5 stopped offering a wall once the marble was within 2.5 u of it, so
+  every approach was dropped a marble-length before contact (unless plan memory carried it). The 14 real hits were
+  clean (no chasing back), speed 8.5 u/s in the 2 s after the hit. Also: the plan label stays 'edge_hit_wall..._landing'
+  for up to 80 decisions after a hit (the landing continuation to the gem is kept as the running plan).
+* v15 (void-landing pre-filter, mesh raycast under the 2.5 / 5 u landing estimates), v16 (wall retry guard: a wall first
+  tried over 2 s ago is not offered again within 3 s; a running approach continues), v17 (WALL_NEAR_U 2.5 -> 1.0)
+  applied 11:38; demo walls still found. wall4 pair launched 11:38, finish ~12:17 (seeds 7347019 / 12091843, same arms as wall2).
+* 12:16 wall4 pair (v17, seeds 7347019 / 12091843): wall rebounds ON 2629 / 131.45, OFF 2588 / 129.40 (+2.05); falls
+  5 vs 5; Blasts 269 vs 255. 71 wall plans, 4.5 points in the 10 s after, 0 falls after. Still 52 of 76 streaks never
+  reached the wall (min distance >= 1.5 u), so the 2.5 u limit was not the only reason approaches are dropped.
+  Three pairs so far: +2.75, -2.85 (fresh seeds), +2.05. TreasureBox 7347019 168 vs 196 with 4 wall plans spanning
+  225 decisions (the landing continuation held as the running plan for up to 80 decisions).
+* 12:30 wall4 journals: 52 of 76 wall choices lasted ONE decision (median cost gap to the next plan 0.5 u: ties
+  flickering, each a 64 ms nudge toward a wall). The long streaks are the opposite problem: a wall plan's 88-reply
+  action schedule (48 + the 40-reply landing extension) is replayed open-loop by plan memory (retained_candidate
+  revalidates the remainder; v47 never replaces a held plan with a non-pickup plan), so after a hit that did not go as
+  forecast the marble dithered 5 s (Cragmire 12091843 dec 3126-3204 at 1-3 u/s) or wandered 20 u (TreasureBox 3003-3082).
+* v18 (12:32): WALL_COST_MARGIN_U 2 (a wall plan must beat the field by 2 u) and WALL_RETAIN_REPLIES 24 (a non-pickup
+  wall plan is dropped from plan memory after 24 executed replies = 1.5 s, approach + hit; a landing-mode pickup plan
+  is kept). wall5 pair on the fresh seeds 4420117 / 9083321 (wall3 was -2.85 there), launched 12:20, finish ~13:00.
+* 12:57 wall5 pair (v18, fresh seeds 4420117 / 9083321): wall rebounds ON 2502 / 125.10, OFF 2543 / 127.15 (-2.05);
+  falls 10 vs 9; Blasts 269 vs 283. Only 28 wall plans (the 2 u margin removed the ties: 9 one-decision choices, none
+  longer than 27 decisions), 4.2 points in the 10 s after, 0 falls after. Four pairs: +2.75, -2.85, +2.05, -2.05; the
+  7347019/12091843 seeds favour walls both times, the 4420117/9083321 seeds favour off both times (Concentric 9083321
+  100 vs 122 in both wall3 and wall5 with ONE wall plan at decision 468 and equal points 15 s later; Duplex 9083321
+  -8 / -26). Same-arm noise between wall3 and wall5 OFF arms: up to 17 points a round, 0.45 on the mean.
+* 13:10 all four pairs' wall plans by the marble's speed toward the wall when chosen: away 122 plans (3.9 pts in the
+  10 s after), toward 0-4 u/s 58 (4.7), 4-8 u/s 46 (5.1), over 8 u/s 14 (5.1). Half the wall plans were detours. The
+  Concentric 9083321 loss: at decision 473 (5 u/s) the wall plan beat a Blast-to-gem plan on cost (no Blast charge) and
+  reached the gem 2.5 s later than the control did.
+* v19 (13:02): a wall is offered only when the marble already carries >= 4 u/s toward it (WALL_MIN_APPROACH_U_S; a
+  wall redirects momentum, never a detour). Demo walls still found (the human arrived at 9-13 u/s). wall6 pair on
+  4420117 / 9083321 (the seeds that favoured off twice), launched 13:02, finish ~13:42.
+* 13:38 wall6 pair (v19, seeds 4420117 / 9083321): wall rebounds ON 2445 / 122.25, OFF 2557 / 127.85 (-5.60); falls
+  8 vs 11; Blasts 280 vs 277. Only 12 wall plans (4.6 points in the 10 s after, 0 falls after), yet Cragmire 4420117
+  73 vs 131 with three one-decision wall plans and equal points 15 s later, and Sprawl 4420117 155 vs 180 had already
+  diverged (131 vs 155) before its only wall plan: the arms diverge WITHOUT wall plans. Five pairs: +2.75, -2.85,
+  +2.05, -2.05, -5.60. Checking the search latency (wall candidates cost budget even when they never win).
+* 13:50 wall6 journals: rounds are bit-identical until the first label difference (11 of 20 identical). The big losses
+  started at one-decision wall choices (Cragmire 4420117: walls chosen at 433-435 for one decision each, then
+  fast_20_landing instead of jump_0_ballistic at 436, -58 on the round; Concentric/Duplex/TreasureBox the same way).
+  Search latency ON vs OFF: mean 0.096 vs 0.088 s, p99 0.88 vs 0.70 s, over 1.5 s 258 vs 118 decisions (12 wall specs
+  a decision, each with a 40-reply landing extension).
+* v20 (13:43): a chosen wall plan is LOCKED in plan memory until its forecast contact + 3 replies (PlanMemory.accept;
+  a locked plan is revalidated every decision and cleared if rejected), so a wall choice is an approach or nothing;
+  WALL_MAX 1 and triggers (0, 1.5): 4 specs a decision. wall7 pair on 4420117 / 9083321 launched 13:43, finish ~14:22.
+* 14:18 wall7 pair (v20, seeds 4420117 / 9083321): wall rebounds ON 2523 / 126.15, OFF 2547 / 127.35 (-1.20); falls
+  10 vs 12; latency now equal (mean 0.088 vs 0.086 s, p99 0.72 vs 0.68). Only 6 wall plans (3 still one decision:
+  the lock needs the forecast within 1 u of the wall point), 14 of 20 rounds identical. Six pairs: +2.75, -2.85, +2.05,
+  -2.05, -5.60, -1.20 (mean -1.15). Sprawl 4420117 161 vs 180 diverged with NO wall plan chosen in the round.
+* 14:25 wall7 first-difference audit: Sprawl 4420117 (-19) diverged at a LIP edge-hit choice (ON edge_hit_0_direct_jump_29
+  cost -129.5, OFF edge_hit_0_direct_jump_31_landing -135.4): the ON arm's search deadline trimmed the lip landing
+  candidate because the wall specs sat before the lip specs. TreasureBox 4420117: a 2.17 s search (deadline) chose
+  jump_7_extra instead of blast_14_jump_12. TreasureBox 9083321 (+18): wall -136.9 vs jump_2 -136.7. Duplex 4420117: a
+  one-decision wall (the lock found no forecast state within 1 u of the wall point).
+* v21 (14:22): wall specs moved AFTER the lip specs (deadline trims walls first); the wall lock runs to the forecast's
+  closest approach to the wall point + 3 (always defined, at most 30 replies). wall8 pair on 4420117 / 9083321 launched 14:22, finish ~15:00.
+* 14:50 operator: "stop training and play the map with the most wall hits so i can watch it". wall8 pair killed at 11
+  rounds (pools, workers, games; no leftovers). Real wall hits under the current rules (wall5-8 ON arms): TreasureBox
+  9 of 10 plans, Duplex 4 of 18, Sprawl 3 of 8. Real-time play started on TreasureBox_Hunt (nav.marble_dynamics.realtime
+  + marbleblast_realtime.exe -autotrain TreasureBox_Hunt -aifreecam, defaults: edge hits and wall rebounds on).
+* 14:58 the real-time server crashed at its first search: parallel_search pickles the candidate specs to its 8 search
+  workers and WallHitProposal was a class local to wall_hit_proposal ("Can't pickle local object"); the marble sat in
+  the corner. Pools never saw it (in-process search). v22: WallHitProposal is a module-level class in edge_hits.py
+  (SequenceProposal imported at module level; search.py imports edge_hits lazily, so no cycle). Restarted 14:59.
+  LESSON: a real-time check (realtime_bench or one live round) belongs in every planner candidate-family screen.
+* 15:04 real-time TreasureBox round 1 (v22, walls on): 181 points, 0 falls, 203 holds / 8.0 s (max 0.56 s), p99 plan
+  0.165 s; 50 edge-hit decisions of which 7 wall rebounds (224 s, 121 s, 16 s and 4 s left). Round 2 stopped at ~115
+  points (15:09) for the operator's next directive. Round 1: 126 pickups, 353 jump presses (2.8 a pickup, 29 pickups
+  needed 3+), 16 Blast presses.
+
+## 2026-10-21 15:09 MDT - operator directive: cluster (spawn) collection on raised platforms
+
+"we need to fix the collecting of clusters of gems ... uses a ton of blasts when it absolutely does NOT need a blast
+... CONSTANTLY bumps up against the little raised platforms the gems sit on, has to wait a second for the spin to
+reset, then jumps correctly ... cut down the number of jumps needed to collect the spawn to the absolute minimum ...
+less jumps = quicker spawn = more points." The operator records a TreasureBox demo (record_demos.py --terrain
+TreasureBox_Hunt + marbleblast_mbx.exe -autotrain TreasureBox_Hunt, started 15:11).
+* Four recent TreasureBox pool rounds (wall5-8 ON arms): 509 pickups, 1560 jump presses (3.1 a pickup), 67 Blasts,
+  79 bumps (horizontal speed >= 4 u/s falling to <= 40 percent within two decisions, no pickup, no jump), each
+  costing 0.6 s to get back above 4 u/s.

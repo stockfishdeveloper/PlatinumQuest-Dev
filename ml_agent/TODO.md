@@ -91,3 +91,24 @@ Status: mechanism found and a mitigation built behind `--pickup-stop` (default o
   the actor (Cragmire's ledges are gaps); (b) a Cragmire-free assessment is not allowed (no map hacks), so the fix must
   be in why the planner rejects everything beside those ledges in the first place (likely the same 'collect then over
   the edge' pattern at low speed, where a slow approach plan should exist).
+
+## 5. Edge hits (2026-10-20 evening to 2026-10-21 05:35): DONE, on by default
+
+Status: on by default since 2026-10-21 05:30 (`--no-edge-hits` = control). Eight ten-map native pairs: v2 +1.10,
+v4 +2.55, v5 +0.20, v6 +2.95, v7 +1.85, v7 fresh seeds +1.35, v8 +0.60 (reverted), v9 +2.15 equal-map points
+(about +2, 1.6 percent). Blast use unchanged; falls vary without a trend.
+- Physics: the engine bounce on a ledge lip (restitution along the tilted normal + spin-friction kick) sends the marble
+  up while keeping most forward speed; the compiled simulator reproduced 114 of 118 natural edge hits exactly.
+- Recipe: nav/marble_dynamics/edge_hits.py (real lips: wall-or-nothing other side AND a drop beyond; candidates 0.4-2.6 u
+  above the marble toward a climb target; jump timing from distance/speed/rise, apex timing for wall hits) + search.py
+  (lip-aimed plans with own route and through box, timed jumps on route/direct lines, landing extension, climb gate
+  edge_climb, evaluated after the navigator, retry guard EDGE_RETRY_DECISIONS) + reliability_eval (edge_recent).
+- Where it still loses: Concentric 7347019, Cragmire 12091843, Vortex 12091843 lose on most pairs (path divergence after
+  an early edge run, plus some wasted climbs toward 4-5 u targets no edge hit can reach). Ideas not yet tried:
+  (a) corner/drop-pop hits (fall onto the opposite lip to recover height during descents: the biggest natural kicks,
+  20-33 u/s, were of this kind); (b) a round-level Blast valuation so 'edge hit now, Blast later' can win more often;
+  (c) a cheaper lip candidate set (the climb gate rejects 60 percent of edge forecasts).
+
+## Edge hits: push further (operator 2026-10-21 08:20: "they can be pushed much further")
+- Edge hits are ON and worth ~+2 equal-map points; the operator knows they can do far more (longer climbs, corners of two ledges, chained hits).
+- Ideas in item 5 above; wall rebounds (edge_hits.wall_candidates, 2026-10-21) are the first extension.

@@ -908,6 +908,7 @@ class ContinuousController:
     def action(self,msg,remaining):
         self.last_rollout=None
         raw=msg.obs;dynamics=msg.dynamics;state=dynamics['native']['state']
+        self.engine.decision_index=self.decision_index   # v9: the search reads it for the edge-hit retry guard
         began_physical_recovery=self.memory.physical_recovery
         preserve_actor_task=(self.kind=='physics_plan' and getattr(self.args,'actor_task_during_recovery',False))
         context=dynamics.get('game_context',{})
@@ -1070,6 +1071,11 @@ class ContinuousController:
             else:self.counts['recovery_without_checked_backup']+=1
         if chosen:
             info,forecast=chosen;action=forecast['proposed'][0]
+            if str(info.get('label','')).startswith('edge_hit') and info.get('edge_lip') is not None:
+                # v9 edge-hit retry guard: remember the lip and when (search.EDGE_RETRY_DECISIONS)
+                rec=[x for x in getattr(self.engine,'edge_recent',[]) if self.decision_index-x[0]<200]
+                rec.append((self.decision_index,list(info['edge_lip'])));self.engine.edge_recent=rec
+                self.counts['edge_hit_decisions']+=1
             if getattr(self.args,'pickup_stop',False):
                 # 2026-10-20 --pickup-stop v2: a run of stop plans must not park the marble (v1 Cragmire: 64 s at rest)
                 from nav.marble_dynamics.search import PICKUP_STOP_STREAK
@@ -1389,6 +1395,10 @@ def main():
     p.add_argument('--search-budget-s',type=float,default=0,help='Optional bound per planning iteration; stop before sending any partial candidate on expiry;0 leaves existing search unbounded')
     p.add_argument('--checked-recovery',action='store_true',help='Full rounds only: complete physical stopping backups before unchecked actor fallback')
     p.add_argument('--recheck-risky-plans',action='store_true',help='Recheck known failed/unchecked backups on retained plans and search for safer alternatives')
+    p.add_argument('--edge-hits',dest='edge_hits',action='store_true',default=True,help='2026-10-20: aim at ledge lips to gain height toward a higher target (bounce physics); ON by default since 2026-10-21 05:30 (six positive ten-map pairs)')
+    p.add_argument('--no-edge-hits',dest='edge_hits',action='store_false',help='matched control: the planner without the edge-hit family')
+    p.add_argument('--no-pad-hops',dest='pad_hops',action='store_false',default=True,help='2026-10-21: matched control without the pad-hop family and its Blast gate (nav/marble_dynamics/pad_hops.py)')
+    p.add_argument('--no-wall-rebounds',dest='wall_rebounds',action='store_false',default=True,help='2026-10-21: matched control without the wall-rebound candidates (edge_hits.wall_candidates)')
     p.add_argument('--pickup-stop',action='store_true',help='2026-10-20: re-forecast a rejected pickup plan as collect-then-brake (edge gems)')
     p.add_argument('--mega-proposals',action='store_true',help='2026-10-20: propose using a held Mega Marble; its forecasts use the measured script-event model')
     p.add_argument('--checked-recovery-replies',type=int,default=40)
@@ -1547,7 +1557,7 @@ def main():
                 terminal_stop_scope=a.terminal_stop_scope,
                 physics_frame_ms=a.physics_frame_ms,decision_ms=64,
                 search_budget_s=a.search_budget_s,
-                recheck_risky_plans=a.recheck_risky_plans,mega_proposals=a.mega_proposals,pickup_stop=a.pickup_stop,
+                recheck_risky_plans=a.recheck_risky_plans,mega_proposals=a.mega_proposals,pickup_stop=a.pickup_stop,edge_hits=a.edge_hits,wall_rebounds=a.wall_rebounds,
                 checked_recovery=a.checked_recovery,checked_recovery_replies=a.checked_recovery_replies,
                 checked_recovery_budget_s=a.checked_recovery_budget_s,recovery_reference=a.recovery_reference,
                 actor_task_during_recovery=a.actor_task_during_recovery,
@@ -1619,6 +1629,9 @@ def main():
         engine.recheck_risky_plans=getattr(a,'recheck_risky_plans',False)
         engine.mega_enabled=getattr(a,'mega_proposals',False)
         engine.pickup_stop=getattr(a,'pickup_stop',False)
+        engine.edge_hits=getattr(a,'edge_hits',False)
+        engine.wall_rebounds=getattr(a,'wall_rebounds',True)
+        engine.pad_hops=getattr(a,'pad_hops',True)
         if a.geometry_route:
             a.geometry_terrain=cached_walking(terrain,mesh,a.sweep_dll,a.cache_dir,memo=a.clearance_cache) if a.cache_dir else walking_terrain(terrain,engine.mesh)
             if a.clearance_cache and not a.cache_dir:a.geometry_terrain.ground_clearance=MemoGroundClearance(a.geometry_terrain.ground_clearance)

@@ -548,16 +548,27 @@ def search(engine,route,dynamics,raw,gem,navigator,horizon=40,warm=None,brake_re
         # replies after it while rising, direct aim, half-throttle variants) go first, as for a climb crossing
         climbing=True
     jump_times=(0,2,4,6,8,10,12) if climbing else (0,2,5,9)
+    if getattr(engine,'pad_hops',True):
+        from nav.marble_dynamics.pad_hops import blast_gated as _bg
+        try:engine._pad_gate_now=_bg(engine,gem,dynamics['native']['state'])
+        except Exception:engine._pad_gate_now=False
+    else:engine._pad_gate_now=False
     for jump in jump_times:
         specs.append(('jump_'+str(jump),SequenceProposal(route,gem,steps,jump=jump)))
         specs.append(('direct_jump_'+str(jump),SequenceProposal(route,gem,steps,jump=jump,direct=True)))
+    if getattr(engine,'pad_hops',True) and not getattr(engine,'crossing_phase',False):
+        # 2026-10-21 (operator: cluster collection): a gem on a raised pad is always a jump; jump when the gem is one
+        # descending-arc hop ahead at a slow steady speed, so the marble comes down onto it (nav/marble_dynamics/pad_hops.py)
+        from nav.marble_dynamics.pad_hops import hop_specs
+        try:specs+=hop_specs(engine,route,gem,steps,through,dynamics['native']['state'])
+        except Exception:pass
     if LATE_JUMPS and not climbing and late_raised(dynamics['native']['state']['position'],gem):
         # 2026-10-16 (operator: "it goes until it hits a wall and only then jumps and blasts"): toward a raised gem the
         # standard families jump within 0.6 s, so from a few metres back no plan climbs and 'drive at the gem' wins until
         # the wall stops the marble. Later jumps, alone or with a Blast 2-6 replies after (while rising), let the climb
         # start on the approach. Offline at wall-hit spots (Sprawl, Vortex, Cragmire): pickups 0.7-2.7 s sooner where
         # the standard families had no pickup plan at all.
-        late_blast=blast_available(dynamics.get('blast')) and not getattr(engine,'blast_reserved',False)
+        late_blast=blast_available(dynamics.get('blast')) and not getattr(engine,'blast_reserved',False) and not getattr(engine,'_pad_gate_now',False)
         for jump in LATE_JUMP_TIMES:
             if jump>=steps:break
             for direct in (False,True):
@@ -585,7 +596,13 @@ def search(engine,route,dynamics,raw,gem,navigator,horizon=40,warm=None,brake_re
         for use,jump in ((0,-1),(3,-1),(7,-1),(3,2),(7,5)):
             specs.append(('use_'+str(use)+'_jump_'+str(jump),SequenceProposal(route,gem,use_steps,use=use,jump=jump)))
             specs.append(('direct_use_'+str(use)+'_jump_'+str(jump),SequenceProposal(route,gem,use_steps,use=use,jump=jump,direct=True)))
-    if blast_available(dynamics.get('blast')) and not getattr(engine,'blast_reserved',False):
+    _pad_gate=False
+    if getattr(engine,'pad_hops',True):
+        # 2026-10-21: no Blast for a low pad gem close by (a jump reaches it; 32 of 52 Blasts gained under 1 u)
+        from nav.marble_dynamics.pad_hops import blast_gated
+        try:_pad_gate=blast_gated(engine,gem,dynamics['native']['state'])
+        except Exception:_pad_gate=False
+    if blast_available(dynamics.get('blast')) and not getattr(engine,'blast_reserved',False) and not _pad_gate:
         if climbing:
             # Crossing: the launch may be several replies away; a Blast two replies
             # after the jump (while still rising) gives the highest flight. These
@@ -658,6 +675,74 @@ def search(engine,route,dynamics,raw,gem,navigator,horizon=40,warm=None,brake_re
     if navigator_spec is None:pass
     elif getattr(engine,'navigator_first',False):specs.insert(0,navigator_spec)
     else:specs.append(navigator_spec)
+    if getattr(engine,'edge_hits',False):
+        # v5 (2026-10-21): evaluated after the learned navigator so a search deadline trims these first, never the
+        # navigator or the extra-jump rescue; lips up to 2.6 u (wall-hit climbs, see edge_hits.jump_replies).
+        # 2026-10-20 edge hits (operator): a target that needs a climb -> aim at the lip of a ledge above on the way,
+        # jump timed so the rising marble clips it, and let the bounce (compiled physics, verified on 118 natural hits)
+        # carry it up; then on to the gem. v2: lips above only, timed jumps (see nav/marble_dynamics/edge_hits.py).
+        from nav.marble_dynamics.edge_hits import candidates as lip_candidates,jump_replies as lip_jumps
+        _st=dynamics['native']['state']
+        try:lip_points=lip_candidates(engine,_st['position'],gem)
+        except Exception:lip_points=[]
+        if lip_points:
+            nroute=cached_route(route.terrain,gem);_p=np.asarray(_st['position'],dtype=float);_v=np.asarray(_st['velocity'],dtype=float)
+            recent=[(i,np.asarray(q,dtype=float)) for i,q in getattr(engine,'edge_recent',[]) if getattr(engine,'decision_index',0)-i<EDGE_RETRY_DECISIONS]
+            for k,lip in enumerate(lip_points):
+                lp=np.asarray(lip['point'],dtype=float);_d=lp[:2]-_p[:2];_n=float(np.linalg.norm(_d))
+                if any(np.linalg.norm(lp-q)<2. for _,q in recent) and float(_p[2])<float(lp[2])-.3:
+                    continue   # v9: tried this lip within the last 3 s and still below it: let the other families work
+                speed=float(_v[:2]@_d)/_n if _n>1e-6 else 0.
+                leg=float(nroute.distance(lp))
+                if not math.isfinite(leg):leg=float(np.linalg.norm(np.asarray(gem[:2])-lp[:2]))
+                ctx=(nroute,np.asarray(gem[:3],dtype=float),leg)
+                # v4: the lip-aimed plan gets its own route (goal = the lip point, snapped to 0.25 u so the field cache
+                # hits across decisions) so the compiled controller runs it (it requires route.key == goal), and a
+                # through box over the lip: passing over or through the lip switches the plan to the gem even when
+                # the jump clears the lip by more than the 0.6 u centre test (which left v3 aiming back at the lip).
+                lroute=cached_route(route.terrain,lp)
+                box=[float(lp[0])-1.,float(lp[1])-1.,float(lp[2])-.6,float(lp[0])+1.,float(lp[1])+1.,float(lp[2])+2.5]
+                if lip['rise']>1.0:
+                    # v11 wall hits: jump when the wall is a marble-length away, whatever the approach speed
+                    from nav.marble_dynamics.edge_hits import wall_hit_proposal,WALL_TRIGGER_U
+                    for trig in WALL_TRIGGER_U:
+                        wsp=wall_hit_proposal(SequenceProposal,lroute,lp,steps,ctx,trig);wsp.box=box;wsp._edge_lip_z=float(lp[2]);wsp._edge_lip=[float(x) for x in lp]
+                        specs.append(('edge_hit_%d_wall_%g'%(k,trig),wsp))
+                for jump in lip_jumps(lip['ahead'],speed,lip['rise']):
+                    if jump>=steps:continue
+                    spec=SequenceProposal(lroute,lp,steps,jump=jump,direct=True,through=ctx);spec.box=box;spec._edge_lip_z=float(lp[2]);spec._edge_lip=[float(x) for x in lp]
+                    specs.append(('edge_hit_%d_jump_%d'%(k,jump),spec))
+                    # the same timing on the ordinary route and direct lines (the lip point is often on them already;
+                    # aiming at it only bends the approach): the right-timed hop onto the step, then on to the gem
+                    for lab,sp in (('edge_hit_%d_route_jump_%d'%(k,jump),SequenceProposal(route,gem,steps,jump=jump)),
+                                   ('edge_hit_%d_direct_jump_%d'%(k,jump),SequenceProposal(route,gem,steps,jump=jump,direct=True))):
+                        sp._edge_lip_z=float(lp[2]);sp._edge_lip=[float(x) for x in lp];specs.append((lab,sp))
+    if getattr(engine,'edge_hits',False):
+        # v21: after the lip candidates, so a search deadline trims walls first (wall7 Sprawl 4420117: the ON arm lost a
+        # lip landing candidate to the deadline and the round, -19, with no wall plan chosen)
+        # v12 wall rebounds (operator demo 2026-10-21): run into a wall with the target behind/beside, jump a marble-length
+        # before contact, rebound back up onto the ledge. Wall faces from the mesh; the forecast and the climb gate judge.
+        from nav.marble_dynamics.edge_hits import wall_candidates,wall_hit_proposal,WALL_TRIGGER_U,WALL_SPEEDS
+        _st=dynamics['native']['state']
+        try:walls=wall_candidates(engine,_st['position'],gem,route=route,velocity=_st['velocity']) if getattr(engine,'wall_rebounds',True) else []
+        except Exception:walls=[]
+        if walls:
+            nroute=cached_route(route.terrain,gem)
+            _di=getattr(engine,'decision_index',0);_recent=[(i,np.asarray(q,dtype=float)) for i,q in getattr(engine,'edge_recent',[]) if _di-i<EDGE_RETRY_DECISIONS]
+            for k,w in enumerate(walls):
+                wp=np.asarray(w['point'],dtype=float)
+                _first=[i for i,q in _recent if np.linalg.norm(wp-q)<2.]
+                if _first and _di-min(_first)>WALL_RETRY_DECISIONS:
+                    continue   # v16: first tried over 2 s ago and the marble is still here (wall2 Duplex: ten tries, 0 points)
+                leg=float(nroute.distance(wp))
+                if not math.isfinite(leg):leg=float(np.linalg.norm(np.asarray(gem[:2])-wp[:2]))
+                ctx=(nroute,np.asarray(gem[:3],dtype=float),leg);wroute=cached_route(route.terrain,wp)
+                box=[float(wp[0])-1.2,float(wp[1])-1.2,float(wp[2])-.8,float(wp[0])+1.2,float(wp[1])+1.2,float(wp[2])+3.5]
+                for spd in WALL_SPEEDS:   # v13: two approach speeds (short and long rebound), with and without the jump
+                  for trig in WALL_TRIGGER_U:
+                    wsp=wall_hit_proposal(SequenceProposal,wroute,wp,steps,ctx,trig,fast=spd);wsp.box=box
+                    wsp._edge_lip_z=float(gem[2]);wsp._edge_lip=[float(x) for x in wp]   # the climb gate: reach the target's height
+                    specs.append(('edge_hit_wall%d_rebound_%g_s%g'%(k,trig,spd),wsp))
     if THROUGH_BOX and gem_item is not None and gem_item.get('bounds') is not None:
         box=[float(x) for x in gem_item['bounds']]
         for _label,_spec in specs:
@@ -720,6 +805,7 @@ def search(engine,route,dynamics,raw,gem,navigator,horizon=40,warm=None,brake_re
             except ValueError as exc:
                 pairs.append((dict(label=label,rejected='unsupported_proposal',failure=str(exc),cost=math.inf),None));continue
             info=assess(engine,route,dynamics,gem,rollout,label,target_item)
+            edge_climb(proposal,label,info,rollout)
             info.update(evaluated_replies=len(rollout['controls']),requested_replies=rollout['requested_replies'],
                         stopped_on_ambiguity=rollout['stopped_on_ambiguity'])
             if 'use' in label and rollout['requested_replies']>steps and info['rejected'] is None and info['possible_pickup_interval'] is None:
@@ -729,10 +815,16 @@ def search(engine,route,dynamics,raw,gem,navigator,horizon=40,warm=None,brake_re
                 penalty=(rollout['requested_replies']-steps)*.064*float(getattr(engine,'ballistic_time_rate',8.) or 8.)
                 info['cost']+=penalty;info['time_penalty_u']=penalty
             pairs.append((info,rollout))
-            if ballistic and info['rejected']=='no_supported_continuation':airborne.append((label,info,rollout))
+            if ballistic and info['rejected']=='no_supported_continuation' and not label.startswith('edge_hit'):
+                airborne.append((label,info,rollout))   # edge plans use the landing extension only (v5)
             pickup_landing=int(getattr(engine,'pickup_landing_replies',0) or 0)
             collects=info.get('possible_pickup_interval') is not None
             extend=(landing_replies or (pickup_landing and collects)) and info['rejected']=='no_supported_continuation'
+            if (not extend and label.startswith('edge_hit') and pickup_landing and info['rejected']=='no_supported_continuation'):
+                # 2026-10-21 edge hits: a timed jump onto a lip is still in flight or settling at the horizon far more often
+                # than a rolling plan (223 of 562 candidates in the climb-leg probe); let it land and be judged like a
+                # pickup plan would be, over the same pickup_landing replies.
+                extend=True
             if extend:
                 # Still airborne (or not yet settled) at the horizon: follow the
                 # route onward and score the landing with the same gates. With
@@ -742,6 +834,7 @@ def search(engine,route,dynamics,raw,gem,navigator,horizon=40,warm=None,brake_re
                 replies=landing_replies or pickup_landing
                 landed=predict_replies(engine,dynamics,LandingContinuation(rollout['proposed'],route,gem,replies),stop_on_ambiguity=True)
                 checked=assess(engine,route,dynamics,gem,landed,label+'_landing',target_item)
+                edge_climb(proposal,label,checked,landed)
                 checked.update(proposal_replies=len(rollout['proposed']),landing_replies=replies,pickup_only_landing=not landing_replies,
                                evaluated_replies=len(landed['controls']),requested_replies=landed['requested_replies'],
                                stopped_on_ambiguity=landed['stopped_on_ambiguity'],
@@ -1197,6 +1290,34 @@ def edge_ahead(mesh,state,horizon_s=1.0,step_s=0.1,depth=4.0):
 
 
 
+EDGE_CLIMB_SLACK_U=.35   # v6: an edge-hit plan must bring the marble centre to within this of the lip height
+EDGE_RETRY_DECISIONS=48  # v9: a lip attempted this recently (3 s) while the marble is still below it is not offered again
+WALL_RETRY_DECISIONS=32  # v16: a wall first attempted longer ago than this (2 s: approach + flight) is not offered again within the 3 s window
+WALL_RETAIN_REPLIES=24   # v18: a wall plan is kept at most this long (1.5 s: approach + hit); then a fresh search
+WALL_LOCK_MAX_REPLIES=30 # v21: the wall lock covers at most this many replies (approach + contact)
+WALL_COST_MARGIN_U=2.    # v18: a wall plan must beat the field by this (wall4: 52 of 76 wall choices were one-decision ties, median 0.5 u)
+
+def edge_climb(proposal,label,info,rollout):
+    """v6 (2026-10-21): an edge-hit candidate that never reaches its lip is a wasted jump, not a climb: reject it.
+
+    v5 Cragmire 12091843: 11 edge runs, 9 gained 0.1-1.3 u toward 1.7-2.6 u lips and scored 0 in the next 10 s
+    (-47 on the round); the landing extension made such jumps valid progress plans that won on 1-3 u cost margins.
+    """
+    lip_z=getattr(proposal,'_edge_lip_z',None)
+    if lip_z is None or not label.startswith('edge_hit'):return
+    info['edge_lip']=getattr(proposal,'_edge_lip',None)
+    if '_wall' in label and info.get('cost') is not None and math.isfinite(info['cost']):info['cost']+=WALL_COST_MARGIN_U
+    if info.get('rejected') is not None:return
+    states=rollout['states'];pos=getattr(states,'positions',None)
+    if '_wall' in label:
+        # v12 wall rebounds must END up there (a rebound that flies past the ledge and lands back below is a wasted hit)
+        top=float(pos[-1][2]) if pos is not None else float(states[-1]['position'][2])
+        z0=float(pos[0][2]) if pos is not None else float(states[0]['position'][2])
+        lip_z=min(lip_z,z0)   # v14: a reversal toward a far, higher target climbs later; it just must not lose its level
+    else:top=float(max(p[2] for p in pos)) if pos is not None else float(max(s['position'][2] for s in states))
+    if top<lip_z-EDGE_CLIMB_SLACK_U:info['rejected']='edge_no_climb';info['edge_top_u']=top;info['edge_lip_z']=lip_z
+
+
 def backup_risk(info):
     """A nominally supported plan can still lack a checked stopping backup."""
     return bool(info.get('no_braking_backup') or info.get('braking_backup_unchecked'))
@@ -1228,6 +1349,11 @@ def retained_candidate(engine,route,dynamics,gem,memory,minimum_replies=8,target
     """
     if (len(memory.remaining)<minimum_replies or memory.gem is None
             or np.linalg.norm(np.asarray(memory.gem)-gem[:3])>=.1):return None
+    if (str(memory.label or '').startswith('edge_hit_wall') and memory.executed>WALL_RETAIN_REPLIES
+            and not memory.landing_mode):
+        # v18 (2026-10-21): a wall plan's 88-reply schedule replayed open-loop past the hit held the marble dithering for
+        # 5 s (wall4 Cragmire 3126-3204 at 1-3 u/s, TreasureBox 3003-3082 wandering 20 u); after the hit, search again
+        return None
     position=dynamics['native']['state']['position'];route.navigate(position,gem[:3])
     start=route.distance(position);forecast=predict_replies(engine,dynamics,memory.remaining,stop_on_ambiguity=True)
     info=assess(engine,route,dynamics,np.asarray(gem[:3]),forecast,memory.label,target_item,
@@ -1263,6 +1389,12 @@ class PlanMemory:
         self.actions=copy.deepcopy(rollout['proposed']);self.executed=0;self.label=label;self.gem=list(gem)
         events=[i for i,a in enumerate(self.actions[:13]) if a[4] or a[6] or a[8]]
         self.lock_until=min(len(self.actions),events[0]+3) if events else 0
+        if str(label or '').startswith('edge_hit_wall') and info and info.get('edge_lip') is not None:
+            # v20 (2026-10-21): commit to the wall until the forecast contact (+3 replies). Five pairs: wall choices lasting
+            # ONE decision (ties re-ranked a step later) nudged the marble and the round diverged (wall6 Cragmire 4420117 -58)
+            wp=np.asarray(info['edge_lip'][:2],dtype=float);states=rollout['states']
+            dists=[float(np.linalg.norm(np.asarray(st['position'][:2],dtype=float)-wp)) for st in states[:WALL_LOCK_MAX_REPLIES]]
+            if dists:self.lock_until=max(self.lock_until,min(len(self.actions),dists.index(min(dists))+3))   # v21: closest approach, always defined
         self.stopping_verified=bool(info and info.get('terminal_stop_check',{}).get('valid'))
         self.backup_risk=bool(info and backup_risk(info))
         if info and info.get('landing_goal') is not None:

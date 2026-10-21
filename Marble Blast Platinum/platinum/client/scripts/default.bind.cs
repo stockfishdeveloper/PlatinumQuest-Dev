@@ -328,6 +328,13 @@ function input_panDown(%val) {
 }
 
 function input_yaw(%val) {
+	// 2026-10-21 (operator: the camera "switches like 180 degrees a few times a round" in every recorded demo): a single
+	// mouse event cannot turn a hand 20 degrees; such a delta is a pointer warp (remote desktop / cursor re-centring),
+	// not look input. While a demo is being recorded (MLAgent::enableRecording) it is dropped and counted.
+	if ($MLAgent::RecordMode && mAbs(%val * $Game::CameraSpeedMultiplier) > 0.35) {
+		$MLAgent::YawWarpsDropped++;
+		return;
+	}
 	$mvYaw += %val * $Game::CameraSpeedMultiplier;
 	$cameraYaw += %val * $Game::CameraSpeedMultiplier;
 }

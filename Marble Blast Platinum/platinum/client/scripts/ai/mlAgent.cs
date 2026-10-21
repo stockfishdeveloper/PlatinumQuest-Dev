@@ -1374,9 +1374,45 @@ function MLAgent::enableRecording() {
     $MLAgent::AutoStart = true;
     $AIObserver::ForceYaw = 0;
     setTimeScale(1.0);
+    // 2026-10-21 (operator: "i still can't move camera left to right"): an -autotrain game pins the render view at
+    // yaw 0 from the first frame (viewYawWatch, 2026-09-26), so a human recording a demo turned the steering with
+    // the mouse while the picture stayed put. Release the pin while recording; disableRecording restores it.
+    $MLAgent::ViewYawOn = false;
+    if (isObject($MP::MyMarble)) $MP::MyMarble.clearViewYaw();
+    // 2026-10-21 (operator: "LOCK THE CAMERA FROM BEING MOVED BY ANYTHING BUT THE MOUSE"): the recorded yaw jumps
+    // to exactly 0 a few times a round, i.e. something resets the marble camera. While recording, a 16 ms watchdog
+    // keeps the marble camera at the script's mouse/arrow-integrated $cameraYaw: any other writer is undone on the
+    // next tick (a new marble, i.e. a respawn, re-syncs instead, as in normal play).
+    $MLRecordCam::Marble = "";
+    $MLRecordCam::Restored = 0;
+    if (!$MLRecordCam::Running) { $MLRecordCam::Running = true; schedule(16, 0, "MLRecordCam::watch"); }
     echo("=== RECORDING MODE ENABLED ===");
     echo("You control the marble at normal speed. Every tick is streamed to record_demos.py.");
     echo("Start: python record_demos.py   then host the map and play.");
+}
+
+function MLRecordCam::watch() {
+    if (!$MLAgent::RecordMode) { $MLRecordCam::Running = false; return; }
+    if (isObject($MP::MyMarble)) {
+        %id = $MP::MyMarble.getId();
+        if (%id != $MLRecordCam::Marble) {
+            // a fresh marble (respawn): the game would face the spawn pad's direction; the operator wants the view
+            // to stay where the mouse left it (2026-10-21: every remaining snap in the demo was a respawn)
+            $MLRecordCam::Marble = %id;
+            if ($cameraYaw !$= "") $MP::MyMarble.setCameraYaw($cameraYaw);
+            else $cameraYaw = $MP::MyMarble.getCameraYaw();
+        } else {
+            %d = $MP::MyMarble.getCameraYaw() - $cameraYaw;
+            while (%d > $pi) %d -= 2 * $pi;
+            while (%d < -$pi) %d += 2 * $pi;
+            if (mAbs(%d) > 0.3) {
+                $MP::MyMarble.setCameraYaw($cameraYaw);
+                $MLRecordCam::Restored++;
+                echo("MLRecordCam: camera yaw moved " @ mRadToDeg(%d) @ " deg by something other than the mouse; restored (" @ $MLRecordCam::Restored @ ")");
+            }
+        }
+    }
+    schedule(16, 0, "MLRecordCam::watch");
 }
 
 function MLAgent::disableRecording() {
@@ -1385,6 +1421,8 @@ function MLAgent::disableRecording() {
     $AIObserver::ForceYaw = 0;     // world frame stays pinned (see the top of this file)
     if ($MLAgent::Enabled)
         setTimeScale($MLAgent::TrainingSpeed);
+    $MLAgent::ViewYawOn = true;    // the navigator's fixed view again (released for the human by enableRecording)
+    $MLAgent::ViewYawApplied = "";
     echo("=== RECORDING MODE DISABLED ===");
 }
 

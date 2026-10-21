@@ -78,3 +78,16 @@ free roll leaves the floor (30 u ray, 1.5 s), with a parked-streak cap and relea
 screens: points a wash (within +-2), falls roughly halved (8 -> 3..5) with Cube/Duplex fixed and Cragmire hurt.
 Default off; evidence `pstop*_tenmap_comparison.json`, offline `pickup_stop_offline/`, reproduction command in the
 14:20 log entry.
+
+## 2026-10-20 23:50 - 2026-10-21 05:35 (second agent): edge hits made to pay, ON by default
+
+Operator directive: make edge hits work and raise points. Eight ten-map native pairs (log entries 23:45 through 05:30):
+v2 +1.10, v4 +2.55, v5 +0.20, v6 +2.95, v7 +1.85, v7 on fresh seeds +1.35, v8 +0.60 (reverted), v9 +2.15 equal-map
+points. The working recipe (`nav/marble_dynamics/edge_hits.py`, `search.py` edge block, `reliability_eval` retry guard):
+real lips from the mesh (wall-or-nothing other side AND a drop beyond, probed), lips 0.4-2.6 u above the marble toward
+a target that needs a climb, jump timed to clip the lip (or meet the wall at the apex above 1.4 u, where the spin-friction
+kick carries the marble over), lip-aimed plans on their own route with a through box plus timed jumps on the route and
+direct lines, landing extension, a climb gate (the forecast must reach the lip), evaluation after the learned navigator,
+a 3 s retry guard per lip. Things that did not work: lips below the marble / far targets (v1), unguarded wall hits (v5:
+valid-looking jumps that never reached the lip won on tiny margins), charging the landing extension's extra time (v8:
+removed the genuine climbs too). `--no-edge-hits` is the matched control. Evidence: `edge*_tenmap_comparison.json`.
