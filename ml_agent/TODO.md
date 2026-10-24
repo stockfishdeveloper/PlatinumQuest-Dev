@@ -112,3 +112,42 @@ v4 +2.55, v5 +0.20, v6 +2.95, v7 +1.85, v7 fresh seeds +1.35, v8 +0.60 (reverted
 ## Edge hits: push further (operator 2026-10-21 08:20: "they can be pushed much further")
 - Edge hits are ON and worth ~+2 equal-map points; the operator knows they can do far more (longer climbs, corners of two ledges, chained hits).
 - Ideas in item 5 above; wall rebounds (edge_hits.wall_candidates, 2026-10-21) are the first extension.
+
+## Cluster (spawn) collection (operator 2026-10-21 15:09 and 15:40)
+- Directive: plan the whole spawn (3-4 gems ahead), no Blasts for low pad gems, never bump the pad walls, minimum jumps;
+  rows of 3-4 gems in one arc, top-down orders. Built: nav/marble_dynamics/spawn_plans.py + pad_hops.py (flag
+  --no-pad-hops = control). Demo: ml_agent/demos/demo_20261021_151105.npz (207 points; 1.43 gems/s inside spawns).
+- Status 19:55: OFF by default (--pad-hops enables). Five pairs -4.4 / -2.0 / -6.9 / -4.0 / -4.4 a round (v5 chain order
+  follow-through + v6 walkable gems included); TreasureBox even-to-better in spawn5, Concentric / Cube / Fractured / Duplex
+  lose. Next: chains only in pad clusters (several pad gems within reach, marble inside), compiled chain controller, then a pair.
+- Status 18:25 (superseded): OFF by default (--pad-hops enables). Offline six-pickup replays 13-17 percent faster, 0 Blasts; pool pairs
+  spawn1 -4.4, spawn2 -2.0, spawn3 (score v3) -6.9 a round: chains also win on the approach and slow it (travel 8.3 vs
+  10.3 u/s); in-game in-spawn rate no better than the old families. Open: the chain controller runs per reply in
+  Python (budget: latency p99 1.0 vs 0.84 s; one pool round over its wall limit) -> compile it; plan memory clears at
+  every pickup (re-plan churn inside a spawn) -> let a chain survive its own pickups.
+- 23:00 root causes of the pad bump (search replays, log 2026-10-21 21:30 section): the plan before a pad gem arrives
+  too fast (route-progress score); gems sit AT floor height (hop tests fixed); the walk grid treats pads as unwalkable
+  (adjacent gems 'leg' 10-17 u; a marble on the pad loses ~13 u of through credit vs beside it); the hop controller
+  over-brakes and lands short. Next: sim-tune the launch (distance x speed grid), credit on straight-line progress when
+  the walk leg detours (> 2 x straight). Pad arrival code in (flag --no-pad-arrival), loses on cost until then.
+- 23:08 credit1 pair: through-credit fix + pad arrival as defaults LOST (127.7 vs 130.6): both opt-in now
+  (--through-detour-credit, --pad-arrival). Sim harness (scratchpad tune_hop.py): from the planner's fast approaches the
+  existing jump_2 plan beats every local hop variant; the gain must come from the spawn-level speed profile and order.
+- 23:45 spawn6 (chains, gem heights fixed) -4.0 a round: six negative pairs. All cluster work opt-in; next attempt = a
+  spawn-entry speed/order plan, not a local hop (details in memory directive-2026-10-21-cluster-collection).
+
+## Wall climbs (operator demo 2026-10-22 07:40, demo_20261022_074012.npz)
+- The move: run at a perpendicular face at 15-17 u/s, jump 1.8 u before it, the wall kicks the marble back and up
+  (+7 u/s vertical), landing 5 u back on the level above. Reproduced in the sim; v23 wall selection ON by default
+  (pair wallclimb1 08:08). Tools: ml_agent/tools/replay_handoff.py (replay a pool round, hand the marble to the human),
+  scratchpad wall_climb_sim.py.
+- Open: route-level wall climbs (crossings.py WALL_CLIMBS, off): prefer walls along the travel direction / near the
+  current path, price the Blast climb against the wall climb (the human saves the Blast), two-stage climbs (floor ->
+  mid level -> wall), then a pair and a live round.
+
+## 7. Points plan 2026-10-22 (operator approved, about 09:30)
+
+Full plan: `docs/POINTS_PLAN_2026-10-22.md`. Order: (1) points ledger over the latest pools and the human demos,
+(2) score plans by time, (3) spawn-level gem order (solver only, no open-loop chain), (4) stall rule, (5) exit the last
+gem of a spawn at speed toward the likely next spawn, (6) Blast priced by seconds saved. Wall climbs are parked in the
+code (crossings.WALL_CLIMBS=True, untested in a pool): one pair decides them.

@@ -24,6 +24,17 @@ CROSS_RADIUS_U = 6.5     # within this distance of the launch cell (and lined up
 ALIGN_COS = 0.6          # velocity must point within ~53 degrees of the crossing direction, or be slow
 SLOW_U_S = 2.0           # below this speed alignment is not required (a run-up starts from here)
 MIN_COMPONENT_NODES = 3  # tiny slivers are only considered when they hold the goal
+WALL_CLIMBS = False      # 2026-10-22 (parked 09:50, untested in a pool; see docs/POINTS_PLAN_2026-10-22.md): wall-climb crossings (run at a perpendicular face, jump just before it, rebound up onto the level); walls chosen along the way, the Blast reserved meanwhile (run at a perpendicular face, jump just before it, rebound up onto the level)
+WALL_MIN_RISE_U = 1.5    # the upper level at least this far above the run-up floor ...
+WALL_MAX_RISE_U = 5.5    # ... and at most this (demo: 4.0 u with a 2 u step face; the rebound kick scales with speed)
+WALL_FACE_ABOVE_U = 1.2  # the face top at least this far above the run-up floor (a wall, not a curb)
+WALL_LAND_U = 5.0        # the rebound lands about this far back from the face
+WALL_LAND_TOL_U = 2.6    # an interior cell of the upper level within this of the landing estimate (the deck's interior ring sits 2 u in from its edge)
+WALL_RUNUP_U = 14.0      # staging point this far back from the face (the demo's run started 14 u out)
+WALL_LANE_HEADROOM_U = 0.8   # clearance above the run-up lane (under an overhanging deck; the marble is 0.4 u across)
+WALL_RUN_SPEED_U_S = 12.0    # time estimate for the wall way: distance to the staging point + run-up at this speed ...
+WALL_FLIGHT_S = 1.5          # ... plus the jump, rebound and landing
+WALK_CLIMB_SPEED_U_S = 7.0   # the walking route to a higher goal (ramps, turns) at this speed; the wall way is staged when it is quicker
 
 
 def needed_meter(rise_u):
@@ -152,7 +163,7 @@ class Crossings:
             iok[:] = False
         iscore = np.where(iok, di + 2.0 * irise, np.inf)
         if not ok.any() and not iok.any():
-            return None
+            return self._wall_crossing(source, target)   # 2026-10-22: a wall climb where no gap or Blast climb exists
         o = int(np.argmin(score))
         oi = None
         for cand in np.argsort(iscore)[:40]:
@@ -180,6 +191,125 @@ class Crossings:
                     direction=direction, staging=staging, source=source, target=target,
                     climb=bool(self.climbs and up > CLIMB_RISE_U),
                     needed_meter=needed_meter(up) if self.climbs else 0.0)
+
+    def _wall_faces(self):
+        """Vertical mesh faces (|normal z| < 0.35) with their horizontal normals, z ranges and centroids, once."""
+        if getattr(self, '_wall_face_cache', None) is None:
+            mesh = self.mesh
+            if mesh is None or not hasattr(mesh, 'triangles'):
+                self._wall_face_cache = (np.zeros((0, 3, 3)), np.zeros((0, 3)), np.zeros((0, 2)), np.zeros((0, 3)))
+            else:
+                tri = np.asarray(mesh.triangles, dtype=float); nrm = np.asarray(mesh.normals, dtype=float)
+                keep = np.abs(nrm[:, 2]) < 0.35
+                tri = tri[keep]; nrm = nrm[keep]
+                zr = np.column_stack((tri[:, :, 2].min(axis=1), tri[:, :, 2].max(axis=1)))
+                self._wall_face_cache = (tri, nrm, zr, tri.mean(axis=1))
+        return self._wall_face_cache
+
+    def _floor_z(self, x, y, z_from, depth):
+        hit = self.mesh.raycast(np.array([x, y, z_from], dtype=float), np.array([x, y, z_from - depth], dtype=float), cull_backfaces=True)
+        if hit is None or float(hit['normal'][2]) < 0.75:
+            return None
+        return float(hit['point'][2])
+
+    def _wall_crossing(self, source, target, zs=None, zt=None, position=None, velocity=None, goal_xy=None):
+        """Wall-climb crossing from the run-up level `zs` of `source` onto the level `zt` of `target`, or None (the best
+        face by run-up length). Levels default to the components' median heights; within ONE weak component (a deck
+        joined to the floor by a ramp) the caller passes the marble's and the goal's heights."""
+        if not WALL_CLIMBS or self.mesh is None:
+            return None
+        from scipy.spatial import cKDTree
+        _, a_all = self._tree(source)
+        _, ib_all = self._interior_tree(target)
+        if len(a_all) == 0 or len(ib_all) == 0:
+            return None
+        zs = float(np.median(a_all[:, 2])) if zs is None else float(zs)
+        zt = float(np.median(ib_all[:, 2])) if zt is None else float(zt)
+        a = a_all[np.abs(a_all[:, 2] - zs) <= 0.8]
+        if goal_xy is not None:
+            # the upper LEVEL around the goal, whatever components it is split into (gems sit on pads that are
+            # components of their own): every walk cell at the goal's height within 12 u of it
+            g2 = np.asarray(goal_xy[:2], dtype=float)
+            sel = (np.abs(self.points[:, 2] - zt) <= 0.8) & (np.linalg.norm(self.points[:, :2] - g2, axis=1) <= 12.0)
+            ib = self.points[sel]
+        else:
+            ib = ib_all[np.abs(ib_all[:, 2] - zt) <= 0.8]
+        if len(a) < MIN_COMPONENT_NODES or len(ib) < MIN_COMPONENT_NODES:
+            return None
+        itree = cKDTree(ib[:, :2]); stree = cKDTree(a[:, :2]); spts = a
+        rise = zt - zs
+        if not (WALL_MIN_RISE_U <= rise <= WALL_MAX_RISE_U):
+            return None
+        tri, nrm, zr, cen = self._wall_faces()
+        if len(tri) == 0:
+            return None
+        # faces standing on the run-up level: bottom near the floor, top at least WALL_FACE_ABOVE_U above it
+        ok = (zr[:, 0] <= zs + 0.6) & (zr[:, 1] >= zs + WALL_FACE_ABOVE_U)
+        # ... within reach of the target component in plan (the landing is 5 u from the face)
+        dists, _ = itree.query(cen[:, :2], k=1)
+        ok &= dists <= WALL_LAND_U + 3.0
+        best = None
+        for i in np.nonzero(ok)[0]:
+            n = nrm[i][:2]; L = float(np.linalg.norm(n))
+            if L < 1e-6:
+                continue
+            n = n / L
+            q = np.array([cen[i][0], cen[i][1], zs + 0.2])
+            land = q[:2] + WALL_LAND_U * n
+            dl, il = itree.query(land)
+            if dl > WALL_LAND_TOL_U or abs(float(ib[il][2]) - zt) > 1.0:
+                continue                              # the rebound must come down on the upper level
+            # the run-up lane: walkable floor of the source component at the run-up level, with headroom
+            lane_ok = True; launch = None; staging = None
+            for sdist in (2.5, 5.0, 8.0, 11.0, WALL_RUNUP_U):
+                pt = q[:2] + sdist * n
+                d0, i0 = stree.query(pt)
+                if d0 > 1.6 or abs(float(spts[i0][2]) - zs) > 0.8:
+                    if sdist <= 8.0:
+                        lane_ok = False
+                    break
+                if self.mesh.raycast(np.array([pt[0], pt[1], zs + 0.3]), np.array([pt[0], pt[1], zs + 0.3 + WALL_LANE_HEADROOM_U]), cull_backfaces=True) is not None:
+                    lane_ok = False; break
+                if sdist == 2.5:
+                    launch = spts[i0].tolist()
+                staging = spts[i0].tolist()
+            if not lane_ok or launch is None or staging is None:
+                continue
+            runup = float(np.linalg.norm(np.asarray(staging[:2]) - q[:2]))
+            if runup < 8.0:
+                continue                              # too short a run for the speed the climb needs
+            if position is not None:
+                # 2026-10-22: the wall along the way: time to reach the staging point and run in, a second more when the
+                # staging point lies behind the marble's direction of travel (the demo's wall was straight ahead).
+                # Already inside the run-up lane (within 1.5 u of its line, 6-15 u from the face): the run starts here.
+                pq = np.asarray(position[:2], dtype=float) - q[:2]
+                along_in = float(pq @ n); lateral = abs(float(pq[0] * n[1] - pq[1] * n[0]))
+                turn = 0.0
+                if velocity is not None:
+                    v = np.asarray(velocity[:2], dtype=float); sp = float(np.linalg.norm(v))
+                    if sp > 3.0:
+                        c = float(v @ (-n)) / sp            # the run-up heads INTO the face: -n
+                        turn = 0.0 if c > 0.7 else (1.0 if c > -0.3 else 2.5)   # a 45+ degree turn costs a second, a reversal 2.5
+                if lateral <= 1.5 and 6.0 <= along_in <= runup + 1.0:
+                    score = along_in / WALL_RUN_SPEED_U_S + turn
+                    staging = [float(position[0]), float(position[1]), float(zs + 0.2)]; runup = along_in
+                else:
+                    rel = np.asarray(staging[:2]) - np.asarray(position[:2], dtype=float); dist = float(np.linalg.norm(rel))
+                    score = (dist + runup) / WALL_RUN_SPEED_U_S + turn
+                    if velocity is not None and dist > 1e-6:
+                        v = np.asarray(velocity[:2], dtype=float); sp = float(np.linalg.norm(v))
+                        if sp > 3.0 and float(v @ rel) / (sp * dist) < 0.0:
+                            score += 1.0
+            else:
+                score = -runup + 0.3 * float(dl)
+            if best is None or score < best[0]:
+                direction = (-n).tolist()             # the run-up heads INTO the face
+                best = (score, dict(launch=launch, land=[float(land[0]), float(land[1]), float(ib[il][2])],
+                                    land_goal=[float(land[0] + 1.5 * n[0]), float(land[1] + 1.5 * n[1]), float(ib[il][2])],
+                                    gap_u=WALL_LAND_U, rise_u=rise, direction=direction, staging=staging,
+                                    source=source, target=target, climb=True, needed_meter=0.0, wall=True,
+                                    wall_point=[float(q[0]), float(q[1]), float(q[2])], runup_u=runup))
+        return None if best is None else best[1]
 
     def _headroom(self, launch, top_z):
         if self.mesh is None:
@@ -313,7 +443,7 @@ class Crossings:
         if active is not None:
             u = np.asarray(active['direction'])
             rel = np.asarray(position[:2]) - np.asarray(active['launch'][:2])
-            if math.hypot(rel[0], rel[1]) <= CROSS_RADIUS_U + 1.0 and float(rel @ u) <= 1.0:
+            if math.hypot(rel[0], rel[1]) <= (active.get('runup_u', 0.0) + 1.0 if active.get('wall') else CROSS_RADIUS_U) + 1.0 and float(rel @ u) <= 1.0:
                 if meter is not None and meter < active.get('needed_meter', 0.0):
                     s = active['staging']
                     self.cross_brakes = 0
@@ -322,15 +452,52 @@ class Crossings:
                 return (land[0], land[1], land[2], value, extra), 'cross', active
             self.active = None
         self.cross_brakes = 0
-        if route is not None and self.reachable(route, position, goal):
-            return goal, None, None
         here = self.component_at(position)
         there = self.component_at(goal[:3])
-        if here is None or there is None or here == there:
-            return goal, None, None
-        crossing = self.first_hop(here, there)
+        if route is not None and self.reachable(route, position, goal):
+            # 2026-10-22: reachable, but a higher goal behind a long detour may be quicker up a wall
+            if not (WALL_CLIMBS and here is not None and there is not None
+                    and float(goal[2]) - float(position[2]) >= WALL_MIN_RISE_U):
+                return goal, None, None
+            try:
+                walk = float(route.distance(position))
+            except Exception:
+                walk = math.inf
+            key = (here, there, round(float(position[2]), 0), round(float(goal[2]), 0), int(position[0] // 6), int(position[1] // 6))   # coarse position: the wall along the way
+            cache = self.__dict__.setdefault('_wall_cache', {})
+            if key not in cache:
+                if len(cache) > 256:
+                    cache.clear()
+                cache[key] = self._wall_crossing(here, there, zs=float(position[2]) - 0.2, zt=float(goal[2]), position=position, velocity=velocity, goal_xy=goal[:2])
+            wall = cache[key]
+            if wall is None:
+                return goal, None, None
+            # time estimate: the wall way = to the staging point + the run-up + the flight, at run speed; the walk way
+            # at the slower speed a climbing route manages (ramps, turns)
+            to_staging = float(np.linalg.norm(np.asarray(wall['staging'][:2]) - np.asarray(position[:2], dtype=float)))
+            t_wall = (to_staging + wall.get('runup_u', WALL_RUNUP_U)) / WALL_RUN_SPEED_U_S + WALL_FLIGHT_S
+            t_walk = walk / WALK_CLIMB_SPEED_U_S if math.isfinite(walk) else math.inf
+            if t_walk <= t_wall:
+                return goal, None, None
+            crossing = wall
+        else:
+            crossing = None
         if crossing is None:
-            return goal, None, None
+            if here is None or there is None or here == there:
+                return goal, None, None
+            if WALL_CLIMBS and float(goal[2]) - float(position[2]) >= WALL_MIN_RISE_U:
+                # 2026-10-22: no walking route up: a wall climb onto the goal's level, before the gap/Blast chain
+                key = ('w', here, round(float(position[2]), 0), round(float(goal[2]), 0), int(position[0] // 6), int(position[1] // 6), int(goal[0] // 4), int(goal[1] // 4))
+                cache = self.__dict__.setdefault('_wall_cache', {})
+                if key not in cache:
+                    if len(cache) > 256:
+                        cache.clear()
+                    cache[key] = self._wall_crossing(here, there, zs=float(position[2]) - 0.2, zt=float(goal[2]), position=position, velocity=velocity, goal_xy=goal[:2])
+                crossing = cache[key]
+            if crossing is None:
+                crossing = self.first_hop(here, there)
+            if crossing is None:
+                return goal, None, None
         # Walls and steps inside one level are the ordinary search's business;
         # only a real drop or a climb to a higher level justifies staging.
         if not crossing.get('climb') and not self.line_has_hole(position, goal):
@@ -339,7 +506,7 @@ class Crossings:
         u = np.asarray(crossing['direction'])
         rel = np.asarray(position[:2]) - np.asarray(launch[:2])
         along = float(rel @ u)                       # >0 means already past the launch cell
-        near = math.hypot(rel[0], rel[1]) <= CROSS_RADIUS_U and along <= 0.5
+        near = math.hypot(rel[0], rel[1]) <= (crossing.get('runup_u', 0.0) + 1.0 if crossing.get('wall') else CROSS_RADIUS_U) and along <= 0.5   # a wall climb crosses from its staging point: the whole run-up is the approach
         aligned = True
         if velocity is not None:
             v = np.asarray(velocity[:2], dtype=float)

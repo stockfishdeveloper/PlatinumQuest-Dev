@@ -13060,3 +13060,352 @@ TreasureBox_Hunt + marbleblast_mbx.exe -autotrain TreasureBox_Hunt, started 15:1
 * Four recent TreasureBox pool rounds (wall5-8 ON arms): 509 pickups, 1560 jump presses (3.1 a pickup), 67 Blasts,
   79 bumps (horizontal speed >= 4 u/s falling to <= 40 percent within two decisions, no pickup, no jump), each
   costing 0.6 s to get back above 4 u/s.
+* 15:20 demo analysed (demo_20261021_151105.npz, 207 points, 153 pickups, 20 spawns of 9 in 5.3 s each = 1.43 gems/s;
+  planner round 1: 18 spawns, 7.0 gems each, 5.7 s = 1.22 gems/s). Human: 108 jump presses (0.71 a gem; 77 gems with
+  none, 8 with three or more), 32 of 108 jumps took 2+ gems; at a pad gem: 3.8 u/s, jump 2.2 u out (1.5-2.9), down onto
+  the gem 0.62 s later (the descending branch of the 7.5 u/s jump: back at pad height at 0.60-0.68 s); 12 powerup
+  presses. Mesh: 75 of 153 gems on pads 0.5-1.0 u high (pad radius 0.5-1.25; pads 2 u apart in 3x3 spawns), 22 on
+  2 u+ blocks, the rest flat. Planner at pad gems (pool rounds): launch 2.8 u median but 39 of 162 under 1.5 u (pad
+  wall bump) and 77 over 3 u (short/long, another jump), 1.2 jumps a pad gem; 32 of 52 Blasts gained under 1 u.
+* 15:40 operator (twice): the unit of planning is the SPAWN, not the gem: plan 3-4 gems ahead so the plan ends placed
+  for the rest; rows of 3-4 gems in one jump arc across pad heights; top-down (tallest pad first, roll down through
+  the lower gems) saves jumps. Built nav/marble_dynamics/spawn_plans.py: chain plans (orders: nearest, straight,
+  aligned, sweep, top-down, detected rows; speeds 4.5/6.5/8.5; pad hops 'descend' or 'arc') scored by every gem the
+  forecast collects (chain_score, hooked after assess in the serial loop AND parallel_search.evaluate_candidate, which
+  also now applies edge_climb: the real-time path had skipped it). nav/marble_dynamics/pad_hops.py: pad detection
+  from the mesh, hop timing, Blast gate (no Blast for a low pad gem within 8 u). Flag --no-pad-hops (control).
+  Probe (8 TreasureBox legs): chains valid 4517 of 4544, 42 collect 2-4 gems in the forecast, chain wins 48 of 170
+  searches. Six-pickup offline A/B on TreasureBox running (chainA on / chainB --no-pad-hops).
+* 15:34 six-pickup offline A/B, TreasureBox, 10 legs (edge9 pool states; two legs stuck in both arms, 25 s cap):
+  spawn plans ON 91.9 s for 48 pickups / 63 points / 2 Blasts, OFF (--no-pad-hops) 96.5 s / 48 / 59 / 5 Blasts.
+  Seven real legs: ON 41.9 s vs OFF 46.5 s (10 percent faster to six gems). 15:35 real-time TreasureBox round started
+  for the operator (spawn plans on, through the parallel workers: ChainProposal is picklable).
+* 15:40 real-time TreasureBox round with spawn plans (first version, 30 chain specs a decision): 169 points, 0 falls,
+  121 pickups, 14 Blasts; holds 581 / 35.6 s (p99 plan 0.317 s; the chain forecasts run per reply in Python), 605 chain
+  decisions (nn_4 at 4.5 / 6.5 u/s most). Inside spawns 1.42 gems/s (round 1 without: 1.22; the human 1.43), 4.1 s a
+  spawn (5.7), but 5.8 gems a spawn (7.0) and jump presses 1.18 a gem (1.00), 17 pickups with 3+ jumps (18): the
+  multi-jump pickups are not pad gems (2 u+ blocks). Travel between spawns 150 s of 240 (7.5 s a trip; human ~7 s).
+* 15:42 trim for real time: speeds 4.5 / 7, 'arc' only for row orders, cap 12 chain specs. Next: ten-map pair
+  (spawn plans on vs --no-pad-hops) for the overall points, then a lighter real-time round.
+* 16:28 spawn1 pair (spawn plans ON vs --no-pad-hops, seeds 7347019 / 12091843): ON 2451 / 129.0 a round over 19
+  common rounds, OFF 2535 / 133.4; ON's Cragmire 12091843 round failed its wall limit ("round_wall_limit", the chain
+  forecasts run in Python). TreasureBox ON 179 / 186 vs OFF 193 / 196; Duplex 105 vs 143. Latency ON mean 0.113 vs
+  0.108, >1.5 s 197 vs 152. Spawn audit (TreasureBox): pad gems ON 1.29 jumps each / 23 with 3+ / 30 bumps vs OFF
+  1.04 / 14 / 20; flat gems ON 0.26 jumps vs 0.40 (better). Dumps: the multi-jump pad pickups were NOT chain hops but
+  the other families after a chain pickup (direct_jump_2, blast_*, frozen_navigator_landing, a held
+  remaining_previous_plan crawling 4 s at 1-3 u/s): the chain re-offered after the pickup missed because the marble
+  was too close and too fast for the descending hop (3.1 u at 6.9 u/s: launch distance 4.3 u, jumped at once, flew past).
+* 16:50 hop v2: the descending hop fits the speed to the distance (brake to d / t*, jump when matched, within 0.4 u/s
+  and 0.3 u; at the pad wall the rising hop); offline six-pickup replay chainC running against chainB.
+* 16:35 six-pickup replay, hop v2 (chainC) vs control (chainB): 88.6 s vs 96.5 s for the same 48 pickups (eight real
+  legs 38.6 vs 46.5 s, 17 percent faster), 0 Blasts vs 5; hop v1 was 91.9 s. Chain cap 12 -> 8 for the pool budget.
+  spawn2 pair launched (hop v2, cap 8) vs --no-pad-hops.
+* 16:40 the spawn1 Cragmire 12091843 failure: the round hit the pool's 1200 s wall limit at 62 s left (2800 decisions,
+  47 points): ~0.4 s a decision on average with 12 chain specs (Python per-reply controllers, each with the 40-reply
+  landing extension). If spawn2 (cap 8) still shows latency, the chain controller moves into the compiled forecast.
+* 17:22 spawn2 pair (hop v2, chain cap 8, vs --no-pad-hops; seeds 7347019 / 12091843, all 20 rounds valid): ON 2596 /
+  129.8 a round, OFF 2635 / 131.8 (-2.0). TreasureBox 171 / 189 vs 169 / 196; Cragmire 105 / 108 vs 111 / 130;
+  Fractured 87 / 95 vs 105 / 85; Sprawl 185 / 166 vs 178 / 166. Latency ON mean 0.121 p99 1.01 vs OFF 0.114 / 0.84;
+  the ON arm finished 4 rounds behind. Offline the hop v2 chains are 17 percent faster to six gems; in full rounds the
+  gain does not show: budget (Python chain forecasts) and the plan churn after each pickup remain.
+* 17:35 spawn2 TreasureBox audit: forecasts exact (prediction error 0), chain plans' predicted pickups realised 99
+  percent, but chains pressed jump only 16 times in two rounds: at a pad gem the single-gem jump plans kept winning
+  (e.g. dec 771 jump_5 cost -144.9 vs a chain's ~-97) because chain_score REPLACED the cost and left out the through
+  credit and the rest of assess's scale; a chain won only when it collected two gems. The old plan then bumped the
+  pad as before (dec 772: 5.7 -> 1.8 u/s at the wall, jump from standstill, 1 s to the gem).
+* 17:40 chain score v3: assess's own cost for the target gem (same scale as every other plan) plus -100 + 4 u/s x
+  time for every other chain gem the forecast collects. Six-pickup replay chainD running.
+* 17:29 six-pickup replay, score v3 (chainD) vs control: 90.2 s vs 96.5 s for 48 pickups (eight real legs 40.2 vs
+  46.5 s), 0 Blasts vs 5. spawn3 ten-map pair launched 17:30 (score v3, hop v2, cap 8) vs --no-pad-hops; finish ~18:10.
+* 18:15 spawn3 pair (score v3, hop v2, cap 8, vs --no-pad-hops; seeds 7347019 / 12091843): ON 2379 / 125.2 a round over
+  19 common rounds, OFF 2509 / 132.1 (-6.9). Cragmire 12091843 ON failed the 1200 s wall limit again (3502
+  decisions, latency mean 0.33 s, p90 1.11 s, 309 chain decisions). Concentric 91 vs 116, Cube 108 vs 139, Duplex
+  106 / 120 vs 120 / 143, TreasureBox 171 / 169 vs 179 / 196. Latency otherwise equal (p99 0.77 vs 0.85). Three pairs:
+  -4.4, -2.0, -6.9: the spawn plans as built lose points in full rounds while winning the six-pickup replays.
+* 18:20 travel split, spawn3 TreasureBox 7347019: ON in-spawn 106 s for 124 gems vs OFF 104 s for 139; travel 123 s at
+  8.3 u/s (47 chain decisions on the way to spawns) vs 103 s at 10.3 u/s. With the v3 score the chains also win on the
+  approach and slow it to their 4.5 / 7 u/s, and inside spawns they collect no faster than the old families in-game.
+  Spawn plans set OFF by default (flag --pad-hops to enable; --no-pad-hops kept) until a pair is positive. Next:
+  chains only inside a spawn (within ~4 u of a spawn gem, speed under 9), chain speeds up to 9, a chain surviving its
+  own pickups (the flow), then the compiled chain controller.
+* 18:32 spawn plans v4: chains only once the marble is inside the spawn (within 4.5 u of a spawn gem) or already under
+  9 u/s; chain speeds 5.5 / 8.5. spawn4 pair launched 18:20: baseline = default (OFF), candidate = --pad-hops (v4). Finish ~19:00.
+* 19:04 spawn4 pair (v4: chains only inside the spawn / under 9 u/s, speeds 5.5 / 8.5; baseline = default OFF,
+  candidate = --pad-hops): ON 2558 / 127.9 a round, OFF 2638 / 131.9 (-4.0), all 20 rounds valid, latency p99 0.83 vs
+  0.78. Concentric again the big loser (93 / 87 vs 112 / 131; spawn3: 91 vs 116), Cragmire split (137 / 102 vs 114 /
+  130), TreasureBox 168 / 187 vs 169 / 196. Four pairs: -4.4, -2.0, -6.9, -4.0.
+* 19:10 spawn4 Concentric ON rounds: 95-106 safe-hold / A2 decisions (OFF 0-3), 1265 full searches (781), five stalls,
+  six gaps over 8 s between pickups; the hold streak at dec 2497 followed six 'direct' decisions at 0.3-3 u/s with no
+  pickup plan (cost 42.4): the chain orders use straight-line neighbours, and on Concentric a gem 3 u away can be on
+  the next ring behind a wall or a drop, so the chain drives the marble into the wall and the searches dry up.
+  v5 applied (a chosen chain's gem order stays the target order for 5 s, through its pickups; cleared by a fall or
+  respawn); v6: spawn gems must be walkable within 1.6 x straight + 2 u (route distance from the marble). spawn5 pair
+  launched: default OFF vs --pad-hops (v5 + v6).
+* 19:52 spawn5 pair (v5 + v6, default OFF vs --pad-hops): ON 2525 / 126.2 a round, OFF 2612 / 130.6 (-4.4), all 20
+  rounds valid. TreasureBox 175 / 194 vs 155 / 196; Concentric 7347019 94 vs 131, Cube 12091843 113 vs 139, Fractured
+  12091843 74 vs 105, Duplex -11 / -12. Five pairs: -4.4, -2.0, -6.9, -4.0, -4.4. Spawn plans stay OFF by default
+  (--pad-hops enables). Reported to the operator 19:55 with the next steps (chains only in pad clusters, compiled
+  chain controller, then a pair). Nothing running.
+* 20:08 operator: "run sprawl at 1x speed since you said it lost points, i want to see why". Real-time Sprawl_Hunt
+  started with the spawn plans ON (scratchpad run_realtime_padhops.py: RT.FLAGS + ['--pad-hops']; marbleblast_realtime
+  -autotrain Sprawl_Hunt -aifreecam). Sprawl in the pairs: spawn3 176 / 166 vs 178 / 166, spawn4 185 / 162 vs 178 /
+  166, spawn5 178 / 159 vs 178 / 166.
+* 20:14 real-time Sprawl round 1 with the spawn plans on: 148 points, 0 falls, 2 stuck rescues, holds 13.3 s. The dead
+  stretch (200 -> 160 s left: 5 then 0 points) had NO chain decisions: steering plans, then the extra-jump rescue /
+  Blast-and-jump / through families under a gem the marble could not climb to, then the rescues. Chains 214 of 4748
+  decisions; chain_order_targets 173; completed_candidate_after_deadline 318; neutral_no_goal 105. The real-time
+  journal rows now carry pos (position + velocity) for such audits (realtime.py play_round; next server start).
+* 20:20 real-time Sprawl round 2 (spawn plans on): 158 points, 0 falls, 0 rescues, holds 12.0 s, p99 plan 0.184 s.
+  Stopped after two rounds (operator watched). Sprawl pool reference: ON 159-185, OFF 166-178; best real 182.
+* 21:12 operator: "run it again". Real-time Sprawl restarted (spawn plans on, free camera); this server carries the
+  journal pos field, so the slow stretches can be located on the map afterwards.
+* 21:18 real-time Sprawl round 3 (spawn plans on, journal with positions): 173 points, 0 falls, 0 rescues. The slow
+  patch (203 -> 183 s left, 9 points): after the upper-deck spawn at (40, -43, z 6) a powerup-use plan ran 6 s and took
+  the marble down to the ground (z 0.2), a 3 s safe hold at (37, -48), then a 60 u trip west at 12-13 u/s to the next
+  spawn at (-50, -30): the between-spawn route, not the spawn plans (14 chain decisions in the window).
+* 21:19 operator: "have it play example mission at 1x speed". Sprawl stopped; real-time ExampleMission started with the
+  production defaults (spawn plans OFF, wall rebounds and edge hits ON), free camera. ExampleMission has a collision
+  map (collision_maps/ExampleMission.npz); the walking cache is built on first use if missing.
+
+## 2026-10-21 21:30 MDT - why the marble smacks into pads; pad arrival
+
+Replay of the search at TreasureBox 7347019 decisions 578/579 (spawn4 default pool): at 579 the marble is 1.4 u from
+a 1.0 u pad gem at 8.1 u/s (it had just collected the gem before at full speed). 31 candidates, 3 collect: the
+navigator (2.0 s) and direct_jump_9 (drive into the pad wall, stop, jump from standstill at reply 9, collect at 1.2 s).
+Every jump-now plan collects nothing: 0.15 u from the wall the jump impulse goes along the wall's normal. So the
+planner's choice at 579 is right; the fault is the plan to the previous gem, scored on route progress toward this one
+(arriving at 8 u/s is maximum progress) with no notion that the next pickup needs a launch 2 u out at ~4 u/s. Two
+rounds: 51 pickups were followed by a higher pad gem within 5 u; 35 arrivals over 5 u/s; the pad gem then took a median
+0.9 s (human hop 0.6). Blasts fire in the same situation (case 1: Blast at 0.9 u from a 1.0 pad).
+* Pad arrival (21:55, operator "ok do it"), baked in, control --no-pad-arrival: (1) 'through_hop' / 'direct_through_hop'
+  (compiled; arrive = d / descending hop time, 2.5-6 u/s) when the gem after the target is a low pad within 5.5 u
+  and 0.3-1.7 u higher (pad_hops.hop_arrival_speed); (2) pad_hops.hop_specs at a pad target (speeds 3.5 / 5); (3) the
+  second-gem credit (gem_demo.candidate_cost next_item branch, per-call next_rate) at 8 u/s when that next gem is a
+  pad (PAD_NEXT_U_PER_S), since a plan that slows for the hop only wins if the score sees the second pickup. Six-pickup
+  replay arrA (on) vs arrB (off) running.
+* 21:40-22:00 pad arrival probes (TreasureBox spawn4 legs, probe modules search_probe_arr*.py):
+  - the through_hop candidates are built and valid, but lose: first version arrived slow and never jumped (the plain
+    through continuation accelerates to the 6 u/s floor and never presses jump); v2 added the jump; v3 holds the hop
+    speed after the first gem. Then the gem-height assumption surfaced: gems sit AT their floor height (pad top 5.0,
+    gem z 5.0), not 0.3 above it, so the "marble below the pad" tests (GEM_FLOAT_U .3 in spawn_plans, -.35 in
+    ThroughHopProposal) hid every 0.5 u pad from the hop. Fixed (GEM_FLOAT_U 0; tests use gem z + 0.05). This also
+    explains the chain hops' 16 jumps in two rounds this afternoon.
+  - with the fix the hop fires (TRAJ: jump at 1.66 u / 2.7 u/s, rises to z 5.49, lands on the pad edge at 1.0 u from
+    the gem, reaches it ~1.8 s after the first gem). The pool's bump plan (jump_2: wall, stop, jump) reaches it in
+    ~1.2 s, so in this geometry the hop as controlled is SLOWER: it over-brakes (the fit speed chases a shrinking
+    distance) and lands short. The human's 0.6 s hop launches 2.2 u out at ~3.8 u/s and lands ON the gem.
+  - scoring artefact found: the walking grid treats pads as unwalkable, so the gem-to-gem 'leg' for adjacent cluster
+    gems is 9.7-16.6 u (a detour around the pads) and a marble ON a pad has no route distance (the credit falls back
+    to 1.2 x straight-line progress, about -1.8) while a marble on the floor BESIDE the pad gets about -15 (route
+    distance 1.25 minus the detour leg). The through credit therefore rewards stopping at the pad wall over standing
+    on the pad. This is a core reason the bump plans win in clusters.
+  - no pair run: the pad-arrival change is not ready (hop controller slower than the bump; credit scale wrong).
+  Pad arrival stays ON in code (its candidates lose on cost, so behaviour is unchanged; --no-pad-arrival = control);
+  the gem-height fix stays. Next: tune the hop launch in the deterministic sim (grid over launch distance and speed
+  from the recorded state, time to the second gem), and make the through credit use straight-line progress when the
+  walk leg detours (leg > 2 x straight) so a pad landing is not penalised.
+* 22:05 through credit: straight-line progress for every plan of a gem pair whose walk leg exceeds 2 x straight + 1 u
+  (gem_demo.candidate_cost, THROUGH_DETOUR_FIX; control --legacy-through-credit). Hop timing now uses the rise above
+  the marble's CURRENT floor (spawn_plans.ChainProposal, pad_hops.PadHopProposal), not the pad's height over the ring.
+* 22:20 hop tuning harness (scratchpad tune_hop.py: recorded state -> predict_replies for plan variants, pickups by the
+  game's tick test). TreasureBox 7347019 decisions 570 / 574 (6 u and 3 u before pad gem A, speed 11.5 / 9.5, pad gem
+  B 2 u past A): the planner's direct_jump_2 takes B at reply 11-12 and A at 19-23 (it flies over A onto B, then back);
+  the best two-pad chain (4.5 u/s, descend, flight x0.85) takes B at 13 and A at 24; slower chains far worse. From the
+  states the planner creates (fast approaches), the human-style hop is NOT faster than the existing jump plans in the
+  sim; the human's advantage is the speed profile and order from the spawn entry, i.e. a spawn-level plan. Chains
+  (spawn plans) were crippled by the gem-height bug all day; with it fixed they deserve one more pair.
+* 22:28 two pairs queued for the night: credit1 = tonight's defaults (through-credit fix + pad arrival + gem-height fix)
+  in the baseline folder vs the previous defaults (candidate: --legacy-through-credit --no-pad-arrival); then spawn6 =
+  default vs --pad-hops (spawn plans with the gem-height fix and the credit fix). Results in the morning.
+* 23:03 credit1 pair: NEW defaults (through-credit fix + pad arrival + gem-height fix) 2553 / 127.7 a round, OLD
+  defaults (--legacy-through-credit --no-pad-arrival) 2611 / 130.6 (-2.9). Duplex 7347019 119 vs 133, Sprawl
+  12091843 170 vs 178, TreasureBox 174 / 190 vs 179 / 196, Fractured 96 vs 105. The new scoring loses: defaults
+  reverted (through credit legacy by default, enable with --through-detour-credit; pad arrival off by default, enable
+  with --pad-arrival). spawn6 (queued) stopped before launch; relaunched on the reverted defaults.
+* 23:08 defaults reverted in code: gem_demo.THROUGH_DETOUR_FIX False (--through-detour-credit enables), pad_arrival
+  False (--pad-arrival enables; --no-pad-arrival kept). The gem-height fix and the hop-timing-from-current-floor fix
+  stay (they only touch the opt-in hop families). The killed spawn6 folders set aside (spawn6_*_killed_2304); spawn6
+  relaunched: default vs --pad-hops. Finish ~23:50.
+* 23:42 spawn6 pair (default vs --pad-hops chains with the gem-height and hop-timing fixes, legacy credit): CHAINS 2536 /
+  126.8 a round, DEFAULT 2615 / 130.8 (-4.0); 2644 chain decisions, latency equal (p99 0.67 vs 0.69). Concentric
+  7347019 92 vs 116, Cragmire 7347019 92 vs 122 (12091843 130 vs 113), TreasureBox 179 / 177 vs 196 / 179, Sprawl
+  150 / 185 vs 166 / 178. Sixth negative pair for the spawn plans. Nothing running; spawn plans and pad arrival stay
+  opt-in; production = pre-cluster planner + wall rebounds + edge hits. The state of the cluster work and the open
+  questions are in the todo list entry and the memory file directive-2026-10-21-cluster-collection.
+
+## 2026-10-22 07:26 MDT - operator watches the cluster attempt live
+
+"play the attempt at the cluster fixes that didn't make it in at 1x speed": real-time TreasureBox with all three
+opt-in changes (scratchpad run_realtime_cluster.py: RT.FLAGS + --pad-hops --pad-arrival --through-detour-credit),
+free camera. Journal rows carry pos.
+* 07:30 real-time TreasureBox with the three opt-in cluster changes: 150 points, 0 falls, 1 stuck rescue (under the
+  tall block at (107,-4): extra-jump / Blast plans, safe hold, rescue to (30,60), 20 s back); chains 249 decisions,
+  1.25 gems/s in spawns, 1.20 jumps a gem.
+* 07:35-07:43 operator: "replay the game to the point where the marble got stuck ... let me show you". The live round is
+  not seeded (random gem groups), so it cannot be replayed; built ml_agent/tools/replay_handoff.py: a seeded pool round
+  replays bit-exactly to --stop-at, then FIXEDSTEP 0 + LOCKSTEP 0 + the RECORD handshake hand the marble to the human
+  (normal camera, record.game(freecam=False)) and the rest is recorded like record_demos (first two tries: a wrong
+  action call, then the lockstep ignored the keyboard). TreasureBox 12091843 decision 2290 (96 s left, ground level
+  at (71,-23), spawn on the z 6.2 platform at x 107-111): demo_20261022_074012.npz (793 ticks, 1 pickup).
+  THE MANEUVER (ticks 600-660): 15-16.8 u/s along z 2.2 toward +x, jump 1.8 u before the 2 u step face at x 118 (z 2-4),
+  hit it rising at vz 5.5: velocity (16.8,-1.4,5.5) -> (-8.1,-0.6,12.9), peak z 7.6, landed on the platform, gem at
+  (110,-12,6.9). Operator: "find a perpendicular face, run up to it, jump right before, and the marble goes back and
+  up ... generalize this to any situation".
+* 07:50 why the wall-rebound family never offered it (wall_climb_sim.py from (104,-10.2) at 14-16 u/s): rise 4.7 >
+  WALL_MAX_RISE_U 4.5; the face 14 u away > WALL_FAR_U 12; the target lay AHEAD (the "no wall needed" test, wrong for a
+  climb); nearer useless faces filled WALL_MAX. With the wall forced: trigger 2-3 u at 16-20 u/s peaks z 7.3-8.8,
+  lands on the platform, collects the gem at reply 31-63; trigger 1-1.5 u fails (the planner's old 0/0.6/1.5).
+* 07:55 v23 wall selection: WALL_MAX_RISE_U 5.5, WALL_FAR_U 16, a climb (rise >= 1.5) may use a wall beyond the
+  target, candidates ranked by landing-height match to the target + reflection alignment (not distance); climbs get
+  triggers 2 / 3 u and speeds 16 / 20 (low rebounds: 0 / 2 u at 11 / 16).
+* 08:05 wall_climb_sim with the real selection from (104,-10.2) rolling +x (spin fixed: omega_y = -v/r; the + sign
+  gave backspin and the wall kicked the marble DOWN): candidates ranked (106,-12) 2.17, (110,-12) 0.76, (118,-10.25)
+  0.67; only the x 118 wall climbs (14 u/s start: trig 2.0 peaks z 7.1, lands z 6.19, gem at reply 63-68 with the
+  landing extension; 16 u/s start: peaks 5.9-6.6 and comes back down: the launch is timing-sensitive at 64 ms). The
+  two nearer faces rebound along the floor. WALL_MAX 3 for climbs (the search keeps one wall for low rebounds); a
+  climb face must top the marble centre by 1.2 u (WALL_CLIMB_FACE_U). Caveat: the planner's own route approached this
+  platform from the west ramp side, never along the south edge where the wall is; the family only sees walls within
+  16 u, so whether it gets to use this one depends on the route.
+* 07:52-08:05 live TreasureBox, defaults with the v23 wall selection: 165 (0 falls, 0 rescues, 0 wall-rebound
+  decisions), 178, 169. The climb never fires on its own: the route never brings the marble within 16 u of a
+  climbable wall heading at it.
+* 07:58-08:06 route-level wall climbs drafted in crossings.py (Crossings._wall_crossing + stage(): a vertical face whose
+  rebound lands on the higher level, run-up lane walkable with headroom, staged from a 14 u run-up point; chosen when
+  quicker than the walking route by a time estimate, also within one weak component). Offline from (104,-10.2): stages
+  a wall at (110,-2) with run-up from (110,-16.5). A full planner episode from (105,-10.2) at 8 u/s (recorded snapshot
+  with the marble and the observation's gem offsets moved): the Blast climb won (gem in 4.0 s, blast_0_jump_-1);
+  the staging pointed at yet another wall (95,-8.5). WALL_CLIMBS left OFF by default until the wall choice prefers
+  walls along the travel direction and the Blast alternative is priced against it. Live sessions stopped 08:07; pair wallclimb1 (v23 walls on = default vs --no-wall-rebounds) launched 08:08.
+* 08:44 wallclimb1 pair (v23 wall selection ON = default vs --no-wall-rebounds; seeds 7347019 / 12091843): ON 2575 /
+  128.75 equal-map, OFF 2538 / 126.90 (+1.85); falls 10 vs 11; Blasts 263 vs 250. 24 wall plans, mean height gain
+  4.05 u, 0 falls after, 3.2 points in the following 10 s. Concentric 7347019 116 vs 83, TreasureBox 12091843 179 vs
+  155, Duplex 12091843 120 vs 95; Fractured 12091843 78 vs 105, Sprawl 7347019 166 vs 174. Seven pairs for the wall
+  family so far: +2.75, -2.85, +2.05, -2.05, -5.60, -1.20, +1.85 (mean -0.7). v23 stays ON by default.
+* 10:45-11:10 (2026-10-22) route-level wall climb, continued: the Blast plans that beat the staged climb came from the
+  cluster-order pass (order_choice searches the gem directly, before the crossing loop sets blast_reserved); pick()
+  now stages the current gem first and a staged wall climb reserves the Blast for the whole decision and skips the
+  order pass. With that the search for the landing goal (111.5,-10,6.5) chose frozen_navigator_landing (88 replies,
+  cost 8.98) over edge_hit_wall0_rebound_3_s16 (48 replies, airborne at z 5.2, cost 13.3): plans of different lengths
+  compared on end distance. Two search.py edits: a wall-climb plan still flying at the horizon (|vz| > 0.5) gets the
+  landing extension; toward a staged wall climb's landing, replies beyond the horizon cost 8 u/s. wall_trace.py: the
+  x118 plan (trigger 3 u, 16 u/s) jumps at reply 17 at 13.5 u/s, peaks z 6.96, is on the deck by reply 39 (2.5 s),
+  landing at (111.5,-6.7): the rebound drifts +y about 3 u on the way back (cause not found; the face normal is -x).
+  Also checked and cleared: the TreasureBox terrain grid does hold the deck (levels 6.0/6.5 over 2.0) and the route
+  field reaches it; a "routed False" return just means direct aim. Not pool-tested. Operator stopped the work here.
+* 11:15 operator: brainstorm holistically, then "proceed with that plan, write it all down first". Plan written to
+  docs/POINTS_PLAN_2026-10-22.md (ledger first, then time-based plan scoring, spawn order solver, stall rule, exit
+  speed toward the next spawn, Blast priced by time; wall climbs parked). TODO.md item 7. Starting the ledger.
+* 11:40 points ledger (tools/points_ledger.py, 80 rounds + 3 human demos): travel between spawns is 58 percent of the
+  round (139 s), at 10 u/s against the human's 13 on the same routes; powerup goals take about 23 s a round and 114
+  fetches were farther than the nearest gem (Bowl: a Helicopter 161 u away right after a pickup, 20 s, every round);
+  stalls small except Concentric (Blast recharge waits) and Cragmire (one wall). Full table in
+  docs/POINTS_PLAN_2026-10-22.md "Ledger results".
+* 11:45 powerup fetch cap (RESOURCE_FETCH_MAX_U 25 and no farther than the gem; stall path 40; --no-resource-cap
+  control); crossings.WALL_CLIMBS set False (parked). 11:47 pair rescap1 launched (baseline = cap ON, candidate =
+  control), ten maps, seeds 7347019 / 12091843, 4+4 workers.
+* 12:30 pair rescap1 (cap ON = baseline vs --no-resource-cap control; seeds 7347019 / 12091843): cap 2612 / 130.60
+  equal-map, control 2622 / 131.10 (-0.5 a round, noise); falls 8 vs 11, Blasts 282 vs 273. Per map: Duplex +35,
+  Bowl +4, Fractured +5, Cube +8; Cragmire -10 / -10, TreasureBox -24 (12091843), Sprawl -13, Concentric -12.
+  On the Bowl 7347019 leg itself the cap works: 8 s to the next gem and the spawn done at 11 s instead of 24 s / 26 s
+  (the control fetched the Helicopter 161 u away), yet the round gained only 4: single rounds diverge by +-10 and
+  twenty rounds an arm resolve about +-1.5 a round. Decision: keep the nothing-found cap (RESOURCE_FETCH_MAX_U 25,
+  no farther than the gem: a 20 s runaway is gone), drop the stall-path cap (RESOURCE_STALL_FETCH_MAX_U None:
+  Cragmire's Super Jump fetches for raised gems have a reason and a budget). --no-resource-cap stays as the control.
+* 12:33 next pair oppo1: default (opportunistic detours, 4 u) vs --opportunistic-powerups 0 (control). Ledger: 6-30
+  detours a round, most abandoned (Cragmire 22 of 28, Fractured 29 of 30, Sprawl 18 of 30), 5-28 s a round.
+* 13:17 pair oppo1 (default detours = baseline vs --opportunistic-powerups 0): on 2592 / 129.60, off 2586 / 129.30
+  (-0.3, tie); falls 9 vs 8. Single-round swings of +-30-40 (Concentric 7347019 116 vs 74, Cragmire 7347019 82 vs
+  114) dwarf the feature. Detours stay on (default 4 u). The abandoned-detour flip-flop is real (59 percent of
+  detours, 0.19 s each) but costs nothing a pair can see; it goes into the target-commitment step instead.
+* 13:25 step 2a time pricing implemented (docs/POINTS_PLAN_2026-10-22.md): gem_demo.TIME_PRICE_U_S 10 =
+  PICKUP_TIME_WEIGHT (was 4), engine.ballistic_time_rate 10 (was 8; use_margin_u keeps its 8 u/s basis), every
+  extended non-pickup forecast pays its replies beyond the horizon at 10 u/s (search.py landing-extension block, the
+  wall-only rule generalised). Control --no-time-price (set_time_price(False), rate 8, extensions free). Pair tp1
+  launched 13:27 (baseline = time price ON, candidate = control).
+* 17:00 (session 2e) tp1 pair (13:27-13:56, time price ON = baseline vs --no-time-price; seeds 7347019 / 12091843),
+  evaluated late: ON 2549 / 127.45 equal-map, OFF 2602 / 130.10 (-2.65); falls 5 vs 11; Blasts 299 vs 282. One round
+  carries it: TreasureBox 7347019 113 vs 187 (81 vs 138 pickups; a 44 s stretch without a pickup, the marble across
+  the map from (17,48) to (75,-1) and back). The other 19 rounds net +21 for time price (+1.1 a round). Per map ON/OFF:
+  Cragmire 114/102 vs 93/130, Duplex 140/128 vs 157/114, Sprawl 179/182 vs 161/179, KOTM 149/139 vs 139/148,
+  TreasureBox 113/144 vs 187/155. Time price stays the code default until a second pair decides.
+* 18:33 (session 2e; operator: "do a, then b, then c" = A second time-price pair, B target commitment, C travel speed
+  cap) pair tp2 launched: time price ON (default) vs --no-time-price, NEW seeds 4420117 / 9083321, ten maps, 4+4
+  workers (tools/launch_pair.ps1). Verdict on tp1 + tp2 together (40 rounds an arm).
+* 19:15 (session 2e) tp2 pair (time price ON = baseline vs --no-time-price; NEW seeds 4420117 / 9083321): ON 2587 /
+  129.35 equal-map, OFF 2564 / 128.20 (+1.15); falls 4 vs 13; Blasts 304 vs 283. Per map ON/OFF: Cragmire 102/145 vs
+  125/103, Duplex 99/119 vs 125/124, Sprawl 158/169 vs 155/142, TreasureBox 169/169 vs 182/161, Fractured 71/108 vs 83/99.
+  tp1 + tp2 together (40 rounds an arm): ON 128.40 vs OFF 129.15 (-0.75); per map ON-OFF: TreasureBox -22.5 (tp1's
+  113-vs-187 round), Duplex -8.5, Concentric -2.2, Vortex -0.8, KOTM +0.8, Fractured +2.8, Cragmire +3.0, Cube +3.2,
+  Bowl +4.0, Sprawl +12.8; falls 9 vs 24. Rule set before tp2 (keep only if the two pairs together are positive): NOT
+  KEPT. Time price is opt-in from 19:15 (--time-price; defaults off in reliability_eval, realtime, sim_bench, search.py
+  getattr fallbacks; gem_demo.PICKUP_TIME_WEIGHT back to 4).
+* 19:15-19:45 (session 2e) offline screen for B (target commitment) and C (travel speed): tools/sim_bench --whole-group
+  --next-group --native, 12 starts x 10 maps from the tp1 rounds (seed 7347019), one episode = clear the group and reach
+  the next group's first gem; base = repo defaults (time price off). Scripts and module copies in session 2e's scratchpad
+  (patch_target_commit.py, run_sim_bc.sh, run_sim_b2.sh, sim_pairs2.py: counts trip_done endings, sim_pairs.py does not).
+  B = (1) tour anchor: the tour's sticky gem is the gem actually pursued, not the staged point / item goal that
+  self.current takes, (2) PLANNER_TOUR_SWITCH .8 (plan_tour keeps its gem unless an order is 20 percent cheaper; .9
+  before), (3) a started opportunistic detour keeps its item up to 8 u extra walking. Geometric time ratio vs base
+  (n about 110): all three 1.015 (19 better / 28 worse), anchor alone 1.009 (9/13), switch alone 1.003 (10/18), detour
+  alone 1.004 (7/13). No part saves time: the journal flip-flops are a symptom of hard spots, suppressing them does not
+  help. B NOT pursued (no pair), nothing changed in the repo for it.
+  C: --speed-cap 13.5 alone 0.992 (50/38); 13.5 + search.TRAVEL_TOP 16 0.974 (56/34; mean -0.43 s per episode, trip to
+  the next group 8.80 -> 8.38 s, falls 5 -> 4). Second round (travel top 20; cap 15 + travel top 18) running 19:45.
+* 19:55 (session 2e) C second sim round: TRAVEL_TOP 20 with cap 13.5 0.982 (58 better / 33 worse), cap 15 + TRAVEL_TOP 18
+  0.987 (55/31); cap 13.5 + TRAVEL_TOP 16 stays best (0.974). Step C applied as code defaults (gem_demo.TARGET_SPEED_CAP
+  13.5, search.TRAVEL_TOP 16, reliability_eval --speed-cap default 13.5 and a new --travel-top flag; realtime and
+  sim_bench fallbacks 13.5). Pair speed1 launched 19:55: new defaults vs --speed-cap 11 --travel-top 13.5, FOUR seeds
+  (7347019 12091843 4420117 9083321), 40 rounds an arm, 4+4 workers.
+* 21:07 (session 2e) speed1 pair (cap 13.5 + TRAVEL_TOP 16 = baseline vs --speed-cap 11 --travel-top 13.5; four seeds, 40
+  rounds an arm): NEW 128.65 equal-map vs OLD 128.80 (-0.15); per-round difference mean -0.15, sd 14.8, se 2.3; 19 rounds
+  better / 18 worse; falls 19 vs 20. Per map NEW-OLD (4 rounds each): Duplex -12.5, TreasureBox -7.5, Fractured -2.8,
+  Concentric -2.2, Vortex -1.0, Bowl +1.5, KOTM +3.2, Cragmire +3.8, Cube +4.5, Sprawl +11.5. The sim's 2.6 percent did not
+  show in game. NOT KEPT: defaults back to cap 11 / TRAVEL_TOP 13.5; --travel-top stays as a flag. Both pools ended with
+  ValueError "Randomized opening audit failed: Repeated confirmation opening" (KOTM seeds 4420117 and 12091843 draw the
+  same opening layout); the summaries are complete (40 branches, 0 failures), the audit only stopped the
+  input_integrity.json write; nothing under nav/marble_dynamics changed during the run. Use other seeds with KOTM.
+  Pattern across tp1+tp2+speed1: faster plans gain on open maps (Sprawl +12.8 / +11.5) and lose on cluster/edge maps
+  (TreasureBox -22.5 / -7.5, Duplex -8.5 / -12.5). Noise: a 40-round pair resolves about +-2.3 a round at one standard
+  error; a 2-point change needs about 220 rounds an arm to show at two standard errors.
+
+## 2026-10-23 MDT - operator: eradicate pad-side smacks, ledge drops after pickups, Super Speed for one gem (session 2e)
+
+* 09:29 real-time Sprawl round with --time-price at 1x (scratchpad run_realtime_timeprice.py: RT.FLAGS + --time-price;
+  marbleblast_realtime.exe -offline -aifreecam -autotrain Sprawl_Hunt): 106 points at 72 s left, exited by the operator
+  at 53 s left (115). Operator: penalise smacking into pad sides (at least 20 a round), ledge drops after one or two
+  cluster pickups (about 5 s to get back up), a Super Speed spent on one gem then off the platform; fix it, then stop
+  and wait to watch at 1x.
+* Measurement (scratchpad cluster_faults.py, ledge_drops.py over speed1_candidate + tp2, 80 rounds): the 64 ms journals
+  miss most smacks (contacts are brief and the floor wins best_contact_normal); on 16 ms ticks (one tick losing more
+  than 1.2 u/s of horizontal speed, change mostly horizontal) the sim finds about 3.3 per 15 s on Sprawl, 3.6 on
+  TreasureBox, 4.5 on Cragmire (50-70 a round). Ledge drops (after a pickup with same-level gems left, the marble below
+  that level before the next pickup): 2.36 a round, next pickup 3.1 s later vs 1.1 s (Concentric/Sprawl 5.4 a round,
+  Bowl 4.9). OOB falls within 3 s of a pickup are rare in pools (0.17 a round, all after A2_fallback). Super Speed:
+  4 kicks a round, half take no gem in 3 s, 4 of 324 fell.
+* Code (search.py, uncommitted): CLUSTER_PENALTIES, side_impacts(), cluster_penalty() inside assess(): BUMP_COST_U per
+  side impact (deliberate wall rebounds and, switchable, edge hits exempt), LEDGE_DROP_U when the plan drops
+  LEDGE_DROP_DZ (1.5 u) below the next gem's level after its pickup (the next gem not lower, the marble up at that level
+  at the pickup), SS_ONE_GEM_U for a Super Speed plan taking at most one gem with two more gems within 15 u. Counts
+  always logged (choice.cluster_penalty) so both arms of a pair show them; --no-cluster-penalties = control.
+  tools/sim_bench: per-episode side_impacts, ledge_drops, impact_by (the plan two decisions back, predicted or not).
+* Sim (120 starts, whole group + trip): bump 5 / ledge 12: impacts -20 percent, 1.6 percent slower; bump 10 / ledge
+  20: -29 percent, 1 percent slower, ledge drops unchanged. 79 percent of the remaining executed impacts come from plans
+  that predicted them: a pickup plan with a smack (-100 + 10-20) still beats every plan without a pickup, so the
+  penalty cannot help where no clean pickup candidate exists; 20 percent come from the (exempt) edge-hit family.
+  Round 3 running 12:05: + --pad-arrival hop candidates, and edge hits penalised. Two power cuts (10:05, 11:47)
+  killed rounds 2 and 3 midway; reruns only of the missing variants.
+* 12:05-12:48 sim rounds 3-5 (scratchpad sim_cp3/4/5, base = round 2 penalties off, 120 starts): bump 20 + edge hits
+  penalised -41 percent impacts; + pad arrival hops -40 percent; bump 50 -42 percent, 0.5 percent slower; bump 120 -45
+  percent, 1.4 percent slower; ledge drops unchanged everywhere. Two causes found by tracing (Sprawl tp1_candidate 574):
+  (1) a kept pickup plan is never compared again, so a plan with a predicted smack (50 u on record) kept running;
+  (2) after a pickup on a downhill the marble rolled on down and climbed back 3 s for the next gem (the ledge rule did
+  not fire: the marble was already below the next gem's level at the pickup). Fixes: reliability_eval re-searches a kept
+  plan whose forecast now carries a side impact or a ledge drop (its remainder is a candidate; on a deadline the kept
+  plan stays), and search.AWAY_U_PER_U_S (2 u per u/s of horizontal speed away from the next gem 8 replies after the
+  pickup). Round 5: re-search alone -52 percent impacts, 1.0 percent faster; + AWAY 2: -53 percent, 1.1 percent faster
+  (40 better / 37 worse), ledge drops 19 -> 17; AWAY 4: -55 percent, 0.6 percent faster. Per map with AWAY 2: TreasureBox
+  impacts 50 -> 21 (+1.6 s an episode), Cragmire 75 -> 33 (-2.5 s), Sprawl 40 -> 20 (-1.2 s), Vortex 11 -> 4.
+* 12:49 DEFAULTS: search.BUMP_COST_U 50, LEDGE_DROP_U 30, BUMP_EXEMPT_EDGE False, AWAY_U_PER_U_S 2, CLUSTER_PENALTIES on,
+  reliability_eval --pad-arrival default ON (realtime and sim_bench fallbacks too). Sim check: defaults reproduce the
+  round-5 variant bit for bit. 12:50 pool pair cp1: new defaults vs --no-cluster-penalties --no-pad-arrival, seeds
+  7347019 12091843 9083321 8675309, 40 rounds an arm. Then stop and wait for the operator (1x round).

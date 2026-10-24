@@ -51,6 +51,20 @@ PICKUP_STOP_MIN_SPEED=0. # v6 tried 6 u/s: Cragmire parking gone but the Cube/Du
                          # none of which v3-v5 prevented.
 PICKUP_STOP_EDGE_DEPTH_U=30.  # v5: 'leaves the floor' = no floor within 30 u below (a drop to a lower floor is not a fall;
                               # all 23 recorded fall starts still test true, Cragmire's v4 stops drop from 163 to 108 of 295)
+CLUSTER_PENALTIES=True   # 2026-10-23 (operator: "eradicate" pad-side smacks, ledge drops after a pickup, Super Speed for one gem);
+                         # engine.cluster_penalties overrides (control --no-cluster-penalties). Measured on every candidate's 16 ms ticks:
+BUMP_COST_U=50.          # (sim 10-23 round 5: 50 with the re-search, AWAY 2, edge hits penalised, pad arrival = impacts -53 percent, 1 percent faster) u per side impact: one tick (16 ms) losing more than BUMP_TICK_DV of horizontal speed, mostly sideways (braking
+BUMP_TICK_DV=1.2         # removes at most ~0.5 u/s a tick, a landing or a ramp turns speed upward); plans built to use walls are exempt
+BUMP_EXEMPT_WALL=True    # deliberate wall rebounds (labels containing 'wall') are exempt ...
+BUMP_EXEMPT_EDGE=False   # ... and the edge-hit (ledge lip) family (labels starting 'edge_hit'): NOT exempt since 10-23 (20 percent of the smacks)
+LEDGE_DROP_U=30.         # u when the plan collects its gem and then drops LEDGE_DROP_DZ below it while the tour's next gem is on that level
+LEDGE_DROP_DZ=1.5        # (pools: 2.4 such drops a round, the next pickup 3.1 s later on average against 1.1 s without a drop)
+LEDGE_TARGET_LEVEL=True  # also a plan without a pickup that leaves its target gem's level downward (the marble on that level now)
+AWAY_U_PER_U_S=2.        # u per u/s of horizontal speed AWAY from the tour's next gem AWAY_AFTER_REPLIES after the pickup (momentum
+AWAY_AFTER_REPLIES=8     # carrying the marble off past the gem: a Sprawl trace rolled on downhill and climbed back for 3 s)
+SS_ONE_GEM_U=8.          # u when a plan spends a Super Speed, collects at most one gem, and SS_CLUSTER_GEMS more gems are within
+SS_CLUSTER_GEMS=2        # SS_CLUSTER_U of its target (a cluster: the kick is better kept for the trip to the next group)
+SS_CLUSTER_U=15.
 BACKUP_PENALTY_U=150.    # cost added to a useful plan without a braking backup (above the -100 pickup credit)
 FALL_FLOOR_U=15.         # u: airborne after the braking backup with no floor this far below = a fall
 STOP_SPEED=2.            # u/s: when no useful plan exists, 'stop_N' (full braking from reply N) is tried above this speed
@@ -106,7 +120,7 @@ def corner_speed(route,position,gem,through):
     return max(1.5,_gem_demo.TARGET_SPEED_CAP*(1+c)/2)
 
 
-TRAVEL_TOP=13.5           # 2026-10-17 v56 (operator: "traversing between spawns faster"): top target speed on long legs (0 = off).
+TRAVEL_TOP=13.5           # (--travel-top sets it at launch; 2026-10-22 step C tried 16 with cap 13.5: tied in game, not kept). 2026-10-17 v56 (operator: "traversing between spawns faster"): top target speed on long legs (0 = off).
 TRAVEL_NEAR_U=12.         # The top ramps from TARGET_SPEED_CAP at this distance to the target gem (route length, or straight for
 TRAVEL_FAR_U=20.          # direct proposals) up to TRAVEL_TOP at this one; closer, the cluster cap and the stopping law hold.
 
@@ -286,6 +300,66 @@ def terminal_support(mesh,tail):
     return supported,stable,max(speeds,default=None)
 
 
+def _tick_arrays(native):
+    """(positions, velocities) of a forecast's 16 ms tick states: compiled rows (nav/native NativeRows) or state dicts."""
+    rows=getattr(native,'rows',None)
+    if rows is not None:return np.asarray(rows[:,0:3],dtype=float),np.asarray(rows[:,3:6],dtype=float)
+    if not native:return None,None
+    return (np.asarray([s['position'] for s in native],dtype=float),np.asarray([s['velocity'] for s in native],dtype=float))
+
+
+def side_impacts(native):
+    """2026-10-23: side impacts in a forecast: ticks losing more than BUMP_TICK_DV of horizontal speed where the velocity change
+    is mostly horizontal (a pad side or a wall; a landing or a ramp turns speed upward instead). Consecutive ticks = one hit."""
+    P,V=_tick_arrays(native)
+    if V is None or len(V)<2:return 0
+    h=np.hypot(V[:,0],V[:,1]);dh=h[:-1]-h[1:]
+    dvh=np.hypot(V[1:,0]-V[:-1,0],V[1:,1]-V[:-1,1]);dvz=np.abs(V[1:,2]-V[:-1,2])
+    hit=(dh>BUMP_TICK_DV)&(dvh>dvz)
+    return int(np.count_nonzero(hit[1:]&~hit[:-1])+int(bool(hit[0])))
+
+
+def cluster_penalty(engine,dynamics,gem,rollout,label,pickup,after,item):
+    """2026-10-23 (operator): extra cost (u) of a candidate for (1) side impacts, (2) dropping off the level of the tour's next gem
+    after collecting this one, (3) a Super Speed spent on one gem inside a cluster; and the counts, for the journal."""
+    native=rollout.get('native_states');P,V=_tick_arrays(native)
+    if P is None or len(P)<2:return 0.,None
+    lab=str(label or '');cost=0.;why={}
+    if not ((BUMP_EXEMPT_WALL and 'wall' in lab) or (BUMP_EXEMPT_EDGE and lab.startswith('edge_hit'))):
+        n=side_impacts(native)
+        if n:cost+=BUMP_COST_U*n;why['side_impacts']=n
+    if pickup is not None and after is not None and LEDGE_DROP_U:
+        # the reference is the NEXT gem's level (the gem just taken may be caught mid-air on the way down): when the next gem is
+        # not below this one and the marble is up at its level at the pickup, ending up LEDGE_DROP_DZ below it means climbing back
+        zg=float(gem[2]);zn=float(np.asarray(after[1],dtype=float)[2])
+        k=min(len(P)-1,max(0,int(pickup)*4))
+        if zn>zg-1. and float(P[k,2])>zn-LEDGE_DROP_DZ:
+            tail=P[k:,2]
+            if float(tail.min())<zn-LEDGE_DROP_DZ:cost+=LEDGE_DROP_U;why['ledge_drop']=round(zn-float(tail.min()),2)
+        if AWAY_U_PER_U_S:
+            j=min(len(P)-1,k+4*AWAY_AFTER_REPLIES);d=np.asarray(after[1],dtype=float)[:2]-P[j,:2];nd=float(np.linalg.norm(d))
+            if nd>.5:
+                away=-float(V[j,:2]@(d/nd))
+                if away>1.:cost+=AWAY_U_PER_U_S*away;why['away_u_s']=round(away,1)
+    elif pickup is None and LEDGE_DROP_U and LEDGE_TARGET_LEVEL:
+        # a plan that does not reach its gem: on the gem's level now, it must not leave it downward (momentum off a ledge
+        # between two pickups, then the climb back; the route to a gem on this level never needs a drop)
+        zg=float(gem[2])
+        if float(P[0,2])>zg-.5 and float(P[:,2].min())<zg-LEDGE_DROP_DZ:
+            cost+=LEDGE_DROP_U;why['ledge_drop']=round(zg-float(P[:,2].min()),2)
+    held=getattr(rollout['states'],'held',None)
+    if held is None:held=np.asarray([int(s.get('held',0)) for s in rollout['states']])
+    if SS_ONE_GEM_U and len(held)>1 and bool(np.any((held[:-1]==2)&(held[1:]==0))):
+        gems=[i for i in dynamics.get('items',[]) if i.get('gem')]
+        near=[i for i in gems if np.linalg.norm(np.asarray(i['position'],dtype=float)-np.asarray(gem[:3],dtype=float))<=SS_CLUSTER_U
+              and (item is None or i.get('id')!=item.get('id'))]
+        if len(near)>=SS_CLUSTER_GEMS:
+            got=sum(1 for i in gems if _gem_demo.tick_pickup(native,i) is not None)
+            if got<=1:cost+=SS_ONE_GEM_U;why['ss_one_gem']=got
+    # the counts are always computed (journal: choice.cluster_penalty, both arms of a pair); the cost only when enabled
+    return (cost if getattr(engine,'cluster_penalties',CLUSTER_PENALTIES) else 0.),(why or None)
+
+
 def assess(engine,route,dynamics,gem,rollout,label,target_item=None,routed=True,_stop_checked=False):
     states=rollout['states'];end=states[-1]
     gem=np.asarray(gem[:3])
@@ -294,17 +368,26 @@ def assess(engine,route,dynamics,gem,rollout,label,target_item=None,routed=True,
         item=target_item or next((i for i in dynamics.get('items',[]) if i['gem'] and np.linalg.norm(np.asarray(i['position'])-gem)<.1),None)
     detail={}
     after=through_context(engine,route,gem,item) if routed else None
-    next_item=None
-    if after is not None and _gem_demo.NEXT_PICKUP_U_PER_S:   # v57: the next gem's item, for the second-pickup credit
+    next_item=None;next_rate=None
+    pad_after=None
+    if after is not None and getattr(engine,'pad_arrival',False):
+        # 2026-10-21 pad arrival: the second-gem credit when the next gem is a low pad right behind this one
+        from nav.marble_dynamics.pad_hops import pad_next,PAD_NEXT_U_PER_S
+        try:pad_after=pad_next(engine,gem,after)
+        except Exception:pad_after=None
+        if pad_after is not None:next_rate=PAD_NEXT_U_PER_S
+    if after is not None and (_gem_demo.NEXT_PICKUP_U_PER_S or next_rate):   # v57: the next gem's item, for the second-pickup credit
         next_item=next((i for i in dynamics.get('items',[]) if i['gem'] and np.linalg.norm(np.asarray(i['position'])-after[1])<.1),None)
     cost,close,pickup=candidate_cost(route,states,gem,routed,item,after,
-                                     native=rollout.get('native_states'),detail=detail,next_item=next_item)
+                                     native=rollout.get('native_states'),detail=detail,next_item=next_item,next_rate=next_rate)
     presses=jump_presses(rollout.get('proposed') or [])
     if presses and JUMP_COST_U and not getattr(engine,'crossing_phase',False) and float(gem[2])-float(states[0]['position'][2])<JUMP_FREE_RISE_U:
         # v51 (operator: "jumping too much and stumbling around when collecting tight clusters"): a jump is charged
         # unless the gem is up high, so a jump plan wins only when it is clearly faster (v49 clusters: 73 % of the
         # jumps with the gem < 0.5 u above the marble; the end-speed penalty made a jump plan win every tie)
         cost+=JUMP_COST_U*presses
+    penalty,penalty_why=cluster_penalty(engine,dynamics,gem,rollout,label,pickup,after,item) if routed else (0.,None)
+    cost+=penalty
     tail=states[-4:]
     supported,stable,normal_speed=terminal_support(engine.mesh,tail)
     reason=None
@@ -326,6 +409,7 @@ def assess(engine,route,dynamics,gem,rollout,label,target_item=None,routed=True,
                 continuation_s=min(3,len(states)-1)*.064,possible_pickup_interval=pickup,
                 ambiguous_intervals=rollout['ambiguous_intervals'],failure=rollout['failure'])
     if 'post_u' in detail:info['through_post_u']=float(detail['post_u'])
+    if penalty_why:info['cluster_penalty']=dict(penalty_why,u=round(penalty,2))
     stopping_replies=getattr(engine,'terminal_stop_replies',0)
     stopping_scope=getattr(engine,'terminal_stop_scope','all')
     needs_stop=stopping_scope=='all' or pickup is not None or not routed
@@ -530,6 +614,15 @@ def search(engine,route,dynamics,raw,gem,navigator,horizon=40,warm=None,brake_re
             if arrive is not None:
                 specs+=[('through_corner',SequenceProposal(route,gem,steps,through=through,arrive=arrive)),
                         ('direct_through_corner',SequenceProposal(route,gem,steps,direct=True,through=through,arrive=arrive))]
+            if getattr(engine,'pad_arrival',False):
+                # 2026-10-21 pad arrival (operator: the marble smacks into the pad instead of jumping): when the gem after this
+                # one sits on a low pad close behind it, arrive at the hop speed for that distance so the hop can launch here
+                from nav.marble_dynamics.pad_hops import hop_arrival_speed,pad_next,ThroughHopProposal
+                try:hv=hop_arrival_speed(engine,gem,through);_pn=pad_next(engine,gem,through)
+                except Exception:hv=None;_pn=None
+                if hv is not None and _pn is not None:
+                    specs+=[('through_hop',ThroughHopProposal(route,gem,steps,through,hv,_pn[0])),
+                            ('direct_through_hop',ThroughHopProposal(route,gem,steps,through,hv,_pn[0],direct=True))]
     for top in FAST_TOPS:
         fast=top if FAST_PROPOSALS else None
         specs+=[('fast_'+str(int(top)),SequenceProposal(route,gem,steps,fast=fast)),
@@ -548,7 +641,7 @@ def search(engine,route,dynamics,raw,gem,navigator,horizon=40,warm=None,brake_re
         # replies after it while rising, direct aim, half-throttle variants) go first, as for a climb crossing
         climbing=True
     jump_times=(0,2,4,6,8,10,12) if climbing else (0,2,5,9)
-    if getattr(engine,'pad_hops',True):
+    if getattr(engine,'pad_hops',False):
         from nav.marble_dynamics.pad_hops import blast_gated as _bg
         try:engine._pad_gate_now=_bg(engine,gem,dynamics['native']['state'])
         except Exception:engine._pad_gate_now=False
@@ -556,11 +649,17 @@ def search(engine,route,dynamics,raw,gem,navigator,horizon=40,warm=None,brake_re
     for jump in jump_times:
         specs.append(('jump_'+str(jump),SequenceProposal(route,gem,steps,jump=jump)))
         specs.append(('direct_jump_'+str(jump),SequenceProposal(route,gem,steps,jump=jump,direct=True)))
-    if getattr(engine,'pad_hops',True) and not getattr(engine,'crossing_phase',False):
-        # 2026-10-21 (operator: cluster collection): a gem on a raised pad is always a jump; jump when the gem is one
-        # descending-arc hop ahead at a slow steady speed, so the marble comes down onto it (nav/marble_dynamics/pad_hops.py)
+    if getattr(engine,'pad_arrival',False) and not getattr(engine,'crossing_phase',False):
+        # 2026-10-21 pad arrival: at a pad gem itself, the timed hop (descend onto the gem) as a candidate
         from nav.marble_dynamics.pad_hops import hop_specs
         try:specs+=hop_specs(engine,route,gem,steps,through,dynamics['native']['state'])
+        except Exception:pass
+    if getattr(engine,'pad_hops',False) and not getattr(engine,'crossing_phase',False):
+        # 2026-10-21 (operator: plan the whole spawn): chain plans through 3-4 gems of the target's spawn in several
+        # orders (nearest, straight, aligned, sweep, top-down, rows) at steady speeds, hopping pad gems; scored by every
+        # gem the forecast collects (spawn_plans.chain_score). nav/marble_dynamics/spawn_plans.py
+        from nav.marble_dynamics.spawn_plans import chain_specs
+        try:specs+=chain_specs(engine,route,dynamics,gem,gem_item,steps,through)
         except Exception:pass
     if LATE_JUMPS and not climbing and late_raised(dynamics['native']['state']['position'],gem):
         # 2026-10-16 (operator: "it goes until it hits a wall and only then jumps and blasts"): toward a raised gem the
@@ -597,7 +696,7 @@ def search(engine,route,dynamics,raw,gem,navigator,horizon=40,warm=None,brake_re
             specs.append(('use_'+str(use)+'_jump_'+str(jump),SequenceProposal(route,gem,use_steps,use=use,jump=jump)))
             specs.append(('direct_use_'+str(use)+'_jump_'+str(jump),SequenceProposal(route,gem,use_steps,use=use,jump=jump,direct=True)))
     _pad_gate=False
-    if getattr(engine,'pad_hops',True):
+    if getattr(engine,'pad_hops',False):
         # 2026-10-21: no Blast for a low pad gem close by (a jump reaches it; 32 of 52 Blasts gained under 1 u)
         from nav.marble_dynamics.pad_hops import blast_gated
         try:_pad_gate=blast_gated(engine,gem,dynamics['native']['state'])
@@ -669,7 +768,7 @@ def search(engine,route,dynamics,raw,gem,navigator,horizon=40,warm=None,brake_re
         if detour_first is None:detour_first=blasts[-1][0] if blasts else None
     if getattr(engine,'_light_search',False):
         # order-choice alternatives: a few basic plans and the racing lines (no navigator, Blast, powerup or landing families)
-        keep={'route','direct','through','direct_through','through_0.7','steering_-0.5','steering_0.5','jump_2','direct_jump_2','line2','line3'}
+        keep={'route','direct','through','direct_through','through_0.7','steering_-0.5','steering_0.5','jump_2','direct_jump_2','line2','line3','through_hop','direct_through_hop'}   # 2026-10-21 pad arrival: the order choice sees the hop arrival too
         specs=[sp for sp in specs if sp[0] in keep];navigator_spec=None
     if getattr(engine,'interleave_candidates',False):specs=interleave_specs(specs)
     if navigator_spec is None:pass
@@ -722,10 +821,11 @@ def search(engine,route,dynamics,raw,gem,navigator,horizon=40,warm=None,brake_re
         # lip landing candidate to the deadline and the round, -19, with no wall plan chosen)
         # v12 wall rebounds (operator demo 2026-10-21): run into a wall with the target behind/beside, jump a marble-length
         # before contact, rebound back up onto the ledge. Wall faces from the mesh; the forecast and the climb gate judge.
-        from nav.marble_dynamics.edge_hits import wall_candidates,wall_hit_proposal,WALL_TRIGGER_U,WALL_SPEEDS
+        from nav.marble_dynamics.edge_hits import wall_candidates,wall_hit_proposal,WALL_TRIGGER_U,WALL_SPEEDS,WALL_FAST_ONLY_RISE_U,WALL_CLIMB_TRIGGER_U,WALL_CLIMB_SPEEDS
         _st=dynamics['native']['state']
         try:walls=wall_candidates(engine,_st['position'],gem,route=route,velocity=_st['velocity']) if getattr(engine,'wall_rebounds',True) else []
         except Exception:walls=[]
+        if walls and not any(float(w.get('rise',0.))>=WALL_FAST_ONLY_RISE_U for w in walls):walls=walls[:1]   # 2026-10-22: one wall unless a climb is on offer
         if walls:
             nroute=cached_route(route.terrain,gem)
             _di=getattr(engine,'decision_index',0);_recent=[(i,np.asarray(q,dtype=float)) for i,q in getattr(engine,'edge_recent',[]) if _di-i<EDGE_RETRY_DECISIONS]
@@ -738,8 +838,9 @@ def search(engine,route,dynamics,raw,gem,navigator,horizon=40,warm=None,brake_re
                 if not math.isfinite(leg):leg=float(np.linalg.norm(np.asarray(gem[:2])-wp[:2]))
                 ctx=(nroute,np.asarray(gem[:3],dtype=float),leg);wroute=cached_route(route.terrain,wp)
                 box=[float(wp[0])-1.2,float(wp[1])-1.2,float(wp[2])-.8,float(wp[0])+1.2,float(wp[1])+1.2,float(wp[2])+3.5]
-                for spd in WALL_SPEEDS:   # v13: two approach speeds (short and long rebound), with and without the jump
-                  for trig in WALL_TRIGGER_U:
+                _climb=float(w.get('rise',0.))>WALL_FAST_ONLY_RISE_U
+                for spd in (WALL_CLIMB_SPEEDS if _climb else WALL_SPEEDS):   # 2026-10-22: a climb needs the fast run and the later launch
+                  for trig in (WALL_CLIMB_TRIGGER_U if _climb else WALL_TRIGGER_U):
                     wsp=wall_hit_proposal(SequenceProposal,wroute,wp,steps,ctx,trig,fast=spd);wsp.box=box
                     wsp._edge_lip_z=float(gem[2]);wsp._edge_lip=[float(x) for x in wp]   # the climb gate: reach the target's height
                     specs.append(('edge_hit_wall%d_rebound_%g_s%g'%(k,trig,spd),wsp))
@@ -806,6 +907,7 @@ def search(engine,route,dynamics,raw,gem,navigator,horizon=40,warm=None,brake_re
                 pairs.append((dict(label=label,rejected='unsupported_proposal',failure=str(exc),cost=math.inf),None));continue
             info=assess(engine,route,dynamics,gem,rollout,label,target_item)
             edge_climb(proposal,label,info,rollout)
+            chain_score(proposal,label,info,rollout,dynamics)
             info.update(evaluated_replies=len(rollout['controls']),requested_replies=rollout['requested_replies'],
                         stopped_on_ambiguity=rollout['stopped_on_ambiguity'])
             if 'use' in label and rollout['requested_replies']>steps and info['rejected'] is None and info['possible_pickup_interval'] is None:
@@ -820,6 +922,12 @@ def search(engine,route,dynamics,raw,gem,navigator,horizon=40,warm=None,brake_re
             pickup_landing=int(getattr(engine,'pickup_landing_replies',0) or 0)
             collects=info.get('possible_pickup_interval') is not None
             extend=(landing_replies or (pickup_landing and collects)) and info['rejected']=='no_supported_continuation'
+            if (not extend and '_wall' in label and landing_replies and info['rejected'] is None
+                    and abs(float(rollout['states'][-1]['velocity'][2]))>WALL_AIRBORNE_VZ):
+                # 2026-10-22 wall climbs: a rebound still in the air at the horizon (the run-up to the wall takes most of
+                # it) passes the support gate on the deck below it and was scored mid-flight, 2-4 u short of where it
+                # lands: let it land like every other plan of a staged crossing.
+                extend=True
             if (not extend and label.startswith('edge_hit') and pickup_landing and info['rejected']=='no_supported_continuation'):
                 # 2026-10-21 edge hits: a timed jump onto a lip is still in flight or settling at the horizon far more often
                 # than a rolling plan (223 of 562 candidates in the climb-leg probe); let it land and be judged like a
@@ -835,10 +943,19 @@ def search(engine,route,dynamics,raw,gem,navigator,horizon=40,warm=None,brake_re
                 landed=predict_replies(engine,dynamics,LandingContinuation(rollout['proposed'],route,gem,replies),stop_on_ambiguity=True)
                 checked=assess(engine,route,dynamics,gem,landed,label+'_landing',target_item)
                 edge_climb(proposal,label,checked,landed)
+                chain_score(proposal,label,checked,landed,dynamics)
                 checked.update(proposal_replies=len(rollout['proposed']),landing_replies=replies,pickup_only_landing=not landing_replies,
                                evaluated_replies=len(landed['controls']),requested_replies=landed['requested_replies'],
                                stopped_on_ambiguity=landed['stopped_on_ambiguity'],
                                forecast_s=(len(landed['states'])-1)*.064)
+                if ((getattr(engine,'time_price',False) or (getattr(engine,'crossing',None) or {}).get('wall'))
+                        and checked.get('possible_pickup_interval') is None and math.isfinite(checked.get('cost',math.inf))):
+                    # 2026-10-22 step 2a: an extended forecast (landing continuation, crossing phase) without a pickup pays
+                    # for its replies beyond the horizon at the time price, so a 5.6 s plan no longer beats a 3 s plan on
+                    # end distance alone (first seen on a staged wall climb: WALL_TIME_RATE_U_S; now every such plan)
+                    rate=_gem_demo.TIME_PRICE_U_S if getattr(engine,'time_price',False) else WALL_TIME_RATE_U_S
+                    extra=max(0,len(landed['states'])-1-steps)*.064*rate
+                    checked['cost']+=extra;checked['wall_time_penalty_u']=extra
                 pairs.append((checked,landed))
                 if ballistic and collects and checked['rejected']=='no_supported_continuation':
                     # v21 (2026-10-15): a plan that COLLECTS the gem and is still in
@@ -1290,12 +1407,21 @@ def edge_ahead(mesh,state,horizon_s=1.0,step_s=0.1,depth=4.0):
 
 
 
+WALL_AIRBORNE_VZ=.5      # 2026-10-22: a wall-climb plan ending with more vertical speed than this is still flying: extend it to its landing
+WALL_TIME_RATE_U_S=8.    # 2026-10-22: time price (u per s) of replies beyond the horizon for plans toward a staged wall climb's landing
 EDGE_CLIMB_SLACK_U=.35   # v6: an edge-hit plan must bring the marble centre to within this of the lip height
 EDGE_RETRY_DECISIONS=48  # v9: a lip attempted this recently (3 s) while the marble is still below it is not offered again
 WALL_RETRY_DECISIONS=32  # v16: a wall first attempted longer ago than this (2 s: approach + flight) is not offered again within the 3 s window
 WALL_RETAIN_REPLIES=24   # v18: a wall plan is kept at most this long (1.5 s: approach + hit); then a fresh search
 WALL_LOCK_MAX_REPLIES=30 # v21: the wall lock covers at most this many replies (approach + contact)
 WALL_COST_MARGIN_U=2.    # v18: a wall plan must beat the field by this (wall4: 52 of 76 wall choices were one-decision ties, median 0.5 u)
+
+def chain_score(proposal,label,info,rollout,dynamics):
+    """2026-10-21 spawn plans: a ChainProposal is scored by every gem its forecast collects (spawn_plans.chain_score)."""
+    if not label.startswith('chain_'):return
+    from nav.marble_dynamics.spawn_plans import chain_score as _cs
+    _cs(proposal,label,info,rollout,dynamics)
+
 
 def edge_climb(proposal,label,info,rollout):
     """v6 (2026-10-21): an edge-hit candidate that never reaches its lip is a wasted jump, not a climb: reject it.

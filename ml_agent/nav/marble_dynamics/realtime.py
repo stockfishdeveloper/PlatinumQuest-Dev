@@ -144,7 +144,12 @@ class World:
         engine.pickup_stop = getattr(a, 'pickup_stop', False)
         engine.edge_hits = getattr(a, 'edge_hits', False)
         engine.wall_rebounds = getattr(a, 'wall_rebounds', True)
-        engine.pad_hops = getattr(a, 'pad_hops', True)
+        engine.pad_hops = getattr(a, 'pad_hops', False)
+        engine.resource_cap = getattr(a, 'resource_cap', True)
+        engine.time_price = getattr(a, 'time_price', False)
+        from nav.marble_dynamics import gem_demo as _gd; _gd.set_time_price(engine.time_price)
+        if engine.time_price: engine.ballistic_time_rate = _gd.TIME_PRICE_U_S
+        engine.pad_arrival = getattr(a, 'pad_arrival', True)
         a.geometry_terrain = cached_walking(terrain, mesh, a.sweep_dll, a.cache_dir, memo=a.clearance_cache)
         engine.native_sim.bind_clearance(a.geometry_terrain)
         engine.ballistic_landing = getattr(a, 'ballistic_landing', False)
@@ -692,6 +697,7 @@ def play_round(env, world, journal_folder):
             journal.write(json.dumps(dict(tick=tick, action=list(map(float, action)), held_s=round(held_s, 4),
                                           gem_delta=outcome['gem_delta'], fell=outcome['fell'],
                                           time_left_s=env.time_left_s(),
+                                          pos=[round(float(x), 3) for x in np.asarray(msg.obs[0:6], dtype=float)],   # 2026-10-21: position + velocity for the audits
                                           label=planner.last_label if playing else 'countdown')) + '\n')
             if outcome['round_ended'] or outcome['reconnected']:
                 stop = 'round_end' if outcome['round_ended'] else 'reconnected'

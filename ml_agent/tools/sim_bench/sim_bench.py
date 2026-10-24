@@ -148,7 +148,12 @@ def setup(a, name):
     engine.pickup_stop = getattr(a, 'pickup_stop', False)
     engine.edge_hits = getattr(a, 'edge_hits', False)
     engine.wall_rebounds = getattr(a, 'wall_rebounds', True)
-    engine.pad_hops = getattr(a, 'pad_hops', True)
+    engine.pad_hops = getattr(a, 'pad_hops', False)
+    engine.resource_cap = getattr(a, 'resource_cap', True)
+    engine.time_price = getattr(a, 'time_price', False)
+    from nav.marble_dynamics import gem_demo as _gd; _gd.set_time_price(engine.time_price)
+    if engine.time_price: engine.ballistic_time_rate = _gd.TIME_PRICE_U_S
+    engine.pad_arrival = getattr(a, 'pad_arrival', True)
     a.geometry_terrain = cached_walking(terrain, mesh, a.sweep_dll, a.cache_dir, memo=a.clearance_cache)
     engine.ballistic_landing = getattr(a, 'ballistic_landing', False); engine.ballistic_reserve_s = getattr(a, 'ballistic_reserve_s', 0.)
     engine.opportunistic_powerups = getattr(a, 'opportunistic_powerups', 0.)
@@ -277,6 +282,8 @@ def episode(a, terrain, engine, rec, nxt=None):
                                   model=ctrl.nav.model, crossings=engine.crossings, contact_order=getattr(engine, 'contact_order', None)))
     raw = raw0.copy(); msg = Msg(raw, d)
     picks = []; points = 0.; removed = []; pw_removed = []; labels = Counter(); why = 'cap'; t = 0; cap = int(o.cap_s / .064)
+    tick_v = []; drops = 0; drop_watch = None   # 2026-10-23: executed side impacts and ledge drops (search.side_impacts rule)
+    hist = []; impact_by = Counter()   # (label family, predicted side impacts) of the chosen plans; executed impacts by the plan 2 decisions back
     target = sum(1 for it in d.get('items', []) if it.get('gem')) if o.whole_group else o.pickups
     if o.endgame:
         cap = max(1, int(float(raw0[31]) / 64.)); target = 10 ** 6   # run until the round's clock reaches zero
@@ -290,10 +297,12 @@ def episode(a, terrain, engine, rec, nxt=None):
         before = raw.copy()
         action, info = ctrl.action(msg, remaining)
         labels[fam(info.get('label'))] += 1
+        hist.append((fam(info.get('label')), int(((info.get('cluster_penalty') or {}).get('side_impacts')) or 0)))
         if o.trace:
             st0 = d['native']['state']; et = getattr(terrain, 'edge_dist', None)
             print('   t %5.2f %-26s reason=%-22s v=%5.2f pos=%s z=%.2f pk=%s' % (t * .064, str(info.get('label'))[:26], str(info.get('reason'))[:22],
-                  float(np.linalg.norm(np.asarray(st0['velocity'])[:2])), np.round(st0['position'][:2], 1).tolist(), st0['position'][2], info.get('possible_pickup_interval')), flush=True)
+                  float(np.linalg.norm(np.asarray(st0['velocity'])[:2])), np.round(st0['position'][:2], 1).tolist(), st0['position'][2], info.get('possible_pickup_interval')),
+                  info.get('cluster_penalty') or '', flush=True)
         engine.planning_deadline = None
         try:
             roll = predict_replies(engine, d, [action])
@@ -303,6 +312,15 @@ def episode(a, terrain, engine, rec, nxt=None):
             why = 'sim_failure'; break
         blasts += sum(1 for c in roll.get('controls', []) for e in c.get('script_events', []) if e.get('kind') == 'blast_impulse')
         nd = resume(d, roll); st = nd['native']['state']
+        _P, _V = S._tick_arrays(roll['native_states'])
+        if _V is not None:
+            seg = np.asarray(([tick_v[-1]] if tick_v else []) + _V[(1 if tick_v else 0):].tolist(), dtype=float)
+            tick_v.extend(_V[(1 if tick_v else 0):].tolist())
+            if len(seg) > 1:
+                h_ = np.hypot(seg[:, 0], seg[:, 1]); hit_ = ((h_[:-1] - h_[1:]) > S.BUMP_TICK_DV) & (np.hypot(seg[1:, 0] - seg[:-1, 0], seg[1:, 1] - seg[:-1, 1]) > np.abs(seg[1:, 2] - seg[:-1, 2]))
+                if hit_.any():
+                    src = hist[-3] if len(hist) >= 3 else hist[0]
+                    impact_by[src[0] + (' (predicted)' if src[1] else ' (unpredicted)')] += 1
         gained = 0.; keep = []
         for it in nd.get('items', []):
             # the world's pickups are the game's own per-tick test, whatever the planner's switch (10-16: the reply box
@@ -319,6 +337,13 @@ def episode(a, terrain, engine, rec, nxt=None):
             else:
                 keep.append(it)
         nd['items'] = keep; points += gained
+        if gained > 0:
+            mz = float(st['position'][2]); mp_ = np.asarray(st['position'][:2], dtype=float)
+            lv = [float(it['position'][2]) for it in keep if it.get('gem') and np.linalg.norm(np.asarray(it['position'][:2], dtype=float) - mp_) < 20.
+                  and mz - 1.5 <= float(it['position'][2]) <= mz + 1.]
+            drop_watch = max(lv) if lv else None
+        elif drop_watch is not None and float(st['position'][2]) < drop_watch - S.LEDGE_DROP_DZ:
+            drops += 1; drop_watch = None
         fell = bool(engine.mission_bounds is not None and fully_outside_inbounds(st, engine.mission_bounds))
         raw = project_observation(raw0, p0, st, t + 1 - t_base)
         g = raw[RAW_GEMS].reshape(5, 5); pos = np.asarray(st['position'], dtype=float)
@@ -356,7 +381,12 @@ def episode(a, terrain, engine, rec, nxt=None):
         if not any(it.get('gem') for it in nd['items']):
             why = 'done' if o.whole_group else 'no_gems'; break
     # 2026-10-19: where the episode ended and the gems at its start (the expected trip to the next group, scratchpad cmp_lastgem.py)
-    return dict(t_s=t * .064, picks=picks, points=points, why=why, labels=dict(labels), mean_speed=float(np.mean(speeds)) if speeds else 0.,
+    V_ = np.asarray(tick_v, dtype=float); impacts = 0
+    if len(V_) > 2:
+        h = np.hypot(V_[:, 0], V_[:, 1]); dh = h[:-1] - h[1:]
+        dvh = np.hypot(V_[1:, 0] - V_[:-1, 0], V_[1:, 1] - V_[:-1, 1]); dvz = np.abs(V_[1:, 2] - V_[:-1, 2])
+        hit = (dh > S.BUMP_TICK_DV) & (dvh > dvz); impacts = int(np.count_nonzero(hit[1:] & ~hit[:-1]) + int(bool(hit[0])))
+    return dict(t_s=t * .064, picks=picks, points=points, why=why, labels=dict(labels), side_impacts=impacts, ledge_drops=drops, impact_by=dict(impact_by), mean_speed=float(np.mean(speeds)) if speeds else 0.,
                 fallback=int(ctrl.counts.get('fallback_decisions', 0)), safe_holds=int(ctrl.counts.get('safe_holds', 0)),
                 searches=int(ctrl.counts.get('full_searches', 0)), blasts=blasts,
                 end=[float(x) for x in d['native']['state']['position']], end_vel=[float(x) for x in d['native']['state']['velocity']],

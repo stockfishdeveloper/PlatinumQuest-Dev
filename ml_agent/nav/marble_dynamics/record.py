@@ -59,7 +59,7 @@ def command(env, text, ack=None):
 
 
 @contextmanager
-def game(name, port, obs_ms=16, seed=None, process_cap=None, random_start=False, watch=False):
+def game(name, port, obs_ms=16, seed=None, process_cap=None, random_start=False, watch=False, freecam=True):
     RUNTIME.mkdir(parents=True,exist_ok=True)
     exe=ROOT/'Marble Blast Platinum/marbleblast_geometry_probe.exe'
     env=HuntEnv(port,speed=3,log=lambda s: print(s,flush=True))
@@ -82,7 +82,7 @@ def game(name, port, obs_ms=16, seed=None, process_cap=None, random_start=False,
         if random_start:
             if seed is None:raise ValueError('Randomized Hunt opening requires an explicit seed')
             arguments+=['-airandomstart']
-        if watch:arguments+=['-aifreecam']
+        if watch and freecam:arguments+=['-aifreecam']   # 2026-10-22: freecam=False = a visible window with the normal camera (human hand-off)
         if process_cap is None:
             proc=subprocess.Popen(arguments,cwd=str(exe.parent),startupinfo=startup,stdout=log,stderr=log)
         else:

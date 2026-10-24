@@ -56,7 +56,10 @@ def walk_distances(terrain,position,goals):
     return out
 
 
-def choose_resource(engine,route,dynamics,raw,gem,navigator,horizon=80,brake_replies=48,preserve_resources=False):
+def choose_resource(engine,route,dynamics,raw,gem,navigator,horizon=80,brake_replies=48,preserve_resources=False,max_distance=None):
+    """`max_distance` (2026-10-22): items farther than this (walking distance) are not fetched. The ledger over 80 rounds:
+    powerup goals took 5-35 s a round; 114 fetches were farther than the nearest gem (Bowl: a Helicopter 161 u away
+    right after a pickup, 10 s out and 10 s back, in every Bowl round)."""
     position=np.asarray(dynamics['native']['state']['position'])
     held=int(dynamics['native']['state']['held'])
     items=[i for i in dynamics.get('items',[]) if not i['gem'] and 1<=i['powerup']<=5 and i['powerup']!=held]
@@ -87,6 +90,7 @@ def choose_resource(engine,route,dynamics,raw,gem,navigator,horizon=80,brake_rep
     ordered=list(zip(distances,useful))
     ordered.sort(key=lambda pair:pair[0])
     for distance,item in ordered:
+        if max_distance is not None and not (distance<=max_distance):continue
         check_budget(engine)
         goal=item_goal(item,position);route.navigate(position,goal[:3]);start=route.distance(position)
         chosen,pairs=search(engine,route,dynamics,raw,goal[:3],navigator,40,brake_replies=brake_replies,target_item=item)

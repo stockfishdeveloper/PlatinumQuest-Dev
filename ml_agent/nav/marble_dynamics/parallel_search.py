@@ -130,12 +130,14 @@ def evaluate_candidate(engine, route, dynamics, gem, label, proposal, target_ite
     """The serial search loop's body for one candidate (search.search), without the deadline: the main forecast and
     score, the landing continuation, the brake tail. Returns a dict the parent merges in the serial order."""
     from nav.marble_dynamics.bridge import predict_replies
-    from nav.marble_dynamics.search import assess, LandingContinuation, BrakeContinuation
+    from nav.marble_dynamics.search import assess, LandingContinuation, BrakeContinuation, edge_climb, chain_score
     try:
         rollout = predict_replies(engine, dynamics, proposal, stop_on_ambiguity=True)
     except ValueError as exc:
         return dict(kind='unsupported', pair=(dict(label=label, rejected='unsupported_proposal', failure=str(exc), cost=math.inf), None))
     info = assess(engine, route, dynamics, gem, rollout, label, target_item)
+    # 2026-10-21: the same post-assess hooks as the serial loop (edge-hit climb gate / wall margin; spawn-chain scoring)
+    edge_climb(proposal, label, info, rollout); chain_score(proposal, label, info, rollout, dynamics)
     info.update(evaluated_replies=len(rollout['controls']), requested_replies=rollout['requested_replies'],
                 stopped_on_ambiguity=rollout['stopped_on_ambiguity'])
     if 'use' in label and rollout['requested_replies'] > steps and info['rejected'] is None and info['possible_pickup_interval'] is None:
@@ -150,6 +152,7 @@ def evaluate_candidate(engine, route, dynamics, gem, label, proposal, target_ite
         replies = landing_replies or pickup_landing
         landed = predict_replies(engine, dynamics, LandingContinuation(rollout['proposed'], route, gem, replies), stop_on_ambiguity=True)
         checked = assess(engine, route, dynamics, gem, landed, label + '_landing', target_item)
+        edge_climb(proposal, label, checked, landed); chain_score(proposal, label, checked, landed, dynamics)
         checked.update(proposal_replies=len(rollout['proposed']), landing_replies=replies, pickup_only_landing=not landing_replies,
                        evaluated_replies=len(landed['controls']), requested_replies=landed['requested_replies'],
                        stopped_on_ambiguity=landed['stopped_on_ambiguity'], forecast_s=(len(landed['states']) - 1) * .064)

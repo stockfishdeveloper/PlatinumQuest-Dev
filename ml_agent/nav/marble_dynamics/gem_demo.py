@@ -25,7 +25,9 @@ from nav.routing import RoutePlanner
 from nav.terrain import TerrainGrid,TerrainMap
 
 
-TARGET_SPEED_CAP=11.     # u/s top target speed. v26 (13.5) tied v23 on 30 rounds (103.9 vs 103.8) with falls 51 vs 32: +20 Sprawl,
+TARGET_SPEED_CAP=11.     # u/s top target speed (the reliability_eval --speed-cap default sets it at launch). 2026-10-22 step C: 13.5 with
+                         # TRAVEL_TOP 16 was 2.6 percent faster in the sim but tied in game (pair speed1, 40 rounds an arm: 128.65 vs
+                         # 128.80; Sprawl +11.5, Cube +4.5 but Duplex -12.5, TreasureBox -7.5); not kept. v26 (13.5) tied v23 on 30 rounds (103.9 vs 103.8) with falls 51 vs 32: +20 Sprawl,
                          # +13 Fractured, +9 Bowl but -19 Cube, -17 Concentric (edge maps); kept at 11 (2026-10-15)
 BRAKE_DECEL=7.           # u/s^2 assumed for the stopping-distance law
 THROTTLE_GAIN=4.         # v23 (2026-10-15): u/s^2 of commanded acceleration per unit of stick (throttle = |accel| / gain);
@@ -110,8 +112,14 @@ def possible_pickup(states,item,native=None):
     return None
 
 
+THROUGH_DETOUR_FIX=False  # 2026-10-21: straight-line through credit when the walk leg detours; OFF by default (credit1 pair 23:03: 127.7 vs 130.6 with it on); --through-detour-credit enables
+THROUGH_DETOUR_RATIO=2.   # 2026-10-21: the through credit uses straight-line progress when the walk leg to the next gem exceeds this x straight ...
+THROUGH_DETOUR_SLACK_U=1. # ... plus this (the grid detours around a jumpable pad)
 THROUGH_EVAL_REPLIES=24   # v22: post-pickup progress toward the next gem is read at this reply (the planner horizon)
-PICKUP_TIME_WEIGHT=4.     # 2026-10-17 v51 tried 8 (with the jump cost): 118.0 vs 120.0, not adopted. u of cost per second of pickup delay (was 4: one second = 4 u of position, i.e. a 4 u/s
+TIME_PRICE_U_S=10.        # 2026-10-22 step 2a (docs/POINTS_PLAN_2026-10-22.md): a second of plan time costs this many u, the measured
+                          # cruise speed; the ledger showed time priced at 4 u/s while the marble travels 10-13 u/s, so slower
+                          # plans that end a little nearer kept winning. set_time_price() switches it (control --no-time-price)
+PICKUP_TIME_WEIGHT=4.     # (10 with time price, OFF by default since 2026-10-22 19:15: tp1+tp2 128.40 on vs 129.15 off) # 2026-10-17 v51 tried 8 (with the jump cost): 118.0 vs 120.0, not adopted. u of cost per second of pickup delay (was 4: one second = 4 u of position, i.e. a 4 u/s
                           # marble; it moves 6-11 u/s, so 'end nearer / slower' outweighed 'collect sooner' in tight clusters)
 NEXT_PICKUP_U_PER_S=0.    # 2026-10-17 v57 (operator: tight clusters quicker): a plan that also collects the tour's next gem by
                           # THROUGH_EVAL_REPLIES scores full progress to it plus this many u per second of that pickup before
@@ -123,7 +131,7 @@ END_VELOCITY_WEIGHT=.12   # u per u/s of end speed (penalty). v17 tried -0.3 (cr
                           # slow: 'accelerate_then_brake' won 423 of 2877 KOTM decisions on v16.
 
 
-def candidate_cost(route,states,gem,routed,item,after=None,native=None,detail=None,next_item=None):
+def candidate_cost(route,states,gem,routed,item,after=None,native=None,detail=None,next_item=None,next_rate=None):
     """`native`: the forecast's 16 ms tick states (pickup test); `detail`: a dict that receives 'post_u', the
     post-pickup progress term (u farther from the next gem than the collected one, read at THROUGH_EVAL_REPLIES)."""
     end=states[-1]
@@ -146,13 +154,20 @@ def candidate_cost(route,states,gem,routed,item,after=None,native=None,detail=No
             here=np.asarray(gem[:3],dtype=float);post=0.;speed=float(np.linalg.norm(end['velocity']))
             if pickup<=j:
                 s=states[j];p=np.asarray(s['position'],dtype=float);d=float(nroute.distance(p))
-                if math.isfinite(d):post=(d+.20*float(np.linalg.norm(p-ngem)))-(leg+.20*float(np.linalg.norm(here-ngem)))
-                else:post=1.2*(float(np.linalg.norm(p-ngem))-float(np.linalg.norm(here-ngem)))
+                straight=float(np.linalg.norm(here-ngem))
+                if math.isfinite(d) and (not THROUGH_DETOUR_FIX or leg<=THROUGH_DETOUR_RATIO*straight+THROUGH_DETOUR_SLACK_U):
+                    post=(d+.20*float(np.linalg.norm(p-ngem)))-(leg+.20*straight)
+                else:
+                    # 2026-10-21 23:10: the walking grid detours around jumpable pads (adjacent cluster gems: leg 10-17 u for
+                    # 2 u), and a marble ON a pad has no route distance; the route form then rewards stopping at the pad
+                    # wall (~-15) over standing on the pad (~-2). Straight-line progress for every plan of such a pair.
+                    post=1.2*(float(np.linalg.norm(p-ngem))-straight)
                 speed=float(np.linalg.norm(s['velocity']))
-                if next_item is not None and NEXT_PICKUP_U_PER_S:
+                rate=NEXT_PICKUP_U_PER_S if next_rate is None else next_rate   # 2026-10-21 pad arrival: per-call rate
+                if next_item is not None and rate:
                     second=possible_pickup(states,next_item,native)
                     if second is not None and second<=j:
-                        post=-(leg+.20*float(np.linalg.norm(here-ngem)))-(j-max(second,pickup))*.064*NEXT_PICKUP_U_PER_S
+                        post=-(leg+.20*float(np.linalg.norm(here-ngem)))-(j-max(second,pickup))*.064*rate
                         if detail is not None:detail['next_pickup']=second
                 if detail is not None:detail['post_u']=post
             cost=post+END_VELOCITY_WEIGHT*speed-100.+pickup*.064*PICKUP_TIME_WEIGHT
@@ -162,6 +177,12 @@ def candidate_cost(route,states,gem,routed,item,after=None,native=None,detail=No
     pickup=possible_pickup(states,item,native) if item else next((i for i,d in enumerate(distances) if d<.55),None)
     if pickup is not None:cost-=100.;cost+=pickup*.064*PICKUP_TIME_WEIGHT
     return float(cost),min(distances),pickup
+
+
+def set_time_price(enabled):
+    """2026-10-22 step 2a: PICKUP_TIME_WEIGHT = TIME_PRICE_U_S (10) when enabled, the pre-2026-10-22 value 4 otherwise."""
+    global PICKUP_TIME_WEIGHT
+    PICKUP_TIME_WEIGHT=TIME_PRICE_U_S if enabled else 4.
 
 
 def plan(engine,route,dynamics,gem,horizon=24):

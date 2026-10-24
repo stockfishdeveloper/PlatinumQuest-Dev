@@ -169,7 +169,9 @@ def jump_replies(ahead, speed, rise, radius=.19):
     return tuple(sorted(out))
 
 
-WALL_TRIGGER_U = (0., 1.5)   # v11: jump when the lip point is this close horizontally (contact while rising fast)
+WALL_TRIGGER_U = (0., 2.)      # low rebounds: no jump, or 2 u before the wall
+WALL_CLIMB_TRIGGER_U = (2., 3.)  # climbs: jump 2-3 u before the wall (demo: 1.8 u at 16.8 u/s; sim: 2-3 u climbs, 1-1.5 u fails)
+WALL_CLIMB_SPEEDS = (16., 20.)   # climbs need the fast run (the rebound kick scales with the speed into the wall)   # v11: jump when the lip point is this close horizontally (contact while rising fast)
 WALL_FAST = 16.                    # v11: approach speed kept toward the wall (the demo hits at 12-16 u/s)
 
 
@@ -203,12 +205,15 @@ class WallHitProposal(_SequenceProposal):
 # onto the ledge: reversal at ~50-65 percent speed plus 2.5-3.5 u of height. Nothing map-specific: wall faces come from
 # the mesh, the reflection of the approach must head toward the target, the compiled physics judges the rest.
 WALL_NEAR_U = 1.0        # v17: wall point at least this far; was 2.5, which dropped every approach just before contact (wall3: 55 of 70 abandoned)
-WALL_FAR_U = 12.         # ... and at most this far
-WALL_MAX_RISE_U = 4.5    # target at most this much higher
+WALL_FAR_U = 16.         # ... and at most this far (2026-10-22 demo: the run-up to the x 118 step started 14 u out)
+WALL_CLIMB_FACE_U = 1.2  # 2026-10-22: for a climb the face top must be at least this far above the marble centre (demo wall: 1.6)
+WALL_CLIMB_RISE_U = 1.5  # 2026-10-22: a target at least this much higher is a CLIMB: the wall may lie beyond the target (run under it, rebound back up)
+WALL_MAX_RISE_U = 5.5    # target at most this much higher (2026-10-22 demo: a 16 u/s run at a wall + jump right before it climbed 4.7 u: kick +5.4 u/s on top of the jump)
+WALL_FAST_ONLY_RISE_U = 3.   # above this rise only the fast approach (16 u/s) is offered: the rebound kick scales with the speed into the wall
 WALL_MIN_RISE_U = -.5    # ... and not much lower (a rebound down is a plain roll)
 WALL_REFLECT_DEG = 70.   # the reflected approach must head within this of the target
 WALL_TARGET_BEHIND_DEG = 50.  # only when the target is NOT ahead (a straight run would do)
-WALL_MAX = 1             # v20: one wall (was 2): 4 specs a decision instead of 12 (wall6: p99 search latency 0.88 vs 0.70 s off)
+WALL_MAX = 3             # 2026-10-22: up to three walls for a CLIMB (the demo's wall ranked third: the sim climbs off it, not off the two nearer faces); the search keeps one for low rebounds
 WALL_FLIGHT_U = 5.       # v12b: the rebound lands about this far back from the wall point
 WALL_MIN_SAVING_U = 0.   # v12b: and that landing must not lengthen the walking route (v13: was 8, which left only climbs)
 WALL_SPEEDS = (11., 16.) # v13: approach speeds offered (the flight back scales with the speed in)
@@ -228,6 +233,13 @@ def wall_faces(engine):
 
 WALL_LAND_PROBES_U = (2.5, 5.)   # v15: flight distances probed for floor behind the rebound
 WALL_LAND_DROP_U = 1.2           # v15: floor may be at most this far below the start level
+
+
+def _landing_floor_z(mesh, q, r, z0):
+    """Height of the floor under the rebound's landing estimate (the long flight), or None."""
+    land = np.array([q[0] + r[0] * WALL_LAND_PROBES_U[-1], q[1] + r[1] * WALL_LAND_PROBES_U[-1], z0 + 8.])
+    hit = mesh.raycast(land, land - [0., 0., 8. + WALL_LAND_DROP_U], cull_backfaces=True)
+    return None if hit is None or hit['normal'][2] <= FLOOR_NZ else float(hit['point'][2])
 
 
 def _landing_floor(mesh, q, r, z0):
@@ -274,14 +286,16 @@ def wall_candidates(engine, position, target, max_walls=WALL_MAX, route=None, la
         zs = tri[i][:, 2]
         if float(zs.max()) < p[2] + .5:
             continue   # the face must RISE above the marble (a face below its floor is the edge of its own level: probe 1166 jumped off it)
+        if rise >= WALL_CLIMB_RISE_U and float(zs.max()) < p[2] + WALL_CLIMB_FACE_U:
+            continue   # 2026-10-22: a climb needs a wall, not a curb (the 0.6 u faces at x 106 ranked first and rebounded along the floor)
         q = np.array([q[0], q[1], float(p[2])])   # aim at the marble's own height on that face
         a = d / L
         if velocity is not None and float(np.dot(np.asarray(velocity[:2], dtype=float), a)) < WALL_MIN_APPROACH_U_S:
             continue   # v19: four pairs: 122 of 240 wall plans started moving AWAY from the wall (3.9 pts/10 s vs 5.1 toward)
         if float(np.dot(a, n[:2])) >= -.3:           # the face must face the marble
             continue
-        if float(np.dot(a, gu)) > math.cos(math.radians(WALL_TARGET_BEHIND_DEG)):
-            continue                                 # the target is ahead: no wall needed
+        if rise < WALL_CLIMB_RISE_U and float(np.dot(a, gu)) > math.cos(math.radians(WALL_TARGET_BEHIND_DEG)):
+            continue                                 # level target ahead: a straight run does it (a climb may use the wall beyond it)
         nh = n[:2] / max(float(np.linalg.norm(n[:2])), 1e-6)
         r = a - 2. * float(np.dot(a, nh)) * nh       # horizontal reflection of the approach
         tg = t[:2] - q[:2]; tgL = float(np.linalg.norm(tg))
@@ -302,8 +316,13 @@ def wall_candidates(engine, position, target, max_walls=WALL_MAX, route=None, la
             there = float(rr.distance(land))
             if not math.isfinite(there) or there > here - WALL_MIN_SAVING_U:
                 continue
-        out.append(dict(point=[float(x) for x in qq], ahead=L, rise=rise, normal=[float(x) for x in n]))
-        if len(out) >= max_walls:
-            break
-    return out
+        # 2026-10-22 ranking: does the rebound land at the TARGET's height (the climb) and head for it? (demo: the right wall
+        # was the 5th nearest; the four nearer faces rebounded along the floor)
+        land_z = _landing_floor_z(mesh, q, r, p[2])
+        height_match = 0. if land_z is None else max(0., 1. - abs(land_z - (t[2] - .2)) / 1.5)
+        align = float(np.dot(r, tg / tgL))
+        out.append(dict(point=[float(x) for x in qq], ahead=L, rise=rise, normal=[float(x) for x in n],
+                        score=2. * height_match + align - .02 * L))
+    out.sort(key=lambda w: -w['score'])
+    return out[:max_walls]
 

@@ -58,3 +58,15 @@ class PadDetection(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class PadArrival(unittest.TestCase):
+    def test_arrival_speed_before_a_pad_gem(self):
+        e = Engine(FakeMesh())
+        gem = [7.5, 10., .4]                     # a flat gem 2.5 u before the pad gem at (10, 10)
+        through = (None, [10., 10., .9], 2.5)
+        v = PH.hop_arrival_speed(e, gem, through)
+        self.assertIsNotNone(v)
+        self.assertTrue(3.5 <= v <= 4.5, v)      # 2.5 u / 0.62 s
+        self.assertIsNone(PH.hop_arrival_speed(e, gem, (None, [3., 3., .4], 5.)))   # next gem flat: no rule
+        self.assertIsNone(PH.hop_arrival_speed(e, [-2., 10., .4], (None, [10., 10., .9], 12.)))   # too far
