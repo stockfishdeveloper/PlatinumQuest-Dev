@@ -516,14 +516,16 @@ def starts(pool, name):
 def main():
     for kv in o.set:
         key, val = kv.split('=', 1); mod, attr = key.split('.')
-        module = {'gem_demo': GD, 'search': S, 'reliability_eval': RE}[mod]
+        import nav.marble_dynamics.geometry_route as GR
+        module = {'gem_demo': GD, 'search': S, 'reliability_eval': RE, 'geometry_route': GR}[mod]
         setattr(module, attr, type(getattr(module, attr))(val) if not isinstance(getattr(module, attr), bool) else val in ('1', 'True', 'true'))
     a = planner_args(o.map)
     terrain, engine = setup(a, o.map)
     EDGE_TERRAIN[0] = a.geometry_terrain
     for kv in o.set:   # re-apply after setup() (it resets the gem_demo/search globals from the planner args)
         key, val = kv.split('=', 1); mod, attr = key.split('.')
-        module = {'gem_demo': GD, 'search': S, 'reliability_eval': RE}[mod]
+        import nav.marble_dynamics.geometry_route as GR
+        module = {'gem_demo': GD, 'search': S, 'reliability_eval': RE, 'geometry_route': GR}[mod]
         setattr(module, attr, type(getattr(module, attr))(val) if not isinstance(getattr(module, attr), bool) else val in ('1', 'True', 'true'))
     if o.search_workers:
         from nav.marble_dynamics.parallel_search import ParallelEvaluator, worker_init

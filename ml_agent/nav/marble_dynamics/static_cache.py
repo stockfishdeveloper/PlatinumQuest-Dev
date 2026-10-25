@@ -169,8 +169,10 @@ class GoalFieldMemo:
 def cached_walking(terrain, mesh, dll, folder, memo=True):
     from nav.marble_dynamics.geometry_route import GroundClearance,walking_terrain
     from nav.marble_dynamics.ground_cache import MemoGroundClearance
+    import nav.marble_dynamics.geometry_route as _gr
     key=fingerprint([ML/'nav/marble_dynamics/geometry_route.py',ML/'nav/marble_dynamics/ground_cache.py'],
-        terrain=terrain.static_cache_key,mesh=mesh_key(mesh,dll),radius=.189750001)
+        terrain=terrain.static_cache_key,mesh=mesh_key(mesh,dll),radius=.189750001,
+        jump_step=(float(_gr.JUMP_STEP_U),float(_gr.JUMP_CLEAR_U),float(_gr.JUMP_EDGE_COST_U)))   # 2026-10-24: jump edges
     path=Path(folder)/('clearance_'+key+'.bin');started=time.perf_counter()
     with file_lock(path.with_suffix('.lock')):
         saved=read_cache(path,key);hit=saved is not None

@@ -125,6 +125,8 @@ NEXT_PICKUP_U_PER_S=0.    # 2026-10-17 v57 (operator: tight clusters quicker): a
                           # THROUGH_EVAL_REPLIES scores full progress to it plus this many u per second of that pickup before
                           # the reply (0 = off). Before, a plan reaching the next gem early and rolling past it scored worse
                           # than one arriving at the reply: no credit for the second pickup.
+TRAVEL_END_CREDIT=0.      # 2026-10-24: u of credit per u/s of end speed toward the gem when the plan ends TRAVEL_CREDIT_FROM_U or more
+TRAVEL_CREDIT_FROM_U=20.  # from it (trips between gem groups; inside a cluster the END_VELOCITY_WEIGHT penalty holds). 0 = off
 END_VELOCITY_WEIGHT=.12   # u per u/s of end speed (penalty). v17 tried -0.3 (credit) on 2026-10-15: KOTM/Cube lost and falls rose; kept at the pre-v17 value. Note: speed carried past the horizon is future
                           # progress (credit), not a hazard; the physics gates (support, stability, falls) keep the
                           # safety. Pre-v17 the term was +0.12 (a penalty) and the planner preferred plans that end
@@ -172,7 +174,13 @@ def candidate_cost(route,states,gem,routed,item,after=None,native=None,detail=No
                 if detail is not None:detail['post_u']=post
             cost=post+END_VELOCITY_WEIGHT*speed-100.+pickup*.064*PICKUP_TIME_WEIGHT
             return float(cost),min(distances),pickup
-    cost=(route.distance(end['position']) if routed else distances[-1])+END_VELOCITY_WEIGHT*np.linalg.norm(end['velocity'])
+    d_end=route.distance(end['position']) if routed else distances[-1]
+    cost=d_end+END_VELOCITY_WEIGHT*np.linalg.norm(end['velocity'])
+    if TRAVEL_END_CREDIT and routed and math.isfinite(d_end) and d_end>TRAVEL_CREDIT_FROM_U:
+        # 2026-10-24 (operator: "it is in absolutely no hurry to get to the next spawn"): on a long trip (the gem still
+        # TRAVEL_CREDIT_FROM_U away at the plan's end) speed carried TOWARD the gem is future progress, so it is credited
+        to=np.asarray(gem[:2],dtype=float)-np.asarray(end['position'][:2],dtype=float);nt=float(np.linalg.norm(to))
+        if nt>1e-6:cost-=TRAVEL_END_CREDIT*max(0.,float(np.asarray(end['velocity'][:2],dtype=float)@(to/nt)))
     if routed:cost+=.20*distances[-1]
     pickup=possible_pickup(states,item,native) if item else next((i for i,d in enumerate(distances) if d<.55),None)
     if pickup is not None:cost-=100.;cost+=pickup*.064*PICKUP_TIME_WEIGHT

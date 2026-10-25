@@ -13409,3 +13409,87 @@ free camera. Journal rows carry pos.
   reliability_eval --pad-arrival default ON (realtime and sim_bench fallbacks too). Sim check: defaults reproduce the
   round-5 variant bit for bit. 12:50 pool pair cp1: new defaults vs --no-cluster-penalties --no-pad-arrival, seeds
   7347019 12091843 9083321 8675309, 40 rounds an arm. Then stop and wait for the operator (1x round).
+* 2026-10-24 00:31 (session 2e) pair cp1 was lost: the machine went down about 2 minutes after the 12:50 launch (last boot
+  10-23 21:23); 4 KOTM rounds an arm finished (new defaults 141/145/147/149; the control's journals and summary are
+  corrupt). Relaunched as cp2 (same arms and seeds), 40 rounds an arm, finish about 01:45.
+* 02:08 pair cp3 (cluster penalties + pad arrival = new defaults vs --no-cluster-penalties --no-pad-arrival; seeds 7347019
+  12091843 9083321 8675309; 40 rounds an arm; two corrupt cache files from the power cut quarantined first): NEW 131.70
+  equal-map vs OLD 129.05 (+2.65; per-round sd 13.0, se 2.1; 20 rounds better, 15 worse); falls 11 vs 13. Per map:
+  Fractured +10.2, Sprawl +7.8, TreasureBox +7.2, Cragmire +5.2, Cube +5.0, KOTM +2.0, Duplex +1.8, Bowl -3.5, Vortex
+  -4.5, Concentric -4.8. Behaviour (scratchpad cp_pool_metrics.py): decisions whose chosen plan predicts a side impact
+  412 vs 1099 a round (-62 percent), ledge drops 2.98 vs 3.52 a round, Super Speed kicks for at most one gem 2.75 vs
+  3.02. KEPT (positive equal-map total; the largest gain of the 10-22 plan). Everything stopped; waiting for the
+  operator's 1x round.
+* 02:20 best real scores: no new record in cp3 (the new planner's bests are below the records; the control tied Bowl 143).
+  Seven records set 10-20..10-22 had never been entered; now in docs/BEST_REAL_SCORES_2026-10-24.csv and the canonical
+  sheet (update_best_scores_sheet.py, HISTORY_SEED + 10-20 and 10-21, read back OK): TreasureBox 205 (10-21 edge4
+  candidate), Sprawl 192 (10-21 spawn6 candidate), Bowl 143 (10-21 wall3 baseline), Concentric 131 (10-21 spawn1
+  candidate), Duplex 157 (10-22 oppo1 baseline), Cragmire 145 (10-22 tp2 baseline), Vortex 125 (2 falls; 10-22 speed1
+  baseline). Unchanged: KOTM 175, Cube 146, Fractured 115.
+
+## 2026-10-24 - travel speed between gem groups (session 2e; operator: "it is in absolutely no hurry to get to the next spawn")
+
+* 11:18 real-time TreasureBox (new defaults: cluster penalties + pad arrival): 157 points, 0 falls, 0 rescues; hard smacks
+  (64 ms check) 4 vs 9-16 in the four 10-22 real-time rounds (150-178). 11:23 real-time Sprawl: 56 points at 200 s left,
+  killed by the operator at about 11:27.
+* Travel measured on that TreasureBox round: 136 s of 240 between groups (56 percent), 10.5 s a trip, 86 u of path (58 u
+  straight), 8.2 u/s along the path, 8 percent of travel time above 13 u/s and 1 percent above 16 (human about 13.4 u/s, 30
+  percent above 16). Speed after leaving a group: 3.7 / 6.0 / 9.4 / 10.8 / 8.1 / 8.8 u/s at 0.5 / 1 / 1.5 / 2 / 3 / 4 s.
+  Causes: proposal top speed 11 u/s (TRAVEL_TOP 13.5 only beyond 20 u), the stopping law's BRAKE_DECEL 7 (early braking),
+  plans scored by their end point with a +0.12 u per u/s end-speed penalty. Speed must rise on the trips only (the 10-22
+  cap test gained on Sprawl and lost on TreasureBox / Duplex clusters).
+* Code: gem_demo.TRAVEL_END_CREDIT (default 0 = off) / TRAVEL_CREDIT_FROM_U 20: credit for end speed toward the gem when the
+  plan ends 20 u or more from it (Python cost, no native change). 11:29 sim screen sim_tt1 (scratchpad run_sim_tt.sh):
+  base vs TRAVEL_TOP 16 / 18 / 18 + credit 0.4 / 18 + brake decel 10.
+* 11:50 sim_tt1 (120 starts; trip = group cleared -> first pickup of the next group): TRAVEL_TOP 16 trips 8.66 -> 8.40 s,
+  episodes geo 0.977 (43 better / 35 worse), falls 5 -> 2, impacts flat; TRAVEL_TOP 18 episodes 0.987; 18 + end-speed credit
+  0.4 episodes 0.991 (the credit adds nothing); 18 + brake decel 10 trips 8.43 -> 7.61 s (geo 0.921), groups +2.7 percent,
+  episodes 0.963 (57 / 36) but side impacts 112 -> 142 (the decel is global: faster gem approaches inside clusters).
+  Trace (TreasureBox tp1_baseline 2163, an 11.5 s trip): ~1 s turning round after the last gem (the next group spawns
+  away from it; 10-19: ~1 s launch is near the minimum), rows of raised pads on the way hold it near 10 u/s, a step down
+  9.5 -> 3.9 u/s and an edge-hit dip 15 -> 7, slow arrival among the next group's pads; on open floor the fast families
+  reach 15-19 u/s. The speed cap is not the main limit; route smoothness and arrival are.
+* 11:53 DEFAULT search.TRAVEL_TOP 16 (cluster cap stays 11); pair tt1: new default vs --travel-top 13.5, four seeds, 40
+  rounds an arm.
+* 12:40 pair tt1 stopped by the operator at 20/40 rounds an arm ("if you think this result is already ok, just keep it"):
+  TRAVEL_TOP 16 vs 13.5 +2.30 a round over 20 matched rounds (se 1.9; Sprawl +7.2, Bowl +4.8, Cube +3.5, KOTM 0, Duplex
+  -4.0; falls 1 vs 1). Trips between groups: 11.9 vs 11.6 u/s along the path, 33 vs 29 percent of trip time above 13 u/s,
+  trip time 7.73 vs 7.74 s (Sprawl / Cube / KOTM shorter, Bowl / Duplex longer). KEPT as default. Next (operator): the
+  two larger travel changes: straighter / smoother routes between groups, faster arrival into a group without smacks.
+* 12:45 trips between groups, where the time goes (scratchpad route_detour.py / trip_phases2.py / cruise_style.py over cp3):
+  path driven 75.4 u for 56.5 u straight and an 84.9 u planned walk route (the marble already cuts the walk route by 11
+  percent; path/straight 1.33). Phases (launch = until >= 8 u/s within 45 deg of the target; arrive = last 10 u):
+  planner all maps launch 2.29 s at 5.8 u/s, cruise 4.76 s / 53.7 u at 11.3 u/s, arrive 1.10 s at 8.3 u/s. TreasureBox
+  planner 1.86 / 4.95 s at 11.2 u/s / 1.12 s vs the human demo 1.56 / 3.56 s at 16.1 u/s / 1.23 s: the cruise speed is the
+  gap (arrival is on par). Cruise style TreasureBox: human 16.0 u/s mean, 53 percent above 15, turning 29 deg/s, net accel
+  -0.22; planner 10.3 u/s, 12 percent above 15, turning 50 deg/s, net accel -1.26 u/s^2, while pushing full diagonal stick
+  69 percent of cruise decisions (human two keys 59 percent). Engine (marble.cc computeMoveForces): desiredVelocity = mv *
+  maxRollVelocity per camera axis, so two keys roll to ~21 u/s; nav/joystick already uses the camera diagonal (CAM_LOCK off).
+  By driving family in cruise: steering_* 56 deg/s, dv -0.01 a decision (most chosen); throttle_* 50 deg/s, -0.19;
+  accelerate_then_brake 72 deg/s, -0.40; fast_* 31 deg/s, +0.13; direct_fast_*_ballistic 12 deg/s, +0.11 at 15 u/s.
+  The human's speed above 15: Super Speed kicks (6 of 10 jumps in speed) and holding it with straighter lines.
+* Code (search.py, off by default): TRAVEL_MODE_FROM_U 25, TRAVEL_SKIP_SLOW (no throttle_* / accelerate_then_brake on a
+  trip), TRAVEL_TURN_U_PER_RAD (a no-pickup plan on a trip pays per radian of heading change). 12:50 sim screen sim_sm1:
+  base vs skip / turn 2 / turn 4 / skip + turn 3.
+* 13:05 sim_sm1 (vs current defaults): TRAVEL_SKIP_SLOW trips 8.56 -> 8.55 s, episodes 1.000; TRAVEL_TURN_U_PER_RAD 2 trips
+  geo 1.010, episodes 1.002; 4 (54 eps) trips 0.976, episodes 0.999, impacts up. No gain: the snaking families answer
+  obstacles. Super Speed on trips (TreasureBox): human 0.28 kicks a trip vs planner 0.15; outside kick stretches the human
+  still moves 11.2 u/s on trips vs 8.3.
+* why_fail (tools/sim_bench) at cp3_baseline TreasureBox 1623 (target 45 u away straight, 9.8 u/s): the route-following
+  plans turn back south and end BEHIND the start (cost 119.6), direct plans make ~8 u west (111.6), steering_-0.5 wins
+  (107.5), a Blast+jump ballistic plan 17 u west scores 107.9. The planner's walk-route distance from there is ~107 u for 45
+  u straight. Cause: geometry_route.walking_terrain prunes every walk edge whose straight sphere sweep hits geometry, so
+  each step up (pad, box, raised floor, the face of a 0.3-1.5 u step) is gone and a route needs a ramp; planned routes
+  1.50 x straight (Concentric 2.31, Cragmire 1.77, Vortex 1.61). Plans that cross a step score as no progress.
+* Code: geometry_route.JUMP_STEP_U 1.2 (default ON): a pruned step-up edge (0.05 < dz <= 1.2 u) is kept as a jump edge when
+  a jump arc clears (sweep up at the lower cell to JUMP_CLEAR_U 0.35 over the upper floor, across above the lip, down onto
+  the upper cell), + JUMP_EDGE_COST_U 1 u. The walking-graph cache key now carries the jump settings (static_cache;
+  every map's caches rebuild once). sim_bench --set accepts geometry_route. 13:08 sim screen sim_je1: jump0 (old graph)
+  vs jump12 vs jump08.
+* 13:25 sim_je1 (vs the old graph, jump0): JUMP_STEP_U 1.2 trips 8.61 -> 8.82 s, episodes geo 1.021 (17 better / 30 worse);
+  0.8 u trips 0.986, episodes 0.989 (24 / 20), noise. Correction: at TreasureBox 1623 the planner's walk route is 66.4 u
+  for 45.6 u straight (1.46), unchanged with 3,666 jump edges added; the ~107 plan costs there carried other terms (a
+  shared side-impact penalty), not route length. Jump edges set OFF by default (JUMP_STEP_U 0, opt-in). Travel status:
+  only TRAVEL_TOP 16 kept; turning cost, slow-family skip, end-speed credit and jump edges all neutral offline. The
+  measured gaps that remain: Super Speed on trips (human 0.28 kicks a trip vs 0.15) and non-kick trip speed 11.2 vs 8.3
+  u/s; launch 1.86 vs 1.56 s on TreasureBox.

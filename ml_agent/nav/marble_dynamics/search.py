@@ -51,6 +51,10 @@ PICKUP_STOP_MIN_SPEED=0. # v6 tried 6 u/s: Cragmire parking gone but the Cube/Du
                          # none of which v3-v5 prevented.
 PICKUP_STOP_EDGE_DEPTH_U=30.  # v5: 'leaves the floor' = no floor within 30 u below (a drop to a lower floor is not a fall;
                               # all 23 recorded fall starts still test true, Cragmire's v4 stops drop from 163 to 108 of 295)
+TRAVEL_MODE_FROM_U=25.   # 2026-10-24 (operator: "in absolutely no hurry to get to the next spawn"): a gem this far along the route = a trip
+TRAVEL_SKIP_SLOW=False   # ... on such trips no throttle_* / accelerate_then_brake candidates (cruise: 50-72 deg/s of turning, losing speed)
+TRAVEL_TURN_U_PER_RAD=0. # ... and a plan without a pickup pays this many u per radian its heading turns (steering plans snake at 56 deg/s
+                         # against 12-31 for the fast families; the human cruises at 29 deg/s and 16 u/s against the planner's 50 and 11)
 CLUSTER_PENALTIES=True   # 2026-10-23 (operator: "eradicate" pad-side smacks, ledge drops after a pickup, Super Speed for one gem);
                          # engine.cluster_penalties overrides (control --no-cluster-penalties). Measured on every candidate's 16 ms ticks:
 BUMP_COST_U=50.          # (sim 10-23 round 5: 50 with the re-search, AWAY 2, edge hits penalised, pad arrival = impacts -53 percent, 1 percent faster) u per side impact: one tick (16 ms) losing more than BUMP_TICK_DV of horizontal speed, mostly sideways (braking
@@ -120,7 +124,7 @@ def corner_speed(route,position,gem,through):
     return max(1.5,_gem_demo.TARGET_SPEED_CAP*(1+c)/2)
 
 
-TRAVEL_TOP=13.5           # (--travel-top sets it at launch; 2026-10-22 step C tried 16 with cap 13.5: tied in game, not kept). 2026-10-17 v56 (operator: "traversing between spawns faster"): top target speed on long legs (0 = off).
+TRAVEL_TOP=16.            # (--travel-top sets it at launch) 2026-10-24: 16 with the cluster cap left at 11 (sim: trips -3 percent, episodes -2.3 percent, falls 5 -> 2); 13.5 before; 10-22 step C (16 with cap 13.5) tied in game. 2026-10-17 v56 (operator: "traversing between spawns faster"): top target speed on long legs (0 = off).
 TRAVEL_NEAR_U=12.         # The top ramps from TARGET_SPEED_CAP at this distance to the target gem (route length, or straight for
 TRAVEL_FAR_U=20.          # direct proposals) up to TRAVEL_TOP at this one; closer, the cluster cap and the stopping law hold.
 
@@ -388,6 +392,17 @@ def assess(engine,route,dynamics,gem,rollout,label,target_item=None,routed=True,
         cost+=JUMP_COST_U*presses
     penalty,penalty_why=cluster_penalty(engine,dynamics,gem,rollout,label,pickup,after,item) if routed else (0.,None)
     cost+=penalty
+    if TRAVEL_TURN_U_PER_RAD and routed and pickup is None:
+        # 2026-10-24: on a trip (the gem TRAVEL_MODE_FROM_U or more along the route) a snaking plan loses speed: charge its turning
+        d0=float(route.distance(states[0]['position']))
+        if math.isfinite(d0) and d0>TRAVEL_MODE_FROM_U:
+            _P,_V=_tick_arrays(rollout.get('native_states'))
+            if _V is not None and len(_V)>2:
+                hs=np.hypot(_V[:,0],_V[:,1]);ok=hs>3.;ang=np.arctan2(_V[:,1],_V[:,0])
+                d=np.abs((np.diff(ang)+np.pi)%(2*np.pi)-np.pi);d=d[ok[1:]&ok[:-1]]
+                turn=float(d.sum());cost+=TRAVEL_TURN_U_PER_RAD*turn
+                if penalty_why is None:penalty_why={}
+                penalty_why['turn_rad']=round(turn,2)
     tail=states[-4:]
     supported,stable,normal_speed=terminal_support(engine.mesh,tail)
     reason=None
@@ -627,7 +642,9 @@ def search(engine,route,dynamics,raw,gem,navigator,horizon=40,warm=None,brake_re
         fast=top if FAST_PROPOSALS else None
         specs+=[('fast_'+str(int(top)),SequenceProposal(route,gem,steps,fast=fast)),
                 ('direct_fast_'+str(int(top)),SequenceProposal(route,gem,steps,direct=True,fast=fast))]
-    for scale in (.4,.7):specs.append(('throttle_'+str(scale),SequenceProposal(route,gem,steps,scale=scale)))
+    travel=TRAVEL_SKIP_SLOW and reach>TRAVEL_MODE_FROM_U
+    if not travel:
+        for scale in (.4,.7):specs.append(('throttle_'+str(scale),SequenceProposal(route,gem,steps,scale=scale)))
     if WALL_BOUNCE and not getattr(engine,'crossing_phase',False):
         # 2026-10-19 (operator: use wall hits): moving fast away from the target, bank off a wall toward it (wall_bounce.py)
         from nav.marble_dynamics.wall_bounce import bounce_specs,STEPS as BOUNCE_STEPS
@@ -679,7 +696,7 @@ def search(engine,route,dynamics,raw,gem,navigator,horizon=40,warm=None,brake_re
                                       SequenceProposal(route,gem,steps,blast=jump+after,jump=jump,direct=direct)))
     for offset in (-1.,-.5,.5,1.):
         specs.append(('steering_'+str(offset),SequenceProposal(route,gem,steps,offset=offset,turn_after=12)))
-    specs.append(('accelerate_then_brake',SequenceProposal(route,gem,steps,brake_after=12)))
+    if not travel:specs.append(('accelerate_then_brake',SequenceProposal(route,gem,steps,brake_after=12)))
     # 2026-10-16 (operator: efficient powerup use): a Super Speed is not spent on a short leg to the LAST gem of a group.
     # The next group spawns only when that gem is taken, at least 30 u away (spawnBlock) in a direction nobody knows
     # yet, so a long trip always follows; a kick into the last gem saves well under a second and arrives at ~20 u/s

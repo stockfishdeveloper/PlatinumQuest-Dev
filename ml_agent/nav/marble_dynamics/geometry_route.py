@@ -60,6 +60,16 @@ class GroundClearance:
         return all(self.segment(a,b) for a,b in zip(centers,centers[1:]))
 
 
+JUMP_STEP_U=0.       # (OFF: sim 10-24 1.2 u = episodes +2.1 percent slower, 0.8 u = -1.1 percent, noise; the TreasureBox trip route it was
+                     # meant to shorten did not change) 2026-10-24 (operator: trips between gem groups): a step up to this high, pruned from the walking graph because a
+                     # straight roll hits its face, is kept as a JUMP edge when a jump arc clears the geometry (rise at the lower
+                     # cell to JUMP_CLEAR_U over the upper floor, cross above the lip, come down on the upper cell). Without it every
+                     # pad, box and raised floor needed a ramp: planned routes ran 1.5x the straight line (Concentric 2.3x) and
+                     # plans that crossed a step scored as if they had made no progress. 0 = off (the walking graph of before).
+JUMP_CLEAR_U=.35     # ... the arc's height over the upper floor (the marble's jump apex is about 1.4 u)
+JUMP_EDGE_COST_U=1.  # ... extra route length charged per jump edge (the hop's time)
+
+
 def walking_terrain(terrain,mesh):
     """Copy graph metadata and prune crossing edges; never edit the source grid.
 
@@ -79,7 +89,18 @@ def walking_terrain(terrain,mesh):
         if key not in cache:cache[key]=check.segment(points[a],points[b])
         keep.append(cache[key])
     keep=np.asarray(keep,dtype=bool)
-    filtered=coo_matrix((graph.data[keep],(graph.row[keep],graph.col[keep])),shape=graph.shape).tocsr()
+    data=np.asarray(graph.data,dtype=float).copy();jump_edges=0
+    if JUMP_STEP_U:
+        r=check.radius+.001
+        for n,(a,b) in enumerate(zip(graph.row,graph.col)):
+            if keep[n]:continue
+            dz=float(points[b][2]-points[a][2])
+            if not (.05<dz<=JUMP_STEP_U):continue
+            top=float(points[b][2])+JUMP_CLEAR_U
+            a_up=np.array([points[a][0],points[a][1],top]);b_up=np.array([points[b][0],points[b][1],top])
+            if check.segment(points[a],a_up) and check.segment(a_up,b_up) and check.segment(b_up,points[b]):
+                keep[n]=True;data[n]+=JUMP_EDGE_COST_U;jump_edges+=1
+    filtered=coo_matrix((data[keep],(graph.row[keep],graph.col[keep])),shape=graph.shape).tocsr()
     copy_grid._graph=filtered;copy_grid._graph_nojump=filtered
     _,labels=connected_components(filtered,directed=True,connection='weak')
     copy_grid.component=np.full_like(terrain.component,-1)
@@ -89,6 +110,7 @@ def walking_terrain(terrain,mesh):
         compiled_walking_sweep=hasattr(check.mesh,'kernel'),
         original_walk_edges=int(graph.nnz),retained_walk_edges=int(filtered.nnz),
         removed_walk_edges=int(graph.nnz-filtered.nnz),unique_pairs_checked=len(cache),
-        original_approximate_jump_edges=int(terrain.jump_edges),construction_s=time.perf_counter()-started,
+        original_approximate_jump_edges=int(terrain.jump_edges),jump_step_edges=int(jump_edges),jump_step_u=float(JUMP_STEP_U),
+        construction_s=time.perf_counter()-started,
         contract='Conservative wall/ceiling-filtered walking guidance; complete dynamics still proposes jumps/air/powerups.')
     return copy_grid
