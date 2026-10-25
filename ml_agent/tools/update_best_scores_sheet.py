@@ -26,6 +26,8 @@ HISTORY_SEED = {  # bests as of each earlier date (from the handoff logs), carri
                    'FracturedIslands_Hunt': 115, 'Cragmire_Hunt': 142, 'VortexEffect_Hunt': 118, 'TreasureBox_Hunt': 196, 'Concentric_Hunt': 124},
     '2026-10-21': {'KingOfTheMarble_Hunt': 175, 'Sprawl_Hunt': 192, 'CubeIsle_Hunt': 146, 'Bowl_Hunt': 143, 'Duplex_Hunt': 153,
                    'FracturedIslands_Hunt': 115, 'Cragmire_Hunt': 142, 'VortexEffect_Hunt': 118, 'TreasureBox_Hunt': 205, 'Concentric_Hunt': 131},
+    '2026-10-22': {'KingOfTheMarble_Hunt': 175, 'Sprawl_Hunt': 192, 'CubeIsle_Hunt': 146, 'Bowl_Hunt': 143, 'Duplex_Hunt': 157,
+                   'FracturedIslands_Hunt': 115, 'Cragmire_Hunt': 145, 'VortexEffect_Hunt': 125, 'TreasureBox_Hunt': 205, 'Concentric_Hunt': 131},
 }
 
 def load_csv():

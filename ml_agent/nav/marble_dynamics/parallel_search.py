@@ -140,7 +140,9 @@ def evaluate_candidate(engine, route, dynamics, gem, label, proposal, target_ite
     edge_climb(proposal, label, info, rollout); chain_score(proposal, label, info, rollout, dynamics)
     info.update(evaluated_replies=len(rollout['controls']), requested_replies=rollout['requested_replies'],
                 stopped_on_ambiguity=rollout['stopped_on_ambiguity'])
-    if 'use' in label and rollout['requested_replies'] > steps and info['rejected'] is None and info['possible_pickup_interval'] is None:
+    from nav.marble_dynamics import gem_demo as _gd
+    if ('use' in label and rollout['requested_replies'] > steps and info['rejected'] is None and info['possible_pickup_interval'] is None
+            and not _gd.TIME_COST):   # 2026-10-24 TIME_COST: the forecast time is already in the cost (as the serial loop)
         penalty = (rollout['requested_replies'] - steps) * .064 * float(getattr(engine, 'ballistic_time_rate', 8.) or 8.)
         info['cost'] += penalty; info['time_penalty_u'] = penalty
     out = dict(kind='ok', main=(info, rollout), air_main=bool(ballistic and info['rejected'] == 'no_supported_continuation'),

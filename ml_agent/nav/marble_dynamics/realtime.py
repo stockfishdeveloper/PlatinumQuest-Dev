@@ -136,6 +136,10 @@ class World:
         S.RAISED_BLAST_FIRST = bool(getattr(a, 'raised_blast_first', False))
         S.CORNER_PROPOSALS = RE.CORNER_DEFAULT or bool(getattr(a, 'corner_proposals', False))
         S.BRAKING_BACKUP = not getattr(a, 'no_braking_backup', False)
+        RE.SPAWN_ORDER = bool(getattr(a, 'spawn_order', RE.SPAWN_ORDER)); S.SS_RIDE = bool(getattr(a, 'ss_ride', False)); GD.TIME_COST = bool(getattr(a, 'time_cost', False))
+        S.LATE_PAD_JUMPS = bool(getattr(a, 'late_pad_jumps', S.LATE_PAD_JUMPS))
+        S.CORNER_SLOW = bool(getattr(a, 'slow_corners', S.CORNER_SLOW))
+        S.TL_JUMP_FOLLOW = bool(getattr(a, 'tl_jump_follow', S.TL_JUMP_FOLLOW))
         engine.detour_blast_ratio = float(getattr(a, 'detour_blast_ratio', 1.5) or 0.) or math.inf
         engine.use_margin_u = float(getattr(a, 'use_margin_s', 0.) or 0.) * float(getattr(engine, 'ballistic_time_rate', 8.) or 8.)
         engine.interleave_candidates = getattr(a, 'interleave_candidates', False)

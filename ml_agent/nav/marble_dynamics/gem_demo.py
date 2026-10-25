@@ -133,6 +133,37 @@ END_VELOCITY_WEIGHT=.12   # u per u/s of end speed (penalty). v17 tried -0.3 (cr
                           # slow: 'accelerate_then_brake' won 423 of 2877 KOTM decisions on v16.
 
 
+TIME_COST=False           # OFF 22:58 (sim_ssA: 5.1 percent slower, smacks 75 -> 110; with SS_RIDE 7.1 percent; opt-in --time-cost). 2026-10-24 (operator: "play like every second of wasted time costs us $1000"; probes: a Super Speed plan that
+                          # took the gem 2 s sooner lost by 35 u to after-pickup proxies, 1 u per unit past the gem and 2 u per u/s
+                          # away, against 4 u per second saved): candidates are priced in seconds. After a pickup: the time to the
+                          # tour's next gem (exact when the forecast collects it, else time_to_go from the state TC_AFTER_REPLIES after
+                          # the pickup, late pickups included); without a pickup: forecast time + time_to_go to its own gem. Replaces
+                          # the through progress term, the end-speed charge and the away-speed charge (control --no-time-cost)
+TC_PRICE=14.              # u of cost per second: the cluster penalties keep their weight (pad smack 50 u = 3.6 s, ledge drop 30 u = 2.1 s,
+                          # the measured cost of a drop ~2 s) and a second costs what a unit of route distance costs at cruise
+TC_CRUISE=14.             # u/s: cruise speed of time_to_go
+TC_ACCEL=8.               # u/s^2: acceleration of time_to_go (velocity change onto the route at cruise)
+TC_LOSS=.5                # share of the velocity-change time that is lost (constant acceleration: half)
+TC_AFTER_REPLIES=8        # the after-pickup state is read this many replies after the pickup (0.5 s; later the plan may steer back)
+
+
+def time_to_go(route,state,goal):
+    """Seconds from `state` to `goal` along `route`: route distance at TC_CRUISE plus TC_LOSS x the time to change the velocity to
+    TC_CRUISE toward the route's aim point at TC_ACCEL (speed toward the goal saves time, speed away or sideways costs it)."""
+    from nav.routing import path_waypoint
+    p=np.asarray(state['position'],dtype=float);v=np.asarray(state['velocity'],dtype=float);g=np.asarray(goal[:3],dtype=float)
+    d=float(route.distance(p)) if route is not None else math.inf
+    if not math.isfinite(d):d=float(np.linalg.norm(g[:2]-p[:2]))+5.
+    aim=g[:2];field=getattr(route,'field',None)
+    if field is not None:
+        try:aim=np.asarray(path_waypoint(route.terrain,float(p[0]),float(p[1]),field,g,mz=float(p[2]))[0][:2],dtype=float)
+        except Exception:aim=g[:2]
+    u=aim-p[:2];n=float(np.linalg.norm(u))
+    if n<1e-6:return d/TC_CRUISE
+    u=u/n;along=float(v[:2]@u);perp=float(np.linalg.norm(v[:2]-along*u))
+    return d/TC_CRUISE+TC_LOSS*math.hypot(max(0.,TC_CRUISE-along),perp)/TC_ACCEL
+
+
 def candidate_cost(route,states,gem,routed,item,after=None,native=None,detail=None,next_item=None,next_rate=None):
     """`native`: the forecast's 16 ms tick states (pickup test); `detail`: a dict that receives 'post_u', the
     post-pickup progress term (u farther from the next gem than the collected one, read at THROUGH_EVAL_REPLIES)."""
@@ -140,6 +171,21 @@ def candidate_cost(route,states,gem,routed,item,after=None,native=None,detail=No
     pos=getattr(states,'positions',None)   # 2026-10-19: compiled forecasts keep positions packed (nav/native/forecast.ReplyStates)
     if pos is not None:distances=[float(np.linalg.norm(p-gem[:3])) for p in pos]
     else:distances=[float(np.linalg.norm(np.asarray(s['position'])-gem[:3])) for s in states]
+    if TIME_COST:
+        pickup=possible_pickup(states,item,native) if item else next((i for i,d in enumerate(distances) if d<.55),None)
+        if pickup is not None:
+            if after is not None:
+                nroute,ngem,leg=after
+                second=possible_pickup(states,next_item,native) if next_item is not None else None
+                if second is not None and second>=pickup:t_next=second*.064
+                else:
+                    j=min(len(states)-1,pickup+TC_AFTER_REPLIES)
+                    t_next=j*.064+time_to_go(nroute,states[j],ngem)
+                if detail is not None:detail['t_next']=t_next
+                return float(TC_PRICE*t_next-100.),min(distances),pickup
+            return float(TC_PRICE*pickup*.064-100.),min(distances),pickup
+        t=(len(states)-1)*.064+(time_to_go(route,end,gem) if routed else distances[-1]/TC_CRUISE)
+        return float(TC_PRICE*t),min(distances),None
     if after is not None and item is not None:
         # v22 (2026-10-15) through-gem: after a predicted pickup the rest of the
         # forecast is scored by its progress toward the NEXT gem of the tour

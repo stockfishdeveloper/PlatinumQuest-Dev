@@ -20,6 +20,7 @@ ap.add_argument('--pool', action='append', required=True)
 ap.add_argument('--map', required=True)
 ap.add_argument('--per-map', type=int, default=8)
 ap.add_argument('--offset', type=int, default=0)
+ap.add_argument('--start-seed', default='7347019')   # 2026-10-25: the recorded round (seed) the starts come from
 ap.add_argument('--pickups', type=int, default=2)
 ap.add_argument('--endgame', type=float, default=0.)   # 2026-10-17: one episode per recorded round, from the first decision with
                                                         # at most this many seconds left until the round ends; score = points
@@ -400,7 +401,7 @@ NEXT_ITEMS = {}
 
 
 def edge_starts(pool, name):
-    f = ML / 'dynamics_reports' / pool / name / '7347019/physics_plan/1/decisions.jsonl.gz'
+    f = ML / 'dynamics_reports' / pool / name / (o.start_seed + '/physics_plan/1/decisions.jsonl.gz')
     R = []
     for line in gzip.open(f, 'rt', encoding='utf-8'):
         try:
@@ -426,7 +427,7 @@ def edge_starts(pool, name):
 
 
 def endgame_starts(pool, name):
-    f = ML / 'dynamics_reports' / pool / name / '7347019/physics_plan/1/decisions.jsonl.gz'
+    f = ML / 'dynamics_reports' / pool / name / (o.start_seed + '/physics_plan/1/decisions.jsonl.gz')
     if not f.exists():
         return []
     R = []
@@ -452,7 +453,7 @@ def starts(pool, name):
         return endgame_starts(pool, name)
     if o.edge_gems:
         return edge_starts(pool, name)
-    f = ML / 'dynamics_reports' / pool / name / '7347019/physics_plan/1/decisions.jsonl.gz'
+    f = ML / 'dynamics_reports' / pool / name / (o.start_seed + '/physics_plan/1/decisions.jsonl.gz')
     R = []
     for line in gzip.open(f, 'rt', encoding='utf-8'):
         try:

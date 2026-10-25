@@ -13493,3 +13493,253 @@ free camera. Journal rows carry pos.
   only TRAVEL_TOP 16 kept; turning cost, slow-family skip, end-speed credit and jump edges all neutral offline. The
   measured gaps that remain: Super Speed on trips (human 0.28 kicks a trip vs 0.15) and non-kick trip speed 11.2 vs 8.3
   u/s; launch 1.86 vs 1.56 s on TreasureBox.
+
+
+## 2026-10-24 evening: accept-airborne-end test (temporary) and the Super Jump preference
+
+Operator: "make a temporary version where the plans that score highly but are cut off due to not being in contact with
+the ground get accepted anyway? run treasure box with that version", "at 1x".
+- Code: search.ACCEPT_UNSUPPORTED_END (default False) + accept_unsupported_ends(): a plan rejected only as
+  'no_supported_continuation' becomes valid when a floor lies within FALL_FLOOR_U below its end; exempt from the
+  braking-backup penalty (check_backups skips accepted_unsupported_end). Launched by the scratchpad wrapper
+  run_realtime_accept_air.py only; defaults, pools and the exactness path unchanged.
+- Offline smoke (4 TreasureBox legs, sim_bench whole group + next group): 58.1 s vs 86.1 s (3 of 4 faster).
+- Live real time at 1x, TreasureBox: 169 (0 falls) and 142 (0 falls, 2 rescues) vs 157 for the 11:18 default round.
+  Mean 155.5: no gain. 26-29 percent of installed plans were such airborne-end plans (frozen_navigator, direct,
+  steering, direct_fast). Search deadline hits 495 vs 275, fallback decisions 27 vs 12, game holds 16.2 vs 12.3 s.
+  Operator: no visible change in play style ("expected it to take more chances and go faster"). Reason: the speed
+  limits sit elsewhere (stopping law at every gem: TARGET_SPEED_CAP 11, TRAVEL_TOP 16, PICKUP_MIN_SPEED 6; cluster
+  penalties; BACKUP_PENALTY_U 150 on ground-ending plans) and were untouched; the accepted plans are mostly
+  ordinary plans that end on a hop.
+- Super Jump preference (operator: "went out of its way for a super jump when a superspeed was closer"): the
+  opportunistic powerup rule (reliability_eval pick(), --opportunistic-powerups 4) is TYPE-BLIND: holding nothing,
+  it takes the powerup within 25 u whose extra walk on the route to the current gem is smallest (<= 4 u). Live round
+  1: 7 Super Jumps, 3 Super Speeds picked up (map: 15 SS, 5 SJ). cp3 pair, 8 TreasureBox rounds: 37 of 64 Super
+  Jump fetches had a Super Speed closer to the marble (typically the SS a level below the marble, off the route);
+  all 10 maps: SJ fetched 673 times, SS 634. The type-aware stall fetch (SJ/Helicopter for a raised gem) never fired
+  in these live rounds. Script: scratchpad opp_powerups.py.
+
+- 21:03 bold version (operator: "do this and run it at 1x"), scratchpad wrapper run_realtime_bold.py: --speed-cap 14,
+  search.TRAVEL_TOP 20, --pickup-min-speed 9, --no-braking-backup, ACCEPT_UNSUPPORTED_END, plus the Super Speed
+  preference (reliability_eval.SS_FIRST_DETOUR_U 8: a Super Speed within 8 u of extra walk beats every other powerup;
+  HEIGHT_ITEMS_RAISED_ONLY: Super Jump / Helicopter only for a gem >= 1.5 u above the marble). Offline smoke on the same
+  4 TreasureBox legs: 55.7 s (default 86.1, accept-airborne 58.1). Live TreasureBox 1x: 140 points (default 157,
+  accept-airborne 169 / 142), behind the default pace from the first minute; 33 percent airborne-end plans; powerup
+  detour plans all Super Speed (85 steps, 0 Super Jump). A ~60 s freeze mid-round was the game paused (all processes idle).
+- 21:10 ROLLED BACK (operator: "roll back all this aggressive stuff we just did"): search.py and reliability_eval.py
+  restored to the committed version (git checkout; their only uncommitted changes were these experiments). Defaults
+  confirmed: TRAVEL_TOP 16, TARGET_SPEED_CAP 11, BRAKE_DECEL 7, braking backup on (+150), cluster penalties on.
+  Open from this evening: the type-blind powerup detour rule (Super Jumps over closer Super Speeds) and plan scoring
+  that ignores end-of-plan spin (the forecast simulates spin; the cost never reads it; proposed: a short simulated
+  follow-through after each of the best plans).
+
+- 21:45-22:10 SUPER SPEED HOARDING + GENERAL SLOWNESS (operator, live Bowl 154-150 s left: picked up a Super Speed at ~29
+  u/s, a 40 percent throttle plan for 2.6 s while it climbed the slope down to 4.8 u/s, only then fired it; "why the fucking
+  hell is the marble slowing down like this"; then "not just a fix for bowl ... play like every second of wasted time costs
+  us $1000 ... but don't make the points suffer"). cp3_candidate pools: 29 of 192 Super Speed pickups bled > 5 u/s before
+  the use (Bowl 7347019 dec 3560-3668: 33.8 u/s -> held 7 s -> fired at 6.4). Probe (scratchpad ss_probe.py: replays a
+  recorded decision through the real controller with the real-time flag set, prints every candidate) found four causes:
+  (1) use plans fire the kick and then steer the stopping law (11 u/s near gems) against it, and with no through version
+  they turn back to the collected gem; (2) after-pickup proxies far above the time price: through post term 1 u per unit
+  past the gem, away speed 2 u per u/s, against PICKUP_TIME_WEIGHT 4 u per second (dec 3588: SS plan 0.9 s vs 2.9 s pickup,
+  +8.2 u for the 2 s, -17.8 post, -24 away: lost by 35); (3) the post term only applies to pickups by reply 24, so late
+  pickups escape it; (4) the 8 u use margin and the 18 u/s end limit of the stability gate.
+- 22:00-22:10 code (operator approved the proposal):
+  Phase A search.SS_RIDE (default ON, control --no-ss-ride): RideProposal (subclass, per-reply forecast) = the fast family's
+  carried-speed floor up to SS_RIDE_TOP 40 u/s, with `through` also toward the next gem after the pickup; labels
+  use_ride_{0,3}, direct_use_ride_*, use_ride_through_*; no use margin while a Super Speed is held; a use plan may end
+  above 18 u/s with its tail on the floor (braking backup still checks edges); Super Speed plans always enter the cluster
+  re-ranking. Phase B gem_demo.TIME_COST (default ON, control --no-time-cost): every candidate priced in seconds at
+  TC_PRICE 14 u/s; after a pickup: the time to the tour's next gem (exact when the forecast collects it, else
+  time_to_go from the state 8 replies after the pickup: route distance at TC_CRUISE 14 u/s + 0.5 x the time to turn
+  the velocity onto the route at TC_ACCEL 8 u/s^2), late pickups included; no pickup: forecast time + time_to_go to its
+  gem. Replaces the through post term, END_VELOCITY_WEIGHT and the away-speed charge; flight-time charges skipped
+  (already in the cost). Cluster penalties keep their weight (smack 50 u = 3.6 s, ledge drop 30 u = 2.1 s). The
+  probe with both: the Super Speed fires at dec 3600 (before: never in that state) and still waits where the estimate
+  says the kick flies past the next gem (no slope model: judged in the closed-loop sim). tools/launch_pair.ps1 got
+  -BaseFlag (flags for the baseline arm).
+
+- 22:31 TreasureBox real time at 1x with SS_RIDE + TIME_COST on (operator asked to judge): 170 points, 0 falls, holds
+  593 / 30.9 s (the riding plans run the per-reply Python forecast). sim_ssA (108 Super Speed starts, cp3 pools): ride
+  x1.073 slower, smacks 75 -> 118; tc x1.056, smacks 75 -> 110; both x1.071, smacks 75 -> 113 (Cube 0.90, Bowl 0.99,
+  Sprawl 1.27, Cragmire 1.25). 22:58 both switched OFF by default (opt-in --ss-ride / --time-cost).
+- 22:46-22:51 operator demo, TreasureBox: demos/demo_20261024_224609.npz, 217 points, 166 pickups, 0 falls (tick rate
+  62.4/s with uncapped FPS). Spawn style (scratchpad spawn_style.py, jump_context.py, arc_geometry.py) human vs planner
+  (cp3_candidate, 4 rounds): 1.39 (10-21 demo 1.34) vs 1.10-1.30 gems/s in spawns; pickups in the air 76 vs 47-58
+  percent; path / gem-to-gem straight 1.33 vs 1.53-2.10; speed in spawn 4.1 vs 4.7-5.4 u/s; turn at pickups 13 vs 16-20
+  deg; jumps that collect 81 vs 41-57 percent (planner no-gem jumps: hop en route 12-21, jump then roll 12-20, miss
+  10-21, bump 0-7 percent); jump arcs with 2+ gems 31 percent vs 2-11; gaps > 1 s 22 vs 33-41 percent; order taken /
+  shortest order 1.12 vs 1.17-1.33. Human single-gem jump: take off 1.9 u before a pad gem at 4.0 u/s, pickup 0.58 s
+  later; two-gem jump: jump AT a gem, land on the next pad gem 2.0 u along the line 0.70 s later, approach within ~30 deg;
+  spawn entry 10.7-11.9 u/s, 7.3 u/s at the first gem, leaving within 14-25 deg of the second gem.
+- 22:55 spawn viewer (operator: "make a really simple 3d viewer of some of the spawns"): artifact
+  https://claude.ai/artifact/8aBnhK2qVzKv1XpK5g9naS (scratchpad spawn_viewer/: spawn_extract.py -> spawns.json, 117 planner
+  spawns in 38 clusters; spawn_orders.py -> viewer_data.json; template.html). Proposed orders by a turn-aware DP (4.1
+  u/s, 0.30 s per 90 deg, 0.15 s climb, from the entry): serpentine sweeps, identical to the operator's on (23, 67).
+  65 planner visits: model 7.19 s (planner orders) vs 5.85 s (proposed), gap 1.35 s a spawn; within a cluster 1 s of
+  model time = 0.75 s of real clear time (corr 0.63); visits with a near-optimal order cleared in 4.6 s vs 8.0 s.
+- ROOT CAUSES of the planner's orders: reliability_eval.tour -> nav.gems.plan_tour orders only the 5 nearest gems
+  (visible_gems: the observation's 5 slots), measures legs on the walking grid (routes AROUND hoppable pads: 10-17 u for
+  2 u), scales the turn charge with speed (TOUR_TURN_REF_SPEED 8: half at 4 u/s) and charges TOUR_JUMP_U 5 u per climb.
+- 23:05 built (operator: "proceed with that plan"): nav/marble_dynamics/spawn_order.py (best_order: DP over every gem of
+  the spawn, carrying the previous gem for the turn charge; 15 ms for 9 gems) and reliability_eval.SPAWN_ORDER (default
+  OFF, --spawn-order): target/next from the whole-spawn order, recomputed when the gem set changes, the old remainder kept
+  unless SO_SWITCH_S 0.3 s faster; ORDER_CANDIDATES off while it rules; prespin toward its first gem. Sim sim_so1 running.
+
+
+## 2026-10-24/25 night - cluster speed (operator 23:55: "iterate all night on trying to get clusters as fast as you can")
+
+- sim_so1 (cp3 pools, 12 leg starts x 10 maps, whole group + next group's first pickup; same starts for every variant):
+  so  (spawn order, straight legs, ORDER_CANDIDATES off)          x0.994 | TreasureBox 0.917, Concentric 0.883, KOTM 1.123, Vortex 1.120
+  so2 (+ walking-grid legs, pad detours straight)                  x1.011 | TreasureBox 0.918, Vortex 1.207, Cragmire 1.140, KOTM 1.163
+  so3 (straight legs, ORDER_CANDIDATES kept: SO_KEEP_ORDER_CHOICE)  x0.988 | TreasureBox 0.945, Concentric 0.872, KOTM 1.037, Vortex 1.121
+  so4 (so3 + walking legs)                                          x1.002 | TreasureBox 0.898, Vortex 1.151, Bowl 1.049
+  so5 (so3 + SO_EASY_ONLY connected-spawn gate)                     x0.993 | TreasureBox 0.977, Vortex 1.055, Cragmire 1.152
+  Worst KOTM / Vortex legs: the spawn order's first gem needed jumps / Blasts (KOTM 1286: first pickup 3.1 vs 1.2 s) or
+  gap crossings (Vortex 2898: 19.3 vs 10.2 s). Smacks fell in every variant (152 -> 123-150).
+- 00:01 pair so3 launched (baseline = current defaults, candidate --spawn-order with SO_KEEP_ORDER_CHOICE True, straight
+  legs), seeds 7347019 / 12091843, 4+4 workers.
+- In-spawn jumps by the plan family that pressed them (8 TreasureBox pool rounds, 592 presses): jump families 284 (73
+  percent collected within 0.9 s), frozen navigator 217 (44 percent), Blast plans 46 (20), edge hits 15 (20), pad hops 1.
+  New switches (default OFF): search.NAV_SPAWN_OFF (no frozen-navigator proposal within 8 u of a spawn gem with 3+ gems
+  within 12 u) and search.BLAST_GATE_ALWAYS (the pad_hops low-pad Blast gate without the chain plans). Sims nonav / gate /
+  combo (so3 + both) running during the pair (6 parallel, idle priority).
+
+- 00:57 PAIR so3 (spawn order, straight legs, ORDER_CANDIDATES kept) vs current, 19 rounds in both arms (baseline Sprawl
+  12091843 invalid: round_wall_limit, the machine was loaded by 6 idle-priority sims; NEVER run sims during a pair):
+  base 2485 vs cand 2407 = -4.1 a round. TreasureBox +20 / +29, Fractured +12 / 0, Bowl +8 / -10, Duplex +1 / -5, Cube -5 / 0,
+  Concentric -4 / -4 (sim said 0.87), KOTM -9 / -11, Sprawl -7, Vortex -16 / -12, Cragmire -40 / -25. NOT kept as is.
+- Step-2 sims (stopped at 15 of 30 to protect the pair): nonav (search.NAV_SPAWN_OFF) x0.995, 6 of 120 legs differ, smacks
+  152 -> 165: dropped. Hop probe (scratchpad hop_probe.py, TreasureBox 7347019 decisions 859 / 1841 / 2381 / 2913): nearly
+  every candidate predicts 1-3 pad-side impacts; pad hops are only offered from BELOW the target pad (pad_hops.hop_specs
+  HOP_MIN_BELOW_U), never pad to pad; the through hop only for a next pad 0.3+ u higher; apply_two_level REPLACES the cost
+  and drops the cluster penalty (a 4-smack frozen-navigator plan won at 859). Scratch copies (scratchpad mods/:
+  search_tl.py, pad_hops_any.py, reliability_eval_tight.py) for sims.
+- Pad share of spawn gems (pad_hops._pad_under on 25 spawns a map): TreasureBox median 0.67 (19 spawns with half or more on
+  pads), Cube 0.67 (15), Fractured 0.29 (11), Vortex 0.33 (10), Bowl 1.0 (20: curved floor reads as pads), Sprawl 0.33 (2),
+  Cragmire / Duplex / Concentric / KOTM 0. 01:00 gate in code: reliability_eval.SO_PAD_SHARE 0.5 + SO_TIGHT_U 4.5 (median
+  nearest-neighbour spacing) with --spawn-order. 01:02 PAIR pf1 launched (candidate --spawn-order with the gate).
+
+- 01:49 PAIR pf1 (spawn order + pad-field gate SO_PAD_SHARE 0.5 + SO_TIGHT_U 4.5, re-decided every decision on the gems left):
+  19 rounds in both arms (candidate CubeIsle 12091843 invalid: ValueError min() of an empty sequence in the spacing check,
+  a gem tuple appearing twice): base 2500 vs cand 2512 = +0.6 a round. Gated maps identical (KOTM, Bowl, one Cragmire, one
+  Vortex, Concentric); TreasureBox 174 -> 166 and 155 -> 158 (so3 without the gate: 203 and 175); Cube +14, Fractured +10 / 0,
+  Sprawl +7 / +4, Duplex -10 / +7, Vortex -7, Cragmire -6. Lesson: re-deciding the gate on the REMAINING gems flipped
+  between the tour and the spawn order mid-spawn.
+- 01:50 v7/v8 (code): the gate is decided once per spawn on its full gem set (_spawn_gate, cached until a non-subset gem set
+  appears); spacing check by index; SO_PAD_SHARE 0 (off), SO_TIGHT_U 2.6 (2 u grids: TreasureBox / Fractured / Sprawl).
+  01:51 PAIR pf2 launched (candidate --spawn-order).
+
+- 02:40 PAIR pf2 (spawn order, per-spawn gate, SO_TIGHT_U 2.6, no pad gate), 20 rounds: base 2640 vs cand 2657 = +0.8 a round.
+  TreasureBox +20 / -6, Sprawl +12 / 0, Fractured +7 / 0, Vortex 0 / +6, Cragmire -13 / -3, Duplex -3 / -5 (Duplex baseline varies
+  130-140 between pairs: noise), Cube -1 / 0, KOTM / Bowl / Concentric identical. Across so3 / pf1 / pf2 the candidate's TreasureBox
+  rounds: 7347019 203 / 166 / 168 (baseline 174 every time), 12091843 175 / 158 / 175 (baseline 155): about +10 a round on average,
+  high variance. so3 TreasureBox spawn style (spawn_style.py): 7347019 1.32 gems/s (baseline 1.00; human 1.34-1.39), path 1.55
+  vs 1.86 x straight, 0.52 vs 0.67 jumps a gem.
+- 02:42 v9 (code): SO_GRID_SHARE 0.8 / SO_GRID_TOL 0.12: the spawn also has to be a lattice (80 percent of nearest-neighbour
+  distances within 12 percent of the median; tight spawns: TreasureBox / Sprawl 1.00, Fractured 0.86, Cragmire 0.71).
+  Step-2 sim batch (gate / tl / hop / tlhop) running 02:42.
+- 02:56 step-2 sims done (sim_so1, same 120 starts): gate (BLAST_GATE_ALWAYS) x0.999, tl (re-ranking keeps the cluster penalty)
+  x1.003 / points -12, hop (pad-to-pad hops from any height, scratch pad_hops_any.py) x1.001 (TreasureBox 1.012, Cragmire smacks
+  66 -> 29), tlhop x1.004 / points -8 / smacks 152 -> 109. None kept.
+- Where TreasureBox spawn time goes, leg by leg (scratchpad leg_buckets.py; human demos 10-21 + 10-24 vs 12 distinct planner rounds
+  of cp3 / pf2): legs a round 141 vs 107, median leg 0.67 vs 0.77 s, p90 1.63 vs 1.86 s; legs over 3 s 2.5 a round (9.5 s) vs 4.1
+  (21.4 s), over 5 s 0 vs 0.9 (9.9 s). Turn at the leg start (arrival heading vs the next gem): under 30 deg 45 vs 31 percent of
+  legs, 90+ deg 20 vs 27 percent. 2 u drops to a lower pad: 0.39 vs 0.51 s (air pickups 83 vs 48 percent, path 1.04 vs 1.72 x
+  straight). Slow legs by cause (scratchpad slow_legs.py, 12 rounds): climb back after dropping below the level 11.1 s a round,
+  frozen-navigator loops near the gem 6.1 s, gem high above 1.4 s, Blast recharge wait 0.5 s. Worst: pf2_baseline 12091843 t 49.6,
+  a 30.7 s leg (last gem on a pillar top 3.5 u away; no candidate collected it or made route progress, safe_hold took the best
+  gate-valid plan, which rolled off the pillar; then a Super Jump fetch and a 4 s Blast recharge wait).
+- 03:01 PAIR pf3 launched (candidate --spawn-order with the v9 lattice gate).
+- Frozen-navigator loop, TreasureBox 7347019 cp3_candidate decision 1841 (probe scratchpad cand_paths.py): gem B on a 0.5 u pad
+  2.7 u behind the marble, which is still up on the higher pad of the gem just taken (it flew over B 1.2 u high on the way). Every
+  standard candidate rolls back and stops against B's pad side 1.2 u short (their jumps are at replies 0 / 2 / 5 / 9, before the
+  turnaround), so the navigator's 3.3 s loop (pickup at reply 52, one pad smack) won. search.LATE_JUMPS (jumps at replies
+  6-24) only fires for a gem 1 u above the marble's CURRENT height. Forced on: direct_jump_16 collects at reply 26 (1.7 s sooner).
+  Scratch fix (mods/search_latepad.py from patch_latepad.py): LATE_PAD_JUMPS, the late jumps without Blast variants also toward a
+  gem on a raised pad (pad_hops.pad_under) within 8 u when the marble is not on that pad. Sim s4 (lp / lp + nav off in spawns /
+  lp + spawn order) queued after the pair. Note: the probe does not reproduce live choices exactly (real-time flags, fresh
+  controller; cp3_baseline ran without cluster penalties): judge by sim / pair only.
+- 03:49 PAIR pf3 (spawn order, v9 lattice gate), 19 rounds (candidate Fractured 12091843 invalid: empty report directory 96 s after
+  its start, a game start failure; no sim was running): base 2575 vs cand 2578 = +0.2 a round. TreasureBox +23 / -6, Sprawl +6 / +2,
+  Cragmire -13 / +3, Vortex 0 / -6, Duplex 0 / -5, Fractured -1, KOTM / Bowl / Cube / Concentric identical. Gated pairs so far: pf1 +0.6,
+  pf2 +0.8, pf3 +0.2 (58 rounds, mean +0.5; pair noise ~2.3). TreasureBox with the gate: 7347019 166 / 168 / 168 (baseline 174 every
+  time; so3 without the gate 203), 12091843 158 / 175 / 178 (baseline 155). Cragmire 12091843 113 in pf2 AND pf3 with the spawn order
+  active for one spawn only (pf3 counters: 1 spawn, 26 retargets): the arms split at 55 s on the same target with a different NEXT
+  gem (spawn order's), then chaos. Gate pass counters are far above the spawn count on Fractured (447-616 a round) and Duplex
+  (119-134): the per-spawn cache is rebuilt whenever a gem outside the cached set appears.
+- Turn mix (scratchpad leg_buckets.py / inline): legs that START within 30 deg of the next gem are as fast as the human's or faster
+  (drop 0.32 vs 0.39 s, climb 0.45 vs 0.67, level 0.38 vs 0.35); the loss is all in sharp-turn legs, which the planner has more of
+  (drops: 44 vs 23 percent of legs at 60+ deg) and drives worse (drops at 60-90 deg: 0.83 vs 0.43 s, arriving at 5.5 u/s against the
+  human's 3.9, path 2.5 x straight). The spawn order's rounds barely change the mix (32 vs 29 percent under 30 deg): its TreasureBox
+  gain is fewer legs over 3 s (1.7 vs 5.0 a round). Its turn charge 0.30 s per 90 deg is the human's; the planner's own legs show
+  ~0.55 s per 90 deg at ~6 u/s (sim variant sofit, mods/spawn_order_fit.py).
+- Two-level re-ranking: ~40 percent of real searches re-rank; in 30-43 percent of those no follow-up collects the next gem (five
+  rolling controllers, no jumps: a next gem on a higher pad), so the rank is the target's pickup time alone. Sim variant tlj
+  (mods/search_tlj.py, patch_tlj.py): follow-ups also jump (direct, replies 2 / 6 / 10 / 14) toward a raised or pad next gem.
+- 03:52 sim s4 (55 jobs): lp, tlj, lptlj, lpnn (10 maps); soG, sofit, lpsofit (TreasureBox, Sprawl, Fractured, Cube, Cragmire).
+- 04:17 sim s4 + 04:34 s5 (sim_so1, same 120 starts; scratchpad spawn_compare.py reads t_spawn = group-clear time, the cluster
+  metric, besides speed_compare's time to the next group). Clear time vs base (starts faster / slower), smacks:
+    lp     late pad jumps                               -0.1% (11/10)  TreasureBox -4.4, Cube -3.5, Sprawl +4.5 (smacks 14 -> 23)
+    tlj    two-level jump follow-ups (0.2 u rise or pad) -0.8% (18/13)  Sprawl -5.4, Fractured -4.8, Cragmire +4.4 / trip +1.8 s
+    lptlj  lp + tlj                                     -1.9% (28/15)  TreasureBox -6.2, Sprawl -7.5, Fractured -6.8; Cragmire 6 of 7 slower
+    lpnn   lp + frozen navigator off in spawns          -0.9% (15/10)  no better than lp
+    lptljp lp + jump follow-ups toward PAD gems only    -1.8% (22/13)  Cragmire +0.1 (fixed), TreasureBox -6.2, Fractured -6.8, Sprawl -6.5
+    slowc  slow corner pair (0.6 x corner speed)        -1.5% (17/13)  smacks 145 -> 107 (Cragmire 59 -> 25), Concentric -10, Cube -5.6
+    lpslowc                                             -1.6% (23/18)
+    lptljpslowc (the bundle)                            -3.1% (29/20)  smacks 145 -> 105; TreasureBox -4.8 (smacks 28 -> 16, trip
+                9.7 -> 6.4 s), Cube -8.3, Concentric -10, Fractured -5.6, Sprawl -6.2, Cragmire -2.4 (smacks 59 -> 24); Duplex +3.5,
+                Vortex +0.3. Time to the next group x0.997; points 814 -> 804 (one Cragmire fall -6 against two avoided, next-group
+                first-gem values); search CPU +8 percent (single variants +12 to +28).
+    soG    spawn order as in the code (5 gated maps)     time x1.000 (12/12); TreasureBox 0.967 with smacks 28 -> 41; Cragmire 1.069
+    sofit  spawn order with planner-fitted constants      x1.014: worse, dropped
+- 04:30 MERGED (defaults OFF, switches): search.LATE_PAD_JUMPS (--late-pad-jumps), search.TL_JUMP_FOLLOW with TL_JUMP_RISE_U 0 =
+  pad next gems only (--tl-jump-follow), search.CORNER_SLOW / CORNER_SLOW_SHARE 0.6 (--slow-corners); reliability_eval flags
+  wired in main and realtime.setup. Exactness: TreasureBox sim start cp3_baseline 169 with the switches off = sim_so1 base
+  (identical picks / end state), with all three on = lptljpslowc (identical). Backups: scratchpad backup_*_pre_bundle.py.
+- 04:36 PAIR pf4 launched: candidate --late-pad-jumps --tl-jump-follow --slow-corners vs current defaults.
+- 05:24 PAIR pf4 (bundle: --late-pad-jumps --tl-jump-follow --slow-corners vs the defaults), 20 rounds: base 2640 vs cand 2660 =
+  +1.0 a round. TreasureBox +5 / +31 (205, the best pool TreasureBox round so far), Fractured +16 / +9, Sprawl -3 / +15, Cragmire
+  +12 / -13, Cube +1 / -4, Bowl -2 / 0, KOTM identical, Duplex -10 / -5 (its baseline moved 140 -> 130 between pf3 and pf4 with the
+  same code), Vortex -14 / -4, Concentric -27 / +13.
+- 05:25 the bundle ON by default (search.LATE_PAD_JUMPS, TL_JUMP_FOLLOW, CORNER_SLOW = True and the three argparse defaults True;
+  controls --no-late-pad-jumps --no-tl-jump-follow --no-slow-corners). Real-time search-cost check running (scratchpad rt_ab.ps1:
+  one TreasureBox round with the bundle off, one on; holds / held_s from dynamics_reports/realtime/<date>/*.summary.json).
+- 05:34 real-time TreasureBox (scratchpad rt_ab.ps1, nothing else running): bundle OFF 147 points, 0 falls, 2 rescues, holds 173 /
+  7.65 s, p99 plan 0.179 s; bundle ON 175 points, 0 falls, 0 rescues, holds 149 / 6.28 s, p99 0.186 s (max hold 0.6 s). No real-time
+  cost (one round each; earlier default rounds 10-24: 157 with 276 holds / 12.3 s).
+- 05:36 PAIR pf5 launched: the bundle (now the default) vs --no-late-pad-jumps --no-tl-jump-follow --no-slow-corners, seeds 8675309 /
+  9083321 (new seeds for an independent check). No new per-map bests tonight (TreasureBox 205 ties, Cube 146 ties; sheet unchanged).
+- 06:26 PAIR pf5 (bundle default vs --no-late-pad-jumps --no-tl-jump-follow --no-slow-corners, seeds 8675309 / 9083321), 20 rounds:
+  base 2658 vs cand 2632 = -1.3 a round. TreasureBox -27 / -18 (176 -> 149, 173 -> 155), Cube -3 / -20, Cragmire -5 / -10, Concentric
+  -6 / 0, Fractured +25 / -1, Sprawl +17 / +4, Duplex +3 / +17, Bowl / KOTM / Vortex equal or -1. pf4 + pf5: -0.15 a round over 40.
+  The candidate's TreasureBox rounds had safe-holds / A2 fallbacks (8675309: 63 / 21 decisions, 9083321: 41 / 6; baseline 0 / 0):
+  all but one on trips 19-53 u from the goal where none of the three switches act (different paths reaching hard spots after the
+  arms split at 14.5 / 7.9 s); one A2 at 141.5 s was a 2.03 s search over budget next to a gem.
+- Best real scores (standing rule): pf5 baseline seed 9083321 set Cube 163 (was 146), Bowl 146 (was 143; the candidate arm also 146),
+  Fractured 116 (was 115), all 0 falls. docs/BEST_REAL_SCORES_2026-10-25.csv written; canonical sheet updated and read back
+  (tools/update_best_scores_sheet.py; HISTORY_SEED now includes 10-22).
+- sim_bench --start-seed (default 7347019): starts from another recorded round. 06:28 seed check running (scratchpad
+  run_sim_seeds.sh: bundle off vs on, cp3 pools' rounds of seeds 8675309 / 9083321, TreasureBox / Cube / Fractured / Sprawl /
+  Cragmire, 12 starts each).
+- 06:39 seed check (bundle off vs on, starts from the cp3 pools' rounds of the pf5 seeds; scratchpad sim_s8675309 / sim_s9083321):
+    seed 8675309: clear -10.2% (26 faster / 7 slower), TreasureBox -31.6% (7 / 1), Fractured -9.9%, Cube -3.9%, Sprawl +0.5, Cragmire
+                  -0.3; points 417 -> 419; falls 1 -> 3; time to the next group x0.996
+    seed 9083321: clear -4.9% (29 / 12), TreasureBox -12.6% (7 / 3), Fractured -6.1%, Sprawl -4.8%, Cube -1.7%, Cragmire -0.5;
+                  points 463 -> 474; falls 1 -> 1; time to the next group x0.969
+  The cluster gain holds (larger) on the spawns of the very seeds where pf5 lost TreasureBox points: those pair losses come from
+  outside cluster clearing (trip holds, late-round chaos). Bundle kept ON.
+- 06:40 sim s6 (refinements on top of the bundle: slow share 0.4, THROUGH_STEER, NAV_SPAWN_OFF, late jumps as through plans).
+- 06:55 sim s6 (refinements on top of the bundle, vs lptljpslowc): bnds4 (slow share 0.4) clear -0.4% (13/13) but smacks 105 -> 136
+  (Cragmire 24 -> 58); bndts (THROUGH_STEER) +0.1% (21/24), smacks up; bndnn (navigator off in spawns) +1.4% (4/5); bndlt (late jumps
+  also as through plans, scratch patch_latethrough.py) +1.0% (7/14). None kept; the bundle stays as merged.
+- 06:56 PAIR pf6 launched: bundle (default) vs control, seeds 31337 / 4420117 (third seed pair).
+- 07:46 PAIR pf6 (bundle default vs control, seeds 31337 / 4420117), 19 rounds (candidate Vortex 4420117 invalid; the baseline pool
+  ended with "Randomized opening audit failed: KOTM 4420117 repeated confirmation opening", all 20 baseline rounds valid): base 2488
+  vs cand 2579 = +4.8 a round. TreasureBox +11 / +21 (182, 202), Cragmire +42 / +1, Cube +17 / +5, Sprawl +22 / -8, Vortex +4, Fractured
+  0 / +4, KOTM +2 / +3, Duplex -9 / 0, Bowl -4 / -6, Concentric -18 / +4.
+  Bundle pairs pf4 + pf5 + pf6: +20 / -26 / +91 = +85 points over 59 rounds (+1.4 a round); TreasureBox +5 / +31 / -27 / -18 / +11 / +21.
+  No new per-map bests in pf6.
+- STATE at 07:47: the bundle is ON by default (search.LATE_PAD_JUMPS, TL_JUMP_FOLLOW pad-only, CORNER_SLOW); spawn order OFF; nothing
+  committed. Open leads: frozen-navigator loops, safe-hold parking on trips below high ledges, multi-level spawn wandering (Blasts,
+  slow loops), sharp-turn arrival speed of non-through plans.

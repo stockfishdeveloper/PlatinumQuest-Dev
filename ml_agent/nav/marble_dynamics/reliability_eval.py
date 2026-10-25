@@ -221,6 +221,25 @@ ENDGAME_MIN_GAIN=1.       # points the switched order must add (timed pessimisti
 DETOUR_MAX_RISE_U=3.      # 2026-10-17 v74: no opportunistic powerup detour to an item this far above the marble (v70: 4 of
                           # 19 such detours got it; Vortex ~10 s a round climbing to a raised powerup, Cragmire ~5 s, 0 of 8)
 ORDER_CANDIDATES=3        # cluster order choice: first-target candidates (tour target + nearest others; 1 = off)
+SPAWN_ORDER=False         # 2026-10-24 (operator: "disgustingly slow at picking up clusters"): the target and next gem come from
+                          # spawn_order.best_order over EVERY gem of the spawn (straight legs, turn and climb charges fitted to the
+                          # operator's demos) instead of the 5-gem walking-grid tour; ORDER_CANDIDATES is then off (--spawn-order)
+SO_SWITCH_S=.3            # after a pickup the previous order's remainder stays unless a new order is this much faster (model s)
+SO_WALK=False             # v2 legs on the walking grid (pad detours counted straight): sim_so1 x1.011 vs straight legs x0.994
+SO_EASY_ONLY=False        # v5: the spawn order only for a CONNECTED spawn: every gem reaches the others through legs that walk
+                          # (walking grid within 2 x straight + 1 u) or hop a pad (rise <= SO_HOP_DZ, straight <= SO_HOP_U); gaps
+                          # between islands or high climbs keep the tour (sim_so1 v3: Vortex 12 percent slower, crossings)
+SO_HOP_U=4.5
+SO_HOP_DZ=1.
+SO_PAD_SHARE=0.            # v8 OFF (pair pf1: the pad gate kept a quarter of TreasureBox spawns on the tour; TreasureBox 166 / 158 vs so3 203 / 175) v6 (pair so3, 00:57: TreasureBox +20 / +29, Fractured +12 / 0, but Cragmire -40 / -25, Vortex -16 / -12,
+                          # KOTM -9 / -11; -4.1 a round): the spawn order only for a TIGHT PAD FIELD, at least this share of the
+                          # spawn's gems on raised pads (pad_hops.pad_under; TreasureBox 19 of 25 spawns, Cube 15, Fractured 11,
+                          # Cragmire / Duplex / Concentric / KOTM 0) ...
+SO_GRID_SHARE=.8          # v9: ... and a lattice: this share of the gems' nearest-neighbour distances within SO_GRID_TOL of the median
+SO_GRID_TOL=.12           # (relative; pair pf2: Cragmire's tight spawns, median share 0.71, lost 13 / 3)
+SO_TIGHT_U=2.6            # v8: 2.6 (was 4.5): the 2 u pad grids (TreasureBox, Fractured, Sprawl medians 2.0); Cragmire 3.2, Cube 3.8 keep the tour ... and the gems' median nearest-neighbour spacing at most this (Bowl 15 u, Vortex 5.2 u keep the tour)
+SO_KEEP_ORDER_CHOICE=True   # (ON with --spawn-order since 00:05: sim_so1 v3 x0.988, the best variant) v3: the physics first-target choice (ORDER_CANDIDATES, its forecasts) may still override the spawn
+                            # order's first gem, and its commit is honoured (sim_so1 v1/v2: KOTM / Vortex 12-16 percent slower without it)
 ORDER_RADIUS_U=12.
 ORDER_REST_SPEED=6.        # u/s for the run from the next gem to the nearest gem left
 ORDER_COMMIT_S=3.          # a chosen first target other than the tour's stays the target this long
@@ -297,6 +316,7 @@ def pick(engine,route,dynamics,raw,gems,current,nav,horizon,memory,brake_replies
         except Exception:wall_staged=False
     engine.wall_staged=wall_staged
     if (ORDER_CANDIDATES>1 and target_item is None and not getattr(engine,'crossing_phase',False) and not wall_staged
+            and not (getattr(engine,'spawn_order_on',False) and not SO_KEEP_ORDER_CHOICE)
             and getattr(engine,'crossings',None) is not None and not getattr(engine,'endgame',False)):
         oc=order_choice(engine,route,dynamics,raw,gems,current,nav,horizon,memory,brake_replies,preserve_resources)
         if oc is not None:
@@ -693,6 +713,9 @@ class ContinuousController:
         state=((msg.dynamics if isinstance(msg.dynamics,dict) else {}).get('native') or {}).get('state')
         if not PRESPIN or not isinstance(state,dict):return neutral
         target,_,_=tour(self.terrain,self.fields,msg.obs,None,mesh=self.engine.mesh)
+        if SPAWN_ORDER and isinstance(msg.dynamics,dict):
+            so=self._spawn_order(msg.dynamics,msg.obs,state)
+            if so is not None:target=so[0]
         if target is None:return neutral
         pos=np.asarray(state['position'],dtype=float)
         goal=np.asarray(copy.copy(self.route).navigate(pos,np.asarray(target[:3],dtype=float))[0],dtype=float)
@@ -945,6 +968,66 @@ class ContinuousController:
                 self.chain_order=(list(info['chain_order']),self.decision_index+int(CHAIN_ORDER_S/.064));self.counts['chain_orders']+=1
         return chosen,target
 
+    def _spawn_order(self,dynamics,raw,state):
+        """SPAWN_ORDER: (target, next gem) of the whole-spawn order; recomputed when the set of gems changes, the previous
+        order's remainder kept after a pickup unless a new one is SO_SWITCH_S faster."""
+        from nav.marble_dynamics.spawn_order import best_order,order_time
+        gems=[g for g in observed_gems(dynamics,raw) if goal_key(g) not in self.skipped]
+        if len(gems)<2:return None
+        keys=frozenset(goal_key(g) for g in gems)
+        # v7 (pair pf1): the gate is decided ONCE per spawn on its full gem set; re-deciding on the gems left flipped between
+        # the tour and the spawn order mid-spawn (TreasureBox 7347019: 166 against 174, so3 without the gate 203)
+        sp=getattr(self,'_so_spawn',None)
+        if sp is None or not keys<=sp[0]:sp=self._so_spawn=(keys,self._spawn_gate(keys,gems))
+        if not sp[1]:return None
+        pos=np.asarray(state['position'],dtype=float);vel=np.asarray(state['velocity'],dtype=float)
+        plan=getattr(self,'_so_plan',None)
+        if plan is None or plan['keys']!=keys:
+            dist=(lambda a,g:walk_distance(self.terrain,self.fields,a,g)) if SO_WALK else None
+            order=best_order(pos,vel,gems,dist);self.counts['spawn_order_plans']+=1
+            if plan is not None and keys<plan['keys']:
+                old=[g for g in plan['order'] if goal_key(g) in keys]
+                if len(old)==len(gems) and order_time(pos,vel,old,dist)<=order_time(pos,vel,order,dist)+SO_SWITCH_S:order=old
+                else:self.counts['spawn_order_switches']+=1
+            plan=self._so_plan=dict(keys=keys,order=order)
+        order=plan['order']
+        return order[0],(order[1] if len(order)>1 else None)
+
+    def _spawn_gate(self,keys,gems):
+        """SPAWN_ORDER gate on a spawn's full gem set: connected (SO_EASY_ONLY), tight (SO_TIGHT_U), a pad field (SO_PAD_SHARE)."""
+        if SO_EASY_ONLY and not self._connected_spawn(keys,gems):return False
+        n=len(gems)
+        if SO_TIGHT_U and n>=2:
+            nn=sorted(min((math.hypot(gems[i][0]-gems[j][0],gems[i][1]-gems[j][1]) for j in range(n) if j!=i),default=0.) for i in range(n))
+            if nn[n//2]>SO_TIGHT_U:return False
+            if SO_GRID_SHARE and sum(1 for x in nn if abs(x-nn[n//2])<=SO_GRID_TOL*nn[n//2])<SO_GRID_SHARE*n:return False
+        if SO_PAD_SHARE:
+            from nav.marble_dynamics.pad_hops import pad_under
+            if sum(1 for g in gems if pad_under(self.engine,g) is not None)<SO_PAD_SHARE*n:return False
+        self.counts['spawn_order_spawns']+=1
+        return True
+
+    def _connected_spawn(self,keys,gems):
+        """SO_EASY_ONLY: all gems linked by walkable or pad-hop legs (cached per gem set)."""
+        cache=self.__dict__.setdefault('_so_conn',{})
+        if keys in cache:return cache[keys]
+        n=len(gems);link=[[False]*n for _ in range(n)]
+        for i in range(n):
+            for j in range(n):
+                if i==j:continue
+                a,b=gems[i],gems[j];st=math.hypot(b[0]-a[0],b[1]-a[1]);dz=float(b[2])-float(a[2])
+                if abs(dz)<=SO_HOP_DZ and st<=SO_HOP_U:link[i][j]=True;continue
+                w=walk_distance(self.terrain,self.fields,a,b)
+                link[i][j]=bool(math.isfinite(w) and w<=2.*st+1.)
+        seen={0};todo=[0]
+        while todo:
+            i=todo.pop()
+            for j in range(n):
+                if j not in seen and link[i][j] and link[j][i]:seen.add(j);todo.append(j)
+        ok=len(seen)==n;cache[keys]=ok;self.counts['spawn_order_connected' if ok else 'spawn_order_disconnected']+=1
+        if len(cache)>64:cache.pop(next(iter(cache)))
+        return ok
+
     def action(self,msg,remaining):
         self.last_rollout=None
         raw=msg.obs;dynamics=msg.dynamics;state=dynamics['native']['state']
@@ -972,6 +1055,14 @@ class ContinuousController:
                     if np.linalg.norm(np.asarray(alive[0][:3])-np.asarray(target[:3]))>.1:self.counts['chain_order_targets']+=1
                     target=alive[0];nxt=alive[1] if len(alive)>1 else nxt
                 else:self.chain_order=None
+        self.engine.spawn_order_on=False
+        committed=bool(SO_KEEP_ORDER_CHOICE and getattr(self,'order_commit',None) is not None)
+        if SPAWN_ORDER and self.uses_physics and self.resource is None and not committed:
+            so=self._spawn_order(dynamics,raw,state)
+            if so is not None:
+                if np.linalg.norm(np.asarray(so[0][:3])-np.asarray(target[:3] if target is not None else so[0][:3]))>.1:self.counts['spawn_order_retargets']+=1
+                target,nxt=so;self.engine.spawn_order_on=True
+                if not SO_KEEP_ORDER_CHOICE:self.order_commit=None
         self.engine.endgame=False
         if (ENDGAME_S and self.uses_physics and self.resource is None and not self.memory.landing_mode
                 and float(raw[31])<=ENDGAME_S*1000. and getattr(self.engine,'last_crossing_phase',None) is None):
@@ -1452,6 +1543,18 @@ def main():
     p.add_argument('--no-time-price',dest='time_price',action='store_false',help='pickup delay at 4 u/s, ballistic time at 8 u/s, extensions free (the default)')
     p.add_argument('--cluster-penalties',dest='cluster_penalties',action='store_true',default=True,help='2026-10-23 (operator): plan cost for side impacts (pad sides, walls), a drop off the level of the next gem after a pickup, and a Super Speed spent on one gem in a cluster (search.BUMP_COST_U, LEDGE_DROP_U, SS_ONE_GEM_U; default ON)')
     p.add_argument('--no-cluster-penalties',dest='cluster_penalties',action='store_false',help='the matched control: no cluster penalties (the counts are still logged)')
+    p.add_argument('--ss-ride',dest='ss_ride',action='store_true',default=False,help='search.SS_RIDE (2026-10-24, OFF by default since 22:58: slower in sim_ssA): riding Super Speed plans, no use margin and no 18 u/s end limit while a Super Speed is held')
+    p.add_argument('--no-ss-ride',dest='ss_ride',action='store_false',help='the matched control (the default)')
+    p.add_argument('--spawn-order',dest='spawn_order',action='store_true',default=False,help='2026-10-24: the whole-spawn gem order (reliability_eval.SPAWN_ORDER, nav/marble_dynamics/spawn_order.py)')
+    p.add_argument('--no-spawn-order',dest='spawn_order',action='store_false',help='the matched control (the default)')
+    p.add_argument('--late-pad-jumps',dest='late_pad_jumps',action='store_true',default=True,help='search.LATE_PAD_JUMPS (2026-10-25): the late jump times (replies 6-24, no Blast variants) also toward a gem on a raised pad within 8 u when the marble is not on that pad')
+    p.add_argument('--no-late-pad-jumps',dest='late_pad_jumps',action='store_false',help='the matched control')
+    p.add_argument('--tl-jump-follow',dest='tl_jump_follow',action='store_true',default=True,help='search.TL_JUMP_FOLLOW (2026-10-25): the two-level follow-ups also jump (direct, replies 2 / 6 / 10 / 14) toward a raised or pad next gem')
+    p.add_argument('--no-tl-jump-follow',dest='tl_jump_follow',action='store_false',help='the matched control')
+    p.add_argument('--slow-corners',dest='slow_corners',action='store_true',default=True,help='search.CORNER_SLOW (2026-10-25): a second corner pair arriving at 0.6 x the corner speed (floor 1.5 u/s) before a sharp turn')
+    p.add_argument('--no-slow-corners',dest='slow_corners',action='store_false',help='the matched control')
+    p.add_argument('--time-cost',dest='time_cost',action='store_true',default=False,help='gem_demo.TIME_COST (2026-10-24, OFF by default since 22:58: slower in sim_ssA): every plan priced in seconds via time_to_go')
+    p.add_argument('--no-time-cost',dest='time_cost',action='store_false',help='the matched control (the default)')
     p.add_argument('--resource-cap',dest='resource_cap',action='store_true',default=True,help='2026-10-22: powerup fetches only within RESOURCE_FETCH_MAX_U and no farther than the gem (default ON)')
     p.add_argument('--no-resource-cap',dest='resource_cap',action='store_false',help='the matched control: fetch any helpful powerup whatever the distance (the behaviour before 2026-10-22)')
     p.add_argument('--pad-hops',dest='pad_hops',action='store_true',default=False,help='2026-10-21: spawn plans (chain plans through 3-4 spawn gems, pad hops, Blast gate; nav/marble_dynamics/spawn_plans.py). OFF by default 18:20: three ten-map pairs -4.4 / -2.0 / -6.9 a round while the six-pickup replays were 13-17 percent faster; under work')
@@ -1700,6 +1803,10 @@ def main():
         engine.resource_cap=getattr(a,'resource_cap',True)
         from nav.marble_dynamics import search as _search_cp
         engine.cluster_penalties=getattr(a,'cluster_penalties',_search_cp.CLUSTER_PENALTIES)
+        global SPAWN_ORDER;SPAWN_ORDER=bool(getattr(a,'spawn_order',SPAWN_ORDER));_search_cp.SS_RIDE=bool(getattr(a,'ss_ride',False));_gem_demo_mod.TIME_COST=bool(getattr(a,'time_cost',False))
+        _search_cp.LATE_PAD_JUMPS=bool(getattr(a,'late_pad_jumps',_search_cp.LATE_PAD_JUMPS))
+        _search_cp.CORNER_SLOW=bool(getattr(a,'slow_corners',_search_cp.CORNER_SLOW))
+        _search_cp.TL_JUMP_FOLLOW=bool(getattr(a,'tl_jump_follow',_search_cp.TL_JUMP_FOLLOW))
         engine.time_price=getattr(a,'time_price',False);_gem_demo_mod.set_time_price(engine.time_price)
         if engine.time_price:engine.ballistic_time_rate=_gem_demo_mod.TIME_PRICE_U_S
         engine.pad_arrival=getattr(a,'pad_arrival',True)
