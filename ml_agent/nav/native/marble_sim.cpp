@@ -666,7 +666,7 @@ int step(Map& m, State& s, const Move& move, int dt_ms, std::vector<Event>& even
 }  // namespace
 
 // ------------------------------------------------------------------ C API
-DLL int ms_abi() { return 10; }
+DLL int ms_abi() { return 11; }
 DLL int ms_state_size() { return S_SIZE; }
 
 DLL void* ms_create(int ntri, const double* tri, const double* source, const double* planes, const uint8_t* boundary,
@@ -798,6 +798,9 @@ DLL void* ms_terrain_create(void* map, float x0, float y0, double res, int KW, i
 DLL void ms_terrain_destroy(void* t) { delete (Terrain*)t; }
 DLL void ms_terrain_set_edge(void* th, const float* edge) {   // ABI 7: terrain.edge_dist for search.open_top
     Terrain* t = (Terrain*)th; t->edge.assign(edge, edge + (size_t)t->KW * t->H * t->W);
+}
+DLL void ms_terrain_set_route_tol(void* th, double tol, double ntol, double radius) {   // ABI 11: terrain.ROUTE_LEVEL_TOL_U, ROUTE_NEIGHBOR_TOL_U, ROUTE_RADIUS_U
+    Terrain* t = (Terrain*)th; t->route_tol = tol; t->route_ntol = ntol; t->route_radius = radius;
 }
 DLL void ms_terrain_seed_point(void* th, const double* p, int clear) {
     Terrain* t = (Terrain*)th; V3 c = load(p); t->point_cache[std::string((const char*)&c, sizeof(V3))] = clear != 0;

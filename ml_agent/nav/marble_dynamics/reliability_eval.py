@@ -1595,6 +1595,8 @@ def main():
     p.add_argument('--no-gap-routes',dest='gap_routes',action='store_false',help='the matched control: walking routes and the one narrowest gap per pair of walking components')
     p.add_argument('--climb-skill',dest='climb_skill',action='store_true',default=True,help='climbs.CLIMB_SKILL (2026-10-25, operator): a goal on a higher place is climbed to: jump + Blast from a spot with nothing overhead when the meter is high enough, else a wall hit + jump + Blast with the run timed to the meter')
     p.add_argument('--no-climb-skill',dest='climb_skill',action='store_false',help='the matched control')
+    p.add_argument('--route-map',dest='route_map',action='store_true',default=True,help='2026-10-25 (operator): climb edges in the route graph (geometry_route.CLIMB_EDGES, crossings.ROUTE_CLIMBS) and route lookups on the marble\'s own floor (terrain.ROUTE_LEVEL_TOL_U)')
+    p.add_argument('--no-route-map',dest='route_map',action='store_false',help='the matched control')
     p.add_argument('--late-pad-jumps',dest='late_pad_jumps',action='store_true',default=True,help='search.LATE_PAD_JUMPS (2026-10-25): the late jump times (replies 6-24, no Blast variants) also toward a gem on a raised pad within 8 u when the marble is not on that pad')
     p.add_argument('--no-late-pad-jumps',dest='late_pad_jumps',action='store_false',help='the matched control')
     p.add_argument('--tl-jump-follow',dest='tl_jump_follow',action='store_true',default=True,help='search.TL_JUMP_FOLLOW (2026-10-25): the two-level follow-ups also jump (direct, replies 2 / 6 / 10 / 14) toward a raised or pad next gem')
@@ -1857,6 +1859,8 @@ def main():
         _crossings_mod.GAP_ROUTES=bool(getattr(a,'gap_routes',_crossings_mod.GAP_ROUTES))
         from nav.marble_dynamics import climbs as _climbs_mod
         _climbs_mod.CLIMB_SKILL=bool(getattr(a,'climb_skill',_climbs_mod.CLIMB_SKILL))
+        if not getattr(a,'route_map',True):
+            from nav.marble_dynamics.geometry_route import route_map_off;route_map_off()
         _search_cp.CORNER_SLOW=bool(getattr(a,'slow_corners',_search_cp.CORNER_SLOW))
         _search_cp.TL_JUMP_FOLLOW=bool(getattr(a,'tl_jump_follow',_search_cp.TL_JUMP_FOLLOW))
         engine.time_price=getattr(a,'time_price',False);_gem_demo_mod.set_time_price(engine.time_price)

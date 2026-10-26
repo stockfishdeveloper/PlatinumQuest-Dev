@@ -1579,7 +1579,8 @@ def apply_crossing_landing(pairs,engine):
             # 2026-10-25 climb skill: a plan counts only when its forecast stands on the place up there, or (CLIMB_MIX: the search's
             # goal is then the gem itself) when it collects the gem
             from nav.marble_dynamics.climbs import landed_on_place,CLIMB_MIX
-            if CLIMB_MIX and info.get('possible_pickup_interval') is not None:continue
+            if CLIMB_MIX and not crossing.get('route_climb') and info.get('possible_pickup_interval') is not None:continue   # (a route
+            # climb's goal is a floor point up a ledge, not a gem: passing near it is no pickup)
             skill=crossings.climb_skill();i=landed_on_place(crossing,rollout,skill) if skill is not None else None
             if i is None:info['rejected']='climb_not_up'
             elif info.get('possible_pickup_interval') is None:info['possible_pickup_interval']=i

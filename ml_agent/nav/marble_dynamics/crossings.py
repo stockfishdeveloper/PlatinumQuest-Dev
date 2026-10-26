@@ -54,7 +54,8 @@ GAP_RUN_CONE = 0.7           # at the launch, plus this much per unit behind it)
 GAP_GIVE_UP_CALLS = 400      # a gap crossing staged for this many stage() calls in a row (~2 per decision) is dropped for a while
 GAP_COMMIT_PAST_U = 1.5      # past the lip, an active gap crossing stays in its cross phase until this far beyond the far edge
 GAP_SMALL_MAX_RISE_U = 0.5   # with search.GAP_RUN a gap narrower than GAP_STAGE_MIN_U is staged when it rises at most this much
-RADIUS_AIR_U = 0.6           # a staged climb is committed while the marble is this far above its run floor (in the air)
+ROUTE_CLIMBS = True          # 2026-10-25 (with geometry_route.CLIMB_EDGES): when the route to the goal goes up a climb edge within
+ROUTE_CLIMB_U = 20.0         # this much route length, the climb skill stages a climb onto that edge's upper floor (a gem behind a ledge)
 
 
 def needed_meter(rise_u):
@@ -144,8 +145,51 @@ class Crossings:
         field = getattr(route, 'field', None)
         if field is None:
             return False
+        if getattr(self.terrain, 'climb_edges', None):
+            field = self.walk_field(goal)   # the route field also climbs (geometry_route.CLIMB_EDGES): walking is the walk-only graph
         node = self.node_near(position)
         return node is not None and bool(np.isfinite(field[node]))
+
+    def walk_field(self, goal):
+        """Walk-only distance field to the goal (the walking graph without climb edges)."""
+        return self.terrain.goal_field(float(goal[0]), float(goal[1]), jumps=False, z=float(goal[2]))
+
+    def route_climb_edge(self, position, goal):
+        """The upper node (x, y, z) of the first climb edge (terrain.climb_edges) on the route from the marble toward the goal within
+        ROUTE_CLIMB_U of route length (the route field's downhill path, as routing.path_waypoint follows it), else None."""
+        t = self.terrain
+        edges = getattr(t, 'climb_edges', None)
+        graph = getattr(t, '_graph', None)
+        if not edges or graph is None:
+            return None
+        field = t.goal_field(float(goal[0]), float(goal[1]), z=float(goal[2]))
+        j, i = t.cell_of(position[0], position[1])
+        k = t.level_at(j, i, position[2])
+        if k < 0 or not np.isfinite(field[k, j, i]):
+            c = t._nearest_walkable(j, i, radius=3, z=position[2])
+            if c is None or not np.isfinite(field[c]):
+                return None
+            k, j, i = c
+        start = float(field[k, j, i])
+        for _ in range(int(ROUTE_CLIMB_U * 3 / t.walk_res) + 8):
+            node = int(t._node_idx[k, j, i])
+            lo, hi = graph.indptr[node:node + 2]
+            ids = graph.indices[lo:hi]
+            if not len(ids):
+                return None
+            cells = t._nodes[ids]
+            values = field[cells[:, 0], cells[:, 1], cells[:, 2]]
+            q = int(np.argmin(graph.data[lo:hi] + values))
+            if not np.isfinite(values[q]) or values[q] >= field[k, j, i]:
+                return None
+            nxt = int(ids[q])
+            kk, jj, ii = map(int, cells[q])
+            if (node, nxt) in edges:
+                return (float(t.wxs[ii]), float(t.wys[jj]), float(t.walk_z[kk, jj, ii]))
+            k, j, i = kk, jj, ii
+            if start - float(field[k, j, i]) > ROUTE_CLIMB_U or field[k, j, i] <= 1e-5:
+                return None
+        return None
 
     def _tree(self, component):
         from scipy.spatial import cKDTree
@@ -428,7 +472,13 @@ class Crossings:
                 or math.hypot(float(goal[0]) - p[0], float(goal[1]) - p[1]) > _climbs.CLIMB_RANGE_U):
             return None
         walk = math.inf
-        if route is not None:
+        if getattr(self.terrain, 'climb_edges', None):
+            # the route field climbs too (geometry_route.CLIMB_EDGES): the walking time comes from the walk-only graph
+            node = self.node_near(position)
+            if node is not None:
+                d = float(self.walk_field(goal)[node])
+                walk = d if math.isfinite(d) else math.inf
+        elif route is not None:
             import copy as _copy
             r2 = _copy.copy(route)   # a copy: the shared route's held waypoint must not change when no climb is staged
             try:
@@ -446,6 +496,17 @@ class Crossings:
             self._climb_choice[gk] = (climb['kind'], tuple(climb['launch'][:2]))   # sticky: see climbs.CLIMB_SWITCH_S
             if len(self._climb_choice) > 64:
                 self._climb_choice.pop(next(iter(self._climb_choice)))
+        return climb
+
+    def route_climb(self, position, velocity, goal, route, meter):
+        """ROUTE_CLIMBS: a climb (climb_crossing) onto the upper floor of the route's next climb edge, staged for the goal (goal0) with
+        the edge's upper node as the climb's own goal; None when the route has no climb edge near or the climb skill declines it."""
+        upper = self.route_climb_edge(position, goal)
+        if upper is None:
+            return None
+        climb = self.climb_crossing(position, velocity, upper, route, meter)
+        if climb is not None:
+            climb['goal0'] = list(goal[:3]); climb['climb_goal'] = list(upper); climb['route_climb'] = True
         return climb
 
     def _climb_stage(self, climb, position, velocity, meter, goal, value, extra):
@@ -708,8 +769,10 @@ class Crossings:
         here = self.component_at(position)
         there = self.component_at(goal[:3])
         climb = self.climb_crossing(position, velocity, goal, route, meter)
+        if climb is None and ROUTE_CLIMBS:
+            climb = self.route_climb(position, velocity, goal, route, meter)
         if climb is not None:
-            return self._climb_stage(climb, position, velocity, meter, goal, value, extra)
+            return self._climb_stage(climb, position, velocity, meter, climb.get('climb_goal', goal), value, extra)
         gap = self.gap_crossing(position, goal, route, meter) if GAP_ROUTES else None
         if gap is None:
             self._gap_key = None

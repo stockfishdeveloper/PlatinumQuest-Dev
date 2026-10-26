@@ -172,18 +172,22 @@ def cached_walking(terrain, mesh, dll, folder, memo=True):
     import nav.marble_dynamics.geometry_route as _gr
     key=fingerprint([ML/'nav/marble_dynamics/geometry_route.py',ML/'nav/marble_dynamics/ground_cache.py'],
         terrain=terrain.static_cache_key,mesh=mesh_key(mesh,dll),radius=.189750001,
-        jump_step=(float(_gr.JUMP_STEP_U),float(_gr.JUMP_CLEAR_U),float(_gr.JUMP_EDGE_COST_U)))   # 2026-10-24: jump edges
+        jump_step=(float(_gr.JUMP_STEP_U),float(_gr.JUMP_CLEAR_U),float(_gr.JUMP_EDGE_COST_U)),   # 2026-10-24: jump edges
+        climb=(bool(_gr.CLIMB_EDGES),bool(_gr.CLIMB_EDGES_BETWEEN),float(_gr.CLIMB_EDGE_MAX_U),float(_gr.CLIMB_EDGE_CLEAR_U),float(_gr.CLIMB_EDGE_BACK_U),float(_gr.CLIMB_HOP_U),   # 2026-10-25: climb edges
+               float(_gr.CLIMB_HOP_COST_U),float(_gr.CLIMB_COST_U),float(_gr.CLIMB_COST_PER_U)))
     path=Path(folder)/('clearance_'+key+'.bin');started=time.perf_counter()
     with file_lock(path.with_suffix('.lock')):
         saved=read_cache(path,key);hit=saved is not None
         if hit:
-            result=copy.copy(terrain);result._graph=result._graph_nojump=saved['graph']
+            # the route graph (_graph: walking + climb edges) and the walk-only graph (_graph_nojump)
+            result=copy.copy(terrain);result._graph=saved['graph'];result._graph_nojump=saved.get('walk_graph',saved['graph'])
+            result.climb_edges=saved.get('climb_edges',{})
             result.component=saved['component'];result.geometry_route_report=copy.deepcopy(saved['report'])
             result.ground_clearance=GroundClearance(mesh)
             result.ground_clearance.point_cache=saved['point_cache']
         else:
             result=walking_terrain(terrain,mesh)
-            write_cache(path,key,dict(graph=result._graph,component=result.component,
+            write_cache(path,key,dict(graph=result._graph,walk_graph=result._graph_nojump,climb_edges=result.climb_edges,component=result.component,
                 report=result.geometry_route_report,point_cache=result.ground_clearance.point_cache))
     if memo:result.ground_clearance=MemoGroundClearance(result.ground_clearance)
     query_path=Path(folder)/('segments_'+key+'.bin')

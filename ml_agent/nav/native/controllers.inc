@@ -43,6 +43,8 @@ struct Terrain {
     std::unordered_map<std::string, bool> point_cache, segment_cache;
     Map* map = nullptr;
     std::vector<float> edge;   // walk grid distance to the nearest drop (terrain.edge_dist, KW x H x W); empty = none (ABI 7)
+    double route_tol = 0;      // terrain.ROUTE_LEVEL_TOL_U for dist_at / path_waypoint (route_node); 0 = level_at only (ABI 11) ...
+    double route_ntol = 0, route_radius = 0;   // ... terrain.ROUTE_NEIGHBOR_TOL_U and ROUTE_RADIUS_U (a neighbour's floor under the marble)
 };
 inline float wz(const Terrain& t, int k, int j, int i) { return t.walk_z[((size_t)k * t.H + j) * t.W + i]; }
 inline float fz(const float* field, const Terrain& t, int k, int j, int i) { return field[((size_t)k * t.H + j) * t.W + i]; }
@@ -92,8 +94,37 @@ bool nearest_walkable(const Terrain& t, int j, int i, int radius, bool has_z, do
     return found;
 }
 
+// terrain._route_node (2026-10-25): this cell's level nearest z within t.route_tol, else the nearest neighbour (cell distance, then
+// height) with a floor within t.route_ntol of the marble's bottom (z - t.route_radius); heights compared in double, as the Python method
+// does with float()
+bool route_node(const Terrain& t, int j, int i, int radius, double z, int& bk, int& bj, int& bi) {
+    bool found = false; double b0 = 0, b1 = 0;
+    for (int dj = -radius; dj <= radius; dj++) for (int di = -radius; di <= radius; di++) {
+        int jj = j + dj, ii = i + di;
+        if (!in_grid(t, jj, ii)) continue;
+        const bool own = dj == 0 && di == 0;
+        const double ref = own ? z : z - t.route_radius, tol = own ? t.route_tol : t.route_ntol;
+        int kb = -1; double db = 0;
+        for (int k = 0; k < t.KW; k++) {
+            float zk = wz(t, k, jj, ii);
+            if (!std::isfinite(zk)) continue;
+            double d = std::fabs((double)zk - ref);
+            if (d <= tol && (kb < 0 || d < db)) { kb = k; db = d; }
+        }
+        if (kb < 0) continue;
+        double key0 = (double)(dj * dj + di * di);
+        if (!found || key0 < b0 || (key0 == b0 && db < b1)) { found = true; bk = kb; bj = jj; bi = ii; b0 = key0; b1 = db; }
+    }
+    return found;
+}
+
 double dist_at(const Terrain& t, const float* field, double x, double y, double gx, double gy, bool has_z, double z, bool strong) {
     int j, i; cell_of(t, x, y, strong, strong, j, i);
+    if (t.route_tol > 0 && has_z) {
+        int rk, rj, ri;
+        if (route_node(t, j, i, 2, z, rk, rj, ri) && std::isfinite(fz(field, t, rk, rj, ri)))
+            return (double)fz(field, t, rk, rj, ri) + ((rj == j && ri == i) ? 0.0 : t.res);
+    }
     int k = level_at(t, j, i, has_z, z);
     if (k >= 0 && std::isfinite(fz(field, t, k, j, i))) return (double)fz(field, t, k, j, i);
     int ck, cj, ci;
@@ -235,7 +266,10 @@ bool path_waypoint(Terrain& t, const float* field, double mx, double my, P3 gem,
     const double lookahead = 12.0;
     int j, i; cell_of(t, mx, my, false, false, j, i);
     int k = level_at(t, j, i, has_mz, mz);
-    if (k < 0 || !std::isfinite(fz(field, t, k, j, i))) {
+    int rk, rj, ri;
+    if (t.route_tol > 0 && has_mz && route_node(t, j, i, 3, mz, rk, rj, ri) && std::isfinite(fz(field, t, rk, rj, ri))) {
+        k = rk; j = rj; i = ri;   // 2026-10-25: start on the marble's own floor (terrain.ROUTE_LEVEL_TOL_U)
+    } else if (k < 0 || !std::isfinite(fz(field, t, k, j, i))) {
         int ck, cj, ci;
         if (!nearest_walkable(t, j, i, 3, has_mz, mz, ck, cj, ci) || !std::isfinite(fz(field, t, ck, cj, ci))) { out = gem; return false; }
         k = ck; j = cj; i = ci;

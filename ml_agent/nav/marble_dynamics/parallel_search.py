@@ -229,6 +229,9 @@ def build_engine(a, name):
     from nav.native import attach
     attach(engine)
     geometry = None
+    if not getattr(a, 'route_map', True):
+        from nav.marble_dynamics.geometry_route import route_map_off
+        route_map_off()   # before the walking terrain is built (and before any route lookup)
     if a.geometry_route:
         geometry = cached_walking(terrain, mesh, a.sweep_dll, a.cache_dir, memo=a.clearance_cache) if a.cache_dir else walking_terrain(terrain, engine.mesh)
         if a.clearance_cache and not a.cache_dir:

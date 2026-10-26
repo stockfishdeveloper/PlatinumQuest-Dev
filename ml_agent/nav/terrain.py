@@ -96,6 +96,13 @@ JUMP_GAP = 4.0        # (superseded 2026-09-23, HANDOFF 28.27) the old 8-directi
 JUMP_HEADINGS = 16    # headings searched from every edge cell (the observation's 16 ray headings)
 JUMP_DROP = 6.0       # landing may be this far below the take-off cell ...
 JUMP_RISE = 1.5       # ... or this far above
+ROUTE_LEVEL_TOL_U = 0.0   # (OFF 2026-10-25 21:40, operator: sim +7 points alone but -22 points on top of the climb edges, Concentric +25 %;
+                          # 1.5 = on) 2026-10-25: route lookups (dist_at, routing.path_waypoint's start) take the cell's level nearest the marble when
+                          # it is within this (as level_at did), else a neighbouring cell's floor the marble stands on (_route_node); level_at
+                          # alone took the nearest level of the cell however far (2-4 % of ground decisions on 9 of the 10 maps, Cragmire 10 %,
+                          # sat on a level 1.5-16 u off: at a wall's foot the cell may hold only the wall top). 0 = before.
+ROUTE_NEIGHBOR_TOL_U = 0.35   # ... a neighbour's floor counts when the marble's bottom (z - ROUTE_RADIUS_U) is within this of it: standing
+ROUTE_RADIUS_U = 0.19         # on it, not flying past a ledge (any level within 1.5 u, flights included: sim Concentric / Vortex +14 %)
 JUMP_COST = 1.2       # 1.5 -> 1.2 on 2026-09-23 (HANDOFF 28.27): a jump edge is priced as its measured flight
                       # (0.76 s, about the rolling time for the same distance) plus a landing loss. At 1.5 the
                       # hypotenuse of a 7+7 u corner (10 u x 1.5 = 15) still lost to walking the legs (14).
@@ -420,9 +427,43 @@ class TerrainGrid(TerrainMap):
                     best, bd = (int(k), jj, ii), key
         return best
 
+    def _route_node(self, j, i, z, radius=2):
+        """The node (k, jj, ii) for a marble at height z over walk cell (j, i): this cell's level nearest z when within
+        ROUTE_LEVEL_TOL_U, else the nearest neighbouring cell (by cell distance, then height) with a floor within ROUTE_NEIGHBOR_TOL_U
+        of the marble's bottom; None when neither. Heights compared in float64 (nav/native/controllers.inc route_node)."""
+        best, bd = None, None
+        for dj in range(-radius, radius + 1):
+            for di in range(-radius, radius + 1):
+                jj, ii = j + dj, i + di
+                if not self.in_walk_grid(jj, ii):
+                    continue
+                own = dj == 0 and di == 0
+                ref = float(z) if own else float(z) - ROUTE_RADIUS_U
+                tol = ROUTE_LEVEL_TOL_U if own else ROUTE_NEIGHBOR_TOL_U
+                kb, db = -1, 0.0
+                for k in range(self.walk_z.shape[0]):
+                    zk = float(self.walk_z[k, jj, ii])
+                    if not math.isfinite(zk):
+                        continue
+                    d = abs(zk - ref)
+                    if d <= tol and (kb < 0 or d < db):
+                        kb, db = k, d
+                if kb < 0:
+                    continue
+                key = (dj * dj + di * di, db)
+                if bd is None or key < bd:
+                    best, bd = (kb, jj, ii), key
+        return best
+
     def dist_at(self, field, x, y, goal_xy, z=None):
         """Path distance to the goal from world (x, y[, z]); falls back to straight-line + 5 u off the walkable grid."""
         j, i = self.cell_of(x, y)
+        if ROUTE_LEVEL_TOL_U and z is not None:
+            # 2026-10-25: the node on the marble's own floor (this cell or a neighbour), never a level far above or below it in
+            # the same cell (a marble on the floor at a wall's foot read as standing on the wall top 8 u up: TreasureBox (42, 60))
+            c = self._route_node(j, i, z)
+            if c is not None and np.isfinite(field[c]):
+                return float(field[c]) + (0.0 if (c[1], c[2]) == (j, i) else self.walk_res)
         k = self.level_at(j, i, z)
         if k >= 0 and np.isfinite(field[k, j, i]):
             return float(field[k, j, i])

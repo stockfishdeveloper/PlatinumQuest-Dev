@@ -13903,3 +13903,52 @@ the ground get accepted anyway? run treasure box with that version", "at 1x".
   skill climbed again 3 s later (wall hit + Blast at (117,-11)) and it collected 6 more on the deck. The round's one rescue (161 s
   left, elsewhere): after a drop from a z 10 platform the safe hold rolled 30 u away; the 8 s no-progress timer fired just as a wall
   climb started at (30,20).
+
+## 2026-10-25 evening - route map for raised places, the marble's own floor in route lookups (operator approved 19:35)
+
+- 19:05-19:22 TreasureBox at 1x, five rounds: 156, 186, 167, 143, 169 (mean 164). The bridge stall came up in rounds 1 and 3 and the
+  marble climbed out alone both times (round 3: meter low, wall hit + jump with no Blast, on the deck 2.4 s later). Rescues in rounds
+  1, 3 and 4 were elsewhere.
+- Rescue scan, last 60 TreasureBox pool rounds (all before the skill): 36 rescues of three kinds: a gem straight above (5-6 u, the
+  skill's case; 5 recorded stalls replayed: gap2 950 18.6 -> 3.9 s, speed1 785 and tp1 2659 never in 25 s -> 18.0 / 15.9 s, the slow
+  two meter-bound on a 6 u pillar with no wall facing it); a far gem on a raised place (round 3's spot (42, 60), 23 s in one pool
+  round); stuck up high trying to get down.
+- Cause 1, cut-off goal fields: geometry_route prunes every step a straight roll cannot climb, so a gem on a block, pad or deck had a
+  goal field covering only its own patch (244 of 1760 spawn points) and route distance fell back to the straight line + 5 u.
+  Fix (geometry_route.CLIMB_EDGES): the ROUTE graph (goal fields, waypoints) also gets climb edges, from a floor node to a neighbouring
+  node 0.05-6.5 u higher, when the jump (+ Blast) arc clears the mesh (straight up from the lower cell, also from 0.25 u back on the
+  floor there, to 0.5 u over the upper floor, across, down); priced 4 u for a hop (<= 1.2 u), 10 + 4 u per u of rise above. Walking
+  tests keep the walk-only graph (_graph_nojump): crossings.reachable, the climb skill's walk time, and components. Cut-off spawn points:
+  TreasureBox 81 -> 6, Fractured 72 -> 1, Sprawl 16 -> 0, Cragmire 12 -> 0, Cube 7 -> 0, Vortex 1 -> 1, Duplex 55 -> 54 (its pads sit
+  on upper-deck fragments with the lower floor under them: open, not handled). Build 2-20 s a map (Bowl 67 s), cached.
+  crossings.ROUTE_CLIMBS: when the route goes up a climb edge within 20 u, the climb skill stages a climb onto that edge's upper floor
+  (goal0 = the gem). reliability_eval.TOUR_CLIMB_EDGES: the gem order's distances use the route graph.
+- Cause 2, the wrong floor in route lookups: dist_at and path_waypoint took the walk cell's level nearest the marble however far; at a
+  wall's foot the cell may hold only the wall top (round 3's spot: the marble on the floor at z 2.2, its cell only z 10, so the route
+  ran along the wall top and the marble pressed into the wall). 2-4 % of ground decisions on 9 maps, Cragmire 10.5 %, KOTM 0.1 %.
+  Fix (terrain.ROUTE_LEVEL_TOL_U = 1.5): route lookups use the node within 1.5 u of the marble's height in its cell or a neighbour
+  (terrain._route_node), else the old rule; level_at itself is unchanged (the learned actor's observations use it). Ported to C++
+  (controllers.inc route_node; ms_terrain_set_route_tol; ABI 11; DLL rebuilt with the VS installer folder on PATH: VsDevCmd needs
+  vswhere); tools/native_controller_check.py: dist_at and path_waypoint 500/500 equal on TreasureBox and Cragmire.
+- Round 3's stall replayed (speed1_baseline 12091843 dec 2973, two pillar gems 59 u away): before / level fix only / climb edges only:
+  no gem in 25 s; both: both gems at 8.8 s (leaves the wall at once, round the walls at 12-14 u/s, jump + Blast onto the pillar).
+- 20:29 sim_route1 (152 episodes a variant): before -> all: points 1087 -> 1095, falls 7 -> 4, episode (fall = 40 s) 16.03 -> 15.02 s,
+  A2 585 -> 503, group clear 6.07 -> 6.11 s (+0.6 %, 51 faster / 46 slower), no capped episodes; Cragmire -17 % and +18 points (A2
+  222 -> 56), TreasureBox -1 %, Vortex -5 %, Sprawl +13 % and Concentric +13 % slower. The level lookup alone: points +9, clear +2.5 %
+  (the Sprawl / Concentric / Vortex outliers are chaotic splits: Concentric 1157 starts airborne at 31 u/s and the two lookups differ
+  in mid-air at the first decision; Vortex 2898 splits at 6.1 s and the 'all' run then meets the old 1 u component crossings, which
+  brake 2 s at a time, three times). A tour change (TOUR_CLIMB_EDGES) was a no-op and is removed: the gem order uses the raw terrain
+  grid (no climb edges), not the walking terrain.
+- --route-map / --no-route-map (geometry_route.route_map_off) for pairs; pair route1 launched.
+- 20:51 pair route1 stopped after 4 rounds a side (-5.8 a round; Sprawl 12091843 157 vs 185, a steady deficit from decision 49 with
+  no falls, rescues or A2: the climb edges inside walked areas). Fix: geometry_route.CLIMB_EDGES_BETWEEN, climb edges only between
+  walking regions the marble cannot walk between both ways (strongly connected components of the walking graph): Sprawl 10566 ->
+  1818 edges, Bowl 9856 -> 106, Vortex 2461 -> 126; every cut-off spawn point stays connected (same counts).
+- 21:18 sim_route2 / 21:34 sim_route3 (152 episodes a variant, vs before): climb edges only (between regions): points 1087 -> 1114,
+  falls 7 -> 3, episode 16.03 -> 15.11 s, A2 585 -> 366, clear -0.2 %; Cragmire -18 % and +28 points. The level lookup alone: points
+  +9 / +7, clear +2.5 % / +1.3 %, Concentric +14 % / +25 %, Vortex points 64 -> 55 with A2 71 -> 191 (v2: any level within 1.5 u;
+  v3: a neighbour's floor only under the marble's bottom, 0.35 u). Climb edges + lookup: points +14 / +5, falls 4 / 6. Adding the
+  lookup to the climb edges costs 22 points in v3. Round 3's wall stall needs both (climb edges only: no gem in 25 s; with the v3
+  lookup: both pillar gems at 15.8 / 16.4 s). State at 21:35 (operator: stop and wait): code defaults = climb edges between regions
+  ON, the v3 lookup ON (terrain.ROUTE_LEVEL_TOL_U = 1.5); recommended: the lookup OFF until Concentric's slowdown is understood.
+  #2-#4 (rescue timer, step launches, slower run-ups + up-hold) drafted in the scratchpad, not applied. Nothing committed.

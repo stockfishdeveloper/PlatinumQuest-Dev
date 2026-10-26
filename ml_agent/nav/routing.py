@@ -3,6 +3,7 @@ import math
 import numpy as np
 
 from nav.terrain import DROP_EDGE, STEP_UP, LEVEL_MERGE
+import nav.terrain as _terrain_mod
 
 LOOKAHEAD_U = 12.0
 WAYPOINT_HOLD_U = 2.5
@@ -71,7 +72,10 @@ def path_waypoint(terrain, mx, my, field, gem, lookahead=LOOKAHEAD_U, mz=None):
     """Follow actual directed graph edges, then string-pull within the same floor route."""
     j, i = terrain.cell_of(mx, my)
     k = terrain.level_at(j, i, mz)
-    if k < 0 or not np.isfinite(field[k, j, i]):
+    rn = terrain._route_node(j, i, mz, radius=3) if (_terrain_mod.ROUTE_LEVEL_TOL_U and mz is not None and hasattr(terrain, '_route_node')) else None
+    if rn is not None and np.isfinite(field[rn]):
+        k, j, i = rn          # 2026-10-25: start on the marble's own floor (terrain.ROUTE_LEVEL_TOL_U)
+    elif k < 0 or not np.isfinite(field[k, j, i]):
         c = terrain._nearest_walkable(j, i, radius=3, z=mz)
         if c is None or not np.isfinite(field[c]):
             return tuple(gem[:3]), False

@@ -68,6 +68,73 @@ JUMP_STEP_U=0.       # (OFF: sim 10-24 1.2 u = episodes +2.1 percent slower, 0.8
                      # plans that crossed a step scored as if they had made no progress. 0 = off (the walking graph of before).
 JUMP_CLEAR_U=.35     # ... the arc's height over the upper floor (the marble's jump apex is about 1.4 u)
 JUMP_EDGE_COST_U=1.  # ... extra route length charged per jump edge (the hop's time)
+CLIMB_EDGES=True     # 2026-10-25 (operator: a real route to gems on raised places): the ROUTE graph (goal fields, waypoints) also gets a
+                     # climb edge from a floor node to a neighbouring higher node the walk lacks, when a jump (+ Blast) arc clears the
+                     # geometry (straight up from the lower cell to CLIMB_EDGE_CLEAR_U over the upper floor, across, down onto it).
+                     # Without them a gem on a block, pad or deck had a goal field covering only its own patch (244 of 1760 spawn
+                     # points on the 10 maps) and route distance fell back to the straight line + 5 u: driving under a deck read as
+                     # progress, a far raised gem was steered at in a straight line into walls. Walking tests (crossings.reachable,
+                     # the climb skill's walk time, the tour's walk distances) keep the walk-only graph (_graph_nojump).
+CLIMB_EDGES_BETWEEN=True # ... only between walking regions the marble cannot walk between both ways (strongly connected components of the
+                         # walking graph): a raised place reachable by ramps keeps its walking routes (with climb edges inside walked
+                         # areas too, Sprawl's 10566 edges sent routes up 2-6 u climbs where walking was fine: sim +13 %, pair route1
+                         # Sprawl 157 vs 185)
+CLIMB_EDGE_MAX_U=6.5 # ... rises up to this (an open jump + Blast with a full meter, climbs.open_meter)
+CLIMB_EDGE_CLEAR_U=.5
+CLIMB_EDGE_BACK_U=.25    # the arc may also start this far back from the upper cell, on the floor there (a walk cell's centre can touch
+                         # the step's face: Duplex's 0.5 u gem pads were all cut off with the centre start)
+CLIMB_HOP_U=1.2      # up to this rise a plain jump: CLIMB_HOP_COST_U of route length; higher: CLIMB_COST_U + CLIMB_COST_PER_U per u of rise
+CLIMB_HOP_COST_U=4.  # (JUMP_STEP_U's 1 u made routes hop over pads as shortcuts: sim 10-24, no gain)
+CLIMB_COST_U=10.
+CLIMB_COST_PER_U=4.
+
+
+def route_map_off():
+    """--no-route-map (the matched control of the 2026-10-25 route map): no climb edges, and route lookups take the cell's nearest
+    level again (terrain.ROUTE_LEVEL_TOL_U = 0). Call before the walking terrain is built."""
+    global CLIMB_EDGES
+    import nav.terrain as _terrain
+    CLIMB_EDGES=False;_terrain.ROUTE_LEVEL_TOL_U=0.
+
+
+def climb_edges(terrain,check,points,walk,mesh=None,regions=None):
+    """{(a, b): rise} directed climb edges from node a to an 8-neighbour node b higher by 0.05..CLIMB_EDGE_MAX_U that the walking
+    graph `walk` lacks, with the jump (+ Blast) arc clear (see CLIMB_EDGES). points: the nodes' sphere centres; mesh: the full mesh
+    (floor raycasts for the backed-off start); regions: per node its walking region (pairs inside one region are skipped)."""
+    walk=walk.tocoo();have=set(zip(walk.row.tolist(),walk.col.tolist()))
+    idx=terrain._node_idx;nodes=terrain._nodes;KW,H,W=terrain.walkable.shape
+    r=check.radius+.001
+    def arc(pa,pb):
+        top=float(pb[2])+CLIMB_EDGE_CLEAR_U;b_up=np.array([pb[0],pb[1],top])
+        starts=[pa]
+        if mesh is not None and CLIMB_EDGE_BACK_U>0:
+            d=np.asarray(pa[:2],dtype=float)-np.asarray(pb[:2],dtype=float);n=float(np.hypot(d[0],d[1]))
+            if n>1e-9:
+                q=np.array([pa[0]+d[0]/n*CLIMB_EDGE_BACK_U,pa[1]+d[1]/n*CLIMB_EDGE_BACK_U,pa[2]])
+                hit=mesh.raycast(q+[0,0,1.],q-[0,0,2.],cull_backfaces=True)
+                if hit is not None and float(hit['normal'][2])>.75:
+                    q[2]=float(hit['point'][2])+r
+                    starts.append(q)
+        for s in starts:
+            s_up=np.array([s[0],s[1],top])
+            if check.segment(s,s_up) and check.segment(s_up,b_up) and check.segment(b_up,pb):
+                return True
+        return False
+    out={}
+    for dy,dx in ((0,1),(0,-1),(1,0),(-1,0),(1,1),(1,-1),(-1,1),(-1,-1)):
+        bj=nodes[:,1]+dy;bi=nodes[:,2]+dx
+        sel=np.where((bj>=0)&(bj<H)&(bi>=0)&(bi<W))[0]
+        for kb in range(KW):
+            ib=idx[kb,bj[sel],bi[sel]];ok=ib>=0
+            a=sel[ok];b=ib[ok]
+            dz=points[b,2]-points[a,2]
+            m=(dz>.05)&(dz<=CLIMB_EDGE_MAX_U)
+            if regions is not None:m&=regions[a]!=regions[b]
+            for aa,bb,d in zip(a[m].tolist(),b[m].tolist(),dz[m].tolist()):
+                if (aa,bb) in have or (aa,bb) in out:continue
+                if arc(points[aa],points[bb]):
+                    out[(aa,bb)]=float(d)
+    return out
 
 
 def walking_terrain(terrain,mesh):
@@ -105,12 +172,27 @@ def walking_terrain(terrain,mesh):
     _,labels=connected_components(filtered,directed=True,connection='weak')
     copy_grid.component=np.full_like(terrain.component,-1)
     copy_grid.component[nodes[:,0],nodes[:,1],nodes[:,2]]=labels
+    copy_grid.climb_edges={}
+    if CLIMB_EDGES:
+        # the route graph = the walking graph + climb edges; components and _graph_nojump stay walk-only
+        regions=connected_components(filtered,directed=True,connection='strong')[1] if CLIMB_EDGES_BETWEEN else None
+        ce=climb_edges(terrain,check,points,filtered,mesh,regions)
+        if ce:
+            ab=np.array(list(ce.keys()),dtype=np.int64);rise=np.array(list(ce.values()),dtype=float)
+            na=nodes[ab[:,0]];nb=nodes[ab[:,1]]
+            cost=(terrain.walk_res*np.hypot(na[:,1]-nb[:,1],na[:,2]-nb[:,2])
+                  +np.where(rise<=CLIMB_HOP_U,CLIMB_HOP_COST_U,CLIMB_COST_U+CLIMB_COST_PER_U*rise))
+            fc=filtered.tocoo()
+            copy_grid._graph=coo_matrix((np.concatenate([fc.data,cost]),(np.concatenate([fc.row,ab[:,0]]),np.concatenate([fc.col,ab[:,1]]))),
+                                        shape=graph.shape).tocsr()
+        copy_grid.climb_edges=ce
     copy_grid.ground_clearance=check
     copy_grid.geometry_route_report=dict(source_geometry_sha256=mesh.info['mesh_sha256'],
         compiled_walking_sweep=hasattr(check.mesh,'kernel'),
         original_walk_edges=int(graph.nnz),retained_walk_edges=int(filtered.nnz),
         removed_walk_edges=int(graph.nnz-filtered.nnz),unique_pairs_checked=len(cache),
         original_approximate_jump_edges=int(terrain.jump_edges),jump_step_edges=int(jump_edges),jump_step_u=float(JUMP_STEP_U),
+        climb_edges=len(copy_grid.climb_edges),
         construction_s=time.perf_counter()-started,
         contract='Conservative wall/ceiling-filtered walking guidance; complete dynamics still proposes jumps/air/powerups.')
     return copy_grid

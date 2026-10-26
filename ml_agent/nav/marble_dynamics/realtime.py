@@ -142,6 +142,9 @@ class World:
         _crossings_mod.GAP_ROUTES = bool(getattr(a, 'gap_routes', _crossings_mod.GAP_ROUTES))
         from nav.marble_dynamics import climbs as _climbs_mod
         _climbs_mod.CLIMB_SKILL = bool(getattr(a, 'climb_skill', _climbs_mod.CLIMB_SKILL))
+        if not getattr(a, 'route_map', True):
+            from nav.marble_dynamics.geometry_route import route_map_off
+            route_map_off()
         S.CORNER_SLOW = bool(getattr(a, 'slow_corners', S.CORNER_SLOW))
         S.TL_JUMP_FOLLOW = bool(getattr(a, 'tl_jump_follow', S.TL_JUMP_FOLLOW))
         engine.detour_blast_ratio = float(getattr(a, 'detour_blast_ratio', 1.5) or 0.) or math.inf

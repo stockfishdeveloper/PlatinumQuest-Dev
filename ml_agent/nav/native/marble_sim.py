@@ -33,7 +33,7 @@ class NativeSim:
         self.lib = ctypes.CDLL(str(dll or DEFAULT_DLL))
         L = self.lib
         L.ms_abi.restype = ctypes.c_int
-        if L.ms_abi() != 10:
+        if L.ms_abi() != 11:   # 11 (2026-10-25): ms_terrain_set_route_tol
             raise ValueError('Incompatible marble_sim ABI')
         L.ms_state_size.restype = ctypes.c_int
         if L.ms_state_size() != S_SIZE:
@@ -55,6 +55,7 @@ class NativeSim:
         L.ms_terrain_destroy.argtypes = [_P]
         L.ms_terrain_seed_point.argtypes = [_P, _P, I]
         L.ms_terrain_set_edge.restype = None; L.ms_terrain_set_edge.argtypes = [_P, _P]
+        L.ms_terrain_set_route_tol.restype = None; L.ms_terrain_set_route_tol.argtypes = [_P, D, D, D]
         L.ms_terrain_seed_segment.argtypes = [_P, _P, I]
         L.ms_cell_of.argtypes = [_P, D, D, I, _P]
         L.ms_level_at.restype = I; L.ms_level_at.argtypes = [_P, I, I, I, D]
@@ -148,6 +149,8 @@ class NativeSim:
         edge = getattr(terrain, 'edge_dist', None)
         if edge is not None:   # search.open_top reads it (ABI 7)
             self.lib.ms_terrain_set_edge(handle, _ptr(arr('edge', edge, np.float32)))
+        import nav.terrain as _T   # route lookups on the marble's own floor (terrain.ROUTE_LEVEL_TOL_U; read now, so a --set applies)
+        self.lib.ms_terrain_set_route_tol(handle, float(_T.ROUTE_LEVEL_TOL_U), float(_T.ROUTE_NEIGHBOR_TOL_U), float(_T.ROUTE_RADIUS_U))
         # the clearance results Python already holds (persistent caches): the same predicate, seeded as they are
         original = getattr(clearance, 'original', clearance)
         buf = np.zeros(7)
