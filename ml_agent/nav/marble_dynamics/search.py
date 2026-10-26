@@ -296,6 +296,105 @@ class LandingContinuation:
         return self.follow(state,index)
 
 
+GAP_RUN=True              # 2026-10-25 gap crossings (crossings.GAP_ROUTES): the cross phase of a gap route forecasts only
+                          # GapRunProposal plans and keeps those that land on the far side (sim Fractured, the generic jump
+                          # families: re-planned 'jump in 8 replies' never jumped, the stopping law toward the landing goal
+                          # braked the run-up, 12 falls in 44 trips)
+GAP_RUN_TOP=15.           # the fastest run (full throttle; rolling tops out near 15 u/s)
+GAP_RUN_SPEED_ADD=(1.,2.5)   # the other runs hold the speed the gap needs (crossing v_need) plus these (sim: full-speed runs over a
+                             # 3.5 u gap flew past the small island beyond)
+GAP_RUN_LOOK_U=4.         # the run aims this far ahead on the crossing line (an offset marble converges onto the line)
+GAP_RUN_LEAD_S=.08        # the jump is pressed this much travel time before the take-off point (a reply acts ~1.25 replies later)
+GAP_RUN_LIP_U=(-.6,0.)    # take-off points relative to the lip (launch cell centre + GAP_LIP_AHEAD_U)
+GAP_RUN_BLAST_AFTER=2     # a gap that needs the Blast fires it this many replies after the jump press (still rising)
+GAP_RUN_AIR_REPLIES=40    # forecast replies after the take-off: the flight, the landing and the first metres beyond
+GAP_RUN_MAX_REPLIES=96
+
+
+class GapRunProposal:
+    """A gap crossing as one plan: run along the crossing line holding `speed`, press jump when the marble reaches the lip (a
+    place, not a reply count, so every re-plan keeps the same take-off point), Blast `blast_after` replies later when the gap
+    needs it, keep pushing toward the landing goal while over the gap, then (over the far side) follow `after` = (route, gem)
+    with the stopping law, or stop at the landing goal. Not a SequenceProposal subclass: the per-reply forecast runs it."""
+    def __init__(self,crossing,route,gem,steps,lip_u=0.,blast_after=-1,after=None,speed=GAP_RUN_TOP):
+        self.launch=np.asarray(crossing['launch'][:3],dtype=float);self.u=np.asarray(crossing['direction'][:2],dtype=float)
+        self.land=np.asarray(crossing.get('land_goal',crossing['land'])[:3],dtype=float)
+        self.land_along=float((self.land[:2]-self.launch[:2])@self.u)
+        self.edge_along=float((np.asarray(crossing['land'][:2],dtype=float)-self.launch[:2])@self.u)   # the far side's edge
+        lip=crossing.get('lip_along')   # where the floor ends on the crossing line (gap_run_specs), else the cell estimate
+        self.trigger=(GAP_LIP_AHEAD_U if lip is None else float(lip))+float(lip_u);self.blast_after=int(blast_after);self.speed=float(speed)
+        self.route=copy.copy(route);self.gem=np.asarray(gem[:3],dtype=float);self.steps=int(steps)
+        self.after=after;self.jumped=None
+
+    def __call__(self,state,index):
+        if index==0:self.jumped=None
+        p=np.asarray(state['position'],dtype=float);v=np.asarray(state['velocity'],dtype=float)
+        along=float((p[:2]-self.launch[:2])@self.u)
+        if self.jumped is None:
+            press=along+max(0.,float(v[:2]@self.u))*GAP_RUN_LEAD_S>=self.trigger
+            ahead=max(along+1.,min(along+GAP_RUN_LOOK_U,self.land_along))
+            aim=np.r_[self.launch[:2]+self.u*ahead,self.launch[2]]
+            action=Proposal(aim,0.,jump_at=0 if press else -1,speed_distance=1e3,min_speed=self.speed,top=self.speed)(state,0)
+            if press:self.jumped=index
+            action[8]=0
+            return action
+        k=index-self.jumped
+        if along<self.edge_along+.5:
+            action=Proposal(self.land,0.,speed_distance=1e3,min_speed=self.speed,top=self.speed)(state,0)   # over the gap: full reach
+        else:
+            # over the far side: brake (the forecast then proves the landing can stop there; the searches after the take-off
+            # choose the way on. Following the route on at 9 u/s ran off the small island beyond an 8 u gap, sim 854)
+            action=Proposal(self.land,0.,brake=True)(state,0)
+        action[8]=int(k==self.blast_after)
+        return action
+
+
+def lip_along(mesh,crossing,radius=.2):
+    """Where the floor ends on the crossing line, as a distance along the crossing from the launch cell's centre (the walking
+    cells are 1 u apart, so the real edge lies anywhere within about half a cell of it): the first point, marching from 1.5 u
+    behind the centre in 0.05 u steps, with no floor within radius + 0.6 u under the launch height. None if no edge is found."""
+    L=np.asarray(crossing['launch'][:3],dtype=float);u=np.asarray(crossing['direction'][:2],dtype=float)
+    for s in np.arange(-1.5,GAP_LIP_SCAN_U,.05):
+        q=L[:2]+u*float(s)
+        hit=mesh.raycast(np.array([q[0],q[1],L[2]+.5]),np.array([q[0],q[1],L[2]-radius-.6]),cull_backfaces=True)
+        if hit is None or hit['normal'][2]<=.4:return float(s)
+    return None
+
+
+GAP_LIP_SCAN_U=2.5        # lip_along searches this far past the launch cell's centre
+GAP_RUN_LIP_EDGE_U=(-.5,-.2)  # with the measured edge: jump presses this far before it (after GAP_RUN_LEAD_S of travel)
+
+
+def gap_run_specs(engine,route,dynamics,gem,crossing):
+    """The cross phase's plans for a gap route: GapRunProposal at the GAP_RUN_LIP_U take-off points, with the Blast when the gap
+    needs it. Each forecast runs the whole crossing (the run-up time to the lip + GAP_RUN_AIR_REPLIES)."""
+    from nav.marble_dynamics.gap_links import ROLL_ACC
+    if 'lip_along' not in crossing:
+        try:crossing['lip_along']=lip_along(engine.mesh,crossing,float(dynamics['native']['state'].get('radius',.2) or .2))
+        except Exception:crossing['lip_along']=None
+    st=dynamics['native']['state'];p=np.asarray(st['position'],dtype=float);v=np.asarray(st['velocity'],dtype=float)
+    u=np.asarray(crossing['direction'][:2],dtype=float);rel=p[:2]-np.asarray(crossing['launch'][:2],dtype=float)
+    d=max(0.,-float(rel@u))+GAP_LIP_AHEAD_U+abs(float(rel[0]*u[1]-rel[1]*u[0]))
+    v0=max(0.,float(v[:2]@u))
+    def replies(speed):
+        # replies to the lip holding `speed` (from v0, at the roll acceleration; a faster start slows down to it), + the flight
+        top=max(speed,v0,.5);d_top=(top*top-v0*v0)/(2.*ROLL_ACC)
+        t=(top-v0)/ROLL_ACC+(d-d_top)/top if d>d_top else (-v0+math.sqrt(v0*v0+2.*ROLL_ACC*d))/ROLL_ACC
+        return int(min(GAP_RUN_MAX_REPLIES,math.ceil(1.3*t/.064)+GAP_RUN_AIR_REPLIES))
+    real=crossing.get('goal')
+    after=(cached_route(route.terrain,np.asarray(real[:3],dtype=float)),np.asarray(real[:3],dtype=float)) if real is not None else None
+    need=float(crossing.get('needed_meter',0.) or 0.)>0.
+    if need and not blast_available(dynamics.get('blast')):return []
+    v_need=float(crossing.get('v_need',0.) or 0.)
+    speeds=sorted({round(min(GAP_RUN_TOP,v_need+a),2) for a in GAP_RUN_SPEED_ADD}|{GAP_RUN_TOP})
+    specs=[]
+    for speed in speeds:
+        for lip in (GAP_RUN_LIP_EDGE_U if crossing.get('lip_along') is not None else GAP_RUN_LIP_U):
+            label=('gap_run_blast_' if need else 'gap_run_jump_')+'%g_%g'%(speed,lip)
+            specs.append((label,GapRunProposal(crossing,route,gem,replies(speed),lip_u=lip,blast_after=GAP_RUN_BLAST_AFTER if need else -1,after=after,speed=speed)))
+    return specs
+
+
 def interleave_specs(specs):
     """Round-robin the candidate families so a deadline never starves one of them.
 
@@ -706,13 +805,27 @@ def search(engine,route,dynamics,raw,gem,navigator,horizon=40,warm=None,brake_re
         specs+=bounce_specs(engine,route,dynamics,gem,through,max(steps,BOUNCE_STEPS))
     # Climb crossings (opt-in) try more jump times and Blast-first families; gap
     # crossings keep the v7 families.
-    climbing=bool(getattr(engine,'crossing_phase',False) and (getattr(engine,'crossing',None) or {}).get('climb'))
+    _cr=(getattr(engine,'crossing',None) or {})
+    climbing=bool(getattr(engine,'crossing_phase',False) and (_cr.get('climb') or _cr.get('gap_route')))   # 2026-10-25 gap crossings: the climb families (jumps every 2 replies, Blast 2 replies after the jump)
     if (RAISED_BLAST_FIRST and not climbing and raised_near(dynamics['native']['state']['position'],gem)
             and blast_meter_value(dynamics)>=float(getattr(engine,'detour_blast_meter',0.5) or 0.5) and not getattr(engine,'blast_reserved',False)):
         # v39: below a nearby raised gem with the meter charged, the climb families (a jump every 2 replies, the Blast 2
         # replies after it while rising, direct aim, half-throttle variants) go first, as for a climb crossing
         climbing=True
     jump_times=(0,2,4,6,8,10,12) if climbing else (0,2,5,9)
+    lip_times=()
+    if climbing and _cr.get('gap_route'):
+        # 2026-10-25 gap crossings: jumps timed to the lip (the run-up from the staging point takes ~14 replies; the climb times
+        # stop at 12, so every plain jump took off ~2 u early and fell short: sim Fractured decision 643 oscillated 12 s at the edge)
+        from nav.marble_dynamics.gap_links import ROLL_ACC
+        _st0=dynamics['native']['state'];_u=np.asarray(_cr['direction'],dtype=float)
+        _d=max(0.,float((np.asarray(_cr['launch'][:2],dtype=float)-np.asarray(_st0['position'][:2],dtype=float))@_u))+GAP_LIP_AHEAD_U
+        _v0=max(0.,float(np.asarray(_st0['velocity'][:2],dtype=float)@_u))
+        _r=int(round(((-_v0+math.sqrt(_v0*_v0+2.*ROLL_ACC*_d))/ROLL_ACC)/.064))
+        lip_times=tuple(j for j in range(_r-2,_r+2) if 0<=j<steps)
+        # a lean set (sim: the climb times x route/direct + two Blast plans each, all with 40-reply landings, ran past the
+        # search budget at speed and handed the marble to A2, which drove it off the edge at 20 u/s)
+        jump_times=tuple(sorted({0,4,8}|set(lip_times)))
     if getattr(engine,'pad_hops',False) or BLAST_GATE_ALWAYS:
         from nav.marble_dynamics.pad_hops import blast_gated as _bg
         try:engine._pad_gate_now=_bg(engine,gem,dynamics['native']['state'])
@@ -788,10 +901,16 @@ def search(engine,route,dynamics,raw,gem,navigator,horizon=40,warm=None,brake_re
             # go first so the search deadline cannot starve them, direct aim only,
             # with a half-throttle variant for short ledges.
             blast_specs=[]
-            for jump in jump_times:
-                blast_specs.append(('direct_blast_'+str(jump+2)+'_jump_'+str(jump),SequenceProposal(route,gem,steps,blast=jump+2,jump=jump,direct=True)))
-                blast_specs.append(('direct_half_blast_'+str(jump+2)+'_jump_'+str(jump),SequenceProposal(route,gem,steps,blast=jump+2,jump=jump,direct=True,scale=.5)))
-            blast_specs.append(('direct_blast_0_jump_-1',SequenceProposal(route,gem,steps,blast=0,jump=-1,direct=True)))
+            if _cr.get('gap_route'):
+                # 2026-10-25 gap crossings: a Blast only where the gap needs one, at the lip-timed jumps
+                if float(_cr.get('needed_meter',0.) or 0.)>0.:
+                    for jump in lip_times:
+                        blast_specs.append(('direct_blast_'+str(jump+2)+'_jump_'+str(jump),SequenceProposal(route,gem,steps,blast=jump+2,jump=jump,direct=True)))
+            else:
+                for jump in jump_times:
+                    blast_specs.append(('direct_blast_'+str(jump+2)+'_jump_'+str(jump),SequenceProposal(route,gem,steps,blast=jump+2,jump=jump,direct=True)))
+                    blast_specs.append(('direct_half_blast_'+str(jump+2)+'_jump_'+str(jump),SequenceProposal(route,gem,steps,blast=jump+2,jump=jump,direct=True,scale=.5)))
+                blast_specs.append(('direct_blast_0_jump_-1',SequenceProposal(route,gem,steps,blast=0,jump=-1,direct=True)))
             specs=blast_specs+specs
         else:
             for blast,jump in ((0,-1),(3,0),(7,0),(7,3),(11,5)):
@@ -933,14 +1052,31 @@ def search(engine,route,dynamics,raw,gem,navigator,horizon=40,warm=None,brake_re
         # v62: the end of a long trip (pick() records each target's starting distance): keep speed at the pickup
         for _label,_spec in specs:
             if isinstance(_spec,SequenceProposal):_spec.min_speed=ARRIVAL_MIN_SPEED
+    gap_run=bool(GAP_RUN and getattr(engine,'crossing_phase',False) and _cr.get('gap_route'))
+    if gap_run:specs=gap_run_specs(engine,route,dynamics,gem,_cr)   # 2026-10-25: a gap route's cross phase runs only its run-and-jump plans
+    climb_mix=False
+    if getattr(engine,'crossing_phase',False) and _cr.get('climb2'):
+        # 2026-10-25 climb skill (climbs.py): a staged climb's run phase forecasts its climb plans (each holds its whole flight)
+        # ahead of the ordinary jump plans for the gem itself (CLIMB_MIX; the controller passes the gem, not the landing point);
+        # without CLIMB_MIX only the climb plans, with no landing extensions, like a gap run
+        from nav.marble_dynamics.climbs import climb_specs,CLIMB_MIX
+        if CLIMB_MIX:
+            # in the air the climb plans' run and take-off are past (the kept plan flies on): the ordinary plans only
+            skill=engine.crossings.climb_skill()
+            grounded=skill is not None and not skill.airborne(dynamics['native']['state']['position'])
+            specs=(climb_specs(engine,route,dynamics,gem,_cr) if grounded else [])+specs;climb_mix=True
+        else:specs=climb_specs(engine,route,dynamics,gem,_cr);gap_run=True
     landing_replies=int(getattr(engine,'landing_replies',0) or 0)
-    if getattr(engine,'crossing_phase',False):
+    if getattr(engine,'crossing_phase',False) and not climb_mix:
         # Crossing a gap to another walking component: airborne candidates must
         # be allowed to land on the far side before they are judged.
+        # (Not a climb's mixed search: its ordinary plans keep the ordinary extensions. 40 replies for every airborne plan doubled
+        # the cost and ran the search out of time before the plan in flight was re-checked: sim Vortex 2834, the actor took over.)
         landing_replies=max(landing_replies,int(getattr(engine,'crossing_landing_replies',40) or 40))
     pairs=[]
     exhausted=False
     ballistic=bool(getattr(engine,'ballistic_landing',False)) and not getattr(engine,'_light_search',False);airborne=[]
+    if gap_run:landing_replies=0;ballistic=False   # a gap run's forecast holds its whole flight: no landing extensions or projections
     reserve=float(getattr(engine,'ballistic_reserve_s',0.) or 0.);deadline=getattr(engine,'planning_deadline',None)
     pool=getattr(engine,'parallel',None)
     if pool is not None and len(specs)>=2:
@@ -999,11 +1135,11 @@ def search(engine,route,dynamics,raw,gem,navigator,horizon=40,warm=None,brake_re
                 penalty=(rollout['requested_replies']-steps)*.064*float(getattr(engine,'ballistic_time_rate',8.) or 8.)
                 info['cost']+=penalty;info['time_penalty_u']=penalty
             pairs.append((info,rollout))
-            if ballistic and info['rejected']=='no_supported_continuation' and not label.startswith('edge_hit'):
+            if ballistic and info['rejected']=='no_supported_continuation' and not label.startswith('edge_hit') and not gap_run:
                 airborne.append((label,info,rollout))   # edge plans use the landing extension only (v5)
             pickup_landing=int(getattr(engine,'pickup_landing_replies',0) or 0)
             collects=info.get('possible_pickup_interval') is not None
-            extend=(landing_replies or (pickup_landing and collects)) and info['rejected']=='no_supported_continuation'
+            extend=(landing_replies or (pickup_landing and collects)) and info['rejected']=='no_supported_continuation' and not gap_run   # a gap run's forecast already holds its flight
             if (not extend and '_wall' in label and landing_replies and info['rejected'] is None
                     and abs(float(rollout['states'][-1]['velocity'][2]))>WALL_AIRBORNE_VZ):
                 # 2026-10-22 wall climbs: a rebound still in the air at the horizon (the run-up to the wall takes most of
@@ -1077,7 +1213,7 @@ def search(engine,route,dynamics,raw,gem,navigator,horizon=40,warm=None,brake_re
             if not getattr(engine,'use_completed_candidates_on_timeout',False):raise
             exhausted=True
             for info,_ in pairs:info['search_stopped_at_deadline']=True
-    if (getattr(engine,'pickup_stop',False) and getattr(engine,'pickup_stop_allowed',True)
+    if (getattr(engine,'pickup_stop',False) and getattr(engine,'pickup_stop_allowed',True) and not gap_run
             and not any(p[0]['rejected'] is None for p in pairs)
             and float(np.linalg.norm(np.asarray(dynamics['native']['state']['velocity'][:2],dtype=float)))>=PICKUP_STOP_MIN_SPEED
             and edge_ahead(engine.mesh,dynamics['native']['state'],horizon_s=PICKUP_STOP_EDGE_S,depth=PICKUP_STOP_EDGE_DEPTH_U)):
@@ -1111,7 +1247,7 @@ def search(engine,route,dynamics,raw,gem,navigator,horizon=40,warm=None,brake_re
             if not getattr(engine,'use_completed_candidates_on_timeout',False):raise
             for info,_ in pairs:info['search_stopped_at_deadline']=True
         finally:engine.planning_deadline=saved_dl
-    if EXTRA_JUMP_TIMES and not any(p[0]['rejected'] is None for p in pairs):
+    if EXTRA_JUMP_TIMES and not gap_run and not any(p[0]['rejected'] is None for p in pairs):
         # v79: nothing passed the gates (the controller would hand the marble to the actor next): other jump times,
         # route and direct aims (v70 A2 states: every candidate 'no_supported_continuation'; Vortex's 1.7 u gap is
         # cleared by a route jump at reply 3 or 4, the standard times all fall)
@@ -1322,6 +1458,7 @@ def jump_presses(actions):
 THROUGH_STEER=False       # 2026-10-17 v54: curved pass-through plans in clusters (see search())
 LATE_JUMPS=True           # 2026-10-16 v47: later jump / Blast timings toward a raised gem (see search())
 LATE_JUMP_TIMES=(6,8,10,12,14,16,20,24)   # replies; the standard families jump at 0, 2, 5 or 9
+GAP_LIP_AHEAD_U=.5        # 2026-10-25 gap crossings: the lip is taken this far past the launch cell's centre for the lip-timed jumps
 LATE_BLAST_AFTER=(2,4,6)  # Blast this many replies after the jump (while still rising)
 LATE_JUMP_RISE_U=1.0      # the gem at least this far above the marble ...
 LATE_JUMP_NEAR_U=14.      # ... and within this horizontal distance
@@ -1438,9 +1575,32 @@ def apply_crossing_landing(pairs,engine):
         # passed through that cell, not that a gem was collected: no exemption.
         if rollout is None or info['rejected'] is not None:continue
         end=np.asarray(rollout['states'][-1]['position'],dtype=float)
-        landed=crossings.component_at(end)==crossing['target'] and abs(end[2]-land[2])<=1.5
+        if crossing.get('climb2'):
+            # 2026-10-25 climb skill: a plan counts only when its forecast stands on the place up there, or (CLIMB_MIX: the search's
+            # goal is then the gem itself) when it collects the gem
+            from nav.marble_dynamics.climbs import landed_on_place,CLIMB_MIX
+            if CLIMB_MIX and info.get('possible_pickup_interval') is not None:continue
+            skill=crossings.climb_skill();i=landed_on_place(crossing,rollout,skill) if skill is not None else None
+            if i is None:info['rejected']='climb_not_up'
+            elif info.get('possible_pickup_interval') is None:info['possible_pickup_interval']=i
+            continue
+        if crossing.get('gap_route'):
+            # 2026-10-25 gap crossings: both sides of a gap may be one walking component (joined by a bridge elsewhere), so the
+            # far side is judged along the crossing: past the gap, not below the landing (the plan may go on up to the gem)
+            lp=np.asarray(crossing['launch'][:2],dtype=float);u=np.asarray(crossing['direction'],dtype=float)
+            along=float((end[:2]-lp)@u);land_along=float((land[:2]-lp)@u)
+            landed=along>=land_along-1. and end[2]>=land[2]-1.5
+            if landed and GAP_RUN and info.get('possible_pickup_interval') is None:
+                # a run that lands counts as reaching the staged goal (the controller keeps a running plan over a new one
+                # that collects nothing): the reply where it is first over the landing cell
+                states=rollout['states']
+                info['possible_pickup_interval']=next((i for i in range(1,len(states))
+                                                       if float((np.asarray(states[i]['position'][:2],dtype=float)-lp)@u)>=land_along-1.),len(states)-1)
+        else:landed=crossings.component_at(end)==crossing['target'] and abs(end[2]-land[2])<=1.5
         if landed:continue
         label=info['label']
+        if crossing.get('gap_route') and GAP_RUN:
+            info['rejected']='gap_not_crossed';continue   # a gap route's cross phase keeps only plans that land on the far side
         if 'blast' in label or 'use' in label:info['rejected']='resource_without_landing'
         elif not crossing.get('climb'):continue
         elif info.get('possible_pickup_interval') is not None:

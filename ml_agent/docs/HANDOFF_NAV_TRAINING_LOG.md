@@ -13743,3 +13743,163 @@ the ground get accepted anyway? run treasure box with that version", "at 1x".
 - STATE at 07:47: the bundle is ON by default (search.LATE_PAD_JUMPS, TL_JUMP_FOLLOW pad-only, CORNER_SLOW); spawn order OFF; nothing
   committed. Open leads: frozen-navigator loops, safe-hold parking on trips below high ledges, multi-level spawn wandering (Blasts,
   slow loops), sharp-turn arrival speed of non-through plans.
+
+## 2026-10-25 morning (operator back)
+
+- Bundle gain asked: +85 points over 59 paired rounds (+1.4 a round, ~1 percent, within pair noise); TreasureBox +23 over 6 rounds;
+  sim group-clear time 3-10 percent faster (TreasureBox 5-32 percent); real-time TreasureBox 175 vs 147 (one round each).
+- 08:03 TreasureBox at 1x (operator): 161 points, 0 falls. Operator: "why the marble just got stuck instead of heading up the ramp, it
+  went to the side and then just tried driving straight into a wall". Found (journal TreasureBox_Hunt_20261025_080350, ~61 s left):
+  edge_hit_1_wall_0 (the edge-hit WALL-CLIMB plan, trigger 0 = no jump) drove into the wall beside the ramp for 1.5 s, then the marble
+  went up the ramp. Three checks miss it by name: WallHitProposal trigger 0 is the rebound family's no-jump variant; edge_climb's
+  '_wall' rule only asks a wall plan not to END lower than it started (meant for rebounds); cluster_penalty exempts labels containing
+  'wall' from the smack charge (meant for deliberate rebounds). pf4-pf6 pools: 232 wall-climb runs, 135 climbed, 6 rams (all _wall_0,
+  mostly Cragmire). Proposed fix (awaiting OK): climbs always jump, must reach the lip, smacks count. Stall census (39 current-default
+  pool rounds, >= 1.5 s nearly still, countdown excluded, ~2.7 s a round): safe-hold parking 46 percent (Cragmire), Blast recharge waits
+  30 percent (Concentric, Duplex), ordinary plans 22 percent, navigator 2 percent; the wall ram did not occur there.
+- 11:08 Fractured at 1x (operator): I restarted only the game on the new map; the server read the map name from the old TreasureBox
+  game a moment before it disconnected and planned a whole Fractured round with TreasureBox data (22 points, 12 falls). Restarted
+  server + game clean (Fractured ran properly from 11:12). FIX in realtime.serve: when the game reconnects during setup_round, the
+  mission is re-read and the setup sent again (syntax-checked; takes effect at the next server start).
+- 11:30 Fractured overlay (operator, artifact "Fractured Islands Paths", 10 rounds): the marble never crosses east-west or north-south,
+  only through one pathway. Operator: fix it so it transfers to any map, propose first. Proposal approved 11:45 ("go ahead and do that
+  plan"): gap links from physics (jump and jump + Blast reach, priced by time incl. the recharge wait), one route map for routes,
+  distances and the gem order, cross where the route says (run-up, line up, landing as the goal), keep the Blast for a planned
+  crossing, then sim + pair + Fractured at 1x.
+- Built (all uncommitted): nav/marble_dynamics/gap_links.py (NEW: GapLinks, lip-node marches on the fine height stack over 16
+  headings, flight reach from the engine constants, run-up lane check per edge, arc clearance; Fractured 0.3 s, 1232 edges);
+  crossings.GAP_ROUTES (gap_crossing: the first gap >= GAP_STAGE_MIN_U on the quickest route when it beats walking by 1.5 s, the
+  Blast wait priced in); reliability_eval tour distances through gap edges; search cross-phase families (lip-timed jumps, Blast only
+  where needed); flags --gap-routes / --no-gap-routes (default on).
+- 12:16 sim_gap1 (scratchpad, cp3 starts 12 per map x 10 maps + Fractured pf6 seeds 31337 / 4420117, off vs gap): routes right,
+  execution wrong. 152 trips: points 1020 -> 1000, falls 6 -> 16, A2 763 -> 1396; Fractured falls 1 -> 12 of 44; some trips much
+  faster (18.8 -> 6.1 s, 29.8 -> 15.6 s). Traces of 12 failed trips: (a) re-planned 'jump in 8 replies' never jumps and the stopping
+  law toward the landing goal brakes the run-up (creep to the edge, restage, repeat; 20 s at a 3.5 u gap); (b) crossing brakes at
+  10 u/s and A2 handoffs run off the edge; (c) general: when pick() finds nothing and the budget is spent, choose_resource raises
+  PlanningBudgetExceeded and the controller skips its safe hold for A2 (BUDGET_SAFE_HOLD, flag-free constant, default off, tested
+  as a variant).
+- Round 2 (12:30-12:50): search.GapRunProposal (run along the crossing line holding a speed, jump pressed when the marble reaches the
+  measured lip: a place, not a reply count; Blast 2 replies after when the gap needs it; push over the gap, brake once over the far
+  side), gap_run_specs (speeds v_need + 1 / + 2.5 / 15 x two take-off points; lip_along probes the real floor end on the crossing
+  line: the walking cells are 1 u apart and the edge was 0.55 u before the launch cell centre), cross phase = those plans only and
+  only plans that land (apply_crossing_landing 'gap_not_crossed'); crossings: the cross phase starts anywhere 20 u behind the launch
+  in a cone (GAP_RUN_RANGE_U / LATERAL / CONE), kept only for the gem it was staged for, committed once past the lip until 1.5 u past
+  the far edge (re-staging from mid-air sent the search back to the run-up point: A2, falls), give-up timer (400 stage calls);
+  pick(): no landing run -> the run-up point this decision (never brake at the lip); gap_links: a landing needs 2 u of floor past the
+  far edge and 0.5 u to each side (a platform corner clipped by the line passed as a 3.5 u gap; Fractured 1232 -> 854 edges).
+  Traces of the 16 worst round-1 trips (tr_gap1..4): falls off 0 / r1 8 / r4 2; mean trip (fall = 40 s) off 14.8 / r1 30.4 / r4 14.6
+  (515: 29.8 -> 7.4 s, 2305: 22.5 -> 9.2, 1145: 14.7 -> 8.8, 387: 18.2 -> 8.8; 2508 13.0 -> 32.7, slow after the crossing).
+  Pending: gap_ready (ROLL_ACC 14 kinematics) re-staged a chosen run at 9.4 u/s by the lip (1424 fell): patch_gap_ready.py drops it
+  when GAP_RUN is on; 1933: a charge-phase approach at 14 u/s fell while braking.
+- 12:49 sim_gap2 launched (off / gap / offbsh / gapbsh, same starts as sim_gap1).
+- 13:09 sim_gap2 (152 paired episodes, off vs gap; scratchpad gap_compare.py): trips both done 8.41 -> 8.02 s, group clear -3.1
+  percent, falls 6 -> 10, points 1020 -> 1005, A2 763 -> 780. Fractured trips 10.13 -> 8.77 (falls 1 -> 3; episode time with a
+  fall = 40 s still 15.89 -> 15.10), Concentric trips 6.31 -> 3.95, Bowl / Cube / Duplex / KOTM / Sprawl unchanged, TreasureBox
+  6.42 -> 6.78, Cragmire falls 3 -> 4, Vortex trips 8.56 -> 10.60, falls 2 -> 3. BUDGET_SAFE_HOLD (offbsh / gapbsh): identical
+  outcomes (the safe hold finds nothing either where the budget runs out): stays OFF.
+- 13:10 applied patch_gap_ready (gap_ready only without GAP_RUN): of the 7 new falls, 1424 and Vortex 2898 now finish; Cragmire
+  116 / 1820 / 2480, Vortex 182 fall in ordinary (non-crossing) states after a different path (A2), Fractured 1933 in a charge-phase
+  approach at 14 u/s. Small level gaps (< 3 u, rise <= 0.5 u) on a gap route are now staged with the run-and-jump plans too
+  (crossings.GAP_SMALL_MAX_RISE_U; Cragmire 116's 1 u 'gap' is a climb: unchanged). 16 worst Fractured trips (tr_gap5): 1 fall,
+  mean trip 12.4 s vs off 14.8.
+- 13:14 PAIR gap2 launched: candidate = defaults (gap routes + run-and-jump), baseline --no-gap-routes, seeds 7347019 / 12091843.
+- 14:06 PAIR gap2 (candidate = gap routes + run-and-jump, baseline --no-gap-routes; seeds 7347019 / 12091843), 20 + 20 valid rounds:
+  base 2719 vs cand 2685 = -1.7 a round (inside 20-round noise). Fractured +18 / +16 (104 -> 122, 100 -> 116), Duplex +9 / +12,
+  Cube 0 / +8, Cragmire +12 / -21, Concentric +21 / -29, TreasureBox -32 / -20, Vortex -2 / -22, Bowl 0 / 0, KOTM -3 / 0, Sprawl
+  -1 / 0. Journals: run-and-jump plans chosen ~270-300 decisions a round on Fractured, 390-500 on Concentric, 130-200 on Vortex,
+  ~110 on Cragmire, 0 on TreasureBox (whose candidate 12091843 round parked in safe holds 116 decisions: the loss there is not
+  the runs; suspect the gem order's gap distances, reliability_eval.TOUR_GAPS added to test it).
+  New map bests (CSV docs/BEST_REAL_SCORES_2026-10-25.csv + canonical sheet updated and read back): Fractured 122 (gap2 candidate
+  12091843, 1 fall), Cragmire 150 (gap2 candidate 12091843, 1 fall), TreasureBox 211 (gap2 baseline 7347019, 0 falls).
+- 14:08 realtime.World builds the gap links at map load (not at the first decision of a round).
+- 14:10 sim_gap3 (TreasureBox / Concentric / Vortex / Cragmire / Fractured; off / gap / gapnotour / gapnosmall).
+- 14:21 sim_gap3 (cp3 starts): small-gap staging changes nothing (gapnosmall = gap on every start); TOUR_GAPS off: TreasureBox episode
+  12.33 vs gap 12.61 vs off 11.91, Vortex trips 9.84 vs 10.57 (off 9.93), Fractured trips 8.40 vs 10.90 but falls 3 vs 1 (12
+  starts): not conclusive, TOUR_GAPS stays on as paired. TreasureBox: 9 of 12 starts identical; 2471 clears in 18.4 s vs 10.8
+  (a small high-platform crossing, a drop to the lower level, then a Super Speed far from the spawn): a chain reaction.
+- 14:23 Fractured at 1x for the operator (scratchpad start_rt_map.ps1: server + marbleblast_realtime.exe -offline -aifreecam
+  -autotrain): 110 points, 3 falls (this morning's real-time Fractured without gap routes: 112), run-and-jump chosen 129
+  decisions, A2 103, crossing brakes 63 (old narrowest-gap crossings), holds 226 (10.5 s), planner ready 11.3 s incl. gap links.
+  The game keeps playing rounds.
+- 15:20 real-time Fractured at 1x, gap routes on (14:23-15:15, 16 rounds): mean 109.3 (85-130), vs this morning's 11 real-time
+  Fractured rounds without them (11:12-11:44): mean 99.6 (76-112) = about +10 a round. New best real round Fractured 130 (0 falls,
+  realtime/20261025/FracturedIslands_Hunt_20261025_143251): CSV + sheet updated and read back.
+
+## 2026-10-25 afternoon - TreasureBox bridge stall, climb skill (operator directive)
+
+- 15:22 TreasureBox at 1x (gap routes on): round 1 155 points; round 2 the marble sat under the central bridge deck at (111,-9) z 2
+  (pit floor) below the yellow gem on the NE corner block for ~8 s (safe holds, two hops into the deck's underside), then the 8 s
+  no-progress rescue teleported it to (29,61). Operator: drill down until the marble can collect that spawn and spawns like it; no map
+  hacks; propose first.
+- Geometry (collision mesh): the bridge is an arch over a pit (x 106-112, y -3..-19): z 4 at its ends (level with the banks), z 6 on
+  top (y -7..-15), the pit floor z 2 under it everywhere; the 3x3 gem grid on top: 4 yellow gems on 2x2 u blocks 0.5 u above the deck
+  (z 6.5), red / blue on the deck (z 6.0). The pit's NE "ramp" is a 1 u staircase the marble cannot roll up (the physics test bounced
+  at its foot for 10 s). 61 of 188 TreasureBox pool rounds have the marble slow under this deck with deck gems up.
+- Causes found: (1) gems on raised blocks / pads / steps get a goal field covering only their patch (the walking graph cannot roll up
+  a 0.25-1 u step): 244 of 1760 gem spots on the 10 maps (TreasureBox 81, Fractured 72, Duplex 55, Sprawl 16, Cragmire 12, Cube 7,
+  Vortex 1); (2) route distance then falls back to "horizontal distance + 5", which reads ~5 u directly under a gem 4 u overhead, so
+  every plan driving under the deck looked like progress; (3) no plan ever backed out to climb, and nothing climbed (the Blast plans
+  aim straight up into the underside).
+- Operator's answer (16:30): to get up to a higher place, if the Blast meter is low, use a wall: wall hit + jump + Blast, starting
+  the run so the meter is high enough by the time the marble reaches the wall; if the meter is high enough, go where nothing is
+  overhead and jump + Blast up. Generalize it as a skill for any map.
+- Physics measured (exact compiled forecasts from recorded stuck states, scratchpad way_up_test*.py, wallhit_calib.py): open jump +
+  Blast onto the 4 u deck side needs ~0.4 meter, first deck gem 2.1-2.6 s from rest under the deck (full meter); the pit's east wall
+  (2 u face, rebound toward the deck): wall hit + jump with NO Blast lands on the deck in 17 of 45 runs (peak z 7.2), with a 0.2
+  meter in 144 of 225, full meter 173 of 225; best 2.4 s.
+- Built: nav/marble_dynamics/climbs.py (NEW, CLIMB_SKILL default on; flags --climb-skill / --no-climb-skill): ClimbSkill (the place
+  from the walking terrain within 1 u below / 0.8 u above the target's level; open launch spots by its edge with nothing overhead
+  and a clear run-in and arc; walls: mesh faces standing on the marble's floor whose rebound heads at the place, 6-11 u run lanes;
+  meter needs from the jump/Blast numbers and the measured wall-hit table; the choice by time incl. the meter wait and the roll on
+  the place, sticky per target), ClimbProposal (run in, jump at a place, Blast, flight to the landing, then the route to the gem),
+  climb_specs; crossings.climb_crossing / _climb_stage (approach to the run start; cross in the run region once the meter is within
+  0.1 of the need; committed while airborne); search: the cross phase runs only the climb plans and keeps those that land on the
+  place ('climb_not_up'); pick(): no landing plan -> back to the run start; sim_bench --at-decision (start at any recorded decision)
+  and the climb shown in --trace.
+- Replays of 7 recorded stuck moments (whole deck spawn): first deck gem total 39.9 -> 26.4 s, whole spawn 71.5 -> 53.5 s (v4;
+  2243: 7.5 -> 2.4 s first gem, 8.7 -> 2.6 s spawn; 2084 14.3 -> 7.4; one moment 1 s slower where the planner climbed out alone).
+- 16:51 sim_climb1 (10 maps + TreasureBox pf6 seeds, on vs off) running.
+- 17:03 / 17:18 sim_climb1 / sim_climb2 (on vs off): TreasureBox episodes 14.1 -> 15.5 / 15.3 s, A2 624 -> 847 / 799, points
+  +2 / +3, Sprawl faster (16.7 -> 15.5 s), Cragmire falls 4 -> 1 / 2. Fixes between them: the climb's cheap height test before any
+  route work (a declined climb no longer touches the shared route); CLIMB_MIN_RISE_U 1.3 -> 2.6 (TreasureBox's 2-4 u cluster
+  platforms are the hop / edge-hit families' job). TreasureBox stayed slower: 3 disaster starts (2028, 2167, 2471).
+- 17:25 ROOT CAUSE of those: a name clash. Crossings.__init__ already had self.climbs = the OLD opt-in climb-crossing flag (v8-v10,
+  off); the new ClimbSkill was stored in self.climbs too, so once built the old climb crossings switched on silently in every
+  'on' run (sim 2167: an old climb crossing at the marble's own position, a wasted decision, divergence, 16.2 -> 34.0 s). Renamed
+  to self.climb_kit; 2167 'on' now equals 'off' (16.19 s). All 'on' numbers before 17:25 are void (the 7 replays re-run clean:
+  first deck gem 39.9 -> 26.4 s, whole spawn 71.6 -> 53.5 s, unchanged). sim_climb3 (clean) running.
+- 17:40 sim_climb3 (clean v1, on vs off, 152 episodes): group clear 6.28 -> 6.21 s (-1.0%), points 1084 -> 1087, falls 7 -> 7,
+  A2 624 -> 639; TreasureBox 14.13 -> 14.11 s; Sprawl 16.70 -> 15.54 s (one start 34.3 -> 19.8 s); Vortex 22.18 -> 22.84 s, all of
+  it one start (2834: 20.3 -> 28.6 s).
+- Vortex 2834: a gem on a 3 u block beside the marble. Without the skill a direct jump + Blast collects it at 1.3 s; the skill staged
+  an open climb, its cross phase searched only the climb plans, and the climb overshot the gem by ~5 u (collected at 3.3 s).
+- Climb skill v2 (CLIMB_MIX, default on): the climb's run phase searches the climb plans AND the ordinary jump plans for the gem
+  itself (pick() passes the gem, not the landing point); a plan counts if it collects the gem or stands up there. The ordinary
+  plans keep the ordinary landing extensions: the gap crossing's 40 replies for every airborne plan doubled the cost, the search ran
+  out of its 2 s before re-checking the plan in flight (search() skips the kept plan once the deadline is hit), the actor took over
+  and the marble fell off the block. No climb plans once airborne. Vortex 2834 now collects at 1.34 s, as without the skill.
+- Second bug found on the way: "up there" used the place's 0.5 u lattice (73-94 of ~380 deck cells on TreasureBox) and "airborne"
+  meant above the run floor, so a marble standing on the deck read as airborne and not up. Now airborne = no walk level within
+  0.6 u of the marble's bottom; up = on the lattice, or standing on a floor at the place's level within 12 u of the target; the
+  gate the climb plans pass uses the same test.
+- 7 stuck replays: first deck gem 39.9 s (off) / 26.4 (v1) / 22.8 (v2); whole spawn 71.6 / 53.5 / 60.2 s. 2084 is the difference:
+  the v2 wall climb runs to the end (wall hit at 12.6 u/s + Blast lifts the marble 8 u, a 1.6 s flight); in v1 the actor took over
+  there and happened to be quicker. Open: run-up speed variants so a climb does not overshoot; landed climb plans scored by time.
+- Trace note: sim_bench --trace "ph=" prints engine.last_crossing, which goes stale when a search runs outside pick() (a 'cross'
+  label on the deck long after the climb): not a planner state.
+- 18:09 sim_climb4 (v2 'on', sim_climb3's 'off' copied in; the skill-off path is unchanged), 152 episodes: group clear 6.28 -> 6.19 s
+  (-1.3%, 3 faster / 2 slower), points 1084 -> 1087, falls 7 -> 7, A2 624 -> 585; Sprawl -16% (2014: 34.3 -> 18.3 s); TreasureBox
+  -1.1% (A2 27 -> 12); Vortex -1.7% (2834 now 22.1 s vs 20.3 off, 28.6 v1; the rest is ordinary gap-run choices after the first
+  gem); Cragmire +8% from one capped start (1286: a climb staged for a single decision at a stuck spot, then the run diverged).
+- 18:11 pair climb1 launched (candidate = defaults with the skill, baseline --no-climb-skill; seeds 7347019, 12091843).
+- 19:00 pair climb1 (20 rounds a side): skill 2712 vs off 2674 (+1.9 a round, inside the +-2.3 a 40-round pair resolves), falls 8 vs
+  11. The skill chose a climb plan in 3 decisions of the 20 rounds (Vortex 7347019); the big round swings were divergences, not the
+  skill: Cragmire 12091843 112 vs 150 (split at decision 1586, the target 25.3 u away, outside the skill's range; the actor's outputs
+  differ in the 6th decimal between arms), TreasureBox 12091843 196 vs 168 (split at 224, no climb), Vortex 7347019 99 vs 65 (split
+  at 2737, climbs only at 4707). No new map best.
+- 19:00 TreasureBox at 1x (real time, current defaults): 156 points, 0 falls. The bridge stall came up at 93 s left: the marble
+  rolled into the pit under the deck at (115,-2.5); the skill staged a wall climb on the pit's east wall: run along it, wall hit +
+  jump + Blast, on the deck 1.7 s later, 3 points. The actor (one A2 fallback on the deck) then rolled it back off into the pit; the
+  skill climbed again 3 s later (wall hit + Blast at (117,-11)) and it collected 6 more on the deck. The round's one rescue (161 s
+  left, elsewhere): after a drop from a z 10 platform the safe hold rolled 30 u away; the 8 s no-progress timer fired just as a wall
+  climb started at (30,20).

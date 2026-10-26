@@ -48,6 +48,7 @@ ap.add_argument('--pflag', action='append', default=[])
 ap.add_argument('--trace', action='store_true')
 ap.add_argument('--lead', type=int, default=0)
 ap.add_argument('--edge-gems', type=float, default=0.)   # >0: starts lead decisions before pickups of gems within this walk-grid distance of a drop   # start this many decisions before the selected leg start (through its pickup)
+ap.add_argument('--at-decision', type=int, default=0)   # 2026-10-25: start exactly at this recorded decision (mid-leg too)
 ap.add_argument('--only-decision', type=int, default=0)   # extra planner launch flags, e.g. --pflag=--fallback-cooldown=0  # only legs whose recorded first pickup took > 8 s for a gem < 20 u away
 ap.add_argument('--normal-priority', action='store_true')
 ap.add_argument('--rise-min', type=float, default=None)   # 2026-10-20: only starts whose first pickup is this much higher than the start
@@ -301,8 +302,18 @@ def episode(a, terrain, engine, rec, nxt=None):
         hist.append((fam(info.get('label')), int(((info.get('cluster_penalty') or {}).get('side_impacts')) or 0)))
         if o.trace:
             st0 = d['native']['state']; et = getattr(terrain, 'edge_dist', None)
-            print('   t %5.2f %-26s reason=%-22s v=%5.2f pos=%s z=%.2f pk=%s' % (t * .064, str(info.get('label'))[:26], str(info.get('reason'))[:22],
-                  float(np.linalg.norm(np.asarray(st0['velocity'])[:2])), np.round(st0['position'][:2], 1).tolist(), st0['position'][2], info.get('possible_pickup_interval')),
+            _cx = getattr(getattr(engine, 'crossings', None), 'active', None)
+            _ph = getattr(engine, 'last_crossing_phase', None)
+            _lc = getattr(engine, 'last_crossing', None)
+            if _lc and _lc.get('climb2'):   # 2026-10-25 climb skill: the staged climb, active or not
+                _ph = '%s:%s(%s,%s)m%.2f/%.2f' % (_ph, _lc['kind'], round(_lc['launch'][0], 1), round(_lc['launch'][1], 1), float(_lc['needed_meter']),
+                                                 float((d.get('blast') or {}).get('value', 0.)))
+                _cx = None
+            elif _lc and _ph:
+                _ph = '%s:%s' % (_ph, 'gap' if _lc.get('gap_route') else ('wall' if _lc.get('wall') else ('climb' if _lc.get('climb') else 'old')))
+            print('   t %5.2f %-26s reason=%-22s v=%5.2f pos=%s z=%.2f pk=%s ph=%s%s' % (t * .064, str(info.get('label'))[:26], str(info.get('reason'))[:22],
+                  float(np.linalg.norm(np.asarray(st0['velocity'])[:2])), np.round(st0['position'][:2], 1).tolist(), st0['position'][2], info.get('possible_pickup_interval'),
+                  _ph, '' if not _cx else ' gap=%s launch=%s' % (round(float(_cx.get('gap_u', 0)), 1), np.round(_cx['launch'][:2], 1).tolist())),
                   info.get('cluster_penalty') or '', flush=True)
         engine.planning_deadline = None
         try:
@@ -448,7 +459,23 @@ def endgame_starts(pool, name):
     return []
 
 
+def at_decision_start(pool, name):
+    """--at-decision N: the recorded round's decision N itself (any decision, not only a leg start), when playable."""
+    f = ML / 'dynamics_reports' / pool / name / (o.start_seed + '/physics_plan/1/decisions.jsonl.gz')
+    for line in gzip.open(f, 'rt', encoding='utf-8'):
+        try:
+            d = json.loads(line)
+        except Exception:
+            continue
+        if d['decision'] == o.at_decision:
+            st = d['before']['native']['state']
+            return [] if st.get('mode', 0) != 0 or st.get('oob') else [(d, None, 0.0)]
+    return []
+
+
 def starts(pool, name):
+    if o.at_decision:
+        return at_decision_start(pool, name)
     if o.endgame:
         return endgame_starts(pool, name)
     if o.edge_gems:
@@ -517,16 +544,16 @@ def starts(pool, name):
 def main():
     for kv in o.set:
         key, val = kv.split('=', 1); mod, attr = key.split('.')
-        import nav.marble_dynamics.geometry_route as GR
-        module = {'gem_demo': GD, 'search': S, 'reliability_eval': RE, 'geometry_route': GR}[mod]
+        import nav.marble_dynamics.geometry_route as GR, nav.marble_dynamics.crossings as CRX, nav.marble_dynamics.gap_links as GLX, nav.marble_dynamics.climbs as CLX
+        module = {'gem_demo': GD, 'search': S, 'reliability_eval': RE, 'geometry_route': GR, 'crossings': CRX, 'gap_links': GLX, 'climbs': CLX}[mod]
         setattr(module, attr, type(getattr(module, attr))(val) if not isinstance(getattr(module, attr), bool) else val in ('1', 'True', 'true'))
     a = planner_args(o.map)
     terrain, engine = setup(a, o.map)
     EDGE_TERRAIN[0] = a.geometry_terrain
     for kv in o.set:   # re-apply after setup() (it resets the gem_demo/search globals from the planner args)
         key, val = kv.split('=', 1); mod, attr = key.split('.')
-        import nav.marble_dynamics.geometry_route as GR
-        module = {'gem_demo': GD, 'search': S, 'reliability_eval': RE, 'geometry_route': GR}[mod]
+        import nav.marble_dynamics.geometry_route as GR, nav.marble_dynamics.crossings as CRX, nav.marble_dynamics.gap_links as GLX, nav.marble_dynamics.climbs as CLX
+        module = {'gem_demo': GD, 'search': S, 'reliability_eval': RE, 'geometry_route': GR, 'crossings': CRX, 'gap_links': GLX, 'climbs': CLX}[mod]
         setattr(module, attr, type(getattr(module, attr))(val) if not isinstance(getattr(module, attr), bool) else val in ('1', 'True', 'true'))
     if o.search_workers:
         from nav.marble_dynamics.parallel_search import ParallelEvaluator, worker_init

@@ -170,12 +170,24 @@ def wall_turn_cost(mesh,cache,a,dx,dy,ex,ey,tu):
     return tu*math.sin(math.acos(c)/2.)+WALL_TURN_K*L
 
 
-def tour(terrain,fields,raw,current,mesh=None):
+def tour(terrain,fields,raw,current,mesh=None,gaps=None):
     gems=visible_gems(raw)
+    memo={}
     def distance(a,g):
+        mk=(round(float(a[0]),2),round(float(a[1]),2),goal_key(g))
+        if mk in memo:return memo[mk]
         key=goal_key(g)
         if key not in fields:fields[key]=terrain.goal_field(g[0],g[1],jumps=False,z=g[2])
-        return terrain.dist_at(fields[key],a[0],a[1],g[:2],z=a[2])
+        d=terrain.dist_at(fields[key],a[0],a[1],g[:2],z=a[2])
+        if gaps is not None and a[2] is not None:
+            # 2026-10-25 (crossings.GAP_ROUTES): a gem behind a gap is as far as the jump over it (plain jumps; a Blast gap's
+            # meter and wait are crossings' business), not the walk around to a bridge
+            n=gaps.node_near(a)
+            if n is not None:
+                fg=float(gaps.field(g[:3],blast=False)[n])
+                if math.isfinite(fg) and fg<d:d=fg
+        memo[mk]=d
+        return d
     turn_fn=None
     if WALL_TOUR and mesh is not None:
         cache=fields.setdefault('_wall_turns',{})
@@ -245,6 +257,9 @@ ORDER_REST_SPEED=6.        # u/s for the run from the next gem to the nearest ge
 ORDER_COMMIT_S=3.          # a chosen first target other than the tour's stays the target this long
 CHAIN_ORDER_S=5.           # v5 spawn plans (2026-10-21): a chosen chain's gem order stays the target order this long
 RESOURCE_FETCH_MAX_U=25.      # 2026-10-22: a powerup fetched from the nothing-found path lies within this walking distance (and no farther than the gem)
+TOUR_GAPS=True               # 2026-10-25 with crossings.GAP_ROUTES: the gem order's distances may go over jump gaps (gap_links)
+BUDGET_SAFE_HOLD=False       # 2026-10-25 (under test): a budget overrun in the nothing-found fall-backs (resource, recharge, landing) still
+                             # reaches the safe hold instead of handing the marble to the unchecked actor
 RESOURCE_STALL_FETCH_MAX_U=None  # 2026-10-22: the stall path (a raised gem needs a Super Jump / Helicopter) is NOT capped (pair rescap1 12:30: capped at 40 u Cragmire lost 10 on both seeds; the path has a 6 s budget and a raised-gem reason)
 
 ORDER_MIN_LEFT_S=.35
@@ -357,30 +372,46 @@ def pick(engine,route,dynamics,raw,gems,current,nav,horizon,memory,brake_replies
             # A gem on another walking component: pursue the narrowest crossing
             # (launch cell, then landing cell) instead of aiming over the edge.
             gem,phase,crossing=crossings.stage(position,gem,velocity=dynamics['native']['state']['velocity'],meter=blast_meter(dynamics),route=route)
-            if index==0:engine.last_crossing_phase=phase
+            if index==0:engine.last_crossing_phase=phase;engine.last_crossing=crossing
+            if phase=='cross' and crossing.get('climb2'):
+                from nav.marble_dynamics import climbs as _climbs
+                if _climbs.CLIMB_MIX:
+                    # 2026-10-25 a staged climb's run phase searches for the gem itself (search.search adds the climb plans)
+                    g=crossing['goal'];gem=(g[0],g[1],g[2],gem[3] if len(gem)>3 else 1.,gem[4] if len(gem)>4 else 0.)
             if phase=='charge' and index<len(ordered)-1:
                 # The climb needs more Blast than we hold: collect other gems while
                 # the meter charges instead of waiting under the ledge.
                 all_pairs.append(dict(label='charge_skipped',gem=list(gem[:3]),crossing_phase=phase,crossing=crossing,rejected='blast_charging'))
                 continue
-        engine.crossing_phase=(phase=='cross');engine.crossing=crossing if phase=='cross' else None
-        # A climb needs its Blast meter: while approaching or charging, candidates
-        # that would spend it are not forecast (a pickup on the way is still won
-        # by the ordinary candidates).
-        engine.blast_reserved=wall_staged or bool(crossing and ((crossing.get('climb') and phase in ('approach','charge')) or (crossing.get('wall') and phase in ('approach','cross'))))   # 2026-10-22: a staged wall climb keeps the Blast (the human saves it)
-        try:
-            route.navigate(position,gem[:3]);start=route.distance(position)
-            if index==0:
-                # v62: each target's starting distance (route length when it first became the target); plans for a
-                # target that started >= search.ARRIVAL_FAR_U away keep search.ARRIVAL_MIN_SPEED at the pickup
-                from nav.marble_dynamics import search as _S
-                key=goal_key(gem[:3]) if phase is None else None;leg=getattr(engine,'leg_start',None)
-                if key is not None and (leg is None or leg[0]!=key):engine.leg_start=leg=(key,float(start))
-                engine.arrival_fast=key if key is not None and math.isfinite(leg[1]) and leg[1]>=_S.ARRIVAL_FAR_U else None
-            warm=memory.remaining if memory.gem and np.linalg.norm(np.asarray(memory.gem)-gem[:3])<.1 else None
-            chosen,pairs=search(engine,route,dynamics,raw,gem[:3],nav,horizon,warm=warm,brake_replies=brake_replies,target_item=target_item,
-                                learned=index==0 or LEARNED_OTHER_GEMS)
-        finally:engine.crossing_phase=False;engine.blast_reserved=False;engine.crossing=None
+        for attempt in (0,1):
+            engine.crossing_phase=(phase=='cross');engine.crossing=crossing if phase=='cross' else None
+            # A climb needs its Blast meter: while approaching or charging, candidates
+            # that would spend it are not forecast (a pickup on the way is still won
+            # by the ordinary candidates).
+            engine.blast_reserved=wall_staged or bool(crossing and (((crossing.get('climb') or crossing.get('blast') or crossing.get('climb2')) and phase in ('approach','charge')) or (crossing.get('wall') and phase in ('approach','cross'))))   # 2026-10-22: a staged wall climb keeps the Blast (the human saves it); 2026-10-25: so does a staged Blast gap and a staged climb (climbs.py)
+            try:
+                route.navigate(position,gem[:3]);start=route.distance(position)
+                if index==0:
+                    # v62: each target's starting distance (route length when it first became the target); plans for a
+                    # target that started >= search.ARRIVAL_FAR_U away keep search.ARRIVAL_MIN_SPEED at the pickup
+                    from nav.marble_dynamics import search as _S
+                    key=goal_key(gem[:3]) if phase is None else None;leg=getattr(engine,'leg_start',None)
+                    if key is not None and (leg is None or leg[0]!=key):engine.leg_start=leg=(key,float(start))
+                    engine.arrival_fast=key if key is not None and math.isfinite(leg[1]) and leg[1]>=_S.ARRIVAL_FAR_U else None
+                warm=memory.remaining if memory.gem and np.linalg.norm(np.asarray(memory.gem)-gem[:3])<.1 else None
+                chosen,pairs=search(engine,route,dynamics,raw,gem[:3],nav,horizon,warm=warm,brake_replies=brake_replies,target_item=target_item,
+                                    learned=index==0 or LEARNED_OTHER_GEMS)
+            finally:engine.crossing_phase=False;engine.blast_reserved=False;engine.crossing=None
+            from nav.marble_dynamics import search as _S
+            if attempt==0 and chosen is None and phase=='cross' and crossing is not None and ((crossing.get('gap_route') and _S.GAP_RUN) or crossing.get('climb2')):
+                # 2026-10-25 gap routes: no run-and-jump plan lands from here: go to the run-up point this decision (never
+                # brake at the lip; sim Fractured: crossing brakes at 10 u/s ran off the edge); a staged climb likewise goes
+                # back to its run start
+                all_pairs.extend([{**p[0],'gem':list(gem[:3]),'search_horizon':horizon,'crossing_phase':phase,'crossing':crossing} for p in pairs])
+                s=crossing['staging'];gem=(s[0],s[1],s[2],gem[3] if len(gem)>3 else 1.,gem[4] if len(gem)>4 else 0.);phase='approach'
+                if index==0:engine.last_crossing_phase=phase
+                continue
+            break
         if index==0:
             # v22 safe hold: the gate-checked plans for the current target, used
             # (best one with a braking backup) only when nothing useful is found
@@ -712,7 +743,7 @@ class ContinuousController:
         neutral=(reply(NOOP_ACTION),dict(label='countdown_neutral'))
         state=((msg.dynamics if isinstance(msg.dynamics,dict) else {}).get('native') or {}).get('state')
         if not PRESPIN or not isinstance(state,dict):return neutral
-        target,_,_=tour(self.terrain,self.fields,msg.obs,None,mesh=self.engine.mesh)
+        target,_,_=tour(self.terrain,self.fields,msg.obs,None,mesh=self.engine.mesh,gaps=self._gap_links())
         if SPAWN_ORDER and isinstance(msg.dynamics,dict):
             so=self._spawn_order(msg.dynamics,msg.obs,state)
             if so is not None:target=so[0]
@@ -942,31 +973,44 @@ class ContinuousController:
             return held,kept_target
         if held is not None and chosen and chosen[0].get('possible_pickup_interval') is not None:
             self.counts['research_found_pickup']+=1
-        if not chosen and a.resource_acquisition and self.resource is None:
-            # 2026-10-22 resource cap: a fetch from the nothing-found path only when the item is within
-            # RESOURCE_FETCH_MAX_U AND no farther than the gem itself (the ledger: Bowl fetched a Helicopter 161 u away
-            # right after a pickup while the next gem stood 32 u away, 20 s lost, in every Bowl round)
-            cap=None
-            if getattr(engine,'resource_cap',True) and target is not None:
-                route.navigate(state['position'],np.asarray(target[:3]));gd=float(route.distance(state['position']))
-                cap=min(RESOURCE_FETCH_MAX_U,gd) if math.isfinite(gd) else RESOURCE_FETCH_MAX_U
-            chosen,item,resource_target,_,_=choose_resource(engine,route,snapshot,raw,target,self.nav,
-                max(a.horizon,a.recovery_horizon),a.brake_continuation,a.preserve_resources,max_distance=cap)
-            if chosen:self.resource=item;target=resource_target;self.counts['resource_goals_selected']+=1
-        if not chosen and a.recharge_continuation and self.resource is None:
-            chosen,_=choose_recharge(engine,route,snapshot,target,remaining,float(raw[31]),
-                                    max(a.horizon,a.recovery_horizon,80))
-            if chosen:self.counts['recharge_plans_selected']+=1
-        if not chosen and a.landing_search and self.resource is None:
-            chosen,_=choose_landing(engine,route,snapshot,target,remaining,
-                max(a.horizon,a.recovery_horizon,80),a.proposal_samples,a.proposal_seed,a.preserve_resources)
-            if chosen:self.counts['landing_plans_selected']+=1
+        try:
+            if not chosen and a.resource_acquisition and self.resource is None:
+                # 2026-10-22 resource cap: a fetch from the nothing-found path only when the item is within
+                # RESOURCE_FETCH_MAX_U AND no farther than the gem itself (the ledger: Bowl fetched a Helicopter 161 u away
+                # right after a pickup while the next gem stood 32 u away, 20 s lost, in every Bowl round)
+                cap=None
+                if getattr(engine,'resource_cap',True) and target is not None:
+                    route.navigate(state['position'],np.asarray(target[:3]));gd=float(route.distance(state['position']))
+                    cap=min(RESOURCE_FETCH_MAX_U,gd) if math.isfinite(gd) else RESOURCE_FETCH_MAX_U
+                chosen,item,resource_target,_,_=choose_resource(engine,route,snapshot,raw,target,self.nav,
+                    max(a.horizon,a.recovery_horizon),a.brake_continuation,a.preserve_resources,max_distance=cap)
+                if chosen:self.resource=item;target=resource_target;self.counts['resource_goals_selected']+=1
+            if not chosen and a.recharge_continuation and self.resource is None:
+                chosen,_=choose_recharge(engine,route,snapshot,target,remaining,float(raw[31]),
+                                        max(a.horizon,a.recovery_horizon,80))
+                if chosen:self.counts['recharge_plans_selected']+=1
+            if not chosen and a.landing_search and self.resource is None:
+                chosen,_=choose_landing(engine,route,snapshot,target,remaining,
+                    max(a.horizon,a.recovery_horizon,80),a.proposal_samples,a.proposal_seed,a.preserve_resources)
+                if chosen:self.counts['landing_plans_selected']+=1
+        except PlanningBudgetExceeded:
+            # 2026-10-25 BUDGET_SAFE_HOLD: pick() found nothing and used the budget; these fall-backs then raised at once and
+            # the controller skipped its safe hold for the unchecked actor (sim Fractured 396: 9 such handoffs, then a fall)
+            if not BUDGET_SAFE_HOLD:raise
+            self.counts['budget_safe_hold']+=1
+            if not chosen:chosen=None
         if chosen:
             info,forecast=chosen;memory.accept(forecast,info['label'],target[:3],info)
             if str(info.get('label','')).startswith('chain_') and info.get('chain_order'):
                 # v5 spawn plans: follow the chain's gem order through its pickups (CHAIN_ORDER_S)
                 self.chain_order=(list(info['chain_order']),self.decision_index+int(CHAIN_ORDER_S/.064));self.counts['chain_orders']+=1
         return chosen,target
+
+    def _gap_links(self):
+        """crossings.GAP_ROUTES: the terrain's gap edges for the gem order's distances, or None."""
+        from nav.marble_dynamics import crossings as _crossings_mod
+        cr=getattr(self.engine,'crossings',None)
+        return cr.gap_links() if (cr is not None and _crossings_mod.GAP_ROUTES and TOUR_GAPS and self.uses_physics) else None
 
     def _spawn_order(self,dynamics,raw,state):
         """SPAWN_ORDER: (target, next gem) of the whole-spawn order; recomputed when the set of gems changes, the previous
@@ -1036,7 +1080,7 @@ class ContinuousController:
         preserve_actor_task=(self.kind=='physics_plan' and getattr(self.args,'actor_task_during_recovery',False))
         context=dynamics.get('game_context',{})
         self.observed_respawns=context['respawns'] if context.get('available') else None
-        target,nxt,gems=tour(self.terrain,self.fields,raw,self.current,mesh=self.engine.mesh)
+        target,nxt,gems=tour(self.terrain,self.fields,raw,self.current,mesh=self.engine.mesh,gaps=self._gap_links())
         oc=getattr(self,'order_commit',None)
         if oc is not None:
             alive=[g for g in visible_gems(raw) if np.linalg.norm(np.asarray(g[:3])-np.asarray(oc[0][:3]))<.1]
@@ -1547,6 +1591,10 @@ def main():
     p.add_argument('--no-ss-ride',dest='ss_ride',action='store_false',help='the matched control (the default)')
     p.add_argument('--spawn-order',dest='spawn_order',action='store_true',default=False,help='2026-10-24: the whole-spawn gem order (reliability_eval.SPAWN_ORDER, nav/marble_dynamics/spawn_order.py)')
     p.add_argument('--no-spawn-order',dest='spawn_order',action='store_false',help='the matched control (the default)')
+    p.add_argument('--gap-routes',dest='gap_routes',action='store_true',default=True,help='crossings.GAP_ROUTES (2026-10-25): routes may cross gaps with a running jump or a jump + Blast (nav/marble_dynamics/gap_links.py); the first gap on the quickest route is staged as a crossing')
+    p.add_argument('--no-gap-routes',dest='gap_routes',action='store_false',help='the matched control: walking routes and the one narrowest gap per pair of walking components')
+    p.add_argument('--climb-skill',dest='climb_skill',action='store_true',default=True,help='climbs.CLIMB_SKILL (2026-10-25, operator): a goal on a higher place is climbed to: jump + Blast from a spot with nothing overhead when the meter is high enough, else a wall hit + jump + Blast with the run timed to the meter')
+    p.add_argument('--no-climb-skill',dest='climb_skill',action='store_false',help='the matched control')
     p.add_argument('--late-pad-jumps',dest='late_pad_jumps',action='store_true',default=True,help='search.LATE_PAD_JUMPS (2026-10-25): the late jump times (replies 6-24, no Blast variants) also toward a gem on a raised pad within 8 u when the marble is not on that pad')
     p.add_argument('--no-late-pad-jumps',dest='late_pad_jumps',action='store_false',help='the matched control')
     p.add_argument('--tl-jump-follow',dest='tl_jump_follow',action='store_true',default=True,help='search.TL_JUMP_FOLLOW (2026-10-25): the two-level follow-ups also jump (direct, replies 2 / 6 / 10 / 14) toward a raised or pad next gem')
@@ -1805,6 +1853,10 @@ def main():
         engine.cluster_penalties=getattr(a,'cluster_penalties',_search_cp.CLUSTER_PENALTIES)
         global SPAWN_ORDER;SPAWN_ORDER=bool(getattr(a,'spawn_order',SPAWN_ORDER));_search_cp.SS_RIDE=bool(getattr(a,'ss_ride',False));_gem_demo_mod.TIME_COST=bool(getattr(a,'time_cost',False))
         _search_cp.LATE_PAD_JUMPS=bool(getattr(a,'late_pad_jumps',_search_cp.LATE_PAD_JUMPS))
+        from nav.marble_dynamics import crossings as _crossings_mod
+        _crossings_mod.GAP_ROUTES=bool(getattr(a,'gap_routes',_crossings_mod.GAP_ROUTES))
+        from nav.marble_dynamics import climbs as _climbs_mod
+        _climbs_mod.CLIMB_SKILL=bool(getattr(a,'climb_skill',_climbs_mod.CLIMB_SKILL))
         _search_cp.CORNER_SLOW=bool(getattr(a,'slow_corners',_search_cp.CORNER_SLOW))
         _search_cp.TL_JUMP_FOLLOW=bool(getattr(a,'tl_jump_follow',_search_cp.TL_JUMP_FOLLOW))
         engine.time_price=getattr(a,'time_price',False);_gem_demo_mod.set_time_price(engine.time_price)

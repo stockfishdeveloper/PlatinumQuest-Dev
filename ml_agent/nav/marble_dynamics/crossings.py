@@ -35,6 +35,26 @@ WALL_LANE_HEADROOM_U = 0.8   # clearance above the run-up lane (under an overhan
 WALL_RUN_SPEED_U_S = 12.0    # time estimate for the wall way: distance to the staging point + run-up at this speed ...
 WALL_FLIGHT_S = 1.5          # ... plus the jump, rebound and landing
 WALK_CLIMB_SPEED_U_S = 7.0   # the walking route to a higher goal (ramps, turns) at this speed; the wall way is staged when it is quicker
+GAP_ROUTES = True        # 2026-10-25 (operator, Fractured overlay: "the marble never crosses east to west or north to south ... only at a
+                         # specific pathway"): routes may cross gaps (gap_links: a running jump, or a jump + Blast, priced by time). When
+                         # the quickest route to the goal crosses a gap, that gap is staged (run-up, line up, landing as the goal) instead
+                         # of walking around to a bridge or to the one narrowest gap per pair of walking components (control --no-gap-routes)
+GAP_SPEED_U_S = 11.0     # route cost units per second for both ways (physics.CRUISE_SPEED); the Blast recharge wait is added on top
+GAP_MIN_SAVE_S = 1.5     # the gap way must be at least this much quicker than the walking way
+GAP_STAGE_MIN_U = 3.0    # narrower gaps are left to the search (pad hops inside a cluster need no run-up) ...
+GAP_FAR_U = 0.0          # ... unless the goal is this far away (0 = off; see gap_crossing)
+GAP_BLAST_MIN_METER = 0.0    # a Blast gap is considered from any meter level (the recharge wait is priced); the meter must be live
+GAP_RUNUP_MIN_U = 2.0    # run-up point between these distances behind the launch (gap_links.runup_needed of the speed the gap needs;
+GAP_RUNUP_MAX_U = 8.0    # sim: a 10 u gap entered at 1-4 u/s braked at the edge for 2 s with no valid flight)
+GAP_SPEED_SLACK_U_S = 0.5    # the cross phase starts at the needed speed less this ...
+GAP_RUNUP_SLACK_U = 0.75     # ... or this close to the full run-up behind the launch
+GAP_RUN_RANGE_U = 20.0       # with search.GAP_RUN the cross phase (run-and-jump plans, kept only when they land) starts anywhere
+GAP_RUN_LATERAL_U = 2.0      # within this distance behind the launch and inside a cone around the crossing line (this half-width
+GAP_RUN_CONE = 0.7           # at the launch, plus this much per unit behind it); elsewhere the marble goes to the run-up point
+GAP_GIVE_UP_CALLS = 400      # a gap crossing staged for this many stage() calls in a row (~2 per decision) is dropped for a while
+GAP_COMMIT_PAST_U = 1.5      # past the lip, an active gap crossing stays in its cross phase until this far beyond the far edge
+GAP_SMALL_MAX_RISE_U = 0.5   # with search.GAP_RUN a gap narrower than GAP_STAGE_MIN_U is staged when it rises at most this much
+RADIUS_AIR_U = 0.6           # a staged climb is committed while the marble is this far above its run floor (in the air)
 
 
 def needed_meter(rise_u):
@@ -80,6 +100,8 @@ class Crossings:
         self.failed = {}          # (source, target) -> decision count until which the crossing is skipped
         self.decision = 0
         self.cross_brakes = 0
+        self.gaps = None          # GAP_ROUTES: gap_links.GapLinks of this terrain, built on first use
+        self.climb_kit = None     # climbs.ClimbSkill of this terrain, built on first use (self.climbs is the old opt-in climb flag)
 
     def component_at(self, position, radius=3):
         j, i = self.terrain.cell_of(position[0], position[1])
@@ -328,7 +350,10 @@ class Crossings:
         self.cross_brakes += 1
         active = getattr(self, 'active', None)
         if active is not None and self.cross_brakes >= 32:
-            self.failed[(active['source'], active['target'])] = self.decision + 470
+            if active.get('gap_route'):
+                self.failed[('gap',) + tuple(active['edge'])] = self.decision + 470   # this gap edge, not the component pair
+            else:
+                self.failed[(active['source'], active['target'])] = self.decision + 470
             self.active = None
             self.cross_brakes = 0
 
@@ -339,10 +364,10 @@ class Crossings:
         o = int(np.argmin(d))
         return pts[o].tolist() if d[o] <= 2.0 else list(land)
 
-    def _staging(self, component, launch, direction):
-        """A walkable cell of the same component about RUNUP_U behind the launch cell."""
+    def _staging(self, component, launch, direction, runup=None):
+        """A walkable cell of the same component about RUNUP_U (or `runup`) behind the launch cell."""
         _, pts = self._tree(component)
-        want = np.asarray(launch[:2]) - RUNUP_U * np.asarray(direction)
+        want = np.asarray(launch[:2]) - (RUNUP_U if runup is None else float(runup)) * np.asarray(direction)
         d = np.linalg.norm(pts[:, :2] - want, axis=1)
         o = int(np.argmin(d))
         if d[o] > 2.5:
@@ -363,9 +388,202 @@ class Crossings:
                     edges[t] = x
         return edges
 
+    def gap_links(self):
+        """GAP_ROUTES: the terrain's gap edges (built once, ~0.3 s), or None when unavailable."""
+        if self.gaps is None:
+            try:
+                from nav.marble_dynamics.gap_links import GapLinks
+                self.gaps = GapLinks(self.terrain, clearance=getattr(self.terrain, 'ground_clearance', None))
+            except Exception:
+                self.gaps = False
+        return self.gaps or None
+
+    def climb_skill(self):
+        """climbs.ClimbSkill of this terrain (built on first use), or None."""
+        if getattr(self, 'climb_kit', None) is None:
+            try:
+                from nav.marble_dynamics.climbs import ClimbSkill
+                self.climb_kit = ClimbSkill(self.terrain, self.mesh, self._wall_faces()) if self.mesh is not None else False
+            except Exception:
+                self.climb_kit = False
+        return self.climb_kit or None
+
+    def climb_crossing(self, position, velocity, goal, route, meter):
+        """climbs.CLIMB_SKILL: the best climb up to a goal on a higher place (open jump + Blast, or wall hit + jump + Blast timed to
+        the meter) when it beats walking round, as a crossing dict (climb2=True); else None."""
+        from nav.marble_dynamics import climbs as _climbs
+        if not _climbs.CLIMB_SKILL:
+            return None
+        skill = self.climb_skill()
+        if skill is None:
+            return None
+        failed_until = self.failed.get(('climb',) + tuple(round(float(c), 1) for c in goal[:3]), -1)
+        if failed_until > self.decision:
+            return None
+        # the cheap test first (no route work, no change to the shared route's state): a goal on the marble's own level, or one
+        # out of the skill's range, is no climb
+        p = np.asarray(position, dtype=float)
+        zm = skill.floor_at(p[0], p[1], p[2] - _climbs.RADIUS)
+        if (zm is None or float(goal[2]) - zm < _climbs.CLIMB_MIN_RISE_U
+                or math.hypot(float(goal[0]) - p[0], float(goal[1]) - p[1]) > _climbs.CLIMB_RANGE_U):
+            return None
+        walk = math.inf
+        if route is not None:
+            import copy as _copy
+            r2 = _copy.copy(route)   # a copy: the shared route's held waypoint must not change when no climb is staged
+            try:
+                if self.reachable(r2, position, goal):
+                    walk = float(r2.distance(position))
+            except Exception:
+                walk = math.inf
+        gk = tuple(round(float(c), 1) for c in goal[:3])
+        prefer = self.__dict__.setdefault('_climb_choice', {}).get(gk)
+        try:
+            climb = skill.plan(position, velocity, goal, meter, walk, prefer=prefer)
+        except Exception:
+            return None
+        if climb is not None:
+            self._climb_choice[gk] = (climb['kind'], tuple(climb['launch'][:2]))   # sticky: see climbs.CLIMB_SWITCH_S
+            if len(self._climb_choice) > 64:
+                self._climb_choice.pop(next(iter(self._climb_choice)))
+        return climb
+
+    def _climb_stage(self, climb, position, velocity, meter, goal, value, extra):
+        """Phase of a climb: 'cross' in the run lane when the meter will be enough by the take-off (the climb plans then run in,
+        jump, Blast and land up there), else 'approach' to the run start (the marble waits there for the meter)."""
+        climb['goal'] = list(goal[:3]); climb.setdefault('goal0', list(goal[:3]))
+        key = ('climb',) + tuple(round(float(c), 1) for c in goal[:3])
+        self._climb_calls = self._climb_calls + 1 if getattr(self, '_climb_key', None) == key else 1
+        self._climb_key = key
+        if self._climb_calls > GAP_GIVE_UP_CALLS:
+            self.failed[key] = self.decision + 470   # staged too long without getting up: leave it for a while
+            self._climb_key = None
+            return goal, None, None
+        in_lane, enough = self.climb_skill().ready(climb, position, velocity, meter)
+        if in_lane and enough:
+            self.active = climb
+            land = climb['land_goal']
+            return (land[0], land[1], land[2], value, extra), 'cross', climb
+        s = climb['staging']
+        return (s[0], s[1], s[2], value, extra), 'approach', climb
+
+    def gap_crossing(self, position, goal, route, meter):
+        """GAP_ROUTES: a crossing dict for the first gap (GAP_STAGE_MIN_U or wider) on the quickest route to the goal when that
+        route, with the Blast recharge wait, beats the walking route by GAP_MIN_SAVE_S; else None."""
+        G = self.gap_links()
+        if G is None:
+            return None
+        start = G.node_near(position)
+        if start is None:
+            return None
+        blast = meter is not None and meter >= GAP_BLAST_MIN_METER
+        cost, pred = G.route_from(start, blast=blast)
+        target, rest = G.target_node(goal, cost)
+        if target is None:
+            return None
+        # GAP_FAR_U small-gap staging on trips (every gap on the route) was tried: Fractured sim trips fell or stalled in the
+        # cross phase of 1-2 u gaps (decision 643: fell at 4.3 s after 24 A2 decisions; 1182: 19.7 vs 14.7 s), so it stays 0
+        far = GAP_FAR_U > 0. and math.hypot(float(goal[0]) - float(position[0]), float(goal[1]) - float(position[1])) >= GAP_FAR_U
+        first = G.path_first_gap(cost, pred, start, target, min_gap=0.0 if far else GAP_STAGE_MIN_U)
+        if first is None and self._gap_run_on():
+            # with the run-and-jump plans a small gap on the way is staged too when it is level or a drop (sim Cragmire: after a
+            # run over a 4 u gap the old narrowest-gap crossing of a 1 u gap braked at its edge for 6 s); raised pads stay with
+            # the ordinary search
+            first = G.path_first_gap(cost, pred, start, target, min_gap=0.0)
+            if first is not None and float(first[0]['dz']) > GAP_SMALL_MAX_RISE_U:
+                first = None
+        if first is None:
+            return None
+        e, walked = first
+        if self.failed.get(('gap', e['a'], e['b']), -1) > self.decision:
+            return None
+        from nav.marble_dynamics.gap_links import BLAST_CHARGE_S
+        wait = max(0.0, (e['meter'] - float(meter or 0.0)) * BLAST_CHARGE_S - walked / GAP_SPEED_U_S) if e['meter'] > 0.0 else 0.0
+        t_gap = (float(cost[target]) + rest) / GAP_SPEED_U_S + wait
+        walk = math.inf
+        if route is not None:
+            try:
+                # route.distance falls back to straight line + 5 u where walking cannot reach the goal: only a reachable
+                # goal has a walking way to compare with (otherwise the alternative is a crossing anyway)
+                if self.reachable(route, position, goal):
+                    walk = float(route.distance(position))
+            except Exception:
+                walk = math.inf
+        t_walk = walk / GAP_SPEED_U_S if math.isfinite(walk) else math.inf
+        if not t_gap + GAP_MIN_SAVE_S <= t_walk:
+            return None
+        a, b = e['a'], e['b']
+        launch = G.points[a].tolist(); land = G.points[b].tolist()
+        d = np.asarray(land[:2]) - np.asarray(launch[:2]); n = float(np.linalg.norm(d))
+        u = (d / n) if n > 1e-6 else np.asarray(e['dir'], dtype=float)
+        src = int(self.components[a]); dst = int(self.components[b])
+        # the run-up the gap needs (gap_links: the speed at which the flight, with the edge's Blast, clears it, rolled up to
+        # from rest) on the edge's checked straight lane behind the launch: the staging point stands on that lane
+        u = np.asarray(e['dir'], dtype=float)
+        v_need = float(e.get('v_need', 0.0)); runup = float(e.get('runup', RUNUP_U))
+        staging = [launch[0] - u[0] * runup, launch[1] - u[1] * runup, launch[2]]
+        inside = self._inside(dst, land, u.tolist()) if dst >= 0 else list(land)
+        return dict(launch=launch, land=land, land_goal=inside, gap_u=float(e['gap']), rise_u=float(e['dz']), direction=u.tolist(),
+                    staging=staging, source=src, target=dst, climb=False, needed_meter=float(e['meter']),
+                    blast=bool(e['meter'] > 0.0), gap_route=True, edge=(a, b), saves_s=round(t_walk - t_gap, 2), wait_s=round(wait, 2),
+                    v_need=round(float(v_need), 2), runup_u=round(runup, 2))
+
+    def _cross_radius(self, crossing):
+        """How near the launch the cross phase may start: a wall climb's whole run-up, a gap's run-up point, else CROSS_RADIUS_U."""
+        if crossing.get('wall'):
+            return crossing.get('runup_u', 0.0) + 1.0
+        if crossing.get('gap_route'):
+            return max(CROSS_RADIUS_U, crossing.get('runup_u', 0.0) + 1.5)
+        return CROSS_RADIUS_U
+
+    def _gap_near(self, crossing, position, slack=0.0):
+        """A gap route's cross phase may start here: with search.GAP_RUN, anywhere GAP_RUN_RANGE_U behind the launch inside the
+        cone around the crossing line (the run-and-jump plans line up by themselves and only a landing one is kept); else within
+        _cross_radius of the launch. `slack` widens the region (an active crossing is kept a little beyond where it starts)."""
+        from nav.marble_dynamics import search as _S
+        u = np.asarray(crossing['direction'], dtype=float)
+        rel = np.asarray(position[:2], dtype=float) - np.asarray(crossing['launch'][:2], dtype=float)
+        along = float(rel @ u)
+        if not _S.GAP_RUN:
+            return math.hypot(rel[0], rel[1]) <= self._cross_radius(crossing) + slack and along <= 0.5 + slack
+        lateral = abs(float(rel[0] * u[1] - rel[1] * u[0]))
+        return (along <= 0.5 + slack and -along <= GAP_RUN_RANGE_U + slack
+                and lateral <= GAP_RUN_LATERAL_U + slack + GAP_RUN_CONE * max(0.0, -along))
+
+    def _gap_tick(self, crossing, goal):
+        """Book-keeping each time a gap crossing is returned: the gem beyond goes on the crossing (the run-and-jump plans follow
+        its route once landed); True when the crossing has been staged GAP_GIVE_UP_CALLS times in a row (it is then dropped for
+        a while and the caller stages afresh)."""
+        crossing['goal'] = list(goal[:3])
+        key = ('gap',) + tuple(crossing['edge'])
+        self._gap_calls = self._gap_calls + 1 if getattr(self, '_gap_key', None) == key else 1
+        self._gap_key = key
+        if self._gap_calls <= GAP_GIVE_UP_CALLS:
+            return False
+        self.failed[key] = self.decision + 470
+        self.active = None
+        self._gap_key = None
+        return True
+
+    @staticmethod
+    def _gap_run_on():
+        from nav.marble_dynamics import search as _S
+        return bool(_S.GAP_RUN)
+
+    def gap_ready(self, crossing, position, velocity):
+        """A gap crossing may start (or keep) its run: rolling on along the crossing, the marble can still reach the speed the gap
+        needs by the launch (v^2 + 2 a d >= v_need^2, a = gap_links.ROLL_ACC); else it goes back to the run-up point. True at the
+        run-up point (that is how it is placed) and all along a proper run-up."""
+        from nav.marble_dynamics.gap_links import ROLL_ACC
+        u = np.asarray(crossing['direction'], dtype=float)
+        along = float((np.asarray(position[:2], dtype=float) - np.asarray(crossing['launch'][:2], dtype=float)) @ u)
+        v_along = max(0.0, float(np.asarray(velocity[:2], dtype=float) @ u)) if velocity is not None else 0.0
+        reachable = math.sqrt(v_along * v_along + 2.0 * ROLL_ACC * (max(0.0, -along) + GAP_RUNUP_SLACK_U))
+        return reachable >= float(crossing.get('v_need', 0.0)) - GAP_SPEED_SLACK_U_S
+
     def first_hop(self, source, target):
         """First crossing on the shortest chain of jumpable gaps from source to target, or None."""
-        key = (source, target, tuple(sorted(k for k, until in self.failed.items() if until > self.decision)))
+        key = (source, target, tuple(sorted(k for k, until in self.failed.items() if until > self.decision and k[0] != 'gap')))
         if key in self._paths:
             return self._paths[key]
         best = {source: 0.0}
@@ -440,21 +658,64 @@ class Crossings:
         # and near the launch cell: edge/slope cells can belong to tiny walking
         # components, and recomputing there would drop a plan mid run-up.
         active = getattr(self, 'active', None)
+        if active is not None and active.get('climb2'):
+            # a staged climb (climbs.py): committed while the run is under way or the marble is in the air short of the place
+            g0 = active.get('goal0')
+            same_goal = g0 is not None and math.hypot(float(goal[0]) - g0[0], float(goal[1]) - g0[1]) <= 1.0
+            p = np.asarray(position, dtype=float)
+            skill = self.climb_skill()
+            up = skill is not None and skill.up_there(active, p)
+            airborne = skill is not None and skill.airborne(p)   # no floor under the marble (z above the run floor held on the deck: sim 2084)
+            if same_goal and not up:
+                in_region, enough = skill.ready(active, position, velocity, meter)
+                if airborne or (in_region and enough):
+                    land = active['land_goal']
+                    return (land[0], land[1], land[2], value, extra), 'cross', active
+            self.active = None
+            active = None
         if active is not None:
             u = np.asarray(active['direction'])
             rel = np.asarray(position[:2]) - np.asarray(active['launch'][:2])
-            if math.hypot(rel[0], rel[1]) <= (active.get('runup_u', 0.0) + 1.0 if active.get('wall') else CROSS_RADIUS_U) + 1.0 and float(rel @ u) <= 1.0:
+            if active.get('gap_route'):
+                along = float(rel @ u)
+                lip = active.get('lip_along')
+                edge = float((np.asarray(active['land'][:2]) - np.asarray(active['launch'][:2])) @ u)
+                if lip is not None and float(lip) - 0.3 < along <= edge + GAP_COMMIT_PAST_U:
+                    # past the lip: the run is committed until the marble is over the far side (re-staging from mid-air sent
+                    # the search back toward the run-up point: nothing passed and the actor took the marble down, sim 1730)
+                    land = active.get('land_goal', active['land'])
+                    return (land[0], land[1], land[2], value, extra), 'cross', active
+                # kept for the gem it was staged for only (the cross region is wide: another gem may need no crossing)
+                g0 = active.get('goal0')
+                keep = (along <= 1.0 and self._gap_near(active, position, slack=1.0)
+                        and g0 is not None and math.hypot(float(goal[0]) - g0[0], float(goal[1]) - g0[1]) <= 1.0)
+                if keep and self._gap_tick(active, goal):
+                    return self.stage(position, goal, velocity=velocity, meter=meter, route=route)
+            else:
+                keep = math.hypot(rel[0], rel[1]) <= self._cross_radius(active) + 1.0 and float(rel @ u) <= 1.0
+            if keep:
                 if meter is not None and meter < active.get('needed_meter', 0.0):
                     s = active['staging']
                     self.cross_brakes = 0
                     return (s[0], s[1], s[2], value, extra), 'charge', active
+                if active.get('gap_route') and not self._gap_run_on() and not self.gap_ready(active, position, velocity):
+                    s = active['staging']   # too slow for this gap and too close to the launch: back to the run-up point
+                    return (s[0], s[1], s[2], value, extra), 'approach', active
                 land = active.get('land_goal', active['land'])
                 return (land[0], land[1], land[2], value, extra), 'cross', active
             self.active = None
         self.cross_brakes = 0
         here = self.component_at(position)
         there = self.component_at(goal[:3])
-        if route is not None and self.reachable(route, position, goal):
+        climb = self.climb_crossing(position, velocity, goal, route, meter)
+        if climb is not None:
+            return self._climb_stage(climb, position, velocity, meter, goal, value, extra)
+        gap = self.gap_crossing(position, goal, route, meter) if GAP_ROUTES else None
+        if gap is None:
+            self._gap_key = None
+        if gap is not None:
+            crossing = gap
+        elif route is not None and self.reachable(route, position, goal):
             # 2026-10-22: reachable, but a higher goal behind a long detour may be quicker up a wall
             if not (WALL_CLIMBS and here is not None and there is not None
                     and float(goal[2]) - float(position[2]) >= WALL_MIN_RISE_U):
@@ -499,16 +760,23 @@ class Crossings:
             if crossing is None:
                 return goal, None, None
         # Walls and steps inside one level are the ordinary search's business;
-        # only a real drop or a climb to a higher level justifies staging.
-        if not crossing.get('climb') and not self.line_has_hole(position, goal):
+        # only a real drop or a climb to a higher level justifies staging (a gap edge is a real gap by construction).
+        if not crossing.get('climb') and not crossing.get('gap_route') and not self.line_has_hole(position, goal):
             return goal, None, None
+        if crossing.get('gap_route'):
+            if self._gap_tick(crossing, goal):
+                return self.stage(position, goal, velocity=velocity, meter=meter, route=route)
+            crossing.setdefault('goal0', list(goal[:3]))   # the gem this crossing is staged for (see the active block)
         launch = crossing['launch']
         u = np.asarray(crossing['direction'])
         rel = np.asarray(position[:2]) - np.asarray(launch[:2])
         along = float(rel @ u)                       # >0 means already past the launch cell
-        near = math.hypot(rel[0], rel[1]) <= (crossing.get('runup_u', 0.0) + 1.0 if crossing.get('wall') else CROSS_RADIUS_U) and along <= 0.5   # a wall climb crosses from its staging point: the whole run-up is the approach
+        if crossing.get('gap_route'):
+            near = self._gap_near(crossing, position)
+        else:
+            near = math.hypot(rel[0], rel[1]) <= self._cross_radius(crossing) and along <= 0.5   # a wall climb crosses from its staging point: the whole run-up is the approach
         aligned = True
-        if velocity is not None:
+        if velocity is not None and not crossing.get('gap_route'):   # a gap route's run-and-jump plans line up by themselves
             v = np.asarray(velocity[:2], dtype=float)
             speed = float(np.linalg.norm(v))
             aligned = speed <= SLOW_U_S or float(v @ u) / max(speed, 1e-6) >= ALIGN_COS
@@ -518,6 +786,10 @@ class Crossings:
             # and let the meter charge; the search must not spend it meanwhile.
             self.active = crossing if near else None
             return (s[0], s[1], s[2], value, extra), 'charge', crossing
+        if crossing.get('gap_route') and near and not self._gap_run_on() and not self.gap_ready(crossing, position, velocity):
+            # a gap needs its run-up: go back to the run-up point (keep the crossing so it is not recomputed meanwhile)
+            self.active = crossing
+            return (s[0], s[1], s[2], value, extra), 'approach', crossing
         if near and aligned:
             self.active = crossing
             land = crossing.get('land_goal', crossing['land'])

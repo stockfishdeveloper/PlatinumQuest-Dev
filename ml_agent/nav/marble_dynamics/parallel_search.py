@@ -31,7 +31,7 @@ import numpy as np
 
 BIG_ARRAY = 64 * 1024                 # bytes: arrays at least this big go through the per-worker cache
 WORKER_DEADLINES = True               # discard expired queued work; never execute a partial candidate
-SLOW_PROPOSALS = ('NavigatorProposal', 'TrackLine', 'LineProposal')   # dispatched first (per-reply Python controllers)
+SLOW_PROPOSALS = ('NavigatorProposal', 'TrackLine', 'LineProposal', 'GapRunProposal', 'ClimbProposal')   # dispatched first (per-reply Python controllers)
 ENGINE_SKIP = {'mesh', 'native_sim', 'contact_order', 'crossings', 'polygons', 'polygon_ids', 'native_step_hook', 'step',
                'parallel', 'safe_hold', 'order_stats', 'order_pick', 'planning_deadline', '_speculated'}
 SPECULATE_PROJECTIONS = 'coarse'      # landing work of airborne candidates run ahead in the workers: 'coarse' = the coarse

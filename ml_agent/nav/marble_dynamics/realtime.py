@@ -138,6 +138,10 @@ class World:
         S.BRAKING_BACKUP = not getattr(a, 'no_braking_backup', False)
         RE.SPAWN_ORDER = bool(getattr(a, 'spawn_order', RE.SPAWN_ORDER)); S.SS_RIDE = bool(getattr(a, 'ss_ride', False)); GD.TIME_COST = bool(getattr(a, 'time_cost', False))
         S.LATE_PAD_JUMPS = bool(getattr(a, 'late_pad_jumps', S.LATE_PAD_JUMPS))
+        from nav.marble_dynamics import crossings as _crossings_mod
+        _crossings_mod.GAP_ROUTES = bool(getattr(a, 'gap_routes', _crossings_mod.GAP_ROUTES))
+        from nav.marble_dynamics import climbs as _climbs_mod
+        _climbs_mod.CLIMB_SKILL = bool(getattr(a, 'climb_skill', _climbs_mod.CLIMB_SKILL))
         S.CORNER_SLOW = bool(getattr(a, 'slow_corners', S.CORNER_SLOW))
         S.TL_JUMP_FOLLOW = bool(getattr(a, 'tl_jump_follow', S.TL_JUMP_FOLLOW))
         engine.detour_blast_ratio = float(getattr(a, 'detour_blast_ratio', 1.5) or 0.) or math.inf
@@ -169,6 +173,8 @@ class World:
         if getattr(a, 'component_crossing', False):
             from nav.marble_dynamics.crossings import Crossings
             engine.crossings = Crossings(a.geometry_terrain, mesh=engine.mesh, climbs=getattr(a, 'climb_crossings', False))
+            if _crossings_mod.GAP_ROUTES:
+                engine.crossings.gap_links()   # 2026-10-25: built here (0.5-2 s), not at the first decision of a round
         FrozenNavigator(terrain, a.checkpoint)
         self.terrain = terrain; self.engine = engine
         engine.parallel = None
@@ -798,10 +804,17 @@ def serve(port=PORT):
     env.drain()
     try:
         while True:
+            conn0 = env.connections
             name = env.info.get('mission')
             if not name:
                 env.request_info(); name = env.info.get('mission')
             setup_round(env)
+            if env.connections != conn0:
+                # 2026-10-25: the game reconnected during the setup (a new game process, possibly on another map): the name
+                # read above came from the old game (TreasureBox planned a whole Fractured round: 22 points, 12 falls);
+                # the new game may also have missed part of the setup, so it is sent again
+                env.request_info(); name = env.info.get('mission') or name
+                setup_round(env)
             try:
                 world = worlds.get(name)
             except Exception:
