@@ -666,7 +666,7 @@ int step(Map& m, State& s, const Move& move, int dt_ms, std::vector<Event>& even
 }  // namespace
 
 // ------------------------------------------------------------------ C API
-DLL int ms_abi() { return 11; }
+DLL int ms_abi() { return 13; }
 DLL int ms_state_size() { return S_SIZE; }
 
 DLL void* ms_create(int ntri, const double* tri, const double* source, const double* planes, const uint8_t* boundary,
@@ -839,7 +839,11 @@ enum { Q_KEY = 0, Q_HAS_WP = 3, Q_WP = 4, Q_GEM = 7, Q_OFFSET = 10, Q_SCALE = 11
        // ABI 5 (6 adds tail kind 3, landing.LandingContinuation): settle.SettleProposal / recharge.RechargeProposal (brake toward the gem for Q_BRAKE_PREFIX replies, then the
        // sequence at index - prefix) and phased_search.AimProposal (a use's aim minus Q_AIM)
        Q_BRAKE_PREFIX = 37, Q_HAS_AIM = 38, Q_AIM = 39, Q_HAS_MIN = 40, Q_MIN = 41,   // ABI 8: per-plan pickup minimum
-       Q_HAS_BOX = 42, Q_BOX = 43, Q_FAST = 49, Q_FAST_MIN = 50, Q_SIZE = 51 };   // ABI 10: fast-family speed and floor
+       Q_HAS_BOX = 42, Q_BOX = 43, Q_FAST = 49, Q_FAST_MIN = 50,   // ABI 10: fast-family speed and floor
+       Q_DIRECT_FROM = 51,   // ABI 12: direct_from + 1 (0 = never)
+       Q_LEAD_K = 52, Q_LEAD_MAX = 53,   // ABI 13: SequenceProposal.lead_k, search.LEAD_AIM_MAX
+       Q_LAND = 54, Q_LAND_G = 55, Q_LAND_AIR = 56, Q_LAND_DZ = 57, Q_LAND_MIN_VZ = 58, Q_LAND_MIN_T = 59, Q_LAND_AFTER = 60,
+       Q_SIZE = 61 };   // ABI 13: SequenceProposal.land, search.LAND_*
 enum { R_ACTION = 0, R_MOVE0 = 9, R_MOVE1 = 15, R_CAMERA = 21, R_IMPULSE = 22, R_PUSH = 23, R_DV = 26, R_METER = 29, R_SPECIAL = 30,
        R_DONE = 31, R_AMB = 32, R_BLAST_VALUE = 36, R_BLAST_SPECIAL = 37, R_SIZE = 38 };
 
@@ -856,6 +860,10 @@ void load_seq(SeqSpec& S, const double* seq, const float* field, const float* ne
     S.has_min = seq[Q_HAS_MIN] != 0; S.min_speed = seq[Q_MIN];
     S.has_box = seq[Q_HAS_BOX] != 0; for (int k = 0; k < 6; k++) S.box[k] = seq[Q_BOX + k];
     S.fast = seq[Q_FAST]; S.fast_min_speed = seq[Q_FAST_MIN];
+    S.direct_from = (int)seq[Q_DIRECT_FROM] - 1;
+    S.lead_k = seq[Q_LEAD_K]; S.lead_max = seq[Q_LEAD_MAX];
+    S.land = seq[Q_LAND] != 0; S.land_g = seq[Q_LAND_G]; S.land_air = seq[Q_LAND_AIR]; S.land_dz = seq[Q_LAND_DZ];
+    S.land_min_vz = seq[Q_LAND_MIN_VZ]; S.land_min_t = seq[Q_LAND_MIN_T]; S.land_after = (int)seq[Q_LAND_AFTER];
 }
 void save_seq(const SeqSpec& S, double* seq) {
     seq[Q_HAS_WP] = S.route.has_wp; seq[Q_WP] = S.route.wp.x; seq[Q_WP + 1] = S.route.wp.y; seq[Q_WP + 2] = S.route.wp.z;

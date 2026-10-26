@@ -79,6 +79,10 @@ RUNUP_MAX_U = 8.         # the run-up lane behind a launch is searched this far 
 RUNUP_MIN_U = 1.5        # a launch with less clear run-up than this is not a launch
 RUNUP_STEP_U = .5
 SPEED_MAX = 13.          # u/s: the run-up speed counted on at most (the marble rolls up to 15; a straight lane rarely gives more)
+ROLL_REAL = False        # 2026-10-26 night (under test): run-ups from the measured roll-up instead of ROLL_ACC (sim Fractured 2508: an
+ROLL_ACC_LOW = 11.       # 8.2 u gap staged with a 4.41 u run-up for 10.46 u/s; rolled from rest the marble reaches ~9 there, no landing
+ROLL_KNEE = 9.           # plan from the run-up point, 8 s until the 400-call give-up): ROLL_ACC_LOW u/s^2 from rest up to ROLL_KNEE u/s,
+ROLL_ACC_HIGH = 5.       # ROLL_ACC_HIGH above it
 
 
 def speed_needed(gap, dz, meter=0.):
@@ -89,9 +93,29 @@ def speed_needed(gap, dz, meter=0.):
     return max(0., (gap + LANDING_MARGIN - .5 * AIR_ACC * t * t) / t)
 
 
+def roll_distance(speed):
+    """Straight roll (u) from rest to `speed` (ROLL_ACC, or with ROLL_REAL the measured two-rate roll-up)."""
+    if not ROLL_REAL:
+        return speed * speed / (2. * ROLL_ACC)
+    if speed <= ROLL_KNEE:
+        return speed * speed / (2. * ROLL_ACC_LOW)
+    return ROLL_KNEE * ROLL_KNEE / (2. * ROLL_ACC_LOW) + (speed * speed - ROLL_KNEE * ROLL_KNEE) / (2. * ROLL_ACC_HIGH)
+
+
+def roll_speed(d, v0=0.):
+    """Speed after rolling `d` u straight on from speed v0."""
+    if not ROLL_REAL:
+        return math.sqrt(v0 * v0 + 2. * ROLL_ACC * max(0., d))
+    d = max(0., d) + roll_distance(v0)
+    knee = ROLL_KNEE * ROLL_KNEE / (2. * ROLL_ACC_LOW)
+    if d <= knee:
+        return math.sqrt(2. * ROLL_ACC_LOW * d)
+    return math.sqrt(ROLL_KNEE * ROLL_KNEE + 2. * ROLL_ACC_HIGH * (d - knee))
+
+
 def runup_needed(speed):
     """Straight roll (u) to reach `speed` from rest, plus half a unit to line up."""
-    return speed * speed / (2. * ROLL_ACC) + .5
+    return roll_distance(speed) + .5
 
 
 def needed_meter(gap, dz, v_h=RUNUP_SPEED):
@@ -160,7 +184,7 @@ class GapLinks:
             lane = self._runup_lane(a, u, clearance, radius)
             if lane < RUNUP_MIN_U:
                 continue
-            v_ach = min(SPEED_MAX, math.sqrt(2. * ROLL_ACC * max(0., lane - .5)))
+            v_ach = min(SPEED_MAX, roll_speed(lane - .5))
             meter = needed_meter(gap, dz, v_ach)
             if meter is None:
                 continue

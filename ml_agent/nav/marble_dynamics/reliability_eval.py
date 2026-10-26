@@ -61,6 +61,8 @@ RESEARCH_PROGRESS_PLANS=True  # 2026-10-16 v47 (operator: "it drives until it hi
                           # for as long as it stayed valid (v45 Treasure s1 decisions ~620-663: 2 s of an A2 hop approach into the
                           # wall while a fresh search would have found a jump + Blast pickup 1.4 s out).
 RESEARCH_EVERY=1          # 2026-10-16 v50: with a kept no-pickup plan, search every N-th decision (1 = every decision, v47); v50 tried 3: 114.8 vs 120.0, NOT adopted
+LAUNCH_SWITCH_U=5.        # 2026-10-26 night: the v47 rule's exception for take-off launches: before its lock a kept launch is replaced by a
+                          # launch this much cheaper (u of cost) without a pickup (None = off)
 LEARNED_OTHER_GEMS=False  # 2026-10-16 v43: pick() gives the learned (A2) proposal only to the target gem. When the target has
                           # no useful plan, pick() searches every visible gem; the A2 rollout (Python, 3.7 ms per reply) was
                           # 60 % of those searches (Cragmire 7 gems: 0.6-0.8 of 1.0-1.2 s) and it won for a non-target gem
@@ -232,6 +234,15 @@ ENDGAME_MARGIN_S=.5       # an order's gem counts only when reached this long be
 ENDGAME_MIN_GAIN=1.       # points the switched order must add (timed pessimistically) over the planner's (optimistically)
 DETOUR_MAX_RISE_U=3.      # 2026-10-17 v74: no opportunistic powerup detour to an item this far above the marble (v70: 4 of
                           # 19 such detours got it; Vortex ~10 s a round climbing to a raised powerup, Cragmire ~5 s, 0 of 8)
+DETOUR_BY_TIME=False      # 2026-10-26 night (under test): the opportunistic detour credits a Super Speed with the time a take-off
+                          # launch could save on the rest of the leg (item -> gem; 80 pool rounds: ~4 detours a round took a Super
+                          # Jump or type 5 while a Super Speed lay within 25 u); the item with the least extra walk minus credit wins
+DETOUR_WALK_U_S=10.       # ... the saving: rest / walk speed against min(rest, launch range) / flight speed + the remainder walked
+DETOUR_FLY_U_S=27.        # (the human TreasureBox launch: 31.5 u/s at the kick, 47 u in 1.65 s)
+DETOUR_LAUNCH_U=40.
+DETOUR_SS_SHARE=.5        # ... counted at this share (a launch is not always open) ...
+DETOUR_SS_MAX_U=12.       # ... and at most this many u of walk
+DETOUR_SS_MAX_RISE_U=1.5  # no credit when the gem stands this much above the item (a raised gem: the Super Jump's case)
 ORDER_CANDIDATES=3        # cluster order choice: first-target candidates (tour target + nearest others; 1 = off)
 SPAWN_ORDER=False         # 2026-10-24 (operator: "disgustingly slow at picking up clusters"): the target and next gem come from
                           # spawn_order.best_order over EVERY gem of the spawn (straight legs, turn and climb charges fitted to the
@@ -318,6 +329,15 @@ def order_choice(engine,route,dynamics,raw,gems,current,nav,horizon,memory,brake
     return c,[p for r_ in results for p in [{**q[0],'gem':list(r_[0][:3]),'search_horizon':horizon} for q in r_[4]]],X,Y
 
 
+def detour_credit(item,rest,gem):
+    """DETOUR_BY_TIME: u of walk a Super Speed is worth on the rest of the leg (0 for other types, short legs, raised gems)."""
+    from nav.marble_dynamics.search import POW_LAUNCH,POW_LAUNCH_MIN_LEG_U
+    if not POW_LAUNCH or int(item['powerup'])!=2 or not math.isfinite(rest) or rest<POW_LAUNCH_MIN_LEG_U:return 0.
+    if float(gem[2])-float(item['position'][2])>DETOUR_SS_MAX_RISE_U:return 0.
+    saved=rest/DETOUR_WALK_U_S-(min(rest,DETOUR_LAUNCH_U)/DETOUR_FLY_U_S+max(0.,rest-DETOUR_LAUNCH_U)/DETOUR_WALK_U_S)
+    return min(DETOUR_SS_MAX_U,DETOUR_SS_SHARE*saved*DETOUR_WALK_U_S)
+
+
 def pick(engine,route,dynamics,raw,gems,current,nav,horizon,memory,brake_replies=0,recovery_horizon=0,target_item=None,preserve_resources=False):
     position=dynamics['native']['state']['position'];all_pairs=[];options=[]
     # 2026-10-22: a wall climb staged for the current gem reserves the Blast for the WHOLE decision (the cluster-order
@@ -353,11 +373,18 @@ def pick(engine,route,dynamics,raw,gems,current,nav,horizon,memory,brake_replies
             route.navigate(q,current[:3]);rest=route.distance(q)
             route.navigate(position,q);to=route.distance(position)
             extra=to+rest-direct
-            if math.isfinite(extra) and extra<=detour and (best is None or extra<best[0]):best=(extra,item)
+            credit=detour_credit(item,rest,current) if DETOUR_BY_TIME else 0.
+            if math.isfinite(extra) and extra<=detour+credit and (best is None or extra-credit<best[2]):best=(extra,item,extra-credit)
         if best is not None:
             item=best[1];goal=item_goal(item,np.asarray(position,dtype=float))
             route.navigate(position,goal[:3]);start=route.distance(position)
-            chosen,pairs=search(engine,route,dynamics,raw,goal[:3],nav,horizon,brake_replies=brake_replies,target_item=item)
+            from nav.marble_dynamics import search as _S_pt
+            saved_next=getattr(engine,'next_for',None)
+            if _S_pt.POWERUP_THROUGH:
+                # 2026-10-26: the gem this detour serves is the powerup's next target (through proposals keep the speed)
+                engine.next_for=dict(saved_next or {});engine.next_for[goal_key(goal[:3])]=current
+            try:chosen,pairs=search(engine,route,dynamics,raw,goal[:3],nav,horizon,brake_replies=brake_replies,target_item=item)
+            finally:engine.next_for=saved_next
             chosen=useful_candidate(pairs,route,start,preserve_resources)
             all_pairs.extend([{**p[0],'gem':list(goal[:3]),'search_horizon':horizon,'opportunistic_powerup':item['powerup'],'detour_u':best[0]} for p in pairs])
             if chosen:
@@ -403,11 +430,18 @@ def pick(engine,route,dynamics,raw,gems,current,nav,horizon,memory,brake_replies
                                     learned=index==0 or LEARNED_OTHER_GEMS)
             finally:engine.crossing_phase=False;engine.blast_reserved=False;engine.crossing=None
             from nav.marble_dynamics import search as _S
+            if attempt==0 and phase=='cross' and crossing is not None and crossing.get('gap_route') and chosen is not None:crossings.staging_ok(crossing)
             if attempt==0 and chosen is None and phase=='cross' and crossing is not None and ((crossing.get('gap_route') and _S.GAP_RUN) or crossing.get('climb2')):
                 # 2026-10-25 gap routes: no run-and-jump plan lands from here: go to the run-up point this decision (never
                 # brake at the lip; sim Fractured: crossing brakes at 10 u/s ran off the edge); a staged climb likewise goes
                 # back to its run start
                 all_pairs.extend([{**p[0],'gem':list(gem[:3]),'search_horizon':horizon,'crossing_phase':phase,'crossing':crossing} for p in pairs])
+                if crossing.get('gap_route') and crossings.staging_failed(crossing,position):
+                    # 2026-10-26 night GAP_STAGING_GIVE_UP: already at the run-up point and still no landing plan: the gap is
+                    # dropped for a while and the gem is pursued directly
+                    gem=ordered[index];phase=None;crossing=None
+                    if index==0:engine.last_crossing_phase=None;engine.last_crossing=None
+                    continue
                 s=crossing['staging'];gem=(s[0],s[1],s[2],gem[3] if len(gem)>3 else 1.,gem[4] if len(gem)>4 else 0.);phase='approach'
                 if index==0:engine.last_crossing_phase=phase
                 continue
@@ -966,7 +1000,13 @@ class ContinuousController:
             and getattr(engine,'recheck_risky_plans',False) and backup_risk(held[0])
             and not backup_risk(chosen[0]) and chosen[0].get('possible_pickup_interval') is not None)
         if safer_replacement:self.counts['risky_plan_replaced']+=1
-        if held is not None and not (chosen and (chosen[0].get('possible_pickup_interval') is not None or safer_replacement)):
+        # 2026-10-26 night: a kept take-off launch not yet locked (memory.lock_from) gives way to a launch that is clearly cheaper
+        # (human-start sim: the northward use_launch_12_13 accepted first kept an aimed launch landing 1 u from the gem out)
+        launch_switch=bool(LAUNCH_SWITCH_U is not None and held is not None and chosen and '_launch' in str(memory.label or '')
+            and memory.executed<memory.lock_from and '_launch' in str(chosen[0].get('label') or '')
+            and float(chosen[0].get('cost',math.inf))<float(held[0].get('cost',math.inf))-LAUNCH_SWITCH_U)
+        if launch_switch:self.counts['launch_switch']+=1
+        if held is not None and not (chosen and (chosen[0].get('possible_pickup_interval') is not None or safer_replacement or launch_switch)):
             # v47: nothing new collects a gem, so the running plan stays (no switching between plans that only get closer)
             self.counts['remaining_plan_revalidations']+=1;self.counts['research_kept_plan']+=1
             route.navigate(snapshot['native']['state']['position'],np.asarray((staged if staged is not None else kept_target)[:3]))
@@ -1597,6 +1637,10 @@ def main():
     p.add_argument('--no-climb-skill',dest='climb_skill',action='store_false',help='the matched control')
     p.add_argument('--route-map',dest='route_map',action='store_true',default=True,help='2026-10-25 (operator): climb edges in the route graph (geometry_route.CLIMB_EDGES, crossings.ROUTE_CLIMBS) and route lookups on the marble\'s own floor (terrain.ROUTE_LEVEL_TOL_U)')
     p.add_argument('--no-route-map',dest='route_map',action='store_false',help='the matched control')
+    p.add_argument('--pow-launch',dest='pow_launch',action='store_true',default=True,help='2026-10-25 night (operator approved): take-off powerup launches (search.POW_LAUNCH: the use with or just before the jump, aimed launches leading for the carried speed and steering the landing onto the gem)')
+    p.add_argument('--no-pow-launch',dest='pow_launch',action='store_false',help='the matched control')
+    p.add_argument('--roll-real',action='store_true',help='2026-10-26 night (under test, default off): gap run-ups and reachable speeds from the measured roll-up, 11 u/s^2 to 9 u/s then 5 (gap_links.ROLL_REAL), not ROLL_ACC 14')
+    p.add_argument('--gap-staging-give-up',action='store_true',help='2026-10-26 night (under test, default off): a gap route whose cross-phase search finds no landing plan 3 times with the marble at its run-up point is dropped for a while (crossings.GAP_STAGING_GIVE_UP)')
     p.add_argument('--late-pad-jumps',dest='late_pad_jumps',action='store_true',default=True,help='search.LATE_PAD_JUMPS (2026-10-25): the late jump times (replies 6-24, no Blast variants) also toward a gem on a raised pad within 8 u when the marble is not on that pad')
     p.add_argument('--no-late-pad-jumps',dest='late_pad_jumps',action='store_false',help='the matched control')
     p.add_argument('--tl-jump-follow',dest='tl_jump_follow',action='store_true',default=True,help='search.TL_JUMP_FOLLOW (2026-10-25): the two-level follow-ups also jump (direct, replies 2 / 6 / 10 / 14) toward a raised or pad next gem')
@@ -1861,6 +1905,10 @@ def main():
         _climbs_mod.CLIMB_SKILL=bool(getattr(a,'climb_skill',_climbs_mod.CLIMB_SKILL))
         if not getattr(a,'route_map',True):
             from nav.marble_dynamics.geometry_route import route_map_off;route_map_off()
+        _search_cp.POW_LAUNCH=bool(getattr(a,'pow_launch',_search_cp.POW_LAUNCH))
+        _crossings_mod.GAP_STAGING_GIVE_UP=bool(getattr(a,'gap_staging_give_up',False) or _crossings_mod.GAP_STAGING_GIVE_UP)
+        from nav.marble_dynamics import gap_links as _gap_links_mod
+        _gap_links_mod.ROLL_REAL=bool(getattr(a,'roll_real',False) or _gap_links_mod.ROLL_REAL)
         _search_cp.CORNER_SLOW=bool(getattr(a,'slow_corners',_search_cp.CORNER_SLOW))
         _search_cp.TL_JUMP_FOLLOW=bool(getattr(a,'tl_jump_follow',_search_cp.TL_JUMP_FOLLOW))
         engine.time_price=getattr(a,'time_price',False);_gem_demo_mod.set_time_price(engine.time_price)

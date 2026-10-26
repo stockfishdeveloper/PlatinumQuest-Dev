@@ -6,8 +6,9 @@ from collections import OrderedDict
 
 import numpy as np
 
-from nav.marble_dynamics.bridge import predict_replies
+from nav.marble_dynamics.bridge import predict_replies,reply
 from nav.marble_dynamics.gem_demo import Proposal, candidate_cost, support
+from nav.joystick import action_to_joystick
 from nav.marble_dynamics.navigator import NavigatorProposal
 from nav.gems import visible_gems
 from nav.protocol import RAW_TIME_LEFT
@@ -21,6 +22,9 @@ ROUTE_SPEED_LAW=True     # v16 (2026-10-15): stopping law on the remaining route
 PICKUP_MIN_SPEED=6.      # u/s floor on the target speed toward a gem (0 = brake to a stop at the gem, pre-v16)
 THROUGH_GEM=True         # v22 (2026-10-15): score past a pickup toward the tour's next gem; 'through' proposals
 THROUGH_SWITCH_U=.6      # u: a through proposal turns to the next gem once its path passes this close to the gem
+POWERUP_THROUGH=False    # 2026-10-26 (under test): a powerup fetched on the way to a gem gets the through proposals too (keep the speed
+                         # through the pickup toward the gem; reliability_eval.pick names the gem as its next target). Sprawl human
+                         # demo: into the Super Speed at 10.9 u/s with a jump, kick in the air -> 37 u/s; the planner braked to 4.9
 THROUGH_REACH_U=18.      # u: through proposals are added only when the gem is this close along the route
 OPEN_TOP=0.              # --open-top (v36, under test): top target speed far from drops (0 = off; 13.5 with the flag) ...
 OPEN_NEAR_U=4.           # ... 11 u/s within this walk-grid distance of a drop ...
@@ -37,6 +41,38 @@ USE_AWAY_U=0.            # 2026-10-16: a use that collects but ends this much fa
 SS_RESERVE_LAST_U=0.     # 2026-10-16: no Super Speed plans for the last gem of a group closer than this (0 = off; v40: 20) ...
 SS_RESERVE_TIME_MS=6000. # ... unless the round has less than this left (then it is now or never)
 SS_EARLY_U=math.inf      # 2026-10-16: Super Speed 'use now' plans judged early on legs at least this long (inf = off; v40: 20)
+POW_LAUNCH=True          # 2026-10-25 night (operator approved): take-off launches. The (use, jump) families above press the jump first, so
+                         # the kick (2 decisions after the use) fires ~0.2 s into the air: flat and short. Human demo TreasureBox: jump +
+                         # Super Speed on the SAME tick on a ramp: 31.5 u/s with vz 14, a 47 u flight onto the gem (planner probe from
+                         # the human's states: these timings reach it, peak z 9.8 vs 6.5) ...
+POW_LAUNCH_AT=(0,2,4,6,9,12,16,20)   # ... at these replies ahead (the forecast picks the spot: a ramp's top, a lip) ...
+POW_LAUNCH_LEADS=(0,1)   # ... with the use pressed this many replies before the jump ...
+POW_LAUNCH_FLIGHT=40     # ... each forecast running this many replies past the jump (flight and landing) ...
+POW_LAUNCH_TYPES=(1,2)   # ... for a held Super Jump or Super Speed ...
+POW_LAUNCH_MIN_LEG_U=20. # ... on a leg at least this long along the route (sim_launch1, launches on every leg: trips -2.5 % but group clears
+                         # +1.3 %, points -14: inside a cluster a kick overshoots and the extra plans take search time)
+POW_LAUNCH_LOCK_LEAD=3   # a launch plan is held (PlanMemory.locked) only from this many replies before its first timed input (the
+                         # receding horizon picks the spot meanwhile; locked from acceptance, use_launch_12_13 held a northward flight
+                         # for a second while an aimed launch reached the gem: human-start sim, 8.4 s)
+POW_LAUNCH_LEAD_K=25.    # 2026-10-26 night: an aimed Super Speed launch leads its kick for the speed already carried (the kick ADDS 25 u/s
+                         # along the aim): aimed at the gem, 9 u/s north on the TreasureBox ramp bent the flight 10 deg left into a box
+                         # 10 u short; the human aimed right (kick 16.3, 18.2) and landed on it (lead_aim; 0 = aim at the gem)
+LEAD_AIM_MAX=.9          # lead_aim: largest sideways share of the kick (the rest goes toward the goal)
+DIRECT_LEAD=False        # 2026-10-26 night (under test): the direct_use_* Super Speed kicks lead for the carried speed too (lead_aim), so a
+                         # running marble can kick into a sharp turn (human technique: 90-150 deg turns after a pickup)
+POW_LAUNCH_LAND=True     # 2026-10-26 night: an aimed launch's flight steers its landing point onto the gem (land_action): the forecasts of
+                         # the aimed TreasureBox launches passed 0.9-3.8 u from the gem (range errors; the air control braked toward the
+                         # 11 u/s target speed); the human curved the flight onto it with the air control
+LAND_G=20.               # land_action: gravity (u/s^2, straight down) and air acceleration per unit of stick (the engine's defaults) ...
+LAND_AIR=5.
+LAND_DZ=.3               # ... the landing height: the gem's z plus this (the marble centre inside the pickup box over a floor gem) ...
+LAND_MIN_VZ=.5           # ... airborne only: |vz| above this (on the ground the ordinary controller drives) ...
+LAND_MIN_T=.1            # ... and at least this long (s) before the landing ...
+LAND_AFTER_USE=3         # ... from this many replies after the use (the kick fires 2 decisions after it)
+POW_LAUNCH_ROLL=False    # 2026-10-26 (under test): Super Speed launches without a jump (aimed, lead, landing control) at POW_LAUNCH_AT
+LAND_SHORT=False         # 2026-10-26 (under test, Python forecasts only): aimed launches land short of the gem by the braking distance
+LAND_SHORT_ARRIVE=11.    # from their ground speed down to this (u/s) at LAND_SHORT_DECEL u/s^2 and roll in (Sprawl human demo: landed
+LAND_SHORT_DECEL=7.      # ~22 u short at ~29 u/s, first gem at 8 u/s; the aimed launches landing ON the gem overshot and rolled off)
 SS_RIDE=False            # OFF 22:58 (sim_ssA, 108 Super Speed starts: 7.3 percent slower, smacks 75 -> 118; opt-in --ss-ride). 2026-10-24 (operator: "every second of wasted time costs us $1000"; live Bowl: a held Super Speed fired only after
                          # the marble slowed from 29 to 4.8 u/s): plans that RIDE the kick (no braking toward the arrival speed after it,
                          # the fast family's carried-speed floor up to SS_RIDE_TOP) and head for the tour's next gem after the pickup;
@@ -109,7 +145,7 @@ def through_context(engine,route,gem,item):
     Only for a real gem target outside a crossing phase; None keeps the pre-v22 scoring.
     """
     if not THROUGH_GEM or getattr(engine,'crossing_phase',False):return None
-    if item is None or not item.get('gem'):return None
+    if item is None or not (item.get('gem') or (POWERUP_THROUGH and item.get('powerup'))):return None
     nxt=(getattr(engine,'next_for',None) or {}).get(goal_key(gem))
     if nxt is None:return None
     ngem=np.asarray(nxt[:3],dtype=float);here=np.asarray(gem[:3],dtype=float)
@@ -192,6 +228,12 @@ class SequenceProposal:
         self.box=None         # THROUGH_BOX: the gem's pickup box [lo xyz, hi xyz] (None = the THROUGH_SWITCH_U centre test)
         self.fast=fast        # fast family: top target speed; never brakes below the speed carried toward the aim point
         self.ride=False       # 2026-10-24 RideProposal only (the compiled controller runs plain SequenceProposals, where it is False)
+        self.direct_from=None # 2026-10-25 night: from this reply on the plan aims straight at the gem (a launch: the route to the take-off
+                              # spot, then the jump and the kick toward the gem); None = never (compiled: ABI 12, Q_DIRECT_FROM)
+        self.lead_k=0.        # 2026-10-26 night: aiming straight at the gem, the use reply's aim leads for the carried speed (lead_aim with
+                              # this kick speed; 0 = off; compiled: ABI 13, Q_LEAD_K)
+        self.land=False       # 2026-10-26 night: aiming straight at the gem, LAND_AFTER_USE replies after the use on, the flight steers its
+                              # landing point onto the gem (land_action; compiled: ABI 13, Q_LAND..)
 
     def observe_ticks(self, states):
         if self.box is not None and not self.passed:
@@ -225,11 +267,18 @@ class SequenceProposal:
                 action[:4]=[round(v*self.scale,6) for v in action[:4]]
                 action[8]=0
                 return action
-        goal=self.gem if self.direct else self.route.navigate(state['position'],self.gem)[0]
+        direct=self.direct or (self.direct_from is not None and index>=self.direct_from)
+        if self.land and direct and self.use>=0 and index>=self.use+LAND_AFTER_USE:
+            action=land_action(self.gem,state,getattr(self,'land_short',False))
+            if action is not None:
+                action[:4]=[round(v*self.scale,6) for v in action[:4]]
+                action[8]=int(index==self.blast)
+                return action
+        goal=self.gem if direct else self.route.navigate(state['position'],self.gem)[0]
         # Phases vary steering, throttle, airborne controls and braking. They
         # describe legal controls, never a named trick or a map-specific launch.
         speed_distance=None
-        if ROUTE_SPEED_LAW and not self.direct:
+        if ROUTE_SPEED_LAW and not direct:
             # The aim point is the next waypoint, a few units ahead: braking
             # for it capped every route-following candidate at 5-6 u/s (v12b
             # journals: mean 4-7 u/s, pickups at 4-6 u/s vs the human's 11.4).
@@ -258,7 +307,44 @@ class SequenceProposal:
         action=proposal(state,0)
         action[:4]=[round(v*self.scale,6) for v in action[:4]]
         action[8]=int(index==self.blast)
+        if self.lead_k and direct and index==self.use:action[7]=lead_aim(goal,state,self.lead_k)
         return action
+
+
+def lead_aim(goal,state,k):
+    """The aim (yaw) of a kick adding k u/s along it whose sum with the carried ground velocity heads at `goal` (its sideways
+    share capped at LEAD_AIM_MAX). Plain float arithmetic: marble_sim.cpp's lead_aim matches it bit for bit."""
+    p=state['position'];v=state['velocity']
+    dx=float(goal[0])-float(p[0]);dy=float(goal[1])-float(p[1]);n=math.sqrt(dx*dx+dy*dy)
+    if not n>1e-6:return math.atan2(dx,dy)
+    ux=dx/n;uy=dy/n
+    s=min(LEAD_AIM_MAX,max(-LEAD_AIM_MAX,(float(v[0])*uy-float(v[1])*ux)/k))
+    c=math.sqrt(1.-s*s)
+    return math.atan2(c*ux-s*uy,c*uy+s*ux)
+
+
+def land_action(gem,state,short=False):
+    """In the air: the reply whose air control moves the free-flight landing point (where the marble comes down to the gem's z +
+    LAND_DZ) onto the gem: the acceleration 2 * miss / t^2, at most the full stick (LAND_AIR on the camera diagonal, sqrt 2).
+    None on the ground or close to the landing. Plain float arithmetic: marble_sim.cpp's land_action matches it bit for bit.
+    `short` (LAND_SHORT, Python only): the landing point is set back from the gem along the line to it by the braking distance
+    from the current ground speed down to LAND_SHORT_ARRIVE (the human's long Super Speed flights land short and roll in)."""
+    p=state['position'];v=state['velocity']
+    px,py,pz=float(p[0]),float(p[1]),float(p[2]);vx,vy,vz=float(v[0]),float(v[1]),float(v[2])
+    if not abs(vz)>LAND_MIN_VZ:return None
+    disc=vz*vz+2.*LAND_G*(pz-(float(gem[2])+LAND_DZ))
+    if not disc>0.:return None
+    t=(vz+math.sqrt(disc))/LAND_G
+    if not t>LAND_MIN_T:return None
+    tx,ty=float(gem[0]),float(gem[1])
+    if short:
+        dx,dy=tx-px,ty-py;dist=math.sqrt(dx*dx+dy*dy);sp=math.sqrt(vx*vx+vy*vy)
+        back=min(max(0.,(sp*sp-LAND_SHORT_ARRIVE*LAND_SHORT_ARRIVE)/(2.*LAND_SHORT_DECEL)),max(0.,dist-2.))
+        if dist>1e-6:tx-=dx/dist*back;ty-=dy/dist*back
+    ax=2.*(tx-(px+vx*t))/(t*t);ay=2.*(ty-(py+vy*t))/(t*t)
+    m=math.sqrt(ax*ax+ay*ay)
+    throttle=min(1.,m/(LAND_AIR*math.sqrt(2.))) if m>.05 else 0.
+    return reply(action_to_joystick(ax,ay,throttle,0,0,vx,vy),0,math.atan2(float(gem[0])-px,float(gem[1])-py))
 
 
 class RideProposal(SequenceProposal):
@@ -880,7 +966,30 @@ def search(engine,route,dynamics,raw,gem,navigator,horizon=40,warm=None,brake_re
     if (1<=held<=5 and not keep_ss) or mega_held:
         for use,jump in ((0,-1),(3,-1),(7,-1),(3,2),(7,5)):
             specs.append(('use_'+str(use)+'_jump_'+str(jump),SequenceProposal(route,gem,use_steps,use=use,jump=jump)))
-            specs.append(('direct_use_'+str(use)+'_jump_'+str(jump),SequenceProposal(route,gem,use_steps,use=use,jump=jump,direct=True)))
+            direct_spec=SequenceProposal(route,gem,use_steps,use=use,jump=jump,direct=True)
+            if DIRECT_LEAD and held==2:direct_spec.lead_k=POW_LAUNCH_LEAD_K
+            specs.append(('direct_use_'+str(use)+'_jump_'+str(jump),direct_spec))
+        if POW_LAUNCH and held in POW_LAUNCH_TYPES and not mega_held and reach>=POW_LAUNCH_MIN_LEG_U:
+            # 2026-10-25 night take-off launches: the use pressed with or just before the jump, so the kick (2 decisions after the
+            # use) fires at the take-off, at points along the way; each forecast runs through the flight and the landing. Two aims:
+            # along the route at the kick, or the route to the take-off spot and then the jump and the kick at the gem (direct_from)
+            for at in POW_LAUNCH_AT:
+                for lead in POW_LAUNCH_LEADS:
+                    use,jump=at,at+lead;n=max(use_steps,jump+POW_LAUNCH_FLIGHT)
+                    specs.append(('use_launch_%d_%d'%(use,jump),SequenceProposal(route,gem,n,use=use,jump=jump)))
+                    aim=SequenceProposal(route,gem,n,use=use,jump=jump);aim.direct_from=use
+                    if held==2:aim.lead_k=POW_LAUNCH_LEAD_K
+                    aim.land=POW_LAUNCH_LAND
+                    if LAND_SHORT and held==2:aim.land_short=True   # Python per-reply forecast (forecast._controller declines it)
+                    specs.append(('use_launch_aim_%d_%d'%(use,jump),aim))
+                if POW_LAUNCH_ROLL and held==2:
+                    # 2026-10-26 (under test): the kick without a jump, aimed (lead) at the gem, the terrain doing the launching (Sprawl
+                    # human demo: the Super Speed fired before a ramp, 37 u/s up the ramp, a 65 u flight; a jump at the kick flies over it)
+                    for at in POW_LAUNCH_AT:
+                        roll=SequenceProposal(route,gem,max(use_steps,at+POW_LAUNCH_FLIGHT),use=at,jump=-1);roll.direct_from=at
+                        roll.lead_k=POW_LAUNCH_LEAD_K;roll.land=POW_LAUNCH_LAND
+                        if LAND_SHORT:roll.land_short=True
+                        specs.append(('use_launch_roll_%d'%at,roll))
         if SS_RIDE and held==2:
             for use in SS_RIDE_USES:
                 specs.append(('use_ride_'+str(use),RideProposal(route,gem,use_steps,use)))
@@ -1761,7 +1870,7 @@ class PlanMemory:
     def __init__(self):self.clear()
 
     def clear(self):
-        self.actions=[];self.executed=0;self.lock_until=0;self.label=None;self.gem=None
+        self.actions=[];self.executed=0;self.lock_until=0;self.lock_from=0;self.label=None;self.gem=None
         self.landing_goal=None;self.landing_after_reply=0;self.goal_item_id=None;self.landing_mode=False;self.landing_triangle_id=None
         self.observed_tail=[]
         self.stopping_verified=False
@@ -1770,10 +1879,18 @@ class PlanMemory:
         self.backup_risk=False
 
     def accept(self,rollout,label,gem,info=None):
+        launch='_launch' in str(label or '') or (str(label or '').startswith('remaining_previous_plan') and '_launch' in str(self.label or ''))
         self.clear()
         self.actions=copy.deepcopy(rollout['proposed']);self.executed=0;self.label=label;self.gem=list(gem)
         events=[i for i,a in enumerate(self.actions[:13]) if a[4] or a[6] or a[8]]
         self.lock_until=min(len(self.actions),events[0]+3) if events else 0
+        if launch:
+            # take-off launches (a kept launch plan too): held from POW_LAUNCH_LOCK_LEAD replies before the first timed input through
+            # the kick (2 decisions after the use, the jump up to a reply later); before that the receding horizon may move the launch
+            # or its aim
+            if not '_launch' in str(label or ''):self.label=label+'_launch'
+            ev=next((i for i,a in enumerate(self.actions) if a[4] or a[6] or a[8]),None)
+            if ev is not None:self.lock_from=max(0,ev-POW_LAUNCH_LOCK_LEAD);self.lock_until=min(len(self.actions),ev+4)
         if str(label or '').startswith('edge_hit_wall') and info and info.get('edge_lip') is not None:
             # v20 (2026-10-21): commit to the wall until the forecast contact (+3 replies). Five pairs: wall choices lasting
             # ONE decision (ties re-ranked a step later) nudged the marble and the round diverged (wall6 Cragmire 4420117 -58)
@@ -1794,7 +1911,7 @@ class PlanMemory:
         return False
 
     @property
-    def locked(self):return (self.executed<self.lock_until or self.landing_goal is not None) and bool(self.remaining)
+    def locked(self):return (self.lock_from<=self.executed<self.lock_until or self.landing_goal is not None) and bool(self.remaining)
 
     @property
     def remaining(self):return self.actions[self.executed:]

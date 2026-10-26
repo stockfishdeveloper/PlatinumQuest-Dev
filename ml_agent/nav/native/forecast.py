@@ -328,7 +328,7 @@ class _BuiltSeq(_LazySeq):
 
 
 # ---------------------------------------------------------------------------------------------- whole forecast in C++
-Q_SIZE = 51; R_SIZE = 38
+Q_SIZE = 61; R_SIZE = 38
 ERRORS_EXTRA = {7: 'Blast context unavailable in this snapshot', 8: 'Triple Blast, Fireball or cannon actuation is not verified',
                 10: 'Positive native mass required for Blast', 11: 'Positive Blast charge time required',
                 12: 'Timed Mega activation/expiry requires a verified script-event model',
@@ -337,7 +337,7 @@ ERRORS_EXTRA = {7: 'Blast context unavailable in this snapshot', 8: 'Triple Blas
 
 
 def seq_array(spec):
-    """search.SequenceProposal -> the 51-value layout of marble_sim.cpp (route / through state included; the brake
+    """search.SequenceProposal -> the 61-value layout of marble_sim.cpp (route / through state included; the brake
     prefix and aim offset of the Settle / Recharge / Aim wrappers are set by _controller)."""
     q = np.zeros(Q_SIZE)
     q[0:3] = spec.route.key
@@ -364,6 +364,12 @@ def seq_array(spec):
     from nav.marble_dynamics.search import FAST_MIN_SPEED
     q[49] = float(spec.fast or 0.)
     q[50] = float(FAST_MIN_SPEED)
+    df = getattr(spec, 'direct_from', None)   # ABI 12: stored + 1 (0 = never)
+    q[51] = 0. if df is None else float(int(df) + 1)
+    import nav.marble_dynamics.search as S   # ABI 13
+    q[52] = float(getattr(spec, 'lead_k', 0.) or 0.); q[53] = float(S.LEAD_AIM_MAX)
+    q[54] = 1. if getattr(spec, 'land', False) else 0.
+    q[55:61] = (S.LAND_G, S.LAND_AIR, S.LAND_DZ, S.LAND_MIN_VZ, S.LAND_MIN_T, S.LAND_AFTER_USE)
     return q
 
 
@@ -400,6 +406,8 @@ def _controller(sim, actions, count):
     if kind is S.LandingContinuation:
         prefix, spec = [list(a) for a in actions.prefix], actions.follow
     elif kind is S.SequenceProposal:
+        if getattr(actions, 'land_short', False):
+            return None   # 2026-10-26 search.LAND_SHORT (under test): not ported, the per-reply forecast runs it
         prefix, spec = [], actions
     elif kind is AimProposal:
         prefix, spec, aim = [], actions, float(actions.aim_offset)

@@ -544,16 +544,16 @@ def starts(pool, name):
 def main():
     for kv in o.set:
         key, val = kv.split('=', 1); mod, attr = key.split('.')
-        import nav.marble_dynamics.geometry_route as GR, nav.marble_dynamics.crossings as CRX, nav.marble_dynamics.gap_links as GLX, nav.marble_dynamics.climbs as CLX, nav.terrain as TRN
-        module = {'gem_demo': GD, 'search': S, 'reliability_eval': RE, 'geometry_route': GR, 'crossings': CRX, 'gap_links': GLX, 'climbs': CLX, 'terrain': TRN}[mod]
+        import nav.marble_dynamics.geometry_route as GR, nav.marble_dynamics.crossings as CRX, nav.marble_dynamics.gap_links as GLX, nav.marble_dynamics.climbs as CLX, nav.terrain as TRN, nav.marble_dynamics.resources as RSX
+        module = {'gem_demo': GD, 'search': S, 'reliability_eval': RE, 'geometry_route': GR, 'crossings': CRX, 'gap_links': GLX, 'climbs': CLX, 'terrain': TRN, 'resources': RSX}[mod]
         setattr(module, attr, type(getattr(module, attr))(val) if not isinstance(getattr(module, attr), bool) else val in ('1', 'True', 'true'))
     a = planner_args(o.map)
     terrain, engine = setup(a, o.map)
     EDGE_TERRAIN[0] = a.geometry_terrain
     for kv in o.set:   # re-apply after setup() (it resets the gem_demo/search globals from the planner args)
         key, val = kv.split('=', 1); mod, attr = key.split('.')
-        import nav.marble_dynamics.geometry_route as GR, nav.marble_dynamics.crossings as CRX, nav.marble_dynamics.gap_links as GLX, nav.marble_dynamics.climbs as CLX, nav.terrain as TRN
-        module = {'gem_demo': GD, 'search': S, 'reliability_eval': RE, 'geometry_route': GR, 'crossings': CRX, 'gap_links': GLX, 'climbs': CLX, 'terrain': TRN}[mod]
+        import nav.marble_dynamics.geometry_route as GR, nav.marble_dynamics.crossings as CRX, nav.marble_dynamics.gap_links as GLX, nav.marble_dynamics.climbs as CLX, nav.terrain as TRN, nav.marble_dynamics.resources as RSX
+        module = {'gem_demo': GD, 'search': S, 'reliability_eval': RE, 'geometry_route': GR, 'crossings': CRX, 'gap_links': GLX, 'climbs': CLX, 'terrain': TRN, 'resources': RSX}[mod]
         setattr(module, attr, type(getattr(module, attr))(val) if not isinstance(getattr(module, attr), bool) else val in ('1', 'True', 'true'))
     if o.search_workers:
         from nav.marble_dynamics.parallel_search import ParallelEvaluator, worker_init

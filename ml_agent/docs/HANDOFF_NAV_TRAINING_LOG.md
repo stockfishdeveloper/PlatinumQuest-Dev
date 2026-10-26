@@ -13952,3 +13952,77 @@ the ground get accepted anyway? run treasure box with that version", "at 1x".
   lookup: both pillar gems at 15.8 / 16.4 s). State at 21:35 (operator: stop and wait): code defaults = climb edges between regions
   ON, the v3 lookup ON (terrain.ROUTE_LEVEL_TOL_U = 1.5); recommended: the lookup OFF until Concentric's slowdown is understood.
   #2-#4 (rescue timer, step launches, slower run-ups + up-hold) drafted in the scratchpad, not applied. Nothing committed.
+
+## 2026-10-25/26 night (operator: "Go ahead and iterate on this plan all night"): faster traversals
+- Operator 21:40: floor lookup OFF (terrain.ROUTE_LEVEL_TOL_U = 0; code kept).
+- Human vs model on TreasureBox (seed 8675309 + -airandomstart, same start (67,-33), first gem (99,17)): human 3.65 s (Super Speed
+  at 0.8 s, jump + kick on the SAME tick at the top of the ramp (73,-24): 31.5 u/s, vz 14, landed on the gem); model 7.81 s (Super
+  Jump to the north, ground route). Demo ml_agent/demos/demo_20261025_215510.npz.
+- Launch v1/v2 (search.POW_LAUNCH, POW_LAUNCH_AT 0..20, LEADS 0/1, FLIGHT 40, MIN_LEG_U 20; PlanMemory.lock_from): take-off launches
+  (use with or 1 reply before the jump) along the route or aimed at the gem from the use (direct_from, ABI 12). sim_launch2: trips
+  8.18 -> 7.88 s, clears -0.1 %, points 1114 = 1114, falls 3 -> 2. KEPT.
+- resources.RESOURCE_BY_TIME (choose_resource ranks by fetch time + the type's quickest conditional pickup): ON, no effect at the
+  human start.
+- Launch v3 (10-26 00:30): (1) search.lead_aim (POW_LAUNCH_LEAD_K 25): the aimed Super Speed kick leads for the carried velocity
+  (the kick ADDS 25 u/s along the aim; aimed straight at the gem, 9 u/s north bent the flight 10 deg left into a box 10 u short);
+  (2) search.land_action (POW_LAUNCH_LAND, LAND_G 20, LAND_AIR 5, LAND_DZ .3, LAND_MIN_VZ .5, LAND_MIN_T .1, LAND_AFTER_USE 3): after
+  the kick the air control moves the free-flight landing point onto the gem (2 * miss / t^2, full stick 5 * sqrt 2 u/s^2); (3)
+  reliability_eval.LAUNCH_SWITCH_U 5: a kept launch before its lock gives way to a launch 5 u cheaper without a pickup (the v47 rule
+  had kept the northward launch). Compiled: ABI 13, Q_SIZE 61 (Q_LEAD_K, Q_LEAD_MAX, Q_LAND..Q_LAND_AFTER);
+  tools/native_controller_check.py randomizes lead_k / land (indices 0-5): 1998/1998 exact on TreasureBox and Cragmire.
+  Human start: 8.32 s -> 3.84 s (human 3.65). sim_launch3 (152 starts, v2 vs v3): trips 8.06 -> 7.86 s (7 of 10 maps faster),
+  episode 14.81 -> 14.67 s, points 1114 -> 1113, falls 2 = 2, clears +1.0 % (one TreasureBox start, pf6 4420117 dec 659: 11 s of
+  safe holds and A2 in a lane at x 96.2 beside the gem (97,23,2.5), no powerup involved; the single-start v2 replay also took 25.8
+  s there). KEPT (defaults ON).
+- Flag for pairs: --pow-launch / --no-pow-launch (search.POW_LAUNCH; reliability_eval main + realtime).
+- search.DIRECT_LEAD (under test, default False): the direct_use_* Super Speed kicks lead too (sim_launch4).
+- 01:00-01:50 pair launch1 (20 rounds an arm, seeds 7347019 / 12091843; baseline --no-pow-launch, candidate all launch work):
+  2712 -> 2749 (+1.9 a round), falls 8 -> 7. Concentric +33 / +8, Cragmire +35 / +3, Fractured +24 / 0, Bowl +10 / 0; Vortex
+  -37 / -20 (7347019: one 65 s stall between two gems, 547 kept-plan decisions + gap-run + safe holds, no launch in it),
+  TreasureBox -8 / -12. Real-game hit rates (gem by the forecast time + 8 replies): aimed launches 37/48 = 77 %, route launches
+  24/34 = 71 %, other uses 65 % (baseline arm 62 %); TreasureBox launches 11/14. ~8 launch uses a round. Launches KEPT ON.
+- Stall study (proposal, not applied): 13 of 152 sim starts are crossing stalls (9.1 % of all sim time, 81 % of A2 decisions);
+  gap-route cross phase procrastinates (a new plan predicting a landing a few replies out replaces the kept one every decision),
+  old crossings of 0-2 u pad gaps overrun the search budget at their launch (crossing_brake + A2/cooldown). Probe:
+  scratchpad stage_window_probe.py.
+- 02:06-02:56 pair launch2 (seeds 31337 / 4420117, same arms): 2620 -> 2671 (+2.5 a round), falls 7 -> 10. Sprawl +15 / +33, Vortex
+  +11 / +18, Cube +9, Bowl +4 / +4; Concentric -19 / -4, Cragmire -2 / -9, Fractured 0 / -8. Both arms ended with the pool's
+  randomized-opening audit failing on one KOTM round each ('Repeated confirmation opening'); all 20 rounds valid in both.
+  Two pairs together: 5332 -> 5420, +2.2 a round over 40 rounds an arm (per-map signs flip between pairs).
+- 02:05 sim_detour1: reliability_eval.DETOUR_BY_TIME (a Super Speed credited with its launch saving in the opportunistic detour;
+  default False): trips 7.85 -> 7.88, episode 14.67 -> 14.81: no gain, stays off.
+- 03:19-04:10 pair launch3 (seeds 9083321 / 8675309, same arms): 2637 -> 2729 (+4.6 a round), falls 9 -> 13. Cragmire +22 / +23,
+  Concentric +18 / +1, Sprawl +16 / -6, TreasureBox +12 / -3, Bowl +10 / 0, KOTM +5 / +4; Fractured -7 / -5. THREE PAIRS: 7969 ->
+  8149, +3.0 a round over 60 rounds an arm (+1.9, +2.5, +4.6), falls 24 -> 30. New best Fractured 132 (3 falls, baseline arm,
+  seed 9083321); sheet + docs/BEST_REAL_SCORES_2026-10-26.csv updated (also Fractured 131 / Concentric 132 from launch1).
+- 03:18 sim_tune1 (on the v3 defaults): POW_LAUNCH_MIN_LEG_U 30: trips 7.86 -> 7.91; 12: 7.93, clears +1.3 %; LAUNCH_SWITCH_U 0:
+  identical to 5. Defaults kept (20, 5).
+- Crossing stall root cause (scratchpad kept_plan_probe.py on sim Fractured cp3_baseline dec 2508): the controller's goal was the
+  gap's RUN-UP POINT (2, 9.41). The gap-route cross search found no landing plan (v_need 10.46 u/s from a 4.41 u run-up sized with
+  gap_links.ROLL_ACC 14; rolled from rest the marble makes ~9.1 there), pick() (attempt 1) sent it back to the run-up point every
+  decision until crossings' 400-call give-up (~13 s). The trace's ph= column is stale on kept-plan decisions (no pick() call).
+- 04:11 crossings.GAP_STAGING_GIVE_UP (default OFF, flag --gap-staging-give-up): 3 failed cross searches with the marble AT the
+  run-up point (1.5 u) drop the gap for a while and pursue the gem directly. Replay 2508: 38.7 -> 23.9 s. sim_stage1: Fractured
+  trips 10.32 -> 9.63, TreasureBox clears -2.4 %, but Vortex falls 1 -> 3 and points 65 -> 56 (direct pursuit after the give-up
+  falls); all: points 1113 -> 1106, falls 2 -> 4. Stays OFF.
+- 04:25 gap_links.ROLL_REAL (default OFF): roll_distance / roll_speed with the measured roll-up (11 u/s^2 from rest up to 9 u/s,
+  5 above) for run-ups (runup_needed), the lane's achievable speed (v_ach) and crossings.gap_ready; off = the old numbers exactly.
+  The Fractured gap: run-up 4.41 -> 7.02 u. sim_roll1 (off / roll / roll + give-up) running.
+- 04:45-05:35 pair roll1 (7347019 / 12091843; baseline defaults, candidate --roll-real): 2728 -> 2711 (-0.8 a round), falls 8 ->
+  11. Concentric -6 / -26, Fractured -9 / -18, Cragmire 0 / -14, Cube +10 / -9; Duplex +5 / +12, Vortex -7 / +41 (7347019: the
+  65 s stall avoided), TreasureBox 0 / +4. The sim had Fractured trips -13 %: the real game disagrees. ROLL_REAL stays OFF.
+  REAL-GAME DETERMINISM: roll1's baseline reproduced launch1's candidate (same code, seeds, 4+4 load, 4 h apart) on 18 of 20
+  rounds exactly; the two that differ are Duplex 12091843 (128 vs 118) and Vortex 12091843 (104 vs 93), crossing rounds with
+  wall-clock search-budget overruns.
+- Vortex cp3_baseline dec 2898 (the fragile sim start): with ROLL_REAL the planner overran the 2 s budget at 14 u/s on the
+  approach to an 8.2 u gap launch; the A2 actor took the marble over the edge (planning_time_budget -> A2 at speed near a gap).
+- 05:36 pair giveup1 (7347019 / 12091843; baseline defaults, candidate --gap-staging-give-up).
+- 05:36-06:25 pair giveup1 (7347019 / 12091843; baseline defaults, candidate --gap-staging-give-up): 2758 -> 2762 (+0.2 a round),
+  falls 7 -> 10. Vortex 7347019 71 -> 98 (the reproducible 65 s stall: 71 in every baseline run; --roll-real gave 112), Vortex
+  12091843 109 -> 98, TreasureBox 7347019 191 -> 202, Fractured 7347019 118 -> 100 (also 100 with --roll-real), Concentric 132 ->
+  129. GAP_STAGING_GIVE_UP stays OFF.
+- STATE 06:30 (nothing committed): ON by default: search.POW_LAUNCH (v1-v3: take-off launches, lead_aim POW_LAUNCH_LEAD_K 25,
+  land_action POW_LAUNCH_LAND), reliability_eval.LAUNCH_SWITCH_U 5, resources.RESOURCE_BY_TIME (on in both arms of every test
+  tonight; not measured alone). OFF: search.DIRECT_LEAD, reliability_eval.DETOUR_BY_TIME, crossings.GAP_STAGING_GIVE_UP
+  (--gap-staging-give-up), gap_links.ROLL_REAL (--roll-real); terrain.ROUTE_LEVEL_TOL_U 0. Compiled planner ABI 13 (DLL rebuilt in
+  %TEMP%/pq_checks/marble_sim). Control flag for pairs: --no-pow-launch.

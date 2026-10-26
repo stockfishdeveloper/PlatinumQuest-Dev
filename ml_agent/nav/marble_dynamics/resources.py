@@ -13,6 +13,9 @@ from nav.protocol import RAW_POW_HELD
 from nav.marble_dynamics.search import search,useful_candidate
 from nav.marble_dynamics.planning_budget import check as check_budget
 
+RESOURCE_BY_TIME=True    # 2026-10-25 night: choose_resource ranks helpful items by fetch time + the type's quickest conditional pickup
+RESOURCE_FETCH_U_S=10.   # ... the walk to the item at this speed
+
 
 def item_goal(item,position):
     p=list(item['position'])
@@ -63,7 +66,7 @@ def choose_resource(engine,route,dynamics,raw,gem,navigator,horizon=80,brake_rep
     position=np.asarray(dynamics['native']['state']['position'])
     held=int(dynamics['native']['state']['held'])
     items=[i for i in dynamics.get('items',[]) if not i['gem'] and 1<=i['powerup']<=5 and i['powerup']!=held]
-    types=sorted({i['powerup'] for i in items});hypotheses=[];helpful=[]
+    types=sorted({i['powerup'] for i in items});hypotheses=[];helpful=[];pickup_s={}
     for powerup in types:
         check_budget(engine)
         hypothetical=copy.deepcopy(dynamics);hypothetical['native']['state']['held']=powerup
@@ -72,7 +75,8 @@ def choose_resource(engine,route,dynamics,raw,gem,navigator,horizon=80,brake_rep
         pickups=[info for info,rollout in pairs if info['rejected'] is None and info['possible_pickup_interval'] is not None]
         hypotheses.append(dict(hypothetical_held=powerup,conditional_pickup_candidates=pickups,
             contract='Conditional inventory at current pose, not a predicted acquisition or an action sent to the game.'))
-        if pickups:helpful.append(powerup)
+        if pickups:
+            helpful.append(powerup);pickup_s[powerup]=min(float(p['possible_pickup_interval']) for p in pickups)*.064
     candidates=[]
     # Existing visible native items only. Prefer the shortest checked walking
     # acquisition; full mechanics still verifies its actual movement controls.
@@ -88,7 +92,11 @@ def choose_resource(engine,route,dynamics,raw,gem,navigator,horizon=80,brake_rep
         for item in useful:
             route.navigate(position,item['position']);distances.append(route.distance(position))
     ordered=list(zip(distances,useful))
-    ordered.sort(key=lambda pair:pair[0])
+    if RESOURCE_BY_TIME:
+        # 2026-10-25 night (operator approved): the quickest way to the gem, not the nearest helpful item: the walk to the item at
+        # RESOURCE_FETCH_U_S plus its type's quickest conditional pickup (the hypothesis search above)
+        ordered.sort(key=lambda pair:pair[0]/RESOURCE_FETCH_U_S+pickup_s.get(pair[1]['powerup'],0.))
+    else:ordered.sort(key=lambda pair:pair[0])
     for distance,item in ordered:
         if max_distance is not None and not (distance<=max_distance):continue
         check_budget(engine)

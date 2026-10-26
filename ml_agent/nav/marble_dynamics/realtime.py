@@ -145,6 +145,10 @@ class World:
         if not getattr(a, 'route_map', True):
             from nav.marble_dynamics.geometry_route import route_map_off
             route_map_off()
+        S.POW_LAUNCH = bool(getattr(a, 'pow_launch', S.POW_LAUNCH))
+        _crossings_mod.GAP_STAGING_GIVE_UP = bool(getattr(a, 'gap_staging_give_up', False) or _crossings_mod.GAP_STAGING_GIVE_UP)
+        from nav.marble_dynamics import gap_links as _gap_links_mod
+        _gap_links_mod.ROLL_REAL = bool(getattr(a, 'roll_real', False) or _gap_links_mod.ROLL_REAL)
         S.CORNER_SLOW = bool(getattr(a, 'slow_corners', S.CORNER_SLOW))
         S.TL_JUMP_FOLLOW = bool(getattr(a, 'tl_jump_follow', S.TL_JUMP_FOLLOW))
         engine.detour_blast_ratio = float(getattr(a, 'detour_blast_ratio', 1.5) or 0.) or math.inf

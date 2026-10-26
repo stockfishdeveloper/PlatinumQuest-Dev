@@ -52,6 +52,9 @@ GAP_RUN_RANGE_U = 20.0       # with search.GAP_RUN the cross phase (run-and-jump
 GAP_RUN_LATERAL_U = 2.0      # within this distance behind the launch and inside a cone around the crossing line (this half-width
 GAP_RUN_CONE = 0.7           # at the launch, plus this much per unit behind it); elsewhere the marble goes to the run-up point
 GAP_GIVE_UP_CALLS = 400      # a gap crossing staged for this many stage() calls in a row (~2 per decision) is dropped for a while
+GAP_STAGING_GIVE_UP = False  # 2026-10-26 night (under test): ... and sooner when the cross-phase search has found no landing plan
+GAP_STAGING_FAILS = 3        # this many times with the marble at the run-up point (within GAP_STAGING_NEAR_U): from there the run
+GAP_STAGING_NEAR_U = 1.5     # cannot get faster (sim Fractured 2508: 8 s at the run-up point of an 8.2 u gap, then the 400-call give-up)
 GAP_COMMIT_PAST_U = 1.5      # past the lip, an active gap crossing stays in its cross phase until this far beyond the far edge
 GAP_SMALL_MAX_RISE_U = 0.5   # with search.GAP_RUN a gap narrower than GAP_STAGE_MIN_U is staged when it rises at most this much
 ROUTE_CLIMBS = True          # 2026-10-25 (with geometry_route.CLIMB_EDGES): when the route to the goal goes up a climb edge within
@@ -626,6 +629,30 @@ class Crossings:
         self._gap_key = None
         return True
 
+    def staging_failed(self, crossing, position):
+        """GAP_STAGING_GIVE_UP: count a cross-phase search without a landing plan made at the crossing's run-up point; at
+        GAP_STAGING_FAILS the gap is dropped for a while (as _gap_tick's give-up) and True is returned."""
+        s = crossing.get('staging')
+        if not GAP_STAGING_GIVE_UP or s is None or crossing.get('edge') is None:
+            return False
+        if math.hypot(float(position[0]) - float(s[0]), float(position[1]) - float(s[1])) > GAP_STAGING_NEAR_U:
+            return False
+        key = ('gap',) + tuple(crossing['edge'])
+        fails = self.__dict__.setdefault('_staging_fails', {})
+        fails[key] = fails.get(key, 0) + 1
+        if fails[key] < GAP_STAGING_FAILS:
+            return False
+        fails.pop(key, None)
+        self.failed[key] = self.decision + 470
+        self.active = None
+        self._gap_key = None
+        return True
+
+    def staging_ok(self, crossing):
+        """A cross-phase search found a landing plan: the gap's count of failures at the run-up point starts again."""
+        if crossing is not None and crossing.get('edge') is not None:
+            self.__dict__.setdefault('_staging_fails', {}).pop(('gap',) + tuple(crossing['edge']), None)
+
     @staticmethod
     def _gap_run_on():
         from nav.marble_dynamics import search as _S
@@ -635,11 +662,11 @@ class Crossings:
         """A gap crossing may start (or keep) its run: rolling on along the crossing, the marble can still reach the speed the gap
         needs by the launch (v^2 + 2 a d >= v_need^2, a = gap_links.ROLL_ACC); else it goes back to the run-up point. True at the
         run-up point (that is how it is placed) and all along a proper run-up."""
-        from nav.marble_dynamics.gap_links import ROLL_ACC
+        from nav.marble_dynamics.gap_links import roll_speed
         u = np.asarray(crossing['direction'], dtype=float)
         along = float((np.asarray(position[:2], dtype=float) - np.asarray(crossing['launch'][:2], dtype=float)) @ u)
         v_along = max(0.0, float(np.asarray(velocity[:2], dtype=float) @ u)) if velocity is not None else 0.0
-        reachable = math.sqrt(v_along * v_along + 2.0 * ROLL_ACC * (max(0.0, -along) + GAP_RUNUP_SLACK_U))
+        reachable = roll_speed(max(0.0, -along) + GAP_RUNUP_SLACK_U, v_along)
         return reachable >= float(crossing.get('v_need', 0.0)) - GAP_SPEED_SLACK_U_S
 
     def first_hop(self, source, target):

@@ -384,7 +384,38 @@ struct SeqSpec {                       // search.SequenceProposal
     bool has_min = false; double min_speed = 0;   // ABI 8: search.SequenceProposal.min_speed (v62)
     bool has_box = false; double box[6] = {0, 0, 0, 0, 0, 0};   // ABI 9: the gem's pickup box (search.THROUGH_BOX)
     double fast = 0., fast_min_speed = 0.;   // ABI 10: preserve Python fast-family speed semantics
+    int direct_from = -1;   // ABI 12: search.SequenceProposal.direct_from (aim straight at the gem from this reply on; -1 never)
+    double lead_k = 0., lead_max = 0.;   // ABI 13: search.SequenceProposal.lead_k (0 off), search.LEAD_AIM_MAX
+    bool land = false;                   // ABI 13: search.SequenceProposal.land and search.LAND_* (land_action)
+    double land_g = 0., land_air = 0., land_dz = 0., land_min_vz = 0., land_min_t = 0.; int land_after = 0;
 };
+
+// search.land_action: in the air, the reply whose air control moves the free-flight landing point onto the gem; false on the
+// ground or close to the landing (Python's None)
+bool land_action(const SeqSpec& S, V3 p, V3 v, Action& r) {
+    if (!(std::fabs(v.z) > S.land_min_vz)) return false;
+    const double disc = v.z * v.z + 2. * S.land_g * (p.z - (S.gem.z + S.land_dz));
+    if (!(disc > 0.)) return false;
+    const double t = (v.z + std::sqrt(disc)) / S.land_g;
+    if (!(t > S.land_min_t)) return false;
+    const double ax = 2. * (S.gem.x - (p.x + v.x * t)) / (t * t), ay = 2. * (S.gem.y - (p.y + v.y * t)) / (t * t);
+    const double m = std::sqrt(ax * ax + ay * ay);
+    const double throttle = m > .05 ? pymin(1., m / (S.land_air * std::sqrt(2.))) : 0.;
+    double js[6]; r.npmask = joystick(ax, ay, throttle, false, 0, 0, v.x, v.y, js);
+    for (int k = 0; k < 6; k++) r.a[k] = js[k];
+    r.a[6] = 0; r.a[7] = std::atan2(S.gem.x - p.x, S.gem.y - p.y); r.a[8] = 0.;
+    return true;
+}
+
+// search.lead_aim: the yaw of a kick adding k u/s along it whose sum with the carried ground velocity heads at the goal
+double lead_aim(P3 goal, V3 p, V3 v, double k, double cap) {
+    const double dx = goal.x - p.x, dy = goal.y - p.y, n = std::sqrt(dx * dx + dy * dy);
+    if (!(n > 1e-6)) return std::atan2(dx, dy);
+    const double ux = dx / n, uy = dy / n;
+    const double s = pymin(cap, pymax(-cap, (v.x * uy - v.y * ux) / k));
+    const double c = std::sqrt(1. - s * s);
+    return std::atan2(c * ux - s * uy, c * uy + s * ux);
+}
 
 // search.open_top: state['position'] plain floats (weak cell_of), the level nearest z - radius (float32 compare)
 bool open_top_at(const Terrain& t, const Consts& C, V3 p, double radius, double& top) {
@@ -431,9 +462,18 @@ Action seq_call(Terrain& t, const Consts& C, SeqSpec& S, V3 p, V3 v, int index, 
         }
     }
     P3 goal; bool routed = false;
-    if (S.direct) goal = S.gem; else goal = navigate(t, S.route, P3{p.x, p.y, p.z}, S.gem, routed);
+    const bool direct = S.direct || (S.direct_from >= 0 && index >= S.direct_from);
+    if (S.land && direct && S.use >= 0 && index >= S.use + S.land_after) {
+        Action la;
+        if (land_action(S, p, v, la)) {
+            for (int q = 0; q < 4; q++) la.a[q] = round6(la.a[q] * S.scale, (la.npmask >> q) & 1u);
+            la.a[8] = index == S.blast ? 1 : 0;
+            return la;
+        }
+    }
+    if (direct) goal = S.gem; else goal = navigate(t, S.route, P3{p.x, p.y, p.z}, S.gem, routed);
     bool has_sd = false; double sd = 0;
-    if (C.route_speed_law && !S.direct) {
+    if (C.route_speed_law && !direct) {
         double remaining = route_distance(t, S.route, P3{p.x, p.y, p.z}, false);   // state['position'] (plain floats)
         sd = std::isfinite(remaining) ? remaining : norm2(S.gem.x - p.x, S.gem.y - p.y); has_sd = true;
     }
@@ -458,6 +498,7 @@ Action seq_call(Terrain& t, const Consts& C, SeqSpec& S, V3 p, V3 v, int index, 
                         has_top, top);
     for (int q = 0; q < 4; q++) a.a[q] = round6(a.a[q] * S.scale, (a.npmask >> q) & 1u);
     a.a[8] = index == S.blast ? 1 : 0;
+    if (S.lead_k != 0. && direct && index == S.use) a.a[7] = lead_aim(goal, p, v, S.lead_k, S.lead_max);
     return a;
 }
 
