@@ -42,6 +42,12 @@ USE_AWAY_U=0.            # 2026-10-16: a use that collects but ends this much fa
 SJ_USE_GAIN=True          # a held Super Jump is used only when its forecast completion (target, or target + next gem) beats the best
                          # non-use pickup by --use-margin-s (apply_use_gain); the other agent's 10-26 night guard, kept: sj_native pending
                          # (--sj-use-gain / --no-sj-use-gain)
+HELI_MIN_GAIN_S=3.       # 2026-10-29 (operator: "a heli should only be used if it saves like 3 seconds of time at least"): a held
+                         # Helicopter is used only when its plan reaches the gem this many seconds before rolling would
+                         # (apply_heli_gain). Before, its use plans were forecast 96 replies and the rolling plans 48, so only the
+                         # Helicopter plan reached a gem 4-6 s away, took the pickup credit and skipped the use margin (Cube Isle 10-29
+                         # real-time decision 462: the Helicopter plan collected at 5.3 s, rolling would have taken ~5.0 s); 0 = off
+HELI_ROLL_U_S=11.        # ... the slowest speed assumed for the rest of the way after a forecast ends short of the gem
 SS_RESERVE_LAST_U=0.     # 2026-10-16: no Super Speed plans for the last gem of a group closer than this (0 = off; v40: 20) ...
 SS_RESERVE_TIME_MS=6000. # ... unless the round has less than this left (then it is now or never)
 SS_EARLY_U=math.inf      # 2026-10-16: Super Speed 'use now' plans judged early on legs at least this long (inf = off; v40: 20)
@@ -1442,6 +1448,7 @@ def search(engine,route,dynamics,raw,gem,navigator,horizon=40,warm=None,brake_re
     if BRAKING_BACKUP:check_backups(engine,route,dynamics,gem,pairs,steps,target_item)
     apply_two_level(engine,route,dynamics,gem,pairs,target_item)
     if held==1 and SJ_USE_GAIN:apply_use_gain(pairs,engine,dynamics,gem,float(getattr(engine,'use_margin_s',0.) or 0.))
+    if held==5 and HELI_MIN_GAIN_S:apply_heli_gain(pairs,route,dynamics,gem,HELI_MIN_GAIN_S)
     valid=[p for p in pairs if p[0]['rejected'] is None]
     return min(valid,key=lambda p:p[0]['cost']) if valid else None,pairs
 
@@ -1786,6 +1793,38 @@ def apply_use_away(pairs,limit):
     for info,r in pairs:
         if info['rejected'] is None and r is not None and 'use' in info['label'] and info.get('through_post_u',-math.inf)>limit:
             info['rejected']='use_away'
+
+
+def apply_heli_gain(pairs,route,dynamics,gem,margin_s):
+    """HELI_MIN_GAIN_S: a held Helicopter is used only when its plan arrives at the gem margin_s seconds before rolling would.
+
+    Every plan gets the same arrival estimate: its forecast pickup, else its forecast time plus the rest of the way from its
+    end at the speed it ends with (at least HELI_ROLL_U_S). The rest is the walking route for a rolling plan; for a
+    Helicopter plan the walking route, or the straight line where there is none (in the air, over a gap). So a Helicopter
+    plan whose forecast ends 90 % of the way across a big map is judged by when it would arrive. Rolling's arrival is the
+    best valid rolling plan's; no rolling route at all (a gap, a ledge out of reach) leaves the use allowed.
+    """
+    valid=[(i,r) for i,r in pairs if i['rejected'] is None and r is not None]
+    uses=[(i,r) for i,r in valid if i.get('inventory_consumed',0)>0]
+    if not uses:return
+    target=np.asarray(gem[:3],dtype=float)
+    route.navigate(dynamics['native']['state']['position'],target)
+    def arrival(info,roll,fly):
+        k=info.get('possible_pickup_interval')
+        if k is not None:return float(k)*.064
+        end=roll['states'][-1];rest=route.distance(end['position'])
+        if not math.isfinite(rest):
+            if not fly:return math.inf
+            rest=float(np.linalg.norm(np.asarray(end['position'][:3],dtype=float)-target))
+        speed=max(float(np.linalg.norm(np.asarray(end['velocity'][:2],dtype=float))),HELI_ROLL_U_S)
+        return (len(roll['states'])-1)*.064+rest/speed
+    rolling=min((arrival(i,r,False) for i,r in valid if not i.get('inventory_consumed',0)),default=math.inf)
+    for info,roll in uses:
+        heli=arrival(info,roll,True);gain=rolling-heli
+        info['heli_rolling_s']=round(rolling,2) if math.isfinite(rolling) else None
+        info['heli_arrival_s']=round(heli,2)
+        info['heli_gain_s']=round(gain,2) if math.isfinite(gain) else None
+        if gain+1e-9<margin_s:info['rejected']='heli_no_gain'
 
 
 def apply_use_gain(pairs,engine,dynamics,gem,margin_s):

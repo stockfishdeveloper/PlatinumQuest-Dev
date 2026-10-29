@@ -17,6 +17,55 @@ from nav.routing import RoutePlanner
 from nav.protocol import RAW_DIM,RAW_GEMS
 
 
+class HelicopterGain(unittest.TestCase):
+    """HELI_MIN_GAIN_S (2026-10-29): a held Helicopter is used only when it arrives at the gem 3 s before rolling would."""
+    def plan(self,label,pickup,end,used,replies=48,speed=11.):
+        info=dict(label=label,rejected=None,possible_pickup_interval=pickup,inventory_consumed=1 if used else 0)
+        return info,dict(states=[dict(position=[0.,0.,0.],velocity=[0.,0.,0.])]*replies+[dict(position=end,velocity=[speed,0.,0.])])
+
+    def apply(self,pairs,gem_x=100.,routed=True):
+        from types import SimpleNamespace
+        from nav.marble_dynamics.search import apply_heli_gain
+        # a straight walking route along x to the gem (or none at all)
+        route=SimpleNamespace(navigate=lambda a,b:None,distance=lambda p:gem_x-p[0] if routed else float('inf'))
+        apply_heli_gain(pairs,route,dict(native=dict(state=dict(position=[0.,0.,0.]))),np.asarray([gem_x,0.,0.]),3.)
+
+    def test_recorded_cube_isle_use_that_saves_nothing_is_rejected(self):
+        # real-time decision 462: the Helicopter plan collects at reply 83 (5.3 s); rolling ends 27 u short after 48 replies
+        heli=self.plan('use_7_jump_-1',83,[100.,0.,0.],True,96);roll=self.plan('route',None,[73.,0.,0.],False,speed=14.)
+        self.apply([heli,roll])
+        self.assertEqual(heli[0]['rejected'],'heli_no_gain');self.assertIsNone(roll[0]['rejected'])
+        self.assertAlmostEqual(heli[0]['heli_rolling_s'],round(48*.064+27./14.,2))
+
+    def test_a_use_that_saves_three_seconds_stays(self):
+        heli=self.plan('use_0_jump_-1',30,[100.,0.,0.],True,96);roll=self.plan('route',None,[40.,0.,0.],False)
+        self.apply([heli,roll])           # rolling: 3.07 s + 60 u at 11 u/s = 8.5 s; the Helicopter 1.9 s
+        self.assertIsNone(heli[0]['rejected'])
+
+    def test_far_gem_reached_after_the_forecast_still_counts(self):
+        # the operator's big map: the Helicopter forecast ends 10 u short (90 % of the way) at 20 u/s, rolling 150 u short
+        heli=self.plan('use_0_jump_-1',None,[190.,0.,0.],True,96,speed=20.);roll=self.plan('route',None,[50.,0.,0.],False,speed=12.)
+        self.apply([heli,roll],gem_x=200.)
+        self.assertIsNone(heli[0]['rejected'])
+        self.assertAlmostEqual(heli[0]['heli_arrival_s'],round(96*.064+10./20.,2))
+        self.assertGreater(heli[0]['heli_gain_s'],8.)
+
+    def test_no_rolling_route_leaves_the_use_allowed(self):
+        heli=self.plan('use_0_jump_-1',None,[90.,0.,0.],True,96);roll=self.plan('route',None,[3.,0.,0.],False)
+        self.apply([heli,roll],routed=False)   # the Helicopter is judged on the straight line
+        self.assertIsNone(heli[0]['rejected'])
+
+    def test_a_rolling_pickup_is_the_reference(self):
+        heli=self.plan('use_0_jump_-1',20,[100.,0.,0.],True,96);roll=self.plan('route',40,[100.,0.,0.],False)
+        self.apply([heli,roll])           # 1.3 s against rolling's 2.6 s: 1.3 s saved, under 3
+        self.assertEqual(heli[0]['rejected'],'heli_no_gain')
+
+    def test_a_slower_unfinished_use_is_rejected(self):
+        heli=self.plan('use_3_jump_-1',None,[80.,0.,0.],True,96);roll=self.plan('route',None,[73.,0.,0.],False,speed=14.)
+        self.apply([heli,roll])           # 6.1 s + 20 u at 11 u/s = 8.0 s against rolling's 5.0 s
+        self.assertEqual(heli[0]['rejected'],'heli_no_gain')
+
+
 class RollLaunchOptions(unittest.TestCase):
     def test_short_landings_preserve_the_ordinary_rolling_launch(self):
         from types import SimpleNamespace

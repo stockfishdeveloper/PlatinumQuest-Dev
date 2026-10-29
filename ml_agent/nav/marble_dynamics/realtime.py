@@ -49,6 +49,10 @@ STALL_REPORT_S = .25      # a hold longer than this is printed
 PLAN_FAIL_LIMIT_S = 4.    # fail before the bridge's 5 s live lockstep timeout releases unchecked motion
 CHECKED_TAIL = False      # opt-in until paired native real-time checks pass
 CHECKED_RESERVE = 8       # at most 512 ms of already checked continuation
+JOURNAL_VIEW = True       # 2026-10-29 (operator: "add the logging ... i'll pause the game when i see a fuckup that you can
+                          # investigate"): each journal line also carries the gems in play, the held powerup and the planner's
+                          # view of the decision (its plan; on a full search every candidate: label, cost, rejection, pickup
+                          # reply, end point)
 ML = Path(__file__).resolve().parents[2]
 OUTPUT = ML / 'dynamics_reports' / 'realtime'
 # the v86 pool planner (scratchpad launch_pool.sh flag set + --horizon 48, dynamics_reports/planner_v86_*/prepared.json)
@@ -63,6 +67,120 @@ FLAGS = ['--seeds', '7347019', '--only-branch', 'physics_plan', '--full-round', 
 
 def log(text):
     print(time.strftime('%H:%M:%S ') + text, flush=True)
+
+
+# -------------------------------------------------------------------------------------------- journal view (2026-10-29)
+_LAST_SEARCH = [None]     # planner thread only: the candidates of the latest pick(), kept by the hook below
+SITUATION = [None]        # 2026-10-29: a captured moment (tools/situation.py) every round starts from (--situation FILE)
+SITUATION_TRY_S = 15.     # ... and it is set up again every this many seconds of play: one round gives many tries (real-time
+                          # search timing differs between tries); each try's pickups are logged
+SITUATION_SETTLED_VZ = 3. # a try ends only while the marble moves up or down slower than this (u/s) and is in bounds ...
+SITUATION_WAIT_S = 3.     # ... or this long after its time
+SITUATION_REDO_S = .5     # out of bounds this soon after a setup: the marble was already on its way out; set up again
+
+
+def _rounded(values, digits=1):
+    return [round(float(x), digits) for x in values]
+
+
+def _candidate(info):
+    """[label, cost, rejection, pickup reply, end point, gem it was planned for] of one candidate the search already
+    forecast (pick() returns its candidates as info dicts)."""
+    cost = info.get('cost')
+    cost = round(float(cost), 1) if cost is not None and math.isfinite(float(cost)) else None
+    end = None if info.get('end_position') is None else _rounded(info['end_position'][:3])
+    gem = None if info.get('gem') is None else _rounded(info['gem'][:3])
+    return [str(info.get('label'))[:48], cost, info.get('rejected'), info.get('possible_pickup_interval'), end, gem]
+
+
+def _install_pick_hook():
+    """Wraps reliability_eval.pick so the journal can show every candidate of a full search. Nothing is forecast again, and
+    the copy stays in this module (never on the engine, whose attributes go to the search workers with every search)."""
+    import nav.marble_dynamics.reliability_eval as RE
+    if getattr(RE.pick, 'journal_hook', False):
+        return
+    original = RE.pick
+
+    def pick(*args, **kwargs):
+        out = original(*args, **kwargs)
+        if JOURNAL_VIEW:
+            try:
+                _, infos, target = out
+                _LAST_SEARCH[0] = dict(target=None if target is None else _rounded(target[:3]),
+                                       candidates=[_candidate(info) for info in infos or [] if isinstance(info, dict)])
+            except Exception:
+                _LAST_SEARCH[0] = None
+        return out
+    pick.journal_hook = True
+    RE.pick = pick
+
+
+def _plan_view(info):
+    """The committed plan: cost, pickup reply, goal (kind, item, destination), smack / ledge penalties, end point."""
+    out = {k: info.get(k) for k in ('cost', 'possible_pickup_interval', 'rejected', 'revalidated_remainder',
+                                    'stopped_on_ambiguity') if info.get(k) is not None}
+    if 'cost' in out:
+        out['cost'] = round(float(out['cost']), 1) if math.isfinite(float(out['cost'])) else None
+    goal = info.get('goal_context') or {}
+    if goal:
+        out['goal'] = dict(kind=goal.get('kind'), item=goal.get('item_id'),
+                           dest=None if goal.get('destination') is None else _rounded(goal['destination'][:3]))
+    if info.get('cluster_penalty'):
+        out['penalty'] = info['cluster_penalty']
+    if info.get('end_position') is not None:
+        out['end'] = _rounded(info['end_position'][:3])
+    return out
+
+
+def _journal_items(msg):
+    """The gems in play ([x, y, z, value]), the held powerup, the marble's spin and the Blast meter, from a real
+    observation: everything tools/situation.py needs to set the moment up again."""
+    dynamics = msg.dynamics if isinstance(msg.dynamics, dict) else {}
+    gems = [_rounded(item['position'][:3]) + [item.get('value')] for item in dynamics.get('items') or [] if item.get('gem')]
+    state = (dynamics.get('native') or {}).get('state') or {}
+    out = dict(gems=gems, held=state.get('held'))
+    if state.get('spin') is not None:
+        out['spin'] = _rounded(state['spin'][:3], 3)
+    blast = dynamics.get('blast') or {}
+    if blast.get('value') is not None:
+        out['blast'] = round(float(blast['value']), 3)
+    return out
+
+
+def situation_words(sit):
+    """Control words that put the marble into a captured moment right after GO (gems, held powerup, then position with
+    velocity and spin), so the planner plays the situation the operator played (record_situation.py is the human side)."""
+    p, v, w = sit['position'], sit['velocity'], sit.get('spin') or [0., 0., 0.]
+    words = ['TELEPORT ' + ' '.join('%.3f' % x for x in list(p[:3]) + [0.] * 6)]   # first away from any gem spot, at rest
+    if sit.get('gems'):
+        words.append('GEMSET ' + ' '.join('%.3f %.3f %.3f' % tuple(g[:3]) for g in sit['gems']))
+    words.append('GIVEPOW ' + (sit.get('held_item') or 'none'))
+    words.append('TELEPORT ' + ' '.join('%.3f' % x for x in list(p[:3]) + list(v[:3]) + list(w[:3])))
+    return words
+
+
+def setup_situation(env, world, sit, n):
+    """Puts the marble into the captured moment (try n) and logs what the game shows; returns the new observation."""
+    from nav.protocol import NOOP_ACTION
+    for word in situation_words(sit):
+        env.control(word)
+    env.step(NOOP_ACTION, repeat=1)      # a reply acts one decision later: the next observation shows the teleport
+    msg = env.msg
+    items = _journal_items(msg); got = items['gems']
+    log('%s: situation decision %d, try %d: marble at %s, %.1f u/s, holding %s, %d of %d gems placed, Blast %s' % (
+        world.name, sit['decision'], n, [round(float(x), 1) for x in msg.obs[0:3]],
+        float(np.linalg.norm(np.asarray(msg.obs[3:5], dtype=float))), sit.get('held_item') or 'nothing',
+        sum(any(abs(g[0] - s[0]) + abs(g[1] - s[1]) < .5 for g in got) for s in sit['gems']), len(sit['gems']), items['blast']))
+    return msg
+
+
+def _json_default(value):
+    """numpy numbers and arrays in a journal line (anything else as text): a journal write must never stop a round."""
+    if isinstance(value, np.generic):
+        return value.item()
+    if isinstance(value, np.ndarray):
+        return value.tolist()
+    return str(value)
 
 
 # ------------------------------------------------------------------------------------------------------ planner world
@@ -98,6 +216,7 @@ class World:
     def __init__(self, name):
         import nav.marble_dynamics.reliability_eval as RE
         import nav.marble_dynamics.gem_demo as GD
+        _install_pick_hook()
         import nav.marble_dynamics.search as S
         from nav.terrain import TerrainMap
         from nav.marble_dynamics.static_cache import cached_terrain, cached_walking, load_queries
@@ -342,6 +461,7 @@ class AheadPlanner(threading.Thread):
         self.tail = []; self.tail_from = None   # legacy fallback retained while checked-tail is experimental
         self.stats = Counter(); self.leads = []; self.latencies = []; self.labels = Counter()
         self.chosen = {}; self.last_label = '?'   # 2026-10-20: plan label per committed decision, journaled by play_round
+        self.views = {}; self.last_view = None    # 2026-10-29 JOURNAL_VIEW: the planner's view per committed decision
         # The stuck check's route distance, computed HERE for each new real observation. Route queries reach the
         # compiled simulator (line_clear -> ground clearance -> marble_sim.segment), which one thread at a time may use:
         # the game thread's own route query during a forecast on this thread corrupted the heap (10-19 13:24 and 17:24,
@@ -384,6 +504,9 @@ class AheadPlanner(threading.Thread):
             r = self.committed.pop(decision)
             self.sent[decision] = r
             self.last_label = self.chosen.pop(decision, '?')
+            self.last_view = self.views.pop(decision, None)
+            for d in [d for d in self.views if d < decision - 4 * self.lead - 8]:
+                del self.views[d]
             for d in [d for d in self.chosen if d < decision - 4 * self.lead - 8]:
                 del self.chosen[d]
             for d in [d for d in self.sent if d < decision - 4 * self.lead - 8]:
@@ -547,8 +670,15 @@ class AheadPlanner(threading.Thread):
                 self.controller.observe(self.prev.obs, msg, step)
             remaining = max(1, int(float(msg.obs[RAW_TIME_LEFT]) / 1000. / DECISION_S))
             self.budget(v - a)
+            _LAST_SEARCH[0] = None
             action, info = self.controller.action(msg, remaining)
             label = info.get('label', '?')
+            view = None
+            if JOURNAL_VIEW:
+                try:
+                    view = dict(ahead=v - a, plan=_plan_view(info), search=_LAST_SEARCH[0])
+                except Exception:
+                    view = None
             if label == 'neutral' and v > a:
                 if CHECKED_TAIL:
                     # Wait for the real next group. Only a state-matched checked
@@ -584,6 +714,8 @@ class AheadPlanner(threading.Thread):
                         self.checked[v+k] = (list(forecast['proposed'][k]), copy.deepcopy(forecast['states'][k]),
                                              list(pending), bridge)
                 self.committed[v] = action; self.chosen[v] = label; self.next = v + 1
+                if view is not None:
+                    view['label'] = label; self.views[v] = view
                 self.leads.append(v - a); self.latencies.append(time.perf_counter() - t0); self.labels[label] += 1
                 self.cv.notify_all()
 
@@ -693,6 +825,7 @@ def play_round(env, world, journal_folder):
     monitor = ProgressMonitor(8.)
     points = 0.; falls = 0; rescues = 0; holds = []; started = time.perf_counter(); decisions = 0; backlog = 0
     playing = False; outcome = dict(fell=False, gem_delta=0., round_ended=False, reconnected=False)
+    tries = []; try_left = None; try_picks = []    # situation test: finished tries, the clock at this try's setup, its pickups
     stop = 'round_end'
     command(env, 'DYNAMICSWAIT 5000', 'dynamics_wait')    # during play the game never holds longer than this
     try:
@@ -705,6 +838,10 @@ def play_round(env, world, journal_folder):
                 spin = float(np.linalg.norm(st.get('spin', [0., 0., 0.]))) if st else 0.
                 log('%s: GO at tick %d (speed %.2f u/s, spin %.1f rad/s from the pre-spin)' % (
                     world.name, tick, float(np.linalg.norm(np.asarray(msg.obs[3:5], dtype=float))), spin))
+                if SITUATION[0] is not None:
+                    # 2026-10-29 situation test: the marble is put into the captured moment before the planner sees the round
+                    msg = setup_situation(env, world, SITUATION[0], 1); tick = int(msg.tick)
+                    try_left = env.time_left_s(); try_picks = []
             held_s = 0.
             if playing:
                 planner.see(tick, msg, outcome)
@@ -729,26 +866,67 @@ def play_round(env, world, journal_folder):
                                fell=bool(outcome['fell'] or skipped_fell), round_ended=outcome['round_ended'] or env.round_ended)
             decisions += 1
             points += max(0., float(outcome['gem_delta']))
+            if try_left is not None and float(outcome['gem_delta']) > 0:
+                try_picks.append((round(try_left - env.time_left_s(), 2), float(outcome['gem_delta'])))
             if decisions % 400 == 0 and playing:
                 recent = planner.latencies[-400:] or [0.]; lead = planner.leads[-400:] or [0]
                 log('  %s: %d points, %.0f s left, held %d times (%.1f s), planner mean %.0f ms ahead %.1f decisions, %s' % (
                     world.name, points, env.time_left_s(), len(holds), sum(holds), 1000 * float(np.mean(recent)),
                     float(np.mean(lead)), dict(planner.stats)))
-            journal.write(json.dumps(dict(tick=tick, action=list(map(float, action)), held_s=round(held_s, 4),
-                                          gem_delta=outcome['gem_delta'], fell=outcome['fell'],
-                                          time_left_s=env.time_left_s(),
-                                          pos=[round(float(x), 3) for x in np.asarray(msg.obs[0:6], dtype=float)],   # 2026-10-21: position + velocity for the audits
-                                          label=planner.last_label if playing else 'countdown')) + '\n')
+            line = dict(tick=tick, action=list(map(float, action)), held_s=round(held_s, 4),
+                        gem_delta=outcome['gem_delta'], fell=outcome['fell'],
+                        time_left_s=env.time_left_s(),
+                        pos=[round(float(x), 3) for x in np.asarray(msg.obs[0:6], dtype=float)],   # 2026-10-21: position + velocity for the audits
+                        label=planner.last_label if playing else 'countdown')
+            if JOURNAL_VIEW:
+                # 2026-10-29: the gems in play, the held powerup and the planner's view of this decision (on this thread,
+                # after the reply went out)
+                try:
+                    line.update(_journal_items(msg))
+                except Exception:
+                    pass
+                if playing and planner.last_view is not None:
+                    line['view'] = planner.last_view
+            if try_left is not None and playing:
+                line['try'] = len(tries) + 1; line['try_s'] = round(try_left - env.time_left_s(), 3)
+            journal.write(json.dumps(line, default=_json_default) + '\n')
             if outcome['round_ended'] or outcome['reconnected']:
                 stop = 'round_end' if outcome['round_ended'] else 'reconnected'
                 break
             if not playing:
                 continue
+            if try_left is not None and not outcome['fell'] and try_left - env.time_left_s() >= SITUATION_TRY_S and (
+                    (abs(float(env.msg.obs[5])) < SITUATION_SETTLED_VZ and not env.msg.oob)
+                    or try_left - env.time_left_s() >= SITUATION_TRY_S + SITUATION_WAIT_S):
+                # the try is over: its pickups, then the moment again (while a whole try still fits in the round)
+                try_picks = [(t, p) for t, p in try_picks if t <= SITUATION_TRY_S]
+                tries.append(dict(picks=try_picks, points=sum(p for _, p in try_picks)))
+                log('%s: situation try %d: %s; %g points in %.0f s' % (
+                    world.name, len(tries), ', '.join('%g at +%.2f s' % (p, t) for t, p in try_picks) or 'no pickup',
+                    tries[-1]['points'], SITUATION_TRY_S))
+                try_picks = []; try_left = None
+                if env.time_left_s() > SITUATION_TRY_S + 1.:
+                    setup_situation(env, world, SITUATION[0], len(tries) + 1)
+                    points += max(0., float(env.control_info['gem_delta']))
+                    try_left = env.time_left_s()
+                    planner.restart(int(env.msg.tick))
+                    monitor.last_progress = simulation_time(env)
+                    outcome = dict(fell=False, gem_delta=0., round_ended=False, reconnected=False)
+                    if env.control_info['round_ended'] or env.control_info['reconnected']:
+                        stop = 'round_end' if env.control_info['round_ended'] else 'reconnected'
+                        break
+                    continue
             if outcome['fell']:
                 # the legal out-of-bounds click (as in the pools), then plan again from the respawn
                 falls += 1
                 env.control('OOBCLICK')
                 points += max(0., float(env.control_info['gem_delta']))
+                if try_left is not None and try_left - env.time_left_s() < SITUATION_REDO_S:
+                    log('%s: out of bounds %.2f s into situation try %d (on its way out before the setup): set up again' % (
+                        world.name, try_left - env.time_left_s(), len(tries) + 1))
+                    falls -= 1
+                    setup_situation(env, world, SITUATION[0], len(tries) + 1)
+                    try_left = env.time_left_s(); try_picks = []
                 planner.restart(int(env.msg.tick))
                 outcome = dict(fell=False, gem_delta=0., round_ended=False, reconnected=False)
                 if env.control_info['round_ended'] or env.control_info['reconnected']:
@@ -789,6 +967,8 @@ def play_round(env, world, journal_folder):
                    mean_lead=round(float(leads.mean()), 2), p50_plan_s=round(float(np.median(lat)), 3),
                    p99_plan_s=round(float(np.percentile(lat, 99)), 3), planner=dict(planner.stats),
                    labels=dict(planner.labels.most_common(8)), counts=dict(controller.counts.most_common(12)))
+    if SITUATION[0] is not None:
+        summary['tries'] = tries
     log('ROUND ' + json.dumps(summary))
     from nav.collision.mesh import atomic_json
     atomic_json(journal_folder / ('%s_%s.summary.json' % (world.name, stamp)), summary)
@@ -796,7 +976,7 @@ def play_round(env, world, journal_folder):
 
 
 # --------------------------------------------------------------------------------------------------------- the server
-def serve(port=PORT):
+def serve(port=PORT, preload=None, situation=None):
     import os
     os.environ.setdefault('NAV_RENDER_EVERY', '1')
     sys.setswitchinterval(.001)                    # the game thread gets the interpreter within ~1 ms of a reply being due
@@ -828,6 +1008,14 @@ def serve(port=PORT):
             HuntEnv._send(self, line)
 
     worlds = WorldManager()
+    if situation is not None:
+        SITUATION[0] = situation; preload = preload or situation['map']
+        log('situation test: every round starts from %s decision %d' % (situation['map'], situation['decision']))
+    if preload:
+        # 2026-10-29 (operator: "the planner load is what bothers me"): this map's planner and its search workers are built
+        # before the port opens, so play_realtime.ps1 -Map starts the game only when the planner is ready: no hold at the start
+        log('%s: preloading the planner before the game starts' % preload)
+        worlds.get(preload)
     env = PacedEnv(port=port, speed=1, log=log)
     log('waiting for a Hunt round on port %d (start the game, then Play > Hunt > a map)' % port)
     env.connect()
@@ -863,4 +1051,10 @@ def serve(port=PORT):
 
 
 if __name__ == '__main__':
-    serve()
+    # --preload MAP (2026-10-29, play_realtime.ps1 -Map): build that map's planner before the game connects
+    # --situation FILE (2026-10-29, play_realtime.ps1 -Situation): every round starts from that captured moment
+    sit = None
+    if '--situation' in sys.argv:
+        with open(sys.argv[sys.argv.index('--situation') + 1], encoding='utf-8') as f:
+            sit = json.load(f)
+    serve(preload=sys.argv[sys.argv.index('--preload') + 1] if '--preload' in sys.argv else None, situation=sit)
