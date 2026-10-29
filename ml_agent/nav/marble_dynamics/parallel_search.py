@@ -130,7 +130,7 @@ def evaluate_candidate(engine, route, dynamics, gem, label, proposal, target_ite
     """The serial search loop's body for one candidate (search.search), without the deadline: the main forecast and
     score, the landing continuation, the brake tail. Returns a dict the parent merges in the serial order."""
     from nav.marble_dynamics.bridge import predict_replies
-    from nav.marble_dynamics.search import assess, LandingContinuation, BrakeContinuation, edge_climb, chain_score
+    from nav.marble_dynamics.search import assess, LandingContinuation, BrakeContinuation, edge_climb, chain_score, continuation_rules, continuation_time_price
     try:
         rollout = predict_replies(engine, dynamics, proposal, stop_on_ambiguity=True)
     except ValueError as exc:
@@ -145,19 +145,26 @@ def evaluate_candidate(engine, route, dynamics, gem, label, proposal, target_ite
             and not _gd.TIME_COST):   # 2026-10-24 TIME_COST: the forecast time is already in the cost (as the serial loop)
         penalty = (rollout['requested_replies'] - steps) * .064 * float(getattr(engine, 'ballistic_time_rate', 8.) or 8.)
         info['cost'] += penalty; info['time_penalty_u'] = penalty
-    out = dict(kind='ok', main=(info, rollout), air_main=bool(ballistic and info['rejected'] == 'no_supported_continuation'),
+    rules = continuation_rules(engine, label, info, rollout, landing_replies, ballistic,
+                               getattr(engine, 'complete_flight_search', False))
+    out = dict(kind='ok', main=(info, rollout), air_main=rules['air_main'],
                landing=None, air_landing=False, brake=None)
     pickup_landing = int(getattr(engine, 'pickup_landing_replies', 0) or 0)
     collects = info.get('possible_pickup_interval') is not None
-    extend = (landing_replies or (pickup_landing and collects)) and info['rejected'] == 'no_supported_continuation'
+    extend = rules['extend']
     if extend:
         replies = landing_replies or pickup_landing
-        landed = predict_replies(engine, dynamics, LandingContinuation(rollout['proposed'], route, gem, replies), stop_on_ambiguity=True)
+        from nav.marble_dynamics.search import LAUNCH_COMPLETE, LaunchContinuation, SequenceProposal
+        continuation = (LaunchContinuation(rollout['proposed'], proposal, replies)
+                        if LAUNCH_COMPLETE and '_launch' in label and isinstance(proposal, SequenceProposal)
+                        else LandingContinuation(rollout['proposed'], route, gem, replies))
+        landed = predict_replies(engine, dynamics, continuation, stop_on_ambiguity=True)
         checked = assess(engine, route, dynamics, gem, landed, label + '_landing', target_item)
         edge_climb(proposal, label, checked, landed); chain_score(proposal, label, checked, landed, dynamics)
         checked.update(proposal_replies=len(rollout['proposed']), landing_replies=replies, pickup_only_landing=not landing_replies,
                        evaluated_replies=len(landed['controls']), requested_replies=landed['requested_replies'],
                        stopped_on_ambiguity=landed['stopped_on_ambiguity'], forecast_s=(len(landed['states']) - 1) * .064)
+        continuation_time_price(engine, checked, landed, steps)
         out['landing'] = (checked, landed)
         out['air_landing'] = bool(ballistic and collects and checked['rejected'] == 'no_supported_continuation')
     if SPECULATE_PROJECTIONS:

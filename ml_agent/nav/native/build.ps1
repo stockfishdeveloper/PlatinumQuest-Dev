@@ -2,6 +2,7 @@ param([string]$OutputDirectory = (Join-Path $env:TEMP 'pq_checks/marble_sim'))
 # Builds nav/native/marble_sim.cpp into marble_sim.dll and obs_native.cpp into obs_native.dll (2026-10-19, the learned
 # model's terrain queries; nav/native/obs_terrain.py), same compiler settings as the sweep kernel: /O2 /fp:strict.
 $ErrorActionPreference = 'Stop'
+$env:PATH = 'C:/Program Files (x86)/Microsoft Visual Studio/Installer;' + $env:PATH
 $setup = 'C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/Common7/Tools/VsDevCmd.bat'
 if (-not (Test-Path -LiteralPath $setup)) { throw 'Visual Studio Build Tools not found.' }
 $source = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot 'marble_sim.cpp')).Path

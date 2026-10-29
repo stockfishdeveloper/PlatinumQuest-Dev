@@ -104,6 +104,7 @@ def main():
             spec.direct_from = (None, 0, 1, 2)[int(rng.integers(0, 4))]   # ABI 12: aim at the gem from this reply on
             spec.lead_k = (0., 25., 10.)[int(rng.integers(0, 3))]   # ABI 13: the use reply's lead aim (10: the sideways cap binds)
             spec.land = bool(rng.random() < .5)   # ABI 13: land_action from LAND_AFTER_USE replies after the use (indices 0-5)
+            spec.land_short = (0., .4, 1.)[int(rng.integers(0, 3))]
             state = dict(position=[sx, sy, sz], velocity=[float(v) for v in rng.uniform(-12, 12, 3)], radius=.18975)
             for index in range(6):
                 from nav.native.forecast import seq_array

@@ -17,6 +17,184 @@ from nav.routing import RoutePlanner
 from nav.protocol import RAW_DIM,RAW_GEMS
 
 
+class RollLaunchOptions(unittest.TestCase):
+    def test_short_landings_preserve_the_ordinary_rolling_launch(self):
+        from types import SimpleNamespace
+        from unittest.mock import patch
+        from nav.marble_dynamics import search as S
+        route=SimpleNamespace();gem=np.asarray([40.,0.,0.])
+        with patch.multiple(S,POW_LAUNCH_AT=(0,9),LAND_SHORT_SHARES=(.4,1.),LAND_SHORT=False):
+            ordinary=dict(S.roll_launch_specs(route,gem,48))
+            with patch.object(S,'LAND_SHORT',True):augmented=dict(S.roll_launch_specs(route,gem,48))
+        self.assertEqual(len(ordinary),2)
+        self.assertEqual(len(augmented),6)
+        for label,plan in ordinary.items():
+            kept=augmented[label]
+            self.assertEqual((kept.use,kept.jump,kept.land_short),(plan.use,-1,0.))
+            self.assertEqual(kept.direct_from,plan.direct_from)
+            self.assertEqual(kept.lead_k,plan.lead_k)
+        self.assertEqual({p.land_short for p in augmented.values()},{0.,.4,1.})
+
+
+class PowerupTimeGain(unittest.TestCase):
+    def pair(self,label,pickup,cost,consumed=0,rejected=None,next_pickup=None):
+        return (dict(label=label,possible_pickup_interval=pickup,cost=cost,
+                     inventory_consumed=consumed,rejected=rejected),
+                dict(states=dict(next_pickup=next_pickup)))
+
+    def apply(self,pairs,next_gem=False,margin=1.):
+        from types import SimpleNamespace
+        from unittest.mock import patch
+        from nav.marble_dynamics.search import apply_use_gain,goal_key
+        gem=np.asarray([0.,0.,0.]);nxt=[7.,0.,0.]
+        engine=SimpleNamespace(next_for={goal_key(gem):nxt} if next_gem else {})
+        dynamics=dict(items=[dict(id=2,gem=True,position=nxt)] if next_gem else [])
+        with patch('nav.marble_dynamics.search._gem_demo.possible_pickup',
+                   side_effect=lambda states,*a:states['next_pickup']):
+            apply_use_gain(pairs,engine,dynamics,gem,margin)
+
+    def test_recorded_fractured_use_loses_despite_better_contact_cost(self):
+        use=self.pair('direct_use_0_jump_-1_ballistic',34,-70.677426,1)
+        ordinary=self.pair('direct_jump_9_ballistic',18,-.603838)
+        navigator=self.pair('frozen_navigator_landing',47,-37.945459)
+        self.apply([use,ordinary,navigator])
+        self.assertEqual(use[0]['rejected'],'use_no_time_gain')
+        self.assertAlmostEqual(use[0]['use_gain_s'],-1.024)
+        self.assertIsNone(ordinary[0]['rejected'])
+
+    def test_one_reply_saving_does_not_spend_inventory(self):
+        use=self.pair('use',19,-1000.,1);plain=self.pair('drive',20,0.)
+        self.apply([use,plain])
+        self.assertEqual(use[0]['rejected'],'use_no_time_gain')
+
+    def test_real_time_saving_can_justify_spending(self):
+        use=self.pair('use',14,100.,1);plain=self.pair('drive',30,-100.)
+        self.apply([use,plain])
+        self.assertIsNone(use[0]['rejected'])
+        self.assertAlmostEqual(use[0]['use_gain_s'],1.024)
+
+    def test_no_ordinary_pickup_does_not_block_reachability_or_travel(self):
+        for pickup in (None,20):
+            use=self.pair('use',pickup,-100.,1);plain=self.pair('drive',None,0.)
+            self.apply([use,plain])
+            self.assertIsNone(use[0]['rejected'])
+
+    def test_rejected_ordinary_pickup_is_not_a_counterfactual(self):
+        use=self.pair('use',20,0.,1);unsafe=self.pair('drive',1,-100.,rejected='backup_fall')
+        self.apply([use,unsafe])
+        self.assertIsNone(use[0]['rejected'])
+
+    def test_inventory_consumption_is_detected_without_a_use_label(self):
+        use=self.pair('remaining_previous_plan',20,-100.,1)
+        self.apply([use,self.pair('drive',10,0.)])
+        self.assertEqual(use[0]['rejected'],'use_no_time_gain')
+
+    def test_unused_inventory_and_blast_are_not_mistaken_for_consumption(self):
+        blast=self.pair('blast',20,-100.);blast[0]['resources_consumed']=1
+        self.apply([blast,self.pair('use_attempt_without_consumption',30,0.)])
+        self.assertIsNone(blast[0]['rejected'])
+
+    def test_first_gem_saving_cannot_hide_slower_pair_completion(self):
+        use=self.pair('use',1,-100.,1,next_pickup=60)
+        plain=self.pair('drive',20,0.,next_pickup=40)
+        self.apply([use,plain],next_gem=True)
+        self.assertEqual(use[0]['rejected'],'use_no_time_gain')
+        self.assertEqual(use[0]['use_gain_scope'],'target_and_next')
+
+    def test_faster_pair_can_justify_slower_first_pickup(self):
+        use=self.pair('use',20,-100.,1,next_pickup=30)
+        plain=self.pair('drive',10,0.,next_pickup=50)
+        self.apply([use,plain],next_gem=True)
+        self.assertIsNone(use[0]['rejected'])
+        self.assertAlmostEqual(use[0]['use_gain_s'],1.28)
+
+    def test_missing_pair_completion_cannot_beat_a_proven_ordinary_pair(self):
+        use=self.pair('use',1,-100.,1)
+        plain=self.pair('drive',20,0.,next_pickup=40)
+        self.apply([use,plain],next_gem=True)
+        self.assertEqual(use[0]['rejected'],'use_completion_unproven')
+
+    def test_no_pickup_use_does_not_displace_a_proven_ordinary_pickup(self):
+        use=self.pair('use',None,-100.,1)
+        self.apply([use,self.pair('drive',20,0.)])
+        self.assertEqual(use[0]['rejected'],'use_completion_unproven')
+
+    def test_zero_margin_explicitly_disables_the_gate(self):
+        use=self.pair('use',30,-100.,1)
+        self.apply([use,self.pair('drive',1,0.)],margin=0.)
+        self.assertIsNone(use[0]['rejected'])
+
+
+class CheckedPowerupDetours(unittest.TestCase):
+    def test_distance_fallback_does_not_prove_connectivity_to_a_pickup_floor(self):
+        from types import SimpleNamespace
+        from nav.marble_dynamics.reliability_eval import detour_route_proven
+        terrain=SimpleNamespace(cell_of=lambda x,y:(0,0),
+            _route_node=lambda *a:(0,0,0),_nearest_walkable=lambda *a,**kw:(0,0,0),
+            walk_z=np.asarray([[[0.]]]))
+        route=SimpleNamespace(terrain=terrain,field=np.asarray([[[np.inf]]]),distance=lambda p:5.)
+        item=dict(position=[0.,0.,.2],bounds=[-.2,-.2,0.,.2,.2,1.])
+        dynamics=dict(native=dict(state=dict(position=[0.,0.,.2],radius=.2)))
+        self.assertFalse(detour_route_proven(route,item,dynamics))
+        route.field[0,0,0]=32.
+        self.assertTrue(detour_route_proven(route,item,dynamics))
+        terrain.walk_z[0,0,0]=14.
+        self.assertFalse(detour_route_proven(route,item,dynamics))
+
+    def test_unreachable_cheapest_item_does_not_hide_a_reachable_alternative(self):
+        from types import SimpleNamespace
+        from unittest.mock import patch
+        from nav.marble_dynamics import reliability_eval as RE
+        position=[0.,0.,10.];gem=np.asarray([10.,0.,10.,1.,0.])
+        items=[dict(id=1,gem=False,powerup=1,position=[2.,0.,-5.]),
+               dict(id=2,gem=False,powerup=2,position=[3.,0.,10.])]
+        dynamics=dict(native=dict(state=dict(position=position,held=0)),items=items)
+        route=SimpleNamespace()
+        route.navigate=lambda p,g:setattr(route,'goal',np.asarray(g))
+        route.distance=lambda p:float(np.linalg.norm(np.asarray(p)[:2]-route.goal[:2]))
+        engine=SimpleNamespace(opportunistic_powerups=4.,checked_powerup_detours=True,
+                               next_for={},crossings=None)
+        calls=[]
+        def fake_search(e,r,d,raw,g,nav,horizon,**kwargs):
+            item=kwargs['target_item'];calls.append(item['id'])
+            info=dict(label='item_'+str(item['id']),rejected=None,cost=-100.,
+                      possible_pickup_interval=20 if item['id']==2 else None)
+            roll=dict(states=[dict(position=position),dict(position=[2.,0.,10.])])
+            return (info,roll),[(info,roll)]
+        with patch.object(RE,'search',side_effect=fake_search):
+            chosen,_,_=RE.pick(engine,route,dynamics,None,[gem],gem,None,48,PlanMemory())
+        self.assertEqual(calls,[1,2])
+        self.assertEqual(chosen[0]['item_id'],2)
+
+    def test_optional_detour_needs_a_reachable_pickup_not_horizontal_progress(self):
+        from types import SimpleNamespace
+        from unittest.mock import patch
+        from nav.marble_dynamics import reliability_eval as RE
+
+        position=[0.,0.,10.]
+        item=dict(id=12,gem=False,powerup=1,position=[2.,0.,-5.])
+        gem=np.asarray([10.,0.,10.,1.,0.])
+        dynamics=dict(native=dict(state=dict(position=position,held=0)),items=[item])
+
+        for checked,pickup,expected in [(False,None,'item'),(True,None,'gem'),(True,20,'item')]:
+            with self.subTest(checked=checked,pickup=pickup):
+                route=SimpleNamespace()
+                route.navigate=lambda p,g:setattr(route,'goal',np.asarray(g))
+                # Deliberately reproduce a route estimate blind to the floor.
+                route.distance=lambda p:float(np.linalg.norm(np.asarray(p)[:2]-route.goal[:2]))
+                engine=SimpleNamespace(opportunistic_powerups=4.,checked_powerup_detours=checked,
+                                       next_for={},crossings=None)
+                def fake_search(e,r,d,raw,g,nav,horizon,**kwargs):
+                    is_item=kwargs.get('target_item') is not None
+                    info=dict(label='item' if is_item else 'gem',rejected=None,cost=-100.,
+                              possible_pickup_interval=pickup if is_item else 10)
+                    roll=dict(states=[dict(position=position),dict(position=[2.,0.,10.])])
+                    return (info,roll),[(info,roll)]
+                with patch.object(RE,'search',side_effect=fake_search):
+                    chosen,_,_=RE.pick(engine,route,dynamics,None,[gem],gem,None,48,PlanMemory())
+                self.assertEqual(chosen[0]['label'],expected)
+
+
 class RetainedBackupRisk(unittest.TestCase):
     def test_failed_backup_remains_penalized_and_unknown_cannot_clear_it(self):
         from types import SimpleNamespace
@@ -62,12 +240,12 @@ class FastControllerSerialization(unittest.TestCase):
     def test_fast_speed_and_floor_survive_native_serialization(self):
         from types import SimpleNamespace
         from unittest.mock import patch
-        from nav.native.forecast import seq_array
+        from nav.native.forecast import seq_array,Q_SIZE
         route=SimpleNamespace(key=(10.,0.,0.),waypoint=None)
         with patch('nav.marble_dynamics.search.FAST_MIN_SPEED',7.5):
             fast=seq_array(SequenceProposal(route,np.asarray([10.,0.,0.]),48,fast=20.))
             ordinary=seq_array(SequenceProposal(route,np.asarray([10.,0.,0.]),48))
-        self.assertEqual(len(fast),51)
+        self.assertEqual(len(fast),Q_SIZE)
         self.assertEqual(tuple(fast[49:51]),(20.,7.5))
         self.assertEqual(ordinary[49],0.)
         np.testing.assert_array_equal(fast[:49],ordinary[:49])

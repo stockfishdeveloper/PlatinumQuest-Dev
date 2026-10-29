@@ -146,14 +146,37 @@ class World:
             from nav.marble_dynamics.geometry_route import route_map_off
             route_map_off()
         S.POW_LAUNCH = bool(getattr(a, 'pow_launch', S.POW_LAUNCH))
+        S.POWERUP_THROUGH = bool(getattr(a, 'powerup_through', True))
+        S.LAND_SHORT = bool(getattr(a, 'land_short', False))
+        S.POW_LAUNCH_ROLL = bool(getattr(a, 'roll_launches', False))
+        S.LAUNCH_COMPLETE = bool(getattr(a, 'launch_completion', False) or S.LAUNCH_COMPLETE) and not getattr(a, 'no_launch_completion', False)
+        S.FAST_SUPPORTED = bool(getattr(a, 'fast_supported', False))
+        if getattr(a, 'sj_use_gain', None) is not None:
+            S.SJ_USE_GAIN = bool(a.sj_use_gain)
         _crossings_mod.GAP_STAGING_GIVE_UP = bool(getattr(a, 'gap_staging_give_up', False) or _crossings_mod.GAP_STAGING_GIVE_UP)
+        if getattr(a, 'no_gap_staging_give_up', False):
+            _crossings_mod.GAP_STAGING_GIVE_UP = False
         from nav.marble_dynamics import gap_links as _gap_links_mod
         _gap_links_mod.ROLL_REAL = bool(getattr(a, 'roll_real', False) or _gap_links_mod.ROLL_REAL)
+        RE.DETOUR_BY_TIME = bool(getattr(a, 'detour_by_time', False) or RE.DETOUR_BY_TIME)
+        RE.STALL_STILL_S = 1.5 if getattr(a, 'stall_still', False) else RE.STALL_STILL_S
+        if getattr(a, 'no_stall_still', False):
+            RE.STALL_STILL_S = 0.
+        RE.BUDGET_KEEP = bool(getattr(a, 'budget_keep', False) or RE.BUDGET_KEEP)
+        S.DIRECT_LEAD = bool(getattr(a, 'direct_lead', False) or S.DIRECT_LEAD)
+        RE.HOLD_RESEARCH = bool(getattr(a, 'hold_research', False) or RE.HOLD_RESEARCH) and not getattr(a, 'no_hold_research', False)
+        RE.ORDER_ROUTE_COPY = bool(getattr(a, 'order_route_copy', False) or RE.ORDER_ROUTE_COPY)
+        RE.QUERY_ROUTE_COPY = bool(getattr(a, 'query_route_copy', False) or RE.QUERY_ROUTE_COPY) and not getattr(a, 'no_query_route_copy', False)
+        RE.STALL_GROUND_MS = 50. if getattr(a, 'stall_ground', False) else RE.STALL_GROUND_MS
+        RE.HOLD_WIDE = bool(getattr(a, 'hold_wide', False) or RE.HOLD_WIDE)
+        RE.PICKUP_RESEARCH_U = float(getattr(a, 'pickup_research', 0.) or RE.PICKUP_RESEARCH_U)
         S.CORNER_SLOW = bool(getattr(a, 'slow_corners', S.CORNER_SLOW))
         S.TL_JUMP_FOLLOW = bool(getattr(a, 'tl_jump_follow', S.TL_JUMP_FOLLOW))
         engine.detour_blast_ratio = float(getattr(a, 'detour_blast_ratio', 1.5) or 0.) or math.inf
-        engine.use_margin_u = float(getattr(a, 'use_margin_s', 0.) or 0.) * float(getattr(engine, 'ballistic_time_rate', 8.) or 8.)
+        engine.use_margin_s = float(getattr(a, 'use_margin_s', 0.) or 0.)
+        engine.use_margin_u = engine.use_margin_s * float(getattr(engine, 'ballistic_time_rate', 8.) or 8.)
         engine.interleave_candidates = getattr(a, 'interleave_candidates', False)
+        engine.checked_powerup_detours = getattr(a, 'checked_powerup_detours', False)
         engine.recheck_risky_plans = getattr(a, 'recheck_risky_plans', False)
         engine.mega_enabled = getattr(a, 'mega_proposals', False)
         engine.pickup_stop = getattr(a, 'pickup_stop', False)

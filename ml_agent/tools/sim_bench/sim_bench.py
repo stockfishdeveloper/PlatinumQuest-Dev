@@ -1,8 +1,8 @@
 """Offline closed-loop benchmark of the physics planner (no game).
 
 From recorded journal states (the decision right after a pickup = the start of a leg), the real ContinuousController
-plays against the planner's own engine port: each 64 ms reply is advanced with predict_replies, gems are collected by the
-native item query (possible_pickup), no new gem group ever spawns. An episode ends after --pickups pickups, a fall (outside
+plays against the planner's own engine port: each 64 ms reply includes tick-ordered pickup/inventory events. With
+--next-group the next recorded group appears after this one clears. An episode ends after --pickups pickups, a fall (outside
 the InBounds volume), a prediction failure, or --cap-s seconds. Deterministic: the search deadline runs on a virtual clock
 that advances --step-cost-ms per 16 ms physics step (calibrate with --real-clock).
 
@@ -57,6 +57,7 @@ ap.add_argument('--module', action='append', default=[])
 ap.add_argument('--search-workers', type=int, default=0)   # 2026-10-19: candidates evaluated by this many worker processes
                                                           # (nav/marble_dynamics/parallel_search.py; use with --real-clock)
 ap.add_argument('--native', action='store_true')   # compiled forecasts (nav/native; the game's planner since 2026-10-16 v41)
+ap.add_argument('--legacy-item-world', action='store_true', help='Reproduce the older world that ignored replacements and Mega pickups')
 ap.add_argument('--native-step-us', type=float, default=0.)   # virtual clock per physics step with --native (0 = NATIVE_STEP_US)
 o = ap.parse_args()
 if not o.normal_priority:
@@ -139,11 +140,17 @@ def setup(a, name):
     GD.BRAKE_DECEL = float(getattr(a, 'brake_decel', 7.)); GD.TARGET_SPEED_CAP = float(getattr(a, 'speed_cap', 11.))
     S.ROUTE_SPEED_LAW = not getattr(a, 'waypoint_brake_law', False); S.PICKUP_MIN_SPEED = float(getattr(a, 'pickup_min_speed', 6.))
     S.FAST_PROPOSALS = not getattr(a, 'legacy_fast_proposals', False)
+    S.POWERUP_THROUGH = bool(getattr(a, 'powerup_through', True))
+    S.LAND_SHORT = bool(getattr(a, 'land_short', False))
+    S.POW_LAUNCH_ROLL = bool(getattr(a, 'roll_launches', False))
+    S.LAUNCH_COMPLETE = bool(getattr(a, 'launch_completion', False) or S.LAUNCH_COMPLETE) and not getattr(a, 'no_launch_completion', False)   # 2026-10-29: keep the module default (ON since 10-27), as reliability_eval.main() does
+    S.FAST_SUPPORTED = bool(getattr(a, 'fast_supported', False))
     S.THROUGH_GEM = not getattr(a, 'no_through_gem', False); S.BRAKING_BACKUP = not getattr(a, 'no_braking_backup', False)
     # as reliability_eval.main() (v70: corner plans on by default via RE.CORNER_DEFAULT; before 18:55 10-17 the sim left them off)
     S.CORNER_PROPOSALS = bool(getattr(RE, 'CORNER_DEFAULT', False)) or bool(getattr(a, 'corner_proposals', False))
     engine.detour_blast_ratio = float(getattr(a, 'detour_blast_ratio', 1.5) or 0.) or math.inf
-    engine.use_margin_u = float(getattr(a, 'use_margin_s', 0.) or 0.) * float(getattr(engine, 'ballistic_time_rate', 8.) or 8.)
+    engine.use_margin_s = float(getattr(a, 'use_margin_s', 0.) or 0.)
+    engine.use_margin_u = engine.use_margin_s * float(getattr(engine, 'ballistic_time_rate', 8.) or 8.)
     engine.interleave_candidates = getattr(a, 'interleave_candidates', False)
     engine.recheck_risky_plans = getattr(a, 'recheck_risky_plans', False)
     engine.mega_enabled = getattr(a, 'mega_proposals', False)   # 2026-10-20 Mega use proposals
@@ -159,6 +166,7 @@ def setup(a, name):
     a.geometry_terrain = cached_walking(terrain, mesh, a.sweep_dll, a.cache_dir, memo=a.clearance_cache)
     engine.ballistic_landing = getattr(a, 'ballistic_landing', False); engine.ballistic_reserve_s = getattr(a, 'ballistic_reserve_s', 0.)
     engine.opportunistic_powerups = getattr(a, 'opportunistic_powerups', 0.)
+    engine.checked_powerup_detours = getattr(a, 'checked_powerup_detours', False)
     engine.mission_bounds = None
     try:
         from nav.marble_dynamics.fast_nav import mission_inbounds
@@ -317,7 +325,11 @@ def episode(a, terrain, engine, rec, nxt=None):
                   info.get('cluster_penalty') or '', flush=True)
         engine.planning_deadline = None
         try:
-            roll = predict_replies(engine, d, [action])
+            if o.legacy_item_world:
+                roll = predict_replies(engine, d, [action])
+            else:
+                from tools.sim_bench.world_events import advance_world
+                roll = advance_world(engine, d, action)
         except ValueError as exc:
             why = 'sim_error:' + str(exc)[:50]; break
         if roll['failure']:
@@ -334,12 +346,17 @@ def episode(a, terrain, engine, rec, nxt=None):
                     src = hist[-3] if len(hist) >= 3 else hist[0]
                     impact_by[src[0] + (' (predicted)' if src[1] else ' (unpredicted)')] += 1
         gained = 0.; keep = []
+        from tools.sim_bench.world_events import consumed_powerups
+        powerup_events = consumed_powerups(roll)
         for it in nd.get('items', []):
             # the world's pickups are the game's own per-tick test, whatever the planner's switch (10-16: the reply box
             # gave false pickups, so the sim before 10-16 09:40 rewarded plans that skim gems at speed)
             if it.get('gem') and GD.tick_pickup(roll['native_states'], it) is not None:
                 gained += float(it.get('value') or 1.); removed.append(np.asarray(it['position'], dtype=float)); picks.append((t + 1) * .064)
-            elif (not it.get('gem') and 1 <= int(it.get('powerup') or 0) <= 5 and int(st['held']) == 0
+            elif not it.get('gem') and it['id'] in powerup_events:
+                # Tick-ordered world events already updated native/script inventory and Blast state.
+                pw_removed.append(np.asarray(it['position'], dtype=float))
+            elif (o.legacy_item_world and not it.get('gem') and 1 <= int(it.get('powerup') or 0) <= 5 and int(st['held']) == 0
                   and GD.tick_pickup(roll['native_states'], it) is not None):
                 # 2026-10-17: the world collects powerups too (an empty hand takes one it touches). Before, the sim never
                 # did, so the planner's powerup detour (v58) chased a powerup 1 u away for the rest of the episode.
@@ -399,11 +416,15 @@ def episode(a, terrain, engine, rec, nxt=None):
         dvh = np.hypot(V_[1:, 0] - V_[:-1, 0], V_[1:, 1] - V_[:-1, 1]); dvz = np.abs(V_[1:, 2] - V_[:-1, 2])
         hit = (dh > S.BUMP_TICK_DV) & (dvh > dvz); impacts = int(np.count_nonzero(hit[1:] & ~hit[:-1]) + int(bool(hit[0])))
     return dict(t_s=t * .064, picks=picks, points=points, why=why, labels=dict(labels), side_impacts=impacts, ledge_drops=drops, impact_by=dict(impact_by), mean_speed=float(np.mean(speeds)) if speeds else 0.,
+                item_world='legacy' if o.legacy_item_world else 'tick_events',
                 fallback=int(ctrl.counts.get('fallback_decisions', 0)), safe_holds=int(ctrl.counts.get('safe_holds', 0)),
                 searches=int(ctrl.counts.get('full_searches', 0)), blasts=blasts,
                 end=[float(x) for x in d['native']['state']['position']], end_vel=[float(x) for x in d['native']['state']['velocity']],
                 gems0=[[float(x) for x in it['position']] for it in rec['before'].get('items', []) if it.get('gem')],
                 lastgem_tours=int(ctrl.counts.get('lastgem_tours', 0)), next_group_aim=int(ctrl.counts.get('next_group_aim', 0)),
+                penalized_researches=int(ctrl.counts.get('penalized_plan_researches', 0)),   # 2026-10-29: PENALIZED_SWITCH_U screen
+                penalized_kept=int(ctrl.counts.get('penalized_kept', 0)), penalized_switch=int(ctrl.counts.get('penalized_switch', 0)),
+                research_found_pickup=int(ctrl.counts.get('research_found_pickup', 0)),
                 t_spawn=t_spawn * .064 if t_spawn is not None else None, t_trip=(t - t_spawn) * .064 if t_spawn is not None else None)
 
 

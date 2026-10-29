@@ -74,6 +74,41 @@ class BenchEnv(HuntEnv):
         return accepted
 
 
+def align_countdown(env, charge_ms=1984.):
+    """Start prespin at a repeatable phase, using only neutral countdown frames.
+
+    Setup acknowledgements can consume a different number of 64 ms replies.
+    That changes both Blast and the number of prespin inputs before GO. The
+    charging meter measures elapsed simulation time; sample it at the native
+    16 ms cadence to reach an exact phase before restoring 64 ms decisions.
+    No state resets, resource grants or changes to physics frame size occur.
+    """
+    def elapsed():
+        dynamics=env.msg.dynamics;blast=dynamics.get('blast',{})
+        if (dynamics['native']['state']['mode']!=2 or
+                not blast.get('enabled') or not blast.get('charging') or
+                float(blast.get('charge_ms',0.))<=0):
+            raise RuntimeError('Countdown alignment requires a charging marble in Start mode')
+        return float(blast['value'])*float(blast['charge_ms'])
+
+    before=elapsed()
+    if before>charge_ms+1e-3:
+        raise RuntimeError('Setup passed the declared countdown phase')
+    env.control('FIXEDSTEP 16 16');env.obs_ms=16
+    for _ in range(256):
+        now=elapsed()
+        if now>=charge_ms-1e-3:break
+        env.step(NOOP_ACTION,repeat=1)
+    if abs(elapsed()-charge_ms)>1e-3:
+        raise RuntimeError('Countdown phase did not land on its declared native tick')
+    env.control('FIXEDSTEP 16 64');env.obs_ms=64
+    after=elapsed()
+    if not charge_ms<after<=charge_ms+64.+1e-3:
+        raise RuntimeError('Unexpected observation-cadence transition during alignment')
+    return dict(before_charge_ms=before,aligned_charge_ms=charge_ms,
+                prespin_start_charge_ms=after,physics_frame_ms=16,decision_ms=64)
+
+
 @contextmanager
 def native_game(name, seed, port, folder):
     env = BenchEnv(port, speed=3, log=rt.log)
@@ -124,6 +159,8 @@ def main():
     p.add_argument('--rounds', type=int, default=1)
     p.add_argument('--search-workers', type=int, default=8)
     p.add_argument('--lead', type=int, default=5)
+    p.add_argument('--minimum-budget-s',type=float,default=rt.MIN_BUDGET_S,
+                   help='Smallest live search allowance; default matches the production planner')
     p.add_argument('--checked-tail', action='store_true', help='Experimental state-matched checked plan continuation')
     p.add_argument('--legacy-fast-proposals', action='store_true', help='Matched control for the repaired native fast-controller bug')
     p.add_argument('--recheck-risky-plans', action='store_true', help='Recheck and reconsider retained plans with unsafe stopping backups')
@@ -135,8 +172,10 @@ def main():
     p.add_argument('--restore-probe', action='store_true', help='Unscored saved-powerup respawn timing measurement')
     p.add_argument('--competitive', action='store_true', help='Mega probe: measure the competitive duration')
     p.add_argument('--output', type=Path, required=True)
+    p.add_argument('--planner-flag', action='append', default=[], help='Additional planner flag (use --planner-flag=--flag)')
     a = p.parse_args()
-    if not 0 < a.seed < 2147383647 or not 0 <= a.search_workers <= 16 or a.rounds < 1:
+    rt.FLAGS = rt.FLAGS + a.planner_flag
+    if not 0 < a.seed < 2147383647 or not 0 <= a.search_workers <= 16 or a.rounds < 1 or not 0 < a.minimum_budget_s <= 2.:
         p.error('Invalid seed, worker count, or round count')
     a.output.mkdir(parents=True, exist_ok=False)
     if a.restore_probe:
@@ -148,6 +187,7 @@ def main():
     sys.setswitchinterval(.001)  # match realtime.serve's game/planner thread scheduling
     rt.CHECKED_TAIL = a.checked_tail
     rt.SEARCH_WORKERS = a.search_workers
+    rt.MIN_BUDGET_S = a.minimum_budget_s
     if a.legacy_fast_proposals:
         rt.FLAGS = rt.FLAGS + ['--legacy-fast-proposals']
     if a.recheck_risky_plans:
@@ -165,7 +205,8 @@ def main():
     atomic_json(a.output / 'prepared.json', dict(args=vars(a) | {'output': str(a.output)},
         sources=sources, planner_flags=rt.FLAGS, globals=module_globals(),
         runtime=dict(thread_switch_interval_s=sys.getswitchinterval(),
-                     hold_reporting_threshold_s=.02, physics_frame_ms=16, decision_ms=64),
+                     hold_reporting_threshold_s=.02, physics_frame_ms=16, decision_ms=64,
+                     minimum_search_budget_s=rt.MIN_BUDGET_S),
         contract='Sequential native real-time rounds; ordinary randomized openings; no scored world restores'))
     reports = []
     started = time.perf_counter()
@@ -192,12 +233,13 @@ def main():
                                 raise RuntimeError('Native round changed before opening RNG capture')
                         if env.replay_world is None:
                             raise RuntimeError('Missing native opening RNG capture')
+                        alignment = align_countdown(env)
                         opening = start_layout(env.msg.dynamics, env.replay_world)
                         expected = a.seed + opening['eval_round'] - 1
                         if opening['engine_seed'] != expected or not opening['random_opening']:
                             raise RuntimeError('Native opening seed audit failed')
                         initial = dict(raw=env.msg.obs.tolist(), dynamics=env.msg.dynamics,
-                            layout=opening, process_id=proc.pid)
+                            layout=opening, process_id=proc.pid,countdown_alignment=alignment)
                         atomic_json(folder / ('initial_%d.json' % ri), initial)
                         env.rescue_attempts = env.accepted_rescue_count = 0
                         if a.trace:

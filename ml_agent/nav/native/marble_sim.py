@@ -33,7 +33,7 @@ class NativeSim:
         self.lib = ctypes.CDLL(str(dll or DEFAULT_DLL))
         L = self.lib
         L.ms_abi.restype = ctypes.c_int
-        if L.ms_abi() != 13:   # 11 (2026-10-25): ms_terrain_set_route_tol; 12: SequenceProposal.direct_from (Q_SIZE 52); 13: lead_k, land (61)
+        if L.ms_abi() != 14:   # 14: short-landing controls (Q_SIZE 64)
             raise ValueError('Incompatible marble_sim ABI')
         L.ms_state_size.restype = ctypes.c_int
         if L.ms_state_size() != S_SIZE:

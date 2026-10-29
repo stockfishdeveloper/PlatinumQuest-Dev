@@ -14026,3 +14026,423 @@ the ground get accepted anyway? run treasure box with that version", "at 1x".
   tonight; not measured alone). OFF: search.DIRECT_LEAD, reliability_eval.DETOUR_BY_TIME, crossings.GAP_STAGING_GIVE_UP
   (--gap-staging-give-up), gap_links.ROLL_REAL (--roll-real); terrain.ROUTE_LEVEL_TOL_U 0. Compiled planner ABI 13 (DLL rebuilt in
   %TEMP%/pq_checks/marble_sim). Control flag for pairs: --no-pow-launch.
+
+
+## 2026-10-26 autonomous traversal iteration (operator: proceed until confirmed higher scores)
+
+- Starting reference 2ebf48462. Detailed implementation/results: docs/TRAVERSAL_ITERATION_2026-10-26.md.
+- Shared serial/worker continuation rules, repaired duplicated no-jump grid (64 -> 8), compiled short-landing controls
+  ABI 14 / Q_SIZE 64. Optional short-landing alternatives preserve original launches; optional completion preserves
+  original feedback and absolute event timing; optional fast-supported tails retain physical braking backup checks.
+- Validation: 8-state inline parity repaired, 4-state actual multiprocessing parity passed, randomized controllers
+  --n 500 on Sprawl/TreasureBox passed, 21 search + 34 runtime/native regressions passed; a 48-reply prefix/feedback
+  forecast exactly matched the per-reply implementation (actions identical, max position error 0).
+- Offline screen1: 240 episodes (6 variants x 10 maps x 4 starts), whole group + next group, horizon explicitly 48.
+  Short + powerup-through: combined time -1.1%, next trip -2.9%, group clear -0.9%; larger bundle slower. Native test next.
+- Pair trav1_20261026 (11:00-11:52 MDT): defaults vs --land-short --powerup-through, seeds 7347019/12091843, 4+4 workers,
+  all 40 rounds valid; both input/start-layout audits passed. 2732 -> 2774 points (+2.1/round, CI includes zero: unconfirmed).
+  Mean map changes: KOTM +3, Sprawl 0, Bowl -3, Cube -3, Duplex +14.5, Cragmire -4.5, Fractured -5, Vortex +18.5,
+  TreasureBox +13.5, Concentric -13. No new map bests. Performance options remain OFF pending confirmation.
+- Pair trav2_20261026 started ~11:59 MDT, SAME gameplay sources/flags, independent predeclared seeds 16455731/61918379.
+  Parents baseline 30476 / candidate 32252. Never edit nav, native DLLs or game scripts while they run; no heavy sims
+  beside the pair. Monitor with tools/monitor_score_pair.py; comparisons tools/traversal_results.py pair BASE CAND [...].
+- Concentric regression: no falls; candidate held Mega but did NOT activate it. The use counter also counts regular Blasts
+  while Mega is held; those were initially misread as activations (trace checked, corrected). Cause remains unproven.
+  Important: different powerups DO replace held inventory
+  (server/scripts/powerups.cs PowerUp::onPickup, script_forecast._collect); do NOT implement a slot-occupied acquisition
+  veto. The offline sim incorrectly required an empty slot and ignored Mega pickups. tools/sim_bench/world_events.py
+  and the sim world loop now stage tick-ordered replacements/Mega world events, independent of planner proposal flags;
+  --legacy-item-world reproduces prior behavior. Syntax checked ONLY so far; functional validation after trav2 ends.
+  This tooling change is outside the frozen native test sources and does not affect the scored games.
+- Isolated unused prototypes in TEMP/pq_checks/traversal_20261026: acquisition_planning.py, search_incidental_points.py,
+  crossings_adaptive_stage.py, screen2_variants.json. None imported by games. User explicitly authorized autonomy until
+  confirmed higher scores: do not stop at an inconclusive pair, request continuation, or claim a new scoring win yet.
+
+
+2026-10-26 12:55 MDT traversal continuation: trav2 native pair complete (seeds
+16455731/61918379): baseline 2638, candidate 2658, +1.0/round. Combined trav1+2:
+80 valid rounds / 40 matched starts, 134.25 ->135.8, +1.55/round; approximate paired
+CI [-2.045,+5.145], inconclusive. All feature defaults remain OFF. New confirmed
+records Bowl150 candidate and Sprawl193 baseline, seed61918379, zero falls each;
+CSV and canonical Sheet updated and read back. World item-event check passed8
+compiled/Python replacement/Mega/duplicate cases. Corrected-world screen2 now
+running as exec session38662:70 jobs/280episodes, seven variants. No native games
+running alongside it. Prospective next pair seeds39247103/105831917 already fixed.
+Full details in TRAVERSAL_ITERATION_2026-10-26.md. Continue autonomous iteration.
+
+Final-audit qualification (12:58 MDT): trav2 randomized-opening audit FAILED for
+one repeated Bowl opening (seeds16455731 and61918379). The rounds retain valid
+native scores, but are not two independent opening layouts. The parent stops
+before its input_integrity.json on this audit failure; independent rehashes of
+all prepared sources passed for both arms (input_integrity_independent.json).
+The combined opening audit identifies no other duplicates. A deterministic
+sensitivity analysis retains the lowest seed per map/layout, independent of score:
+39 distinct openings, mean134.075 ->135.2583, +1.1833/round, approximate stratified
+paired CI [-2.191,+4.558]. Still inconclusive. Raw records and failed audits kept.
+The Bowl150 record is real, but excluded from this unique-opening analysis.
+
+13:10 MDT: corrected-world screen2 complete,280 episodes. Base37/40 completions;
+powerup-through alone40/40, successful combined time ratio0.97657, trip0.95884,
+group0.98894; both37 mutually completed. Short alone37/40,time0.99701. Combined
+through39/40,time0.97384. Acquisition39/40,time0.97624, did not beat the simpler
+through-only option. Adaptive37/40,time0.99301; points4 38/40,time1.01199.
+Targeted Fractured seed9083321 decision246: baseline fell9.4s/zero points;
+adaptive cleared19.2s/seven points. Keep as prototype; no native gain claimed.
+The earlier decision2508 seed7347019 test did not reach the problematic crossing
+and is not evidence for adaptation. Sources for all70 screen jobs were unchanged.
+
+Next native pair trav3_20261026: baseline defaults vs --powerup-through ALONE,
+predeclared seeds39247103/105831917, four workers each. No heavy sims alongside.
+This isolates the feature with strongest corrected-world evidence. All performance
+defaults still OFF. Parent now writes source-integrity audit before opening audit,
+so repeated openings cannot hide the source check.44 full-round benchmark tests
+passed after this logging-only adjustment. No commits or training started.
+
+13:25 MDT trav3 early result: Sprawl BOTH fresh seeds improve, all zero falls:
+seed39247103 baseline174 -> candidate190 (+16); seed105831917 baseline205 ->
+candidate213 (+8). Candidate213 is a new best (CSV currently193); baseline205
+also exceeds it. Verify final audits and update CSV/Sheet after the pair finishes.
+KOTM baseline296 ->295 over two rounds. Overall four matched rounds675 ->698.
+All motion/queued controls/active timers, inventory and Blast contexts match;
+traversal_results now enforces those matches, normalizing absolute timer epochs
+and ignoring unused disabled-effect timer memory. No policy default changed.
+Prototype copies are archived under screen2/prototypes in the report directory.
+
+14:10 MDT: trav3 COMPLETE, all opening/input/source audits pass,20 distinct matched
+openings /40 valid native rounds.2753->2783 (+1.5/round), paired approximate95%CI
+[-3.572,+6.572], still not confirmed higher TEN-MAP EXPECTED mean. Per-map means:
+Bowl+1, Concentric-4.5, Cragmire-9, Cube+6.5, Duplex+12.5, Fractured+4.5,
+KOTM-0.5, Sprawl+12, TreasureBox+1, Vortex-8.5. No default promotion. All performance
+flags OFF. Sprawl213/Cube175 zero-fall new records saved CSV and canonical Sheet
+and read back; earlier Bowl150 remains. Three matched maps (Sprawl/Cube/Duplex)
+improved BOTH fresh seeds, but do not turn record gains into a global claim.
+Crag worst regression108->83 had0falls vsbaseline1, but3rescues vs1 and77.6s stalls
+vs65.2; it is not an extra-fall explanation.
+
+Powerup-target actual2worker audit PASSED4states on Sprawl/Cube, seed105831917,
+artifact powerup_worker_agreement.json. New observed_group_ledger.py validated
+all40 trav3 native point totals AND completed-group counts against reports, with
+zero mismatches. Outputs trav3_{baseline,candidate}_groups.json. Useful for exact
+spawn boundaries instead of47-reply gaps; this tool does not itself improve policy.
+
+Continuing because aggregate gain remains inconclusive. SCREEN3 running160episodes,
+4variants(base,through,handoff,both), execsession16105. Temp learned-prefix handoff
+prototype search_navigator_handoff.py preserves old NN proposal, takes its checked
+controls through its first predicted pickup, then forecasts normal route feedback
+toward an already visible next gem; all normal gates/backups/reranker apply. Added
+before global score adjustments. No extraNNrollout, no invented pickups/inventory.
+Earliest23partial starts handoff essentiallyflat, so no promotion anticipated yet.
+Do not edit nav or prototype while screenjobs run.
+
+SCREEN4 now running120episodes,3variants completion-alone, through+completion,
+through+short+completion, WITHOUT no-jump launches. This isolates a feature the
+first screen tested only bundled with new launch families. Six workers alongside
+screen3's8, idle priority, NO native games. Baseline will be copied from completed
+screen3 AFTER both finish (identical sources/world/horizon/starts). Keep baseline
+source checks explicit. Prospective native4 seeds fixed before these outcomes:
+78123137 and144169891. Only run a new nativepair if a candidate warrants it.
+Quiet1x Sprawl seed81910417 remains pending, no permission needed; do not run it
+alongside offline screens or nativepools. Add --no-powerup-through control before
+1x while default staysFALSE. No training or commits. User explicitly asks continued
+autonomous progress, no questions unless critical.
+
+14:22 MDT iteration continuation: no native games running. Screen3 handoff completed:
+handoff time ratio1.00033 (37mutuallycompleted), group1.0163,37/40completions;
+through+handoff0.98209,40/40, worse than through-only0.97657/40of40. Reject for
+promotion. Source prototype archived screen3/prototypes. Handoff is learned prefix
+to verified predicted pickup, then existing physics route-follow to next VISIBLE
+gem, not an extra neural rollout or speculative inventory. Native/worker policy
+sources unchanged throughout screens. No model training, no commits.
+
+SCREEN4 completion ablation still running, execsession31181,6workers,30jobs120new
+episodes. Three variants: completion; through_completion; short_completion (latter
+=through+short+completion). No roll launches. Baseline40rows copied sealed from
+completed screen3, SHA manifest baseline_reuse.json. All40baseline policy outputs
+also EXACTLY matched prior screen2 baseline (t_s/points/why/end/end_vel/picks/labels).
+Partial early results worse/slightly flat; no promotion yet.
+
+SCREEN5 just launched, execsession18990,8workers,20jobs80new episodes: fast and
+through_fast (--fast-supported; and through+fast). Reused both base and through
+40rows each from sealed screen3, SHA manifest. Factorialcompare --base through
+isolates incremental fast-state effect. Motivation: SS_RIDE stable supported-tail
+allowance requires initialheld==2, so after item consumption similar grounded
+fast states no longer qualify; FAST_SUPPORTED generalizes this with existing
+physical braking backups. This interaction was NOT isolated by the old full
+bundle (which included no-jump launches). Do not claim causal dominance without
+actual revalidation traces. All nav/native/game sources frozen; no heavy work
+alongside native1x/pools (currently ONLY offline jobs idle priority).
+
+Observed-group ledger validated all40trav3 official point totals AND group counts
+exactly, zero mismatches. Data files trav3_baseline_groups.json and candidate.
+Sprawlfirstgem times on NEW random layouts do not prove human-opening speed:
+seed39247103 6.080->6.464s, seed105831917 1.792->1.792s. Actual whole-round scores
+improved174->190 and205->213, so later behavior/spawn outcomes improved. Do not
+compare those openings directly to human5.9s on a different start.
+
+Still pending: quiet sequential1x Sprawl seed81910417 (new/predeclared), baseline
+explicit --no-powerup-through vs candidate --powerup-through. Add negative CLI
+control first with DEFAULT STILLFALSE, ONLY AFTER all offline screens finish to
+keep sources consistent. No quiet1x alongsideCPU-heavy jobs. Powerup-target2worker
+audit already passed4actualrecorded states (Sprawl/Cube, seed105831917), file
+powerup_worker_agreement.json. If screens4/5 reveal a stronger general candidate,
+prospective native4 seeds78123137/144169891 fixed before outcomes. If allflat,
+proceed with simple through1x to verify actual menu-play gain. Keep defaultsOFF
+unless full evidence supports change; do not claim statistically established
+TEN-MAP gain from the+1.5/round pilot CI[-3.57,+6.57]. Actual matched gains in3maps
+and new record scores ARE confirmed. User's goal is autonomous progress and higher
+scores; no questions/approval needed for tests/implementation within this scope.
+
+14:30 MDT offline work COMPLETE; no more heavy simulations while live1x runs.
+Screen4 final: completion-only37/40,time1.0100; through+completion39/40,time0.9865;
+through+short+completion39/40,time0.99466. Simplerthrough40/40,time0.97657 better.
+Screen5 fastalone37/40,time0.99585; through+fast38/40,time0.9550 on36mutuallyfinished
+(vs37forbaseline/through). Thus faster survivor trips but2failures vs0forplain
+through; cannot turn differing-survivor ratios into blanket improvement. Leave
+completion/fast/short/roll optionsOFF. No native4 run; its fixed prospective seeds
+remain unused. All screenstatus jobs finished/pass; configurations/prototypes
+archived beside reports. Across5screens880new simulated episodes (screen1 240,
+screen2 280,screen3 160,screen4 120,screen5 80), plus tiny diagnostic episodes;
+do not double-count reused baseline rows as new experiments.
+
+Added --no-powerup-through negative CLIcontrol; explicitly verified defaultFalse,
+controlFalse,candidateTrue.44full-round tests PASS andgitdiff--check PASS. No policy
+default promoted, no core mutations afterthiscontrol added. Quiet LIVE1 baseline
+running as execsession71431, Sprawl seed81910417, --planner-flag=--no-powerup-through,
+folder planner_review_20261026/live1_baseline. StartedGO14:28:50MDT with0.90u/s,
+73.6rad/s pre-spin;8searchworkers, no competing workload. At14:30:08 had47points,
+225sleft,2.6s totalholds, plannermean39-46ms. Expectfinish14:34. Then run candidate
+SEQUENTIALLY, samefrozen source/seed/worker/lead settings, --powerup-through only,
+folder live1_candidate. Compare initial_0.json actual native motion/pendingcontrols,
+layout/RNG (traversal_results.start_motion can canonicalize dynamics). Source
+checks live reports source_unchanged. DO NOT edit nav/native/game/realtime_bench
+or start heavy work until BOTH live armsfinish. User requested autonomous progress;
+no permission needed. Full1x outcome still pending; do not claim current pilot
+proved a higher expected10-mapmean. Actual new records213/175/150are savedSheet.
+
+
+2026-10-26 14:47 MDT final traversal state: quiet matched1x Sprawl154->175 (+21,
+13.64%), both0falls/0rescues, unchanged sources; starting physics/queued controls,
+layout/RNG match after excluding process-local script authority/ghost IDs. Exact
+comparison live1_comparison.json and live1_start_audit.json. Engine seed81910420
+from CLI81910417 warm/reset sequence, same in both arms. Through now DEFAULT ON;
+--no-powerup-through control retained. This is a practical adoption after live
+improvement and positive native pilot, NOT statistically established ten-map mean
+proof (trav3 +1.5/round, CI[-3.57,+6.57]; Crag/Vortex/Concentric regressed). Other
+experimental flags stayOFF.99regressions +8world-event checks pass after promotion;
+default args exactly match tested explicit candidate, controlFalse works. All jobs
+finished. No training or commits. Native bests Sprawl213/Cube175/Bowl150 savedCSV
+and canonicalSheet/readback; Bowl used optional bundle not adopted. Final readable
+results consolidated in TRAVERSAL_ITERATION_2026-10-26.md; old operational notes in
+this append-only log are historical. Human5.9s opening target not established.
+
+
+2026-10-26 16:43 MDT - TRAVERSAL RECOVERY IN PROGRESS (user: get back to work).
+Full details: docs/TRAVERSAL_RECOVERY_2026-10-26.md; artifacts traversal_recovery_20261026.
+Strict checked-powerup-detours lost604->559 on4 completed native pairs; stopped
+remaining Vortex partials deliberately. Route-proof+3item version40/40 sim, but
+1xCragmire113(2falls3rescues)->109(0/0), so flag stillOFF. Unaligned Sprawl178->184
+FAILED Blast/spin start audit, NOT a matched gain. Never count it as one.
+Repaired realtime_bench countdown using neutral16ms observations to fixed1984ms
+elapsed charge before restoring64ms; actual initial charge2000ms. Two native
+smokes match initial+GO motion and23prespin replies exactly.104tests pass.
+New synchronized1xSprawl exploratory156->173(+17,+10.9%), both0falls0rescues,
+holds9.28->7.76s, all initial+GO+layout/RNG+source audits PASS. Four candidate
+flags: roll-launches, launch-completion, land-short, fast-supported (NO route flag).
+Fresh seed59386729 control157(0/0); candidate RUNNING under exec session9088,
+run_phase_flight_pair.py; expected finish~16:46. Sources MUST remain frozen until
+it finishes. phase_flight_status.json and *_comparison.json track final evidence.
+Only production powerup-through remainsON; new detour and flight flags remainOFF.
+No game/sim competitors. Prior queued unaligned run_flight_probe.py was stopped
+before launch; old live_status is failed_motion_audit. No other active batches.
+Prepared production_worker_variants.json / timed_screen_plan.json but NOT run.
+Those screens need8candidate workers, real clock, one job, .172s budget, extras0;
+serial virtual100us/tick screens/native2s are NOT exact production planning.
+Potential native8-worker helper discussed but NOT implemented. No new training,
+commits or score-sheet updates. All changes uncommitted; preserve old work.
+
+2026-10-26: User STOPPED Fractured escape-only visible 1x run after wasteful Super Jump. Owned planner PID33576 and tree/game33388 stopped. No restart authorized by latest request. Partial run is NOT a scored round. Read FRACTURED_SUPER_JUMP_AUDIT_2026-10-26.md: recorded tick3176 use reproduced at actual and 5-reply predicted state. SJ pickup forecast2.176s loses raw speed to ordinary jump1.152s, but contact penalties50/impact dominate cost; no default SJ inventory value. Use margin is COST8, not actual time. Two-level skipped at next route12.065553 >12. No production policy fix applied. Escape screen finished40jobs: base155pts/fail3, escape168/fail2; diagnostic only. Unrestricted native20pairs134.25->137.45 rejected for repeatCube/Vortex losses; live holdout canceled. No games running after STOP.
+
+2026-10-26 FOLLOW-UP: User authorized Fractured1x full round, then close and fix wasteful SJ. Completed escape_visible_fractured_full_before_fix:114 points,1fall,0rescues,189.1s scored-loop wall; summary complete, game closed before edits. Implemented S.apply_use_gain: actual forecast time check for heldSJ only, AFTER physical backups/two-level; actual inventory consumption separate from Blast; current+next visible pair when ordinary forecast completes both, else target. No forecasted ordinary pickup preserves existing rules. Live margin1s. Other powerups unchanged. Broad all-inventory replacement REJECTED use_gain_screen_v2 85->77pts/fail1->3. Narrow precursor screen use_gain_screen_sj 82->85/fail2->1, diagnostic only. FINAL conservative source additionally retains OLD cost margin for SJ too, so time guard is additive. Final44tests PASS; fractured_sj_final_fix_checks.json passed for actual3176 and predicted3171->3176, wastedSJ rejected/use_no_time_gain, chosen no inventory consumed. Final additive source has NO new full-round/live score or final ten-map rerun; do NOT claim precursor82->85 as finalsource native gain. Read FRACTURED_SUPER_JUMP_AUDIT_2026-10-26.md. No games/jobs remain; no training/checkpoint writes/commit. Other prior dirty changes preserved.
+
+2026-10-27 CONTINUOUS GOAL: User says work all night and do not stop until told. Active goal created, no morning deadline. See OVERNIGHT_POINTS_2026-10-26.md. Native escape-only campaign running exec26049: fresh187241923 then451809337 if mean gain; two games x8 forecast workers/.172s, no competing heavy jobs and frozen canonical sources. KOTM148->152 all physical audits pass. Prepared optional_watch.py actual-observation-only port and native_watch_bench wrapper; ten pure contracttests pass, no score tests of this prototype yet. Hypothesis queued: truncate soft bump charge after realpickup+queue reaction, keep full physical safety gates; first measure actual forecast impact times. No default promotion, training, checkpoint changes, commits or stopping authorized.
+
+2026-10-27 PIPELINE: Escape native still active exec26049, seven verified pairs KOTM148->152,Sprawl166->156,Bowl136->136,Cube135->134,Duplex163->163,Crag122->123,Fractured110->106; NOT complete average. Watch queue exec60450 waits for escape complete, fresh318697241/739156831, all10maps, confirmation requires score gain AND watch activations. Primary-reuse queue exec73394 waits for watch complete, fresh125903417/921773123, confirmation requires mean gain AND cache-hit counts. No competing heavy forecasts, at most2games/16candidateworkers. Prepared isolated optional_watch.py (10puretests), primary_reuse.py (11puretests), search_bump_window.py (5puretests). No native integration/score outcomes for watch/reuse yet, no forecast measurements for bumpwindow hypothesis. See OVERNIGHT_POINTS_2026-10-26.md. User says do not stop until explicitly told; active goal remains continuous with no morning cutoff.
+
+2026-10-27 overnight continuation: user explicitly requested continuous work
+until told to stop; active goal has no morning cutoff. Escape-only exploration
+completed 10 native pairs, mean138.2->138.5 (+0.3), weak evidence with losses
+retained. Confirmation seed451809337 remains active; Crag111->87, KOTM155->143,
+Sprawl174->178, Duplex130->133, Bowl/Cube ties among first six completed pairs.
+No promotion. Optional observed-item watch and identical primary-search reuse
+remain queued sequentially after escape; reuse now13 isolated tests passing.
+Bump timing diagnostic corrected before execution, exec81856 waits for reuse.
+New spawn-boundary-only waiting experiment:4 pure tests, live-only wrapper,
+queued exec97250 after diagnostic; two predeclared sequential quiet1x Sprawl
+pairs seeds287451913/618903217 with reversed arm order on second seed.
+Isolated late-powerup-through cost prototype has6 pure tests but no physics or
+points; existing late-pickup through branch gives zero progress credit (not
+back-to-item distance cost). Potential long-horizon comparison bias remains.
+Full operational details: docs/OVERNIGHT_POINTS_2026-10-26.md. Do not edit frozen
+canonical/active wrapper/helper sources mid-campaign. Do not call partials or
+single-map gains a higher ten-map average. Continue working until user stops.
+
+2026-10-27 continuation addendum: escape confirmation Vortex110->117; Treasure
+and Concentric still running. Additional observed Crag diagnostics:450 baseline
+and478 candidate safe_hold control replies (28.8s/30.592s nominal); most carry
+no original fallback reason after revalidation, so do not call all budget fails.
+Actual pick/order AST control-flow tests3/3 pass, plus reuse contract13/13.
+Queued final SJ-guard native audit exec24452 after group live:two unconditional
+10-map seeds471392681/803156429. native_sj_guard_bench disables ONLY additive
+time guard in historical arm, preserves old cost guard; counts guard searches
+and forecast rejections in fixed arm. No native result yet. All current scoring
+sources still frozen, helpers for later queues may be prepared before they run.
+
+2026-10-27 CLOSED escape-only ordering campaign:20/20 matched complete native
+pairs, all layout/initial/actualGO audits pass, zero invalid/unmatched. Pilot
+138.2->138.5; fresh134.3->132.8; combined136.25->135.65 (-0.6), approxCI[-6.308,
+5.108]. REJECT default adoption. Vortex+22mean but Treasure-13, Crag-11.5,
+Fractured-6 and other losses retained. No default changes. Watch campaign
+exec60450 automatically started first seed318697241; freeze active inputs.
+Remaining queue:reuse73394 -> bump81856 -> group1x97250 -> SJnative24452.
+Group boundary tests now7 including AST installation. User has NOT stopped us;
+keep active goal running and inspect completed results, do not end on this loss.
+
+2026-10-27 new isolated observation finding: virtual NavigatorProposal and
+AheadPlanner observations translate powerup positions but retain old nearest
+slot order; observer.cs sorts3D, ObsBuilder consumes slot0. Recorded Sprawl
+451809337/5-reply audit4682windows:old futuretype mismatch771 -> sortedknown37,
+738corrections/4regressions. Recorded-position ordering diagnostic ONLY, not
+forecast accuracy/points. powerup_order.py7puretests pass; wrapper canonical
+class identity preserved via importable worker setup. Native scoring queued
+exec13909 after blocked49770, seeds487913621/109736581, all10maps and standard
+physical/source audits. No default changes or measured points from this idea.
+Watch campaign active, first5pairs KOTM148/148, Sprawl160/162, Bowl122/120,
+Cube142/142, Duplex132/145. No OPTIONAL_ITEM_STALL_SKIP yet, so do not attribute
+those differences to actual skip behavior. All policy/model checkpoint files
+remain protected; keep goal active until user explicitly stops.
+
+2026-10-27 CLOSED watch pilot:10/10 complete matched native pairs, mean128.6->
+133.4 (+4.8), approxCI[-2.320,11.920], all physical/source audits pass, ZERO watch
+activations. No confirmation by predeclared activation gate; no promotion or
+claim skip behavior helped. Preserve all positive/negative scores; source/timing
+causation of inactive-feature differences is unproven. Reuse73394 automatically
+started exploratory125903417; current canonical inputs remain frozen.
+
+2026-10-27 ~03:05 MDT operational continuation:reuse v1 pilot130.0->135.1 (+5.1),
+418hits, complete10/audits pass; fresh921773123 active73394. Preserve losses
+Treasure-14/Fractured-9 and v1 route-key omission. Strict test17pass; conditional
+fresh strict-native queued40135 after powerup13909, seeds637190843/260817359.
+New final-backup audit219/303 Sprawl,189/233 Fractured,176/240 Treasure two-level
+chosen decisions missing current recorded backup result. Ordering is backups
+before TL re-rank; later winner can be untested and old penalty can be dropped.
+Prototype final_backup.py9puretests passes, preserves soft gates/resource
+rejections; extra max4 backup checks use existing deadline exemption. Queued
+native_final_backup_bench/run_final_backup_native exec60479 after strict, seeds
+390817463/721934087; confirmrequirespositive mean AND scoring activity via new
+failed proof/restored penalty. No native proof/points yet. All source/model
+inputs remain protected. Full current queue/details and unimplemented ideas
+in OVERNIGHT_POINTS_2026-10-26.md. User has NOT said stop; do not end the goal.
+
+2026-10-27 PRIORITY QUEUE REVISION1: see full instructions at tail of
+OVERNIGHT_POINTS_2026-10-26.md. Active reuse73394/bump81856/group97250 untouched.
+Retired ONLY5 verified unstarted managers: old SJ24452,blocked49770,powerup13909,
+strict40135,backup60479 execsessions; exit1 is intentional retirement, not a
+native scoring failure. Original plans/source/PID hashes retained under
+priority_queue_1. NEW owner exec98254/run_priority_queue.py waits group1x,
+then AGENT-ONLY review gates (write advance_<job>.json with advance:true/reason,
+not user approval). New sequential order: launch-onlynative -> strictreuse ->
+SJ -> sortedpowers -> finalbackup -> blockedorder. Existing seeds/gates unchanged.
+Newlaunch flags ONLYcompletion; nofastsupported/roll/short/riding, fresh
+856201943/317594681 withper-mapruntimeflagaudits. Freshreuse v1 currently has
+serious losses Crag126->92/Fractured123->109 among7complete pairs;pilot+5.1 not
+replicated. Keep all results. Canonicalsource/checkpoint unmodified and frozen.
+Continue goal untiluserstop; do not halt at a scheduler review gate or morning.
+
+### 2026-10-27 04:12 continuation: workload incident, quiet retry, bump-window priority
+
+User explicitly requires continuous autonomous work until told to stop. No morning cutoff.
+Reuse v1 CLOSED: combined20 native135.9->132.95 (-2.95), rejected; pilot positive reversed. Optional watch CLOSED128.6->133.4 but ZERO activations, no causal gain or promotion. Strict reuse remains gated and should skip because v1 combined negative.
+
+OWNED WORKLOAD INCIDENT: extra bump probe v3 ran during original group_live_0_baseline. Original group attempt is INVALID as quiet evidence. Driver/game stopped by verified owned PID; partials retained. group_live_workload_incident_1 contains process receipt, cleanup records, exact v3 report/source. Probe v3 overwrote v2 bump_probe.json; original v2 full JSON is LOST, runner log remains. Do not claim preserved v2 JSON. Probe now refuses existing completed output. Never proceed with dependent launches after a failed preflight.
+
+Fresh quiet retry: run_group_live_retry1.py (exec22592), original declared seeds287451913/618903217, fresh labels group_live_retry1_*, port9464, sequential1x8workers. Same canonical group_live_status.json. Pair0 passed all audits:159->157 (-2), holds16.43s->12.73s; no benefit proven. Seed1 underway. Only this retry may support quiet evidence. No other forecasts while active.
+
+Bump probe v3 unbudgeted recorded Fractured SJ incident: full-window costs select Nav47replies/3.008s; pickup+7reply soft window selects ordinary jump18/1.152s. Both and fastest jump independently pass braking backup (supported, drop0, nonambiguous). New jump retains one early charged impact50u, ignores three late impacts. Diagnostic only, NOT points. Full physics/support/landing/ledge/resource/braking gates retained. Ordinary pickup normally replans, but committed modes can retain future controls; no universal unexecuted-tail claim.
+
+Prepared tools/bump_window_bench.py + bump_window_install.py. Installer injects ONLY side_impacts and cluster_penalty into canonical module; AST validates exact delta, no stale proposal-class/source rollback. Worker setup forwards candidate flag. Three installer tests +five window tests pass. New run_bump_window_native.py:598172643 exploration,842619357 fresh confirmation only positive mean AND window action counter; all10 maps/2games8workers/.172s/gate.35, full source/layout/initial/actualGO audits. No scoring started yet.
+
+Retired idle coordinator1 PID26240 after verifying waiting_for_group_live and zero children. Source/plan/status/PID/hash receipt preserved in priority_queue_2; original priority_queue_1 retirement receipts remain authoritative. New run_priority_queue_v2.py exec9072 uses priority_queue_2, waits current group status complete then agent review. Order bump_window_native -> launch_native -> reuse_strict_native -> sj_native -> powerup_order_native -> final_backup_native -> blocked_native. Agent-only advance_<job>.json gates require review of closed results; no user approval. No original campaign seeds or confirmation gates changed. Active scoring driver remains untouched. No source/default promotion yet.
+
+2026-10-27 04:17: quiet group retry CLOSED, audits passed;159->157 and174->168, mean-4. REJECT/no promotion. Runtime bump preflight passed:8tests, only two canonical functions change, class identities preserved, globals canonical, worker setup importable, duplicate install rejected. Coordinator2 advanced to bump-window native all10.
+
+2026-10-27 04:34 active bump window native campaign (driver2616, coordinator2 exec9072).
+Completed valid pairs: KOTM149->143 (-6), Sprawl182->174 (-8), Bowl133->133. Cube running; do NOT stop remaining maps or mutate scored sources. No winner yet. Sprawl selected-window count about1000, so candidate is active. Source preflight8tests plus runtime identity check pass.
+Read-only trace diagnostics: bump_window_kotm_first_divergence.json (first different action at29, same raw; no selected-window flags acrossKOTM). First LABEL difference at24: jump_5_landing vs direct_jump_9, identical raw and two_level_replies60/cost-134.64; unselected changed costs/deadlines NOT isolated, do not assert pure noise or causality. bump_window_sprawl_pickup_gaps.json: baseline182points/1fall/133pickup events; candidate174/0falls/126events. Both have >18s pickup gaps; candidate also16.448s gap ending withheldSJ1 and Nav landing/ballistic. Group sequences can diverge after actual falls/pickups; these are diagnostic executed gaps, NOT matched per-trip causal evidence. No new forecasts were run during scoring.
+Current next phase after bump gate: launch completion alone, then strictreuse(expectedskip v1negative), SJaudit, poweruporder, finalbackup, blockedorder. Agent must review closed evidence and write priority_queue_2/advance_bump_window_native.json before launch may start. User has NOT requested stop; goal stays ACTIVE.
+
+2026-10-27 ~04:42: prepared separate powerup TIMER candidate, not launched or in coordinator2 yet. Static review found Navigator.project_observation advances raw31/32 clock but leaves raw powerup countdowns unchanged; RT.predict already decrements correctly. Read-only executed Sprawl baseline audit sprawl_projected_powerup_timer_audit.json: at5/24/48replies598/256/147 matched positive timer records,6/23/27 availability crossings missed by static timers. Subtracting observed elapsed time matches future recorded countdowns to float rounding; resets/discontinuities excluded, no point/forecast claim.
+New powerup_timers.py wraps Navigator.project_observation only: future index>0 positive known timers clamp(timer-index*.064,0), actual raw unchanged, no item creation/pickups, no RT double decrement. Four isolated tests use real AST projector and confirm only timer fields, index0/padding/input immutability, sorting composition both orders, duplicate install guard. tools/powerup_timers_bench.py and run_powerup_timers_native.py prepared with fresh704391827/263857149, all10/.172s/8workers/gate.35, waits blocked campaign. Not launched; coordinator2 does not include it. Consider adding after current queue closes, or at safely archived idle review. Do not silently fold it into the separate sorting experiment.
+Bump campaign partial fifth map: Duplex146->156 (+10), total5maps -11 points. Cragmire running. All scored sources unchanged.
+
+2026-10-27 ~04:57 bump native ongoing: Cragmire95->135 (+40), Fractured102->117 (+15), Vortex124->116 (-8); first8maps total+36. Do not call confirmed gain yet. Treasure baseline closing, candidate Concentric underway. Current native driver automatically runs fresh842619357 if complete exploratory mean positive AND selected-window counters >0. Driver still2616 /coor2exec9072; original sources unchanged.
+Prepared CONDITIONAL quiet all-map live follow-up (NOT LAUNCHED): run_bump_window_live.py, seeds529781263 and conditional917462803, port9468,8workers,lead5, sequential games, alternating first arm by map/reversed nextseed. Requires closed positive20-pair native mean AND fresh native positive with window decisions. Runs only while coordinator2 idle at bump_window_native review and advance_bump_window_native.json ABSENT. Keep that gate closed until any live campaign closes. Do not launch it alongside native confirmation or another phase. Initial root preflight must verify no forecasts/games remain before manual live driver launch and record ownedPID/session. If source/native evidence fails, skip live and continue native queue.
+New separate tools/bump_window_live_bench.py copies exact window install; active tools/bump_window_bench.py was NOT edited. Separate live wrapper supports noncharging maps by using existing native_worker_bench.prepare_countdown neutral natural GO, no prespin, while charging starts keep original alignment. The existing realtime_bench.align_countdown requires charging; raw all-map live would fail otherwise. Preparer source is included in live source archive/hashes. Benchmark requires --realtime. Need run existing tools.test_native_worker_bench at CLOSED gate before live launch; do not run a mechanics forecast while native active.
+Live comparator: exact initial/layout/RNG/actualGO/source/flag/runtime/workload checks. Sources frozen across all maps and both seeds. Driver source copied and hashed; review_gate rejects changed driver or a next-native advance file. Four pure evidence tests pass (actual compare/review AST): validpair, botharms silent source switch blocked, actualGO mismatch despite matchinginitial blocked, nextphaseadvance prevents live. No game/forecast in these tests. Live fresh all10 confirmation runs only if first all10mean positive AND window decisions active; no default promotion from one map.
+New audit_bump_runtime.py reads completed baseline/candidate wrapper_runtime.json, requires10maps, seven-reply candidate window absent inbaseline, all other saved control globals equal after excluding only TL_STATS diagnostic counters. Run after full explore/confirm snapshots exist; no output written yet. Partial read-only check all9startedmap snapshots showed ONLY BUMP_PICKUP_TAIL_REPLIES and TL_STATS differ. Do NOT mutate scored driver to add audit midcampaign.
+
+2026-10-27 05:03: first complete bump-window native pilot CLOSED,10validpairs/0invalid:138.3->142.2 (+3.9), CI[-5.318,13.118],5120 selected-window decisions. NOT confirmed. Concentric109->110 (+1); allpermap losses retained. Fresh842619357 running automatically under originaldriver2616. audit_bump_runtime.py bump_window_explore PASSED all10: only intended7replywindow difference, TL_STATS diagnostic counters excluded explicitly. Active canonical/wrapper/helper sources untouched.
+
+New potential SJ correctness issue: apply_use_gain plain reference set accepts info.no_braking_backup True (because backup failure is a soft cost, not info.rejected). Actual AST characterization proves a known failed ordinary pickup can veto a resource-use future. No new safety gates needed: exclude only these known failed ordinary futures from the comparison, keeping them in actual planner candidates; unknown backups remain references, old margins/all existing rejections retained. Prepared sj_backup_reference.py helper with cheap old-shadow comparison/no added forecasts, counters exclusions/restoreduses. Six isolated actual-guard ASTtests pass: currentbug, correction, safer slower reference, unknown remainseligible, originalFractured waste stillblocked, otherrejectionsnotrevived. NOT enabled inproduction/current campaigns.
+Readonly existing Fractured pilot trace exposure: baseline275 heldSJ decisions/148ordinarypredictedpickups/0chosenknownfailed; candidate717/554/1. Candidate decision1987 jump_0 pickup13 has known braking supportFalse/drop15.4443u/replies20/nonambiguous. sj_backup_reference_exposure_fractured.json and exact row sj_backup_reference_state.json saved. These selected-decision data DO NOT prove suppressed use candidates existed or caused that choice. Need CLOSED-gate replay/search audit to establish real effect; do NOT run forecasts during confirmation.
+Prepared tools/sj_backup_reference_bench.py and run_sj_backup_reference_native.py fresh326791453/954812367, all10/.172s/8workers/gate.35; waitsSJ audit complete. Confirm only positive mean AND restored_uses>0. Unlaunched, NOT part of coordinator2. Root may schedule after safely closed single-owner review; do not accidentally launch a waiting concurrent queue or overlap live/scoring. Source/test/preparation only so far.
+
+2026-10-27 05:13 confirmation progress: KOTM150->144 (-6, repeated pilot-6), Sprawl192->193 (+1; pilot-8); Bowl finalizing. Original Bump20-native campaign remains sole active scorer. No new variant promoted or queued-manager launched.
+Future diagnosis notes ONLY, not implemented: TL shortlist interaction may matter: KOTM pilot first different plan at24 had equal pair ETA60/cost-134.64 but jump_5_landing vsdirect_jump_9. apply_two_level CLUSTER_LEG_U12 compares TARGET->NEXT gem leg from through_context, NOT marble->target distance. Do not implement an incorrect start-distance predicate. Broad window may affect TL shortlisted alternatives before final cost replacement. Also line/bounce/launch/landing commitments can execute controls beyond first pickup+7; a more principled follow-up would bound soft cost at actual next replanning opportunity, rather than assume all tails are unused. Must inspect commitment contracts and test fresh seeds before any such change. No map-specific KOTM exception. Current prototype deliberately retains all physical/backup/ledge gates but is still unconfirmed on points/live.
+Advisory-route query issue remains unimplemented: pick() powerup distance queries route.navigate(q,current), route.navigate(position,q) mutate main held waypoint even for samegoal (different origin can clear it). RoutePlanner.navigate resets waypoint on goal change or directvisibility. Successful speculative searches explicitly navigate selected goal before return, but failed advisory branches can reset persistence before current-gem search. A correct isolation would clone query routes AND optional-detour speculative search routes, preserving actual selected-route commitment. Merely copying the entire pick route does not protect the same-pick ordinary search from speculative mutations. This is an investigation idea, not diagnosed score cause/new queued experiment.
+
+2026-10-27 05:18 confirmation: KOTM150->144 (-6), Sprawl192->193 (+1), Bowl130->130 (0), Cube156->139 (-17). First4fresh total-22; repeated KOTM/Cube regressions. Duplex running. Keep full fresh10 and all audits, no default promotion/claim of broad win.
+Prepared (NOT RUN) probe_sj_backup_reference.py. Hard gate before imports/forecast requires coordinator2 awaiting_agent_review at bump_window_native, no advance_bump_window_native file, and any bump_window_live status complete. AST-only guard check correctly refused current active confirmation. At closed gate, first root must verify no other game/forecast process before launching probe. Probe loads savedFractured1987 state; runs unbudgeted root search under original full-window and window7 separately, captures candidates immediately before additive guard, then compares original/filtered guards on exactly the same frozen physical candidate set with no extra forecast per comparison. Original navigator/controller history NOT reconstructed; no exact executed-choice/time/points claim. Preserves outputs, sourcehashes, flags. Existing guard/helperclass identities canonical; no stale module replacement. Probe is useful before deciding whether to schedule SJreference native experiment; source/data counters might prove no actual restored use in this state, retain such null result.
+No live campaign has started. Native confirmation remains the sole scorer, driver2616/coor2exec9072. Standalone timer/SJreference scripts remain UNLAUNCHED and outside fixed coordinator2 queue. User has NOT said stop, goal ACTIVE, no morning cutoff.
+
+2026-10-27 05:29 IMPORTANT fresh bump confirmation is NOT reproducing pilot: KOTM-6, Sprawl+1, Bowl0, Cube-17, Duplex-10, Cragmire136->113 (-23, versus pilot+40). First6fresh sum-55. Finish allremaining Fractured/Vortex/Treasure/Concentric regardless; retain everyloss. If fresh nonpositive, NO conditional live campaign (run_bump_window_live prerequisites reject it) and no promotion even if combined happens positive. Need run audit_bump_runtime.py bump_window_confirm after all10, review final source/layout/actualGO/budget/control audits. Likely next declared phase is isolated launch completion via coordinator2 after explicit agent review receipt. Do not silently change parameter midconfirmation or call pilot+3.9 confirmedhigher.
+Only current scorer: driver2616 under coordinator2 exec9072. No futureSG/timer driver started. At CLOSED bump gate, can execute source-protected SJbackup-reference probe FIRST with no other game/forecast running; leave advance_bump_window_native absent throughout diagnostic. Then if no qualifying live (freshpositive requirement), review/reject bump and advance native queue. Existing native_worker_bench tests for live neutralGO matter only if qualifyinglive is actually scheduled. No morning cutoff; continuous goal activeuntiluserstop.
+
+2026-10-27 05:49 ACTIVE OWNER CHANGED: coordinator2 exec9072/PID25616 now running launch_native driverPID5776. launch_native_status exploratory, seeds856201943/317594681. Source currentproduction unchanged; onlyLAUNCH_COMPLETE flag candidate. No other forecast/game campaign running. Bump driver2616 closed successfully. Goal stillACTIVE, user has notsaidstop.
+
+Bump20 FINAL: exploratory138.3->142.2 (+3.9); fresh135.3->135.3 (0.0); combined136.8->138.75 (+1.95), CI[-4.815,8.715],20valid/0invalid. FreshConcentric96->123 (+27), so latepositiveoffsets heldoutlosses toTIE, notnegativebatch. Combined permap: Bowl0,Concentric+14,Crag+8.5,Cube-12,Duplex0,Fract+4.5,KOTM-6,Sprawl-3.5,Treasure+14,Vortex0. Both explore/confirm runtime audits PASS10maps, allothercontrols equal exceptTL_STATS diagnostic counters. Decision leave_disabled_no_live in bump_window_decision.json: fresh gain did not repeat; repeatedKOTM/Cube losses. No default/map-specific exception. Conditional all-map live driver NOT RUN; fresh-positive prerequisite not met. Agent review receipt advance_bump_window_native.json written only after allquiet workclosed; coor movedto launch.
+
+SJREF DIAGNOSTIC correction +null: original selectedFractured1987 witness has virtualstaginggoal[4,6,4], item_id null, NOTrealgem. First probe failed StopIteration ininputlookup BEFOREWorld/forecasts. Exactsource/log/preflight/failure preserved sj_backup_reference_probe_attempt1. Do NOT claimFracturedknownbadrealgemcausedresourceveto. Read-only40round trace audit thenfound4selectedREALgem cases, allKOTM (3explorebaseline,1confirmcandidate), plus1virtualFractured. Counts11461heldSJ /8217ordinarypredictedpickups. Originalaudit mislabelled map path(-6 instead of-5); retainedv1 files, corrected metadata/sourcejournalpaths in sj_backup_reference_exposure_all_maps_v2.json. USEV2. Original sj_backup_reference_real_gem_state.json has wrongmaplabel; correctedstate_v2.json containsKOTMdecision1005 actualtarget30860. Probe source updated tocorrectactualstatefile, secondpreflight sourcehash/procsreceipt passed whilecoor idle/no games/workers.
+Second probe completed ~3s, source_unchangedTrue,56physicalcandidates underfull/window7, margin1, bothold/fixedchoose line2 pickup11/cost-142.32. NOknownbadordinaryinnewunbudgetedrootset, NOchangedrejections. Null result, does not reproduce suppressed use or actualolddecision (coldnavigator/nofullcontrollerhistory). Exactsource/helper/input/log/report archived sj_backup_reference_probe_attempt2. PS command exit1 fromtorchFutureWarning stderr/NativeCommandError but no traceback; sourceverified finalJSON andcompleteTrue arepresent, no rerun/overwrite. No nativepointsclaim. Latentguardfunctioncounterexample6tests remainsvalid; prototypeNOTenabled/unlaunched.
+
+New future investigations NOTIMPLEMENTED: follow_time() physicalsecondgemestimate currently checks rollfailure andpossible_pickup, no explicit brakingbackup; maycreditunsafeoptimisticfollowup. Extra backup checks should preserve unknown outcomes/softfallback, notdeletecurrentplans. resume_forecast uses rollout.states[-1] +controlprefixcorrectly; leaving native_states unsliced is NOTa provenstart-statebug. Mainlanding_goal onlysetfor terminal_stop check; ordinarylandingprojection doesnotautomaticallyforcecommittedpostpickup controls. Do notassumeeveryjump islockedthroughlanding.
+RE.tour usesrawvisible5 thoughglobal_goals fallbackseesallcurrentobserveditems7; nav.gems.plan_tour isfactorialmax5 exactwalk/climb/momentum/wallturn objective. ExistingSPAWN_ORDER fullpooltime-model alreadytestedglobalbad(Crag/Vortex), donotblindlyrepeat. Possiblelargerarchitecture DIFFERENT fromexistingSO: exactsamecurrenttourcost onallobservedgems usingprevious-two-node HeldKarp DP insteadfactorial, preservingterrainwalk/gap/climb/wallturn/stickycurrent costs. Needsproofsame5outputs/identities/ties and runtime, thenfreshfullscoretest; no codewritten. Priority remainsdeclaredlaunchtestuntilitcloses.
+
+2026-10-27 06:03 active launch-only native pilot: KOTM137->140 (+3), Sprawl185->176 (-9), Bowl running. Driver5776/coor2exec9072 remainsoleowner; all other future scriptsunlaunched. No dawn cutoff, userhasnotstoppedgoal.
+Prepared NEW independent follow_backup.py (NOTinstalled in current scorer): AST-transforms actual canonical follow_time only to record its existing finite next-gem arrivals, then reorders those time estimates after at mostexistingBACKUP_CHECKS braking checks resumed at the nextpickup. Same5+optional controllers/horizons retained. Known failed arrivals excluded from timing; unknown/ambiguous/skipped remainacceptable underoldbackupsemantics; iflimit reached, next UNTESTED arrival stillcounts. Ifallfinitearrivalscheckedandknownbad, returnNone =>existingtwo-level softfallbacktime, neverdelete currentplan candidates. Usesexistingbraking_backup deadlineexemption, soADDSboundedforecastcompute; .172mainallowancenotchanged. Mustmeasureliveholdsifwins. No newhardcurrent-plan gates or inventorypolicychanges.
+Seven actual-follow-function isolated tests pass in0.2s: fasterknownbadlosestoslowersupported, allbad->no proventimewithoutdeletingfutures, unknown preserved, checklimitkeepsuntested, disabledbackupnoextra, ASTsourcedriftdetected, existingunrelatedwrapperNOTsilentlyreplaced. Prefixstate/control/proposed lengths atpickup verified, originalrolloutlistsunchanged. Installeronlyreplaces follow_time in canonicalglobals, retainsclassidentities; checks originalco_filename/globals torequireexplicitfuturewrappercomposition.
+Prepared tools/follow_backup_bench.py and run_follow_backup_native.py withfresh219468731/786253419, complete10/.172s/two8worker games/gate.35. ConfirmpilotpositiveAND follow_backup_timing_changes>0. Waits final_backup_native_status complete. NOTin fixedcoordinator2 queue; don'tstartwaitingmanager duringother scoring. Counterscomparisons/checks/knownfailures/unknown/untested/timingchanges. No physicalforecastorpointtestyet, onlymockoutcomeswithactualcontrol-familyfunction. Thisaddressesunvalidated SECOND-leg optimizer times, distinct fromqueued final_backup whichchecks FIRSTplan afterTL re-ranking. No changes to activecanonical/source/default/checkpoint.
+
+2026-10-27 ~06:44 sole active scorer still launch_native driver5776 undercoor2exec9072. Pilot10complete129.5->132.2 (+2.7), CI[-8.533,13.933], fullstart/GO/source/isolatedflag audits pass. Perpilot KOTM+3,Sprawl-9,Bowl-4,Cube+16,Duplex+4,Crag-31,Fract-8,Vortex+29,Treasure+28,Concentric-1. Confirmation317594681 underway: KOTM140->150(+10), Sprawl175->185(+10), Bowl running. NOdefaultpromotionyet.
+
+CompletedCragreadonly selectedlaunch audit launch_cragmire_selected_extension_audit.json: baseline87launch-labelled decisions/1extendedroot; candidate184/6extendedroot,5pickups afteroriginalhorizon. Examplescandidate:heldSJ virtualdestination84replypickup vs56original/96evaluated; heldSS realgem69vs50/90; SJ realgem58vs56/96; SS66vs48/88. Countsareselecteddecisions NOTuniquetrajectories; differencesdonotprovewhy31points lost. Key structuralrisk: longconsumingfutures can getpickupbonus beyondordinary48replyhorizon while noacceptedplainpickup exists, grantingoldresourceguardreachabilityexemption. Existing continuation_time_price pricesextraonlywhenNOpickup; globaltime-price variantsalreadyfailed, donotblindlyrepeat.
+
+Prepared matched_impulse.py (unscored, NOTinstalledactive): forheldSJ1/SS2 only, ifacceptedconsumingpickup>basesearchhorizon ANDnoacceptednonconsumingpickup: continueatmost2checkedresource-free ordinaryprefixes toconsumingforecastend usingcanonicalLandingContinuation+SequenceProposalthroughknownnextgem. Addonlyactualpickup withoriginalphysicalacceptance/noresourcesconsumed/passingsameexistingbrakingbackup. No inventedevents/newspawns, no newhardgate/blanketallinventorytimingrule. Extensionbudgetusesmin(originalremainingdeadline,now+.04), expiredoriginalnotextended; backupsretainexistingdeadlineexemption(addboundedcompute). Reapplyoldmargins(no revival) andexistingactualtimecomparison onlyafterthisnewmatchedordinaryevidence; appliesalsoSSinthisnarrownew-evidencecase. Persistent-effecttypes3/4/5unchanged. Existingplainpickupcaseunchanged. OriginalSGwaste18vs34alreadyguardedbeforehelper. ThisisNOTtheearlierfailedbroadall-inventoryguard.
+Eightisolatedactualguardtests pass: oldunmatcheduseaccepted thenverifiedfasterordinaryveto, unchangedexistingplainpickup, inventory5unchanged, missing/failedbackupkeepsreachability, pendingconsumptionnotplain, originaldeadlineexpiredstays, exceptionrestoresdeadline, limit2/oldrejectionspreserved. No realphysicalforecast/pointsforhelperyet. Matchedthroughcontext infersrealgemitemwhenroot target_itemNone. HelperwrapsS.search+RE.searchaliaseswithsignaturepreserved, no staleclass/module replacement.
+Prepared tools/matched_impulse_bench.py (ownflagsmatch-impulse-horizons/complete-launches) +run_matched_impulse_native.py fresh664193287/145728963. BaselineproductionflightflagsOFF; candidateLAUNCH_COMPLETEplusmatchedcounterfactuals; roll/short/FAST_SUPPORTED/SS_RIDE remainOFF. ThuscoherentJOINTfeature, nothelper-alonecausaltest. Mainallowance.172/2games8workers/.35gate,full10/source/initial/GO/runtime/protocol audits. ConfirmpilotpositiveANDnewusevetoes ORselectedmatchedordinary decisions. Waitslaunch_nativecomplete; UNLAUNCHED, NOTincoor2queue. FirstgeneratorfailedassertBEFOREwriting(driverprotocolname); correctedagainstactuallaunch_protocolschema, ownargfields/protocolsourcesvalidated. Do notstartwaitingmanagerduringcurrentconfirmation.
+
+Prepared query_route.py +tools/query_route_bench.py +run_query_route_native.py fresh935714621/412896357,waitsblockedcomplete,UNLAUNCHED/notincoor2. Exactly12routeLOADreferences inoptionalpowerup query/speculativeblock useprivatecopy; selecteddetouroriginalroutecommitprotected. ReverseASTdelta reproduceswholeoriginalpick. PrivatequerycopycounterandpreexistingnonnullprimarywaypointdifferencesafterFAILEDquerycounter(doesnotclaimwaypointactuallyusedlater). No newforecasts/gates/costchanges; ordinaryprimaryroutehistorypreserved. Fiveactualdetour-block tests passwithfaithfulheld-corner route: oldfailedqueryloseshyst, privatequerykeeps, selecteddetourstillcommitsoriginal, emptyitemsunchanged, contractdriftreject. WrappergenerationownflagrenamemismatchcaughtBEFORElaunchandfixed; staticownfieldlintPASSquery/follow/timer/SJref/livebump/matchedwrappers. Needclosed-gateactualmodule/class/worker/preflightbeforeanynewscorephase. No source/default/checkpoint changes toactiveproduction.
+
+2026-10-27 06:57 launch confirmation active: KOTM140->150(+10), Sprawl175->185(+10), Bowl137->139(+2), Cube167->157(-10), Duplex138->138(0), first5fresh+12. Cragmirecandidatefinished,baseline~35sleft. Onlydriver5776/coor2exec9072active; no native/live extra jobs.
+Prepared CONDITIONAL launch actual1x follow-up (UNLAUNCHED): tools/launch_completion_live_bench.py and run_launch_live.py, all10maps seeds731948263/286175943, port9472,8workers,lead5, sequential only. Requirespositivecomplete20native mean ANDpositivefreshnative mean. HoldsCOOR2atlaunch_native review, advance_launch_native.json MUSTremainABSENT until anylivebatchcloses. Sameordinarychargingphase; existingneutralnaturalGOpreparer fornonchargingmaps, nomidroundresets/prespinnoncharging. Sourcepreparer+wrapper+checkpoint includedinfrozenliveidentity; wrapperrecordsACTUALSflightflagsafterWorldloads/cleansitsworkersifwrong, LAUNCH_COMPLETEFalse/True, otherfourflightflagsFalse.
+Livecomparator checksinitial/layout/RNG/actualGO, samecanonicalinputsintersectnativepreparedsourcehashes(normalizedpathkeys), sourceidentityfrozenacrossallmaps/seeds, expectedplannerflagdifferenceexactlyoneappended--launch-completion, actualruntimeflightflags, samebudget/physics/workers. Driverhash/copiedsource/advanceguard. PositivefirstallmaplivemeanANDlaunchswitchactivity triggersall10freshconfirmation; nofirstmapcherrypick. FIVEpureevidencetestsPASS includingactualruntimeflagfalse despiteprotocoltrue. No physical1xpreparerfixture/game launchedyet. AtCLOSEDqualifiedlaunchgate, runexistingtools.test_native_worker_bench testsandquietprocesspreflightbeforelive; preserveallfailedpreparedattemptsifany. Neverrunmatched/SGprobesduringquietlive. NOdefaultpromotionyet.
+ALL new prototypes(query_route/follow_backup/matched_impulse/timers/SJref)remainunlaunched/outsidefixedcoor2. Coor2nextstrictreuse(expectedskip), SJoriginalaudit, poweruporder, finalbackup, blockedorder. Anyreprioritizationmusthappenatclosedreviewwithsingleowner/source/seedreceipts, not editrunningdriverorlaunchwaitingmanager. Goalcontinuousuntiluserstop, nomorningcutoff.
+
+2026-10-27 07:31 CRITICAL ACTIVE OWNER: launch_live actual1x campaign is RUNNING, driverPID32924 execsession92914, port9472,8forecastworkers,lead5, SEQUENTIAL. launch_live_status.json authoritative. launch_live_takeover/active_owner.json recordscommand/session/PID. COORDINATOR2 PID25616 was VERIFIEDIDLEATlaunchreview,0children/0games/0workers, source/plan/status/jobclose archived underlaunch_live_takeover thenSTOPPED. Its status.json STILLsaysawaiting_agent_review but PROCESSISDEAD. DoNOTwriteadvance_launch_native orstartANYcoordinator/native/probe/sim/forecastuntilALLliveworkcloses. No other queue manager active. Nextcoordinator(notbuilt)musthard-gateonlivecomplete/explicitclosed-failure review. ContinuousgoalACTIVE; userhasnotsaidstop, no morning cutoff.
+
+Launch20nativeFINAL: pilot129.5->132.2(+2.7); fresh131.7->135.4(+3.7); combined130.6->133.8(+3.2),20valid/0invalid,CI[-3.736,10.136]. PromisingOBSERVEDreplication, NOTstatisticalcertainty/liveproof. PerMap Bowl-1,Concentric-11,Crag-8,Cube+3,Duplex+2,Fract+8,KOTM+6.5,Sprawl+.5,Treasure+22.5,Vortex+9.5. Native_decision.json leavedefaultunchangedandqualifiesquietall-map1x. Allmotion/source/actualGO/worker/isolatedactualflagsdriverauditspass; closedreceipt exit0driverunchanged.
+
+Startpreflight: existingtools.test_native_worker_bench5tests +test_launch_live_audit5testsPASSatclosednativegate. Addedcheck_launch_live_starts.py; actual4UNSCOREDnative1xgames(twoindependentCragmire,twoTreasure selectedfromnative neutralGOmode) no modeldecisions/forecasts/grants/restores, seed812736419 port9476. Bothmapslayout/initial/actualGOmatch, source_unchangedTrue, statuscompletepassed, session97635exit0, allgamesclosed. Evidence launch_live_start_preflight. Native1xscoringpreflight thenCIMverifiedNOotherowner/game/worker, storedlaunch_live_takeover/scoring_preflight.json, launchedlivedriver ONLY.
+
+Liveplanall10freshseed731948263, alternatewhicharmfirstbyMAPindex. IfwholebatchmeanpositiveANDlaunchswitchactivity, all10fresh286175943 reversedfirstarm. Onebatch~80minutes, secondanother~80; no inferredmorningdeadline. FirstbaselineKOTMROUND148points/0falls/holds0.3s/p99plan.167s, closed07:29:47; candidateKOTMstartedGO07:30:09. Pairnotyetcomplete/audited, doNOTclaimlivegain. ActualWorldflightflagsrecordedlaunch_live_runtime.json(BASECOMPFalse,otherfourFalse;CANDTruecheckedbeforegame). Sourceidentityfrozenallmaps/seeds+sharednativehashes+checkpoint, actualGO/layout/source/flags/workload checksperpair. Sourcefile/drivers frozenwhilecampaignrunning.
+
+Livewrappertraceenhancementbeforestart: with--trace, BOTHarmsgziplogplanner_choices.jsonl.gz(fullactualplanner input includingpredictedmsg,action,selectedinfo) andimpulse_comparisons.jsonl.gz(alreadycomputedheldSJ/SS rootsearchcandidateINFOS+input+target), NOnewforecasts. CanonicalS.search+RE.searchaliastransparentwrappedandController.actionwrapped; globals/classesnotreplaced. gzipcompresslevel1, measuredI/Ooverheaddeclaredsamebotharms; unknownnonJSONtypesexplicitlytagged, notsilentloss. Runtimeflagsandloggingprotocolcheckedbycomparator. Filesmayappear0byteswhilegzipbuffered; DO NOTpoke/flush viaadditionalprocess. Fullcandidateinfoimprovesforensicswithoutcoldunbudgetedreplay. Nevereditlaunch_completion_live_bench.py/run_launch_live.py/native_worker_bench.py/nav/core orcheckpointduringlive. Futureprototypesunderreports/toolsUNLAUNCHED; avoidevenlightnewtestswhilequietscoringunlessrequiredread-onlyaudits.

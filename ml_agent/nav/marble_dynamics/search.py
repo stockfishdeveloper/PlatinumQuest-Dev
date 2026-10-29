@@ -22,7 +22,8 @@ ROUTE_SPEED_LAW=True     # v16 (2026-10-15): stopping law on the remaining route
 PICKUP_MIN_SPEED=6.      # u/s floor on the target speed toward a gem (0 = brake to a stop at the gem, pre-v16)
 THROUGH_GEM=True         # v22 (2026-10-15): score past a pickup toward the tour's next gem; 'through' proposals
 THROUGH_SWITCH_U=.6      # u: a through proposal turns to the next gem once its path passes this close to the gem
-POWERUP_THROUGH=False    # 2026-10-26 (under test): a powerup fetched on the way to a gem gets the through proposals too (keep the speed
+POWERUP_THROUGH=True     # 2026-10-26: keep momentum through fetched powerups; native ten-map pilot +1.5/round, quiet Sprawl1x154->175.
+                        # A powerup fetched on the way to a gem gets the through proposals too (keep the speed
                          # through the pickup toward the gem; reliability_eval.pick names the gem as its next target). Sprawl human
                          # demo: into the Super Speed at 10.9 u/s with a jump, kick in the air -> 37 u/s; the planner braked to 4.9
 THROUGH_REACH_U=18.      # u: through proposals are added only when the gem is this close along the route
@@ -38,6 +39,9 @@ WALL_BOUNCE=False        # 2026-10-19 (operator: use wall hits): bank-shot plans
                          # 2 worse); ROLLED BACK 21:47 (operator) after weak live rounds; on the todo list (ml_agent/TODO.md)
 CORNER_PROPOSALS=False   # v38 (--corner-proposals, under test): through proposals that reach the gem at the turn's speed
 USE_AWAY_U=0.            # 2026-10-16: a use that collects but ends this much farther from the next gem is rejected (0 = off; v40: 8)
+SJ_USE_GAIN=True          # a held Super Jump is used only when its forecast completion (target, or target + next gem) beats the best
+                         # non-use pickup by --use-margin-s (apply_use_gain); the other agent's 10-26 night guard, kept: sj_native pending
+                         # (--sj-use-gain / --no-sj-use-gain)
 SS_RESERVE_LAST_U=0.     # 2026-10-16: no Super Speed plans for the last gem of a group closer than this (0 = off; v40: 20) ...
 SS_RESERVE_TIME_MS=6000. # ... unless the round has less than this left (then it is now or never)
 SS_EARLY_U=math.inf      # 2026-10-16: Super Speed 'use now' plans judged early on legs at least this long (inf = off; v40: 20)
@@ -70,7 +74,11 @@ LAND_MIN_VZ=.5           # ... airborne only: |vz| above this (on the ground the
 LAND_MIN_T=.1            # ... and at least this long (s) before the landing ...
 LAND_AFTER_USE=3         # ... from this many replies after the use (the kick fires 2 decisions after it)
 POW_LAUNCH_ROLL=False    # 2026-10-26 (under test): Super Speed launches without a jump (aimed, lead, landing control) at POW_LAUNCH_AT
-LAND_SHORT=False         # 2026-10-26 (under test, Python forecasts only): aimed launches land short of the gem by the braking distance
+LAND_SHORT=False         # 2026-10-26 (under test): additional aimed launches landing short by a share of braking distance
+LAND_SHORT_SHARES=(.4,1.)
+LAUNCH_COMPLETE=True     # ON 2026-10-27 (native 40 pairs, 4 of 4 seeds positive: +2.7 / +3.7 (other agent), +6.9 / +3.3 (launch3), about +4 a round; one live 1x seed -2.9; control --no-launch-completion): extend rejected
+                         # launch forecasts with their own feedback policy through landing/roll-in
+FAST_SUPPORTED=False     # supported fast motion is judged by its checked continuation, not the 18 u/s settling threshold
 LAND_SHORT_ARRIVE=11.    # from their ground speed down to this (u/s) at LAND_SHORT_DECEL u/s^2 and roll in (Sprawl human demo: landed
 LAND_SHORT_DECEL=7.      # ~22 u short at ~29 u/s, first gem at 8 u/s; the aimed launches landing ON the gem overshot and rolled off)
 SS_RIDE=False            # OFF 22:58 (sim_ssA, 108 Super Speed starts: 7.3 percent slower, smacks 75 -> 118; opt-in --ss-ride). 2026-10-24 (operator: "every second of wasted time costs us $1000"; live Bowl: a held Super Speed fired only after
@@ -213,6 +221,20 @@ FAST_MIN_SPEED=9.         # ... their floor on the target speed at the gem (the 
 FAST_PROPOSALS=True       # False reproduces the old compiled normal-speed duplicates for matched diagnostic controls
 
 
+def roll_launch_specs(route,gem,use_steps):
+    """Short landings add options; retain the ordinary no-jump launch too."""
+    shares=(0.,)+tuple(LAND_SHORT_SHARES) if LAND_SHORT else (0.,)
+    out=[]
+    for at in POW_LAUNCH_AT:
+        for share in shares:
+            roll=SequenceProposal(route,gem,max(use_steps,at+POW_LAUNCH_FLIGHT),use=at,jump=-1)
+            roll.direct_from=at;roll.lead_k=POW_LAUNCH_LEAD_K;roll.land=POW_LAUNCH_LAND
+            roll.land_short=share
+            label=('use_launch_roll_%d'%at if not share else 'use_launch_roll_short_%g_%d'%(share,at))
+            out.append((label,roll))
+    return out
+
+
 class SequenceProposal:
     def __init__(self,route,gem,steps,offset=0.,scale=1.,jump=-1,use=-1,turn_after=6,brake_after=None,direct=False,blast=-1,through=None,arrive=None,fast=None):
         self.route=copy.copy(route);self.gem=np.asarray(gem);self.steps=steps
@@ -327,7 +349,7 @@ def land_action(gem,state,short=False):
     """In the air: the reply whose air control moves the free-flight landing point (where the marble comes down to the gem's z +
     LAND_DZ) onto the gem: the acceleration 2 * miss / t^2, at most the full stick (LAND_AIR on the camera diagonal, sqrt 2).
     None on the ground or close to the landing. Plain float arithmetic: marble_sim.cpp's land_action matches it bit for bit.
-    `short` (LAND_SHORT, Python only): the landing point is set back from the gem along the line to it by the braking distance
+    `short` (LAND_SHORT): the landing point is set back from the gem along the line to it by the braking distance
     from the current ground speed down to LAND_SHORT_ARRIVE (the human's long Super Speed flights land short and roll in)."""
     p=state['position'];v=state['velocity']
     px,py,pz=float(p[0]),float(p[1]),float(p[2]);vx,vy,vz=float(v[0]),float(v[1]),float(v[2])
@@ -339,7 +361,7 @@ def land_action(gem,state,short=False):
     tx,ty=float(gem[0]),float(gem[1])
     if short:
         dx,dy=tx-px,ty-py;dist=math.sqrt(dx*dx+dy*dy);sp=math.sqrt(vx*vx+vy*vy)
-        back=min(max(0.,(sp*sp-LAND_SHORT_ARRIVE*LAND_SHORT_ARRIVE)/(2.*LAND_SHORT_DECEL)),max(0.,dist-2.))
+        back=min(max(0.,float(short)*(sp*sp-LAND_SHORT_ARRIVE*LAND_SHORT_ARRIVE)/(2.*LAND_SHORT_DECEL)),max(0.,dist-2.))
         if dist>1e-6:tx-=dx/dist*back;ty-=dy/dist*back
     ax=2.*(tx-(px+vx*t))/(t*t);ay=2.*(ty-(py+vy*t))/(t*t)
     m=math.sqrt(ax*ax+ay*ay)
@@ -380,6 +402,17 @@ class LandingContinuation:
     def __call__(self,state,index):
         if index<len(self.prefix):return self.prefix[index]
         return self.follow(state,index)
+
+
+class LaunchContinuation:
+    """Replay a checked prefix, then retain the original launch's feedback and absolute event times."""
+    def __init__(self,prefix,proposal,extra_replies):
+        self.prefix=prefix;self.follow=copy.copy(proposal);self.follow.route=copy.copy(proposal.route)
+        if proposal.next_route is not None:self.follow.next_route=copy.copy(proposal.next_route)
+        self.steps=len(prefix)+extra_replies
+
+    def __call__(self,state,index):
+        return self.prefix[index] if index<len(self.prefix) else self.follow(state,index)
 
 
 GAP_RUN=True              # 2026-10-25 gap crossings (crossings.GAP_ROUTES): the cross phase of a gap route forecasts only
@@ -624,6 +657,9 @@ def assess(engine,route,dynamics,gem,rollout,label,target_item=None,routed=True,
                 penalty_why['turn_rad']=round(turn,2)
     tail=states[-4:]
     supported,stable,normal_speed=terminal_support(engine.mesh,tail)
+    if FAST_SUPPORTED and supported and normal_speed is not None and normal_speed<2.:
+        # Only floor-supported motion qualifies; check_backups still evaluates the physical braking continuation.
+        stable=True
     if (SS_RIDE and not stable and supported and normal_speed is not None and normal_speed<2. and 'use' in str(label)
             and int(dynamics['native']['state']['held'])==2):
         stable=True   # 2026-10-24 SS_RIDE: a Super Speed plan may end above 18 u/s on the floor (the braking backup still checks edges)
@@ -637,9 +673,11 @@ def assess(engine,route,dynamics,gem,rollout,label,target_item=None,routed=True,
     held=getattr(states,'held',None)   # 2026-10-19: packed compiled forecasts (nav/native/forecast.py) need no state dicts here
     if held is not None:resources=int(((held[:-1]>0)&(held[1:]==0)).sum())
     else:resources=sum(int(a['held']>0 and b['held']==0) for a,b in zip(states,states[1:]))
+    inventory_consumed=resources
     sec=getattr(rollout.get('controls'),'script_event_count',None)
     resources+=sec if sec is not None else sum(len(c.get('script_events',[])) for c in rollout.get('controls',[]))
     info=dict(label=label,cost=cost,rejected=reason,minimum_gem_distance_u=close,resources_consumed=resources,
+                inventory_consumed=inventory_consumed,
                 goal_item_id=item.get('id') if item else None,
                 end_position=end['position'],terminal_support=supported,stable_continuation=stable,
                 maximum_tail_normal_speed_u_per_s=normal_speed,
@@ -829,6 +867,32 @@ def useful_candidate(pairs,route,start_distance,preserve_resources=False,keep_bl
     return min(useful,key=rank)
 
 
+def continuation_rules(engine,label,info,rollout,landing_replies,ballistic,complete_flight=False):
+    """Shared serial/worker rules for extending and projecting a candidate."""
+    pickup_landing=int(getattr(engine,'pickup_landing_replies',0) or 0)
+    collects=info.get('possible_pickup_interval') is not None
+    unsupported=info['rejected']=='no_supported_continuation'
+    extend=bool((landing_replies or (pickup_landing and collects)) and unsupported and not complete_flight)
+    if not complete_flight:
+        if LAUNCH_COMPLETE and '_launch' in label and unsupported:extend=True
+        if (not extend and '_wall' in label and landing_replies and info['rejected'] is None
+                and abs(float(rollout['states'][-1]['velocity'][2]))>WALL_AIRBORNE_VZ):extend=True
+        if not extend and label.startswith('edge_hit') and pickup_landing and unsupported:extend=True
+    return dict(extend=extend,replies=landing_replies or pickup_landing,
+                air_main=bool(ballistic and unsupported and not label.startswith('edge_hit') and not complete_flight),
+                air_landing=bool(ballistic and collects))
+
+
+def continuation_time_price(engine,info,rollout,steps):
+    """Price the extra duration identically in serial and worker evaluation."""
+    launch=LAUNCH_COMPLETE and '_launch' in info.get('label','')
+    if ((getattr(engine,'time_price',False) or (getattr(engine,'crossing',None) or {}).get('wall') or launch) and not _gem_demo.TIME_COST
+            and info.get('possible_pickup_interval') is None and math.isfinite(info.get('cost',math.inf))):
+        rate=_gem_demo.TIME_PRICE_U_S if getattr(engine,'time_price',False) else (float(getattr(engine,'ballistic_time_rate',8.) or 8.) if launch else WALL_TIME_RATE_U_S)
+        extra=max(0,len(rollout['states'])-1-steps)*.064*rate
+        info['cost']+=extra;info['wall_time_penalty_u']=extra
+
+
 def search(engine,route,dynamics,raw,gem,navigator,horizon=40,warm=None,brake_replies=0,target_item=None,learned=True):
     engine._speculated=None
     gem=np.asarray(gem[:3]);route.navigate(dynamics['native']['state']['position'],gem)
@@ -980,16 +1044,16 @@ def search(engine,route,dynamics,raw,gem,navigator,horizon=40,warm=None,brake_re
                     aim=SequenceProposal(route,gem,n,use=use,jump=jump);aim.direct_from=use
                     if held==2:aim.lead_k=POW_LAUNCH_LEAD_K
                     aim.land=POW_LAUNCH_LAND
-                    if LAND_SHORT and held==2:aim.land_short=True   # Python per-reply forecast (forecast._controller declines it)
                     specs.append(('use_launch_aim_%d_%d'%(use,jump),aim))
-                if POW_LAUNCH_ROLL and held==2:
-                    # 2026-10-26 (under test): the kick without a jump, aimed (lead) at the gem, the terrain doing the launching (Sprawl
-                    # human demo: the Super Speed fired before a ramp, 37 u/s up the ramp, a 65 u flight; a jump at the kick flies over it)
-                    for at in POW_LAUNCH_AT:
-                        roll=SequenceProposal(route,gem,max(use_steps,at+POW_LAUNCH_FLIGHT),use=at,jump=-1);roll.direct_from=at
-                        roll.lead_k=POW_LAUNCH_LEAD_K;roll.land=POW_LAUNCH_LAND
-                        if LAND_SHORT:roll.land_short=True
-                        specs.append(('use_launch_roll_%d'%at,roll))
+                    if LAND_SHORT and held==2:
+                        for share in LAND_SHORT_SHARES:
+                            short=SequenceProposal(route,gem,n,use=use,jump=jump);short.direct_from=use
+                            short.lead_k=POW_LAUNCH_LEAD_K;short.land=POW_LAUNCH_LAND;short.land_short=share
+                            specs.append(('use_launch_short_%g_%d_%d'%(share,use,jump),short))
+            if POW_LAUNCH_ROLL and held==2:
+                # 2026-10-26 (under test): the kick without a jump, aimed (lead) at the gem, the terrain doing the launching (Sprawl
+                # human demo: the Super Speed fired before a ramp, 37 u/s up the ramp, a 65 u flight; a jump at the kick flies over it)
+                specs.extend(roll_launch_specs(route,gem,use_steps))
         if SS_RIDE and held==2:
             for use in SS_RIDE_USES:
                 specs.append(('use_ride_'+str(use),RideProposal(route,gem,use_steps,use)))
@@ -1186,6 +1250,7 @@ def search(engine,route,dynamics,raw,gem,navigator,horizon=40,warm=None,brake_re
     exhausted=False
     ballistic=bool(getattr(engine,'ballistic_landing',False)) and not getattr(engine,'_light_search',False);airborne=[]
     if gap_run:landing_replies=0;ballistic=False   # a gap run's forecast holds its whole flight: no landing extensions or projections
+    engine.complete_flight_search=gap_run   # worker evaluation must also suppress pickup landing extensions here
     reserve=float(getattr(engine,'ballistic_reserve_s',0.) or 0.);deadline=getattr(engine,'planning_deadline',None)
     pool=getattr(engine,'parallel',None)
     if pool is not None and len(specs)>=2:
@@ -1244,22 +1309,11 @@ def search(engine,route,dynamics,raw,gem,navigator,horizon=40,warm=None,brake_re
                 penalty=(rollout['requested_replies']-steps)*.064*float(getattr(engine,'ballistic_time_rate',8.) or 8.)
                 info['cost']+=penalty;info['time_penalty_u']=penalty
             pairs.append((info,rollout))
-            if ballistic and info['rejected']=='no_supported_continuation' and not label.startswith('edge_hit') and not gap_run:
-                airborne.append((label,info,rollout))   # edge plans use the landing extension only (v5)
+            rules=continuation_rules(engine,label,info,rollout,landing_replies,ballistic,gap_run)
+            if rules['air_main']:airborne.append((label,info,rollout))
             pickup_landing=int(getattr(engine,'pickup_landing_replies',0) or 0)
             collects=info.get('possible_pickup_interval') is not None
-            extend=(landing_replies or (pickup_landing and collects)) and info['rejected']=='no_supported_continuation' and not gap_run   # a gap run's forecast already holds its flight
-            if (not extend and '_wall' in label and landing_replies and info['rejected'] is None
-                    and abs(float(rollout['states'][-1]['velocity'][2]))>WALL_AIRBORNE_VZ):
-                # 2026-10-22 wall climbs: a rebound still in the air at the horizon (the run-up to the wall takes most of
-                # it) passes the support gate on the deck below it and was scored mid-flight, 2-4 u short of where it
-                # lands: let it land like every other plan of a staged crossing.
-                extend=True
-            if (not extend and label.startswith('edge_hit') and pickup_landing and info['rejected']=='no_supported_continuation'):
-                # 2026-10-21 edge hits: a timed jump onto a lip is still in flight or settling at the horizon far more often
-                # than a rolling plan (223 of 562 candidates in the climb-leg probe); let it land and be judged like a
-                # pickup plan would be, over the same pickup_landing replies.
-                extend=True
+            extend=rules['extend']
             if extend:
                 # Still airborne (or not yet settled) at the horizon: follow the
                 # route onward and score the landing with the same gates. With
@@ -1267,7 +1321,10 @@ def search(engine,route,dynamics,raw,gem,navigator,horizon=40,warm=None,brake_re
                 # candidate whose forecast already collects the gem (a jump or
                 # blast up to a gem must not lose to standing underneath it).
                 replies=landing_replies or pickup_landing
-                landed=predict_replies(engine,dynamics,LandingContinuation(rollout['proposed'],route,gem,replies),stop_on_ambiguity=True)
+                continuation=(LaunchContinuation(rollout['proposed'],proposal,replies)
+                              if LAUNCH_COMPLETE and '_launch' in label and isinstance(proposal,SequenceProposal)
+                              else LandingContinuation(rollout['proposed'],route,gem,replies))
+                landed=predict_replies(engine,dynamics,continuation,stop_on_ambiguity=True)
                 checked=assess(engine,route,dynamics,gem,landed,label+'_landing',target_item)
                 edge_climb(proposal,label,checked,landed)
                 chain_score(proposal,label,checked,landed,dynamics)
@@ -1275,14 +1332,7 @@ def search(engine,route,dynamics,raw,gem,navigator,horizon=40,warm=None,brake_re
                                evaluated_replies=len(landed['controls']),requested_replies=landed['requested_replies'],
                                stopped_on_ambiguity=landed['stopped_on_ambiguity'],
                                forecast_s=(len(landed['states'])-1)*.064)
-                if ((getattr(engine,'time_price',False) or (getattr(engine,'crossing',None) or {}).get('wall')) and not _gem_demo.TIME_COST
-                        and checked.get('possible_pickup_interval') is None and math.isfinite(checked.get('cost',math.inf))):
-                    # 2026-10-22 step 2a: an extended forecast (landing continuation, crossing phase) without a pickup pays
-                    # for its replies beyond the horizon at the time price, so a 5.6 s plan no longer beats a 3 s plan on
-                    # end distance alone (first seen on a staged wall climb: WALL_TIME_RATE_U_S; now every such plan)
-                    rate=_gem_demo.TIME_PRICE_U_S if getattr(engine,'time_price',False) else WALL_TIME_RATE_U_S
-                    extra=max(0,len(landed['states'])-1-steps)*.064*rate
-                    checked['cost']+=extra;checked['wall_time_penalty_u']=extra
+                continuation_time_price(engine,checked,landed,steps)
                 pairs.append((checked,landed))
                 if ballistic and collects and checked['rejected']=='no_supported_continuation':
                     # v21 (2026-10-15): a plan that COLLECTS the gem and is still in
@@ -1385,9 +1435,13 @@ def search(engine,route,dynamics,raw,gem,navigator,horizon=40,warm=None,brake_re
     apply_blast_gain(pairs,target_item)
     apply_blast_value(pairs,blast_meter_value(dynamics),float(getattr(engine,'blast_value_u',10.) if getattr(engine,'blast_value_u',None) is not None else 10.),float(getattr(engine,'blast_floor_u',0.) if getattr(engine,'blast_floor_u',None) is not None else 0.))
     apply_use_away(pairs,USE_AWAY_U)
+    # Retain the existing cost margin, then add a real-time test for Super Jump.
+    # In particular, do not weaken the old travel rule when no ordinary pickup
+    # is forecast. Broadly replacing other powerup policies failed replay checks.
     apply_use_margin(pairs,0. if (SS_RIDE and held==2) else float(getattr(engine,'use_margin_u',0.) or 0.))
     if BRAKING_BACKUP:check_backups(engine,route,dynamics,gem,pairs,steps,target_item)
     apply_two_level(engine,route,dynamics,gem,pairs,target_item)
+    if held==1 and SJ_USE_GAIN:apply_use_gain(pairs,engine,dynamics,gem,float(getattr(engine,'use_margin_s',0.) or 0.))
     valid=[p for p in pairs if p[0]['rejected'] is None]
     return min(valid,key=lambda p:p[0]['cost']) if valid else None,pairs
 
@@ -1732,6 +1786,52 @@ def apply_use_away(pairs,limit):
     for info,r in pairs:
         if info['rejected'] is None and r is not None and 'use' in info['label'] and info.get('through_post_u',-math.inf)>limit:
             info['rejected']='use_away'
+
+
+def apply_use_gain(pairs,engine,dynamics,gem,margin_s):
+    """Require forecast completion time to justify spending held Super Jump.
+
+    Compare physically accepted futures, after backup checks. If both the
+    target and the tour's next visible gem have a non-use completion forecast,
+    compare completion of that pair. Otherwise compare the target pickup.
+    Contact costs cannot buy an exemption. No additional searches, estimated
+    follow-up times, or knowledge of future randomized groups are used.
+
+    Without a forecasted non-use pickup, leave acquisition/travel/reachability
+    choices to the existing planner. The margin reserves inventory against
+    small local savings; it is in seconds, not mixed route/impact cost units.
+    """
+    if margin_s<=0:return
+    valid=[(i,r) for i,r in pairs if i['rejected'] is None and r is not None]
+    uses=[(i,r) for i,r in valid if i.get('inventory_consumed',0)>0]
+    plain=[(i,r) for i,r in valid if not i.get('inventory_consumed',0)
+           and i.get('possible_pickup_interval') is not None]
+    if not uses or not plain:return
+    target_best=min(float(i['possible_pickup_interval']) for i,_ in plain)
+    nxt=(getattr(engine,'next_for',None) or {}).get(goal_key(gem))
+    nitem=next((i for i in dynamics.get('items',[]) if i.get('gem')
+                and nxt is not None and np.linalg.norm(np.asarray(i['position'])-np.asarray(nxt[:3]))<.1
+                and np.linalg.norm(np.asarray(i['position'])-np.asarray(gem[:3]))>.1),None)
+    def pair_completion(info,roll):
+        first=info.get('possible_pickup_interval')
+        if first is None or nitem is None:return None
+        second=_gem_demo.possible_pickup(roll['states'],nitem,roll.get('native_states'))
+        return max(float(first),float(second)) if second is not None else None
+    completions=[pair_completion(i,r) for i,r in plain] if nitem is not None else []
+    next_best=min((k for k in completions if k is not None),default=None)
+    for info,roll in uses:
+        first=info.get('possible_pickup_interval')
+        finish=pair_completion(info,roll) if next_best is not None else first
+        best=next_best if next_best is not None else target_best
+        info['use_gain_scope']='target_and_next' if next_best is not None else 'target'
+        info['use_reference_replies']=best
+        info['use_required_gain_s']=float(margin_s)
+        if finish is None:
+            info['rejected']='use_completion_unproven';info['use_gain_s']=None
+            continue
+        gain=(best-float(finish))*.064
+        info['use_gain_s']=gain
+        if gain+1e-9<margin_s:info['rejected']='use_no_time_gain'
 
 
 def apply_use_margin(pairs,margin):

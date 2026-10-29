@@ -388,6 +388,7 @@ struct SeqSpec {                       // search.SequenceProposal
     double lead_k = 0., lead_max = 0.;   // ABI 13: search.SequenceProposal.lead_k (0 off), search.LEAD_AIM_MAX
     bool land = false;                   // ABI 13: search.SequenceProposal.land and search.LAND_* (land_action)
     double land_g = 0., land_air = 0., land_dz = 0., land_min_vz = 0., land_min_t = 0.; int land_after = 0;
+    double land_short = 0., land_arrive = 11., land_decel = 7.; // ABI 14: braking-distance landing proposals
 };
 
 // search.land_action: in the air, the reply whose air control moves the free-flight landing point onto the gem; false on the
@@ -398,7 +399,13 @@ bool land_action(const SeqSpec& S, V3 p, V3 v, Action& r) {
     if (!(disc > 0.)) return false;
     const double t = (v.z + std::sqrt(disc)) / S.land_g;
     if (!(t > S.land_min_t)) return false;
-    const double ax = 2. * (S.gem.x - (p.x + v.x * t)) / (t * t), ay = 2. * (S.gem.y - (p.y + v.y * t)) / (t * t);
+    double tx = S.gem.x, ty = S.gem.y;
+    if (S.land_short != 0.) {
+        const double dx = tx - p.x, dy = ty - p.y, dist = std::sqrt(dx * dx + dy * dy), sp = std::sqrt(v.x * v.x + v.y * v.y);
+        const double back = pymin(pymax(0., S.land_short * (sp * sp - S.land_arrive * S.land_arrive) / (2. * S.land_decel)), pymax(0., dist - 2.));
+        if (dist > 1e-6) { tx -= dx / dist * back; ty -= dy / dist * back; }
+    }
+    const double ax = 2. * (tx - (p.x + v.x * t)) / (t * t), ay = 2. * (ty - (p.y + v.y * t)) / (t * t);
     const double m = std::sqrt(ax * ax + ay * ay);
     const double throttle = m > .05 ? pymin(1., m / (S.land_air * std::sqrt(2.))) : 0.;
     double js[6]; r.npmask = joystick(ax, ay, throttle, false, 0, 0, v.x, v.y, js);

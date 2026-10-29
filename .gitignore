@@ -153,3 +153,9 @@ STOP
 # Generated historical sources are packed after verification, not loose .py trees.
 ml_agent/dynamics_reports/**/*.zip
 ml_agent/datasets/marble_dynamics/**/*.zip
+
+# 2026-10-29 (operator): experiment result folders stay on disk, out of git (they hold the map-best evidence and the code
+# copies each run saved); the campaign tools live in ml_agent/tools/
+ml_agent/dynamics_reports/overnight_20261026/
+ml_agent/dynamics_reports/traversal_recovery_20261026/
+ml_agent/dynamics_reports/planner_review_20261026/

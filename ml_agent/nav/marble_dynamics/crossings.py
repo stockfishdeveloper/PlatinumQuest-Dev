@@ -52,8 +52,11 @@ GAP_RUN_RANGE_U = 20.0       # with search.GAP_RUN the cross phase (run-and-jump
 GAP_RUN_LATERAL_U = 2.0      # within this distance behind the launch and inside a cone around the crossing line (this half-width
 GAP_RUN_CONE = 0.7           # at the launch, plus this much per unit behind it); elsewhere the marble goes to the run-up point
 GAP_GIVE_UP_CALLS = 400      # a gap crossing staged for this many stage() calls in a row (~2 per decision) is dropped for a while
-GAP_STAGING_GIVE_UP = False  # 2026-10-26 night (under test): ... and sooner when the cross-phase search has found no landing plan
-GAP_STAGING_FAILS = 3        # this many times with the marble at the run-up point (within GAP_STAGING_NEAR_U): from there the run
+GAP_STAGING_GIVE_UP = True   # ON 2026-10-27 (v2; native giveup2 20 pairs +1.8 a round: 688646045 +6.4, 662636522 -2.8; baseline 3 parked run-up stretches vs 0; sim screen of 58 recorded stalls -0.53 s
+                             # each, 8 better / 0 worse; control --no-gap-staging-give-up): ... and sooner when the cross-phase search
+                             # has found no landing plan
+GAP_STAGING_FAILS = 24       # this many decisions in a row (v2, 10-27; ~1.5 s; v1 had 3 and dropped workable gaps on Fractured while
+                             # the marble was still arriving) with the marble at the run-up point (within GAP_STAGING_NEAR_U): from there the run
 GAP_STAGING_NEAR_U = 1.5     # cannot get faster (sim Fractured 2508: 8 s at the run-up point of an 8.2 u gap, then the 400-call give-up)
 GAP_COMMIT_PAST_U = 1.5      # past the lip, an active gap crossing stays in its cross phase until this far beyond the far edge
 GAP_SMALL_MAX_RISE_U = 0.5   # with search.GAP_RUN a gap narrower than GAP_STAGE_MIN_U is staged when it rises at most this much
@@ -635,10 +638,11 @@ class Crossings:
         s = crossing.get('staging')
         if not GAP_STAGING_GIVE_UP or s is None or crossing.get('edge') is None:
             return False
-        if math.hypot(float(position[0]) - float(s[0]), float(position[1]) - float(s[1])) > GAP_STAGING_NEAR_U:
-            return False
         key = ('gap',) + tuple(crossing['edge'])
         fails = self.__dict__.setdefault('_staging_fails', {})
+        if math.hypot(float(position[0]) - float(s[0]), float(position[1]) - float(s[1])) > GAP_STAGING_NEAR_U:
+            fails.pop(key, None)   # v2: away from the run-up point the count starts again
+            return False
         fails[key] = fails.get(key, 0) + 1
         if fails[key] < GAP_STAGING_FAILS:
             return False
