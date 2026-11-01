@@ -58,7 +58,8 @@ ap.add_argument('--search-workers', type=int, default=0)   # 2026-10-19: candida
                                                           # (nav/marble_dynamics/parallel_search.py; use with --real-clock)
 ap.add_argument('--native', action='store_true')   # compiled forecasts (nav/native; the game's planner since 2026-10-16 v41)
 ap.add_argument('--legacy-item-world', action='store_true', help='Reproduce the older world that ignored replacements and Mega pickups')
-ap.add_argument('--native-step-us', type=float, default=0.)   # virtual clock per physics step with --native (0 = NATIVE_STEP_US)
+ap.add_argument('--native-step-us', type=float, default=0.)
+ap.add_argument('--legacy-flags', action='store_true')   # 2026-10-29: the pre-10-29 sim flags (--horizon 24); default = production flags (realtime.FLAGS, horizon 48)   # virtual clock per physics step with --native (0 = NATIVE_STEP_US)
 o = ap.parse_args()
 if not o.normal_priority:
     import ctypes   # idle priority: never take CPU from running game pools (their search budget is wall clock)
@@ -67,9 +68,11 @@ if not o.normal_priority:
     if not _k.SetPriorityClass(_k.GetCurrentProcess(), 0x40):
         raise SystemExit('could not set idle priority')
 
-VC = [1000.0]; STEPS = [0]
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import sim_world as W   # 2026-10-29: planner args, setup and resume shared with full_round.py / conformance.py
+VC = W.VC; STEPS = W.STEPS
 if not o.real_clock:
-    time.perf_counter = lambda: VC[0]
+    W.install_virtual_clock()
 
 ap2 = argparse.ArgumentParser(add_help=False)
 ap2.add_argument('--module', action='append', default=[])   # name=path: load a modified copy of a planner module (e.g. search=x.py)
@@ -88,8 +91,7 @@ from nav.protocol import RAW_GEMS, RAW_SCORE, RAW_GEMS_REMAINING, RAW_POW_ITEMS
 from nav.routing import path_waypoint
 
 ML = Path('ml_agent')
-NATIVE_STEP_US = 100.   # --native: virtual clock per physics step. 2026-10-16 calibration under pool load (open loop, 250
-                        # decisions each): Cube 61, Sprawl 108, Bowl 138 us per step (Python work per forecast dominates)
+NATIVE_STEP_US = W.NATIVE_STEP_US
 FLAGS = ('--random-starts --only-branch physics_plan --full-round --horizon 24 --commit 4 --reuse-plan --geometry-route '
          '--resource-acquisition --recharge-continuation --landing-search --proposal-samples 20 --query-cache --clearance-cache '
          '--global-goals --physics-frame-ms 16 --fallback-cooldown 2 --search-budget-s %g --pickup-landing-continuation 40 '
@@ -98,105 +100,13 @@ CACHE = r'C:\Users\doug\AppData\Local\Temp\pq_checks\fast_nav_static_cache_20261
 DLL = r'C:\Users\doug\AppData\Local\Temp\pq_checks\compiled_sweep_20261012\sweep_kernel.dll'
 
 
-class _Got(Exception):
-    pass
-
-
 def planner_args(name):
-    import argparse as _ap
-    orig = _ap.ArgumentParser.parse_args
-
-    def cap(self, args=None, namespace=None):
-        raise _Got(orig(self, args, namespace))
-    _ap.ArgumentParser.parse_args = cap
-    saved = sys.argv
-    sys.argv = ['reliability_eval', '--maps', name, '--seeds', '7347019'] + [f % o.budget if '%' in f else f for f in FLAGS] + \
-        ['--cache-dir', CACHE, '--sweep-dll', DLL, '--output', 'ml_agent/dynamics_reports/_sim_unused'] +         [x for f in o.pflag for x in f.split('=', 1)]
-    try:
-        RE.main()
-    except _Got as g:
-        a = g.args[0]
-    finally:
-        _ap.ArgumentParser.parse_args = orig; sys.argv = saved
-    return a
+    return W.planner_args(name, budget_s=o.budget, pflags=o.pflag, legacy=o.legacy_flags)
 
 
 def setup(a, name):
-    """Engine/terrain exactly as reliability_eval.main() builds them for one map."""
-    from nav.terrain import TerrainMap
-    from nav.marble_dynamics.static_cache import cached_terrain, cached_walking, load_queries
-    from nav.collision.experimental_sweep import CachedCompiledSweepMap
-    from nav.marble_dynamics.physics import GeneralPhysics
-    terrain = cached_terrain(TerrainMap.resolve(name), a.cache_dir)
-    mesh = CachedCompiledSweepMap(ML / 'collision_maps' / (name + '.npz'), a.sweep_dll); load_queries(mesh, a.sweep_dll, a.cache_dir)
-    engine = GeneralPhysics(mesh)
-    engine.bridge_physics_ms = a.physics_frame_ms
-    engine.terminal_stop_replies = a.terminal_stop_replies; engine.terminal_stop_scope = a.terminal_stop_scope
-    engine.landing_replies = getattr(a, 'landing_continuation', 0); engine.pickup_landing_replies = getattr(a, 'pickup_landing_continuation', 0)
-    engine.use_horizon = getattr(a, 'use_horizon', 0); engine.use_first = getattr(a, 'use_first', False)
-    engine.blast_value_u = float(getattr(a, 'blast_value_u', 10.)); engine.blast_floor_u = float(getattr(a, 'blast_floor_u', 0.))
-    GD.END_VELOCITY_WEIGHT = float(getattr(a, 'end_velocity_weight', .12))
-    GD.THROTTLE_GAIN = float(getattr(a, 'throttle_gain', 4.)); GD.THROTTLE_CAP = float(getattr(a, 'throttle_cap', 1.))
-    GD.BRAKE_DECEL = float(getattr(a, 'brake_decel', 7.)); GD.TARGET_SPEED_CAP = float(getattr(a, 'speed_cap', 11.))
-    S.ROUTE_SPEED_LAW = not getattr(a, 'waypoint_brake_law', False); S.PICKUP_MIN_SPEED = float(getattr(a, 'pickup_min_speed', 6.))
-    S.FAST_PROPOSALS = not getattr(a, 'legacy_fast_proposals', False)
-    S.POWERUP_THROUGH = bool(getattr(a, 'powerup_through', True))
-    S.LAND_SHORT = bool(getattr(a, 'land_short', False))
-    S.POW_LAUNCH_ROLL = bool(getattr(a, 'roll_launches', False))
-    S.LAUNCH_COMPLETE = bool(getattr(a, 'launch_completion', False) or S.LAUNCH_COMPLETE) and not getattr(a, 'no_launch_completion', False)   # 2026-10-29: keep the module default (ON since 10-27), as reliability_eval.main() does
-    S.FAST_SUPPORTED = bool(getattr(a, 'fast_supported', False))
-    S.THROUGH_GEM = not getattr(a, 'no_through_gem', False); S.BRAKING_BACKUP = not getattr(a, 'no_braking_backup', False)
-    # as reliability_eval.main() (v70: corner plans on by default via RE.CORNER_DEFAULT; before 18:55 10-17 the sim left them off)
-    S.CORNER_PROPOSALS = bool(getattr(RE, 'CORNER_DEFAULT', False)) or bool(getattr(a, 'corner_proposals', False))
-    engine.detour_blast_ratio = float(getattr(a, 'detour_blast_ratio', 1.5) or 0.) or math.inf
-    engine.use_margin_s = float(getattr(a, 'use_margin_s', 0.) or 0.)
-    engine.use_margin_u = engine.use_margin_s * float(getattr(engine, 'ballistic_time_rate', 8.) or 8.)
-    engine.interleave_candidates = getattr(a, 'interleave_candidates', False)
-    engine.recheck_risky_plans = getattr(a, 'recheck_risky_plans', False)
-    engine.mega_enabled = getattr(a, 'mega_proposals', False)   # 2026-10-20 Mega use proposals
-    engine.pickup_stop = getattr(a, 'pickup_stop', False)
-    engine.edge_hits = getattr(a, 'edge_hits', False)
-    engine.wall_rebounds = getattr(a, 'wall_rebounds', True)
-    engine.pad_hops = getattr(a, 'pad_hops', False)
-    engine.resource_cap = getattr(a, 'resource_cap', True)
-    engine.time_price = getattr(a, 'time_price', False)
-    from nav.marble_dynamics import gem_demo as _gd; _gd.set_time_price(engine.time_price)
-    if engine.time_price: engine.ballistic_time_rate = _gd.TIME_PRICE_U_S
-    engine.pad_arrival = getattr(a, 'pad_arrival', True)
-    a.geometry_terrain = cached_walking(terrain, mesh, a.sweep_dll, a.cache_dir, memo=a.clearance_cache)
-    engine.ballistic_landing = getattr(a, 'ballistic_landing', False); engine.ballistic_reserve_s = getattr(a, 'ballistic_reserve_s', 0.)
-    engine.opportunistic_powerups = getattr(a, 'opportunistic_powerups', 0.)
-    engine.checked_powerup_detours = getattr(a, 'checked_powerup_detours', False)
-    engine.mission_bounds = None
-    try:
-        from nav.marble_dynamics.fast_nav import mission_inbounds
-        engine.mission_bounds = mission_inbounds(json.loads((ML / 'collision_maps' / (name + '.json')).read_text()))
-    except (ValueError, OSError):
-        engine.mission_bounds = None
-    engine.crossings = None
-    if getattr(a, 'component_crossing', False):
-        from nav.marble_dynamics.crossings import Crossings
-        engine.crossings = Crossings(a.geometry_terrain, mesh=engine.mesh, climbs=getattr(a, 'climb_crossings', False))
-    real_step = engine.step
-
-    def step(*args, **kw):
-        STEPS[0] += 1; VC[0] += o.step_cost_ms / 1000.
-        return real_step(*args, **kw)
-    engine.step = step
-    if o.native:
-        # the compiled forecast never calls engine.step: it reports its physics steps through native_step_hook, and with
-        # virtual_step_cost_s set it stops a forecast at the virtual deadline itself (max_steps)
-        from nav.native import attach
-        attach(engine); engine.native_sim.bind_clearance(a.geometry_terrain)
-        cost = (o.native_step_us or NATIVE_STEP_US) / 1e6
-
-        def hook(n):
-            STEPS[0] += n
-            if not o.real_clock:
-                VC[0] += n * cost
-        engine.native_step_hook = hook
-        engine.virtual_step_cost_s = None if o.real_clock else cost
-    return terrain, engine
+    """Engine/terrain exactly as reliability_eval.main() builds them for one map (sim_world.setup)."""
+    return W.setup(a, name, native=o.native, step_cost_ms=o.step_cost_ms, native_step_us=o.native_step_us, real_clock=o.real_clock)
 
 
 # ---------------------------------------------------------------- variant: direction-aware end value (prototype v38)
@@ -237,23 +147,7 @@ def aligned_cost(route, states, gem, routed, item, after=None):
 
 
 # ---------------------------------------------------------------- sim world
-def resume(dynamics, rollout):
-    """viability.resume_forecast without the ambiguity refusal (the sim accepts the engine's own choice)."""
-    result = copy.deepcopy(dynamics)
-    pending = list(dynamics['bridge_action']); move = copy.deepcopy(dynamics['native']['pending_move'])
-    hold = int(dynamics['pow_yaw_hold']); aim = float(dynamics['pow_yaw'])
-    for action in rollout['proposed']:
-        move, _, hold, aim = translated(pending, hold, aim)
-        pending = list(action)
-    state = copy.deepcopy(rollout['states'][-1])
-    result['native']['state'] = state
-    result['native']['frame_clock_ms'] = int(dynamics['native']['frame_clock_ms']) + 64 * len(rollout['proposed'])
-    result['native']['pending_move'] = move
-    result['bridge_action'] = pending; result['pow_yaw_hold'] = hold; result['pow_yaw'] = aim
-    for source, key in [('blast_context', 'blast'), ('inventory_context', 'inventory')]:
-        if source in state:
-            result[key] = copy.deepcopy(state[source])
-    return result
+resume = W.resume
 
 
 class Msg:

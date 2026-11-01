@@ -14446,3 +14446,231 @@ Startpreflight: existingtools.test_native_worker_bench5tests +test_launch_live_a
 Liveplanall10freshseed731948263, alternatewhicharmfirstbyMAPindex. IfwholebatchmeanpositiveANDlaunchswitchactivity, all10fresh286175943 reversedfirstarm. Onebatch~80minutes, secondanother~80; no inferredmorningdeadline. FirstbaselineKOTMROUND148points/0falls/holds0.3s/p99plan.167s, closed07:29:47; candidateKOTMstartedGO07:30:09. Pairnotyetcomplete/audited, doNOTclaimlivegain. ActualWorldflightflagsrecordedlaunch_live_runtime.json(BASECOMPFalse,otherfourFalse;CANDTruecheckedbeforegame). Sourceidentityfrozenallmaps/seeds+sharednativehashes+checkpoint, actualGO/layout/source/flags/workload checksperpair. Sourcefile/drivers frozenwhilecampaignrunning.
 
 Livewrappertraceenhancementbeforestart: with--trace, BOTHarmsgziplogplanner_choices.jsonl.gz(fullactualplanner input includingpredictedmsg,action,selectedinfo) andimpulse_comparisons.jsonl.gz(alreadycomputedheldSJ/SS rootsearchcandidateINFOS+input+target), NOnewforecasts. CanonicalS.search+RE.searchaliastransparentwrappedandController.actionwrapped; globals/classesnotreplaced. gzipcompresslevel1, measuredI/Ooverheaddeclaredsamebotharms; unknownnonJSONtypesexplicitlytagged, notsilentloss. Runtimeflagsandloggingprotocolcheckedbycomparator. Filesmayappear0byteswhilegzipbuffered; DO NOTpoke/flush viaadditionalprocess. Fullcandidateinfoimprovesforensicswithoutcoldunbudgetedreplay. Nevereditlaunch_completion_live_bench.py/run_launch_live.py/native_worker_bench.py/nav/core orcheckpointduringlive. Futureprototypesunderreports/toolsUNLAUNCHED; avoidevenlightnewtestswhilequietscoringunlessrequiredread-onlyaudits.
+
+## 2026-10-29 12:30-14:00: phase 1 of the improvement-loop plan (docs/IMPROVEMENT_LOOP_PLAN_2026-10-29.md; CONVO.md)
+
+Operator 12:1x: "proceed with that plan and start the work" (foundations first, pilot decides the build, dates and the 40-pair
+count provisional, live play is the final test). Baseline snapshot: commit 8f8b577f (planner sources = d2ad44771, speed cap 11,
+FAST_SUPPORTED off), archived with flags, module constants, source and DLL hashes in docs/BASELINE_SNAPSHOT_2026-10-29.json.
+
+New tools (ml_agent/tools/sim_bench, outside nav/marble_dynamics; pools unaffected):
+- sim_world.py: planner args, engine setup and bridge resume shared by all sim tools; PRODUCTION flags by default
+  (realtime.FLAGS, horizon 48). sim_bench.py now imports it; it had run its own flag list with --horizon 24 (pre-v45) since
+  10-16 (`--legacy-flags` reproduces that).
+- hunt_world.py: the solo branch of huntGems.cs (centre choice with the too-close fallback, radius doubling, weighted group
+  fill) and the quick-respawn rule (game.cs / checkpoint.cs / mp/gameConnection.cs: the trigger FARTHEST from the nearest
+  highest-value visible gem 46/51 times, else from the last contact; position = trigger + add, default 3 u up; camera yaw 0;
+  held powerup back after 600 ms; Blast meter kept). Own numpy RNG: legal futures, never the recorded one.
+  Validation against 800-2000 recorded spawns per map (all 10-28/29 campaigns): sizes, points, value shares and the
+  consecutive-spawn distance quantiles (p1..p75) match on all ten maps; every mission gem appears in the recordings (Bowl: one
+  of 234 never seen). The ten missions have no GemGroups and no PlatinumQuest spawn chance.
+- conformance.py: every recorded decision advanced one reply by the sim and compared with the next recorded state. Ten maps,
+  seed 482017593 (qr3 explore baseline), 37,900 replies: position p99 0.000 u on every map (max 0.27 u once on Concentric,
+  0.05 Cube, 0.03 Bowl: single contact replies), velocity p99 0.000, Blast meter p99 0.0000, held powerup 100 percent,
+  pickups 100 percent on nine maps and 99.97 on Cube (one borderline box test at the float32 edge), 48-reply open-loop
+  chains exact. OOB: the game's InBounds trigger polls, so its flag lags the geometric exit by 0-2 decisions (43 falls:
+  12/21/9/1 at lags 0/1/2/3); the sim declares a fall one decision after the exit.
+- full_round.py: whole rounds in the sim: the recorded round's GO state as the opening (same first group as the native
+  round), sampled later groups, powerup respawns (7 s), falls and the 8 s rescue with the game's respawn rule, the clock.
+  A/A: two Sprawl rounds identical to the physics step (192 points, 139 pickups, 25,660,084 steps each). Leg benchmark A/A
+  with production flags: 18/18 episodes identical (KOTM, Cragmire, TreasureBox).
+  Score agreement, one opening (qr3 seed 482017593), three spawn seeds per map, against the native rounds of that opening
+  and the eight qr3+hold3 native rounds per map:
+  | map | sim (3 seeds) | native same opening | native mean (8) |
+  | KOTM 147 / Sprawl 179 / Cube 136 / Bowl 139 / Duplex 138 / Fractured 106 / Cragmire 102 / Vortex 110 / TreasureBox 167 / Concentric 117 |
+  | native same opening: 143,141 / 179,171 / 152,151 / 110,100 / 136,140 / 126,111 / 90,103 / 126,126 / 178,177 / 116,98 |
+  | native means: 144.5 / 177.6 / 140.2 / 118.5 / 139.1 / 107.4 / 117.5 / 117.5 / 169.9 / 110.1 |
+  Ten-map mean: sim 134.0, native 134.2. Bowl (+20) and Cragmire (-15) are the outliers; single-round noise is +-10-30.
+- Work budget: the sim's 2 s virtual budget at 100 us a step is not the native campaign's parallel .172 s search; fallback
+  (A2) decisions per round: Vortex sim 212 vs native 165, Cragmire 174 vs 70, Cube 0 vs 110; at 50 / 25 us: Vortex 22 / 90,
+  Cragmire 54 / 84, Cube 0 / 0 (single 120 s segments). Not matchable by one knob (the parallel dispatch order matters);
+  kept at 100 us / 2 s as the fixed work budget of the baseline, recorded as a known deviation.
+- Throughput (measured): a 300 s Sprawl round = 344 s CPU alone, 420-580 s with eight parallel processes (hyperthreads);
+  ~1.1-1.9x real time per process; ten maps x 3 seeds (30 rounds) took 34 min on 8 processes = ~53 rounds an hour.
+  Memory 2.6 GB private per process (8 processes fit; 16 would not).
+- 13:56 launched base_aa3 (run_flag_native.py, identical arms: candidate flag --proposal-samples 20 = the default, 6 workers
+  a game, seeds 482017593 / 916305284, both seeds): the native baseline remeasure at the live allowance and the native noise
+  floor (A/A). Expected ~2.5 h. No sim runs beside it.
+
+### 2026-10-29 15:30 base_aa3 closed: the native noise floor and the baseline level
+Identical arms (production both sides, 6 workers a game, live .172 s allowance), 20 pairs, seeds 482017593 / 916305284:
+"candidate" 131.8 vs "baseline" 128.4, delta +3.3 a round, per-pair SD 10.0, se 2.2. Per map (seed 1 / seed 2): Bowl -8 / +10,
+Concentric -1 / -1, Cragmire +20 / +27, Cube -4 / 0, Duplex +10 / +8, Fractured 0 / -9, KOTM +12 / +10, Sprawl -7 / +5,
+TreasureBox -6 / -10, Vortex 0 / +10. The same code with the same openings scores +3.3 over 20 pairs: the campaigns of 10-26
+to 10-29 that promoted or rolled back on +3 to +6 were reading this. All 40 rounds: mean 130.1 (the 8-worker campaigns of
+10-28 read 134-137). Journals: dynamics_reports/overnight_20261026/base_aa3_*.
+
+### 2026-10-29 16:10 phase 2 feasibility pass (Duplex) and the frozen pilot criteria
+Harness: tools/sim_bench/branch_bench.py (prefix 47 decisions from the recorded state, forced fresh search at the root for
+every arm, top-4 alternatives + 2 gate-rejected candidates executed open loop for 16 replies then handed back, 2 planning
+futures choose, 2 reserved futures score, horizon 20 s, work 3x / 10x on the reserved futures). Smoke on KOTM (2
+situations, 35-42 s CPU each) and 5 Duplex situations at full parameters: 577-969 s CPU each with 3 processes sharing
+cores (the pass was stopped at 5 of 18: the cost is measured; its 5 rows stay as data). Projection for the pilot: 200
+situations x ~12-16 min = 6-8 h on 8 processes. Bucket shares over the held-out rounds (qr3 confirm seed): approach 48.2
+percent, in-group 49.6, respawn 0.9, countdown 1.3; situations are drawn uniformly in time, so the buckets come out in
+these proportions.
+Criteria frozen before the reserved results are read (the 5 Duplex rows were seen; they are not the reserved set):
+- primary: points over the 20 s horizon on the reserved futures, ratio of equal-map means, cluster bootstrap by source round
+  (tools/sim_bench/pilot_summary.py); clairvoyant bounds and clear-time diagnostics reported apart;
+- ranking first if the deployable selector (argmax over branches of the planning-future mean, scored on the reserved
+  futures) gains at least 5 percent of horizon points over the baseline; otherwise compare the measured incremental gains
+  and costs of the gate audit, the work arms and the branch bound; a flat work curve (3x, 10x) ends the more-compute idea;
+- an interval straddling the threshold is inconclusive: one predeclared extension (10 more situations per map, fresh
+  sample seed), then reported unresolved;
+- the native base_aa3 noise floor (+3.3 a round from identical arms) is the reference for anything later tested live.
+Pilot launched 16:1x: ten maps x two held-out source rounds (qr3_confirm_baseline 916305284, hold3_confirm_baseline
+278350961) x 10 situations, sample seed 11, 8 processes; output scratchpad pilot/run1/*.jsonl.
+
+### 2026-10-29 22:55 headroom pilot run1 closed (200 situations, ten maps, two held-out rounds each) and the extension launched
+Reserved-future points over the 20 s horizon, ratio of equal-map means to the baseline, cluster bootstrap 95 percent by source round:
+| arm | all (n=200) | approach (94) | in-group (106) |
+| deployable selector (chosen on 2 planning futures) | 1.031 [1.011, 1.054] | 1.030 [0.994, 1.067] | 1.023 [1.007, 1.051] |
+| clairvoyant, existing alternatives | 1.069 [1.049, 1.092] | 1.065 | 1.068 |
+| clairvoyant, alternatives + gate-rejected | 1.114 [1.094, 1.138] | 1.121 | 1.112 |
+| gate-rejected candidates alone (best of 2) | 1.013 [0.980, 1.043] | 1.009 | 1.017 |
+| search work 3x / 10x | 1.017 [0.999, 1.037] / 1.021 [0.997, 1.050] | | |
+Baseline 11.75 points per 20 s window. Per map (selector / clairvoyant alt / with gates, points per window): Cragmire +1.12 /
++1.88 / +3.17, Sprawl +0.75 / +1.73 / +1.93, TreasureBox +0.62 / +1.25 / +2.38, Duplex +0.47 / +0.42 / +1.05, Fractured +0.20 /
++0.97 / +1.20, Bowl +0.25 / +0.40 / +0.65, Cube +0.12 / +0.47 / +0.65, Vortex +0.15 / +0.35 / +0.57, Concentric -0.03 / +0.47 /
++1.00, KOTM -0.42 / -0.15 / +0.20.
+Diagnostics: the baseline's own choice was the best branch in 94 of 200 situations; of 1,103 branch runs 320 beat the
+baseline, 625 lost, 158 tied; the clairvoyant winner was a gate-rejected candidate in 30 situations (all
+no_supported_continuation, 4,126 root rejections of that kind against 709 blast_no_gain, 386 use_margin, 123 edge_no_climb);
+the alternative families that beat the baseline: direct 51, jump 44, steering 28, throttle 24, through 16, route 15. Selector
+winner's curse: where it picked an alternative (92 of 200) the planning-future gain was +2.44 points, the reserved gain
++0.71. Cost: 295 s (KOTM) to 1,233 s (Bowl) CPU a situation with 8 processes; 200 situations in 6 h 50 min.
+Reading by the frozen criteria: the work curve is flat (3x / 10x within noise): more compute is not the lever. The
+deployable selector (3.1 percent) is below the 5 percent line and its interval reaches 5.4: inconclusive, so the one
+predeclared extension runs tonight (run2: 10 more situations per source round, sample seed 12, same protocol, ~7 h). The
+existing candidates hold ~7 percent of headroom (an upper bound), ~11 percent with the gate-rejected ones; gate-rejected
+candidates taken blindly are neutral, so admission pays only with a ranker that can tell them apart. Not a decision yet.
+
+### 2026-10-29 23:0x operator: "stop the training"
+The pilot extension run2 was stopped (branch_bench processes and the driver killed) with 0 situations completed; their rows
+stay in scratchpad pilot/run2 as data. Nothing runs: no sim process, no game. The run1 table above is the state of the
+pilot; the extension can be resumed with the same command (SAMPLE=12 pilot.sh run2 10 ...) on the operator's go.
+
+### 2026-10-29 23:33 operator: "continue your training": the pilot extension run2 relaunched (same command, sample seed 12, 8 processes, ~7 h).
+
+### 2026-10-30 08:45 pilot closed (run1 + extension run2 = 400 situations) and the stage 3a label factory launched
+Combined, reserved-future points over 20 s, ratio of equal-map means, cluster bootstrap by source round:
+selector 1.046 [1.035, 1.060] (approach 1.073, in-group 1.016); clairvoyant existing alternatives 1.091 [1.079, 1.105];
+clairvoyant with gate-rejected 1.142 [1.128, 1.160]; gate-rejected alone 1.029 [1.006, 1.053]; work 3x 1.023, 10x 1.031.
+The extension alone: selector 1.071, clairvoyant 1.121 / 1.176. By the frozen rule the selector's interval still straddles the
+5 percent line after the one extension: reported as "at the threshold, unresolved by the letter". By the rule's fallback
+(compare measured incremental gains and costs) ranking is the largest lever (crude selector 4.6 percent at no extra cost
+against 3.1 for 10x compute and 2.9 for blind gate admission), and the gate-rejected candidates are the clairvoyant winner
+in about one situation in six: the build is a RANKER with ADMISSION through the ranker (plan doc, stage 3).
+08:45 label factory launched (scratchpad labels/run1): 14 development rounds per map (the two held-out rounds per map
+excluded), 10 situations each, label mode (baseline + 4 alternatives + 2 gate-rejected on 2 futures, features and root
+context saved); smoke: 126 s CPU per KOTM situation; expected ~15 h on 8 processes. The ranker training (3b) waits for the
+operator's OK; its code is being written meanwhile.
+
+### 2026-10-30 18:00 stage 3b interim: the first ranker does not beat the hand cost on held-out rounds
+Operator approved the training run (10-30 ~13:00). Fits on the labels so far (541 dev situations, 3,614 candidate rows from
+59 label files), held out = the two base_aa3 arms (80 situations, 4 maps): pairwise accuracy of the model against the
+executed outcome 0.45-0.55 for every target (points at 20 / 10 / 5 s, first-pickup time, blend), model (gbm, small gbm,
+ridge), with or without per-situation centering of the candidate features and relative targets; the planner's own cost
+scores 0.51 (20 s) / 0.58 (10 s). The 400-tree GBM reaches 0.93 in sample (memorization). Top-pick gains -0.5 to +3 percent
+on 80 situations: noise.
+Why (diagnostics on 620 situations): label noise is not the cause. Split-half agreement of the two futures within a
+situation is r 0.47 for 20 s points but 0.75 at 10 s, 0.91 at 5 s and 0.92 for the first-pickup time: short-horizon
+outcomes are reproducible. They are also continuous in the forecast end state (alternatives whose forecasts end within
+0.5 u of each other have identical 10 s outcomes 86 percent of the time) but beyond ~1 u the outcome difference is flat in
+the distance (rank correlation 0.14): which way is better is a detailed function of the end state and the gems around it,
+not of the 38 hand features. Next: the full 1,400 + the held-out evaluation set (queued) for the final fit of this feature
+set; branch_bench now also saves the forecast path (every 4th reply) so the next label run can feed trajectory-relative
+features (min distance and time of closest approach to each remaining gem, heading at the end relative to each gem). If
+that does not rank either, the plan's fallback applies: rollout-based ranking at a few decision points or a coverage pilot.
+
+### 2026-10-31 08:00 stage 3b verdict on the first label run: the learned ranker does not beat the hand cost
+Label factory run1 complete 07:50 (1,400 situations, 140 jobs, ~23 h on 8 processes; the two held-out rounds per map never
+used). Full fit, held out = the two base_aa3 arms (200 situations, 1,205 branch pairs): pairwise accuracy model 0.52 (ridge
+and small GBM) against the cost's 0.51; argmax gain on 20 s reserved points +0.5 / +1.1 percent. Trajectory features (the
+723 situations whose jobs started after the 18:00 patch; 605 train / 120 held out): pairwise 0.53-0.54 against 0.51; argmax
+-0.3 / +1.2 percent. Interim fits at 160 / 224 / 360 / 540 / 615 situations gave the same picture: no held-out ranking
+signal in planner-info, end-state or coarse-path features, while outcomes themselves are reproducible (split-half r 0.75 at
+10 s). The evaluation set (queued, ~2.5 h) will close this formally; the frozen pass mark (5 percent) is not reachable from
+here. Fallback (plan doc): rollout-based ranking. Next experiment (tools/sim_bench/rollout_rank.py): at the root, extend each
+candidate's own forecast to 8 s with the planner's cheap route-following controller (LandingContinuation / through context),
+count pickups by the tick test, and measure the agreement of that score with the executed 10 / 20 s outcomes on the labelled
+situations (the learned ranker's 0.52-0.54 and the cost's 0.51 are the bars; the pilot's full-controller 20 s rollout selector
+realized +4.6 percent). Cost per candidate ~128 replies: affordable for the top 6 within the live budget if it ranks.
+
+### 2026-10-31 08:40 rollout ranking test negative; stage 3b (learned or cheap ranker) closed unresolved by the stop rule
+tools/sim_bench/rollout_rank.py over the 200 labelled held-out situations (base_aa3 arms): each root candidate's own replies
+extended to 128 replies (8 s) with a greedy nearest-gem route follower (the planner's Proposal stopping law, no search),
+scored by tick pickups. Agreement with the executed outcomes: 0.55 (10 s) / 0.54 (20 s) against the planner's cost 0.59 /
+0.56 on the same 1,934 / 2,508 pairs; argmax ratio 0.998 / 1.003. The cheap follower fell in 23 percent of rollouts and 71
+of 200 situations gave every candidate the same score (last gem of a group: nothing else to collect without spawns).
+Conclusion: neither planner-info / end-state / coarse-path features (0.52-0.54) nor a cheap 8 s rollout (0.54-0.55)
+predicts which root candidate the planner's own 20 s continuation turns into more points; only the full controller's
+continuation did (the pilot's 2-future selector, +4.6 percent), which costs ~300 planner decisions per branch and is not
+deployable at 64 ms. Per the frozen rule (one extension, then report), the ranker line stops here. The queued second label
+run was cancelled 08:4x; the evaluation set (200 situations, label mode) finishes for the record. Labels stay on disk
+(scratchpad labels/run1, 1,400 situations with executed branch outcomes; 723 with forecast paths).
+Measured levers left from the pilot: more search work (+2.3 / +3.1 percent at 3x / 10x: a faster live search, since
+~90 percent of a search is Python around the compiled forecasts; also fewer budget overruns, which precede 34 of 37
+native falls per the 10-27 audit), and the unmeasured coverage question (wider candidate families judged by the existing
+cost, now testable in the deterministic full-round sim at ~50 rounds an hour instead of 20 noisy game pairs).
+
+### 2026-10-31 10:20-11:00 operator: "do 1 and 2" (faster live search; coverage tests in the full-round sim)
+Coverage batch 1 launched 10:22 (scratchpad coverage/batch1, 7 processes, ~12 h): baseline and five existing switches,
+each ten maps x 8 spawn seeds paired on the qr3 opening 482017593: FAST_SUPPORTED=True (admission by checked continuation),
+TARGET_SPEED_CAP 13.5 + TRAVEL_TOP 16, REFINE_CANDIDATES 6 with REFINE_FAILURE_ONLY False, THROUGH_BOX, CORNER_PROPOSALS.
+Search profile (sim, serial, real clock, Sprawl 4 legs, 296 decisions, under load): action 185 ms a decision; search()
+70 percent of it; inside search the compiled forecasts' own time ~5 s of 22 (the ctypes call), the per-reply Python
+proposals (_predict_per_reply: A2 NavigatorProposal with its torch model, gap runs, lines, climbs) 11 s for 469 of 7,024
+forecasts, assess 9.6 s (terminal_support raycasts 4 s, candidate_cost 4 s); the cluster order choice 23 s of pick's 41 s;
+plan_tour 4.8 s (16 ms a decision, _nearest_walkable 3.2 s own time); json decoding 3.2 s is the sim's own journal loading.
+Bit-identical speedups available: small grid lookups and wrapper overhead (10-15 percent of serial search time); a 2-3x
+speedup needs the per-reply proposals in C++ (multi-day; the 10-16 note scoped the A2 port alone as multi-day).
+Done: terrain._nearest_walkable vectorized (2.9x on 12,000 random queries, 0 mismatches against the kept loop version
+_nearest_walkable_loop; identical tie-breaking: dj-major, float32 level choice, float64 height key).
+
+### 2026-10-31 13:30 ranker: final held-out evaluation (formal closure of the frozen criterion)
+Evaluation set: the two never-trained rounds per map (qr3_confirm_baseline 916305284, hold3_confirm_baseline 278350961),
+label mode, 199 situations. Trajectory-feature model trained on the 723 path-carrying run1 situations: pairwise 0.544
+(ridge) / 0.530 (small GBM) against the cost's 0.530 on 1,194 pairs; argmax ratio 0.998 / 0.986 (with gate-rejected
+candidates 0.996 / 0.974). All 1,392 run1 situations, ridge: 0.532, ratio 0.995. The 5 percent pass mark is not met; the
+learned ranker is closed negative. Tools stay (tools/sim_bench/ranker.py, rollout_rank.py, labels on disk).
+
+### 2026-10-31 17:30 coverage batch 1 (full-round sim, paired by spawn seed, 80 rounds an arm; 3 jobs still finishing)
+Baseline 134.8 a round (80 rounds, falls 0.74). Every widening or admission switch loses, resolved at about +-1.5:
+| arm | delta a round | equal-map ratio [95%] |
+| FAST_SUPPORTED (admission by checked continuation) | -2.25 +- 1.23 | 0.984 [0.971, 0.995] |
+| TARGET_SPEED_CAP 13.5 + TRAVEL_TOP 16 | -2.14 +- 1.53 | 0.985 [0.962, 1.011] |
+| REFINE_CANDIDATES 6, always | -2.61 +- 1.84 | 0.977 [0.936, 1.013] |
+| THROUGH_BOX | -3.31 +- 1.61 | 0.970 [0.940, 0.997] |
+| CORNER_PROPOSALS | 0.00 exactly (75 rounds): the setting is inert through --set (identical rounds); not a result |
+Falls and mean speed move by hundredths. Reading: the production defaults are a local optimum against these knobs (as the
+noisy game pairs of October had suggested one knob at a time); the pilot's clairvoyant headroom is not reachable by any of
+them. Batch 2 (queued, starts on batch 1's completion): TARGET_SPEED_CAP inf + TRAVEL_TOP 0, --time-price,
+ORDER_CANDIDATES 5, SS_RESERVE_LAST_U 20, --opportunistic-powerups 0, --proposal-samples 40.
+
+### 2026-11-01 00:30 coverage batch 2 closed (the operator's named behaviours; 80 paired rounds an arm against the batch 1 baseline 134.8)
+| arm | delta a round | equal-map ratio [95%] | note |
+| TARGET_SPEED_CAP inf + TRAVEL_TOP 0 | +0.89 +- 1.77 | 1.005 [0.962, 1.044] | falls +0.39 a round, speed +0.18 u/s; Cube +13, Cragmire +8, Bowl +8, Vortex -16 |
+| --opportunistic-powerups 0 (no detours) | -2.38 +- 1.71 | 0.982 | the detours are worth ~+2.4: keep them (oppo1 10-22 had called it a tie) |
+| ORDER_CANDIDATES 5 | -2.36 +- 1.35 | 0.981 | wider cluster order choice loses (Sprawl -15, Vortex -12) |
+| --time-price | -0.99 +- 1.48 | 0.996 | as tp1+tp2 on 10-22 |
+| SS_RESERVE_LAST_U 20 | -0.10 +- 0.68 | 0.999 | acts almost never |
+| --proposal-samples 40 | 0.00 exactly | inert through the sim's planner args (as CORNER_PROPOSALS was): not a result |
+Nothing positive at +-1.5. Together with batch 1: eleven planner knobs measured in two nights, one (speed cap off) neutral
+with more falls, seven negative, two inert through the harness, one near-null. Batch 3 (slow-family removals, edge-hit
+sensitivity) started 00:3x; after it, by the operator's instruction, nothing launches and the next step is a conversation.
+Tool note: --pflag settings that reliability_eval.main() applies in its settings block (proposal samples, corner
+proposals) are not reproduced by sim_world.setup; fix before testing such flags again.
+
+### 2026-11-01 04:35 coverage batch 3 (397 of 400 rounds; slow-family removals and the edge-hit sensitivity arm)
+| arm (removed) | delta a round | equal-map ratio [95%] | note |
+| A2 navigator proposal (NAV_SPAWN_OFF always) | -3.35 +- 1.81 | 0.975 [0.939, 1.013] | fallback decisions +27 a round, falls +0.35; Sprawl -14, Vortex -14, Concentric -9 |
+| climbs (CLIMB_SKILL False) | -2.45 +- 1.21 | 0.981 [0.961, 0.999] | Sprawl -10, Vortex -9, Duplex -6 |
+| cluster lines (CLUSTER_LINES False) | -2.76 +- 1.56 | 0.976 [0.953, 1.000] | |
+| gap routes (GAP_ROUTES False) | -1.02 +- 1.52 | 0.989 | Fractured -22 (as expected), the rest about 0 |
+| edge hits (--no-edge-hits, sensitivity check) | -1.84 +- 1.62 | 0.987 | the live +2 of 10-21 reproduced in sign and size |
+Every slow per-reply Python family earns its keep, A2 most of all (and its removal raises the fallback rate): the C++ port
+scope is the full set (A2 torch policy, gap runs, lines, climbs). The sensitivity check passed: a known live effect shows in
+the sim at the expected size. Per the operator's instruction nothing launches after this batch; the next step is a
+conversation on how to proceed. Three nights of coverage tests: 16 arms, none positive beyond noise, nine negative at
++-1.5, two inert through the harness, one neutral with more falls.

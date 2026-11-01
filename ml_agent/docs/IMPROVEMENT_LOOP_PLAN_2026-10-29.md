@@ -83,3 +83,29 @@ native campaign's resolution at the predeclared sample size.
 Points only; lobby-valid (the policy never sees a sampled future); transfer to any map (relative features, no map
 names); settings baked into defaults; no training launch without the plain plan and the operator's OK; one session per
 plan; every wait is a Monitor with a stall alert; the operator can stop at any milestone.
+
+## Stage 3 plan as proposed on 2026-10-29 23:40 (after the pilot run1; awaiting the operator's OK for the training run)
+
+Pilot reading (run1, 200 situations): more search work is flat; the existing candidates hold ~7 percent of 20 s points
+(upper bound), ~11 percent with the gate-rejected ones; a two-future selector realizes 3.1 percent (its picks gain +2.44 on
+the planning futures and +0.71 on the reserved ones: the winner's curse of choosing among noisy branches). The build is a
+RANKER that scores every root candidate by its predicted points over the next 20 s, trained on executed branch outcomes,
+and an ADMISSION rule that lets it see candidates the stillness gate rejects.
+
+3a. Label factory (branch_bench.py --label-mode): ~2,000 situations drawn uniformly in time from the 10-28/29 campaign
+    rounds (dev) with the two held-out rounds per map kept for evaluation; per situation the baseline plus up to 4
+    alternatives and 2 gate-rejected candidates executed on 2 futures; saved per candidate: the planner's info (cost,
+    pickup interval, terminal support, backup, continuation, through credit), the forecast end state (position, velocity,
+    held, z), the root context (marble state, inventory, Blast meter, time left, gems and powerups relative), and the
+    executed points over 20 s per future. Cost ~5 min a situation, ~170 CPU-hours, one night on 8 processes.
+3b. Ranker: gradient-boosted trees or a small MLP on those features (relative, no map identity), target = executed
+    points over 20 s (mean over futures); judged on the held-out rounds by (i) pairwise ranking accuracy against the
+    planner's cost, (ii) the realized gain of its argmax on reserved futures (the pilot's deployable metric). Pass:
+    reserved gain >= 5 percent of window points on the held-out rounds. THIS IS THE TRAINING RUN THAT NEEDS THE OK.
+3c. Admission: the ranker also scores no_supported_continuation candidates whose forecast did not fall; a candidate is
+    admitted when the ranker prefers it and the executed-consequence check (the planner's own continuation for 16
+    replies, no OOB) holds. Measured in the sim first.
+3d. Integration: the ranker replaces candidate_cost's end-of-plan term inside search.py behind a default-on switch; paired
+    full-round sim (100 rounds, ~2 h) per iteration; the operator's situation replays as regression cases.
+4.  Native confirmation at live timing, criteria written before the run (noise floor: identical arms +3.3 a round over
+    20 pairs, se 2.2).

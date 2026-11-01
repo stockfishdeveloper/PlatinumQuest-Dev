@@ -410,7 +410,41 @@ class TerrainGrid(TerrainMap):
 
     def _nearest_walkable(self, j, i, radius=3, z=None):
         """Nearest node (k, jj, ii) to walk cell (j, i): by cell distance first, then by height difference from z
-        (the top level is preferred when z is None). None if nothing walkable within the radius."""
+        (the top level is preferred when z is None). None if nothing walkable within the radius.
+        2026-10-31: one vectorized pass over the window (the per-cell loop was 3.2 s of a 55 s serial profile); the same
+        answer as the loop (same dtype arithmetic for the per-cell level choice, float64 for the height key, the first
+        cell in dj-major order among exact ties). _nearest_walkable_loop is the original, kept for the equality check."""
+        j0, j1 = max(0, j - radius), min(self.wH, j + radius + 1)
+        i0, i1 = max(0, i - radius), min(self.wW, i + radius + 1)
+        if j0 >= j1 or i0 >= i1:
+            return None
+        W = self.walk_z[:, j0:j1, i0:i1]                      # (K, h, w)
+        F = np.isfinite(W)
+        anyf = F.any(axis=0)
+        if not anyf.any():
+            return None
+        if z is None:
+            k = np.argmax(F, axis=0)                           # first finite level
+            dz = np.zeros(anyf.shape, dtype=np.float64)
+        else:
+            zf = float(z)
+            D = np.abs(W - zf)                                 # the loop's dtype: walk_z's own
+            D = np.where(F, D, np.inf)
+            k = np.argmin(D, axis=0)                           # first minimal finite level
+            h, w = anyf.shape
+            zk = W[k, np.arange(h)[:, None], np.arange(w)[None, :]].astype(np.float64)
+            dz = np.abs(zk - zf)
+        djs = np.arange(j0, j1) - j; dis = np.arange(i0, i1) - i
+        d2 = (djs * djs)[:, None] + (dis * dis)[None, :]
+        order = np.arange(anyf.size).reshape(anyf.shape)       # dj-major iteration order of the loop
+        m = anyf.ravel()
+        cand = np.flatnonzero(m)
+        pick = cand[np.lexsort((order.ravel()[cand], dz.ravel()[cand], d2.ravel()[cand]))[0]]
+        jj, ii = divmod(int(pick), anyf.shape[1])
+        return (int(k.ravel()[pick]), j0 + jj, i0 + ii)
+
+    def _nearest_walkable_loop(self, j, i, radius=3, z=None):
+        """The pre-10-31 loop (reference for the equality check of _nearest_walkable)."""
         best, bd = None, (1e9, 1e9)
         for dj in range(-radius, radius + 1):
             for di in range(-radius, radius + 1):
