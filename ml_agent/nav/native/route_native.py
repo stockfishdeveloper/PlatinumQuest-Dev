@@ -80,16 +80,24 @@ def _navigate(lib, handle, route, pos, gem):
     terrain = route.terrain
     field = route.field
     wp = route.waypoint
-    if (field is None or getattr(terrain, 'ground_clearance', None) is None or not isinstance(gem, np.ndarray)
-            or gem.dtype != np.float64 or gem.ndim != 1 or len(gem) < 3 or field.dtype != np.float32 or not field.flags.c_contiguous
+    if isinstance(gem, np.ndarray):
+        if gem.dtype != np.float64 or gem.ndim != 1 or len(gem) < 3:
+            return None
+        strong = 1      # a line toward the gem samples NumPy floats
+    elif isinstance(gem, (list, tuple)) and len(gem) >= 3 and all(type(v) is float for v in gem[:3]):
+        strong = 0      # ABI 15 (2026-11-01): a gem given as plain Python floats (item positions) samples plain floats
+    else:
+        return None
+    if (field is None or getattr(terrain, 'ground_clearance', None) is None
+            or field.dtype != np.float32 or not field.flags.c_contiguous
             or RT.goal_key(gem) != route.key or RT.LOOKAHEAD_U != 12.0 or RT.WAYPOINT_HOLD_U != 2.5 or RT.GEM_SNAP_U != 1.5
             or (wp is not None and not all(type(v) is float for v in wp[:3]))):
         return None
     th = handle()
     x, y, z = map(float, pos[:3])
     gx, gy, gz = float(gem[0]), float(gem[1]), float(gem[2])
-    # a line toward the gem samples NumPy floats (strong), a line toward a stored waypoint plain floats (weak)
-    if lib.ms_line_clear(th, x, y, gx, gy, 1, z, 1, gz, 1, 1):
+    # a line toward a stored waypoint samples plain floats (weak)
+    if lib.ms_line_clear(th, x, y, gx, gy, 1, z, 1, gz, strong, strong):
         route.waypoint = None
         return tuple(gem[:3]), False
     if (wp is not None and math.hypot(wp[0] - x, wp[1] - y) > RT.WAYPOINT_HOLD_U
@@ -99,7 +107,7 @@ def _navigate(lib, handle, route, pos, gem):
     if bufs is None:
         bufs = _BUF.b = (np.empty(3), np.empty(3))
     g, out = bufs; g[0] = gx; g[1] = gy; g[2] = gz
-    if lib.ms_path_waypoint(th, _ptr(field), x, y, _ptr(g), 1, z, _ptr(out)):
+    if lib.ms_path_waypoint_s(th, _ptr(field), x, y, _ptr(g), 1, z, _ptr(out), strong):
         wp = (float(out[0]), float(out[1]), float(out[2]))
         route.waypoint = wp
         return wp, True

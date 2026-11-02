@@ -11,6 +11,14 @@ from pathlib import Path
 
 import numpy as np
 
+_VP = __import__('ctypes').c_void_p
+# PQ_VERIFY_PORT=1 (nav/native/forecast.py): every compiled raycast is checked against the NumPy one; [calls, mismatches]
+RAY_VERIFY = [0, 0] if os.environ.get('PQ_VERIFY_PORT', '') == '1' else None
+RAY_VERIFY_LOG = os.path.join(os.environ.get('TEMP', '.'), 'pq_checks', 'port_verify.log')
+if RAY_VERIFY is not None:
+    import atexit
+    atexit.register(lambda: print('RAY_VERIFY raycasts %d mismatches %d' % tuple(RAY_VERIFY)) if RAY_VERIFY[0] else None)
+
 
 def cross_rows(a,b):
     """F64 (N,3) cross product with the same component arithmetic as NumPy.
@@ -178,8 +186,34 @@ class CollisionMap:
             self._face_nn=np.einsum('ij,ij->i',self._face_cross,self._face_cross)
         return self._face_ab[ids],self._face_ac[ids],self._face_cross[ids],self._face_nn[ids]
 
+    _native_ray = None   # a nav.native NativeSim built from this mesh (nav.native.attach): raycast runs in C++ (ABI 15, 2026-11-01)
+
     def raycast(self, start, end, cull_backfaces=True):
-        """Nearest exact triangle intersection of a finite segment, or None."""
+        """Nearest exact triangle intersection of a finite segment, or None (compiled when a simulator is attached)."""
+        sim = self._native_ray
+        if sim is None:
+            return self._raycast_py(start, end, cull_backfaces)
+        start = np.ascontiguousarray(start, dtype=np.float64); end = np.ascontiguousarray(end, dtype=np.float64)
+        if start.shape != (3,) or end.shape != (3,):
+            return self._raycast_py(start, end, cull_backfaces)
+        out = np.empty(4)
+        idx = sim.lib.ms_raycast(sim.handle, start.ctypes.data_as(_VP), end.ctypes.data_as(_VP), 1 if cull_backfaces else 0, out.ctypes.data_as(_VP))
+        if idx < 0:
+            hit = None
+        else:
+            hit = dict(triangle_id=idx, object_id=int(self.object_ids[idx]), t=float(out[0]), point=out[1:4].tolist(),
+                       normal=self.normals[idx].tolist(), material=self.info['materials'][int(self.material_ids[idx])])
+        if RAY_VERIFY is not None:
+            ref = self._raycast_py(start, end, cull_backfaces)
+            RAY_VERIFY[0] += 1
+            if ref != hit:
+                RAY_VERIFY[1] += 1
+                with open(RAY_VERIFY_LOG, 'a') as f:
+                    f.write('raycast mismatch start=%r end=%r cull=%r\n  py=%r\n  cc=%r\n' % (start.tolist(), end.tolist(), cull_backfaces, ref, hit))
+        return hit
+
+    def _raycast_py(self, start, end, cull_backfaces=True):
+        """The NumPy raycast (the reference the compiled one is verified against)."""
         start, end = np.asarray(start, dtype=np.float64), np.asarray(end, dtype=np.float64)
         direction = end-start
         ids = self.query_aabb(np.minimum(start, end)-1e-7, np.maximum(start, end)+1e-7)

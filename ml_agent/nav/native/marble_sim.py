@@ -61,8 +61,10 @@ class NativeSim:
         L.ms_level_at.restype = I; L.ms_level_at.argtypes = [_P, I, I, I, D]
         L.ms_line_clear.restype = I; L.ms_line_clear.argtypes = [_P, D, D, D, D, I, D, I, D, I, I]
         L.ms_path_waypoint.restype = I; L.ms_path_waypoint.argtypes = [_P, _P, D, D, _P, I, D, _P]
+        L.ms_path_waypoint_s.restype = I; L.ms_path_waypoint_s.argtypes = [_P, _P, D, D, _P, I, D, _P, I]   # ABI 15: + strong flag
         L.ms_dist_at.restype = D; L.ms_dist_at.argtypes = [_P, _P, D, D, D, D, I, D, I]
         L.ms_segment_clear.restype = I; L.ms_segment_clear.argtypes = [_P, _P, _P]
+        L.ms_raycast.restype = I; L.ms_raycast.argtypes = [_P, _P, _P, I, _P]   # ABI 15: CollisionMap.raycast (nav/collision/mesh.py)
         L.ms_translated.argtypes = [_P, _P, _P, _P, _P]
         L.ms_py_round.restype = D; L.ms_py_round.argtypes = [D, I]
         L.ms_g6.restype = D; L.ms_g6.argtypes = [D]
@@ -70,6 +72,10 @@ class NativeSim:
         L.ms_seq_action.argtypes = [_P, _P, _P, _P, _P, _P, I, _P]
         L.ms_forecast.restype = I
         L.ms_forecast.argtypes = [_P, _P, _P, _P, _P, _P, I, I, I, _P, I, _P, _P, _P, _P, D, LL, _P, _P, _P, _P, _P]
+        L.ms_forecast_x.restype = I   # ABI 15 (2026-11-01): ms_forecast plus the family data array (tail kinds 4-9)
+        L.ms_forecast_x.argtypes = [_P, _P, _P, _P, _P, _P, I, I, I, _P, I, _P, _P, _P, _P, D, LL, _P, _P, _P, _P, _P, _P]
+        L.ms_forecast_many.restype = I   # ABI 15: n candidates from one start (nav/native/forecast.predict_many)
+        L.ms_forecast_many.argtypes = [_P, _P, _P, _P, _P, I, _P, _P, _P, _P, _P, _P, _P, D, D, D, D, _P, _P, _P, _P, _P, _P, _P]
         self.terrains = {}
         mesh = engine.mesh
         self.mesh = mesh

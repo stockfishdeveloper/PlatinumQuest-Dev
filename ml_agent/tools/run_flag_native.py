@@ -36,17 +36,20 @@ def lead_budget(lead):return min(2.,max(.05,lead*.064-.02))   # tools/native_wor
 
 def run_pair(a,label,seed,index):
     from nav.marble_dynamics import realtime as rt
-    dirs=[ROOT/(label+'_'+arm) for arm in ('baseline','candidate')]
+    dirs=[(ROOT/(label+'_'+arm)).resolve() for arm in ('baseline','candidate')]
     if any(d.exists() for d in dirs):raise FileExistsError('Existing scoring evidence: '+label)
     def run(i):
         port=a.port_base+4*(i if index==0 else 1-i)   # the second seed swaps the arms' ports
-        cmd=[sys.executable,'-u',a.bench,
+        # 2026-11-01: --baseline-root = another checkout of the repo the baseline arm runs from (a code change, not a flag)
+        cwd=a.baseline_root if (i==0 and a.baseline_root) else None
+        bench=str(Path(cwd)/a.bench) if cwd else a.bench
+        cmd=[sys.executable,'-u',bench,
              '--candidate-workers',str(a.workers_per_game),'--fixed-lead',str(a.fixed_lead),'--order-min-left-s',str(.35),
              '--maps',*a.maps,'--seeds',str(seed),'--random-starts',*rt.FLAGS[2:],
              '--workers','1','--round-wall-limit-s','1200','--port',str(port),'--output',str(dirs[i])]
         cmd+=list(a.candidate_flag if i else a.baseline_flag)
         with (ROOT/(label+'_'+str(i)+'.log')).open('w') as out,(ROOT/(label+'_'+str(i)+'.err')).open('w') as err:
-            return subprocess.run(cmd,env=dict(os.environ,PYTHONPATH='ml_agent'),stdout=out,stderr=err).returncode
+            return subprocess.run(cmd,cwd=cwd,env=dict(os.environ,PYTHONPATH=str(Path(cwd)/'ml_agent') if cwd else 'ml_agent'),stdout=out,stderr=err).returncode
     checked={}
     def audit_available():
         for name in a.maps:
@@ -74,7 +77,11 @@ def run_pair(a,label,seed,index):
     audit_available()
     if len(checked)!=len(a.maps) or not all(x['passed'] for x in checked.values()):raise RuntimeError('Incomplete motion audit')
     prepared=[json.loads((d/'prepared.json').read_text()) for d in dirs]
-    if prepared[0]['source_hashes']!=prepared[1]['source_hashes']:raise RuntimeError('Cross-arm canonical source mismatch')
+    if prepared[0]['source_hashes']!=prepared[1]['source_hashes']:
+        if not a.baseline_root:raise RuntimeError('Cross-arm canonical source mismatch')
+        changed=sorted(k for k in set(prepared[0]['source_hashes'])|set(prepared[1]['source_hashes'])
+                       if prepared[0]['source_hashes'].get(k)!=prepared[1]['source_hashes'].get(k))
+        save(label+'_source_diff.json',dict(baseline_root=a.baseline_root,changed=changed));print('source differs (expected):',changed,flush=True)
     worker=[json.loads((d/'wrapper_protocol.json').read_text()) for d in dirs]
     if any(p['candidate_workers']!=a.workers_per_game or abs(p['budget_s']-lead_budget(a.fixed_lead))>1e-9 or p['order_min_left_s']!=.35 for p in worker):
         raise RuntimeError('Workload mismatch')
@@ -104,16 +111,33 @@ def main():
     p.add_argument('--bench',default='ml_agent/tools/native_worker_bench.py',help='the per-arm tool, the same for both arms (2026-10-29: the other agent\'s wrappers, e.g. ml_agent/tools/follow_backup_bench.py, take their own flag and pass the rest to native_worker_bench)')
     p.add_argument('--fixed-lead',type=int,default=3,help='both arms (3 = the .172 s allowance; 2026-10-29: 16 = a ~1 s budget that almost never binds, so the planner is deterministic and the arms split only where the change acts)')
     p.add_argument('--maps',nargs='+',default=None,help='a subset of the ten maps (default all; for short checks)')
+    p.add_argument('--confirm-only',action='store_true',help='2026-11-01: rerun only the confirmation pair of an existing campaign (after a failure outside the planner) and write the combined comparison')
+    p.add_argument('--baseline-root',default=None,help='2026-11-01: a second checkout the BASELINE arm runs from (code comparison, e.g. the pre-port checkout); the source-hash audit then records the differing files instead of failing')
     a=p.parse_args()
     a.maps=list(a.maps or MAPS)
     if not set(a.maps)<=set(MAPS) or len(set(a.maps))!=len(a.maps):raise SystemExit('unknown or repeated map in --maps')
-    if not a.candidate_flag:raise SystemExit('a candidate flag is required')
+    if not a.candidate_flag and not a.baseline_root:raise SystemExit('a candidate flag (or --baseline-root) is required')
+    if a.baseline_root and not (Path(a.baseline_root)/'ml_agent'/'tools'/'native_worker_bench.py').exists():raise SystemExit('--baseline-root has no ml_agent/tools/native_worker_bench.py')
     status_name=a.label+'_native_status.json'
+    if a.confirm_only:
+        # 2026-11-01: resume a campaign whose confirmation pair failed for a reason outside the planner (a game that never
+        # connected): the exploratory evidence stays, the confirmation pair runs again (its failed folders must be moved away)
+        explore=native_pair(ROOT/(a.label+'_explore_baseline'),ROOT/(a.label+'_explore_candidate'))
+        save(status_name,dict(stage='confirmation',exploratory_delta=explore['delta'],resumed=True))
+        try:
+            run_pair(a,a.label+'_confirm',a.seeds[1],1)
+            combined=native_pair(ROOT/(a.label+'_explore_baseline'),ROOT/(a.label+'_explore_candidate'),
+                                 ROOT/(a.label+'_confirm_baseline'),ROOT/(a.label+'_confirm_candidate'))
+            save(a.label+'_combined_comparison.json',combined)
+            save(status_name,dict(stage='complete',exploratory_delta=explore['delta'],combined_delta=combined['delta'],resumed=True))
+        except BaseException as exc:
+            save(status_name,dict(stage='failed',error=str(exc)));raise
+        return
     if (ROOT/(a.label+'_native_plan.json')).exists():raise FileExistsError('Refusing to overwrite an existing campaign')
     plan=dict(maps=list(a.maps),exploratory_seed=a.seeds[0],confirmation_seed=a.seeds[1],fixed_budget_s=lead_budget(a.fixed_lead),fixed_lead=a.fixed_lead,
               candidate_workers_per_game=a.workers_per_game,simultaneous_games=2,baseline_flags=a.baseline_flag,candidate_flags=a.candidate_flag,
               required_globals=a.require_global,after=a.after,note=a.note,port_base=a.port_base,
-              always_confirm=a.always_confirm,bench=a.bench,
+              always_confirm=a.always_confirm,bench=a.bench,baseline_root=a.baseline_root,
               selection=('Run every map on both seeds (arm ports swapped on the fresh seed).' if a.always_confirm else
                          'Run every map. If the exploratory equal-map mean improves, repeat all ten on the fresh seed (arm ports swapped).')
                         +' Retain per-map regressions and all failed audits.')

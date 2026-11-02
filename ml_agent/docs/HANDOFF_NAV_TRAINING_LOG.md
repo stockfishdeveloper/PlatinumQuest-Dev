@@ -14674,3 +14674,155 @@ scope is the full set (A2 torch policy, gap runs, lines, climbs). The sensitivit
 the sim at the expected size. Per the operator's instruction nothing launches after this batch; the next step is a
 conversation on how to proceed. Three nights of coverage tests: 16 arms, none positive beyond noise, nine negative at
 +-1.5, two inert through the harness, one neutral with more falls.
+
+### 2026-11-01 ~12:30 operator: proceed with the C++ port (model port last); guidelines
+Operator decision after the stopping-point conversation: port the per-reply Python proposal families to C++, the learned
+A2 policy last. Guidelines (operator, verbatim in spirit): extend the existing native rollout machinery; make it efficient to
+evaluate many candidate sequences and to continue from intermediate states, with an interface that can carry a broader
+search later; move the measured hot paths incrementally, preserve behaviour at equal work, measure end-to-end throughput,
+then assess what the saved time buys under live deadlines; keep the Python implementation as the comparison; high-level
+search and experimental objectives stay in Python and call the faster machinery; port individual maneuver families where
+their measured cost justifies it.
+Plan (each step: bit-identical outputs at equal work on the leg benchmark, 3 maps x 6 legs, virtual clock; then timing):
+ 0. Reference run before any change (scratchpad port/ref) with a per-type tally of the forecasts still run reply by reply
+    (forecast.PER_REPLY_STATS, printed at exit; diagnostic only).
+ 1. ms_forecast: the three deterministic per-reply families as compiled tail kinds (GapRunProposal, ClimbProposal,
+    racing_line.TrackLine; the subclass controllers WallHit / PadHop / ThroughHop by the tally), their precomputed arrays
+    passed in, their per-forecast state written back as the sequence spec is today.
+ 2. Continuation from any reply: the per-reply bridge state (hold, pow_yaw) in the reply table, a Python helper that builds
+    the dynamics of reply k from a compiled forecast (today only the final bridge_resume exists).
+ 3. Many candidates in one call (ms_forecast_many: one start, N candidate descriptors, shared constants/budget) and a leaner
+    Python wrapper (predict_native's own time was 5 s of 22 in the 10-31 profile: per-call imports, constants, the
+    ambiguity list comprehension 1.6 s).
+ 4. The A2 policy (NavigatorProposal: observation builder + conv/GRU forward) last; fallback = port the deterministic
+    families only and batch the torch inference.
+Exactness: a verify mode runs the Python per-reply controller beside the compiled one on every forecast of a leg run and
+logs the first mismatch; plus the leg benchmark A/A (18/18 identical) and a full-round sim A/A.
+
+### 2026-11-01 ~15:00 port step 1 built and verified exact: six per-reply families now compiled (ABI 15)
+Reference leg benchmark (3 maps x 6 legs, virtual clock, before any change; scratchpad port/ref): cpu 4 / 11 / 33 s (KOTM /
+Cragmire / TreasureBox); forecasts still run reply by reply in Python (PER_REPLY_STATS): TreasureBox WallHitProposal 579
+forecasts 11.1 s, NavigatorProposal 160 3.1 s, TrackLine 98 1.9 s, bare braking Proposal 230 1.8 s, ThroughHop 44, PadHop 2.
+The legs are short (no crossing phase), so gap runs and climbs did not appear there; two full rounds in verify mode did.
+Ported to nav/native (controllers.inc + marble_sim.cpp forecast_impl, tail kinds 4-9; Python side forecast._family_data /
+_sub_rule_data / _family_writeback): GapRunProposal (4), ClimbProposal (5, the shared after-route waypoint written back),
+racing_line.TrackLine (6, its arrays precomputed in Python and passed in), WallHitProposal (7), PadHopProposal (8),
+ThroughHopProposal (9), and the bare braking gem_demo.Proposal (the brake tail 2). NavigatorProposal (A2) stays per reply.
+Verify mode (PQ_VERIFY_PORT=1: the Python controller runs beside the compiled one on every such forecast, actions / tick rows /
+failure / written-back state compared): legs 3 maps: TrackLine 142/142, WallHit 578/579 (the one: a budget-cut compiled
+forecast compared with an uncut Python twin, excluded since), PadHop 2/2, ThroughHop 44/44; full rounds Fractured (103 pts)
+and Cube (131 pts): GapRun 2526/2526, bare Proposal 2994/2994, TrackLine 983/983, WallHit 381/381, PadHop 242/242,
+ThroughHop 550/550 exact. ClimbProposal had no occurrences yet (needs a staged climb situation; to verify on Cube / stuck decks).
+Also in ABI 15: the reply table carries the bridge state (hold, pow_yaw) after every reply (R_SIZE 38 -> 40) and
+forecast.resume_at(dynamics, rollout, k) builds the dynamics of reply k (continuation from the middle of a plan);
+ms_forecast_many + forecast.predict_many(engine, dynamics, proposals) forecast many candidates from one start in one call,
+with the deadline (live clock or the sim's virtual clock) carried across candidates exactly as the one-by-one calls do.
+tools/native_many_check.py compares predict_many / resume_at with the one-by-one path on recorded states.
+
+### 2026-11-01 ~17:30 port step 1: A/A against the pre-port code, the step-count footnote, tools
+A/A (virtual clock, equal work): leg benchmark 17/18 episodes identical to the pre-port run (the 18th, TreasureBox decision 718,
+identical in every field but the physics-step count); full rounds Cube 131 / Sprawl 192 / Fractured 103 points identical to
+the pre-port rounds of the same opening and spawn seed in every field (picks, times, falls, spawns) but the step count: Cube
+-4, Sprawl -44 of 14.5 / 25.7 M. Per-decision trace diff on Cube (pre-port checkout C:/Users/doug/pq_preport, its own DLL
+build in %TEMP%/pq_checks/marble_sim_preport): one decision (3240) ran one reply (4 steps) less, same chosen plan. Cause: a
+forecast family that ran reply by reply in Python stopped at the virtual deadline by "clock + replies x 4 x cost >= deadline"
+(accumulated adds), the compiled path by "steps > int((deadline - clock) / cost)"; at a boundary within a floating-point ulp
+the two rules differ by one reply. Decisions are unaffected (the forecast is refused either way); the sim's equal-work
+accounting differs by one reply in ~3,000 decisions. Live budgets are wall clock. Not changed (the compiled rule is the one
+every compiled forecast used before the port).
+predict_many: a first version diverged from the one-by-one path because it bypassed bridge.predict_replies' accepted
+ambiguity (ACCEPT_AMBIGUITY) and Mega routing, and did not copy the written-back spec state out of the shared buffer; fixed,
+tools/native_many_check.py on Sprawl: 107/107 candidates identical, resume_at 36/36, virtual-clock accounting with a cutting
+deadline identical (0 mismatches). Verify mode now also compares the steps counted (the twin runs with the deadline, its clock
+advance rolled back): legs 1,177 forecasts and a Cube round 2,068 forecasts, 0 mismatches.
+Profile after the port (TreasureBox legs, 269 decisions, 38.4 s of planner time): compiled forecasts' own C++ ~6 s, the
+Python wrapper ~4 s (deepcopy of the Blast / inventory contexts 1.0 s: now state_copy.clone), the A2 per-reply forecasts
+6.4 s (17 percent; torch 3.8), assess 7.6 s (terminal_support raycasts 3.0, candidate_cost 3.1), Python route navigate
+fallbacks 3.4 s (reliability_eval.pick passes list gems; the compiled hook takes float64 arrays only), gap links 2.2 s.
+Timing protocol: the CPU is a hybrid i7-13700KF (8 P-cores + 8 E-cores): process CPU time depends on which core type ran
+the process (the same round measured 167 s and 346 s). Timing runs now pin each process to its own P-core (scratchpad
+port/pin.py, timing_pair.sh: pre-port and port arms at once, 3 leg benchmarks + 1 round each).
+
+### 2026-11-01 ~18:30 EQUAL-WORK TIMING of port step 1: 5-7 percent, far below the estimate; the corrected cost picture
+Paired, P-core-pinned, virtual clock (identical work; outputs identical): leg benchmark CPU pre-port -> port KOTM 4.8 -> 5.0 s,
+Cragmire 12.5 -> 11.7, TreasureBox 33.5 -> 31.2; Cube full round 169 -> 160 s. The six compiled families bought 5-7 percent.
+Why the estimate was wrong: (1) the PER_REPLY_STATS tally read time.perf_counter, which the sim patches to its virtual clock,
+so its "11 s of WallHit forecasts" were 27,792 replies x 4 ticks x 100 us of virtual time, not Python time; the real Python
+cost of a reply-by-reply forecast was ~80 us a reply (~2.3 s of TreasureBox's 33 s); (2) cProfile attributes the ctypes calls'
+time to the Python caller (predict_native's own 5-6 s was the C++ physics), which made the 10-31 "90 percent Python" split
+look like wrapper overhead. Corrected split of planner time (TreasureBox legs, 38 s): compiled physics ~6 s (16 percent),
+A2 per-reply forecasts 6.4 s (17; torch 3.8, Python glue 2.6), assess 7.6 s (20: terminal_support raycasts 3.0,
+candidate_cost 3.1), forecast wrapper glue ~4 s (10; deepcopy 1.0 since replaced), Python route navigate fallbacks 3.4 s
+(9; list gems in reliability_eval.pick: hook extended, ABI 15, under test), planner logic in Python (two-level, airborne
+projections, gap links, line optimisation, order choice bookkeeping) ~11 s (28).
+Reachable without touching the search logic: wrapper + navigate (~15 percent) + A2 incl. the net (~12) + the mechanical
+scoring tests (raycast support, tick pickups; ~8) = about 1.5-1.6x, not the 2-3x estimated on 11-01 morning. A 2-3x needs
+the search's own Python (scoring, projections, gap links, order choice) compiled or restructured.
+
+### 2026-11-01 ~19:15 route lookups for list gems (ABI 15) verified and timed; state of the port
+tools/native_controller_check.py (Sprawl, TreasureBox, 1500 / 250 cases each): every routing check exact, including the new
+list-gem variants (line_clear_list, path_waypoint_list, navigate_list 250/250). Equal-work legs identical to the pre-port run
+(18/18); CPU pre-port -> port -> port + route lookups: KOTM 4.8 -> 5.0 -> 4.7, Cragmire 12.5 -> 11.7 -> 11.1, TreasureBox
+33.5 -> 31.2 -> 29.5 (-12 percent); Cube round identical, 169 -> 160 s -> see jsonl. The A2 per-reply forecasts, now in real
+CPU time: 5.5 s of TreasureBox's 29.5 (19 percent). Uncommitted; DLL rebuilt (ABI 15); the pre-port checkout
+C:/Users/doug/pq_preport (its DLL in %TEMP%/pq_checks/marble_sim_preport) stays for paired timing.
+
+### 2026-11-01 10:50 (system clock) raycast port, wrapper trims, climbs verified; port CPU -18 percent on legs, -12 on a round
+Operator: "continue with what you recommended" (the cheap exact pieces; the A2 port stays a separate decision).
+- CollisionMap.raycast in C++ (marble_sim.cpp ms_raycast; nav/collision/mesh.py calls it when nav.native.attach has set
+  mesh._native_ray; the NumPy version is _raycast_py, the reference). Same candidate set and order as query_aabb, the sweep
+  port's mv_row (BLAS matmul rounding, the one-row dot case) and kdot (einsum order), np.argmin's first-minimal tie rule;
+  the C++ returns the triangle and t / point, Python adds normal, object and material. Verify mode (PQ_VERIFY_PORT=1) runs
+  both on every call: tools/native_raycast_check.py 60,000 random rays on Sprawl / TreasureBox / Cube incl. exact ties
+  through vertices and edge midpoints, 0 mismatches (7 us vs 37-46 us a ray); in-search 70,000 (legs) + 78,000 (climb
+  replays) raycasts, 0 mismatches. Every mesh.raycast caller benefits (terminal_support, landing, edge_hits, crossings).
+- forecast.py trims: predict_native's _finish no longer clones the start state a second time (own_state), ReplyStates builds
+  its next_yaw / contact-normal index arrays on the first state dict only. native_many_check Sprawl 107/107, 36/36, 0 clock.
+- A/A: verify legs vs the pre-port reference 18/18 identical (all fields incl. steps); pinned timing pair (time3) legs 18/18
+  identical, Cube round identical (131 points, 3281 decisions, steps -4 footnote as before).
+- CPU, P-core pinned, equal work, pre-port -> now: KOTM 5.2 -> 4.5 s, Cragmire 12.6 -> 10.7, TreasureBox 35.0 -> 28.3
+  (-19 percent), legs total 52.8 -> 43.5 (-18); Cube full round 168.3 -> 147.8 s (-12).
+- ClimbProposal (tail kind 5) now exercised: scratchpad port/climb_verify.py stages climbs at recorded decisions Sprawl 199
+  (wall climbs, 60 plans) and Duplex 1713 (open climbs, 54 plans) and forecasts each: VERIFY {5: [114, 0]}. All seven
+  compiled families verified. Trap found on the way: the compiled controller declines a climb whose after-route is on a
+  terrain without ground clearance (my first script routed on the bare walking terrain; production routes on
+  a.geometry_terrain, which has it) -> the Python per-reply path ran silently. PER_REPLY_STATS shows such fallbacks.
+  Aside: sim_bench --at-decision 199 / 1713 with today's code did not stage those climbs during the search (no kind 5
+  forecasts); the recorded 10-26 round chose climb plans there. Not investigated (not part of the port).
+- Running: scratchpad port/budget_pair.sh -> port/budget: what the saving buys under a deadline, in the virtual-clock sim:
+  full rounds at the calibrated 100 us a step vs 82 us (the port's 18 percent), 10 maps x spawn seeds 1-4, 8 processes.
+
+### 2026-11-01 11:40 (system clock) budget pair closed: a 22 percent larger search budget buys nothing measurable
+scratchpad port/budget (10 maps x spawn seeds 1-4, full rounds, deterministic sim; base = 100 us a step, fast = 82 us, i.e. the
+port's 18 percent CPU saving spent as 1.22x the forecast steps per deadline): base mean 135.4, fast 134.8, diff -0.6 +- 2.0 (se)
+over 40 pairs, per-pair sd 12.7. Per map (sum of 4 spawns): Cragmire +62, TreasureBox +36, Cube +36, Fractured +1, Bowl +4,
+KOTM -7, Concentric -23, Duplex -25, Sprawl -27, Vortex -82 (4 of 4 worse, falls 12 -> 18, fallbacks 577 -> 681). Consistent
+with the 10-29 pilot (work 3x / 10x flat): more search at the same rules does not score more; the saving's value, if any, is
+under REAL deadlines (fewer budget overruns / late replies in the live game), which the virtual-clock sim cannot show. The
+Vortex and Cragmire swings are single deterministic samples per spawn, not a budget effect proven either way.
+Port state: all seven per-reply families + raycast compiled and verified exact; CPU -18 percent (legs) / -12 (round) at equal
+work; A2 still Python (separate decision); nothing running after 11:40; uncommitted.
+
+### 2026-11-01 13:55 (system clock) LIVE TEST of the port closed: port1 native campaign, pre-port vs port, -0.2 +- 2.6 over 20 pairs
+Operator ~12:00: "go ahead and do the test of the current port". tools/run_flag_native.py gained --baseline-root DIR (the BASELINE
+arm runs from another checkout; the cross-arm source-hash audit records the differing files instead of failing) and
+--confirm-only (rerun the confirmation pair after a failure outside the planner). Campaign port1: baseline = pre-port checkout
+C:/Users/doug/pq_preport (fc581efb2, its own DLL build), candidate = the port (7 families + raycast, ABI 15); native .172 s
+allowance (fixed lead 3), 6 forecast workers a game, seeds 482017593 (exploratory) and 916305284 (confirmation, arm ports
+swapped), every map's layout / initial motion / GO audit passed.
+Attempts 1-3 (12:05-12:18) failed before the first round: the pre-port checkout's "Marble Blast Platinum" folder had been lost
+in the 11-01 morning rm accident (reliability_eval hashes the game scripts and marbleblast_geometry_probe.exe); a junction to
+the main game folder fails the source archive (resolve() leaves the checkout root); fixed by git checkout of the folder plus a
+robocopy of the untracked game files. The first confirmation pair (13:0x) died when the candidate's game never connected
+(socket timeout on the swapped port) -> --confirm-only rerun 13:10-13:54.
+RESULT (dynamics_reports/overnight_20261026/port1_combined_comparison.json): base 135.05, port 134.85, delta -0.2, paired se 2.6
+(per-pair sd 11.6), 20 valid pairs. Exploratory -0.8 a map, confirmation +0.4. Per pair (base/port): Bowl 112/100 131/123,
+Concentric 116/133 98/108, Cragmire 98/99 175/147, Cube 140/141 113/123, Duplex 132/135 145/141, Fractured 115/107 108/110,
+KOTM 152/149 147/148, Sprawl 171/156 172/198, TreasureBox 169/176 172/172, Vortex 132/133 103/98. Decision timing: medians equal
+(both arms share the machine), p95 decision time lower for the port on 15 of 20 rounds (e.g. Cragmire .219 -> .184 s,
+Fractured .149 -> .128), max decisions still 1-4 s on both arms.
+CONCLUSION: the port is behaviour-preserving in the live game (points equal within +-2.6) and buys a modest live latency
+margin, not points; matches the virtual-budget pair (-0.6 +- 2.0) and the 10-29 pilot (work flat). The A2 port's payoff
+would be latency only. New real bests this campaign: Concentric 133 (port arm, 0 falls, seed 482017593; was 132), Cragmire 175
+(pre-port arm = production code, 1 fall, seed 916305284; was 154): ml_agent/docs/BEST_REAL_SCORES_2026-11-01.csv written and the
+canonical Google Sheet updated (update_best_scores_sheet.py, read back OK). Nothing running after 13:55. Uncommitted.

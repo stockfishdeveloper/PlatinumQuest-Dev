@@ -239,7 +239,7 @@ def play_round(a, terrain, engine, mission, rows, spawn_seed, o, label='', start
         ended = world.time_left_ms <= 0
         speeds.append(float(np.linalg.norm(np.asarray(st['velocity'])[:2])))
         if o.trace:
-            print('   t %6.2f %-28s %-22s v %5.1f pos %s gems %d pts %g%s' % ((world.round_ms - world.time_left_ms) / 1000., str(info.get('label'))[:28],
+            print('   t %6.2f steps %d %-28s %-22s v %5.1f pos %s gems %d pts %g%s' % ((world.round_ms - world.time_left_ms) / 1000., W.STEPS[0], str(info.get('label'))[:28],
                   str(info.get('reason'))[:22], speeds[-1], np.round(st['position'], 1).tolist(), len(world.gems), world.points, ' FELL' if fell else ''), flush=True)
         spawned = (not fell) and world.maybe_spawn()
         nd['items'] = world.items()

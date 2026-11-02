@@ -8,4 +8,5 @@ def attach(engine, dll=None):
     engine.native_sim = NativeSim(engine, dll)
     from nav.native.route_native import register
     register(engine.native_sim)          # 2026-10-19: RoutePlanner.distance on its registered terrains runs in C++ (exact)
+    engine.mesh._native_ray = engine.native_sim   # 2026-11-01: CollisionMap.raycast on this mesh runs in C++ (exact, verify mode PQ_VERIFY_PORT)
     return engine.native_sim

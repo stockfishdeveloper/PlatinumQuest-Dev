@@ -44,6 +44,9 @@ def main():
         mesh = CachedCompiledSweepMap(ML / 'collision_maps' / (name + '.npz'), DLL); load_queries(mesh, DLL, CACHE)
         walk = cached_walking(terrain, mesh, DLL, CACHE)
         engine = GeneralPhysics(mesh); sim = NativeSim(engine); L = sim.lib; th = sim.terrain(walk)
+        from nav.native.route_native import register
+        import nav.routing as _RTm
+        register(sim); RT_NAV = [_RTm.NATIVE_NAVIGATE]   # the navigate hook routes list gems through the compiled lookups (ABI 15)
         res = {}
         def tally(key, ok):
             c = res.setdefault(key, [0, 0]); c[0] += 1; c[1] += bool(ok)
@@ -94,6 +97,24 @@ def main():
             tally('path_waypoint', bool(r) == bool(routed) and tuple(wp) == tuple(float(v) for v in pw))
             d = L.ms_dist_at(th, _ptr(field), sx, sy, key[0], key[1], 1, sz, 0)
             tally('dist_at', same(d, float(walk.dist_at(field, sx, sy, key[:2], z=sz))))
+            # ABI 15: the same gem given as plain Python floats (a list): weak sampling toward it
+            gl = [float(v) for v in gem]
+            tally('line_clear_list', bool(L.ms_line_clear(th, sx, sy, gl[0], gl[1], 1, sz, 1, gl[2], 0, 0)) == bool(line_clear(walk, sx, sy, gl[0], gl[1], az=sz, bz=gl[2])))
+            r = L.ms_path_waypoint_s(th, _ptr(field), sx, sy, _ptr(np.ascontiguousarray(gem)), 1, sz, _ptr(wp), 0)
+            pw, routed = path_waypoint(walk, sx, sy, field, gl, mz=sz)
+            tally('path_waypoint_list', bool(r) == bool(routed) and tuple(wp) == tuple(float(v) for v in pw))
+            from nav.native.route_native import navigate_hook
+            rl = RoutePlanner(walk); rl.field = field; rl.key = key; rl.waypoint = None
+            rp = RoutePlanner(walk); rp.field = field; rp.key = key; rp.waypoint = None
+            hooked = navigate_hook(rl, (sx, sy, sz), gl)
+            saved = RT_NAV[0]; RT_NAV[0] = None
+            try:
+                import nav.routing as _RT
+                _RT.NATIVE_NAVIGATE = None; plain = rp.navigate((sx, sy, sz), gl)
+            finally:
+                _RT.NATIVE_NAVIGATE = saved
+            tally('navigate_list', hooked is not None and tuple(float(v) for v in hooked[0]) == tuple(float(v) for v in plain[0]) and hooked[1] == plain[1]
+                  and (rl.waypoint == rp.waypoint))
             # 4. a whole route-following decision (SequenceProposal + Proposal + joystick)
             route = RoutePlanner(walk); route.navigate((sx, sy, sz), gem)
             spec = S.SequenceProposal(route, gem, 24, offset=float(rng.choice([0., .5, -1.])), scale=float(rng.choice([1., .7, .4])),

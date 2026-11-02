@@ -262,7 +262,8 @@ bool line_clear(Terrain& t, double ax, double ay, double bx, double by, bool has
     return true;
 }
 
-bool path_waypoint(Terrain& t, const float* field, double mx, double my, P3 gem, bool has_mz, double mz, P3& out) {
+// sg (ABI 15): the gem's coordinates are NumPy float64 (strong: a line toward it samples NumPy floats) or plain Python floats (weak)
+bool path_waypoint(Terrain& t, const float* field, double mx, double my, P3 gem, bool has_mz, double mz, P3& out, bool sg = true) {
     const double lookahead = 12.0;
     int j, i; cell_of(t, mx, my, false, false, j, i);
     int k = level_at(t, j, i, has_mz, mz);
@@ -274,7 +275,7 @@ bool path_waypoint(Terrain& t, const float* field, double mx, double my, P3 gem,
         if (!nearest_walkable(t, j, i, 3, has_mz, mz, ck, cj, ci) || !std::isfinite(fz(field, t, ck, cj, ci))) { out = gem; return false; }
         k = ck; j = cj; i = ci;
     }
-    if (line_clear(t, mx, my, gem.x, gem.y, has_mz, mz, true, gem.z, true, true)) { out = gem; return false; }
+    if (line_clear(t, mx, my, gem.x, gem.y, has_mz, mz, true, gem.z, sg, sg)) { out = gem; return false; }
     if (!t.has_graph) { out = gem; return false; }
     static thread_local std::vector<P3> path; path.clear();
     double travelled = 0.0;
@@ -302,18 +303,18 @@ bool path_waypoint(Terrain& t, const float* field, double mx, double my, P3 gem,
         if (line_clear(t, mx, my, path[w].x, path[w].y, has_mz, mz, true, path[w].z, false, false)) pick = w;
     }
     P3 pk = pick >= 0 ? path[pick] : path[0];
-    if (py_hypot(pk.x - gem.x, pk.y - gem.y) <= 1.5 && line_clear(t, pk.x, pk.y, gem.x, gem.y, true, pk.z, true, gem.z, true, true)) { out = gem; return false; }
+    if (py_hypot(pk.x - gem.x, pk.y - gem.y) <= 1.5 && line_clear(t, pk.x, pk.y, gem.x, gem.y, true, pk.z, true, gem.z, sg, sg)) { out = gem; return false; }
     out = pk; return true;
 }
 
 struct Route {                         // RoutePlanner with its goal field already computed (same key)
     const float* field = nullptr; P3 key{0, 0, 0}; bool has_wp = false; P3 wp{0, 0, 0};
 };
-P3 navigate(Terrain& t, Route& r, P3 pos, P3 gem, bool& routed) {
+P3 navigate(Terrain& t, Route& r, P3 pos, P3 gem, bool& routed, bool sg = true) {
     double x = pos.x, y = pos.y, z = pos.z;
-    if (line_clear(t, x, y, gem.x, gem.y, true, z, true, gem.z, true, true)) { r.has_wp = false; routed = false; return gem; }
+    if (line_clear(t, x, y, gem.x, gem.y, true, z, true, gem.z, sg, sg)) { r.has_wp = false; routed = false; return gem; }
     if (r.has_wp && py_hypot(r.wp.x - x, r.wp.y - y) > 2.5 && line_clear(t, x, y, r.wp.x, r.wp.y, true, z, true, r.wp.z, false, false)) { routed = true; return r.wp; }
-    P3 w; routed = path_waypoint(t, r.field, x, y, gem, true, z, w);
+    P3 w; routed = path_waypoint(t, r.field, x, y, gem, true, z, w, sg);
     r.has_wp = routed; if (routed) r.wp = w;
     return w;
 }
@@ -567,4 +568,179 @@ int inventory_check(const InvCtx& c, const State& s, const Pending& pending) {
     if (c.normal_radius > 0 && !c.mega_active && std::fabs(s.radius - c.normal_radius) > 1e-5) return -13;
     if (pending.a[6] != 0 && c.held_type == 6) return -14;
     return 0;
+}
+
+// ------------------------------------------------------------------ per-reply families ported 2026-11-01 (ABI 15)
+// search.GapRunProposal, climbs.ClimbProposal and racing_line.TrackLine ran reply by reply in Python (the compiled loop called
+// back for each action). Line-for-line ports; their data arrive in the forecast's extra array (xdata), the per-forecast state
+// (the jump reply, the wall rebound, the after-route waypoint) is written back to it as save_seq does for a sequence plan.
+enum { X_LAUNCH = 0, X_U = 3, X_LAND = 5, X_LAND_ALONG = 8, X_EDGE_ALONG = 9, X_TRIGGER = 10, X_BLAST_AFTER = 11, X_SPEED = 12,
+       X_LEAD_S = 13, X_LOOK_U = 14, X_JUMPED = 15, X_GAP_SIZE = 16 };
+struct GapSpec {
+    P3 launch, land; double ux, uy, land_along, edge_along, trigger, speed, lead_s, look_u; int blast_after, jumped;
+};
+void load_gap(GapSpec& G, const double* x) {
+    G.launch = P3{x[X_LAUNCH], x[X_LAUNCH + 1], x[X_LAUNCH + 2]}; G.ux = x[X_U]; G.uy = x[X_U + 1];
+    G.land = P3{x[X_LAND], x[X_LAND + 1], x[X_LAND + 2]}; G.land_along = x[X_LAND_ALONG]; G.edge_along = x[X_EDGE_ALONG];
+    G.trigger = x[X_TRIGGER]; G.blast_after = (int)x[X_BLAST_AFTER]; G.speed = x[X_SPEED]; G.lead_s = x[X_LEAD_S]; G.look_u = x[X_LOOK_U];
+    G.jumped = (int)x[X_JUMPED];
+}
+void save_gap(const GapSpec& G, double* x) { x[X_JUMPED] = G.jumped; }
+
+// GapRunProposal.__call__: run along the crossing line, jump at the lip, hold the landing goal over the gap, brake beyond the edge
+Action gap_call(const Consts& C, GapSpec& G, V3 p, V3 v, int index) {
+    if (index == 0) G.jumped = -1;
+    const double along = (p.x - G.launch.x) * G.ux + (p.y - G.launch.y) * G.uy;
+    if (G.jumped < 0) {
+        const double vu = v.x * G.ux + v.y * G.uy;
+        const bool press = along + pymax(0., vu) * G.lead_s >= G.trigger;
+        const double ahead = pymax(along + 1., pymin(along + G.look_u, G.land_along));
+        P3 aim{G.launch.x + G.ux * ahead, G.launch.y + G.uy * ahead, G.launch.z};
+        Action a = proposal(C, aim, 0., press ? 0 : -1, -1, false, true, 1e3, G.speed, p, v, true, G.speed);
+        if (press) G.jumped = index;
+        a.a[8] = 0; return a;
+    }
+    const int k = index - G.jumped; Action a;
+    if (along < G.edge_along + .5) a = proposal(C, G.land, 0., -1, -1, false, true, 1e3, G.speed, p, v, true, G.speed);
+    else a = proposal(C, G.land, 0., -1, -1, true, false, 0., 0., p, v);
+    a.a[8] = k == G.blast_after ? 1 : 0;
+    return a;
+}
+
+enum { K_WALL = 0, K_LAUNCH = 1, K_U = 4, K_LAND = 6, K_ZPLACE = 9, K_JUMP_U = 10, K_BLAST_AFTER = 11, K_RADIUS = 12, K_LEAD_S = 13,
+       K_PLACE_BELOW = 14, K_HAS_AFTER = 15, K_AKEY = 16, K_NGEM = 19, K_AHAS_WP = 22, K_AWP = 23, K_JUMPED = 26, K_TURNED = 27,
+       K_CLIMB_SIZE = 28 };
+struct ClimbSpec {
+    bool wall; P3 launch, land; double ux, uy, z_place, jump_u, radius, lead_s, place_below; int blast_after;
+    bool has_after; Route after; P3 ngem; int jumped; bool turned;
+};
+void load_climb(ClimbSpec& K, const double* x, const float* field) {
+    K.wall = x[K_WALL] != 0; K.launch = P3{x[K_LAUNCH], x[K_LAUNCH + 1], x[K_LAUNCH + 2]}; K.ux = x[K_U]; K.uy = x[K_U + 1];
+    K.land = P3{x[K_LAND], x[K_LAND + 1], x[K_LAND + 2]}; K.z_place = x[K_ZPLACE]; K.jump_u = x[K_JUMP_U]; K.blast_after = (int)x[K_BLAST_AFTER];
+    K.radius = x[K_RADIUS]; K.lead_s = x[K_LEAD_S]; K.place_below = x[K_PLACE_BELOW]; K.has_after = x[K_HAS_AFTER] != 0;
+    K.after.field = field; K.after.key = P3{x[K_AKEY], x[K_AKEY + 1], x[K_AKEY + 2]}; K.after.has_wp = x[K_AHAS_WP] != 0;
+    K.after.wp = P3{x[K_AWP], x[K_AWP + 1], x[K_AWP + 2]}; K.ngem = P3{x[K_NGEM], x[K_NGEM + 1], x[K_NGEM + 2]};
+    K.jumped = (int)x[K_JUMPED]; K.turned = x[K_TURNED] != 0;
+}
+void save_climb(const ClimbSpec& K, double* x) {
+    x[K_AHAS_WP] = K.after.has_wp; x[K_AWP] = K.after.wp.x; x[K_AWP + 1] = K.after.wp.y; x[K_AWP + 2] = K.after.wp.z;
+    x[K_JUMPED] = K.jumped; x[K_TURNED] = K.turned;
+}
+
+// ClimbProposal.__call__: the run onto the climb line, the jump before the edge / face, the flight to the landing, then the after route
+Action climb_call(Terrain* t, const Consts& C, ClimbSpec& K, V3 p, V3 v, int index) {
+    if (index == 0) { K.jumped = -1; K.turned = false; }
+    const double along = (p.x - K.launch.x) * K.ux + (p.y - K.launch.y) * K.uy;
+    if (K.jumped < 0) {
+        const double togo = -along - (K.wall ? K.radius : 0.0);
+        const double vu = v.x * K.ux + v.y * K.uy;
+        const bool press = togo - pymax(0.0, vu) * K.lead_s <= K.jump_u;
+        const double ahead = pymin(along + 3.0, K.wall ? 3.0 : 0.5);
+        P3 aim{K.launch.x + K.ux * ahead, K.launch.y + K.uy * ahead, K.launch.z};
+        Action a = proposal(C, aim, 0., press ? 0 : -1, -1, false, true, 1e3, 15., p, v, true, 15.);
+        if (press) K.jumped = index;
+        a.a[8] = 0; return a;
+    }
+    const int k = index - K.jumped;
+    const bool up = p.z >= K.z_place - K.place_below + K.radius - 0.15 && std::fabs(v.z) < 2.5 && k >= 4;
+    if (K.wall && !K.turned) K.turned = k >= 3 && (v.x * K.ux + v.y * K.uy) < 0.5;
+    Action a;
+    if (up && K.has_after) {
+        bool routed; P3 goal = navigate(*t, K.after, P3{p.x, p.y, p.z}, K.ngem, routed);
+        const double remaining = route_distance(*t, K.after, P3{p.x, p.y, p.z}, true);   // p = np.asarray(position, float)
+        if (std::isfinite(remaining)) a = proposal(C, goal, 0., -1, -1, false, true, remaining, 4.0, p, v, true, 10.);
+        else a = proposal(C, K.land, 0., -1, -1, false, false, 0., 0., p, v);
+    } else if (up) a = proposal(C, K.land, 0., -1, -1, false, false, 0., 0., p, v);
+    else if (K.wall && !K.turned) {
+        P3 aim{K.launch.x + K.ux * 3.0, K.launch.y + K.uy * 3.0, K.launch.z};
+        a = proposal(C, aim, 0., -1, -1, false, true, 1e3, 15., p, v, true, 15.);
+    } else a = proposal(C, K.land, 0., -1, -1, false, true, 1e3, 15., p, v, true, 15.);
+    a.a[8] = (K.blast_after >= 0 && k == K.blast_after) ? 1 : 0;
+    return a;
+}
+
+enum { T_N = 0, T_Z = 1, T_KP = 2, T_KD = 3, T_LEAD = 4, T_STOP = 5, T_ASTICK = 6, T_DATA = 8 };   // then t[n], p[2n], v[2n], a[2n]
+struct LineSpec { int n; double z, kp, kd, lead, stop, a_stick; const double *t, *p, *v, *a; };
+void load_line(LineSpec& T, const double* x) {
+    T.n = (int)x[T_N]; T.z = x[T_Z]; T.kp = x[T_KP]; T.kd = x[T_KD]; T.lead = x[T_LEAD]; T.stop = x[T_STOP]; T.a_stick = x[T_ASTICK];
+    T.t = x + T_DATA; T.p = T.t + T.n; T.v = T.p + 2 * T.n; T.a = T.v + 2 * T.n;
+}
+// TrackLine.ref(tau): the line's state at time tau (interpolated), the braking reference past its end
+void line_ref(const LineSpec& T, double tau, double pr[2], double vr[2], double ar[2]) {
+    const int n = T.n; const double tend = T.t[n - 1];
+    if (tau >= tend) {
+        const double dt = tau - tend; const double vx = T.v[2 * (n - 1)], vy = T.v[2 * (n - 1) + 1]; const double sp = norm2(vx, vy);
+        const double px = T.p[2 * (n - 1)], py = T.p[2 * (n - 1) + 1];
+        if (sp < 1e-6) { pr[0] = px; pr[1] = py; vr[0] = vr[1] = 0.; ar[0] = ar[1] = 0.; return; }
+        const double ux = vx / sp, uy = vy / sp; const double t_stop = sp / T.stop;
+        if (dt >= t_stop) {
+            const double d = sp * t_stop - .5 * T.stop * std::pow(t_stop, 2.);
+            pr[0] = px + ux * d; pr[1] = py + uy * d; vr[0] = vr[1] = 0.; ar[0] = ar[1] = 0.; return;
+        }
+        const double d = sp * dt - .5 * T.stop * std::pow(dt, 2.);
+        pr[0] = px + ux * d; pr[1] = py + uy * d; vr[0] = ux * (sp - T.stop * dt); vr[1] = uy * (sp - T.stop * dt);
+        ar[0] = -ux * T.stop; ar[1] = -uy * T.stop; return;
+    }
+    // np.searchsorted(t, tau, side='right') - 1, clipped to [0, n - 2]
+    int k = (int)(std::upper_bound(T.t, T.t + n, tau) - T.t) - 1;
+    if (k < 0) k = 0;
+    if (k > n - 2) k = n - 2;
+    const double w = (tau - T.t[k]) / pymax(T.t[k + 1] - T.t[k], 1e-9);
+    for (int q = 0; q < 2; q++) {
+        pr[q] = T.p[2 * k + q] * (1 - w) + T.p[2 * (k + 1) + q] * w;
+        vr[q] = T.v[2 * k + q] * (1 - w) + T.v[2 * (k + 1) + q] * w;
+        ar[q] = T.a[2 * k + q] * (1 - w) + T.a[2 * (k + 1) + q] * w;
+    }
+}
+// TrackLine.__call__: a_cmd = a_ref + KP (p_ref - p) + KD (v_ref - v); stick along it, throttle |a_cmd| / A_STICK
+Action line_call(const LineSpec& T, V3 p, V3 v, int index) {
+    double pr[2], vr[2], ar[2]; line_ref(T, ((double)index + T.lead) * .064, pr, vr, ar);
+    const double ax = ar[0] + T.kp * (pr[0] - p.x) + T.kd * (vr[0] - v.x), ay = ar[1] + T.kp * (pr[1] - p.y) + T.kd * (vr[1] - v.y);
+    const double mag = norm2(ax, ay); const double thr = mag > .05 ? pymin(1., mag / T.a_stick) : 0.;
+    Action r; double js[6]; r.npmask = joystick(ax, ay, thr, false, 0, 0, v.x, v.y, js);
+    for (int q = 0; q < 6; q++) r.a[q] = js[q];
+    r.a[6] = 0; r.a[7] = std::atan2(ax, ay); r.a[8] = 0.;
+    return r;
+}
+
+// Sequence plans with one extra rule (SequenceProposal subclasses): edge_hits.WallHitProposal (kind 7), pad_hops.PadHopProposal (8),
+// pad_hops.ThroughHopProposal (9). seq_call gives the base action; the rule adjusts it and keeps its flag in xdata.
+enum { W_TRIG = 0, W_JUMPED = 1, W_SIZE = 2 };
+enum { H_SPEED = 0, H_HEIGHT = 1, H_RADIUS = 2, H_MIN_BELOW = 3, H_J = 4, H_G = 5, H_ABOVE = 6, H_JUMPED = 7, H_SIZE = 8 };
+enum { Z_RADIUS = 0, Z_RISE = 1, Z_ABOVE = 2, Z_J = 3, Z_G = 4, Z_AMIN = 5, Z_AMAX = 6, Z_JUMPED = 7, Z_SIZE = 8 };
+// pad_hops.hop_time(height) or the apex time when the jump cannot reach it
+inline double hop_time_or_apex(double J, double G, double h) {
+    const double disc = J * J - 2. * G * h;
+    if (disc < 0.) return J / G;
+    return (J + std::sqrt(disc)) / G;
+}
+void sub_rule(int kind, double* x, const Consts& C, const SeqSpec& S, Action& a, V3 p, V3 v, int index) {
+    if (kind == 7) {
+        if (index == 0) x[W_JUMPED] = 0;
+        if (x[W_JUMPED] == 0 && x[W_TRIG] > 0.) {
+            if (norm2(S.gem.x - p.x, S.gem.y - p.y) <= x[W_TRIG]) { a.a[4] = 1; x[W_JUMPED] = 1; }
+        }
+    } else if (kind == 8) {
+        if (index == 0) x[H_JUMPED] = 0;
+        if (x[H_JUMPED] == 0 && !S.passed) {
+            const double d = norm2(S.gem.x - p.x, S.gem.y - p.y);
+            const double rise = pymax(S.gem.z - (p.z - .2), .3);
+            const double trig = pymax(std::hypot(v.x, v.y), 1.) * hop_time_or_apex(x[H_J], x[H_G], rise + x[H_ABOVE]);
+            if (d <= pymax(trig, x[H_RADIUS] + .3) && std::fabs(v.z) < 1.5 && p.z < S.gem.z - x[H_MIN_BELOW]) { a.a[4] = 1; x[H_JUMPED] = 1; }
+        }
+        if (x[H_JUMPED] == 0) {
+            const double sp = std::hypot(v.x, v.y);
+            if (sp > x[H_SPEED] + .5) { a.a[0] = 0.; a.a[1] = 0.; a.a[2] = 0.; a.a[3] = 0.; a.npmask = 0; }
+        }
+    } else if (kind == 9) {
+        if (index == 0) x[Z_JUMPED] = 0;
+        if (S.passed && x[Z_JUMPED] == 0 && S.through) {
+            const double d = norm2(S.ngem.x - p.x, S.ngem.y - p.y), sp = std::hypot(v.x, v.y);
+            const double t_star = hop_time_or_apex(x[Z_J], x[Z_G], x[Z_RISE] + x[Z_ABOVE]);
+            const double v_req = pymin(x[Z_AMAX], pymax(x[Z_AMIN], d / t_star));
+            const bool grounded = std::fabs(v.z) < 1.5 && p.z < S.ngem.z + .05;
+            if (grounded && (d <= x[Z_RADIUS] + .3 || (sp <= v_req + .4 && d <= sp * t_star + .3))) { a.a[4] = 1; x[Z_JUMPED] = 1; }
+            else { a = proposal(C, S.ngem, 0., -1, -1, false, true, 1e3, v_req, p, v, true, v_req); a.a[8] = 0.; }
+        }
+    }
 }

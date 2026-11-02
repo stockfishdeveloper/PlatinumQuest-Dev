@@ -819,10 +819,52 @@ DLL int ms_path_waypoint(void* th, const float* field, double mx, double my, con
     P3 o; bool r = path_waypoint(*(Terrain*)th, field, mx, my, P3{gem[0], gem[1], gem[2]}, has_mz != 0, mz, o);
     out[0] = o.x; out[1] = o.y; out[2] = o.z; return r;
 }
+DLL int ms_path_waypoint_s(void* th, const float* field, double mx, double my, const double* gem, int has_mz, double mz, double* out, int strong) {
+    // ABI 15: strong = 0 for a gem given as plain Python floats (a list), as RoutePlanner.navigate then samples its lines
+    P3 o; bool r = path_waypoint(*(Terrain*)th, field, mx, my, P3{gem[0], gem[1], gem[2]}, has_mz != 0, mz, o, strong != 0);
+    out[0] = o.x; out[1] = o.y; out[2] = o.z; return r;
+}
 DLL double ms_dist_at(void* th, const float* field, double x, double y, double gx, double gy, int has_z, double z, int strong) {
     return dist_at(*(Terrain*)th, field, x, y, gx, gy, has_z != 0, z, strong != 0);
 }
 DLL int ms_segment_clear(void* th, const double* a, const double* b) { return segment_clear(*(Terrain*)th, load(a), load(b)); }
+// ABI 15 (2026-11-01): nav/collision/mesh.CollisionMap.raycast, the nearest exact triangle hit of a finite segment.
+// Same candidate set and order as query_aabb (ascending ids), the same numpy arithmetic (mv_row for the planes @ vector
+// matmuls, kdot for the einsum rows) and the same first-minimal tie rule as np.argmin. Returns the triangle index or -1;
+// out = {t, point x, point y, point z}. The caller (Python) adds the normal, the object and the material.
+DLL int ms_raycast(void* h, const double* start, const double* end, int cull, double* out) {
+    Map& m = *(Map*)h;
+    for (int i = 0; i < 3; i++) if (!(std::isfinite(start[i]) && std::isfinite(end[i]))) return -1;
+    const V3 s = load(start), e = load(end), d = sub(e, s);
+    const double qlo[3] = {pymin(s.x, e.x) - 1e-7, pymin(s.y, e.y) - 1e-7, pymin(s.z, e.z) - 1e-7};
+    const double qhi[3] = {pymax(s.x, e.x) + 1e-7, pymax(s.y, e.y) + 1e-7, pymax(s.z, e.z) + 1e-7};
+    static thread_local std::vector<int> ids;
+    query_aabb(m, qlo, qhi, ids);
+    if (ids.empty()) return -1;
+    const bool single = ids.size() == 1;
+    double best_t = std::numeric_limits<double>::infinity(); int best = -1; V3 best_point{0, 0, 0};
+    for (size_t k = 0; k < ids.size(); k++) {
+        const int id = ids[k];
+        const V3 n = load(&m.planes[id * 4]);
+        const double det = mv_row(n, d, single);
+        const bool valid = cull ? det < -1e-10 : std::fabs(det) > 1e-10;
+        if (!valid) continue;
+        const double t = (-m.planes[id * 4 + 3] - mv_row(n, s, single)) / det;
+        const V3 point = add(s, mul(d, t));
+        const V3 rel = sub(point, load(&m.tri[id * 9]));
+        const double nnv = m.nn[id];
+        if (!(nnv > 1e-24)) continue;
+        const V3 fc = load(&m.fcross[id * 3]);
+        const double u = kdot(cross3(rel, load(&m.ac[id * 3])), fc) / nnv;
+        const double v = kdot(cross3(load(&m.ab[id * 3]), rel), fc) / nnv;
+        if (u >= -1e-7 && v >= -1e-7 && u + v <= 1 + 1e-7 && t >= -1e-7 && t <= 1 + 1e-7 && t < best_t) {
+            best_t = t; best = id; best_point = point;
+        }
+    }
+    if (best < 0) return -1;
+    out[0] = best_t; out[1] = best_point.x; out[2] = best_point.y; out[3] = best_point.z;
+    return best;
+}
 DLL void ms_translated(const double* pending, int* hold, double* pow_yaw, double* move_out, double* camera) {
     Pending p; std::memcpy(p.a, pending, sizeof p.a); translated(p, *hold, *pow_yaw, move_out, *camera);
 }
@@ -846,7 +888,9 @@ enum { Q_KEY = 0, Q_HAS_WP = 3, Q_WP = 4, Q_GEM = 7, Q_OFFSET = 10, Q_SCALE = 11
        Q_LAND_SHORT = 61, Q_LAND_ARRIVE = 62, Q_LAND_DECEL = 63,
        Q_SIZE = 64 };   // ABI 14: short-landing amount, arrival speed and braking deceleration
 enum { R_ACTION = 0, R_MOVE0 = 9, R_MOVE1 = 15, R_CAMERA = 21, R_IMPULSE = 22, R_PUSH = 23, R_DV = 26, R_METER = 29, R_SPECIAL = 30,
-       R_DONE = 31, R_AMB = 32, R_BLAST_VALUE = 36, R_BLAST_SPECIAL = 37, R_SIZE = 38 };
+       R_DONE = 31, R_AMB = 32, R_BLAST_VALUE = 36, R_BLAST_SPECIAL = 37,
+       R_HOLD = 38, R_POW_YAW = 39,   // ABI 15: the bridge state after this reply's translation (a continuation from any reply)
+       R_SIZE = 40 };
 
 void load_seq(SeqSpec& S, const double* seq, const float* field, const float* next_field) {
     S.route.field = field; S.route.key = P3{seq[Q_KEY], seq[Q_KEY + 1], seq[Q_KEY + 2]}; S.route.has_wp = seq[Q_HAS_WP] != 0;
@@ -891,11 +935,16 @@ static double qpc_now() {
 // bridge_in: [pending native move x,y,yaw,jump,use,trigger1 (6), pending action (9), hold, pow_yaw, frame clock]
 // status_out: [replies with a macro state, native rows written, failure reply (-1 none), failure code, stopped,
 //              budget exceeded, physics steps done, final hold]; bridge_out: [pow_yaw]; blast_out: 13 values (layout of blast_in)
-DLL int ms_forecast(void* h, void* th, const double* state_in, const double* bridge_in, const double* blast_in, const double* inv_in,
+// tail kinds: 0 fixed actions only, 1 sequence plan (SequenceProposal and its wrappers), 2 brake toward the goal, 3 roll toward the
+// goal (landing.LandingContinuation), 4 search.GapRunProposal, 5 climbs.ClimbProposal (field = the after route's), 6 racing_line.TrackLine,
+// 7 edge_hits.WallHitProposal, 8 pad_hops.PadHopProposal, 9 pad_hops.ThroughHopProposal (7-9: sequence plans with one extra rule);
+// xdata: the family's data and written-back state for kinds 4-9 (ABI 15, 2026-11-01), unused otherwise
+static int forecast_impl(void* h, void* th, const double* state_in, const double* bridge_in, const double* blast_in, const double* inv_in,
                     int count, int stop_on_ambiguity, int n_prefix, const double* prefix, int tail_kind, double* seq,
                     const float* field, const float* next_field, const double* consts, double budget_s, long long max_steps,
-                    double* rows_out, double* reply_out, double* bridge_out, double* blast_out, int* status_out) {
+                    double* rows_out, double* reply_out, double* bridge_out, double* blast_out, int* status_out, double* xdata) {
     Map* m = (Map*)h; Terrain* t = (Terrain*)th;
+    const bool seq_like = tail_kind == 1 || (tail_kind >= 7 && tail_kind <= 9);
     // budget_s = the planner's remaining time (Python's perf_counter has its own origin, so no absolute deadline here)
     const double stop_at = budget_s > 0 ? qpc_now() + budget_s : 0;
     State s; unpack(state_in, s); pack(s, rows_out);
@@ -908,12 +957,16 @@ DLL int ms_forecast(void* h, void* th, const double* state_in, const double* bri
     Consts C{consts[0], consts[1], consts[2], consts[3], consts[4], consts[5], consts[6] != 0, consts[7], consts[8], consts[9], consts[10],
              consts[11], consts[12]};   // ABI 7: 13 constants
     SeqSpec S{};
-    if (tail_kind == 1) load_seq(S, seq, field, next_field);
+    if (seq_like) load_seq(S, seq, field, next_field);
+    GapSpec G{}; ClimbSpec K{}; LineSpec T{};
+    if (tail_kind == 4) load_gap(G, xdata);
+    else if (tail_kind == 5) load_climb(K, xdata, field);
+    else if (tail_kind == 6) load_line(T, xdata);
     P3 brake_goal{0, 0, 0};
     if (tail_kind == 2 || tail_kind == 3) brake_goal = P3{seq[Q_GEM], seq[Q_GEM + 1], seq[Q_GEM + 2]};
-    const int brake_prefix = tail_kind == 1 ? (int)seq[Q_BRAKE_PREFIX] : 0;
-    const bool has_aim = tail_kind == 1 && seq[Q_HAS_AIM] != 0; const double aim = has_aim ? seq[Q_AIM] : 0.;
-    if (tail_kind == 1 && brake_prefix > 0) brake_goal = P3{seq[Q_GEM], seq[Q_GEM + 1], seq[Q_GEM + 2]};
+    const int brake_prefix = seq_like ? (int)seq[Q_BRAKE_PREFIX] : 0;
+    const bool has_aim = seq_like && seq[Q_HAS_AIM] != 0; const double aim = has_aim ? seq[Q_AIM] : 0.;
+    if (seq_like && brake_prefix > 0) brake_goal = P3{seq[Q_GEM], seq[Q_GEM + 1], seq[Q_GEM + 2]};
     int rows = 1, done_replies = 0, fail_reply = -1, fail_code = 0, stopped = 0, budget = 0; long long steps = 0;
     std::vector<Event> ev;
     for (int i = 0; i < count; i++) {
@@ -921,19 +974,24 @@ DLL int ms_forecast(void* h, void* th, const double* state_in, const double* bri
         double* R = reply_out + (size_t)i * R_SIZE;
         Action act;
         if (i < n_prefix) std::memcpy(act.a, prefix + (size_t)i * 9, sizeof act.a);
-        else if (tail_kind == 1) {
+        else if (seq_like) {
             if (i < brake_prefix) act = proposal(C, brake_goal, 0., -1, -1, true, false, 0., 0., s.p, s.v);
             else {
                 act = seq_call(*t, C, S, s.p, s.v, i - brake_prefix, s.radius);
                 if (has_aim && act.a[6] != 0) act.a[7] -= aim;
+                if (tail_kind >= 7) sub_rule(tail_kind, xdata, C, S, act, s.p, s.v, i - brake_prefix);
             }
         }
         else if (tail_kind == 2) act = proposal(C, brake_goal, 0., -1, -1, true, false, 0., 0., s.p, s.v);
         else if (tail_kind == 3) act = proposal(C, brake_goal, 0., -1, -1, false, false, 0., 0., s.p, s.v);   // landing.LandingContinuation
+        else if (tail_kind == 4) act = gap_call(C, G, s.p, s.v, i);
+        else if (tail_kind == 5) act = climb_call(t, C, K, s.p, s.v, i);
+        else if (tail_kind == 6) act = line_call(T, s.p, s.v, i);
         else { fail_reply = i; fail_code = 20; break; }
         std::memcpy(R + R_ACTION, act.a, sizeof act.a);
         double next_move[6], camera_yaw; translated(pending, hold, pow_yaw, next_move, camera_yaw);
         std::memcpy(R + R_MOVE0, move, sizeof move); std::memcpy(R + R_MOVE1, next_move, sizeof next_move); R[R_CAMERA] = camera_yaw;
+        R[R_HOLD] = hold; R[R_POW_YAW] = pow_yaw;
         for (int k = 0; k < 4; k++) R[R_AMB + k] = 0;
         R[R_DONE] = 0; R[R_IMPULSE] = 0;
         int code = inventory_check(inv, s, pending);
@@ -956,7 +1014,7 @@ DLL int ms_forecast(void* h, void* th, const double* state_in, const double* bri
             V3 pickup_start = s.p;
             int sc = step(*m, s, mvv, 16, ev);
             if (sc) { fail_code = sc; break; }
-            if (tail_kind == 1 && S.through && S.has_box && !S.passed) {
+            if (seq_like && S.through && S.has_box && !S.passed) {
                 V3 a = pickup_start, p = s.p; double r = s.radius + .2;
                 S.passed = pymax(a.x,p.x)+r >= S.box[0] && pymax(a.y,p.y)+r >= S.box[1] && pymax(a.z,p.z)+r >= S.box[2]
                         && pymin(a.x,p.x)-r <= S.box[3] && pymin(a.y,p.y)-r <= S.box[4] && pymin(a.z,p.z)-r <= S.box[5];
@@ -981,7 +1039,58 @@ DLL int ms_forecast(void* h, void* th, const double* state_in, const double* bri
     double bo[13] = {(double)b.present, (double)b.enabled, (double)b.frozen, (double)b.triple, (double)b.fireball, (double)b.cannon,
                      (double)b.special, (double)b.charging, b.value, b.required, b.special_power, b.power, b.charge_ms};
     std::memcpy(blast_out, bo, sizeof bo);
-    if (tail_kind == 1) save_seq(S, seq);
+    if (seq_like) save_seq(S, seq);
+    if (tail_kind == 4) save_gap(G, xdata);
+    else if (tail_kind == 5) save_climb(K, xdata);
+    return 0;
+}
+DLL int ms_forecast(void* h, void* th, const double* state_in, const double* bridge_in, const double* blast_in, const double* inv_in,
+                    int count, int stop_on_ambiguity, int n_prefix, const double* prefix, int tail_kind, double* seq,
+                    const float* field, const float* next_field, const double* consts, double budget_s, long long max_steps,
+                    double* rows_out, double* reply_out, double* bridge_out, double* blast_out, int* status_out) {
+    return forecast_impl(h, th, state_in, bridge_in, blast_in, inv_in, count, stop_on_ambiguity, n_prefix, prefix, tail_kind, seq, field,
+                         next_field, consts, budget_s, max_steps, rows_out, reply_out, bridge_out, blast_out, status_out, nullptr);
+}
+DLL int ms_forecast_x(void* h, void* th, const double* state_in, const double* bridge_in, const double* blast_in, const double* inv_in,
+                      int count, int stop_on_ambiguity, int n_prefix, const double* prefix, int tail_kind, double* seq,
+                      const float* field, const float* next_field, const double* consts, double budget_s, long long max_steps,
+                      double* rows_out, double* reply_out, double* bridge_out, double* blast_out, int* status_out, double* xdata) {
+    return forecast_impl(h, th, state_in, bridge_in, blast_in, inv_in, count, stop_on_ambiguity, n_prefix, prefix, tail_kind, seq, field,
+                         next_field, consts, budget_s, max_steps, rows_out, reply_out, bridge_out, blast_out, status_out, xdata);
+}
+
+// Many candidates from one start (ABI 15, 2026-11-01): the same numbers as n calls of ms_forecast_x in order, with the deadline
+// carried across them: budget_s on the compiled loop's own clock (live), or the virtual clock (vcost > 0: vnow advances by
+// steps x vcost after each candidate, as the Python hook would, and max_steps = (vdeadline - vnow) / vcost as Python computes it).
+// cand: 8 ints per candidate [count, stop_on_ambiguity, n_prefix, prefix row offset, tail kind, field index (-1 none),
+// next field index, xdata offset (-1 none)]; seq_all: Q_SIZE doubles per candidate; fields / terrains: pointer tables;
+// rows_off / reply_off: each candidate's first row / reply in rows_all / reply_all; status_all: 8 ints per candidate
+// (a candidate skipped at the deadline has status[5] = 1 and nothing else written).
+DLL int ms_forecast_many(void* h, const double* state_in, const double* bridge_in, const double* blast_in, const double* inv_in,
+                         int n, const int* cand, const double* prefix_all, double* seq_all, const float* const* fields, void* const* terrains,
+                         double* xdata_all, const double* consts, double budget_s, double vnow, double vdeadline, double vcost,
+                         double* rows_all, const long long* rows_off, double* reply_all, const long long* reply_off,
+                         double* bridge_out_all, double* blast_out_all, int* status_all) {
+    const double stop_at = budget_s > 0 ? qpc_now() + budget_s : 0;
+    double vc = vnow;
+    for (int c = 0; c < n; c++) {
+        const int* d = cand + (size_t)c * 8; int* st = status_all + (size_t)c * 8;
+        for (int k = 0; k < 8; k++) st[k] = 0;
+        double b = 0.; long long ms = -1;
+        if (vcost > 0) {
+            if (vc >= vdeadline) { st[5] = 1; continue; }
+            ms = (long long)((vdeadline - vc) / vcost);
+        } else if (stop_at > 0) {
+            const double now = qpc_now();
+            if (now >= stop_at) { st[5] = 1; continue; }
+            b = stop_at - now;
+        }
+        forecast_impl(h, terrains[c], state_in, bridge_in, blast_in, inv_in, d[0], d[1], d[2], prefix_all + (size_t)d[3] * 9, d[4],
+                      seq_all + (size_t)c * Q_SIZE, d[5] >= 0 ? fields[d[5]] : nullptr, d[6] >= 0 ? fields[d[6]] : nullptr, consts, b, ms,
+                      rows_all + (size_t)rows_off[c] * S_SIZE, reply_all + (size_t)reply_off[c] * R_SIZE, bridge_out_all + c,
+                      blast_out_all + (size_t)c * 13, st, d[7] >= 0 ? xdata_all + d[7] : nullptr);
+        if (vcost > 0) vc += (double)st[6] * vcost;
+    }
     return 0;
 }
 
