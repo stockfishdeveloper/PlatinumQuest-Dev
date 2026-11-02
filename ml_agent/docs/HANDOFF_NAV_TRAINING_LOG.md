@@ -14826,3 +14826,89 @@ margin, not points; matches the virtual-budget pair (-0.6 +- 2.0) and the 10-29 
 would be latency only. New real bests this campaign: Concentric 133 (port arm, 0 falls, seed 482017593; was 132), Cragmire 175
 (pre-port arm = production code, 1 fall, seed 916305284; was 154): ml_agent/docs/BEST_REAL_SCORES_2026-11-01.csv written and the
 canonical Google Sheet updated (update_best_scores_sheet.py, read back OK). Nothing running after 13:55. Uncommitted.
+
+### 2026-11-01 23:50 (system clock, MST) operator: "work on that plan overnight, operate autonomously": fast travel between groups
+Proposal (operator approved): the approach-leg pace is the only measured bucket above noise (ledger 10-22: same routes, planner
+10.3 / 8.3 u/s vs the human 13.4 / 12.7; leg time above 13 u/s 21 vs 46 percent; 139 s a round between spawns; clairvoyant
+choice among today's candidates only +9 percent). Not a learned model: a rule-written travel family judged by the physics.
+Step 1 (feasibility probe, running): tools/sim_bench/cruise_probe.py (+ cruise_summary.py; full_round.play_round takes a
+`controller` wrapper). Approach-bucket situations of the recorded qr3 explore / confirm rounds (10 maps x 2 x 20 = 400), warm
+prefix 16 decisions, then 12 s per arm with common spawns: base (production) vs cruise13/15/17 (route follower at a fixed
+target speed, gem_demo.Proposal min_speed = top = V, no stopping law, no jumps / powerups) vs hybrid15 (cruise until 10 u of
+route distance from the target, then the production planner). Metrics: points over 12 s, time to the first pickup, falls, and
+the root search's fate of fast_16 / fast_20 / route / direct (rank or rejection). Output scratchpad cruise/run1 (10 processes,
+~35 s CPU a situation). Decision rule: survival under ~60 percent (falls / no pickup) = the physics or routing blocks plain
+cruising, report instead of building; otherwise build the family (step 2), sim pair 80 rounds (step 3a), native campaign (3b).
+Smoke (Bowl, 2 situations): the root choices were fast_20_ballistic plans at 15-18 u/s; fast_16 / route / direct all
+'no_supported_continuation' at those roots (Bowl's curved floor), so the 18 u/s stability limit in terminal_support is one
+suspect for the pace loss on curved maps.
+
+### 2026-11-02 00:25 (system clock, MST) cruise probe CLOSED NEGATIVE: plain or profiled fast travel loses to the production planner
+scratchpad cruise/run1 (400 approach situations, 10 maps x 2 recorded rounds x 20; 12 s windows, common spawns) + run2
+(profile arms, 200 of 400 done at this writing; cruise_summary.py over both):
+| arm (12 s window) | points vs base | first pickup when both arrive | pickup rate | falls / 400 |
+| base (production) | 7.51 a window | 3.8 s | 92 % | 15 |
+| cruise13 / 15 / 17 (fixed-speed route follower) | -5.6 +- 0.2 | +0.6 to +0.8 s slower | 55 % | 370 |
+| hybrid15 (cruise, production within 10 u) | -2.05 +- 0.17 | +0.5 s slower | 66 % | 167 |
+| profile13 / 15 / 17 (curvature + edge speed profile, TrackLine) | -2.3 +- 0.3 (200 sit.) | +0.8 s slower | 83 % | ~30 |
+| phybrid15 | -1.2 +- 0.2 (200 sit.) | +0.75 s slower | 86 % | 13 |
+The production planner reaches the first gem SOONER than every rule-written cruise controller, even on the legs both survive
+(cruise15 loses +0.3 s on legs under 2 s, +1.2 s on 2-4 s legs, +2.1 s on 7-13 s legs), and the cruise arms' mean speed is no
+higher than the base's (8.0 vs 8.1 u/s over the window). The root searches confirm the planner does ask for speed: fast_16 /
+fast_20 / route / direct are valid in ~45 percent of the roots (rank 1-3 in ~7 percent) and 'no_supported_continuation' in the
+rest (curved floors, edges). Conclusion: on these maps the rolling marble cannot go faster along the walking routes than the
+planner already drives it (turn radius at 15 u/s is ~16 u; corners and edges everywhere); the human's 13-18 u/s legs are not
+a stick-steering result. Decision rule met (survival / pace not better): the cruise family is NOT built. The time-to-first-gem
+loss against the human must come from elsewhere: Super Speed use (human ~20 fires a round) and slopes / jumps. Next: the
+powerup economy of the recorded rounds (pickups, fires, holds), then a proposal from the numbers.
+
+### 2026-11-02 00:40 (system clock, MST) powerup economy of the recorded rounds; coverage batch 4 launched (Super Speed switches)
+Recorded qr3 rounds (20 = 10 maps x 2): per round the planner picks up SS 5.7 / SJ 4.0 / Heli 1.5 and fires SS 5.2 / SJ 3.4 /
+Heli 1.5; median SS hold 0.7-2 s on most maps, but KOTM 7.8-11.7 s with 5 and 11 replacements (SS swapped for a Super Jump) and
+1 / 4 fires from 7 / 5 pickups; while holding the SS the KOTM planner chose line2 (231 / 230 decisions), frozen_navigator,
+jump_9, steering. Human demos: KOTM (demo_20261003_211632, 153 pts) 20 SS pickups / 20 fires; TreasureBox (demo_20261021_151105,
+207 pts) SS 7 / 6, SJ 3 / 3, Mega 3 (the planner's TreasureBox rounds: SS 6-10 / 6-10): on TreasureBox the human is not faster
+through more Super Speeds. Spawners per map (SS): Bowl 69, Sprawl 21, TreasureBox 21, Cube 18, Concentric 15, Vortex 11, KOTM 9,
+Duplex 8, Cragmire 5, Fractured 2.
+Batch 4 (scratchpad coverage/batch4.sh -> coverage/batch4; 9 processes; full_round.py, 10 maps x spawn seeds 1-8, fresh base
+arm with the current code): ss_onegem0 (search.SS_ONE_GEM_U 8 -> 0: a Super Speed may be spent on one gem inside a cluster,
+the KOTM human technique; the 10-23 cluster_penalty bundle stays otherwise), usemargin0 (--use-margin-s 0: powerup uses need
+no 1 s cost margin over rolling), ss_detour12 (new reliability_eval.SS_DETOUR_U 12 / SS_DETOUR_LEG_U 25, default 0 = off: the
+opportunistic detour budget for a Super Speed item is 12 u instead of 4 when the current leg is 25 u or longer; pick()).
+Expected ~5-6 h (320 rounds). Summary: tools/sim_bench/coverage_summary.py <folder>. Decision: a switch at or above +1.5 a
+round in the sim (se ~1.5) goes to a native campaign in the morning; nothing promoted on sim alone.
+
+### 2026-11-02 00:45 (system clock, MST) KOTM holds replayed: every Super Speed plan flies off; kick-through family built; batch 5
+Replay (scratchpad coverage/ss_hold_probe.py) of 8 KOTM decisions while holding a Super Speed (qr3 explore 482017593: holds of
+61 / 225 / 315 / 159 decisions, 5 of 7 ended by a Super Jump pickup replacing the SS): EVERY use candidate (use_0/3/7, launches,
+16-59 a search) is rejected 'no_supported_continuation' with forecast peaks of 27-45 u/s (the _landing twins 78-97 u/s: off
+the map): the kick is aimed along the route to the CURRENT gem and adds 25 u/s to the carried speed. The few that stay under
+~23 u/s fail the use margin (8 u) because the rolling plan already collects the gem 2 replies later. The human (demo 10-03,
+20 fires a round) fires 0.1-0.2 s AFTER the pickup with a 77-151 degree turn so the resultant (~17 u/s) points at the NEXT gem.
+Built (search.py, default OFF): KICK_THROUGH / KickThroughProposal (a through plan; the use pressed KICK_THROUGH_DELAYS replies
+after the plan passes the gem, aimed with lead_aim at the next gem's waypoint, kick 25 u/s; Python per-reply forecast, 2 extra
+candidates when holding an SS within THROUGH_REACH_U of a gem with a tour successor). Replay with it ON: valid at 3 of 6 holds
+with a through context (pickup at reply 2-4, peak 26-27 u/s, stable), but its cost ties the plain through plan (-98 vs -144,
+-100 vs -143, -142 vs -142): the post-pickup term is read at a fixed reply 24 and collecting the next gem sooner earns nothing
+(gem_demo.NEXT_PICKUP_U_PER_S 0; v57 tried 4 on 10-17: -2.7 over 20 noisy game rounds). So the kick can only win with a time
+credit for the second pickup and no use margin.
+Batch 5 (scratchpad coverage/batch5.sh, 5 processes beside batch 4, same folder coverage/batch4, paired with its base): kick
+(KICK_THROUGH + NEXT_PICKUP_U_PER_S 10 + --use-margin-s 0) and nextpick10 (NEXT_PICKUP_U_PER_S 10 alone). Finish ~04:30-05:00.
+
+### 2026-11-02 04:30 (system clock, MST) coverage batches 4 + 5 CLOSED: all five Super Speed arms negative or inert; NOTHING RUNNING
+Full-round sim, qr3 explore opening 482017593, spawn seeds 1-8, 80 paired rounds an arm against a fresh base (current code,
+134.6 a round, falls 0.75); scratchpad coverage/batch4 (batch4.sh + batch5.sh), tools/sim_bench/coverage_summary.py:
+| arm | delta a round | equal-map ratio [95%] | note |
+| ss_onegem0 (search.SS_ONE_GEM_U 0) | -0.20 +- 1.01 | 0.998 | inert (Cragmire -5.5, Cube +7.4, the rest ~0) |
+| usemargin0 (--use-margin-s 0) | -0.41 +- 1.42 | 0.996 | Bowl -4.8, Vortex -5.5, Cube +5.0, Sprawl +4.1 |
+| ss_detour12 (reliability_eval.SS_DETOUR_U 12) | -1.91 +- 1.69 | 0.984 | Concentric -11.9, Vortex -9.8, TreasureBox -6.5; speed +0.1 |
+| nextpick10 (gem_demo.NEXT_PICKUP_U_PER_S 10) | -1.59 +- 1.44 | 0.986 | Cube -8.9, Bowl / Cragmire -3.8 |
+| kick (KICK_THROUGH + nextpick10 + use margin 0) | -2.52 +- 1.58 | 0.978 | Vortex -18.9 (SS fires 7 -> 15 a round there), KOTM +0.6 (fires 2.4 -> 3.1), falls +0.32 |
+Nothing reaches the +1.5 line; no native campaign. The KOTM kick-through family does fire a little more (3.1 a round against
+the human's 20) but is almost never chosen: the cost ties it with the racing lines that also collect two gems in the horizon
+(the cost prices time at 4-10 u a second, and both plans are 'at the next gem' at reply 24). On Vortex the no-margin kicks
+fire into trouble. Code state: search.KICK_THROUGH False (family kept, default OFF), reliability_eval.SS_DETOUR_U 0 (OFF),
+all other defaults unchanged; tools/sim_bench/cruise_probe.py, cruise_summary.py and full_round.play_round(controller=) added.
+Nothing committed, NOTHING RUNNING after 04:28. Night total: cruise family (negative, not built), five SS arms (negative).
+
+2026-11-02 (morning, system clock, MST): operator reviewed the night and asked for the Super Speed code to be undone. REVERTED search.py (KICK_THROUGH family), reliability_eval.py (SS_DETOUR_U) and tools/sim_bench/full_round.py (controller hook); DELETED tools/sim_bench/cruise_probe.py and cruise_summary.py. Only this log keeps the results. Planner defaults were unchanged by the reverted code.
