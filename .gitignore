@@ -159,3 +159,13 @@ ml_agent/datasets/marble_dynamics/**/*.zip
 ml_agent/dynamics_reports/overnight_20261026/
 ml_agent/dynamics_reports/traversal_recovery_20261026/
 ml_agent/dynamics_reports/planner_review_20261026/
+
+# 2026-11-03: edge-hit skill laboratory results (900 MB of recorded native trials, teacher labels, checkpoints and viewers)
+# stay on disk; only the written reports are tracked. The frozen proposer production uses is ml_agent/physics/lip_skill_proposer_v6a.pt
+ml_agent/dynamics_reports/edge_skill_20261102/**
+ml_agent/dynamics_reports/edge_skill_20261103/**
+!ml_agent/dynamics_reports/edge_skill_20261102/REPORT.md
+!ml_agent/dynamics_reports/edge_skill_20261103/REPORT.md
+!ml_agent/dynamics_reports/edge_skill_20261103/PROTOCOL.md
+!ml_agent/dynamics_reports/edge_skill_20261103/integration/
+!ml_agent/dynamics_reports/edge_skill_20261103/integration/README.md

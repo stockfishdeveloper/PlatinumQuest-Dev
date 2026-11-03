@@ -14912,3 +14912,35 @@ all other defaults unchanged; tools/sim_bench/cruise_probe.py, cruise_summary.py
 Nothing committed, NOTHING RUNNING after 04:28. Night total: cruise family (negative, not built), five SS arms (negative).
 
 2026-11-02 (morning, system clock, MST): operator reviewed the night and asked for the Super Speed code to be undone. REVERTED search.py (KICK_THROUGH family), reliability_eval.py (SS_DETOUR_U) and tools/sim_bench/full_round.py (controller hook); DELETED tools/sim_bench/cruise_probe.py and cruise_summary.py. Only this log keeps the results. Planner defaults were unchanged by the reverted code.
+
+### 2026-11-03 08:30 (system clock, MST) EDGE-HIT SKILL campaign 2 CLOSED on sealed suites; paused before planner integration
+
+Standalone unpowered lip-contact skill (plan docs/EDGE_HIT_SKILL_PLAN_2026-11-02.md; code ml_agent/tools/edge_skill/; data
+dynamics_reports/edge_skill_20261103/). Campaign 1 (11-02) failed transfer (real-map admission 0/12). Campaign 2 rebuilt the
+controller overnight (contact-conditioned feedback, queue-aware planning, stable 1/16 input encoding, private C++ DLL from the
+unchanged physics source) and stopped at 01:49 with nothing running. Morning: tests 6/6; proposer v7a (neighborhood-augmented)
+tied v6a on development (470/1058 each), v6a frozen (freeze.json hashes); sealed suites opened once: sim admission flat 239/576,
+sloped 129/288, real 95/180; NATIVE 1,044 starts, 416 accepted, 416/416 succeeded, 0 sim/native mismatches, 0/628 exploratory
+successes on declines; falls after the success window 12/416, later departure below landing 16/416. Real-map admission 72/180
+(KOTM 9/12 ... TreasureBox 5/22). Accepted-root planning p95 44-73 ms standalone; no real-time certificate; no points claim.
+Report REPORT.md, viewers review_sealed_showcase.html / review_real_test.html. Production planner, scripts, DLL untouched;
+nothing committed. NEXT = milestone 5 (planner integration) only on the operator's decision.
+
+### 2026-11-03 10:30 (system clock, MST) LIP SKILL integrated into the planner (milestone 5); sim effect ~0 on the ten-map average
+
+Operator: clean the working tree, then integrate the edge-hit skill to score more and conserve Blast. Cleanup: 30 one-off scripts
+archived to C:/Users/doug/pq_archive/experiment_scripts_2026-11-03.zip and git rm-ed (generate_map_topdown.py, the traversal
+modules and review_powerup_pilot.ps1 restored: still imported/called). Integration (see
+dynamics_reports/edge_skill_20261103/integration/README.md): lip_skill.py builds a skill cell from mesh lips ahead of a higher
+target, solves on a private simulator (budget 48-192 by remaining search time, warm start per lip, virtual clock charged), the
+checked reply list up to the platform arrival is re-forecast by the production simulator as a LandingContinuation and judged by
+the usual gates; an accepted plan locks through its lip contact; LIP_SWITCH_U 5 lets it replace a kept non-pickup plan. Default
+ON (control --no-lip-skill / --set search.LIP_SKILL=False). Results: pair1 (ten maps x2) identical before the switch rule;
+pair2 (Fractured x6, Cragmire x2, Duplex x2): two executions, both +5 on Fractured, all other pairs identical (mean +1.0 on
+those maps, 0 elsewhere). Why so little: opportunities in the trained envelope are rare (level lips 0.35-1.5 u, level run-up and
+platform) and a lip climb reaches the platform ~1.7 s after a Blast-and-jump plan (Blast plan cost 10 vs lip 27 at Fractured
+dec 207), so Blast wins unless priced >= 20 u (BLAST_CONSERVE_U, default 0). The lip-height histogram (lip_skill.HISTOGRAM) shows
+the Blast climbs on Sprawl/Cragmire are 1.5-6.5 u lips, outside the skill. Teacher on 49 captured live states: 11 solvable, so
+retraining the proposer cannot raise admission much. NEXT (proposal, needs the operator): a lab campaign for higher lips
+(1.5-3 u via the wall-kick contact the existing edge_hit wall family uses) and sloped run-ups/platforms, which is where Blast is
+actually spent; or price Blast conservation and measure on all ten maps. Nothing committed.

@@ -300,6 +300,7 @@ class World:
         engine.mega_enabled = getattr(a, 'mega_proposals', False)
         engine.pickup_stop = getattr(a, 'pickup_stop', False)
         engine.edge_hits = getattr(a, 'edge_hits', False)
+        engine.lip_skill = getattr(a, 'lip_skill', True)
         engine.wall_rebounds = getattr(a, 'wall_rebounds', True)
         engine.pad_hops = getattr(a, 'pad_hops', False)
         engine.resource_cap = getattr(a, 'resource_cap', True)

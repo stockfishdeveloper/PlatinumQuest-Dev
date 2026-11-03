@@ -12,7 +12,12 @@ def f32(value):return float(np.float32(value))
 def script_arg(value):return f32(format(f32(value),'.6g'))
 
 
+import os
+NO_BLAST = bool(os.environ.get('PQ_NO_BLAST'))   # 2026-11-03 (operator experiment): PQ_NO_BLAST=1 makes the planner treat the Blast as never available
+
+
 def available(context):
+    if NO_BLAST: return False
     return bool(context and context['enabled'] and not context['frozen']
         and not any(context[k] for k in ('triple','fireball','cannon'))
         and context['value']>=context['required'])

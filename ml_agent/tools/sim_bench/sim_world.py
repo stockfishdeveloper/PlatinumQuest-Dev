@@ -116,6 +116,7 @@ def setup(a, name, native=True, step_cost_ms=0.6, native_step_us=0., real_clock=
     engine.mega_enabled = getattr(a, 'mega_proposals', False)
     engine.pickup_stop = getattr(a, 'pickup_stop', False)
     engine.edge_hits = getattr(a, 'edge_hits', False)
+    engine.lip_skill = getattr(a, 'lip_skill', True)
     engine.wall_rebounds = getattr(a, 'wall_rebounds', True)
     engine.pad_hops = getattr(a, 'pad_hops', False)
     engine.resource_cap = getattr(a, 'resource_cap', True)
@@ -162,9 +163,9 @@ def apply_settings(settings):
     """--set module.NAME=value on the planner modules (after setup(), which resets some of them from the args)."""
     import nav.marble_dynamics.gem_demo as GD, nav.marble_dynamics.search as S, nav.marble_dynamics.reliability_eval as RE
     import nav.marble_dynamics.geometry_route as GR, nav.marble_dynamics.crossings as CRX, nav.marble_dynamics.gap_links as GLX
-    import nav.marble_dynamics.climbs as CLX, nav.terrain as TRN, nav.marble_dynamics.resources as RSX
+    import nav.marble_dynamics.climbs as CLX, nav.terrain as TRN, nav.marble_dynamics.resources as RSX, nav.marble_dynamics.lip_skill as LSX
     modules = {'gem_demo': GD, 'search': S, 'reliability_eval': RE, 'geometry_route': GR, 'crossings': CRX, 'gap_links': GLX,
-               'climbs': CLX, 'terrain': TRN, 'resources': RSX}
+               'climbs': CLX, 'terrain': TRN, 'resources': RSX, 'lip_skill': LSX}
     for kv in settings:
         key, val = kv.split('=', 1); mod, attr = key.split('.')
         module = modules[mod]; cur = getattr(module, attr)

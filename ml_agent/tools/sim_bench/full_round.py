@@ -284,7 +284,8 @@ def play_round(a, terrain, engine, mission, rows, spawn_seed, o, label='', start
                 why=why, failures=failures, blasts=blasts, uses=dict(uses), labels=dict(labels.most_common(12)),
                 mean_speed=float(np.mean(speeds)) if speeds else 0., cpu_s=time.process_time() - t0, steps=W.STEPS[0] - s0,
                 fallback=int(ctrl.counts.get('fallback_decisions', 0)), safe_holds=int(ctrl.counts.get('safe_holds', 0)),
-                searches=int(ctrl.counts.get('full_searches', 0)), stalled_s=float(monitor.stalled_s))
+                searches=int(ctrl.counts.get('full_searches', 0)), stalled_s=float(monitor.stalled_s),
+                lip_skill=dict(getattr(engine, 'lip_skill_stats', None) or {}), lip_skill_log=list(getattr(engine, 'lip_skill_log', None) or []))
 
 
 def main():

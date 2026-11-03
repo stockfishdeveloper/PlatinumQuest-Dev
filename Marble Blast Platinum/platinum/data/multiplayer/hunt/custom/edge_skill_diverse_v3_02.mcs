@@ -1,0 +1,292 @@
+function MP_PQ_edgeskilldiversev302_GetMissionInfo() {
+return new ScriptObject() { name = "edge_skill_diverse_v3_02"; type = "Custom"; level = "9999";
+desc = "Lip-contact skill laboratory; ordinary controls only";
+artist = "Edge skill experiment"; game = "Ultra"; gameMode = "Hunt";
+blast = "0"; Time = "3600000"; gemGroups = "1"; gems = "16";
+maxGemsPerSpawn = "16"; radiusFromGem = "1000"; maxScore = "16";
+interior0 = $usermods @ "/data/interiors_mbp/neutral2_square.dif"; interiors = "1";
+}; }
+if ($loadingMissionInfo) return;
+if (!$Server::Hosting || $Server::_Dedicated) return;
+function MP_PQ_edgeskilldiversev302_LoadMission() { return new SimGroup(MissionGroup) {
+new MissionArea(MissionArea) { area = "-200 -200 1000 1000"; flightCeiling = "300"; flightCeilingRange = "20"; };
+new Sky(Sky) { materialList = "~/data/skies_mbu/beginner/sky_beginner.dml"; visibleDistance = "10000";
+useSkyTextures = "1"; renderBottomTexture = "1"; fogDistance = "10000"; };
+new Sun() { direction = "0.5 0.3 -0.8"; color = "1 1 1"; ambient = "0.5 0.5 0.5"; };
+new Trigger(StayHere) { position = "-150 900 -60"; scale = "1100 1100 200"; rotation = "0 0 1 0";
+dataBlock = "InBoundsTrigger"; polyhedron = "0 0 0 1 0 0 0 -1 0 0 0 1"; };
+new InteriorInstance() {
+position = "11.199774 8.4003013 -1"; rotation = "0 0 1 -126.87144"; scale = "1 1 1";
+interiorFile = "~/data/multiplayer/interiors/custom/edge_skill/box_495f929f1f20.dif";
+showTerrainInside = "0";
+};
+new InteriorInstance() {
+position = "2.6723995 5.0324673 -1"; rotation = "0 0 1 -126.87144"; scale = "1 1 1";
+interiorFile = "~/data/multiplayer/interiors/custom/edge_skill/box_88cf56bc2056.dif";
+showTerrainInside = "0";
+};
+new InteriorInstance() {
+position = "-6.2613665 18.387903 -1"; rotation = "0 0 1 -118.82484"; scale = "1 1 1";
+interiorFile = "~/data/multiplayer/interiors/custom/edge_skill/box_2c4a0a9b62be.dif";
+showTerrainInside = "0";
+};
+new Trigger() { position = "12.00043 -15.999677 0.1"; rotation = "0 0 1 0"; scale = "1 1 1"; dataBlock = "SpawnTrigger"; polyhedron = "0 0 0 1 0 0 0 -1 0 0 0 1"; add = "0 0 1"; gravity = "0"; };
+new InteriorInstance() {
+position = "173.75727 2.5956845 -1"; rotation = "0 0 1 -100.68481"; scale = "1 1 1";
+interiorFile = "~/data/multiplayer/interiors/custom/edge_skill/box_495f929f1f20.dif";
+showTerrainInside = "0";
+};
+new InteriorInstance() {
+position = "163.23654 2.9455204 -1"; rotation = "0 0 1 -100.68481"; scale = "1 1 1";
+interiorFile = "~/data/multiplayer/interiors/custom/edge_skill/box_7ecaccb8755c.dif";
+showTerrainInside = "0";
+};
+new InteriorInstance() {
+position = "164.12344 19.240718 -1"; rotation = "0 0 1 -68.526065"; scale = "1 1 1";
+interiorFile = "~/data/multiplayer/interiors/custom/edge_skill/box_b676940c5e30.dif";
+showTerrainInside = "0";
+};
+new Trigger() { position = "163.70812 -19.65324 0.1"; rotation = "0 0 1 0"; scale = "1 1 1"; dataBlock = "SpawnTrigger"; polyhedron = "0 0 0 1 0 0 0 -1 0 0 0 1"; add = "0 0 1"; gravity = "0"; };
+new InteriorInstance() {
+position = "331.00524 8.6535955 -1"; rotation = "0 0 1 -128.17854"; scale = "1 1 1";
+interiorFile = "~/data/multiplayer/interiors/custom/edge_skill/box_495f929f1f20.dif";
+showTerrainInside = "0";
+};
+new InteriorInstance() {
+position = "321.14952 2.1122263 -1"; rotation = "0 0 1 -128.17854"; scale = "1 1 1";
+interiorFile = "~/data/multiplayer/interiors/custom/edge_skill/box_75ba11c3a308.dif";
+showTerrainInside = "0";
+};
+new InteriorInstance() {
+position = "318.36986 11.90286 -1"; rotation = "0 0 1 -83.535199"; scale = "1 1 1";
+interiorFile = "~/data/multiplayer/interiors/custom/edge_skill/box_13c23ebefa5c.dif";
+showTerrainInside = "0";
+};
+new Trigger() { position = "332.36228 -15.72177 0.1"; rotation = "0 0 1 0"; scale = "1 1 1"; dataBlock = "SpawnTrigger"; polyhedron = "0 0 0 1 0 0 0 -1 0 0 0 1"; add = "0 0 1"; gravity = "0"; };
+new InteriorInstance() {
+position = "489.28149 -10.481121 -1"; rotation = "0 0 1 -41.526301"; scale = "1 1 1";
+interiorFile = "~/data/multiplayer/interiors/custom/edge_skill/box_495f929f1f20.dif";
+showTerrainInside = "0";
+};
+new InteriorInstance() {
+position = "483.76651 -3.4687224 -1"; rotation = "0 0 1 -41.526301"; scale = "1 1 1";
+interiorFile = "~/data/multiplayer/interiors/custom/edge_skill/box_b42e0acef613.dif";
+showTerrainInside = "0";
+};
+new InteriorInstance() {
+position = "495.11404 3.3613086 -1"; rotation = "0 0 1 -14.914631"; scale = "1 1 1";
+interiorFile = "~/data/multiplayer/interiors/custom/edge_skill/box_0109756f0963.dif";
+showTerrainInside = "0";
+};
+new Trigger() { position = "465.02697 -13.259275 0.1"; rotation = "0 0 1 0"; scale = "1 1 1"; dataBlock = "SpawnTrigger"; polyhedron = "0 0 0 1 0 0 0 -1 0 0 0 1"; add = "0 0 1"; gravity = "0"; };
+new InteriorInstance() {
+position = "13.434218 163.93977 -1"; rotation = "0 0 1 -106.34451"; scale = "1 1 1";
+interiorFile = "~/data/multiplayer/interiors/custom/edge_skill/box_495f929f1f20.dif";
+showTerrainInside = "0";
+};
+new InteriorInstance() {
+position = "1.5606456 161.33078 -1"; rotation = "0 0 1 -106.34451"; scale = "1 1 1";
+interiorFile = "~/data/multiplayer/interiors/custom/edge_skill/box_bcfe51093e90.dif";
+showTerrainInside = "0";
+};
+new InteriorInstance() {
+position = "-6.5011618 171.7975 -1"; rotation = "0 0 1 -135.82929"; scale = "1 1 1";
+interiorFile = "~/data/multiplayer/interiors/custom/edge_skill/box_846de829d1c7.dif";
+showTerrainInside = "0";
+};
+new Trigger() { position = "5.6282448 140.80826 0.1"; rotation = "0 0 1 0"; scale = "1 1 1"; dataBlock = "SpawnTrigger"; polyhedron = "0 0 0 1 0 0 0 -1 0 0 0 1"; add = "0 0 1"; gravity = "0"; };
+new InteriorInstance() {
+position = "146.38836 163.27466 -1"; rotation = "0 0 1 103.52702"; scale = "1 1 1";
+interiorFile = "~/data/multiplayer/interiors/custom/edge_skill/box_495f929f1f20.dif";
+showTerrainInside = "0";
+};
+new InteriorInstance() {
+position = "157.73889 159.06544 -1"; rotation = "0 0 1 103.52702"; scale = "1 1 1";
+interiorFile = "~/data/multiplayer/interiors/custom/edge_skill/box_da55d43e64ea.dif";
+showTerrainInside = "0";
+};
+new InteriorInstance() {
+position = "145.85654 146.34563 -1"; rotation = "0 0 1 145.54601"; scale = "1 1 1";
+interiorFile = "~/data/multiplayer/interiors/custom/edge_skill/box_0a5c837d489f.dif";
+showTerrainInside = "0";
+};
+new Trigger() { position = "164.67808 179.44519 0.1"; rotation = "0 0 1 0"; scale = "1 1 1"; dataBlock = "SpawnTrigger"; polyhedron = "0 0 0 1 0 0 0 -1 0 0 0 1"; add = "0 0 1"; gravity = "0"; };
+new InteriorInstance() {
+position = "319.76604 146.00195 -1"; rotation = "0 0 1 0.9575269"; scale = "1 1 1";
+interiorFile = "~/data/multiplayer/interiors/custom/edge_skill/box_495f929f1f20.dif";
+showTerrainInside = "0";
+};
+new InteriorInstance() {
+position = "322.1673 155.04899 -1"; rotation = "0 0 1 0.9575269"; scale = "1 1 1";
+interiorFile = "~/data/multiplayer/interiors/custom/edge_skill/box_eb1281988f72.dif";
+showTerrainInside = "0";
+};
+new InteriorInstance() {
+position = "338.68739 162.74643 -1"; rotation = "0 0 1 -31.450628"; scale = "1 1 1";
+interiorFile = "~/data/multiplayer/interiors/custom/edge_skill/box_b03c518ea930.dif";
+showTerrainInside = "0";
+};
+new Trigger() { position = "300.00279 160.33422 0.1"; rotation = "0 0 1 0"; scale = "1 1 1"; dataBlock = "SpawnTrigger"; polyhedron = "0 0 0 1 0 0 0 -1 0 0 0 1"; add = "0 0 1"; gravity = "0"; };
+new InteriorInstance() {
+position = "491.09705 168.53555 -1"; rotation = "0 0 1 -127.56651"; scale = "1 1 1";
+interiorFile = "~/data/multiplayer/interiors/custom/edge_skill/box_495f929f1f20.dif";
+showTerrainInside = "0";
+};
+new InteriorInstance() {
+position = "483.97874 164.50074 -1"; rotation = "0 0 1 -127.56651"; scale = "1 1 1";
+interiorFile = "~/data/multiplayer/interiors/custom/edge_skill/box_8a871b4c8cfb.dif";
+showTerrainInside = "0";
+};
+new InteriorInstance() {
+position = "467.70196 166.19582 -1"; rotation = "0 0 1 -159.32806"; scale = "1 1 1";
+interiorFile = "~/data/multiplayer/interiors/custom/edge_skill/box_97f95fbb5be3.dif";
+showTerrainInside = "0";
+};
+new Trigger() { position = "492.19364 144.14708 0.1"; rotation = "0 0 1 0"; scale = "1 1 1"; dataBlock = "SpawnTrigger"; polyhedron = "0 0 0 1 0 0 0 -1 0 0 0 1"; add = "0 0 1"; gravity = "0"; };
+new InteriorInstance() {
+position = "-11.762098 327.59296 -1"; rotation = "0 0 1 122.84405"; scale = "1 1 1";
+interiorFile = "~/data/multiplayer/interiors/custom/edge_skill/box_495f929f1f20.dif";
+showTerrainInside = "0";
+};
+new InteriorInstance() {
+position = "-3.8768786 320.73777 -1"; rotation = "0 0 1 122.84405"; scale = "1 1 1";
+interiorFile = "~/data/multiplayer/interiors/custom/edge_skill/box_efa76784f7b3.dif";
+showTerrainInside = "0";
+};
+new InteriorInstance() {
+position = "-18.904225 310.96334 -1"; rotation = "0 0 1 139.52329"; scale = "1 1 1";
+interiorFile = "~/data/multiplayer/interiors/custom/edge_skill/box_4e2e9db515dc.dif";
+showTerrainInside = "0";
+};
+new Trigger() { position = "10.847086 336.803 0.1"; rotation = "0 0 1 0"; scale = "1 1 1"; dataBlock = "SpawnTrigger"; polyhedron = "0 0 0 1 0 0 0 -1 0 0 0 1"; add = "0 0 1"; gravity = "0"; };
+new InteriorInstance() {
+position = "151.58139 308.81398 -1"; rotation = "0 0 1 36.965159"; scale = "1 1 1";
+interiorFile = "~/data/multiplayer/interiors/custom/edge_skill/box_495f929f1f20.dif";
+showTerrainInside = "0";
+};
+new InteriorInstance() {
+position = "160.30878 316.8094 -1"; rotation = "0 0 1 36.965159"; scale = "1 1 1";
+interiorFile = "~/data/multiplayer/interiors/custom/edge_skill/box_81a751169fbb.dif";
+showTerrainInside = "0";
+};
+new InteriorInstance() {
+position = "171.85082 303.77412 -1"; rotation = "0 0 1 42.894965"; scale = "1 1 1";
+interiorFile = "~/data/multiplayer/interiors/custom/edge_skill/box_e0bdc6ad3898.dif";
+showTerrainInside = "0";
+};
+new Trigger() { position = "144.01997 332.02659 0.1"; rotation = "0 0 1 0"; scale = "1 1 1"; dataBlock = "SpawnTrigger"; polyhedron = "0 0 0 1 0 0 0 -1 0 0 0 1"; add = "0 0 1"; gravity = "0"; };
+new InteriorInstance() {
+position = "318.52869 333.92247 -1"; rotation = "0 0 1 173.96746"; scale = "1 1 1";
+interiorFile = "~/data/multiplayer/interiors/custom/edge_skill/box_495f929f1f20.dif";
+showTerrainInside = "0";
+};
+new InteriorInstance() {
+position = "318.44751 324.75061 -1"; rotation = "0 0 1 173.96746"; scale = "1 1 1";
+interiorFile = "~/data/multiplayer/interiors/custom/edge_skill/box_1a5d314865dc.dif";
+showTerrainInside = "0";
+};
+new InteriorInstance() {
+position = "299.25739 309.85849 -1"; rotation = "0 0 1 141.23437"; scale = "1 1 1";
+interiorFile = "~/data/multiplayer/interiors/custom/edge_skill/box_ef6dbefe9572.dif";
+showTerrainInside = "0";
+};
+new Trigger() { position = "339.88925 322.10187 0.1"; rotation = "0 0 1 0"; scale = "1 1 1"; dataBlock = "SpawnTrigger"; polyhedron = "0 0 0 1 0 0 0 -1 0 0 0 1"; add = "0 0 1"; gravity = "0"; };
+new InteriorInstance() {
+position = "469.72866 310.48687 -1"; rotation = "0 0 1 47.194694"; scale = "1 1 1";
+interiorFile = "~/data/multiplayer/interiors/custom/edge_skill/box_495f929f1f20.dif";
+showTerrainInside = "0";
+};
+new InteriorInstance() {
+position = "478.02536 315.54762 -1"; rotation = "0 0 1 47.194694"; scale = "1 1 1";
+interiorFile = "~/data/multiplayer/interiors/custom/edge_skill/box_484004918d25.dif";
+showTerrainInside = "0";
+};
+new InteriorInstance() {
+position = "490.4216 312.54638 -1"; rotation = "0 0 1 32.26561"; scale = "1 1 1";
+interiorFile = "~/data/multiplayer/interiors/custom/edge_skill/box_14bd8637b40f.dif";
+showTerrainInside = "0";
+};
+new Trigger() { position = "466.40981 334.67334 0.1"; rotation = "0 0 1 0"; scale = "1 1 1"; dataBlock = "SpawnTrigger"; polyhedron = "0 0 0 1 0 0 0 -1 0 0 0 1"; add = "0 0 1"; gravity = "0"; };
+new InteriorInstance() {
+position = "13.999975 479.97333 -1"; rotation = "0 0 1 -89.890858"; scale = "1 1 1";
+interiorFile = "~/data/multiplayer/interiors/custom/edge_skill/box_495f929f1f20.dif";
+showTerrainInside = "0";
+};
+new InteriorInstance() {
+position = "3.4486452 482.24501 -1"; rotation = "0 0 1 -89.890858"; scale = "1 1 1";
+interiorFile = "~/data/multiplayer/interiors/custom/edge_skill/box_31000415bc2c.dif";
+showTerrainInside = "0";
+};
+new InteriorInstance() {
+position = "6.5678351 494.35112 -1"; rotation = "0 0 1 -79.476054"; scale = "1 1 1";
+interiorFile = "~/data/multiplayer/interiors/custom/edge_skill/box_8abb2f578635.dif";
+showTerrainInside = "0";
+};
+new Trigger() { position = "-0.038097586 460.00004 0.1"; rotation = "0 0 1 0"; scale = "1 1 1"; dataBlock = "SpawnTrigger"; polyhedron = "0 0 0 1 0 0 0 -1 0 0 0 1"; add = "0 0 1"; gravity = "0"; };
+new InteriorInstance() {
+position = "146.00052 479.87909 -1"; rotation = "0 0 1 89.505165"; scale = "1 1 1";
+interiorFile = "~/data/multiplayer/interiors/custom/edge_skill/box_495f929f1f20.dif";
+showTerrainInside = "0";
+};
+new InteriorInstance() {
+position = "157.60891 479.30887 -1"; rotation = "0 0 1 89.505165"; scale = "1 1 1";
+interiorFile = "~/data/multiplayer/interiors/custom/edge_skill/box_033022f55973.dif";
+showTerrainInside = "0";
+};
+new InteriorInstance() {
+position = "147.13413 464.49415 -1"; rotation = "0 0 1 120.9397"; scale = "1 1 1";
+interiorFile = "~/data/multiplayer/interiors/custom/edge_skill/box_5f2e20191f9e.dif";
+showTerrainInside = "0";
+};
+new Trigger() { position = "159.82727 499.99925 0.1"; rotation = "0 0 1 0"; scale = "1 1 1"; dataBlock = "SpawnTrigger"; polyhedron = "0 0 0 1 0 0 0 -1 0 0 0 1"; add = "0 0 1"; gravity = "0"; };
+new InteriorInstance() {
+position = "306.05271 478.78626 -1"; rotation = "0 0 1 85.026445"; scale = "1 1 1";
+interiorFile = "~/data/multiplayer/interiors/custom/edge_skill/box_495f929f1f20.dif";
+showTerrainInside = "0";
+};
+new InteriorInstance() {
+position = "317.79258 477.70972 -1"; rotation = "0 0 1 85.026445"; scale = "1 1 1";
+interiorFile = "~/data/multiplayer/interiors/custom/edge_skill/box_fb7f740c4f3f.dif";
+showTerrainInside = "0";
+};
+new InteriorInstance() {
+position = "318.78024 465.61438 -1"; rotation = "0 0 1 69.373814"; scale = "1 1 1";
+interiorFile = "~/data/multiplayer/interiors/custom/edge_skill/box_2d0d370e1845.dif";
+showTerrainInside = "0";
+};
+new Trigger() { position = "318.26608 499.9247 0.1"; rotation = "0 0 1 0"; scale = "1 1 1"; dataBlock = "SpawnTrigger"; polyhedron = "0 0 0 1 0 0 0 -1 0 0 0 1"; add = "0 0 1"; gravity = "0"; };
+new InteriorInstance() {
+position = "483.04805 466.33584 -1"; rotation = "0 0 1 -12.575028"; scale = "1 1 1";
+interiorFile = "~/data/multiplayer/interiors/custom/edge_skill/box_495f929f1f20.dif";
+showTerrainInside = "0";
+};
+new InteriorInstance() {
+position = "481.84782 475.5047 -1"; rotation = "0 0 1 -12.575028"; scale = "1 1 1";
+interiorFile = "~/data/multiplayer/interiors/custom/edge_skill/box_70351c540097.dif";
+showTerrainInside = "0";
+};
+new InteriorInstance() {
+position = "497.25954 487.08906 -1"; rotation = "0 0 1 -45.543905"; scale = "1 1 1";
+interiorFile = "~/data/multiplayer/interiors/custom/edge_skill/box_db1b3f9d3135.dif";
+showTerrainInside = "0";
+};
+new Trigger() { position = "460.47977 475.64564 0.1"; rotation = "0 0 1 0"; scale = "1 1 1"; dataBlock = "SpawnTrigger"; polyhedron = "0 0 0 1 0 0 0 -1 0 0 0 1"; add = "0 0 1"; gravity = "0"; };
+new SimGroup(GemGroups) { new SimGroup() {
+new Item() { position = "-1.8318075 6.4422671 0.81494561"; rotation = "0 0 1 0"; scale = "1 1 1"; dataBlock = "GemItem"; collideable = "0"; static = "1"; rotate = "1"; };
+new Item() { position = "158.08269 9.6698434 2.042184"; rotation = "0 0 1 0"; scale = "1 1 1"; dataBlock = "GemItem"; collideable = "0"; static = "1"; rotate = "1"; };
+new Item() { position = "315.73526 5.2771975 2.8176487"; rotation = "0 0 1 0"; scale = "1 1 1"; dataBlock = "GemItem"; collideable = "0"; static = "1"; rotate = "1"; };
+new Item() { position = "485.10734 2.0015547 2.5103293"; rotation = "0 0 1 0"; scale = "1 1 1"; dataBlock = "GemItem"; collideable = "0"; static = "1"; rotate = "1"; };
+new Item() { position = "-1.5589326 165.12502 2.5228827"; rotation = "0 0 1 0"; scale = "1 1 1"; dataBlock = "GemItem"; collideable = "0"; static = "1"; rotate = "1"; };
+new Item() { position = "158.74215 151.54404 2.0534465"; rotation = "0 0 1 0"; scale = "1 1 1"; dataBlock = "GemItem"; collideable = "0"; static = "1"; rotate = "1"; };
+new Item() { position = "329.08096 161.25524 2.4325793"; rotation = "0 0 1 0"; scale = "1 1 1"; dataBlock = "GemItem"; collideable = "0"; static = "1"; rotate = "1"; };
+new Item() { position = "474.59353 162.33287 1.7781755"; rotation = "0 0 1 0"; scale = "1 1 1"; dataBlock = "GemItem"; collideable = "0"; static = "1"; rotate = "1"; };
+new Item() { position = "-7.2752311 316.09063 2.8145805"; rotation = "0 0 1 0"; scale = "1 1 1"; dataBlock = "GemItem"; collideable = "0"; static = "1"; rotate = "1"; };
+new Item() { position = "164.00858 313.11319 2.3083227"; rotation = "0 0 1 0"; scale = "1 1 1"; dataBlock = "GemItem"; collideable = "0"; static = "1"; rotate = "1"; };
+new Item() { position = "312.28314 315.36076 1.8191288"; rotation = "0 0 1 0"; scale = "1 1 1"; dataBlock = "GemItem"; collideable = "0"; static = "1"; rotate = "1"; };
+new Item() { position = "485.65908 317.59624 2.1798699"; rotation = "0 0 1 0"; scale = "1 1 1"; dataBlock = "GemItem"; collideable = "0"; static = "1"; rotate = "1"; };
+new Item() { position = "3.8362944 486.25946 2.0815609"; rotation = "0 0 1 0"; scale = "1 1 1"; dataBlock = "GemItem"; collideable = "0"; static = "1"; rotate = "1"; };
+new Item() { position = "156.66999 472.76386 2.0160872"; rotation = "0 0 1 0"; scale = "1 1 1"; dataBlock = "GemItem"; collideable = "0"; static = "1"; rotate = "1"; };
+new Item() { position = "318.66991 472.57262 2.6963246"; rotation = "0 0 1 0"; scale = "1 1 1"; dataBlock = "GemItem"; collideable = "0"; static = "1"; rotate = "1"; };
+new Item() { position = "487.63467 480.73606 2.2293089"; rotation = "0 0 1 0"; scale = "1 1 1"; dataBlock = "GemItem"; collideable = "0"; static = "1"; rotate = "1"; };
+}; };
+}; }

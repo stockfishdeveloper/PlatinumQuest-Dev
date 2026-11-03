@@ -84,6 +84,7 @@ PICKUP_RESEARCH_U=0.      # 2026-10-28 (under test, --pickup-research U): a kept
                           # plan for the same gem that collects it and costs U or more less replaces it; an overrun keeps the plan
 RESEARCH_EVERY=1          # 2026-10-16 v50: with a kept no-pickup plan, search every N-th decision (1 = every decision, v47); v50 tried 3: 114.8 vs 120.0, NOT adopted
 LAUNCH_SWITCH_U=5.        # 2026-10-26 night: the v47 rule's exception for take-off launches: before its lock a kept launch is replaced by a
+LIP_SWITCH_U=5.   # 2026-11-03 lip skill: a kept non-pickup plan gives way to a lip-skill climb this much cheaper (route units)
                           # launch this much cheaper (u of cost) without a pickup (None = off)
 LEARNED_OTHER_GEMS=False  # 2026-10-16 v43: pick() gives the learned (A2) proposal only to the target gem. When the target has
                           # no useful plan, pick() searches every visible gem; the A2 rollout (Python, 3.7 ms per reply) was
@@ -1124,6 +1125,11 @@ class ContinuousController:
             and memory.executed<memory.lock_from and '_launch' in str(chosen[0].get('label') or '')
             and float(chosen[0].get('cost',math.inf))<float(held[0].get('cost',math.inf))-LAUNCH_SWITCH_U)
         if launch_switch:self.counts['launch_switch']+=1
+        # 2026-11-03 lip skill: a kept plan that collects nothing gives way to an admitted lip-skill climb that is clearly cheaper
+        # (the v47 rule below otherwise keeps any running plan until a pickup plan appears; a climb is never a pickup plan)
+        lip_switch=bool(held is not None and not self._held_pickup and chosen and str(chosen[0].get('label') or '').startswith('lip_skill')
+            and float(chosen[0].get('cost',math.inf))<float(held[0].get('cost',math.inf))-LIP_SWITCH_U)
+        if lip_switch:self.counts['lip_switch']+=1
         # HOLD_RESEARCH: a safe hold makes no progress by design: any useful plan of the re-search replaces it
         hold_replaced=bool(held is not None and self._held_hold and chosen)
         if hold_replaced:self.counts['hold_replaced']+=1
@@ -1133,7 +1139,7 @@ class ContinuousController:
             and float(chosen[0].get('cost',math.inf))<float(held[0].get('cost',math.inf))-PICKUP_RESEARCH_U)
         if pickup_switch:self.counts['pickup_research_switch']+=1
         if held is not None and ((self._held_pickup and not pickup_switch) or not (chosen and (chosen[0].get('possible_pickup_interval') is not None
-                                                 or safer_replacement or launch_switch or hold_replaced))):
+                                                 or safer_replacement or launch_switch or hold_replaced or lip_switch))):
             # v47: nothing new collects a gem, so the running plan stays (no switching between plans that only get closer)
             self.counts['remaining_plan_revalidations']+=1;self.counts['research_kept_plan']+=1
             route.navigate(snapshot['native']['state']['position'],np.asarray((staged if staged is not None else kept_target)[:3]))
@@ -1776,6 +1782,8 @@ def main():
     p.add_argument('--recheck-risky-plans',action='store_true',help='Recheck known failed/unchecked backups on retained plans and search for safer alternatives')
     p.add_argument('--edge-hits',dest='edge_hits',action='store_true',default=True,help='2026-10-20: aim at ledge lips to gain height toward a higher target (bounce physics); ON by default since 2026-10-21 05:30 (six positive ten-map pairs)')
     p.add_argument('--no-edge-hits',dest='edge_hits',action='store_false',help='matched control: the planner without the edge-hit family')
+    p.add_argument('--lip-skill',dest='lip_skill',action='store_true',default=True,help='2026-11-03: the standalone edge-hit skill (tools/edge_skill, nav/marble_dynamics/lip_skill.py) offers checked lip-contact climbs; ON by default')
+    p.add_argument('--no-lip-skill',dest='lip_skill',action='store_false',help='matched control: the planner without the lip skill')
     p.add_argument('--time-price',dest='time_price',action='store_true',default=False,help='2026-10-22 step 2a: plan time priced at gem_demo.TIME_PRICE_U_S (10 u/s): pickup delay, extended forecasts and ballistic projections (OFF by default since 19:15: tp1+tp2 equal-map 128.40 on vs 129.15 off)')
     p.add_argument('--no-time-price',dest='time_price',action='store_false',help='pickup delay at 4 u/s, ballistic time at 8 u/s, extensions free (the default)')
     p.add_argument('--cluster-penalties',dest='cluster_penalties',action='store_true',default=True,help='2026-10-23 (operator): plan cost for side impacts (pad sides, walls), a drop off the level of the next gem after a pickup, and a Super Speed spent on one gem in a cluster (search.BUMP_COST_U, LEDGE_DROP_U, SS_ONE_GEM_U; default ON)')
@@ -2070,6 +2078,7 @@ def main():
         engine.mega_enabled=getattr(a,'mega_proposals',False)
         engine.pickup_stop=getattr(a,'pickup_stop',False)
         engine.edge_hits=getattr(a,'edge_hits',False)
+        engine.lip_skill=getattr(a,'lip_skill',True)
         engine.wall_rebounds=getattr(a,'wall_rebounds',True)
         engine.pad_hops=getattr(a,'pad_hops',False)
         engine.resource_cap=getattr(a,'resource_cap',True)

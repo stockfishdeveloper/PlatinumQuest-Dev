@@ -125,6 +125,8 @@ BUMP_COST_U=50.          # (sim 10-23 round 5: 50 with the re-search, AWAY 2, ed
 BUMP_TICK_DV=1.2         # removes at most ~0.5 u/s a tick, a landing or a ramp turns speed upward); plans built to use walls are exempt
 BUMP_EXEMPT_WALL=True    # deliberate wall rebounds (labels containing 'wall') are exempt ...
 BUMP_EXEMPT_EDGE=False   # ... and the edge-hit (ledge lip) family (labels starting 'edge_hit'): NOT exempt since 10-23 (20 percent of the smacks)
+LIP_SKILL=True        # 2026-11-03: the standalone edge-hit skill as a candidate family (nav/marble_dynamics/lip_skill.py); control --no-lip-skill
+BLAST_CONSERVE_U=0.   # 2026-11-03: when an admitted lip-skill plan exists, every Blast plan pays this much extra (route units): keep the Blast for a climb that needs it
 LEDGE_DROP_U=30.         # u when the plan collects its gem and then drops LEDGE_DROP_DZ below it while the tour's next gem is on that level
 LEDGE_DROP_DZ=1.5        # (pools: 2.4 such drops a round, the next pickup 3.1 s later on average against 1.1 s without a drop)
 LEDGE_TARGET_LEVEL=True  # also a plan without a pickup that leaves its target gem's level downward (the marble on that level now)
@@ -1437,6 +1439,16 @@ def search(engine,route,dynamics,raw,gem,navigator,horizon=40,warm=None,brake_re
     if REFINE_CANDIDATES and not getattr(engine,'_two_level_active',False):
         from nav.marble_dynamics.phased_search import refine
         pairs += refine(engine,route,dynamics,gem,pairs,target_item,REFINE_CANDIDATES,REFINE_FAILURE_ONLY)
+    if (LIP_SKILL and getattr(engine,'lip_skill',True) and not exhausted and not gap_run and not getattr(engine,'crossing_phase',False)
+            and not getattr(engine,'_light_search',False) and not getattr(engine,'_two_level_active',False)):
+        # 2026-11-03 lip skill (nav/marble_dynamics/lip_skill.py): the standalone edge-hit skill's checked climb onto a ledge,
+        # solved from the observed state on its private simulator, then forecast and judged here like any candidate. After the
+        # ordinary families (a deadline trims it before them); its own budget guard skips it when little time remains.
+        from nav.marble_dynamics.lip_skill import skill_pairs
+        try:pairs+=skill_pairs(engine,route,dynamics,gem,steps,target_item)
+        except PlanningBudgetExceeded:
+            if not getattr(engine,'use_completed_candidates_on_timeout',False):raise
+            for info,_ in pairs:info['search_stopped_at_deadline']=True
     apply_crossing_landing(pairs,engine)
     apply_blast_gain(pairs,target_item)
     apply_blast_value(pairs,blast_meter_value(dynamics),float(getattr(engine,'blast_value_u',10.) if getattr(engine,'blast_value_u',None) is not None else 10.),float(getattr(engine,'blast_floor_u',0.) if getattr(engine,'blast_floor_u',None) is not None else 0.))
@@ -1449,8 +1461,22 @@ def search(engine,route,dynamics,raw,gem,navigator,horizon=40,warm=None,brake_re
     apply_two_level(engine,route,dynamics,gem,pairs,target_item)
     if held==1 and SJ_USE_GAIN:apply_use_gain(pairs,engine,dynamics,gem,float(getattr(engine,'use_margin_s',0.) or 0.))
     if held==5 and HELI_MIN_GAIN_S:apply_heli_gain(pairs,route,dynamics,gem,HELI_MIN_GAIN_S)
+    lips=[p for p in pairs if str(p[0].get('label','')).startswith('lip_skill')]
+    if BLAST_CONSERVE_U and any(i['rejected'] is None for i,_ in lips):
+        for info,_ in pairs:
+            if 'blast' in str(info.get('label','')) and info['rejected'] is None and math.isfinite(info['cost']):
+                info['cost']+=BLAST_CONSERVE_U;info['blast_conserve_u']=BLAST_CONSERVE_U
     valid=[p for p in pairs if p[0]['rejected'] is None]
-    return min(valid,key=lambda p:p[0]['cost']) if valid else None,pairs
+    best=min(valid,key=lambda p:p[0]['cost']) if valid else None
+    if lips:
+        # 2026-11-03 lip skill audit: how its plans rank against the search's best (full_round records engine.lip_skill_log)
+        log=getattr(engine,'lip_skill_log',None)
+        if log is None:log=engine.lip_skill_log=[]
+        if len(log)<400:
+            log.append(dict(di=int(getattr(engine,'decision_index',0)),best=None if best is None else dict(label=best[0]['label'],cost=round(float(best[0]['cost']),2),pickup=best[0].get('possible_pickup_interval')),
+                            lips=[dict(label=i['label'],cost=round(float(i['cost']),2) if math.isfinite(i['cost']) else None,rejected=i['rejected'],pickup=i.get('possible_pickup_interval'),
+                                       replies=i.get('requested_replies'),time_penalty=i.get('time_penalty_u'),cluster=i.get('cluster_penalty'),reach=(i.get('lip_skill') or {}).get('reach_reply'),backup=i.get('no_braking_backup')) for i,_ in lips]))
+    return best,pairs
 
 
 def braking_backup(engine,dynamics,rollout,gem,replies=None):
@@ -2036,6 +2062,11 @@ class PlanMemory:
             wp=np.asarray(info['edge_lip'][:2],dtype=float);states=rollout['states']
             dists=[float(np.linalg.norm(np.asarray(st['position'][:2],dtype=float)-wp)) for st in states[:WALL_LOCK_MAX_REPLIES]]
             if dists:self.lock_until=max(self.lock_until,min(len(self.actions),dists.index(min(dists))+3))   # v21: closest approach, always defined
+        if str(label or '').startswith('lip_skill') and info and info.get('lip_skill'):
+            # 2026-11-03 lip skill: commit to the checked climb through its lip contact (+3 replies), as for wall plans; the
+            # open-loop list replayed exactly in every sealed native trial, and a prediction error still clears the memory
+            lt=info['lip_skill'].get('lip_tick')
+            if lt is not None:self.lock_until=max(self.lock_until,min(len(self.actions),int(lt)//4+4))
         self.stopping_verified=bool(info and info.get('terminal_stop_check',{}).get('valid'))
         self.backup_risk=bool(info and backup_risk(info))
         if info and info.get('landing_goal') is not None:
