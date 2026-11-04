@@ -14969,3 +14969,62 @@ Report: ml_agent/dynamics_reports/treasurebox_top_gem_20261103/README.md (viewer
   in protocol.py/crossings.py reverted (blast.py's NO_BLAST stays, committed earlier); the scratch tools zipped to
   C:/Users/doug/pq_archive/treasurebox_top_gem_tools_2026-11-03.zip. Regression check of the climb and lip changes on the other
   nine maps still to run (folded into the edge-pop validation).
+
+## 2026-11-04 04:50 Edge pops in the planner (operator's night plan; NOTHING committed, the operator commits)
+
+Plan approved 11-03 23:20: 1 executor in the sim, 2 compiled family, 3 edges any direction with a reach ranking, 4 trigger reuse,
+5 sim pairs on ten maps then one native campaign then 1x runs. Operator's rules: no lane, no flat-floor/run-up rules, nothing
+pre-determined; "I see an edge, it's in position to help me, use it"; gap far edges count too; NEVER commit.
+- nav/marble_dynamics/edge_pop.py (NEW): EdgePopProposal (sequence plan + speed cap at the edge, jump = the plan's reply; compiled
+  as sub_rule kind 10 in nav/native, DLL rebuilt 00:10, PQ_VERIFY_PORT 0 mismatches of 2016); pop_trigger (climb_needed or a
+  walking detour > 1.5x straight + 3 u); pop_candidates (edge_hits.candidates with rise -3..1.25, no climb gate; pop_reach: peak
+  (14/14.5 cap)^2/2g reaches the target within .5, edge within a jump's apex, target ahead of the edge within 6+3.5 u / 3.5 u
+  lateral; best 2 by edge-to-target distance); pop_specs: lanes from the TARGET's projection onto the edge (whole straight edge via
+  edge_extent) with offsets 0/+-.75/+-1.5 far, the steering target 8 u PAST the edge along its normal (a square hit: 27 deg oblique
+  gave 0 hits in 648 exact forecasts), far: caps 13/14.5 x jump replies est-1..+1; near (jump due within 6 replies): the sticky
+  lane x caps 12-15 step .5 x est-2..+3; an approach plan (no jump, up to the estimated jump reply) priced by the pop's promise
+  (straight line landing->gem + 8 u + time to the jump); the fine sweep only for the best edge; sticky aim and sticky edge while
+  the approach is chosen; give-up after 70 decisions of approach without a hit (pop_failed 150 decisions).
+- search.py: EDGE_POPS block before the navigator; PlanMemory.accept: a hit is held from its press through the flight (pickup+2,
+  else contact+22), the approach never held; retained_candidate never reuses the approach (sweeps every decision);
+  edge_climb prices the approach by its promise. reliability_eval.pick: the climb approach phase accepts a direct plan that ends on
+  the target's level near it or a pop approach; note_pop_choice; a latent NameError (self in pick) fixed. edge_hits.candidates:
+  tangent + seg + parameters. FastLipProposal/descent_jump_replies removed.
+- Bed (scratchpad edge_pop_bed.py, 28 starts = 7 offsets x 4 initial speeds, top gem only): v9 21/28 pop, 2.11-2.43 s typical
+  (misses: three starts with 0.9 u/s initial speed and two (-0.5,-0.5) starts: no exact hit in the sweeps before the step).
+  Budget: the sim planner affords ~100 forecasts a decision; the pops use 20-45 of them.
+- Gap probe (scratchpad gap_pop_probe.py, Fractured level 4.2 u gaps): far-edge landings DO pop (peak 2.5-4.7 u above the far
+  lip at 2 of 50 timings), confirming the operator's gap case; the planner's gap use is untested.
+- 04:50: ten-map full-round sim pairs r1 (pops vs --set search.EDGE_POPS=False, spawn seeds 1 2) running (scratchpad rounds/r1).
+- 05:20 bed v10 27/28 after pricing a pop that lands ON the target's level near it like a near pickup (search.edge_climb,
+  POP_LEVEL_*: a box-top landing 1.2 u from the gem had cost 155 and lost to the approach).
+- 06:05 ten-map full-round pairs r1 (v10, detour trigger ON): 20 pairs -3.45 a round (Vortex -20, Cragmire -10.5, Sprawl -9.5,
+  CubeIsle -8.5, Duplex -4.5, Fractured +12, Concentric +7, TreasureBox -0.5, Bowl/KOTM identical). Vortex seed 2 trace: no pop plan
+  in the lost 40 s stretch; the detour trigger keeps the family active over most of the map and its forecasts starve the search
+  (planning_time_budget fallbacks). Two rounds crashed on an empty aim list (fixed, rerun). Cragmire seed 2 pops: 86 in the batch,
+  115 traced alone: load-dependent noise.
+- 06:20 r2 running: trigger climb-only (POP_DETOUR_RATIO None), far spread 3 aims (bed still 27/28).
+- 07:00 r2 (climb-only trigger): -3.60 a round; Vortex -24 (seed 2: -41, falls 1->6) with ONE pop decision in the whole round:
+  the pop forecasts (placed before the navigator) exhausted the search budget on a map full of raised gems (fallbacks, falls).
+- 07:35 r3 (pops AFTER the navigator, one edge, edges within 14 u; bed still 27/28): -0.45 a round over 20 pairs; TreasureBox
+  +14.5 (+19/+10), Concentric +6.5, Sprawl -14, Vortex -9.5, the rest within +-1. Diagnosis traces run alone (not under the
+  10-process load): Vortex seed 2 pops = 126 pts, 1 fall, ZERO pop decisions = identical to base (the batch arm: 114, 3 falls);
+  Sprawl seed 2 pops alone 160 vs batch 152 (base 164; 22 approach decisions, no hit). The sim pairs under 10 parallel processes
+  carry a load-dependent noise of ~+-10 a round (wall-clock effects): Sprawl/Vortex deltas are within it; TreasureBox's +14.5
+  is the family working as intended.
+- 08:10 native campaign edge_pops1 launched: candidate defaults (--edge-hits no-op flag) vs --no-edge-pops, seeds 7347019 12091843,
+  --always-confirm (run_flag_native.py; results ml_agent/dynamics_reports/overnight_20261026/edge_pops1_*). The flag --no-edge-pops
+  (reliability_eval, sets search.EDGE_POPS) is the matched control only; production default ON.
+- 09:30 NATIVE campaign edge_pops1 complete (run_flag_native, 2 games x 8 workers, seeds 7347019 + 12091843, 20 valid pairs, all
+  audits passed): candidate (pops ON) 132.75 vs baseline 134.25 = -1.5 a round (exploratory -0.3, confirmation -2.7). Per map
+  (2 seeds): Sprawl +20.5 (+3/+38), Cragmire +6.5, Bowl +2, Duplex/KOTM 0, Vortex -3.5, CubeIsle -4.5, Fractured -6, TreasureBox
+  -13 (+15/-41), Concentric -17 (-28/-6). The big losses have NO pop decision in them: Concentric seed 1 diverged at 83-97 s before
+  its 4 pop decisions; TreasureBox seed 2 had zero pop decisions, drove into the x 96 slot twice and needed 2 rescues. Planner latency
+  over the 20 rounds: p95 0.166 -> 0.176 s overall, TreasureBox 0.180 -> 0.243 (10.1 pct of decisions over the .172 allowance vs
+  6.3): the pop family's ~35 extra forecasts cost ~40 ms a decision serially (edge_extent's Python loops were 14 ms: now cached
+  per segment). A 5x5 near grid saves 17 forecasts but drops the bed to 25/28 (fewer fast pops): kept the 7x6 grid.
+- FINAL STATE 10:00 (uncommitted, the operator commits): edge pops ON by default (search.EDGE_POPS; matched control --no-edge-pops),
+  climb-only trigger, one edge within 14 u, pops after the navigator. TreasureBox bed 27/28 (14 at 2.1-2.4 s). Sim pairs r3 -0.45,
+  native -1.5 (both inside the noise). Not done: the gap far-edge pops in the planner (the engine pops there, probe only), a 1x
+  viewing run (operator), the Sprawl +20 / Concentric -17 are single-seed swings worth a second campaign if the operator wants
+  the family's real-game value measured (20 pairs resolve +-3 at best).

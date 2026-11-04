@@ -704,8 +704,10 @@ Action line_call(const LineSpec& T, V3 p, V3 v, int index) {
 }
 
 // Sequence plans with one extra rule (SequenceProposal subclasses): edge_hits.WallHitProposal (kind 7), pad_hops.PadHopProposal (8),
-// pad_hops.ThroughHopProposal (9). seq_call gives the base action; the rule adjusts it and keeps its flag in xdata.
+// pad_hops.ThroughHopProposal (9), edge_pop.EdgePopProposal (10, 2026-11-04). seq_call gives the base action; the rule adjusts it
+// and keeps its flag in xdata.
 enum { W_TRIG = 0, W_JUMPED = 1, W_SIZE = 2 };
+enum { E_CAP = 0, E_SIZE = 2 };
 enum { H_SPEED = 0, H_HEIGHT = 1, H_RADIUS = 2, H_MIN_BELOW = 3, H_J = 4, H_G = 5, H_ABOVE = 6, H_JUMPED = 7, H_SIZE = 8 };
 enum { Z_RADIUS = 0, Z_RISE = 1, Z_ABOVE = 2, Z_J = 3, Z_G = 4, Z_AMIN = 5, Z_AMAX = 6, Z_JUMPED = 7, Z_SIZE = 8 };
 // pad_hops.hop_time(height) or the apex time when the jump cannot reach it
@@ -742,5 +744,9 @@ void sub_rule(int kind, double* x, const Consts& C, const SeqSpec& S, Action& a,
             if (grounded && (d <= x[Z_RADIUS] + .3 || (sp <= v_req + .4 && d <= sp * t_star + .3))) { a.a[4] = 1; x[Z_JUMPED] = 1; }
             else { a = proposal(C, S.ngem, 0., -1, -1, false, true, 1e3, v_req, p, v, true, v_req); a.a[8] = 0.; }
         }
+    } else if (kind == 10) {
+        // edge_pop.EdgePopProposal: until the edge is passed, aim straight at it holding the cap (full throttle up to it, no braking
+        // for the aim point), the jump at the plan's own reply (S.jump - index, as Python's Proposal(jump_at=self.jump - index))
+        if (!S.passed) { a = proposal(C, S.gem, 0., S.jump - index, -1, false, true, 1e3, x[E_CAP], p, v, true, x[E_CAP]); a.a[8] = 0.; }
     }
 }

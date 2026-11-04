@@ -944,7 +944,7 @@ static int forecast_impl(void* h, void* th, const double* state_in, const double
                     const float* field, const float* next_field, const double* consts, double budget_s, long long max_steps,
                     double* rows_out, double* reply_out, double* bridge_out, double* blast_out, int* status_out, double* xdata) {
     Map* m = (Map*)h; Terrain* t = (Terrain*)th;
-    const bool seq_like = tail_kind == 1 || (tail_kind >= 7 && tail_kind <= 9);
+    const bool seq_like = tail_kind == 1 || (tail_kind >= 7 && tail_kind <= 10);
     // budget_s = the planner's remaining time (Python's perf_counter has its own origin, so no absolute deadline here)
     const double stop_at = budget_s > 0 ? qpc_now() + budget_s : 0;
     State s; unpack(state_in, s); pack(s, rows_out);

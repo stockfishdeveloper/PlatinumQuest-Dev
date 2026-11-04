@@ -487,8 +487,14 @@ def pick(engine,route,dynamics,raw,gems,current,nav,horizon,memory,brake_replies
                     finally:engine.blast_reserved=False
                     from nav.marble_dynamics.search import keep_blast_for as _kbf
                     chosen_r=useful_candidate(pairs_r,route,start_r,preserve_resources,keep_blast=_kbf(position,real)) if pairs_r else None
-                    if chosen_r is not None and chosen_r[0].get('possible_pickup_interval') is not None:
-                        self.counts['climb_approach_direct']+=1
+                    _up=False
+                    if chosen_r is not None and chosen_r[0].get('possible_pickup_interval') is None and chosen_r[0].get('end_position') is not None:
+                        # 2026-11-04 edge pops: a plan that ends ON the target's level near it (the pop landed the marble up there, the
+                        # gem a short roll away) has done the climb: it beats walking to the climb's run start as a pickup plan would
+                        _ep=np.asarray(chosen_r[0]['end_position'],dtype=float)
+                        _up=(float(_ep[2])>=float(real[2])-_climbs.CLIMB_LEVEL_SLACK_U and float(np.linalg.norm(_ep[:2]-np.asarray(real[:2],dtype=float)))<=_climbs.CLIMB_LEVEL_NEAR_U)
+                    if chosen_r is not None and (chosen_r[0].get('possible_pickup_interval') is not None or _up or '_pop_approach' in str(chosen_r[0].get('label'))):
+                        engine.climb_approach_direct=getattr(engine,'climb_approach_direct',0)+1   # (pick is a function: no self)
                         gem=real;phase=None;crossing=None;preset=(chosen_r,pairs_r)
                         if index==0:engine.last_crossing_phase=None;engine.last_crossing=None
                     else:
@@ -517,6 +523,9 @@ def pick(engine,route,dynamics,raw,gems,current,nav,horizon,memory,brake_replies
                 if preset is not None:chosen,pairs=preset;preset=None   # 2026-11-03: the climb approach's direct search already found a pickup plan
                 else:chosen,pairs=search(engine,route,dynamics,raw,gem[:3],nav,horizon,warm=warm,brake_replies=brake_replies,target_item=target_item,
                                     learned=index==0 or LEARNED_OTHER_GEMS)
+                if chosen is not None:
+                    from nav.marble_dynamics.edge_pop import note_pop_choice
+                    note_pop_choice(engine,chosen[0].get('label'),gem,chosen[0])
             finally:engine.crossing_phase=False;engine.blast_reserved=False;engine.crossing=None
             from nav.marble_dynamics import search as _S
             if attempt==0 and phase=='cross' and crossing is not None and crossing.get('gap_route') and chosen is not None:crossings.staging_ok(crossing)
@@ -1803,6 +1812,7 @@ def main():
     p.add_argument('--recheck-risky-plans',action='store_true',help='Recheck known failed/unchecked backups on retained plans and search for safer alternatives')
     p.add_argument('--edge-hits',dest='edge_hits',action='store_true',default=True,help='2026-10-20: aim at ledge lips to gain height toward a higher target (bounce physics); ON by default since 2026-10-21 05:30 (six positive ten-map pairs)')
     p.add_argument('--no-edge-hits',dest='edge_hits',action='store_false',help='matched control: the planner without the edge-hit family')
+    p.add_argument('--no-edge-pops',dest='edge_pops',action='store_false',default=True,help='2026-11-04 matched control: the planner without the edge-pop family (search.EDGE_POPS)')
     p.add_argument('--lip-skill',dest='lip_skill',action='store_true',default=True,help='2026-11-03: the standalone edge-hit skill (tools/edge_skill, nav/marble_dynamics/lip_skill.py) offers checked lip-contact climbs; ON by default')
     p.add_argument('--no-lip-skill',dest='lip_skill',action='store_false',help='matched control: the planner without the lip skill')
     p.add_argument('--time-price',dest='time_price',action='store_true',default=False,help='2026-10-22 step 2a: plan time priced at gem_demo.TIME_PRICE_U_S (10 u/s): pickup delay, extended forecasts and ballistic projections (OFF by default since 19:15: tp1+tp2 equal-map 128.40 on vs 129.15 off)')
@@ -2099,6 +2109,7 @@ def main():
         engine.mega_enabled=getattr(a,'mega_proposals',False)
         engine.pickup_stop=getattr(a,'pickup_stop',False)
         engine.edge_hits=getattr(a,'edge_hits',False)
+        import nav.marble_dynamics.search as _S_ep;_S_ep.EDGE_POPS=bool(getattr(a,'edge_pops',True))   # 2026-11-04 edge pops (matched control --no-edge-pops)
         engine.lip_skill=getattr(a,'lip_skill',True)
         engine.wall_rebounds=getattr(a,'wall_rebounds',True)
         engine.pad_hops=getattr(a,'pad_hops',False)

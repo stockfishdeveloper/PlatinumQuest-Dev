@@ -20,6 +20,8 @@ CLIMB_MIX = True            # the run phase searches the climb plans AND the ord
                             # that collects it wins on its pickup; any other plan counts only once it stands up there). Sim Vortex 2834:
                             # climb plans alone overshot a block gem the direct jump + Blast takes at 1.3 s (+8 s)
 CLIMB_MIX_APPROACH = True   # 2026-11-03: on the way to a climb's run start the gem itself is searched too (an edge hit or hop that collects it wins)
+CLIMB_LEVEL_SLACK_U = .6    # 2026-11-04 edge pops: a direct plan ending at least this close below the gem's height ...
+CLIMB_LEVEL_NEAR_U = 5.     # ... and this near it horizontally counts as the climb done (it wins the approach phase like a pickup plan)
 CLIMB_MIN_RISE_U = 2.6     # a target this far above the marble's floor may be climbed to (lower platforms are the hop / edge-hit
                             # families' job: sim 2026-10-25, TreasureBox's 2-4 u cluster platforms staged as climbs cost 1.4 s an episode) ...
 CLIMB_RANGE_U = 25.0        # ... when it lies within this (straight) of the marble

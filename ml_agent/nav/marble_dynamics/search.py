@@ -1155,6 +1155,31 @@ def search(engine,route,dynamics,raw,gem,navigator,horizon=40,warm=None,brake_re
     if navigator_spec is None:pass
     elif getattr(engine,'navigator_first',False):specs.insert(0,navigator_spec)
     else:specs.append(navigator_spec)
+    if EDGE_POPS and getattr(engine,'edge_hits',False):
+        # 2026-11-04 edge pops (nav/marble_dynamics/edge_pop.py; operator's TreasureBox demonstration): come DOWN onto an exposed edge
+        # at speed and let its reflection pop the marble up toward a higher target. Edges from the mesh ranked by the pop's reach,
+        # a spread of aim offsets x speed caps x jump replies (and no jump) forecast from the live state every decision. After the
+        # navigator (as the other edge hits): a deadline trims the pops before the ordinary families (ten-map pairs r1/r2: pops
+        # before the navigator starved the search on Vortex, fallbacks and falls, -24 a round there).
+        from nav.marble_dynamics.edge_pop import pop_candidates,pop_specs
+        _st=dynamics['native']['state']
+        try:_plips=pop_candidates(engine,_st['position'],gem,route=route)
+        except Exception:_plips=[]
+        _sticky=getattr(engine,'pop_sticky_aim',None)
+        if _plips and _sticky is not None:
+            # committed to an edge (its approach or a hit was chosen last decision): only that edge is forecast, so that a nearer
+            # edge's cheaper approach cannot steer the marble off the lane it is on (bed cases 18/24: lip 1 won at 21 u and the
+            # sweep for lip 0 never hit)
+            _same=[l for l in _plips if tuple(round(float(x),2) for x in l['point'])==tuple(_sticky[0])]
+            if _same:_plips=_same
+        if _plips:
+            nroute=cached_route(route.terrain,gem);_p=np.asarray(_st['position'],dtype=float);_v=np.asarray(_st['velocity'],dtype=float)
+            for k,lip in enumerate(_plips):
+                lp=np.asarray(lip['point'],dtype=float);_d=lp[:2]-_p[:2];_n=float(np.linalg.norm(_d))
+                speed=float(_v[:2]@_d)/_n if _n>1e-6 else 0.
+                leg=float(nroute.distance(lp))
+                if not math.isfinite(leg):leg=float(np.linalg.norm(np.asarray(gem[:2])-lp[:2]))
+                specs+=pop_specs(engine,route,dynamics,lip,k,steps,(nroute,np.asarray(gem[:3],dtype=float),leg),speed,near_allowed=k==0)
     if getattr(engine,'edge_hits',False):
         # v5 (2026-10-21): evaluated after the learned navigator so a search deadline trims these first, never the
         # navigator or the extra-jump rescue; lips up to 2.6 u (wall-hit climbs, see edge_hits.jump_replies).
@@ -1182,13 +1207,9 @@ def search(engine,route,dynamics,raw,gem,navigator,horizon=40,warm=None,brake_re
                 # the jump clears the lip by more than the 0.6 u centre test (which left v3 aiming back at the lip).
                 lroute=cached_route(route.terrain,lp)
                 box=[float(lp[0])-1.,float(lp[1])-1.,float(lp[2])-.6,float(lp[0])+1.,float(lp[1])+1.,float(lp[2])+2.5]
-                # 2026-11-03 descending lip hits (first in the family: a search deadline trims the later lip plans) (operator's TreasureBox demonstration): the full-speed run at the lip with the jump
-                # timed so the marble comes DOWN onto the lip; the bounce pops it several units up with the run speed kept
-                from nav.marble_dynamics.edge_hits import descent_jump_replies,FastLipProposal
-                for jump in descent_jump_replies(lip['ahead'],speed,lip['rise']):
-                    if jump>=steps:continue
-                    spec=FastLipProposal(lroute,lp,steps,ctx,jump);spec.box=box;spec._edge_lip_z=float(lp[2]);spec._edge_lip=[float(x) for x in lp]
-                    specs.append(('edge_hit_%d_fast_jump_%d'%(k,jump),spec))
+                # 2026-11-04 edge pops (nav/marble_dynamics/edge_pop.py; first in the family: a search deadline trims the later lip plans):
+                # come DOWN onto the edge at speed and let its reflection pop the marble up; a spread of aim offsets x speed caps x
+                # jump replies (and no jump), forecast from the live state every decision
                 if lip['rise']>1.0:
                     # v11 wall hits: jump when the wall is a marble-length away, whatever the approach speed
                     from nav.marble_dynamics.edge_hits import wall_hit_proposal,WALL_TRIGGER_U
@@ -1954,6 +1975,7 @@ EDGE_RETRY_DECISIONS=48  # v9: a lip attempted this recently (3 s) while the mar
 WALL_RETRY_DECISIONS=32  # v16: a wall first attempted longer ago than this (2 s: approach + flight) is not offered again within the 3 s window
 WALL_RETAIN_REPLIES=24   # v18: a wall plan is kept at most this long (1.5 s: approach + hit); then a fresh search
 WALL_LOCK_MAX_REPLIES=30 # v21: the wall lock covers at most this many replies (approach + contact)
+EDGE_POPS=True           # 2026-11-04: the edge-pop spread (edge_pop.py) among the lip candidates
 WALL_COST_MARGIN_U=2.    # v18: a wall plan must beat the field by this (wall4: 52 of 76 wall choices were one-decision ties, median 0.5 u)
 
 def chain_score(proposal,label,info,rollout,dynamics):
@@ -1972,6 +1994,22 @@ def edge_climb(proposal,label,info,rollout):
     lip_z=getattr(proposal,'_edge_lip_z',None)
     if lip_z is None or not label.startswith('edge_hit'):return
     info['edge_lip']=getattr(proposal,'_edge_lip',None)
+    if getattr(proposal,'_pop_aim',None) is not None:info['pop_aim']=proposal._pop_aim
+    promise=getattr(proposal,'_pop_promise',None)
+    if promise is not None:
+        # 2026-11-04 edge pops: the approach plan (edge_pop.pop_specs) ends before the jump; its worth is the pop it sets up
+        if info.get('rejected') is None and math.isfinite(info.get('cost',math.inf)):info['cost']=float(promise);info['pop_promise_u']=float(promise)
+        return
+    if '_pop_' in label and info.get('rejected') is None and getattr(proposal,'through',None) is not None:
+        # a pop that lands the marble ON the target's level near it has done the climb: priced like a near pickup (the walking route
+        # from a ledge top can be a long detour: a landing 1.2 u from the gem cost 155 and lost to the approach, bed case 1)
+        from nav.marble_dynamics.edge_pop import POP_LEVEL_SLACK_U,POP_LEVEL_NEAR_U,POP_LEVEL_COST_U
+        g=np.asarray(proposal.through[1],dtype=float);states=rollout['states'];pos=getattr(states,'positions',None)
+        e=np.asarray(pos[-1] if pos is not None else states[-1]['position'],dtype=float)
+        if info.get('possible_pickup_interval') is None and float(e[2])>=float(g[2])-POP_LEVEL_SLACK_U:
+            d=float(np.linalg.norm(e[:2]-g[:2]))
+            if d<=POP_LEVEL_NEAR_U:
+                info['cost']=min(float(info['cost']),POP_LEVEL_COST_U+d+len(states)*.064*_gem_demo.PICKUP_TIME_WEIGHT);info["pop_level_landing"]=round(d,2)
     if '_wall' in label and info.get('cost') is not None and math.isfinite(info['cost']):info['cost']+=WALL_COST_MARGIN_U
     if info.get('rejected') is not None:return
     states=rollout['states'];pos=getattr(states,'positions',None)
@@ -2015,6 +2053,10 @@ def retained_candidate(engine,route,dynamics,gem,memory,minimum_replies=8,target
     """
     if (len(memory.remaining)<minimum_replies or memory.gem is None
             or np.linalg.norm(np.asarray(memory.gem)-gem[:3])>=.1):return None
+    if '_pop_approach' in str(memory.label or ''):
+        # 2026-11-04 edge pops: the approach (the best-guess pop) is never reused as is: every decision the search sweeps the spread
+        # from the live state for the exact hit (reuse kept the guess and skipped the sweeps: bed 18/24/26 jumped on the guess)
+        return None
     if (str(memory.label or '').startswith('edge_hit_wall') and memory.executed>WALL_RETAIN_REPLIES
             and not memory.landing_mode):
         # v18 (2026-10-21): a wall plan's 88-reply schedule replayed open-loop past the hit held the marble dithering for
@@ -2069,6 +2111,25 @@ class PlanMemory:
             wp=np.asarray(info['edge_lip'][:2],dtype=float);states=rollout['states']
             dists=[float(np.linalg.norm(np.asarray(st['position'][:2],dtype=float)-wp)) for st in states[:WALL_LOCK_MAX_REPLIES]]
             if dists:self.lock_until=max(self.lock_until,min(len(self.actions),dists.index(min(dists))+3))   # v21: closest approach, always defined
+        if '_pop_' in str(label or '') and info and info.get('edge_lip') is not None:
+            # 2026-11-04 edge pops: held from the jump press through the forecast edge contact (+POP_LOCK_AFTER_CONTACT); before the
+            # press the receding horizon re-forecasts the spread from the live state every decision and may swap the plan
+            from nav.marble_dynamics.edge_pop import POP_LOCK_AFTER_CONTACT,POP_FLIGHT_LOCK_REPLIES
+            wp=np.asarray(info['edge_lip'][:2],dtype=float);states=rollout['states']
+            dists=[float(np.linalg.norm(np.asarray(st['position'][:2],dtype=float)-wp)) for st in states[:WALL_LOCK_MAX_REPLIES]]
+            ev=next((i for i,a in enumerate(self.actions) if a[4]),None)
+            self.lock_from=0 if ev is None else int(ev)
+            if '_pop_approach' in str(label):
+                # the approach (the best-guess pop) is re-searched every decision until its press (the sweep looks for the exact hit),
+                # then held only briefly past the contact (a miss searches again at once)
+                if ev is None:self.lock_until=0   # no jump in it: never held (bed v5: a contact lock held it 13 replies, no sweeps)
+                elif dists:self.lock_until=min(len(self.actions),dists.index(min(dists))+POP_LOCK_AFTER_CONTACT+1)
+            elif dists:
+                # a hit: held through the flight (the open-loop plan steers the flight at the gem; a re-search mid-flight chose
+                # other plans and lost the gem, bed case 24), to the forecast pickup, else a flight's length past the contact
+                pk=info.get('possible_pickup_interval');contact=dists.index(min(dists))
+                until=int(pk)+2 if pk is not None else contact+POP_FLIGHT_LOCK_REPLIES
+                self.lock_until=max(self.lock_until,min(len(self.actions),max(until,contact+POP_LOCK_AFTER_CONTACT+1)))
         if str(label or '').startswith('lip_skill') and info and info.get('lip_skill'):
             # 2026-11-03 lip skill: commit to the checked climb through its lip contact (+3 replies), as for wall plans; the
             # open-loop list replayed exactly in every sealed native trial, and a prediction error still clears the memory

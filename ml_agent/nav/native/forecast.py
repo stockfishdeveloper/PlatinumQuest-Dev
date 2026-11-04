@@ -523,7 +523,7 @@ def _goal_key(v):
     return tuple(round(float(x), 3) for x in np.asarray(v)[:3])
 
 
-SEQ_TAILS = (1, 7, 8, 9)   # tail kinds run by seq_call: the sequence plan and its one-rule subclasses (ABI 15)
+SEQ_TAILS = (1, 7, 8, 9, 10)   # tail kinds run by seq_call: the sequence plan and its one-rule subclasses (ABI 15; 10: edge pops, 2026-11-04)
 
 
 def _family_data(actions):
@@ -584,6 +584,9 @@ def _sub_rule_data(actions):
     if kind is ThroughHopProposal:
         return 9, np.asarray([actions.pad_radius, actions.hop_rise, PH.PAD_ABOVE_U, PH.JUMP_IMPULSE, PH.GRAVITY, PH.ARRIVE_MIN_U_S,
                               PH.ARRIVE_MAX_U_S, 1. if actions.hop_jumped else 0.], dtype=float)
+    from nav.marble_dynamics.edge_pop import EdgePopProposal
+    if kind is EdgePopProposal:   # 2026-11-04: the speed cap held at the edge (the jump is the sequence plan's own)
+        return 10, np.asarray([actions.cap, 0.], dtype=float)
     return None
 
 
