@@ -19,6 +19,7 @@ CLIMB_SKILL = True
 CLIMB_MIX = True            # the run phase searches the climb plans AND the ordinary plans for the gem itself (a direct jump + Blast
                             # that collects it wins on its pickup; any other plan counts only once it stands up there). Sim Vortex 2834:
                             # climb plans alone overshot a block gem the direct jump + Blast takes at 1.3 s (+8 s)
+CLIMB_MIX_APPROACH = True   # 2026-11-03: on the way to a climb's run start the gem itself is searched too (an edge hit or hop that collects it wins)
 CLIMB_MIN_RISE_U = 2.6     # a target this far above the marble's floor may be climbed to (lower platforms are the hop / edge-hit
                             # families' job: sim 2026-10-25, TreasureBox's 2-4 u cluster platforms staged as climbs cost 1.4 s an episode) ...
 CLIMB_RANGE_U = 25.0        # ... when it lies within this (straight) of the marble
@@ -38,10 +39,18 @@ OPEN_CLEAR_U = .5           # ... and must clear the place's edge by this much
 WALL_RISE_TABLE = ((0.0, 4.1), (0.2, 5.3), (0.3, 5.7), (0.4, 6.2), (0.5, 6.7), (0.75, 7.8), (1.0, 8.4))
 WALL_RISE_MARGIN_U = .6     # ... less this (a run the forecast finds, not the median one)
 WALL_FACE_MIN_U = 1.2       # a wall: its face rises at least this far above the run floor
-WALL_RUN_MIN_U = 6.0        # a wall's run-in lane at least this long ...
+WALL_RUN_MIN_U = 5.0        # a wall's run-in lane at least this long (2026-11-03: 6.0 -> 5.0; a 5.6 u run from rest reaches the ~10 u/s
+                            # the kick wants: TreasureBox step, sim: 7 of 8 runs landed; faster runs, 12 u/s and up, kick LESS) ...
+WALL_LANE_ANGLES = (0., 5., -5., 10., -10., 15., -15., 20., -20.)   # 2026-11-03: run lanes may be angled this much (deg) off the face
+                            # normal; the rebound mirrors the angle, so the landing is sought along the mirrored line (the longest
+                            # clear lane wins). A straight lane blocked by the very ledge to be landed on was the common case.
+WALL_LANE_CLEAR_U = .35     # ... and the lane's floor must extend this far to either side (a lane along a wall's foot is no lane)
+WALL_LAND_EDGE_U = .8       # landing cells are charged this per missing place neighbour (the marble must come down inside the place)
 WALL_RUN_MAX_U = 11.0       # ... used up to this
-WALL_REACH_U = (1.5, 8.0)   # the place must lie this far in front of the wall (the rebound's reach) ...
-WALL_LATERAL_U = 2.5        # ... within this of the run line
+WALL_REACH_U = (2.0, 8.0)   # the place must lie this far in front of the wall (the rebound's reach: the kick's apex is 2.1-2.6 u back
+                            # from the face at full speed, so a place nearer than 2 u is still under the rising marble; 1.5 -> 2.0 on
+                            # 2026-11-03 after TreasureBox tries staged a face whose 'landing' lay 1.8 u out beside the lane) ...
+WALL_LATERAL_U = 1.2        # ... within this of the rebound line (2026-11-03: 2.5 -> 1.2; the kick keeps the lane's line, air control adds under 1 u)
 WALL_NEAR_U = 14.0          # walls searched within this of the target
 OPEN_SPOT_OUT_U = (1.5, 2.5)   # open launch spots this far out from the place's edge ...
 OPEN_RUNIN_U = 2.5          # ... with a straight run-in this long behind them
@@ -57,7 +66,7 @@ LEVEL_TOL_U = .6            # a floor 'at' a height: within this of it
 LEAD_S = .08                # jump presses lead the take-off point by this much travel time (a reply acts ~1.25 replies later)
 OPEN_JUMP_U = (2.0, 2.8, 3.6)   # open climbs: jump this far before the place's edge ...
 OPEN_BLAST_AFTER = (1, 2, 3)    # ... Blast this many replies after the jump press
-WALL_TRIG_U = (0.3, 0.6, 1.0)   # wall climbs: jump this far before the face ...
+WALL_TRIG_U = (0.3, 0.6, 1.0, 1.3)   # wall climbs: jump this far before the face (1.3 added 2026-11-03: from rest 0.8-1.3 landed, 0.6 did not) ...
 WALL_BLAST_AFTER = (0, 1, 2)    # ... Blast this many replies after the press (and the no-Blast run)
 
 
@@ -78,7 +87,7 @@ def wall_meter(rise):
     """Least meter for a wall hit + jump (+ Blast) to rise `rise` (WALL_RISE_TABLE less WALL_RISE_MARGIN_U): 0 = no Blast needed;
     None when out of reach."""
     for m, r in WALL_RISE_TABLE:
-        if r - WALL_RISE_MARGIN_U >= rise:
+        if r - WALL_RISE_MARGIN_U >= rise - 1e-6:   # 2026-11-03: 4.1 - 0.6 is 3.4999999999999996 in floats; a 3.5 u rise needs no Blast
             return m
     return None
 
@@ -108,6 +117,13 @@ class ClimbSkill:
 
     def clear(self, a, b):
         return self.mesh.raycast(np.asarray(a, dtype=float), np.asarray(b, dtype=float), cull_backfaces=False) is None
+
+    def top_at(self, x, y, z, tol=LEVEL_TOL_U):
+        """z when the first mesh surface under (x, y, z + HEADROOM_U) is a floor within `tol` of z, else None (2026-11-03)."""
+        hit = self.mesh.raycast(np.array([x, y, float(z) + HEADROOM_U]), np.array([x, y, float(z) - tol - 0.1]), cull_backfaces=True)
+        if hit is None or float(hit['normal'][2]) < 0.75 or abs(float(hit['point'][2]) - float(z)) > tol:
+            return None
+        return float(hit['point'][2])
 
     def place(self, target):
         """The place the target stands on: dict(z, pts (n, 3), edges [(point, outward normal)]) or None; cached."""
@@ -261,29 +277,50 @@ class ClimbSkill:
                         break
                 else:
                     continue
-                rel = place['pts'][:, :2] - q
-                along = rel @ ns
-                lat = np.abs(rel[:, 0] * ns[1] - rel[:, 1] * ns[0])
-                front = (along >= WALL_REACH_U[0]) & (along <= WALL_REACH_U[1]) & (lat <= WALL_LATERAL_U)
-                if not front.any():
+                t = np.array([-ns[1], ns[0]])
+                best = None
+                for ang in WALL_LANE_ANGLES:
+                    th = math.radians(ang)
+                    u_run = -(math.cos(th) * ns + math.sin(th) * t)      # the run heads into the face at this angle
+                    r = math.cos(th) * ns - math.sin(th) * t             # the rebound heads back out, mirrored
+                    rel = place['pts'][:, :2] - q
+                    along = rel @ r
+                    lat = np.abs(rel[:, 0] * r[1] - rel[:, 1] * r[0])
+                    front = (along >= WALL_REACH_U[0]) & (along <= WALL_REACH_U[1]) & (lat <= WALL_LATERAL_U)
+                    if not front.any():
+                        continue
+                    f0 = q + r * 0.6
+                    if not self.clear((f0[0], f0[1], fz + 0.3), (f0[0], f0[1], zt + 2.0)):
+                        continue   # something overhead in front of the face: the rebound would hit it
+                    side = np.array([-u_run[1], u_run[0]])
+                    run = 0.0
+                    for s_ in np.arange(1.0, WALL_RUN_MAX_U + 0.01, 0.5):
+                        pt = q - u_run * s_
+                        pz = self.floor_at(pt[0], pt[1], fz)
+                        if pz is None or not self.clear((pt[0], pt[1], pz + 0.3), (pt[0], pt[1], pz + 0.3 + HEADROOM_U)):
+                            break
+                        # the mesh agrees the lane runs on this floor, here and WALL_LANE_CLEAR_U to either side (the walk grid keeps a
+                        # level under a solid block that stands on the floor; a lane along a wall's foot or a ledge's edge is no lane)
+                        if any(self.top_at(pt[0] + sg * side[0] * WALL_LANE_CLEAR_U, pt[1] + sg * side[1] * WALL_LANE_CLEAR_U, pz) is None
+                               for sg in (-1.0, 0.0, 1.0)):
+                            break
+                        run = float(s_)
+                    if run < WALL_RUN_MIN_U:
+                        continue
+                    cand = place['pts'][front]
+                    # the landing cell: near 4 u along the rebound line, near the line, and INSIDE the place (2026-11-03: a cell on the
+                    # place's edge had the flight steered at the edge itself, and the marble came down just off it)
+                    inside = np.asarray([len(place['tree'].query_ball_point(c[:2], 1.05)) - 1 for c in cand], dtype=float)
+                    land = cand[int(np.argmin(np.abs((cand[:, :2] - q) @ r - 4.0) + 0.3 * np.abs((cand[:, :2] - q)[:, 0] * r[1] - (cand[:, :2] - q)[:, 1] * r[0])
+                                              + WALL_LAND_EDGE_U * np.maximum(0.0, 4.0 - inside)))]
+                    if best is None or run > best[0] + 1e-9:
+                        best = (run, u_run, land)
+                if best is None:
                     continue
-                f0 = q + ns * 0.6
-                if not self.clear((f0[0], f0[1], fz + 0.3), (f0[0], f0[1], zt + 2.0)):
-                    continue   # something overhead in front of the face: the rebound would hit it
-                run = 0.0
-                for s in np.arange(1.0, WALL_RUN_MAX_U + 0.01, 0.5):
-                    pt = q + ns * s
-                    pz = self.floor_at(pt[0], pt[1], fz)
-                    if pz is None or not self.clear((pt[0], pt[1], pz + 0.3), (pt[0], pt[1], pz + 0.3 + HEADROOM_U)):
-                        break
-                    run = float(s)
-                if run < WALL_RUN_MIN_U:
-                    continue
-                cand = place['pts'][front]
-                land = cand[int(np.argmin(np.abs((cand[:, :2] - q) @ ns - 4.0) + 0.3 * np.abs((cand[:, :2] - q)[:, 0] * ns[1] - (cand[:, :2] - q)[:, 1] * ns[0])))]
+                run, u_run, land = best
                 taken.append((q, ns))
-                out.append(dict(kind='wall', launch=np.r_[q, fz], normal=ns, start=np.r_[q + ns * run, fz], z_floor=fz,
-                                rise=float(land[2]) - fz, land=np.asarray(land, dtype=float), run_u=run))
+                out.append(dict(kind='wall', launch=np.r_[q, fz], normal=ns, direction=np.asarray(u_run, dtype=float), start=np.r_[q - u_run * run, fz],
+                                z_floor=fz, rise=float(land[2]) - fz, land=np.asarray(land, dtype=float), run_u=run))
         self._options[key] = out
         if len(self._options) > 128:
             self._options.pop(next(iter(self._options)))
@@ -337,7 +374,7 @@ class ClimbSkill:
         if not best[0] + CLIMB_SAVE_S <= t_walk:
             return None
         total, o, need, wait = best
-        u = -o['normal']                          # the run heads at the edge / into the face
+        u = np.asarray(o['direction'], dtype=float) if o.get('direction') is not None else -o['normal']   # the run heads at the edge / into the face (a wall lane may be angled)
         return dict(climb2=True, kind=o['kind'], launch=o['launch'].tolist(), direction=u.tolist(), staging=o['start'].tolist(),
                     land=o['land'].tolist(), land_goal=o['land'].tolist(), rise_u=round(float(o['rise']), 2), z_place=float(place['z']),
                     z_floor=float(o['z_floor']), needed_meter=float(need), run_u=float(o['run_u']), wait_s=round(float(wait), 2),

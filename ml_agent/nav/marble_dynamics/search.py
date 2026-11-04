@@ -1182,6 +1182,13 @@ def search(engine,route,dynamics,raw,gem,navigator,horizon=40,warm=None,brake_re
                 # the jump clears the lip by more than the 0.6 u centre test (which left v3 aiming back at the lip).
                 lroute=cached_route(route.terrain,lp)
                 box=[float(lp[0])-1.,float(lp[1])-1.,float(lp[2])-.6,float(lp[0])+1.,float(lp[1])+1.,float(lp[2])+2.5]
+                # 2026-11-03 descending lip hits (first in the family: a search deadline trims the later lip plans) (operator's TreasureBox demonstration): the full-speed run at the lip with the jump
+                # timed so the marble comes DOWN onto the lip; the bounce pops it several units up with the run speed kept
+                from nav.marble_dynamics.edge_hits import descent_jump_replies,FastLipProposal
+                for jump in descent_jump_replies(lip['ahead'],speed,lip['rise']):
+                    if jump>=steps:continue
+                    spec=FastLipProposal(lroute,lp,steps,ctx,jump);spec.box=box;spec._edge_lip_z=float(lp[2]);spec._edge_lip=[float(x) for x in lp]
+                    specs.append(('edge_hit_%d_fast_jump_%d'%(k,jump),spec))
                 if lip['rise']>1.0:
                     # v11 wall hits: jump when the wall is a marble-length away, whatever the approach speed
                     from nav.marble_dynamics.edge_hits import wall_hit_proposal,WALL_TRIGGER_U

@@ -462,7 +462,7 @@ def pick(engine,route,dynamics,raw,gems,current,nav,horizon,memory,brake_replies
                     route.navigate(position,goal[:3]);return chosen,all_pairs,goal
     ordered=[current]+[g for g in gems if np.linalg.norm(np.asarray(g[:3])-current[:3])>.1]
     for index,gem in enumerate(ordered):
-        phase=None;crossing=None
+        phase=None;crossing=None;preset=None
         if crossings is not None and target_item is None:
             # A gem on another walking component: pursue the narrowest crossing
             # (launch cell, then landing cell) instead of aiming over the edge.
@@ -473,6 +473,26 @@ def pick(engine,route,dynamics,raw,gems,current,nav,horizon,memory,brake_replies
                 if _climbs.CLIMB_MIX:
                     # 2026-10-25 a staged climb's run phase searches for the gem itself (search.search adds the climb plans)
                     g=crossing['goal'];gem=(g[0],g[1],g[2],gem[3] if len(gem)>3 else 1.,gem[4] if len(gem)>4 else 0.)
+            if phase=='approach' and crossing is not None and crossing.get('climb2'):
+                from nav.marble_dynamics import climbs as _climbs
+                if _climbs.CLIMB_MIX_APPROACH:
+                    # 2026-11-03 (operator's TreasureBox demonstration): on the way to a climb's run start the gem itself is searched
+                    # too; a plan that collects it (an edge hit, a hop) beats walking to the climb (search.search: ordinary families)
+                    g=crossing['goal'];real=(g[0],g[1],g[2],gem[3] if len(gem)>3 else 1.,gem[4] if len(gem)>4 else 0.)
+                    engine.blast_reserved=True
+                    try:
+                        route.navigate(position,real[:3]);start_r=route.distance(position)
+                        chosen_r,pairs_r=search(engine,route,dynamics,raw,real[:3],nav,horizon,warm=None,brake_replies=brake_replies,target_item=target_item,learned=False)
+                    except Exception:chosen_r,pairs_r=None,[]
+                    finally:engine.blast_reserved=False
+                    from nav.marble_dynamics.search import keep_blast_for as _kbf
+                    chosen_r=useful_candidate(pairs_r,route,start_r,preserve_resources,keep_blast=_kbf(position,real)) if pairs_r else None
+                    if chosen_r is not None and chosen_r[0].get('possible_pickup_interval') is not None:
+                        self.counts['climb_approach_direct']+=1
+                        gem=real;phase=None;crossing=None;preset=(chosen_r,pairs_r)
+                        if index==0:engine.last_crossing_phase=None;engine.last_crossing=None
+                    else:
+                        all_pairs.extend([{**p[0],'gem':list(real[:3]),'search_horizon':horizon,'crossing_phase':'approach_direct','crossing':crossing} for p in pairs_r])
             if phase=='charge' and index<len(ordered)-1:
                 # The climb needs more Blast than we hold: collect other gems while
                 # the meter charges instead of waiting under the ledge.
@@ -494,7 +514,8 @@ def pick(engine,route,dynamics,raw,gems,current,nav,horizon,memory,brake_replies
                     if key is not None and (leg is None or leg[0]!=key):engine.leg_start=leg=(key,float(start))
                     engine.arrival_fast=key if key is not None and math.isfinite(leg[1]) and leg[1]>=_S.ARRIVAL_FAR_U else None
                 warm=memory.remaining if memory.gem and np.linalg.norm(np.asarray(memory.gem)-gem[:3])<.1 else None
-                chosen,pairs=search(engine,route,dynamics,raw,gem[:3],nav,horizon,warm=warm,brake_replies=brake_replies,target_item=target_item,
+                if preset is not None:chosen,pairs=preset;preset=None   # 2026-11-03: the climb approach's direct search already found a pickup plan
+                else:chosen,pairs=search(engine,route,dynamics,raw,gem[:3],nav,horizon,warm=warm,brake_replies=brake_replies,target_item=target_item,
                                     learned=index==0 or LEARNED_OTHER_GEMS)
             finally:engine.crossing_phase=False;engine.blast_reserved=False;engine.crossing=None
             from nav.marble_dynamics import search as _S

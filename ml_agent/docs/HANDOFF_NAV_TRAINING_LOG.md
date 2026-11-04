@@ -14944,3 +14944,28 @@ the Blast climbs on Sprawl/Cragmire are 1.5-6.5 u lips, outside the skill. Teach
 retraining the proposer cannot raise admission much. NEXT (proposal, needs the operator): a lab campaign for higher lips
 (1.5-3 u via the wall-kick contact the existing edge_hit wall family uses) and sloped run-ups/platforms, which is where Blast is
 actually spent; or price Blast conservation and measure on all ten maps. Nothing committed.
+
+## 2026-11-03 15:40 TreasureBox top gem without Blast or powerups (operator project)
+
+Report: ml_agent/dynamics_reports/treasurebox_top_gem_20261103/README.md (viewers and the scratch tools beside it).
+- Part 1 (planner climbs onto the box): wall kick off the deck's south face from the angled 5.6 u slot lane, landing on the
+  7.5 u step, then hops. climbs.py: angled lanes, mesh lane test, run min 5, lateral 1.2, reach min 2.0, interior landing cells,
+  trigger 1.3, float-safe meter; crossings/reliability_eval: approach-phase direct search, PQ_NO_BLAST meter 0.
+  Sim 5/5 nearby starts; game at 1x run 2: 9/9 tries, top gem 8.1-13.1 s after the setup.
+- Part 2 (fastest route): the lip pop. Full-speed run along x 87.4-88.3, early jump, come DOWN on the 0.5 u platform lip (y 18)
+  or the 1 u step lip (y 16) with the bottom at lip height at 12-15 u/s: 14 u/s upward, 4.3 u rise, gem in 2.05 s (optimizer,
+  230k evaluations; floor ~2.0 s). Open loop is knife-edge (<=6/30 perturbed); closed loop with speed caps 11-15 and jump delays
+  0-5 replies forecast each decision: 28/28, 23/28 with the game's lag, 2.24-2.75 s. edge_hits.py/search.py: descending lip
+  timings (FastLipProposal, LIP_FAST_U_S 14), acceleration-aware arrival, lips from 0.25 u, one lip per ledge level, MAX_LIPS 3.
+  The planner forecasts these plans from the start (one peaks 0.25 u short) but does not yet choose one: integration with
+  the operator next.
+- Switches: PQ_NO_BLAST=1 (blast.py available() False, protocol.format_action use_blast 0, staging meter 0), PQ_NO_POWERUPS=1
+  (protocol: hidden held item and items, use 0). Real-time server: PQ_SCRIPT (open-loop or position-triggered program after
+  each situation setup; shown three times, misses the lip by 0.2 u: open loop is not the way).
+- Part 3 (17:00-17:07): the closed-loop controller (report tools/tb_live.py) in the game at 1x through an experiment hook in
+  realtime.py: 10 of 11 tries took the top gem first, 2.18-2.43 s. Operator: "that's the correct answer". The hook was removed
+  again; the planner integration (edge pop family, any edge, any direction, closed loop to the jump) starts 23:30.
+- Nothing committed (the operator commits). 23:40 cleanup: the realtime PQ_SCRIPT hook and the PQ_NO_BLAST/PQ_NO_POWERUPS switches
+  in protocol.py/crossings.py reverted (blast.py's NO_BLAST stays, committed earlier); the scratch tools zipped to
+  C:/Users/doug/pq_archive/treasurebox_top_gem_tools_2026-11-03.zip. Regression check of the climb and lip changes on the other
+  nine maps still to run (folded into the edge-pop validation).

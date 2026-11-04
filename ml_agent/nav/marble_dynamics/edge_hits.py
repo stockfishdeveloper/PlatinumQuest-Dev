@@ -31,10 +31,10 @@ TARGET_GRADE = .05      # ... or rising at least this fraction of its horizontal
 AHEAD_MIN_U = 1.5       # lip point at least this far ahead horizontally
 AHEAD_MAX_U = 16.       # ... and at most this far
 LATERAL_MAX_U = 4.      # lip point at most this far off the straight line to the target
-ABOVE_MIN_U = .4        # lip of a ledge above the marble: at least this much higher ...
+ABOVE_MIN_U = .25       # lip of a ledge above the marble: at least this much higher (2026-11-03: .4 -> .25; a 0.5 u ledge lip hit descending at 13 u/s popped the marble 4.3 u) ...
 ABOVE_MAX_U = 4.5       # v10 wall hits: hitting the wall EARLY in a jump adds the spin-friction kick (~6 u/s) to the rising speed:
                         # (7.5+6)^2/40 = 4.5 u (the operator's demo: 3-5 u climbs with a jump, +5 u/s kicks without)
-MAX_LIPS = 2            # 2026-10-21: two lips x three timings x three lines = 18 forecasts at most
+MAX_LIPS = 3            # 2026-10-21: two lips x three timings x three lines = 18 forecasts at most; 3 since 2026-11-03 (TreasureBox: the step lip that pops the marble onto the box ranked third, behind two deck lips)
 JUMP_IMPULSE = 7.5      # u/s, the marble datablock's jumpImpulse
 GRAVITY = 20.
 DEFAULT_SPEED = 10.     # assumed approach speed when the marble is slow now (the plan accelerates first)
@@ -118,7 +118,8 @@ def candidates(engine, position, target, max_lips=MAX_LIPS):
     # the point of each segment closest to the approach line (horizontal plane): solve lateral offset = 0 along it
     lat_a = (a[:, :2] - p[:2]) @ left; lat_ab = abh @ left
     safe = np.where(np.abs(lat_ab) > 1e-9, lat_ab, 1.)
-    s = np.where(np.abs(lat_ab) > 1e-9, np.clip(-lat_a / safe, 0., 1.), .5)
+    seg_len = np.sqrt(np.maximum(abab, 1e-12)); margin = np.minimum(.5, LIP_END_MARGIN_U / seg_len)
+    s = np.where(np.abs(lat_ab) > 1e-9, np.clip(-lat_a / safe, margin, 1. - margin), .5)   # 2026-11-03: never a segment's very end
     pts = a + ab * s[:, None]
     ahead = (pts[:, :2] - p[:2]) @ u; lateral = np.abs((pts[:, :2] - p[:2]) @ left); rise = pts[:, 2] - p[2]
     along = np.abs(abh @ u) / np.sqrt(np.maximum(abab, 1e-12))
@@ -133,6 +134,10 @@ def candidates(engine, position, target, max_lips=MAX_LIPS):
         q = pts[i]
         if any(np.linalg.norm(q - o['point']) < 1.5 for o in out):
             continue
+        # 2026-11-03: one candidate per ledge level nearby, not one per 2 u mesh segment of the same deck edge (TreasureBox: the three
+        # nearest candidates were three segments of one deck edge, and the step lip that pops the marble onto the box ranked fourth)
+        if any(abs(float(q[2]) - float(o['point'][2])) < .1 and np.linalg.norm(q[:2] - np.asarray(o['point'][:2])) < LIP_SAME_LEVEL_U for o in out):
+            continue
         q = np.round(q * 4.) / 4.   # 0.25 u snap: the same lip gives the same goal key across decisions (route cache)
         out.append(dict(point=[float(x) for x in q], ahead=float(ahead[i]), rise=float(rise[i])))
         if len(out) >= max_lips:
@@ -146,6 +151,54 @@ def rise_time(height):
     if disc < 0:
         return None
     return (JUMP_IMPULSE - math.sqrt(disc)) / GRAVITY
+
+
+ROLL_ACC = ((9., 11.), (15., 6.))   # 2026-11-03: full-throttle roll acceleration (u/s^2) up to each speed (measured ~11 u/s^2 from rest, ~5-6 above 9 u/s)
+LIP_FAST_U_S = 14.                 # 2026-11-03 descending lip hits: the run at the lip is held at this speed (TreasureBox: 12.4-15 u/s landed, slower runs did not)
+LIP_SAME_LEVEL_U = 6.              # 2026-11-03: candidate lips at the same height within this of each other count as one ledge
+LIP_END_MARGIN_U = .35             # 2026-11-03: a lip point stays this far from the segment's ends (the marble beside a corner rubs the wall next to it)
+
+
+def arrival_time(ahead, speed):
+    """Seconds a full-throttle run from `speed` needs to cover `ahead` u (ROLL_ACC, capped at the top speed)."""
+    v = max(0., float(speed)); s = 0.; t = 0.; dt = .016
+    while s < ahead and t < 10.:
+        a = next((acc for top, acc in ROLL_ACC if v < top), 0.)
+        v = min(ROLL_ACC[-1][0], v + a * dt); s += v * dt; t += dt
+    return t
+
+
+def descent_jump_replies(ahead, speed, rise, radius=.19):
+    """2026-11-03 (operator's TreasureBox demonstration): jump replies that bring the marble DOWN onto the lip, its bottom at the lip's
+    height while still carrying its run speed: the lip's reflection of the forward-and-down velocity plus the spin kick sent a
+    14.5 u/s marble up at 14 u/s with 5 u/s kept forward (a 1 u step's lip from 4.3 u below the target; 2.3 s in all). The press
+    is timed from the full-throttle arrival (arrival_time) and the jump arc's second crossing of rise + radius; four replies
+    around it (the arrival estimate is about a reply coarse, and a press acts a reply later)."""
+    h = max(0., float(rise) + radius)
+    disc = JUMP_IMPULSE * JUMP_IMPULSE - 2. * GRAVITY * h
+    if disc < 0:
+        return ()
+    t_down = (JUMP_IMPULSE + math.sqrt(disc)) / GRAVITY
+    j = int(round((arrival_time(ahead, speed) - t_down) / DECISION_S)) - 1
+    return tuple(sorted({max(0, j + k) for k in range(-3, 3)}))
+
+
+class FastLipProposal(_SequenceProposal):
+    """A lip-aimed sequence that runs at the lip at LIP_FAST_U_S (no braking for what follows) with the jump at `jump`, then the
+    ordinary continuation to the gem once the lip is passed (the through box). A subclass: the compiled controller declines it
+    and the per-reply forecast runs it."""
+
+    def __init__(self, lroute, lip, steps, through, jump, fast=LIP_FAST_U_S):
+        super().__init__(lroute, np.asarray(lip, dtype=float), steps, jump=jump, direct=True, through=through)
+        self.fast_lip = float(fast)
+
+    def __call__(self, state, index):
+        from nav.marble_dynamics.gem_demo import Proposal
+        action = super().__call__(state, index)
+        if not self.passed:
+            action = Proposal(self.gem, 0., jump_at=self.jump - index, speed_distance=1e3, min_speed=self.fast_lip, top=self.fast_lip)(state, 0)
+            action[8] = 0
+        return action
 
 
 def jump_replies(ahead, speed, rise, radius=.19):
