@@ -12,7 +12,10 @@
 # -Situation <file> (2026-10-29): the planner plays a captured moment (tools/situation.py): every round, right after GO, the
 # marble is put where it was (gems, powerup, position, velocity, spin); the map comes from the file.
 param([string]$Map = "", [string]$Situation = "")
-if ($Situation) { $Situation = (Resolve-Path $Situation).Path; $Map = (Get-Content $Situation -Raw | ConvertFrom-Json).map }
+if ($Situation) {   # 2026-11-04: several files separated by ; play in turn
+  $files = @($Situation -split ";" | ForEach-Object { (Resolve-Path $_).Path }); $Situation = $files -join ";"
+  $Map = (Get-Content $files[0] -Raw | ConvertFrom-Json).map
+}
 $ml = $PSScriptRoot
 $repo = [System.IO.Path]::GetFullPath((Join-Path $ml ".."))
 $pq = Join-Path $repo "Marble Blast Platinum"

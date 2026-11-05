@@ -92,7 +92,8 @@ class HuntWorld:
                 keep.append(g)
         for k, g in sorted(hits, key=lambda x: x[0]):
             gained += float(g.get('value') or 1.); self.collected += 1
-            self.picks.append(dict(t_ms=self.round_ms - self.time_left_ms + k * DECISION_MS, value=float(g.get('value') or 1.), index=g['index']))
+            self.picks.append(dict(t_ms=self.round_ms - self.time_left_ms + k * DECISION_MS, value=float(g.get('value') or 1.), index=g['index'],
+                                   position=[round(float(x), 2) for x in g['position']]))   # 2026-11-04: spawn clear times (tools/spawn_times.py)
             self.last_pick_index = g['index']
         self.gems = keep; self.points += gained
         for pid in consumed_powerups(roll):
@@ -188,6 +189,7 @@ def play_round(a, terrain, engine, mission, rows, spawn_seed, o, label='', start
             _st = d['native']['state']; _inv = d.get('inventory') or {}; _b = d.get('blast') or {}
             root_context = dict(position=[float(v) for v in _st['position']], velocity=[float(v) for v in _st['velocity']],
                                 held=int(_st.get('held', 0)), held_type=int(_inv.get('held_type', 0) or 0), blast=float(_b.get('value', 0.)),
+                                spin=[float(v) for v in (_st.get('spin') or [0., 0., 0.])],   # 2026-11-04: situation files from sim rounds
                                 restore_type=int(_inv.get('restore_type', 0) or 0), time_left_ms=int(world.time_left_ms),
                                 effects=[[bool(e[0]), int(e[1])] for e in _st.get('effects', [])],
                                 gems=[[float(v) for v in g['position']] + [float(g.get('value') or 1.)] for g in world.gems],
@@ -239,8 +241,9 @@ def play_round(a, terrain, engine, mission, rows, spawn_seed, o, label='', start
         ended = world.time_left_ms <= 0
         speeds.append(float(np.linalg.norm(np.asarray(st['velocity'])[:2])))
         if o.trace:
-            print('   t %6.2f steps %d %-28s %-22s v %5.1f pos %s gems %d pts %g%s' % ((world.round_ms - world.time_left_ms) / 1000., W.STEPS[0], str(info.get('label'))[:28],
-                  str(info.get('reason'))[:22], speeds[-1], np.round(st['position'], 1).tolist(), len(world.gems), world.points, ' FELL' if fell else ''), flush=True)
+            print('   t %6.2f steps %d %-28s %-22s v %5.1f pos %s gems %d pts %g%s%s%s' % ((world.round_ms - world.time_left_ms) / 1000., W.STEPS[0], str(info.get('label'))[:28],
+                  str(info.get('reason'))[:22], speeds[-1], np.round(st['position'], 1).tolist(), len(world.gems), world.points, ' FELL' if fell else '',
+                  ' JUMP' if action[4] else '', ' PICK' if gained else ''), ' pk', info.get('possible_pickup_interval'), 'R' if info.get('revalidated_remainder') else '', flush=True)
         spawned = (not fell) and world.maybe_spawn()
         nd['items'] = world.items()
         raw = world.raw(template, nd)

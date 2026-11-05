@@ -121,13 +121,13 @@ TRAVEL_TURN_U_PER_RAD=0. # ... and a plan without a pickup pays this many u per 
                          # against 12-31 for the fast families; the human cruises at 29 deg/s and 16 u/s against the planner's 50 and 11)
 CLUSTER_PENALTIES=True   # 2026-10-23 (operator: "eradicate" pad-side smacks, ledge drops after a pickup, Super Speed for one gem);
                          # engine.cluster_penalties overrides (control --no-cluster-penalties). Measured on every candidate's 16 ms ticks:
-BUMP_COST_U=50.          # (sim 10-23 round 5: 50 with the re-search, AWAY 2, edge hits penalised, pad arrival = impacts -53 percent, 1 percent faster) u per side impact: one tick (16 ms) losing more than BUMP_TICK_DV of horizontal speed, mostly sideways (braking
+BUMP_COST_U=10.          # 10 = 2026-11-04 (1.25 s at the spawn value's 8 u/s: 50 was 6 s; with PICKUP_RESEARCH_U 8, 40 pairs +2.9; alone -2.25) (sim 10-23 round 5: 50 with the re-search, AWAY 2, edge hits penalised, pad arrival = impacts -53 percent, 1 percent faster) u per side impact: one tick (16 ms) losing more than BUMP_TICK_DV of horizontal speed, mostly sideways (braking
 BUMP_TICK_DV=1.2         # removes at most ~0.5 u/s a tick, a landing or a ramp turns speed upward); plans built to use walls are exempt
 BUMP_EXEMPT_WALL=True    # deliberate wall rebounds (labels containing 'wall') are exempt ...
 BUMP_EXEMPT_EDGE=False   # ... and the edge-hit (ledge lip) family (labels starting 'edge_hit'): NOT exempt since 10-23 (20 percent of the smacks)
 LIP_SKILL=True        # 2026-11-03: the standalone edge-hit skill as a candidate family (nav/marble_dynamics/lip_skill.py); control --no-lip-skill
 BLAST_CONSERVE_U=0.   # 2026-11-03: when an admitted lip-skill plan exists, every Blast plan pays this much extra (route units): keep the Blast for a climb that needs it
-LEDGE_DROP_U=30.         # u when the plan collects its gem and then drops LEDGE_DROP_DZ below it while the tour's next gem is on that level
+LEDGE_DROP_U=16.         # 16 = 2026-11-04 (2 s at 8 u/s, the measured extra time after a drop; was 30) u when the plan collects its gem and then drops LEDGE_DROP_DZ below it while the tour's next gem is on that level
 LEDGE_DROP_DZ=1.5        # (pools: 2.4 such drops a round, the next pickup 3.1 s later on average against 1.1 s without a drop)
 LEDGE_TARGET_LEVEL=True  # also a plan without a pickup that leaves its target gem's level downward (the marble on that level now)
 AWAY_U_PER_U_S=2.        # u per u/s of horizontal speed AWAY from the tour's next gem AWAY_AFTER_REPLIES after the pickup (momentum
@@ -644,6 +644,13 @@ def assess(engine,route,dynamics,gem,rollout,label,target_item=None,routed=True,
         next_item=next((i for i in dynamics.get('items',[]) if i['gem'] and np.linalg.norm(np.asarray(i['position'])-after[1])<.1),None)
     cost,close,pickup=candidate_cost(route,states,gem,routed,item,after,
                                      native=rollout.get('native_states'),detail=detail,next_item=next_item,next_rate=next_rate)
+    if routed and item is not None and item.get('gem') and not getattr(engine,'crossing_phase',False) and getattr(engine,'spawn_plan',None) is not None:
+        # 2026-11-04 spawn value (operator: "it thinks 2 seconds ahead"): the cost is the model time to clear the WHOLE spawn from
+        # the end state (with the Blast meter the plan leaves), less a credit per gem the forecast collects (spawn_value.py)
+        from nav.marble_dynamics import spawn_value as _SV
+        if _SV.SV_ON and _SV.SV_COST:
+            _sv=_SV.candidate_value(engine,dynamics,rollout,blast_meter_value(dynamics),blasts_fired(rollout)>0)
+            if _sv is not None:cost=_sv[0]+_gem_demo.END_VELOCITY_WEIGHT*float(np.linalg.norm(states[-1]['velocity']));detail['spawn_value']=_sv[1]
     presses=jump_presses(rollout.get('proposed') or [])
     if presses and JUMP_COST_U and not getattr(engine,'crossing_phase',False) and float(gem[2])-float(states[0]['position'][2])<JUMP_FREE_RISE_U:
         # v51 (operator: "jumping too much and stumbling around when collecting tight clusters"): a jump is charged
@@ -692,6 +699,7 @@ def assess(engine,route,dynamics,gem,rollout,label,target_item=None,routed=True,
                 continuation_s=min(3,len(states)-1)*.064,possible_pickup_interval=pickup,
                 ambiguous_intervals=rollout['ambiguous_intervals'],failure=rollout['failure'])
     if 'post_u' in detail:info['through_post_u']=float(detail['post_u'])
+    if 'spawn_value' in detail:info['spawn_value']=detail['spawn_value']
     if 't_next' in detail:info['t_next_s']=round(float(detail['t_next']),3)   # TIME_COST: estimated time to the tour's next gem
     if penalty_why:info['cluster_penalty']=dict(penalty_why,u=round(penalty,2))
     stopping_replies=getattr(engine,'terminal_stop_replies',0)

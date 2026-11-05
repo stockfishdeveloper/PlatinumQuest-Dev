@@ -79,9 +79,18 @@ STALL_GROUND_MS=0.        # 2026-10-29 (under test, --stall-ground: 50): the sta
 HOLD_WIDE=False           # 2026-10-29 (under test, --hold-wide): after a search overrun the best gate-checked plan of that search (the
                           # safe hold) is taken even when the actor's own forecast is safe, when it collects or makes > .3 u of route
                           # progress (else the actor explores as before); with HOLD_RESEARCH it is searched again next decision
-PICKUP_RESEARCH_U=0.      # 2026-10-28 (under test, --pickup-research U): a kept plan that collects a gem is searched again every
+PICKUP_RESEARCH_U=8.      # 8 = ON 2026-11-04 (spawn collection: with BUMP_COST_U 10 + LEDGE_DROP_U 16, 40 sim pairs +2.9 a round, spawn clear
+                          # 4.1 -> 3.7 s; a kept circling plan ran 45 decisions 3 u from a gem while a fresh search had a 0.8 s pickup).
+                          # 2026-10-28 (under test, --pickup-research U): a kept plan that collects a gem is searched again every
                           # decision (before, it ran unsearched to its pickup unless its forecast showed a smack or a ledge drop); a
                           # plan for the same gem that collects it and costs U or more less replaces it; an overrun keeps the plan
+PICKUP_RESEARCH_NEAR=8    # 2026-11-04 20:30 (latency): a kept pickup plan whose forecast pickup is within this many decisions (8 = .5 s)
+                          # is NOT searched again (native spawn1: re-searching every kept pickup plan cost 300 s vs 15 s of planner
+                          # time a KOTM round, 2-4x the decisions over the .172 s allowance; the harness held the game, a lobby would not)
+PICKUP_RESEARCH_EVERY=2   # 2026-11-04 20:30 (latency): a kept pickup plan farther from its pickup is searched again every N-th decision
+FAST_FALLBACK_BRAKE_U_S=12.  # 2026-11-04 (operator: the Sprawl overshoots): a failed or overrun search while the marble moves faster than
+                          # this with its target gem BEHIND the heading brakes instead of handing the marble to the A2 actor (Sprawl 108 s:
+                          # 9 fallback decisions at 17 u/s rolled 12 u past the spawn before any plan braked; 0 = off)
 RESEARCH_EVERY=1          # 2026-10-16 v50: with a kept no-pickup plan, search every N-th decision (1 = every decision, v47); v50 tried 3: 114.8 vs 120.0, NOT adopted
 LAUNCH_SWITCH_U=5.        # 2026-10-26 night: the v47 rule's exception for take-off launches: before its lock a kept launch is replaced by a
 LIP_SWITCH_U=5.   # 2026-11-03 lip skill: a kept non-pickup plan gives way to a lip-skill climb this much cheaper (route units)
@@ -1109,9 +1118,14 @@ class ContinuousController:
                     self.counts['remaining_plan_revalidations']+=1;return retained,target
                 held=retained;self._held_penalized=repenal;self._held_hold=bool(HOLD_RESEARCH and memory.label=='safe_hold')
                 self._held_pickup=bool(PICKUP_RESEARCH_U and not risky and not repenal and retained[0].get('possible_pickup_interval') is not None)
-                # v50: between re-searches the kept plan simply runs (one search every RESEARCH_EVERY decisions)
+                if self._held_pickup and int(retained[0]['possible_pickup_interval'])<=PICKUP_RESEARCH_NEAR:
+                    # 2026-11-04 latency: the pickup is at hand, nothing quicker can replace the plan: no search
+                    self.counts['remaining_plan_revalidations']+=1;self.counts['pickup_research_near']+=1
+                    return retained,target
+                # v50: between re-searches the kept plan simply runs (one search every RESEARCH_EVERY decisions; a kept pickup plan
+                # every PICKUP_RESEARCH_EVERY, 2026-11-04)
                 self.research_wait=getattr(self,'research_wait',0)+1
-                if not risky and not repenal and self.research_wait<RESEARCH_EVERY:
+                if not risky and not repenal and self.research_wait<(PICKUP_RESEARCH_EVERY if self._held_pickup else RESEARCH_EVERY):
                     self.counts['remaining_plan_revalidations']+=1;self.counts['research_waited']+=1
                     return retained,target
         self.research_wait=0
@@ -1310,6 +1324,16 @@ class ContinuousController:
                 if np.linalg.norm(np.asarray(so[0][:3])-np.asarray(target[:3] if target is not None else so[0][:3]))>.1:self.counts['spawn_order_retargets']+=1
                 target,nxt=so;self.engine.spawn_order_on=True
                 if not SO_KEEP_ORDER_CHOICE:self.order_commit=None
+        from nav.marble_dynamics import spawn_value as _SV
+        if _SV.SV_ON and self.uses_physics and self.resource is None and not self.memory.landing_mode:
+            # 2026-11-04 spawn value: the whole-spawn order (walking legs, Blast-aware climbs) names the target; search.assess prices
+            # every candidate by the time to clear the rest of it. A physics-verified order commit or a chain order is honoured.
+            plan=_SV.update_plan(self.engine,self.route.terrain,dynamics,raw,state,skipped=self.skipped)
+            if plan is not None and plan.order and _SV.SV_TARGET and not committed and getattr(self,'chain_order',None) is None:
+                t0=plan.order[0]
+                if target is not None and np.linalg.norm(np.asarray(t0[:3])-np.asarray(target[:3]))>.1:self.counts['spawn_value_retargets']+=1
+                target,nxt=t0,(plan.order[1] if len(plan.order)>1 else None)
+        else:self.engine.spawn_plan=None
         self.engine.endgame=False
         if (ENDGAME_S and self.uses_physics and self.resource is None and not self.memory.landing_mode
                 and float(raw[31])<=ENDGAME_S*1000. and getattr(self.engine,'last_crossing_phase',None) is None):
@@ -1511,6 +1535,14 @@ class ContinuousController:
                 self.counts['crossing_brake_fallback']+=1
                 if getattr(self.engine,'last_crossing_phase',None)=='cross':self.engine.crossings.braked()
                 info=dict(label='crossing_brake',reason=reason)
+            elif (self.uses_physics and FAST_FALLBACK_BRAKE_U_S and target is not None
+                  and float(np.linalg.norm(np.asarray(state['velocity'][:2],dtype=float)))>FAST_FALLBACK_BRAKE_U_S
+                  and float(np.dot(np.asarray(state['velocity'][:2],dtype=float),np.asarray(target[:2],dtype=float)-np.asarray(state['position'][:2],dtype=float)))<0.):
+                # 2026-11-04: fast, the gem already behind, no plan: brake now (the actor kept rolling away at 17 u/s)
+                from nav.marble_dynamics.gem_demo import Proposal
+                action=Proposal(np.asarray(target[:3],dtype=float),brake=True)(state,0)
+                self.counts['fast_brake_fallback']+=1
+                info=dict(label='fast_brake',reason=reason)
             elif self.uses_physics and getattr(self.args,'safe_fallback',False) and edge_ahead(self.engine.mesh,state):
                 # The free roll along the current velocity leaves the floor within
                 # about a second: brake instead of handing the marble to the actor.
@@ -1813,6 +1845,8 @@ def main():
     p.add_argument('--edge-hits',dest='edge_hits',action='store_true',default=True,help='2026-10-20: aim at ledge lips to gain height toward a higher target (bounce physics); ON by default since 2026-10-21 05:30 (six positive ten-map pairs)')
     p.add_argument('--no-edge-hits',dest='edge_hits',action='store_false',help='matched control: the planner without the edge-hit family')
     p.add_argument('--no-edge-pops',dest='edge_pops',action='store_false',default=True,help='2026-11-04 matched control: the planner without the edge-pop family (search.EDGE_POPS)')
+    p.add_argument('--no-spawn-value',dest='spawn_value',action='store_false',default=True,help='2026-11-04 matched control: the planner without the spawn value (spawn_value.SV_ON: the old end cost and tour target)')
+    p.add_argument('--old-spawn-prices',dest='old_spawn_prices',action='store_true',default=False,help='2026-11-04 matched control: the prices before the spawn collection bake (PICKUP_RESEARCH_U 0, search.BUMP_COST_U 50, LEDGE_DROP_U 30)')
     p.add_argument('--lip-skill',dest='lip_skill',action='store_true',default=True,help='2026-11-03: the standalone edge-hit skill (tools/edge_skill, nav/marble_dynamics/lip_skill.py) offers checked lip-contact climbs; ON by default')
     p.add_argument('--no-lip-skill',dest='lip_skill',action='store_false',help='matched control: the planner without the lip skill')
     p.add_argument('--time-price',dest='time_price',action='store_true',default=False,help='2026-10-22 step 2a: plan time priced at gem_demo.TIME_PRICE_U_S (10 u/s): pickup delay, extended forecasts and ballistic projections (OFF by default since 19:15: tp1+tp2 equal-map 128.40 on vs 129.15 off)')
@@ -2110,6 +2144,8 @@ def main():
         engine.pickup_stop=getattr(a,'pickup_stop',False)
         engine.edge_hits=getattr(a,'edge_hits',False)
         import nav.marble_dynamics.search as _S_ep;_S_ep.EDGE_POPS=bool(getattr(a,'edge_pops',True))   # 2026-11-04 edge pops (matched control --no-edge-pops)
+        import nav.marble_dynamics.spawn_value as _SV_f;_SV_f.SV_ON=bool(getattr(a,'spawn_value',True))   # 2026-11-04 spawn value (matched control --no-spawn-value)
+        if getattr(a,'old_spawn_prices',False):_S_ep.BUMP_COST_U=50.;_S_ep.LEDGE_DROP_U=30.   # 2026-11-04 matched control --old-spawn-prices (PICKUP_RESEARCH_U below)
         engine.lip_skill=getattr(a,'lip_skill',True)
         engine.wall_rebounds=getattr(a,'wall_rebounds',True)
         engine.pad_hops=getattr(a,'pad_hops',False)
@@ -2144,6 +2180,7 @@ def main():
         global STALL_GROUND_MS;STALL_GROUND_MS=50. if getattr(a,'stall_ground',False) else STALL_GROUND_MS
         global HOLD_WIDE;HOLD_WIDE=bool(getattr(a,'hold_wide',False) or HOLD_WIDE)
         global PICKUP_RESEARCH_U;PICKUP_RESEARCH_U=float(getattr(a,'pickup_research',0.) or PICKUP_RESEARCH_U)
+        if getattr(a,'old_spawn_prices',False):PICKUP_RESEARCH_U=0.   # 2026-11-04 matched control --old-spawn-prices
         from nav.marble_dynamics import gap_links as _gap_links_mod
         _gap_links_mod.ROLL_REAL=bool(getattr(a,'roll_real',False) or _gap_links_mod.ROLL_REAL)
         _search_cp.CORNER_SLOW=bool(getattr(a,'slow_corners',_search_cp.CORNER_SLOW))

@@ -162,6 +162,8 @@ def situation_words(sit):
 def setup_situation(env, world, sit, n):
     """Puts the marble into the captured moment (try n) and logs what the game shows; returns the new observation."""
     from nav.protocol import NOOP_ACTION
+    if isinstance(sit, list):
+        sit = sit[(n - 1) % len(sit)]     # 2026-11-04: several situations play in turn, one per try (operator: the 3 overshoot cases on a loop)
     for word in situation_words(sit):
         env.control(word)
     env.step(NOOP_ACTION, repeat=1)      # a reply acts one decision later: the next observation shows the teleport
@@ -1010,8 +1012,9 @@ def serve(port=PORT, preload=None, situation=None):
 
     worlds = WorldManager()
     if situation is not None:
-        SITUATION[0] = situation; preload = preload or situation['map']
-        log('situation test: every round starts from %s decision %d' % (situation['map'], situation['decision']))
+        SITUATION[0] = situation; first = situation[0] if isinstance(situation, list) else situation; preload = preload or first['map']
+        log('situation test: every round starts from %s decision%s %s' % (first['map'], 's' if isinstance(situation, list) else '',
+            ' '.join(str(s['decision']) for s in (situation if isinstance(situation, list) else [situation]))))
     if preload:
         # 2026-10-29 (operator: "the planner load is what bothers me"): this map's planner and its search workers are built
         # before the port opens, so play_realtime.ps1 -Map starts the game only when the planner is ready: no hold at the start
@@ -1056,6 +1059,9 @@ if __name__ == '__main__':
     # --situation FILE (2026-10-29, play_realtime.ps1 -Situation): every round starts from that captured moment
     sit = None
     if '--situation' in sys.argv:
-        with open(sys.argv[sys.argv.index('--situation') + 1], encoding='utf-8') as f:
-            sit = json.load(f)
+        sit = []
+        for path in sys.argv[sys.argv.index('--situation') + 1].split(';'):   # 2026-11-04: FILE;FILE;... = played in turn
+            with open(path, encoding='utf-8') as f:
+                sit.append(json.load(f))
+        sit = sit[0] if len(sit) == 1 else sit
     serve(preload=sys.argv[sys.argv.index('--preload') + 1] if '--preload' in sys.argv else None, situation=sit)

@@ -15028,3 +15028,122 @@ pre-determined; "I see an edge, it's in position to help me, use it"; gap far ed
   native -1.5 (both inside the noise). Not done: the gap far-edge pops in the planner (the engine pops there, probe only), a 1x
   viewing run (operator), the Sprawl +20 / Concentric -17 are single-seed swings worth a second campaign if the operator wants
   the family's real-game value measured (20 pairs resolve +-3 at best).
+
+## 2026-11-04 08:25 SPAWN COLLECTION (operator directive: "optimize collecting entire spawns ... it thinks 2 seconds ahead ... save the Blast")
+
+Operator (after two Sprawl 1x rounds, 153 / 187, 0 falls): spawns take ~2x too long; the planner spends the Blast on a low cluster
+under a high platform and then cannot climb; "present your best plan for speeding up collecting spawns drastically". Plan approved
+08:30 ("go ahead"): Blast shadow price + spawn clear-time metric, then the whole-spawn order as the search's end cost, a value
+network only if the fitted table underperforms.
+
+**Audit (edge_pops1 baseline journals = production planner, 20 native rounds; scratchpad spawn/blast_audit.py):**
+- 271 Blast fires (13.6 a round); 188 under 'blast' labels (charged by search.apply_blast_value: meter x 10 u), 40 'remaining',
+  15 'direct', 5 'edge_hit' (not charged: the charge only looks at labels containing 'blast').
+- 78 fires with a raised gem (>= 1.5 u up, within 40 u) visible: the raised gem was taken within 3 s after 46 of them (the Blast
+  WAS the climb), 3-8 s 19, 8-20 s 7, over 20 s or never 6. The operator's case (Blast spent on a low gem within 3 s while a
+  raised gem waited) 4 of 271. So the Blast waste is ~0.5 fires a round: real, small; the big lever is the spawn order.
+- Spawn clear times (tools/spawn_times.py, pickups grouped by 8 u position gaps, one rule for human and planner):
+  human TreasureBox demo_20261021_151105: travel 5.3 s, clear 4.9 s, 9.2 s a spawn, 1.46 gems/s inside;
+  planner TreasureBox: travel 7.3 s, clear 7.9 s, 15.0 s a spawn, 1.11 gems/s (1.6x the human's clear, 1.4x the travel);
+  planner all ten maps: travel 4.5 s, clear 4.2 s, 6.2 s a spawn (groups of 2.7 gems by this rule).
+
+**Diagnosis (code):** the target comes from the 5-gem walking tour (nav.gems.plan_tour); the whole-spawn order of 10-24
+(spawn_order.py, SPAWN_ORDER False) lost on Cragmire / Vortex / KOTM: straight legs, and the 3 s search overrode it; the search's end
+state is priced only as the walking distance to the tour's next gem (gem_demo.candidate_cost 'post'); the Blast's price is flat
+(meter x 10 u) and blind to whether a gem ahead needs it.
+
+**Built 08:35-08:45: nav/marble_dynamics/spawn_value.py (SV_ON True; matched control --no-spawn-value / --set spawn_value.SV_ON=False):**
+- SpawnPlan: spawn_order.best_order over the SV_MAX_GEMS 10 nearest visible gems (35 ms, rebuilt when the gem set changes or the
+  marble moved 8 u) with legs from cached walking-grid routes (search.cached_route; off-grid 1.5 x straight + 2 u), the
+  SO_* turn / climb charges, leg speed rising with leg length (4.1 u/s in the spawn to 10 u/s cruise).
+- rest_time(pos, vel, meter, collected): model seconds to collect the order's remaining gems; a leg rising >= crossings.JUMP_RISE_U
+  needs the Blast (crossings.needed_meter): if the meter will not have refilled (climbs.BLAST_CHARGE_S 25 s) the model waits for it,
+  capped at SV_NO_BLAST_ALT_S 8 s. That is the Blast's shadow price: a candidate that fires it for nothing pays the wait it causes.
+- search.assess: for a gem target outside a crossing phase, cost = 8 u/s x (t_end + rest_time from the state at reply 24 with the
+  meter the plan leaves) - 100 per gem the forecast collects by then (+ the end-speed term); every later penalty (cluster, jump,
+  turn, Blast charge, two-level) still adds. ContinuousController: the order's first gem is the target (a physics order commit or
+  a chain order still wins). Verified: search() on a saved TreasureBox state: 25 of 25 candidates carry spawn_value.
+- Smoke (sim TreasureBox seed 1, 45 s): spawn 1 (9 gems) cleared in 7.4 s with the value against 12.0 s without; spawn 2 13.4 vs
+  10.0 (22 points both). tools/sim_bench/full_round.py picks now carry positions (spawn times on sim rounds).
+- 08:45 sim pairs sv1 launched: ten maps x seeds 1 2 x (sv, base), 10 parallel (scratchpad rounds/run_sv.sh, summary_sv.py).
+
+**Sim pairs (ten maps x seeds 1 2, 10 parallel; the sim is DETERMINISTIC: sv2's base rounds equalled sv1's to the point, so later
+passes reuse the base arm):**
+- sv1 (value at reply 24, approach speed cap 10): -5.15 a round; Sprawl +14.5, Fractured +14.5, Cragmire +4, Vortex -6.5,
+  TreasureBox -8.5, Cube -10, Duplex -10.5, KOTM -10.5, Concentric -15.5, Bowl -23. Losing rounds chose few fast long-travel plans
+  and stalled (Bowl 27.6 s stalled vs 7.9).
+- sv2 (own-end valuation, approach cap 12, sticky order SV_SWITCH_S 1.0): -8.0 a round (Concentric -25, KOTM -19, Vortex -18.5).
+  KOTM seed 2 trace: 391 'throttle_0.4' plans, 1.2 u/s at gems, mean speed 7.2 vs 8.0: the model timed every leg at cruise
+  speed from rest (no acceleration).
+- sv3 (leg_time with SV_ACCEL 8 u/s2, speed carried gem to gem, reversals lose it): KOTM 130 / Concentric 90 (controls 155 / 116).
+- Ranking audit on 6 saved KOTM states (09:40): every plan valued at its own end (3.07 s); a fast plan collecting at reply 14 lost
+  to a jump collecting at reply 30 because its open-loop remainder braked and ended farther from the next gem, and that remainder
+  never runs (the planner re-searches at the pickup).
+- sv4 (SV_AT_PICKUP: a collecting plan valued at its LAST pickup): KOTM 134, Concentric 111, Bowl 132 (controls 155 / 116 / 140).
+- Ablation KOTM seed 2: cost only (tour keeps the target) 157; target only (old cost) 136. Concentric: 103 / 107. The spawn
+  order's retarget is the loss, the pricing is neutral-to-positive. sv5 (the order chosen with the same acceleration model) still
+  138 with the retarget. SV_TARGET now False by default: the tour and the physics order choice keep the target; the spawn value
+  prices every candidate (and so the order choice's forecasts).
+- 10:05 batch sv4: sv (cost only) and svt (+ retarget) on the ten maps against the reused base rounds.
+
+2026-11-04 15:20 SPAWN COLLECTION, execution: traced deterministic sim rounds (Sprawl, TreasureBox) with per-decision jump/pickup
+markers; a decision dump tool replays a round to any decision and lists the search's candidates (scratchpad hops/). Slow in-spawn
+legs come from: (a) a kept plan with a forecast pickup is never re-searched (PICKUP_RESEARCH_U 0): a steering plan circled 45
+decisions 3 u from a gem while a fresh search had a 0.8 s pickup; (b) the side-impact price 50 u = 6 s at the 8 u/s spawn-value
+time price (ledge drop 30 u = 4 s): a two-gem 2.3 s plan lost to the navigator's 3.1 s crawl over one extra impact; (c) 15-18 u/s
+overshoots after launch pickups; (d) the TreasureBox box-top climb (11-03 project). Sim pairs hop1 (20 pairs): re-search 8 +
+bump 10 + ledge 16 = +3.65 a round, spawn clear 3.7 -> 3.3 s; re-search alone +1.45; bump 10 alone -2.25. hop2 (seeds 3-4) running.
+
+2026-11-04 16:15 SPAWN COLLECTION, baked: PICKUP_RESEARCH_U 0 -> 8 (reliability_eval.py), BUMP_COST_U 50 -> 10, LEDGE_DROP_U 30 -> 16
+(search.py). hop1+hop2 = 40 sim pairs (seeds 1-4, ten maps): +2.90 a round (133.7 -> 136.6), spawn clear 4.1 -> 3.7 s in both
+halves, 7 of 10 maps up (Cube +11, TreasureBox +9.5, Fractured +8), Duplex -9. The middle price (bump 20, ledge 20) +1.4 on 20 pairs.
+Still open: 15-18 u/s overshoots after launch pickups (Sprawl), the TreasureBox box-top climb (11-03 project), Duplex.
+
+2026-11-04 17:57 SPAWN COLLECTION, native campaign spawn1 LAUNCHED (operator: "go ahead and see if the game shows the same gain")
+- run_flag_native.py --label spawn1, seeds 5150321 + 90412843-style fresh pair (5150321 / 90412877), --always-confirm, 2 games x 8
+  workers, .172 s allowance. Candidate = the baked defaults (--edge-hits no-op flag); baseline = --old-spawn-prices (NEW matched
+  control flag in reliability_eval: PICKUP_RESEARCH_U 0, search.BUMP_COST_U 50, LEDGE_DROP_U 30). --require-global audits all three
+  constants on both arms. Results ml_agent/dynamics_reports/overnight_20261026/spawn1_*; driver log spawn1_driver.log. Expected
+  finish ~2 x 40 min after launch (edge_pops1 took 80 min for 20 pairs). Noise floor for 20 pairs: +-3 a round.
+- 19:09 spawn1 exploratory seed 5150321 done, 10 valid pairs, audits passed: candidate 145.4 vs baseline 143.8 = +1.6 a round (se 3.6).
+  Per map: Concentric +15, KOTM +13, TreasureBox +11, CubeIsle +9, Duplex +2, Bowl/Fractured 0, Cragmire -5, Vortex -6, Sprawl -23.
+  The driver crashed in its --require-global audit (my keys were short names; the recorded globals use the full module name
+  nav.marble_dynamics.search): constants verified by hand (baseline 50/30/0, candidate 10/16/8), explore comparison written by
+  hand, confirmation resumed with --confirm-only and the full names (driver log spawn1_driver_confirm.log).
+- LATENCY FINDING: the candidate re-searches every kept pickup plan (80 pct of KOTM decisions): planner time a round 300 s vs
+  15 s on KOTM, p50 130 ms vs 5 ms, 15-32 pct of decisions over the .172 s allowance vs 1-10. The harness holds the game while
+  the planner overruns (candidate rounds take 8-9 min wall for the same decision count), so the points carry NO lag penalty: a
+  real lobby or 1x viewing would. Planned fix after the campaign: re-search a kept pickup plan only when its forecast pickup is
+  more than ~8 decisions (0.5 s) away and at most every 2nd decision (removes ~70 pct of the extra searches by the recorded
+  pickup intervals: KOTM kept plans p50 10 decisions to the pickup), then sim pairs + full_searches count.
+- 20:20 NATIVE campaign spawn1 COMPLETE (20 valid pairs, all audits passed, both arms' constants verified): candidate 141.65 vs
+  baseline 138.8 = +2.85 a round (se 2.5; exploratory +1.6, confirmation +4.1). Per map (mean, seed1/seed2): Duplex +12.5 (+2/+23), TreasureBox +12.0 (+11/+13), CubeIsle +10.0 (+9/+11), KingOfTheMarble +6.0 (+13/-1), Cragmire +6.0 (-5/+17), Concentric +6.0 (+15/-3), Bowl +0.0 (+0/+0), VortexEffect -5.0 (-6/-4), FracturedIslands -6.5 (+0/-13), Sprawl -12.5 (-23/-2).
+  The sim said +2.9 over 40 pairs: the game shows the same gain. CAVEAT (above): the harness holds the game during planner
+  overruns, so the candidate's 2-4x planner time is not charged; the re-search throttle is the next step before this counts
+  as lobby-ready. Nothing committed.
+- 21:02 re-search THROTTLE (latency) sim test: PICKUP_RESEARCH_NEAR 8 (no re-search when the kept plan's pickup is within 8
+  decisions) + PICKUP_RESEARCH_EVERY 2 (both baked, reliability_eval). 40 rounds (seeds 1-4, scratchpad rounds/thr) vs the hop12
+  'both' rounds (same code, unthrottled, deterministic control): -1.35 a round (se 2.0; CubeIsle -12, TreasureBox -12, Cragmire
+  +13), searches 66 pct, cpu_s 63 pct of the unthrottled arm (old prices: 46 pct / 50 pct). Net of the old prices +1.55. The
+  throttle gives back ~half the gain for a third of the planner time. Running thr2 (rounds/thr2): thrA = NEAR 8 EVERY 1, thrB =
+  NEAR 4 EVERY 2 (--set reliability_eval.*, matched controls), 80 rounds PAR 16. compare: rounds/compare_arms.py.
+- 22:08 THROTTLE RESULT (thr2 done, 40 rounds per arm, seeds 1-4, vs the unthrottled 'both' rounds): thr(NEAR 8, EVERY 2) -1.35 a round,
+  searches 66 pct, cpu 63 pct (matched PAR 10 load); thrA(8,1) -1.35, searches 83 pct; thrB(4,2) -1.25, searches 70 pct (thr2 ran
+  at PAR 16: its cpu ratios are load-inflated, the search counts are the measure). All three cost the same ~1.3 (se 2, noise)
+  whatever the search cut, so KEPT the baked thr(8,2): net of the old prices +1.55 a round in the sim with 1.4x the old planner's
+  searches (unthrottled: +2.9 with 2.2x). Native spawn1 measured the unthrottled version (+2.85): the throttled one is untested in
+  the game. Operator decides: commit as is, or a native campaign of the throttled version (same --old-spawn-prices control).
+- 00:02 STOP PRICE sim result (spawn_value SV_STOP_U_S2 9 / SV_STOP_MIN_U_S 12 / SV_STOP_DEG 90, baked; rounds/stop, 40 rounds vs
+  rounds/thr = the current defaults): +1.20 a round (se 2.1: noise), Sprawl -10.2, Vortex -12, TreasureBox +12.8, CubeIsle +10.8.
+  Case 1 replay (hops/dump_1668_nostop.txt): the Super Speed plan wins by its pick credit (100 u) and NO candidate fires and
+  brakes before the gems, so a price alone cannot change that choice. The bigger loss is AFTER the pickup: the search blows up
+  (31k forecast steps), overruns the budget 3 times, 9 fallback decisions (0.58 s) at 17 u/s with the A2 actor rolling away.
+  Next arm 'brake': FAST_FALLBACK_BRAKE_U_S 12 (reliability_eval; a failed/overrun search at > 12 u/s with the target gem
+  behind the heading brakes instead of the A2 actor), rounds/brake vs rounds/stop.
+- 00:59 STOP2 (braking physics on every spawn-value leg, rounds/stop2, 40 rounds vs thr): -2.0 a round (se 2.3), Sprawl -10.2 (3 of 4
+  seeds down), Cragmire -12.2, Concentric -8.2 (one seed 113 -> 58), TreasureBox +8.2. Both stop models lose Sprawl ~10: a price on
+  fast arrivals costs more Super Speed launches than the overshoots cost. DECISION: SV_STOP_U_S2 = 0 (model kept in the code,
+  inert). The brake fallback (FAST_FALLBACK_BRAKE_U_S 12) never fired in 20 sim rounds (identical to its control): left ON, inert
+  in the sim, physically sound, untested natively. Production = the 22:10 state (baked prices + throttle). What the cases need
+  instead: a plan family that fires the Super Speed and brakes before the cluster (no such candidate exists: the launch wins by
+  its pick credit), and a cheaper search after a fast pickup (31k forecast steps, 3 budget overruns, 0.6 s of no plan).

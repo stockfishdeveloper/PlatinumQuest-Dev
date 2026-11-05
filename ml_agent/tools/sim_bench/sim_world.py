@@ -164,8 +164,9 @@ def apply_settings(settings):
     import nav.marble_dynamics.gem_demo as GD, nav.marble_dynamics.search as S, nav.marble_dynamics.reliability_eval as RE
     import nav.marble_dynamics.geometry_route as GR, nav.marble_dynamics.crossings as CRX, nav.marble_dynamics.gap_links as GLX
     import nav.marble_dynamics.climbs as CLX, nav.terrain as TRN, nav.marble_dynamics.resources as RSX, nav.marble_dynamics.lip_skill as LSX
+    import nav.marble_dynamics.spawn_value as SVX
     modules = {'gem_demo': GD, 'search': S, 'reliability_eval': RE, 'geometry_route': GR, 'crossings': CRX, 'gap_links': GLX,
-               'climbs': CLX, 'terrain': TRN, 'resources': RSX, 'lip_skill': LSX}
+               'climbs': CLX, 'terrain': TRN, 'resources': RSX, 'lip_skill': LSX, 'spawn_value': SVX}
     for kv in settings:
         key, val = kv.split('=', 1); mod, attr = key.split('.')
         module = modules[mod]; cur = getattr(module, attr)
