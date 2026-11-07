@@ -1,6 +1,6 @@
 """Push the repo's best-scores CSV into the canonical Google Sheet through its Apps Script web app.
 
-Usage: python ml_agent/tools/update_best_scores_sheet.py <web app URL> [--check]
+Usage: python ml_agent/tools/update_best_scores_sheet.py <web app URL> [--check] [--date YYYY-MM-DD]
 The URL comes from the Apps Script deployment (ml_agent/tools/best_scores_sheet_appsscript.gs).
 Reads ml_agent/docs/BEST_REAL_SCORES_*.csv (newest), posts every map's best and a History row
 for every date present, then reads the sheet back and prints it.
@@ -36,6 +36,10 @@ HISTORY_SEED = {  # bests as of each earlier date (from the handoff logs), carri
                    'FracturedIslands_Hunt': 132, 'Cragmire_Hunt': 150, 'VortexEffect_Hunt': 125, 'TreasureBox_Hunt': 211, 'Concentric_Hunt': 132},
     '2026-10-27': {'KingOfTheMarble_Hunt': 175, 'Sprawl_Hunt': 213, 'CubeIsle_Hunt': 175, 'Bowl_Hunt': 150, 'Duplex_Hunt': 166,
                    'FracturedIslands_Hunt': 132, 'Cragmire_Hunt': 154, 'VortexEffect_Hunt': 147, 'TreasureBox_Hunt': 211, 'Concentric_Hunt': 132},
+    '2026-10-29': {'KingOfTheMarble_Hunt': 175, 'Sprawl_Hunt': 213, 'CubeIsle_Hunt': 175, 'Bowl_Hunt': 150, 'Duplex_Hunt': 176,
+                   'FracturedIslands_Hunt': 134, 'Cragmire_Hunt': 154, 'VortexEffect_Hunt': 147, 'TreasureBox_Hunt': 211, 'Concentric_Hunt': 132},
+    '2026-11-01': {'KingOfTheMarble_Hunt': 175, 'Sprawl_Hunt': 213, 'CubeIsle_Hunt': 175, 'Bowl_Hunt': 150, 'Duplex_Hunt': 176,
+                   'FracturedIslands_Hunt': 134, 'Cragmire_Hunt': 175, 'VortexEffect_Hunt': 147, 'TreasureBox_Hunt': 211, 'Concentric_Hunt': 133},
 }
 
 def load_csv():
@@ -64,7 +68,9 @@ def main():
         print('clear:', post(url, dict(token=TOKEN, clear=clear))[:400]); return
     path, best = load_csv()
     history = {k: dict(v) for k, v in HISTORY_SEED.items()}
-    today = max(r[3] for r in best)
+    # --date YYYY-MM-DD: the History row's date (a check with no new best carries the bests forward to that day);
+    # default: the newest best's date
+    today = sys.argv[sys.argv.index('--date') + 1] if '--date' in sys.argv else max(r[3] for r in best)
     history.setdefault(today, {})
     for m, s, f, d in best:
         history[today][m] = s
