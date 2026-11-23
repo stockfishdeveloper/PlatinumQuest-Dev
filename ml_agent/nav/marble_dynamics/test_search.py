@@ -1,6 +1,7 @@
 """Regressions for delayed maneuvers and isolation of hypothetical policy state."""
 import copy
 import json
+import math
 from pathlib import Path
 import unittest
 
@@ -331,6 +332,110 @@ class TickPickupRegressions(unittest.TestCase):
         p.observe_ticks(ticks);self.assertFalse(p.passed)
         p.observe_ticks([dict(position=[.7,0,0],radius=.6666)]*2)
         self.assertTrue(p.passed)
+
+
+class ConnectedPickupContracts(unittest.TestCase):
+    def setUp(self):
+        from nav.marble_dynamics import connected
+        self.module=connected;self.previous=connected.MODE;connected.MODE='retain'
+        self.addCleanup(setattr,connected,'MODE',self.previous)
+        self.meta=dict(goals=[dict(id=1,position=[1.,0.,0.]),dict(id=2,position=[3.,0.,0.])],pickups=[2,5],mode='retain')
+        self.memory=PlanMemory();self.memory.accept(dict(proposed=[[0.]*9 for _ in range(12)]),'route',[1.,0.,0.],dict(connected=self.meta))
+        self.memory.advance();self.memory.advance()
+
+    def test_handoff_requires_own_pickup_and_expected_disappearance(self):
+        self.assertFalse(self.module.pickup(self.memory,0,[dict(id=2)]))
+        self.assertFalse(self.module.pickup(self.memory,1,[dict(id=1),dict(id=2)]))
+        before=copy.deepcopy(self.memory.remaining)
+        self.assertTrue(self.module.pickup(self.memory,1,[dict(id=2)]))
+        self.assertEqual(self.memory.gem,[3.,0.,0.]);self.assertEqual(self.memory.remaining,before)
+        self.assertEqual(len(self.meta['goals']),2)  # runtime progress must not mutate the checked plan metadata
+        self.assertTrue(self.memory.connected_handoff)
+
+    def test_completion_and_new_spawn_do_not_retain_old_targets(self):
+        self.assertFalse(self.module.pickup(self.memory,2,[dict(id=99)]))
+        self.memory.clear();self.assertIsNone(self.memory.connected);self.assertFalse(self.memory.connected_handoff)
+
+    def test_reused_item_id_after_last_predicted_pickup_is_not_a_handoff(self):
+        for _ in range(3):self.memory.advance()
+        self.assertFalse(self.module.pickup(self.memory,2,[dict(id=2)]))
+
+    def test_observed_handoff_revalidates_the_actual_remaining_controls(self):
+        from types import SimpleNamespace
+        from unittest.mock import patch
+        self.assertTrue(self.module.pickup(self.memory,1,[dict(id=2)]))
+        item=dict(id=2,position=[3.,0.,0.],value=2.)
+        controller=SimpleNamespace(memory=self.memory,engine=SimpleNamespace(),route=None)
+        result=(dict(rejected=None),dict(proposed=self.memory.remaining))
+        with patch('nav.marble_dynamics.search.retained_candidate',autospec=True,return_value=result) as recheck:
+            chosen,target=self.module.retained(controller,dict(items=[item]))
+        self.assertIs(chosen,result);self.assertEqual(target,[3.,0.,0.,2.,2])
+        self.assertEqual(recheck.call_args.kwargs['target_item'],item)
+        self.assertIs(recheck.call_args.args[4],self.memory)
+        self.assertEqual(controller.engine.connected_stats['handoff_replies'],1)
+        self.assertIsNone(self.module.retained(controller,dict(items=[])))
+        self.assertFalse(self.memory.remaining)
+
+    def test_disabled_arm_leaves_plan_and_pickup_handling_alone(self):
+        self.module.MODE='off';before=copy.deepcopy(vars(self.memory))
+        self.assertFalse(self.module.pickup(self.memory,1,[dict(id=2)]))
+        self.assertEqual(vars(self.memory),before)
+
+    def test_budget_cannot_replace_a_completed_baseline_candidate(self):
+        from types import SimpleNamespace
+        import time
+        chosen=(dict(label='route',cost=-123.),dict(_connected_offer=dict(actions=[],goals=[])))
+        engine=SimpleNamespace(planning_deadline=time.perf_counter()-1)
+        original_deadline=engine.planning_deadline
+        self.assertIs(self.module.materialize(engine,None,{},[1,0,0],chosen),chosen)
+        self.assertEqual(engine.planning_deadline,original_deadline)
+        self.assertEqual(engine.connected_stats['reject:budget'],1)
+
+    def test_equal_clear_times_do_not_reward_a_longer_forecast(self):
+        self.module.MODE='score'
+        # Two paths forecast different numbers of gems but the same time to
+        # finish the visible spawn. They must tie under the connected objective.
+        self.assertEqual(self.module.spawn_cost((-60.,dict(picks=1)),3),
+                         self.module.spawn_cost((-260.,dict(picks=3)),7))
+        self.assertGreater(self.module.spawn_cost((40.,dict(picks=0)),None),
+                           self.module.spawn_cost((-60.,dict(picks=1)),3))
+
+    def test_outer_target_selection_preserves_whole_spawn_objective(self):
+        from types import SimpleNamespace
+        from unittest.mock import patch
+        from nav.marble_dynamics import reliability_eval as RE
+        a=[1.,0.,0.,1.];b=[2.,0.,0.,1.]
+        route=SimpleNamespace(navigate=lambda *a:None,distance=lambda p:0.)
+        engine=SimpleNamespace(planning_deadline=None)
+        dynamics=dict(native=dict(state=dict(position=[0.,0.,0.])))
+        def search(engine,route,dynamics,raw,gem,*args,**kwargs):
+            first=gem[0]==1.
+            info=dict(label='route',cost=-90. if first else -50.,rejected=None,
+                resources_consumed=0,possible_pickup_interval=3,two_level_replies=40 if first else 20,
+                spawn_value=dict(picks=1))
+            pair=(info,dict(states=[dict(position=list(gem))]))
+            return pair,[pair]
+        with patch.object(RE,'search',search):
+            self.module.MODE='score'
+            old=RE.order_choice(engine,route,dynamics,None,[a,b],a,None,24,PlanMemory(),0,False)
+            self.module.MODE='order'
+            new=RE.order_choice(engine,route,dynamics,None,[a,b],a,None,24,PlanMemory(),0,False)
+        self.assertEqual(old[2],b);self.assertEqual(new[2],a)
+        self.assertAlmostEqual(self.module.order_value(new[0][0],40.,2.)[1],2*.064*8.)
+
+    def test_local_mutations_keep_power_aim_with_the_event(self):
+        actions=[[1.,0.,0.,1.,0.,0.,0.,0.,0.] for _ in range(20)]
+        actions[8][6]=1.;actions[8][7]=1.234
+        roll=dict(proposed=actions,states=[dict(velocity=[8.,2.,0.]) for _ in range(21)])
+        variants=dict(self.module.mutations(roll,[7,15]))
+        self.assertEqual(variants['use_-2'][6][6:8],[1.,1.234])
+        self.assertEqual(variants['use_2'][10][6:8],[1.,1.234])
+        for trial in variants.values():
+            self.assertEqual(len(trial),20)
+            for a in trial:
+                self.assertTrue(all(math.isfinite(v) for v in a))
+                self.assertLessEqual(math.hypot(a[3]-a[2],a[0]-a[1]),math.sqrt(2)+2e-6)
+                self.assertTrue(all(a[j] in (0,1) for j in (4,6,8)))
 
 
 class SearchRegressions(unittest.TestCase):

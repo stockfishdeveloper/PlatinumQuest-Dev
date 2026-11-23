@@ -42,7 +42,7 @@ SPECULATE_PROJECTIONS = 'coarse'      # landing work of airborne candidates run 
 GLOBAL_MODULES = ('nav.marble_dynamics.search', 'nav.marble_dynamics.gem_demo', 'nav.marble_dynamics.reliability_eval',
                   'nav.marble_dynamics.racing_line', 'nav.marble_dynamics.crossings', 'nav.marble_dynamics.ballistic',
                   'nav.marble_dynamics.viability', 'nav.marble_dynamics.landing', 'nav.marble_dynamics.blast',
-                  'nav.marble_dynamics.resources', 'nav.marble_dynamics.bridge')
+                  'nav.marble_dynamics.resources', 'nav.marble_dynamics.bridge', 'nav.marble_dynamics.connected')
 _PLAIN = (bool, int, float, str, type(None))
 
 

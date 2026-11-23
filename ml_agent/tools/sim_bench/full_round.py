@@ -12,6 +12,7 @@ usage (repo root): PYTHONPATH=ml_agent python ml_agent/tools/sim_bench/full_roun
 """
 import argparse
 import copy
+import hashlib
 import json
 import math
 import os
@@ -151,7 +152,7 @@ class HuntWorld:
 
 
 def play_round(a, terrain, engine, mission, rows, spawn_seed, o, label='', start=None, max_decisions=None, root_at=None,
-               root_actions=None, record_root=False, future_seed=None):
+               root_actions=None, record_root=False, future_seed=None, root_settings=None, invalidate_root=True):
     """A whole round from the recorded GO state, or (branch benchmark) a segment: `start` = any playable recorded row,
     `max_decisions` the segment length, `root_at` the decision index of the root choice; with `record_root` every search of
     that decision is recorded (candidate list), with `root_actions` the root decision and the following ones execute those
@@ -164,6 +165,7 @@ def play_round(a, terrain, engine, mission, rows, spawn_seed, o, label='', start
     from tools.sim_bench.world_events import advance_world
     start = start if start is not None else go_row(rows, mission.round_ms)
     world = HuntWorld(mission, start, spawn_seed, mission.round_ms)
+    engine.connected_stats=Counter()
     d = copy.deepcopy(start['before']); template = np.asarray(start['raw_observation'], dtype=np.float32)
     ctrl = RE.ContinuousController(terrain, engine, a.checkpoint, a, 'physics_plan')
     if getattr(engine, 'parallel', None) is not None:
@@ -185,7 +187,7 @@ def play_round(a, terrain, engine, mission, rows, spawn_seed, o, label='', start
             root_points = world.points; root_picks = len(world.picks); root_t_ms = world.round_ms - world.time_left_ms
             # the root protocol, the same for every arm: the plan in progress is dropped so the root decision is a fresh
             # search (a kept plan runs no search, so there would be no candidate list to branch from)
-            ctrl.invalidate('pilot_root', preserve_task=True)
+            if invalidate_root:ctrl.invalidate('pilot_root', preserve_task=True)
             _st = d['native']['state']; _inv = d.get('inventory') or {}; _b = d.get('blast') or {}
             root_context = dict(position=[float(v) for v in _st['position']], velocity=[float(v) for v in _st['velocity']],
                                 held=int(_st.get('held', 0)), held_type=int(_inv.get('held_type', 0) or 0), blast=float(_b.get('value', 0.)),
@@ -194,9 +196,22 @@ def play_round(a, terrain, engine, mission, rows, spawn_seed, o, label='', start
                                 effects=[[bool(e[0]), int(e[1])] for e in _st.get('effects', [])],
                                 gems=[[float(v) for v in g['position']] + [float(g.get('value') or 1.)] for g in world.gems],
                                 powerups=[[int(it['powerup'])] + [float(v) for v in it['position']] for it in world.items() if not it.get('gem')])
+            # A matched window starts from the complete simulated history, including
+            # hidden item timers and pending controls. No restored visible-only snapshot.
+            digest_context=dict(dynamics=d,raw=raw.tolist(),memory=vars(ctrl.memory),current=ctrl.current,
+                task=ctrl.task_goal,actor_h=ctrl.nav.h.tolist(),decision_index=ctrl.decision_index,
+                powerups=world.powerups,pow_respawn=world.pow_respawn,last_pick=world.last_pick_index,
+                last_center=world.spawner.last_center,rng=world.rng.bit_generator.state,
+                spawn_rng=world.spawner.rng.bit_generator.state,clock_ms=world.clock_ms,
+                time_left_ms=world.time_left_ms,last_touch=last_touch)
+            root_context['sha256']=hashlib.sha256(json.dumps(digest_context,sort_keys=True,
+                default=lambda v:v.tolist() if hasattr(v,'tolist') else str(v)).encode()).hexdigest()
+            root_cpu=time.process_time();root_steps=W.STEPS[0];root_counts=Counter(ctrl.counts)
+            root_connected=Counter(engine.connected_stats)
             root_falls = world.falls; root_rescues = world.rescues
             if future_seed is not None:   # the futures of the branch benchmark: common prefix, future-specific spawns from the root on
                 world.spawner.rng = np.random.default_rng(future_seed); world.rng = np.random.default_rng(future_seed + 7919)
+            if root_settings:W.apply_settings(root_settings)
         if root_at is not None and t >= root_at and open_loop:
             # the branch: the candidate's own replies, open loop, the controller observing (its memory stays consistent)
             action = list(open_loop.pop(0)); info = dict(label='branch_open_loop', reason=None)
@@ -280,7 +295,10 @@ def play_round(a, terrain, engine, mission, rows, spawn_seed, o, label='', start
     after = None
     if root_points is not None:
         after = dict(points=world.points - root_points, picks=[p for p in world.picks[root_picks:]], decisions=t - root_at,
-                     root_t_ms=root_t_ms, falls=world.falls - root_falls, rescues=world.rescues - root_rescues)
+                     root_t_ms=root_t_ms, falls=world.falls - root_falls, rescues=world.rescues - root_rescues,
+                     cpu_s=time.process_time()-root_cpu,steps=W.STEPS[0]-root_steps,
+                     controller_counts=dict(Counter(ctrl.counts)-root_counts),
+                     connected=dict(Counter(engine.connected_stats)-root_connected))
     return dict(label=label, map=mission.name, spawn_seed=spawn_seed, points=world.points, picks=world.picks, spawns=world.spawns,
                 after_root=after, root_candidates=recorded, root_context=root_context,
                 falls=world.falls, rescues=world.rescues, decisions=t, played_s=(world.round_ms - max(0, world.time_left_ms)) / 1000.,
@@ -288,7 +306,8 @@ def play_round(a, terrain, engine, mission, rows, spawn_seed, o, label='', start
                 mean_speed=float(np.mean(speeds)) if speeds else 0., cpu_s=time.process_time() - t0, steps=W.STEPS[0] - s0,
                 fallback=int(ctrl.counts.get('fallback_decisions', 0)), safe_holds=int(ctrl.counts.get('safe_holds', 0)),
                 searches=int(ctrl.counts.get('full_searches', 0)), stalled_s=float(monitor.stalled_s),
-                lip_skill=dict(getattr(engine, 'lip_skill_stats', None) or {}), lip_skill_log=list(getattr(engine, 'lip_skill_log', None) or []))
+                lip_skill=dict(getattr(engine, 'lip_skill_stats', None) or {}), lip_skill_log=list(getattr(engine, 'lip_skill_log', None) or []),
+                connected=dict(getattr(engine,'connected_stats',None) or {}),controller_counts=dict(ctrl.counts))
 
 
 def main():
@@ -297,6 +316,8 @@ def main():
     ap.add_argument('--spawn-seed', type=int, nargs='+', default=[1])
     ap.add_argument('--out', required=True); ap.add_argument('--label', default='base')
     ap.add_argument('--cap-s', type=float, default=0.)
+    ap.add_argument('--root-s',type=float,default=None,help='Replay baseline until this time, then apply --root-set without resetting the controller')
+    ap.add_argument('--root-set',action='append',default=[])
     ap.add_argument('--set', action='append', default=[]); ap.add_argument('--pflag', action='append', default=[])
     ap.add_argument('--module', action='append', default=[])
     ap.add_argument('--budget', type=float, default=2.)
@@ -322,8 +343,11 @@ def main():
     rows = W.load_journal(W.journal_path(o.pool, o.map, o.seed))
     with open(o.out, 'a', encoding='utf-8') as out:
         for ss in o.spawn_seed:
-            res = play_round(a, terrain, engine, mission, rows, ss, o, label=o.label)
-            res.update(pool=o.pool, seed=o.seed, settings=o.set, budget=o.budget)
+            W.apply_settings(o.set)
+            res = play_round(a, terrain, engine, mission, rows, ss, o, label=o.label,
+                root_at=round(o.root_s/.064) if o.root_s is not None else None,
+                root_settings=o.root_set,invalidate_root=False)
+            res.update(pool=o.pool, seed=o.seed, settings=o.set, root_settings=o.root_set,budget=o.budget)
             out.write(json.dumps(res) + '\n'); out.flush()
             print('%s %-18s spawn %d -> %5.1f pts in %5.1f s | picks %3d spawns %2d falls %d rescues %d | fb %d holds %d speed %.1f | %s cpu %.0fs' % (
                 o.label, o.map[:18], ss, res['points'], res['played_s'], len(res['picks']), res['spawns'], res['falls'], res['rescues'],

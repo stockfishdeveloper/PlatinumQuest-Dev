@@ -198,6 +198,57 @@ class FullRoundStartup(unittest.TestCase):
 
 
 class ContinuousEvents(unittest.TestCase):
+    def test_connected_handoff_can_use_ordinary_research_and_replacement(self):
+        from nav.marble_dynamics import connected, reliability_eval as RE
+        target=[1.,2.,3.,1.,2.];other=[9.,2.,3.,1.,3.]
+        forecast=dict(proposed=[[0.]*9]*32)
+        retained=(dict(label='held',possible_pickup_interval=16,cost=30.),forecast)
+        replacement=(dict(label='better',possible_pickup_interval=12,cost=10.),forecast)
+        for enabled in (False,True):
+            controller=self.controller();controller.resource=None
+            controller.memory.connected_handoff=True;controller.research_wait=1
+            controller.args=SimpleNamespace(reuse_plan=True,horizon=48,brake_continuation=0,
+                recovery_horizon=0,preserve_resources=False,resource_acquisition=False,
+                recharge_continuation=False,landing_search=False)
+            with patch.object(connected,'RESEARCH_HANDOFF',enabled), \
+                    patch.object(connected,'retained',return_value=(retained,target)) as checked, \
+                    patch.object(RE,'landing_complete',return_value=False), \
+                    patch.object(RE,'retained_candidate',side_effect=AssertionError('duplicate revalidation')), \
+                    patch.object(RE,'pick',return_value=(replacement,[],target)) as search:
+                chosen,goal=controller._search(dict(native=dict(state=dict(position=[0,0,0]))),None,other,[target,other],100)
+            with self.subTest(enabled=enabled):
+                self.assertIs(chosen,replacement if enabled else retained)
+                self.assertEqual(goal,target);self.assertEqual(checked.call_count,1)
+                self.assertEqual(search.call_count,int(enabled))
+                self.assertEqual(controller.counts['pickup_research_switch'],int(enabled))
+                if enabled:self.assertFalse(controller.memory.connected_handoff)
+
+    def test_connected_research_keeps_schedule_on_deadline_or_no_better_pickup(self):
+        from nav.marble_dynamics import connected, reliability_eval as RE
+        from nav.marble_dynamics.planning_budget import PlanningBudgetExceeded
+        target=[1.,2.,3.,1.,2.];forecast=dict(proposed=[[0.]*9]*32)
+        retained=(dict(label='held',possible_pickup_interval=16,cost=30.),forecast)
+        progress=(dict(label='progress',possible_pickup_interval=None,cost=-100.),forecast)
+        for deadline in (False,True):
+            controller=self.controller();controller.resource=None;controller.research_wait=1
+            controller.memory.connected_handoff=True;controller.memory.executed=2
+            actions=controller.memory.actions
+            controller.args=SimpleNamespace(reuse_plan=True,horizon=48,brake_continuation=0,
+                recovery_horizon=0,preserve_resources=False,resource_acquisition=False,
+                recharge_continuation=False,landing_search=False)
+            with patch.object(connected,'RESEARCH_HANDOFF',True), \
+                    patch.object(connected,'retained',return_value=(retained,target)), \
+                    patch.object(RE,'landing_complete',return_value=False), \
+                    patch.object(RE,'retained_candidate',side_effect=AssertionError('duplicate revalidation')), \
+                    patch.object(RE,'pick',side_effect=PlanningBudgetExceeded if deadline else None,
+                                 return_value=(progress,[],target)):
+                chosen,goal=controller._search(dict(native=dict(state=dict(position=[0,0,0]))),None,target,[target],100)
+            with self.subTest(deadline=deadline):
+                self.assertIs(chosen,retained);self.assertEqual(goal,target)
+                self.assertIs(controller.memory.actions,actions)
+                self.assertEqual(controller.memory.executed,2)
+                self.assertTrue(controller.memory.connected_handoff)
+
     def test_risky_research_deadline_keeps_the_revalidated_prefix(self):
         from nav.marble_dynamics.planning_budget import PlanningBudgetExceeded
         controller=self.controller();controller.resource=None
@@ -394,6 +445,8 @@ class CheckedRecoveryController(unittest.TestCase):
         controller.nav.act.return_value=[.2,0,0,0,0,0,0,0,0]
         msg=SimpleNamespace(obs=np.zeros(RAW_DIM),dynamics={'native':{'state':{'mode':0,'oob':False,'position':[0,0,0]}},
             'items':[{'id':41,'gem':True,'position':[7.,8.,9.]}]})
+        # The production fast-braking fallback also reads planar velocity.
+        msg.dynamics['native']['state']['velocity']=[0.,0.,0.]
         msg.obs[31]=100000.
         from collections import Counter
         controller.fallback_reasons=Counter()

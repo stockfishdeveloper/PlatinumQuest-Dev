@@ -48,6 +48,7 @@ DECISION_S = .064
 STALL_REPORT_S = .25      # a hold longer than this is printed
 PLAN_FAIL_LIMIT_S = 4.    # fail before the bridge's 5 s live lockstep timeout releases unchecked motion
 CHECKED_TAIL = False      # opt-in until paired native real-time checks pass
+REPLY_WAIT_S = None       # experimental deadline benchmark: None preserves lockstep; 0 never waits for a late plan
 CHECKED_RESERVE = 8       # at most 512 ms of already checked continuation
 JOURNAL_VIEW = True       # 2026-10-29 (operator: "add the logging ... i'll pause the game when i see a fuckup that you can
                           # investigate"): each journal line also carries the gems in play, the held powerup and the planner's
@@ -228,6 +229,8 @@ class World:
         from nav.native import attach
         t0 = time.perf_counter()
         a = planner_args(name)
+        from nav.marble_dynamics import connected
+        connected.configure(a)  # before candidate workers capture module globals
         self.name = name; self.args = a
         terrain = cached_terrain(TerrainMap.resolve(name), a.cache_dir)
         mesh = CachedCompiledSweepMap(ML / 'collision_maps' / (name + '.npz'), a.sweep_dll)
@@ -501,9 +504,13 @@ class AheadPlanner(threading.Thread):
                     raise RuntimeError('planner thread failed:\n' + self.error)
                 if CHECKED_TAIL and self._checked_reply(decision):
                     break
+                if REPLY_WAIT_S is not None and time.perf_counter()-t0>=REPLY_WAIT_S:
+                    self._deadline_reply(decision)
+                    break
                 if time.perf_counter() - t0 > PLAN_FAIL_LIMIT_S:
                     raise RuntimeError('no reply for decision %d after %.0f s' % (decision, PLAN_FAIL_LIMIT_S))
-                self.cv.wait(.05)
+                wait=.05 if REPLY_WAIT_S is None else min(.05,max(0.,REPLY_WAIT_S-(time.perf_counter()-t0)))
+                self.cv.wait(wait)
             r = self.committed.pop(decision)
             self.sent[decision] = r
             self.last_label = self.chosen.pop(decision, '?')
@@ -516,6 +523,29 @@ class AheadPlanner(threading.Thread):
                 del self.sent[d]
         held = time.perf_counter() - t0
         return r, held
+
+    def _deadline_reply(self,decision):
+        """Ordinary observed-state fallback; no simulator access on the game thread.
+
+        A changed sent command invalidates future queued replies and any worker
+        result based on them. This opt-in benchmark exposes missed deadlines;
+        it is not a claim that braking is a checked recovery on arbitrary terrain.
+        """
+        if self.latest is None or self.latest[0]!=decision:
+            raise RuntimeError('Deadline fallback requires this decision\'s actual observation')
+        from nav.joystick import action_to_joystick
+        from nav.marble_dynamics.bridge import reply
+        from nav.protocol import NOOP_ACTION
+        state=self.latest[1].dynamics['native']['state'];v=state['velocity']
+        action=reply(NOOP_ACTION)
+        if state['mode']==0 and not state['oob'] and np.all(np.isfinite(v)):
+            action=reply(action_to_joystick(0.,0.,1.,brake=1.,vx=v[0],vy=v[1]))
+        self.committed={d:r for d,r in self.committed.items() if d<decision}
+        self.chosen={d:r for d,r in self.chosen.items() if d<decision}
+        self.views={d:r for d,r in self.views.items() if d<decision}
+        self.committed[decision]=list(action);self.chosen[decision]='deadline_brake'
+        self.checked.clear();self.generation+=1;self.next=decision+1;self.reset='deadline_fallback'
+        self.stats['deadline_fallback_replies']+=1;self.cv.notify_all()
 
     def _checked_reply(self, decision):
         """Game thread: numeric comparison only, never touches the native simulator.
@@ -642,11 +672,13 @@ class AheadPlanner(threading.Thread):
                     return
                 if self.reset:
                     checked_rebase = self.reset == 'checked_continuation'
+                    deadline_rebase = self.reset == 'deadline_fallback'
                     self.reset = False
                     self.prev = None; self.tail = []; self.tail_from = None
-                    self.controller.invalidate('realtime_checked_rebase' if checked_rebase else 'realtime_restart',
-                                               reset_actor=True, preserve_task=checked_rebase)
-                    self.stats['checked_rebases' if checked_rebase else 'restarts'] += 1
+                    self.controller.invalidate('realtime_checked_rebase' if checked_rebase else
+                                               'realtime_deadline_rebase' if deadline_rebase else 'realtime_restart',
+                                               reset_actor=True,preserve_task=checked_rebase or deadline_rebase)
+                    self.stats['checked_rebases' if checked_rebase else 'deadline_rebases' if deadline_rebase else 'restarts']+=1
                 v = self.next; a, actual, outcome = self.latest
                 generation = self.generation
                 if v < a:                                # the game passed this decision while we were busy

@@ -15147,3 +15147,14 @@ Still open: 15-18 u/s overshoots after launch pickups (Sprawl), the TreasureBox 
   in the sim, physically sound, untested natively. Production = the 22:10 state (baked prices + throttle). What the cases need
   instead: a plan family that fires the Super Speed and brakes before the cluster (no such candidate exists: the launch wins by
   its pick credit), and a cheaper search after a fast pickup (31k forecast steps, 3 budget overruns, 0.6 s of no plan).
+
+
+## 2026-11-07: connected pickup planning experiment (not promoted)
+
+Implemented checked second-leg retention across pickups, comparable spawn-time scoring, bounded two-to-four-pickup control/order refinement, outer target-ranking alignment, and a separate retention-with-ordinary-replanning arm. All are opt-in: connected.MODE remains off and RESEARCH_HANDOFF false. No model weights or game binaries changed; no commits.
+
+The selected scoring arm gained 19.62% on the 20 development windows, then lost 4.23% on fresh windows and 2.81% across 20 full-round pairs (140.45 -> 136.50 points; ten maps). Isolated retention lost 11.56% on its independent reserved windows. Its ordinary-replanning follow-up narrowly improved development (8.80 -> 8.85 points/window), then lost 5.16% on a third fresh source/seed/window set (10.65 -> 10.10). Refinement and outer ranking did not beat the simpler scoring arm in development. No variant advances to native play or training.
+
+Complete-root hashes preserve baseline history, queued inputs, controller/recurrent state, all mission powerup timers and world RNG; variants apply only at the common root. Source stayed frozen within every matrix. Disabled mode matches the archived original in both 45-second probes; all 20 development baseline runs also reproduce after the last code change. 144 tests pass. Eight declared matrices completed 400 simulation runs (11.28 CPU hours, 2.539 billion forecast steps including prefixes and continuation checks); development cases are reused. All jobs finished.
+
+Results, source archives, per-map comparisons, uncertainty, stop decisions and reproducible matrices: [connected pickup report](../dynamics_reports/connected_pickups_20261107/REPORT.md). This is a negative result for these variants, not proof that broader multi-event search cannot work. The next proposed research branch is a bounded offline teacher judged by actual executed points before any proposal-policy learning; it was not launched. An optional deadline benchmark exists but remains disabled and native-untested. No native games ran in this campaign.

@@ -31,7 +31,7 @@ from nav.protocol import NOOP_ACTION
 def source_identity():
     paths = list((ML / 'nav').rglob('*.py'))
     paths += list((ML / 'nav/native').glob('*.cpp')) + list((ML / 'nav/native').glob('*.inc'))
-    paths += [Path(__file__), ROOT / 'Marble Blast Platinum/marbleblast_realtime.exe',
+    paths += [Path(__file__),Path(__file__).with_name('native_worker_bench.py'), ROOT / 'Marble Blast Platinum/marbleblast_realtime.exe',
               ROOT / 'Marble Blast Platinum/platinum/client/scripts/ai/mlAgent.cs',
               ROOT / 'Marble Blast Platinum/platinum/client/scripts/physics.cs',
               ROOT / 'Marble Blast Platinum/platinum/server/scripts/game.cs']
@@ -162,6 +162,8 @@ def main():
     p.add_argument('--minimum-budget-s',type=float,default=rt.MIN_BUDGET_S,
                    help='Smallest live search allowance; default matches the production planner')
     p.add_argument('--checked-tail', action='store_true', help='Experimental state-matched checked plan continuation')
+    p.add_argument('--reply-wait-ms',type=float,default=None,
+        help='Experimental deadline mode: maximum wait for a late reply, 0 for nonblocking; then checked tail or ordinary brake')
     p.add_argument('--legacy-fast-proposals', action='store_true', help='Matched control for the repaired native fast-controller bug')
     p.add_argument('--recheck-risky-plans', action='store_true', help='Recheck and reconsider retained plans with unsafe stopping backups')
     p.add_argument('--no-edge-hits', action='store_true', help='Matched control: the planner without the edge-hit family (on by default since 2026-10-21)')
@@ -174,6 +176,7 @@ def main():
     p.add_argument('--output', type=Path, required=True)
     p.add_argument('--planner-flag', action='append', default=[], help='Additional planner flag (use --planner-flag=--flag)')
     a = p.parse_args()
+    if a.reply_wait_ms is not None and not 0<=a.reply_wait_ms<=64:p.error('Reply wait must be between 0 and 64 ms')
     rt.FLAGS = rt.FLAGS + a.planner_flag
     if not 0 < a.seed < 2147383647 or not 0 <= a.search_workers <= 16 or a.rounds < 1 or not 0 < a.minimum_budget_s <= 2.:
         p.error('Invalid seed, worker count, or round count')
@@ -185,7 +188,8 @@ def main():
         mega_probe(a)
         return
     sys.setswitchinterval(.001)  # match realtime.serve's game/planner thread scheduling
-    rt.CHECKED_TAIL = a.checked_tail
+    rt.CHECKED_TAIL = a.checked_tail or a.reply_wait_ms is not None
+    rt.REPLY_WAIT_S = None if a.reply_wait_ms is None else a.reply_wait_ms/1000.
     rt.SEARCH_WORKERS = a.search_workers
     rt.MIN_BUDGET_S = a.minimum_budget_s
     if a.legacy_fast_proposals:
@@ -206,7 +210,7 @@ def main():
         sources=sources, planner_flags=rt.FLAGS, globals=module_globals(),
         runtime=dict(thread_switch_interval_s=sys.getswitchinterval(),
                      hold_reporting_threshold_s=.02, physics_frame_ms=16, decision_ms=64,
-                     minimum_search_budget_s=rt.MIN_BUDGET_S),
+                     minimum_search_budget_s=rt.MIN_BUDGET_S,reply_wait_s=rt.REPLY_WAIT_S,checked_tail=rt.CHECKED_TAIL),
         contract='Sequential native real-time rounds; ordinary randomized openings; no scored world restores'))
     reports = []
     started = time.perf_counter()
@@ -233,7 +237,8 @@ def main():
                                 raise RuntimeError('Native round changed before opening RNG capture')
                         if env.replay_world is None:
                             raise RuntimeError('Missing native opening RNG capture')
-                        alignment = align_countdown(env)
+                        from tools.native_worker_bench import prepare_countdown
+                        alignment = prepare_countdown(env)
                         opening = start_layout(env.msg.dynamics, env.replay_world)
                         expected = a.seed + opening['eval_round'] - 1
                         if opening['engine_seed'] != expected or not opening['random_opening']:

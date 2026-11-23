@@ -53,7 +53,48 @@ class RuntimeContracts(unittest.TestCase):
         p.latest = (7, SimpleNamespace(dynamics=dict(native={'state':state,'pending_move':bridge['pending_move']},
             bridge_action=[0]*9, pow_yaw_hold=0, pow_yaw=0.)), {})
         p.stats = Counter(); p.committed = {}; p.generation = 2; p.next = 7; p.reset = False
+        p.chosen={};p.views={};p.sent={};p.lead=5;p.running=True;p.error=None
         return p, state
+
+    def test_deadline_uses_checked_action_without_waiting_for_worker(self):
+        p,_=self.planner()
+        with patch('nav.marble_dynamics.realtime.REPLY_WAIT_S',0.),patch('nav.marble_dynamics.realtime.CHECKED_TAIL',True):
+            action,_=p.reply_for(7)
+        self.assertEqual(action,[1]*9);self.assertEqual(p.sent[7],action)
+        self.assertEqual(p.stats['checked_tail_replies'],1)
+        self.assertEqual(p.stats['deadline_fallback_replies'],0)
+
+    def test_deadline_fallback_drops_future_work_and_sends_ordinary_brake(self):
+        p,state=self.planner();state['velocity']=[8.,0.,0.]
+        p.committed[9]=[1]*9;p.chosen[9]='stale';p.views[9]={'stale':True}
+        with patch('nav.marble_dynamics.realtime.REPLY_WAIT_S',0.),patch('nav.marble_dynamics.realtime.CHECKED_TAIL',False):
+            action,_=p.reply_for(7)
+        self.assertGreater(action[2],0.);self.assertEqual([action[i] for i in (4,6,8)],[0,0,0])
+        self.assertFalse(p.committed);self.assertFalse(p.checked);self.assertNotIn(9,p.chosen);self.assertNotIn(9,p.views)
+        self.assertEqual(p.sent[7],action);self.assertEqual((p.next,p.generation,p.reset),(8,3,'deadline_fallback'))
+        self.assertEqual(p.stats['deadline_fallback_replies'],1)
+
+    def test_ready_reply_survives_deadline_and_stopped_planner_is_not_hidden(self):
+        p,_=self.planner();p.committed[7]=[0]*9
+        with patch('nav.marble_dynamics.realtime.REPLY_WAIT_S',0.):
+            self.assertEqual(p.reply_for(7)[0],[0]*9)
+            p.running=False
+            with self.assertRaises(RuntimeError):p.reply_for(8)
+        self.assertEqual(p.stats['deadline_fallback_replies'],0)
+
+    def test_deadline_cannot_use_a_stale_observation(self):
+        p,_=self.planner()
+        with p.cv:
+            with self.assertRaises(RuntimeError):p._deadline_reply(8)
+
+    def test_connected_mode_is_captured_for_forecast_workers(self):
+        from nav.marble_dynamics import connected
+        from nav.marble_dynamics.parallel_search import module_globals
+        with patch.object(connected,'MODE','off'),patch.object(connected,'RESEARCH_HANDOFF',False):
+            connected.configure(SimpleNamespace(connected_mode='score',connected_research_handoff=True))
+            settings=module_globals()['nav.marble_dynamics.connected']
+            self.assertEqual(settings['MODE'],'score')
+            self.assertTrue(settings['RESEARCH_HANDOFF'])
 
     def test_checked_continuation_invalidates_inflight_result(self):
         p, _ = self.planner()

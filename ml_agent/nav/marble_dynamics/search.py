@@ -650,7 +650,12 @@ def assess(engine,route,dynamics,gem,rollout,label,target_item=None,routed=True,
         from nav.marble_dynamics import spawn_value as _SV
         if _SV.SV_ON and _SV.SV_COST:
             _sv=_SV.candidate_value(engine,dynamics,rollout,blast_meter_value(dynamics),blasts_fired(rollout)>0)
-            if _sv is not None:cost=_sv[0]+_gem_demo.END_VELOCITY_WEIGHT*float(np.linalg.norm(states[-1]['velocity']));detail['spawn_value']=_sv[1]
+            if _sv is not None:
+                from nav.marble_dynamics import connected
+                # Spawn time already prices the arrival velocity. A penalty at
+                # the unused end of a long forecast would reward gratuitous braking.
+                end_charge=0. if connected.MODE in connected.SCORED_MODES else _gem_demo.END_VELOCITY_WEIGHT*float(np.linalg.norm(states[-1]['velocity']))
+                cost=connected.spawn_cost(_sv,pickup)+end_charge;detail['spawn_value']=_sv[1]
     presses=jump_presses(rollout.get('proposed') or [])
     if presses and JUMP_COST_U and not getattr(engine,'crossing_phase',False) and float(gem[2])-float(states[0]['position'][2])<JUMP_FREE_RISE_U:
         # v51 (operator: "jumping too much and stumbling around when collecting tight clusters"): a jump is charged
@@ -776,9 +781,9 @@ def line_specs(engine,route,dynamics,gem,through,steps):
     return out
 
 
-def follow_time(engine,nroute,dynamics,ngem,nitem):
+def follow_time(engine,nroute,dynamics,ngem,nitem,return_rollout=False):
     """Earliest game-tick pickup (replies) of the next gem from `dynamics` over a few compiled controllers, or None."""
-    best=None;n=CLUSTER_FOLLOW_REPLIES
+    best=None;best_roll=None;n=CLUSTER_FOLLOW_REPLIES
     bounces=()
     if WALL_BOUNCE:   # 2026-10-19: a pickup that leaves the marble heading away from the next gem can bank off a wall to it
         from nav.marble_dynamics.wall_bounce import bounce_specs
@@ -798,8 +803,8 @@ def follow_time(engine,nroute,dynamics,ngem,nitem):
         except ValueError:continue
         if roll['failure']:continue
         k=_gem_demo.possible_pickup(roll['states'],nitem,roll.get('native_states'))
-        if k is not None and (best is None or k<best):best=k
-    return best
+        if k is not None and (best is None or k<best):best=k;best_roll=roll
+    return (best,best_roll) if return_rollout else best
 
 
 import atexit as _atexit, sys as _sys
@@ -810,6 +815,8 @@ TL_STATS=_Counter()
 
 def apply_two_level(engine,route,dynamics,gem,pairs,target_item):
     """Cluster re-ranking (CLUSTER_TWO_LEVEL): see the constant."""
+    from nav.marble_dynamics import connected as connected
+    engine.connected_deadline=None
     TL_STATS['searches']+=1
     if not CLUSTER_TWO_LEVEL or getattr(engine,'_two_level_active',False) or getattr(engine,'crossing_phase',False):return
     item=target_item or next((i for i in dynamics.get('items',[]) if i['gem'] and np.linalg.norm(np.asarray(i['position'])-gem)<.1),None)
@@ -831,6 +838,7 @@ def apply_two_level(engine,route,dynamics,gem,pairs,target_item):
     saved=getattr(engine,'next_for',None);engine._two_level_active=True;engine.next_for={};results=[]
     saved_dl=getattr(engine,'planning_deadline',None)
     if saved_dl is not None:engine.planning_deadline=saved_dl+CLUSTER_EXTRA_S
+    engine.connected_deadline=engine.planning_deadline
     try:
         for info,roll in cands:
             k=int(info['possible_pickup_interval'])
@@ -838,13 +846,18 @@ def apply_two_level(engine,route,dynamics,gem,pairs,target_item):
             if info['label'].startswith(('line','bounce')):   # these plans drive to the next gem themselves
                 kb=_gem_demo.possible_pickup(roll['states'],nitem,roll.get('native_states'))
                 if kb is not None:
+                    connected.offer(roll,item,nitem,k)
                     results.append((info,max(k,kb),0));continue
             tr=dict(roll,states=roll['states'][:k+1],controls=roll['controls'][:k],proposed=roll['proposed'][:k],
                     failure=None,ambiguous_intervals=[])
             try:dyn=resume_forecast(dynamics,tr)
             except ValueError:continue
             dyn['items']=[i for i in dynamics.get('items',[]) if i is not item]
-            results.append((info,k,follow_time(engine,nroute,dyn,ngem,nitem)))
+            if connected.MODE!='off':
+                k2,tail=follow_time(engine,nroute,dyn,ngem,nitem,return_rollout=True)
+                if tail is not None:connected.offer(roll,item,nitem,k,tail)
+                results.append((info,k,k2))
+            else:results.append((info,k,follow_time(engine,nroute,dyn,ngem,nitem)))
     except PlanningBudgetExceeded:pass   # keep the plans already followed up
     finally:engine._two_level_active=False;engine.next_for=saved;engine.planning_deadline=saved_dl
     if len(results)<2:return
@@ -855,7 +868,8 @@ def apply_two_level(engine,route,dynamics,gem,pairs,target_item):
         # below every unchecked plan (pickup plans cost about -100), ordered by the total time to both gems; a plan that
         # fires the Blast keeps its meter charge (v84: re-ranking dropped it, so Blasts that save nothing over the two
         # gems won ties: Sprawl v81 s1 decision 2008, 52 vs 51 replies, -136.7 vs -136.9 without the 4.6 u charge)
-        info['cost']=-150.+total*.064*_gem_demo.PICKUP_TIME_WEIGHT+float(info.get('blast_charge_u',0.) or 0.)
+        if connected.MODE not in connected.SCORED_MODES:
+            info['cost']=-150.+total*.064*_gem_demo.PICKUP_TIME_WEIGHT+float(info.get('blast_charge_u',0.) or 0.)
     after_label=min(results,key=lambda r:r[0]['cost'])[0]['label']
     TL_STATS['changed']+=int(after_label!=before);TL_STATS['line_chosen']+=int(after_label.startswith('line'))
 
@@ -1495,6 +1509,8 @@ def search(engine,route,dynamics,raw,gem,navigator,horizon=40,warm=None,brake_re
     apply_use_margin(pairs,0. if (SS_RIDE and held==2) else float(getattr(engine,'use_margin_u',0.) or 0.))
     if BRAKING_BACKUP:check_backups(engine,route,dynamics,gem,pairs,steps,target_item)
     apply_two_level(engine,route,dynamics,gem,pairs,target_item)
+    from nav.marble_dynamics.connected import expand as connected_expand
+    connected_expand(engine,route,dynamics,gem,pairs)
     if held==1 and SJ_USE_GAIN:apply_use_gain(pairs,engine,dynamics,gem,float(getattr(engine,'use_margin_s',0.) or 0.))
     if held==5 and HELI_MIN_GAIN_S:apply_heli_gain(pairs,route,dynamics,gem,HELI_MIN_GAIN_S)
     lips=[p for p in pairs if str(p[0].get('label','')).startswith('lip_skill')]
@@ -2099,11 +2115,13 @@ class PlanMemory:
         self.physical_recovery=False
         self.last_landing_rejection=None
         self.backup_risk=False
+        self.connected=None;self.connected_handoff=False
 
     def accept(self,rollout,label,gem,info=None):
         launch='_launch' in str(label or '') or (str(label or '').startswith('remaining_previous_plan') and '_launch' in str(self.label or ''))
         self.clear()
         self.actions=copy.deepcopy(rollout['proposed']);self.executed=0;self.label=label;self.gem=list(gem)
+        self.connected=copy.deepcopy((info or {}).get('connected'))
         events=[i for i,a in enumerate(self.actions[:13]) if a[4] or a[6] or a[8]]
         self.lock_until=min(len(self.actions),events[0]+3) if events else 0
         if launch:

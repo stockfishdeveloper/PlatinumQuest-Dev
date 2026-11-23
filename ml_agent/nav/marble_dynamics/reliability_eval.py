@@ -360,8 +360,10 @@ def order_choice(engine,route,dynamics,raw,gems,current,nav,horizon,memory,brake
         tl=c[0].get('two_level_replies')
         if tl is None:tl=c[0]['possible_pickup_interval']+float(np.linalg.norm(np.asarray(Y[:2])-np.asarray(X[:2])))/(ORDER_REST_SPEED*.064)
         total=float(tl)+tail
-        results.append((X,Y,total,c,pairs))
         margin=0. if X is current else ORDER_MARGIN
+        from nav.marble_dynamics.connected import order_value
+        total,margin=order_value(c[0],total,margin)
+        results.append((X,Y,total,c,pairs))
         if best is None or total+margin<best[2]:best=(X,Y,total,c,pairs)
     if extended:engine.planning_deadline=dl0
     engine.next_for={goal_key(current):getattr(engine,'_tour_next',None)} if getattr(engine,'_tour_next',None) is not None else {}
@@ -573,6 +575,9 @@ def pick(engine,route,dynamics,raw,gems,current,nav,horizon,memory,brake_replies
                 # a backed-up stop for the target lost to a neighbour's pickup plan that then fell off the edge)
                 backed=int(not info.get('no_braking_backup') and not info.get('braking_backup_unchecked'))
                 rank=(backed,int(pickup is not None),float(gem[3])/max((pickup or horizon)*.064,.064),progress)
+                from nav.marble_dynamics import connected
+                if connected.MODE=='order' and info.get('spawn_value') is not None:
+                    rank=(backed,int(pickup is not None),-float(info['cost']),progress)
                 options.append((rank,chosen,gem))
                 if index==0 and (backed or not getattr(engine,'recheck_risky_plans',False)):break
     if not options:
@@ -850,6 +855,8 @@ class ContinuousController:
     No fixture restoration, grants or teleports occur during scored play.
     """
     def __init__(self,terrain,engine,checkpoint,args,kind):
+        from nav.marble_dynamics import connected
+        connected.configure(args)
         self.terrain=terrain;self.engine=engine;self.args=args;self.kind=kind
         if kind=='fast_navigator':
             from nav.marble_dynamics.fast_nav import FastNavigator
@@ -987,8 +994,12 @@ class ContinuousController:
             if errors(predicted,actual)[0]>.05 and not events:events.append('position_prediction_gate')
         self.memory.advance(actual);self.commit_left=max(0,self.commit_left-1)
         picked=max(0.,float(outcome['gem_delta']))
+        from nav.marble_dynamics import connected as _connected
         # Gem disappearance with a real pickup can retain a checked landing.
-        if picked and not events and self.memory.observe_pickup(picked,msg.dynamics['items']):
+        if picked and not events and _connected.pickup(self.memory,picked,msg.dynamics['items']):
+            self.current=list(self.memory.gem)+[1.,-1.];self.task_goal=list(self.current);self.commit_left=0
+            self.counts['connected_pickup_handoff']+=1
+        elif picked and not events and self.memory.observe_pickup(picked,msg.dynamics['items']):
             self.counts['post_pickup_landing']+=1;self.commit_left=0
         elif events or (picked and not self.memory.landing_mode):
             # keep-plan: the remainder of the checked plan that was running at the pickup becomes the fallback for
@@ -1000,6 +1011,11 @@ class ContinuousController:
     def _search(self,snapshot,raw,target,gems,remaining,skip_new_search=False):
         a=self.args;engine=self.engine;route=self.route;memory=self.memory
         state=snapshot['native']['state']
+        from nav.marble_dynamics import connected as _connected
+        _retained=_connected.retained(self,snapshot)
+        if _retained is not None:
+            if not _connected.RESEARCH_HANDOFF:return _retained
+            target=_retained[1]
         if landing_complete(engine,state,memory):
             self.counts['landings_completed']+=1
             if memory.physical_recovery:
@@ -1092,7 +1108,13 @@ class ContinuousController:
                     staged,_,_=engine.crossings.stage(state['position'],target,velocity=state['velocity'],meter=blast_meter(snapshot),route=self.route)
         held=None;self._held_hold=False;self._held_pickup=False
         if a.reuse_plan:
-            retained=retained_candidate(engine,route,snapshot,np.asarray((staged if staged is not None else target)[:3]),memory,target_item=self.resource)
+            reuse_goal=np.asarray((staged if staged is not None else target)[:3])
+            # The checked handoff competes under the ordinary research policy.
+            # Reuse its actual-state check once; retain the absolute schedule if
+            # it wins, and allow ordinary invalidation/staging to discard it.
+            retained=(_retained[0] if _retained is not None and memory.connected_handoff
+                      and memory.gem is not None and np.linalg.norm(np.asarray(memory.gem)-reuse_goal)<.1
+                      else retained_candidate(engine,route,snapshot,reuse_goal,memory,target_item=self.resource))
             from nav.marble_dynamics.search import PICKUP_STOP_EDGE_S,PICKUP_STOP_EDGE_DEPTH_U
             if (retained and memory.label in ('stop_now','stop_short') and getattr(engine,'pickup_stop',False)
                     and not edge_ahead(engine.mesh,snapshot['native']['state'],horizon_s=PICKUP_STOP_EDGE_S,depth=PICKUP_STOP_EDGE_DEPTH_U)):
@@ -1217,6 +1239,9 @@ class ContinuousController:
             self.counts['budget_safe_hold']+=1
             if not chosen:chosen=None
         if chosen:
+            # pick() can select a different candidate from search()'s local best.
+            # Attach the continuation only to the final plan we will execute.
+            chosen=_connected.finalize(engine,route,snapshot,target,chosen)
             info,forecast=chosen;memory.accept(forecast,info['label'],target[:3],info)
             if str(info.get('label','')).startswith('chain_') and info.get('chain_order'):
                 # v5 spawn plans: follow the chain's gem order through its pickups (CHAIN_ORDER_S)
@@ -1987,7 +2012,13 @@ def main():
     p.add_argument('--interleave-candidates',action='store_true',help='Planner: evaluate candidate families round-robin (drive, jump, blast, powerup, steering) so a search deadline does not starve the later families; acceptance gates unchanged')
     p.add_argument('--record-video',type=Path,default=None,help='Operator viewing: film the real round to this MP4 (one frame per 64 ms decision, plays at 1x; implies --watch without real-time pacing; keep the window uncovered)')
     p.add_argument('--watch',action='store_true',help='Operator viewing only: visible game window with the free camera (-aifreecam), every frame drawn, replies paced to real time; one worker, not comparison evidence')
+    p.add_argument('--connected-mode',choices=('off','retain','score','refine','order'),default=None,
+                   help='Experimental connected-pickup planning; disabled by default')
+    p.add_argument('--connected-research-handoff',action='store_true',default=None,
+                   help='Experimental: compare a checked pickup continuation through ordinary plan re-search')
     a=p.parse_args()
+    from nav.marble_dynamics import connected
+    connected.configure(a)
     if getattr(a,'record_video',None):a.watch=True   # the window must be visible and drawn every frame
     if not 1<=a.workers<=8:p.error('Workers must be1?8')
     if a.workers>1 and not a.full_round:p.error('Parallel workers require full rounds')

@@ -1,0 +1,9 @@
+# Native confirmation protocol
+
+Only advance a candidate justified by the matched-window and full-round simulator results. Keep all arms' candidate workers, budgets, game binaries, geometry and opening setup identical. Archive source and runtime settings. No scored restores, grants or teleports; native games hidden. Record own PIDs and close only owned processes.
+
+Use `tools/native_worker_bench.py` / `tools/run_flag_native.py` for complete natural rounds with matched actual GO observations. This establishes native physics and point effects under a fixed search allowance. It does **not** establish live timing: the bridge still waits when work is late.
+
+Then use sequential live rounds (one game at a time, no simulator batch competing for CPU) with actual late-reply behavior. `AheadPlanner.reply_for()` currently waits indefinitely up to its failure timeout when the next reply is absent; ordinary `realtime_bench.py` therefore also hides planner lateness. An explicitly experimental deadline mode must continue native time, consume a state-matched checked continuation when available, otherwise issue a declared ordinary fallback from the observed state, invalidate stale in-flight work, and resume from the actual sent controls. Report fallback counts, deadline misses, holds, round wall/game time and points. Both baseline and candidate use the identical deadline policy. Do not call lockstep footage or a lockstep score a real-time success.
+
+Native seeds reserved before execution: 7131107 / 7131108. All ten maps for point confirmation; choose any shorter mechanics preflight separately and label it development. Default production settings stay unchanged unless fresh full-round and live evidence supports promotion. Failure/inconclusive results remain valid conclusions; do not tune on the confirmation rounds.
