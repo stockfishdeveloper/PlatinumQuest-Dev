@@ -15158,3 +15158,37 @@ The selected scoring arm gained 19.62% on the 20 development windows, then lost 
 Complete-root hashes preserve baseline history, queued inputs, controller/recurrent state, all mission powerup timers and world RNG; variants apply only at the common root. Source stayed frozen within every matrix. Disabled mode matches the archived original in both 45-second probes; all 20 development baseline runs also reproduce after the last code change. 144 tests pass. Eight declared matrices completed 400 simulation runs (11.28 CPU hours, 2.539 billion forecast steps including prefixes and continuation checks); development cases are reused. All jobs finished.
 
 Results, source archives, per-map comparisons, uncertainty, stop decisions and reproducible matrices: [connected pickup report](../dynamics_reports/connected_pickups_20261107/REPORT.md). This is a negative result for these variants, not proof that broader multi-event search cannot work. The next proposed research branch is a bounded offline teacher judged by actual executed points before any proposal-policy learning; it was not launched. An optional deadline benchmark exists but remains disabled and native-untested. No native games ran in this campaign.
+
+## 2026-11-23 ROUND BUDGET STUDY (operator: "think up a new idea that will move the average"): HOP CRUISE proposal
+
+Data: the 20 native spawn1 candidate rounds (11-04) vs the human demos (TreasureBox x4, Duplex x1; demo_20261103_135247 is DUPLEX,
+there is no human Sprawl demo). Scripts in the session scratchpad idea/ (budget.py, paths.py, legs.py, tails.py, highfirst.py,
+travel.py, flight.py, kicks.py, airacc.py, airinput.py), 8 u pickup-gap grouping.
+1. Order quality is at the human's level (taken order / best order 1.08-1.20 both). In-spawn rolled distance is 1.6-1.8x the gem
+   tour on TreasureBox (human 1.3), 1.8-4x on Sprawl: lateral bowing (1.1 u vs 0.5 u a leg), not overshoot. Tail legs (> 1.5 s)
+   cost 29 s a round on average (Sprawl 82, TreasureBox 53, Cragmire 45); tall in-spawn climbs (rise 3-6 u) alone: Sprawl 35 s a
+   round (one 53 s leg: 26 jump presses below a 4 u platform), Cragmire 16, TreasureBox 11 (box top).
+2. TRAVEL (50-60 pct of the round): TreasureBox human 6.1-7.2 s a leg vs planner 7.3-8.3; cruise 17-18 u/s vs 11-12 (Duplex
+   18-19 vs 11.6). Mechanism: the human is airborne 77-82 pct of the travel, hops the moment it lands (2.4 hops per ground second
+   at > 14 u/s vs planner 0.6-1.0), holds full forward in the air (|move| 1.0 in 93-96 pct of fast air). marble.cc adds
+   movement x airAcceleration (5 u/s2) in the air with NO speed cap; the ground caps rolling at 15 and drags above it. Measured:
+   human at 14-18 u/s gains +2.7/+3.7 u/s2 rising/falling and loses -0.6 rolling; above 18 still +1.9 in the air. The planner at
+   14-18 gains nothing in the air and above 18 brakes (-5 u/s2 rising, -10 rolling): TRAVEL_TOP 16 + the stopping law. Only
+   27-31 pct of the human's fast (> 16) time follows a Super Speed kick; fast air 29-41 s a round vs planner 11-17 s.
+Proposal: a HopProposal travel family: on a long leg, on the ground at >= 12 u/s with a straight route ahead, jump and hold full
+forward along the route in the air, no top until the approach (stopping law / cluster cap unchanged); judged by the exact forecast
+(landing checked), end cost crediting route speed. Expected +6-10 a round average (TreasureBox/Duplex/Cube/Sprawl ~1.5 s a leg,
+Bowl all travel). Not built; waiting for the operator.
+
+## 2026-11-25/26 WHOLE-GROUP RL CONTROLLER PILOT (another agent 11-25; closed 11-26): NOT PROMOTED
+
+A learned policy drove the first 8 s of a gem group (or until it cleared), then a fresh production planner finished a 20 s
+window; scored against the planner alone on 20 development windows over the ten maps (gate about +10 pct). Code: nav/group_policy.py,
+tools/sim_bench/group_env.py, group_rl.py, test_group_rl.py (uncommitted). Six PPO runs V1-V6 plus warm-start variants, all on 11-25.
+Every points screen landed at 5.65-7.35 points a window vs the planner's 13.65, every map interval below zero; final V6 (4.096M
+steps, screened 11-26) 6.80, difference -6.85 [-8.60, -4.80], 14 falls vs 0, zero groups cleared in the control interval vs 10.
+The policy finishes near-complete groups (18/20 from half a second out) but fails full approaches (0/20 development, 3/160 training).
+Stopped under the protocol's own stop rule; the planner stays the default. Two simulator Mega corrections from this work remain in
+hunt_world.py / script_forecast.py; KEPT by the operator 11-27. Operator 11-27: all other pilot code and the report folder DELETED;
+code, protocol and screen summaries archived in C:/Users/doug/pq_archive/group_rl_pilot_2026-11-25.zip (MANIFEST.txt). ml_agent/tools/__init__.py
+KEPT: YOLOX (c:/yolox, easy-install.pth, installed 11-19) ships its own tools package, which shadows ml_agent/tools without it.

@@ -244,7 +244,15 @@ def respawned_dynamics(dynamics, position, clock_ms):
     held_type = int(inv.get('held_type', held) or held)
     st['held'] = 0
     if inv:
-        inv['held_type'] = 0; inv['mega_active'] = False; inv['mega_left_ms'] = 0; inv['use_latched'] = False
+        permanent = bool(inv.get('permanent_mega'))
+        if inv.get('mega_active') and not permanent:
+            # clearInventoryPowerups -> setMegaMarble(false) restores the
+            # normal body, not just its inventory flag. Recorded Cragmire
+            # Mega fall 2991: radius .6666 -> .18975, normal physics profile.
+            st['radius'] = float(np.float32(inv['normal_radius']))
+            st['parameters'] = dict(st['parameters'], **{
+                k: float(np.float32(v)) for k, v in inv['normal_parameters'].items()})
+        inv['held_type'] = 0; inv['mega_active'] = permanent; inv['mega_left_ms'] = 0; inv['use_latched'] = False
         if held_type:
             inv['restore_type'] = held_type; inv['restore_left_ms'] = POWERUP_DELAY_MS - 64
         else:

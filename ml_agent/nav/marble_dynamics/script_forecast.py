@@ -258,7 +258,10 @@ def forecast_items(engine, dynamics, actions):
     inv = dynamics.get('inventory') or {}
     if inv.get('restore_type', 0) and inv.get('restore_left_ms', -1) >= 0:
         return predict_events(engine, dynamics, actions, model_mega=getattr(engine, 'mega_enabled', False))
-    if getattr(engine, 'mega_enabled', False) and (inv.get('held_type') == 6 or inv.get('mega_active')):
+    if getattr(engine, 'mega_enabled', False) and (inv.get('held_type') == 6 or inv.get('mega_active')
+                                                 or any(k.startswith('_mega_') for k in inv)):
+        # Expiry can leave a delayed shrink impulse in the following reply,
+        # after mega_active is already false. Keep processing that callback.
         return predict_events(engine, dynamics, actions, model_mega=True)
     result = predict_replies(engine, dynamics, actions, stop_on_ambiguity=False)
     if result['failure']:
